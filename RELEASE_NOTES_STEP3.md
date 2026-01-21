@@ -2,7 +2,7 @@
 
 **Date:** 2026-01-21
 **Status:** ✅ Production-ready
-**Key commits:** 1d2790c, 7d940d6, 094a7b2, 85f5931
+**Key commits:** 1d2790c, 7d940d6, 094a7b2, c34cafb, 85f5931, c4033f3
 
 ---
 
@@ -24,11 +24,11 @@
 
 - **Fixed migration dependencies**: Corrected 0002_annotation migration to properly depend on exams.0003_copy_workflow_fields.
 
-### Validation & Storage (7d940d6)
+### Validation & Storage (7d940d6, c34cafb)
 
 - **Storage-agnostic PDF flattener**: Refactored `PDFFlattener` to use `NamedTemporaryFile` instead of hardcoded `MEDIA_ROOT` paths. Now compatible with S3/MinIO/GCS without code changes.
 
-- **Runtime P0 validation proof**: Created `scripts/test_etape3_p0_validation_simple.sh` proving all 4 invariants (w=0 rejected, overflow rejected, page_index bounds checked, PATCH validation with candidate values).
+- **Runtime P0 validation proof** (c34cafb): Created `scripts/test_etape3_p0_validation_simple.sh` proving all 4 invariants (w=0 rejected, overflow rejected, page_index bounds checked, PATCH validation with candidate values).
 
 - **Page index validation**: Added `validate_page_index()` with dynamic page count from booklets' `pages_images` arrays. Prevents annotations on non-existent pages.
 
@@ -84,5 +84,13 @@ git ls-files | grep -E "^backend/media/" && echo "FAIL" || echo "OK"
 
 ---
 
+## Documentation (c4033f3)
+
+Comprehensive technical documentation added:
+- `.claude/ETAPE_3_ANNOTATION_GRADING.md`: Implementation details, ADR references, known limitations
+- `RELEASE_NOTES_STEP3.md`: This file
+- `scripts/README.md`: Runtime test instructions with container restart warning
+
+---
+
 **Maintainer:** Claude Sonnet 4.5
-**Documentation:** See `.claude/ETAPE_3_ANNOTATION_GRADING.md` for technical details
