@@ -54,11 +54,16 @@ class AnnotationService:
     def validate_page_index(copy, page_index: int) -> None:
         """
         Valide que page_index est dans [0, nb_pages-1].
+        Accepte les int-like (str, float) et les normalise.
         """
         if page_index is None:
             raise ValueError("page_index is required")
-        if not isinstance(page_index, int):
-            raise ValueError("page_index must be an integer")
+
+        # Accepter int-like et normaliser
+        try:
+            page_index = int(page_index)
+        except (TypeError, ValueError):
+            raise ValueError("page_index must be an integer or convertible to int")
 
         total_pages = AnnotationService._count_total_pages(copy)
         if total_pages <= 0:
