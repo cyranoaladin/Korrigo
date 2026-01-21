@@ -4,6 +4,7 @@ Conforme ADR-002 (coordonnées normalisées [0,1]).
 """
 import fitz  # PyMuPDF
 import os
+from tempfile import NamedTemporaryFile
 from django.conf import settings
 from django.core.files import File
 from grading.models import Annotation
@@ -74,20 +75,18 @@ class PDFFlattener:
         # Ajouter page de synthèse
         self._add_summary_page(doc, copy)
 
-        # Sauvegarder le PDF
+        # Sauvegarder le PDF dans un fichier temporaire (storage-agnostic)
         output_filename = f"copy_{copy.id}_corrected.pdf"
-        output_path = settings.MEDIA_ROOT / "copies" / "final" / output_filename
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        doc.save(str(output_path))
-        doc.close()
+        with NamedTemporaryFile(suffix=".pdf") as tmp:
+            doc.save(tmp.name)
+            doc.close()
 
-        # Mettre à jour copy.final_pdf
-        with open(str(output_path), 'rb') as pdf_file:
-            copy.final_pdf.save(output_filename, File(pdf_file), save=False)
-        copy.save()
+            tmp.seek(0)
+            copy.final_pdf.save(output_filename, File(tmp), save=False)
+            copy.save()
 
-        logger.info(f"Copy {copy.id} flattened successfully: copies/final/{output_filename}")
+        logger.info(f"Copy {copy.id} flattened successfully: {copy.final_pdf.name}")
 
     def _draw_annotations_on_page(self, page, annotations, page_width, page_height):
         """

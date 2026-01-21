@@ -26,15 +26,24 @@ class AnnotationSerializer(serializers.ModelSerializer):
     def validate(self, data):
         """
         Validation globale : coordonnées [0, 1] et page_index >= 0.
+        Validation stricte des rectangles (ADR-002).
         """
-        # Validation coordonnées ADR-002
-        for coord_name in ['x', 'y', 'w', 'h']:
-            if coord_name in data:
-                coord_value = data[coord_name]
-                if not (0 <= coord_value <= 1):
-                    raise serializers.ValidationError(
-                        {coord_name: f"{coord_name} must be in [0, 1], got {coord_value}"}
-                    )
+        # Si toutes les coordonnées sont présentes (POST ou PATCH complet)
+        coords = ['x', 'y', 'w', 'h']
+        if all(k in data for k in coords):
+            x, y, w, h = data['x'], data['y'], data['w'], data['h']
+
+            # Bornes individuelles
+            if not (0 <= x <= 1 and 0 <= y <= 1):
+                raise serializers.ValidationError("x and y must be in [0,1]")
+            if not (0 < w <= 1 and 0 < h <= 1):
+                raise serializers.ValidationError("w and h must be in (0,1]")
+
+            # Bornes du rectangle
+            if x + w > 1:
+                raise serializers.ValidationError("x + w must be <= 1")
+            if y + h > 1:
+                raise serializers.ValidationError("y + h must be <= 1")
 
         # Validation page_index
         if 'page_index' in data and data['page_index'] < 0:
