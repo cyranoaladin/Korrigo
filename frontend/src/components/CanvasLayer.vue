@@ -1,32 +1,90 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 
 const props = defineProps({
-  width: { type: Number, required: true },
-  height: { type: Number, required: true },
-  scale: { type: Number, required: true },
-  initialAnnotations: { type: Array, default: () => [] }
+  width: { type: Number, required: true }, // CSS width
+  height: { type: Number, required: true }, // CSS height
+  scale: { type: Number, default: 1.0 }, // Used for line width calculation
+  initialAnnotations: { type: Array, default: () => [] },
+  enabled: { type: Boolean, default: true }
 })
 
-const emit = defineEmits(['update-annotations'])
+const emit = defineEmits(['annotation-created'])
 
 const canvasRef = ref(null)
 const isDrawing = ref(false)
-const currentPath = ref([])
-const annotations = ref([...props.initialAnnotations])
+const startPos = ref({ x: 0, y: 0 })
+const currentRect = ref(null)
 
-// Drawing context
-let ctx = null
+const dpr = window.devicePixelRatio || 1
+
+// Dimensions in device pixels
+const canvasWidth = computed(() => Math.round(props.width * dpr))
+const canvasHeight = computed(() => Math.round(props.height * dpr))
+
+const setupCanvas = () => {
+    const canvas = canvasRef.value
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+
+    // Reset transform to identity before applying scale
+    ctx.resetTransform()
+    ctx.scale(dpr, dpr)
+    
+    // Line styles
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    
+    redraw(ctx)
+}
+
+const redraw = (ctx) => {
+    if (!canvasRef.value) return
+    if (!ctx) ctx = canvasRef.value.getContext('2d')
+    
+    // Clear in logical CSS pixels
+    ctx.clearRect(0, 0, props.width, props.height)
+
+    // Draw existing annotations
+    props.initialAnnotations.forEach(ann => {
+        const rx = ann.x * props.width
+        const ry = ann.y * props.height
+        const rw = ann.w * props.width
+        const rh = ann.h * props.height
+
+        ctx.strokeStyle = '#007bff' // Blue
+        ctx.lineWidth = 2 // Constant screen width
+        ctx.setLineDash([])
+        ctx.strokeRect(rx, ry, rw, rh)
+        
+        ctx.fillStyle = 'rgba(0, 123, 255, 0.1)'
+        ctx.fillRect(rx, ry, rw, rh)
+        
+        if (ann.type) {
+             ctx.fillStyle = '#007bff'
+             ctx.font = 'bold 12px sans-serif'
+             ctx.fillText(ann.type, rx, ry - 4)
+        }
+    })
+
+    // Draw current drag rect
+    if (currentRect.value) {
+        ctx.strokeStyle = '#dc3545' // Red
+        ctx.lineWidth = 2
+        ctx.setLineDash([5, 3])
+        ctx.strokeRect(currentRect.value.x, currentRect.value.y, currentRect.value.w, currentRect.value.h)
+        ctx.setLineDash([])
+    }
+}
+
+// Watchers
+watch(
+    [() => props.width, () => props.height, () => props.scale, () => props.initialAnnotations], 
+    () =>  requestAnimationFrame(() => setupCanvas())
+)
 
 onMounted(() => {
-  const canvas = canvasRef.value
-  ctx = canvas.getContext('2d')
-  ctx.strokeStyle = 'red'
-  ctx.lineWidth = 2 * props.scale
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-  
-  redraw()
+    setupCanvas()
 })
 
 const getCoords = (e) => {
@@ -38,55 +96,69 @@ const getCoords = (e) => {
 }
 
 const startDrawing = (e) => {
+  if (!props.enabled) return
   isDrawing.value = true
   const coords = getCoords(e)
-  currentPath.value = [coords]
-  
-  ctx.beginPath()
-  ctx.moveTo(coords.x, coords.y)
+  startPos.value = coords
+  currentRect.value = { x: coords.x, y: coords.y, w: 0, h: 0 }
+  requestAnimationFrame(() => redraw())
 }
 
 const draw = (e) => {
   if (!isDrawing.value) return
   const coords = getCoords(e)
-  currentPath.value.push(coords)
   
-  ctx.lineTo(coords.x, coords.y)
-  ctx.stroke()
+  const w = coords.x - startPos.value.x
+  const h = coords.y - startPos.value.y
+  
+  currentRect.value = {
+      x: startPos.value.x,
+      y: startPos.value.y,
+      w: w,
+      h: h
+  }
+  requestAnimationFrame(() => redraw())
 }
 
 const stopDrawing = () => {
   if (!isDrawing.value) return
   isDrawing.value = false
-  ctx.closePath()
   
-  // Save vector data relative to canvas dimensions (normalized 0-1?) 
-  // OR absolute coords. Specification asks for {x,y}. 
-  // Let's keep absolute for MVP simplicity, assume consistent resolution.
-  
-  if (currentPath.value.length > 1) {
-    annotations.value.push({
-      type: 'path',
-      color: 'red',
-      points: [...currentPath.value]
-    })
-    emit('update-annotations', annotations.value)
+  // Normalize and Emit
+  if (currentRect.value && Math.abs(currentRect.value.w) > 5 && Math.abs(currentRect.value.h) > 5) {
+      let x = currentRect.value.x
+      let y = currentRect.value.y
+      let w = currentRect.value.w
+      let h = currentRect.value.h
+      
+      // Handle negative dims
+      if (w < 0) { x += w; w = Math.abs(w); }
+      if (h < 0) { y += h; h = Math.abs(h); }
+      
+      const normalized = {
+          x: x / props.width,
+          y: y / props.height,
+          w: w / props.width,
+          h: h / props.height
+      }
+      
+      emit('annotation-created', normalized)
   }
+  currentRect.value = null
+  requestAnimationFrame(() => redraw())
 }
-
-const redraw = () => {
-    // Logic to redraw existing annotations from props.initialAnnotations
-    // Not implemented fully for MVP step, but critical for loading saved state.
-}
-
 </script>
 
 <template>
   <canvas 
     ref="canvasRef"
-    :width="width"
-    :height="height"
-    class="canvas-layer"
+    :width="canvasWidth"
+    :height="canvasHeight"
+    :style="{ 
+        width: width + 'px', 
+        height: height + 'px',
+    }"
+    :class="{ 'canvas-layer': true, 'disabled': !enabled }"
     @mousedown="startDrawing"
     @mousemove="draw"
     @mouseup="stopDrawing"
@@ -99,9 +171,13 @@ const redraw = () => {
   position: absolute;
   top: 0;
   left: 0;
-  /* Critical constraint: Transparent background */
-  background: transparent; 
+  z-index: 10;
+  touch-action: none;
   cursor: crosshair;
-  /* Ensure it matches strict dimensions of PDF underneath */
+  pointer-events: auto;
+}
+.canvas-layer.disabled {
+    cursor: not-allowed;
+    pointer-events: none;
 }
 </style>

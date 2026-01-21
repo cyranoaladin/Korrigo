@@ -1,4 +1,4 @@
-django>=5.0
+django>=4.2,<5.0
 djangorestframework
 opencv-python-headless
 pdf2image
@@ -15,3 +15,5 @@ dj-database-url
 pytest~=8.0
 pytest-django~=4.8
 pytest-cov~=4.1
+numpy<2.0.0
+tenacity<9.0.0

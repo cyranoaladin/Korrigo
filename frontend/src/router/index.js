@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/auth'
 import Login from '../views/Login.vue'
 import AdminDashboard from '../views/AdminDashboard.vue'
 import CorrectorDashboard from '../views/CorrectorDashboard.vue'
+import ImportCopies from '../views/admin/ImportCopies.vue'
 // Import existing views if needed, e.g. StagingArea, etc., or route via dashboards
 
 const routes = [
@@ -21,6 +22,18 @@ const routes = [
         path: '/corrector-dashboard',
         name: 'CorrectorDashboard',
         component: CorrectorDashboard,
+        meta: { requiresAuth: true, role: 'Teacher' }
+    },
+    {
+        path: '/corrector/import',
+        name: 'ImportCopies',
+        component: ImportCopies,
+        meta: { requiresAuth: true, role: 'Teacher' }
+    },
+    {
+        path: '/corrector/desk/:copyId',
+        name: 'CorrectorDesk',
+        component: () => import('../views/admin/CorrectorDesk.vue'),
         meta: { requiresAuth: true, role: 'Teacher' }
     },
     {

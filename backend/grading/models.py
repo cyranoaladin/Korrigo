@@ -89,13 +89,18 @@ class GradingEvent(models.Model):
     """
     Journal d'audit des événements de correction.
     Traçabilité complète du workflow (ADR-003).
+    Includes Audit Trail for all major actions (IMPORT, ANNOTATE, etc.)
     """
     class Action(models.TextChoices):
+        IMPORT = 'IMPORT', _("Import Copie")
         VALIDATE = 'VALIDATE', _("Validation (STAGING→READY)")
         LOCK = 'LOCK', _("Verrouillage (READY→LOCKED)")
         UNLOCK = 'UNLOCK', _("Déverrouillage (LOCKED→READY)")
-        GRADE = 'GRADE', _("Notation en cours")
+        CREATE_ANN = 'CREATE_ANN', _("Création Annotation")
+        UPDATE_ANN = 'UPDATE_ANN', _("Modification Annotation")
+        DELETE_ANN = 'DELETE_ANN', _("Suppression Annotation")
         FINALIZE = 'FINALIZE', _("Finalisation (LOCKED→GRADED)")
+        EXPORT = 'EXPORT', _("Export PDF")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     copy = models.ForeignKey(

@@ -9,7 +9,8 @@ from grading.views import (
     CopyUnlockView,
     CopyFinalizeView,
     CopyReadyView,
-    CopyFinalPdfView
+    CopyFinalPdfView,
+    CopyAuditView
 )
 
 urlpatterns = [
@@ -23,4 +24,7 @@ urlpatterns = [
     path('copies/<uuid:id>/unlock/', CopyUnlockView.as_view(), name='copy-unlock'),
     path('copies/<uuid:id>/finalize/', CopyFinalizeView.as_view(), name='copy-finalize'),
     path('copies/<uuid:id>/final-pdf/', CopyFinalPdfView.as_view(), name='copy-final-pdf'),
+    
+    # Audit
+    path('copies/<uuid:id>/audit/', CopyAuditView.as_view(), name='copy-audit'),
 ]

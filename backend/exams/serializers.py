@@ -7,7 +7,12 @@ class BookletSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Booklet
-        fields = ['id', 'start_page', 'end_page', 'header_image', 'header_image_url', 'student_name_guess']
+        fields = [
+            'id', 'start_page', 'end_page', 
+            'pages_images', # REQUIRED for CorrectorDesk.vue
+            'header_image', 'header_image_url', 'student_name_guess'
+        ]
+        read_only_fields = ['pages_images']
 
     def get_header_image_url(self, obj):
         request = self.context.get('request')
@@ -83,4 +88,11 @@ class CopySerializer(serializers.ModelSerializer):
 
     def get_booklet_ids(self, obj):
         return list(obj.booklets.values_list('id', flat=True))
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Include full booklet data for frontend pages computation
+        # BookletSerializer is already defined above, no need for inline import
+        representation['booklets'] = BookletSerializer(instance.booklets.all(), many=True, context=self.context).data
+        return representation
 

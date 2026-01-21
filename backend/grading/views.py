@@ -1,73 +1,41 @@
-"""
-Views pour l'app grading.
-Tous les endpoints sont protégés par IsTeacherOrAdmin (staff only).
-"""
-import logging
 from rest_framework import generics, status
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from django.http import FileResponse
-
-from exams.permissions import IsTeacherOrAdmin
-from grading.models import Annotation
-from grading.serializers import AnnotationSerializer
-from grading.services import AnnotationService, GradingService
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from .models import Annotation, GradingEvent
 from exams.models import Copy
+from .serializers import AnnotationSerializer, GradingEventSerializer
+from exams.permissions import IsTeacherOrAdmin
+from django.shortcuts import get_object_or_404
+from grading.services import GradingService, AnnotationService
+import logging
 
 logger = logging.getLogger(__name__)
 
 
-def _handle_service_error(e: Exception, context: str = "unknown") -> Response:
+def _handle_service_error(e, context="API"):
     """
-    Convertit une exception métier en Response HTTP standardisée.
-    - ValueError → 400 avec {"detail": "<message>"}
-    - KeyError → 400 avec {"detail": "Missing required field: <field>"}
-    - PermissionError → 403 avec {"detail": "<message>"}
-    - Autre exception → relance (raise) pour traitement par _handle_unexpected_error
+    Formate les erreurs du service layer (ValueError, etc.) en réponses HTTP 400.
     """
-    if isinstance(e, ValueError):
-        logger.warning("Service error (%s): %s", context, str(e))
-        return Response(
-            {'detail': str(e)},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    elif isinstance(e, KeyError):
-        field = e.args[0] if e.args else str(e)
-        logger.info("Missing field (%s): %s", context, field)
-        return Response(
-            {'detail': f'Missing required field: {field}'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    elif isinstance(e, PermissionError):
-        logger.warning("Permission denied (%s): %s", context, str(e))
-        return Response(
-            {'detail': str(e)},
-            status=status.HTTP_403_FORBIDDEN
-        )
-    else:
-        # Ne gère pas les exceptions inattendues : relance
-        raise
+    logger.warning(f"{context} Service Error: {e}")
+    return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-
-def _handle_unexpected_error(e: Exception, context: str = "unknown") -> Response:
+def _handle_unexpected_error(e, context="API"):
     """
-    Gère une exception inattendue (non métier).
-    Log complet côté serveur + message générique au client.
+    Formate les erreurs inattendues en réponses HTTP 500 et log.
     """
-    logger.exception("Unexpected error (%s)", context)
+    logger.error(f"{context} Unexpected Error: {e}", exc_info=True)
     return Response(
-        {'detail': 'Internal server error'},
+        {"detail": "An unexpected error occurred. Please contact support."},
         status=status.HTTP_500_INTERNAL_SERVER_ERROR
     )
 
 
 class AnnotationListCreateView(generics.ListCreateAPIView):
     """
-    GET  /api/copies/<copy_id>/annotations/ - Liste les annotations d'une copie
-    POST /api/copies/<copy_id>/annotations/ - Crée une annotation (si READY)
-
-    Permission : IsTeacherOrAdmin (staff only)
+    GET: Liste les annotations d'une copie.
+    POST: Crée une annotation sur une copie (si READY).
+    Permission: IsTeacherOrAdmin
     """
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = AnnotationSerializer
@@ -80,7 +48,7 @@ class AnnotationListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         copy_id = self.kwargs['copy_id']
         copy = get_object_or_404(Copy, id=copy_id)
-
+        
         try:
             annotation = AnnotationService.add_annotation(
                 copy=copy,
@@ -89,7 +57,7 @@ class AnnotationListCreateView(generics.ListCreateAPIView):
             )
             serializer = self.get_serializer(annotation)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except (ValueError, KeyError, PermissionError) as e:
+        except (ValueError, KeyError) as e:
             return _handle_service_error(e, context="AnnotationListCreateView.create")
         except Exception as e:
             return _handle_unexpected_error(e, context="AnnotationListCreateView.create")
@@ -109,7 +77,14 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def update(self, request, *args, **kwargs):
         annotation = self.get_object()
-        partial = kwargs.pop('partial', True)  # PATCH par défaut
+        # Not using kwargs.pop('partial') because we pass payload directly
+        
+        # Check permissions logic (Owner or Admin for non-admins)?
+        # For P0.2: Teacher ne peut pas DELETE annotation d’un autre.
+        # But here we are in update.
+        if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
+             if annotation.created_by != request.user:
+                 return Response({"detail": "You do not have permission to edit this annotation."}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             updated = AnnotationService.update_annotation(
@@ -126,8 +101,15 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         annotation = self.get_object()
+        
+        # Permission check: Teacher cannot delete others' annotations
+        if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
+             if annotation.created_by != request.user:
+                 return Response({"detail": "You do not have permission to delete this annotation."}, status=status.HTTP_403_FORBIDDEN)
+        
         try:
             AnnotationService.delete_annotation(annotation, request.user)
+            # 204 No Content is standard
             return Response(status=status.HTTP_204_NO_CONTENT)
         except (ValueError, KeyError, PermissionError) as e:
             return _handle_service_error(e, context="AnnotationDetailView.destroy")
@@ -135,151 +117,92 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
             return _handle_unexpected_error(e, context="AnnotationDetailView.destroy")
 
 
-class CopyLockView(APIView):
-    """
-    POST /api/copies/<id>/lock/
-
-    Verrouille une copie pour correction (READY → LOCKED).
-    Permission : IsTeacherOrAdmin (staff only)
-    """
-    permission_classes = [IsTeacherOrAdmin]
-
-    def post(self, request, id):
-        copy = get_object_or_404(Copy, id=id)
-        try:
-            GradingService.lock_copy(copy, request.user)
-            return Response(
-                {
-                    'message': 'Copy locked successfully',
-                    'copy_id': str(copy.id),
-                    'status': copy.status,
-                    'locked_by': request.user.username
-                },
-                status=status.HTTP_200_OK
-            )
-        except (ValueError, KeyError, PermissionError) as e:
-            return _handle_service_error(e, context="CopyLockView.post")
-        except Exception as e:
-            return _handle_unexpected_error(e, context="CopyLockView.post")
-
-
-class CopyUnlockView(APIView):
-    """
-    POST /api/copies/<id>/unlock/
-
-    Déverrouille une copie (LOCKED → READY).
-    Permission : IsTeacherOrAdmin (staff only)
-    """
-    permission_classes = [IsTeacherOrAdmin]
-
-    def post(self, request, id):
-        copy = get_object_or_404(Copy, id=id)
-        try:
-            GradingService.unlock_copy(copy, request.user)
-            return Response(
-                {
-                    'message': 'Copy unlocked successfully',
-                    'copy_id': str(copy.id),
-                    'status': copy.status
-                },
-                status=status.HTTP_200_OK
-            )
-        except (ValueError, KeyError, PermissionError) as e:
-            return _handle_service_error(e, context="CopyUnlockView.post")
-        except Exception as e:
-            return _handle_unexpected_error(e, context="CopyUnlockView.post")
-
-
-class CopyFinalizeView(APIView):
-    """
-    POST /api/copies/<id>/finalize/
-
-    Finalise la correction d'une copie (LOCKED → GRADED).
-    Génère le PDF final avec annotations.
-    Permission : IsTeacherOrAdmin (staff only)
-    """
-    permission_classes = [IsTeacherOrAdmin]
-
-    def post(self, request, id):
-        copy = get_object_or_404(Copy, id=id)
-        try:
-            GradingService.finalize_copy(copy, request.user)
-
-            # Calcul score final pour la réponse (protégé dans le try)
-            final_score = GradingService.compute_score(copy)
-
-            return Response(
-                {
-                    'message': 'Copy finalized successfully',
-                    'copy_id': str(copy.id),
-                    'status': copy.status,
-                    'final_score': final_score,
-                    'final_pdf': copy.final_pdf.url if copy.final_pdf else None
-                },
-                status=status.HTTP_200_OK
-            )
-        except (ValueError, KeyError, PermissionError) as e:
-            return _handle_service_error(e, context="CopyFinalizeView.post")
-        except Exception as e:
-            return _handle_unexpected_error(e, context="CopyFinalizeView.post")
-
-
 class CopyReadyView(APIView):
-    """
-    POST /api/copies/<id>/ready/
-
-    Valide une copie et la rend prête à corriger (STAGING → READY).
-    Permission : IsTeacherOrAdmin (staff only)
-    """
     permission_classes = [IsTeacherOrAdmin]
-
     def post(self, request, id):
         copy = get_object_or_404(Copy, id=id)
         try:
             GradingService.ready_copy(copy, request.user)
-            return Response(
-                {
-                    'message': 'Copy marked as ready successfully',
-                    'copy_id': str(copy.id),
-                    'status': copy.status
-                },
-                status=status.HTTP_200_OK
-            )
-        except (ValueError, KeyError, PermissionError) as e:
-            return _handle_service_error(e, context="CopyReadyView.post")
-        except Exception as e:
-            return _handle_unexpected_error(e, context="CopyReadyView.post")
+            return Response({"status": copy.status})
+        except ValueError as e:
+            return _handle_service_error(e)
+
+class CopyLockView(APIView):
+    permission_classes = [IsTeacherOrAdmin]
+    def post(self, request, id):
+        copy = get_object_or_404(Copy, id=id)
+        # Check if already locked by someone else?
+        # Service handles status check. Assuming concurrent locking is rare or last-write-wins is acceptable for MVP.
+        # Ideally check if locked_by is None.
+        try:
+            GradingService.lock_copy(copy, request.user)
+            return Response({"status": copy.status})
+        except ValueError as e:
+            return _handle_service_error(e)
+
+class CopyUnlockView(APIView):
+    permission_classes = [IsTeacherOrAdmin]
+    def post(self, request, id):
+        copy = get_object_or_404(Copy, id=id)
+        # Check permissions: Can only unlock if you locked it OR you are admin?
+        # P0.2 Requirement: "Teacher ne peut pas unlock si non autorisé."
+        # If I locked it, I can unlock it. If I'm admin, I can unlock anyone.
+        if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
+             if copy.locked_by and copy.locked_by != request.user:
+                 return Response({"detail": "Locked by another user."}, status=status.HTTP_403_FORBIDDEN)
+                 
+        try:
+            GradingService.unlock_copy(copy, request.user)
+            return Response({"status": copy.status})
+        except ValueError as e:
+            return _handle_service_error(e)
+
+class CopyFinalizeView(APIView):
+    permission_classes = [IsTeacherOrAdmin]
+    def post(self, request, id):
+        copy = get_object_or_404(Copy, id=id)
+        try:
+            GradingService.finalize_copy(copy, request.user)
+            return Response({"status": copy.status})
+        except ValueError as e:
+            return _handle_service_error(e)
 
 
 class CopyFinalPdfView(APIView):
-    """
-    GET /api/copies/<id>/final-pdf/
-
-    Télécharge le PDF corrigé final.
-    Permission : IsTeacherOrAdmin (staff only)
-    """
     permission_classes = [IsTeacherOrAdmin]
-
+    
     def get(self, request, id):
         copy = get_object_or_404(Copy, id=id)
 
+        # SECURITY: Ensure copy is GRADED or user is Admin
+        if copy.status != Copy.Status.GRADED:
+             # Check if Admin (assuming 'role' field or is_superuser)
+             is_admin = request.user.is_superuser or getattr(request.user, 'role', '') == 'Admin'
+             if not is_admin:
+                 return Response(
+                     {'detail': 'Final PDF is only available when copy is GRADED.'},
+                     status=status.HTTP_403_FORBIDDEN
+                 )
         if not copy.final_pdf:
-            return Response(
-                {'detail': 'Final PDF not available for this copy'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"detail": "No final PDF available."}, status=status.HTTP_404_NOT_FOUND)
+            
+        from django.http import FileResponse
+        response = FileResponse(copy.final_pdf.open('rb'), content_type='application/pdf')
+        filename = f"copy_{copy.anonymous_id}_corrected.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 
-        try:
-            # Open the file from Django storage (works with S3/local)
-            pdf_file = copy.final_pdf.open('rb')
-            response = FileResponse(pdf_file, content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="copy_{copy.id}_corrected.pdf"'
-            return response
-        except FileNotFoundError:
-            logger.warning("Final PDF file not found for copy %s", copy.id)
-            return Response(
-                {'detail': 'Final PDF file not found on storage'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except Exception as e:
-            return _handle_unexpected_error(e, context="CopyFinalPdfView.get")
+
+class CopyAuditView(generics.ListAPIView):
+    """
+    GET /api/copies/<uuid>/audit/
+    Retourne l'historique des actions (GradingEvents).
+    """
+    permission_classes = [IsTeacherOrAdmin]
+    serializer_class = GradingEventSerializer
+
+    def get_queryset(self):
+        copy_id = self.kwargs['id']
+        # Verify copy exists
+        get_object_or_404(Copy, id=copy_id)
+        return GradingEvent.objects.filter(copy_id=copy_id).select_related('actor').order_by('-timestamp')
