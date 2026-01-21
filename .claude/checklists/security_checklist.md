@@ -192,6 +192,157 @@ Cette section DOIT être validée à 100% avant tout déploiement ou développem
 
 ---
 
+## 0.6 Étape 3 - Backend Annotation & Grading (Testé)
+
+**Statut** : ✅ COMPLÉTÉ (2026-01-21)
+**Référence** : `.claude/ETAPE_3_ANNOTATION_GRADING.md`
+
+### Modèles Implémentés
+
+- [x] Annotation (refactor complet ADR-002)
+  - ✅ Coordonnées normalisées [0,1] : x, y, w, h
+  - ✅ page_index (0-based) au lieu de page_number
+  - ✅ content, type (enum), score_delta, created_by
+  - ✅ Suppression vector_data et page_number
+  - 📅 Migration 0002: 2026-01-21 11:04 UTC
+
+- [x] GradingEvent (nouveau modèle audit log)
+  - ✅ Actions: VALIDATE, LOCK, UNLOCK, GRADE, FINALIZE
+  - ✅ Traçabilité: copy, actor, timestamp, metadata
+  - 📅 Migration 0002: 2026-01-21 11:04 UTC
+
+- [x] Score (supprimé - redondant avec score_delta)
+  - ✅ Migration 0002: Suppression complète
+  - 📅 Applied: 2026-01-21 11:04 UTC
+
+- [x] Copy (traçabilité ajoutée)
+  - ✅ validated_at, locked_at, locked_by, graded_at
+  - 📅 Migration 0005: 2026-01-21 11:04 UTC
+
+### Services Métier
+
+- [x] AnnotationService
+  - ✅ add_annotation(copy, payload, user) : READY uniquement
+  - ✅ update_annotation() : READY uniquement
+  - ✅ delete_annotation() : READY uniquement
+  - ✅ list_annotations() : tous statuts
+  - ✅ validate_coordinates([0,1]) : ADR-002
+  - 📅 Runtime proof: 2026-01-21 11:06 UTC
+
+- [x] GradingService
+  - ✅ compute_score(copy) : somme score_delta
+  - ✅ validate_copy() : STAGING → READY
+  - ✅ lock_copy() : READY → LOCKED
+  - ✅ unlock_copy() : LOCKED → READY
+  - ✅ finalize_copy() : LOCKED → GRADED + PDF
+  - 📅 Runtime proof: 2026-01-21 11:06 UTC
+
+### Endpoints Testés (IsTeacherOrAdmin)
+
+- [x] GET /api/copies/<copy_id>/annotations/
+  - ✅ Liste annotations d'une copie
+  - 📅 Proof captured: 2026-01-21 11:06 UTC
+
+- [x] POST /api/copies/<copy_id>/annotations/
+  - ✅ Crée annotation si READY → HTTP 201
+  - ✅ Refus si STAGING/LOCKED/GRADED → HTTP 400
+  - 📅 Proof captured: 2026-01-21 11:06 UTC
+
+- [x] PATCH /api/annotations/<id>/
+  - ✅ Modifie annotation si READY → HTTP 200
+  - ✅ Refus si LOCKED/GRADED → HTTP 400
+  - 📅 Proof captured: 2026-01-21 11:06 UTC
+
+- [x] DELETE /api/annotations/<id>/
+  - ✅ Supprime annotation si READY → HTTP 204
+  - ✅ Refus si LOCKED/GRADED → HTTP 400
+  - 📅 Proof captured: 2026-01-21 11:06 UTC
+
+- [x] POST /api/copies/<id>/lock/
+  - ✅ READY → LOCKED → HTTP 200
+  - 📅 Proof captured: 2026-01-21 11:06 UTC
+
+- [x] POST /api/copies/<id>/unlock/
+  - ✅ LOCKED → READY → HTTP 200
+  - 📅 Proof captured: 2026-01-21 11:06 UTC
+
+- [x] POST /api/copies/<id>/finalize/
+  - ✅ LOCKED → GRADED + PDF généré → HTTP 200
+  - ✅ final_score calculé et retourné
+  - 📅 Proof captured: 2026-01-21 11:06 UTC
+
+### Permissions
+
+- [x] IsTeacherOrAdmin (nouveau)
+  - ✅ Appliqué sur TOUS les endpoints Étape 3
+  - ✅ Vérifie: is_authenticated AND is_staff
+  - ✅ Aucun accès élève
+  - 📅 Tested: 2026-01-21 11:06 UTC
+
+### Machine d'État (ADR-003)
+
+- [x] STAGING → aucune annotation autorisée
+  - ✅ Création refusée → HTTP 400
+  - 📅 Test 2 passed: 2026-01-21 11:06 UTC
+
+- [x] READY → annotations autorisées
+  - ✅ Création/modification/suppression OK
+  - 📅 Test 1, 5b passed: 2026-01-21 11:06 UTC
+
+- [x] LOCKED → lecture seule
+  - ✅ Modification refusée → HTTP 400
+  - 📅 Test 4 passed: 2026-01-21 11:06 UTC
+
+- [x] GRADED → lecture seule + immutable
+  - ✅ Modification refusée → HTTP 400
+  - 📅 Test 6b passed: 2026-01-21 11:06 UTC
+
+### PDFFlattener Adapté (ADR-002)
+
+- [x] Lecture annotations via x, y, w, h (au lieu de vector_data)
+  - ✅ Dénormalisation: x_pdf = x * page_width
+  - 📅 Tested: 2026-01-21 11:06 UTC
+
+- [x] Utilisation page_index 0-based
+  - ✅ Au lieu de page_number 1-based
+  - 📅 Tested: 2026-01-21 11:06 UTC
+
+- [x] Dessin annotations avec couleurs par type
+  - ✅ COMMENT: Bleu, ERROR: Rouge, BONUS: Vert, HIGHLIGHT: Jaune
+  - 📅 Tested: 2026-01-21 11:06 UTC
+
+- [x] Page de synthèse avec score total
+  - ✅ Détail par annotation + score_delta
+  - ✅ Score total calculé
+  - 📅 Tested: 2026-01-21 11:06 UTC
+
+### Tests Runtime (6 OBLIGATOIRES)
+
+**User**: admin (staff)
+**Date**: 2026-01-21 11:06 UTC
+
+- [x] Test 1: Créer annotation READY → 201 Created
+- [x] Test 2: Créer annotation STAGING → 400 Bad Request
+- [x] Test 3: Lock READY → 200 + status LOCKED
+- [x] Test 4: Modifier LOCKED → 400 Bad Request
+- [x] Test 5: Unlock + modifier → 200 OK
+- [x] Test 6: Finalize + modifier GRADED → 400 Bad Request
+
+**Résultat**: 6/6 tests passés ✅
+
+### Invariants Validés
+
+- [x] Coordonnées [0,1] : validation stricte avant création
+- [x] Machine d'état : transitions strictes (ValueError si invalide)
+- [x] LOCKED = lecture seule pour annotations
+- [x] Traçabilité : GradingEvent créé à chaque transition
+- [x] Atomicité : @transaction.atomic sur tous services
+- [x] Permissions : IsTeacherOrAdmin sur tous endpoints
+
+**📌 Note** : Étape 3 complète, backend annotation & grading fonctionnel. Prochaine étape selon cahier.
+
+---
+
 ## 1. Authentification et Autorisation
 
 ### Django Backend

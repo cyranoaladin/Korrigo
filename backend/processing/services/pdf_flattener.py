@@ -1,128 +1,80 @@
+"""
+Service pour générer le PDF final avec annotations.
+Conforme ADR-002 (coordonnées normalisées [0,1]).
+"""
 import fitz  # PyMuPDF
 import os
 from django.conf import settings
-from grading.models import Annotation, Score
+from django.core.files import File
+from grading.models import Annotation
 from exams.models import Copy
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PDFFlattener:
     """
     Service pour aplatir les annotations et générer le rendu final du PDF.
+    Étape 3 : Conforme ADR-002 (coordonnées normalisées).
     """
-
-    def float_or_zero(self, val):
-        try:
-           return float(val)
-        except:
-           return 0.0
 
     def flatten_copy(self, copy: Copy):
         """
         Génère un PDF final pour la copie donnée.
         1. Crée un nouveau PDF.
-        2. Ajoute chaque page (image) du fascicule.
-        3. Dessine les traits rouges (Annotations).
-        4. Ajoute une page de garde avec le tableau des notes.
+        2. Ajoute chaque page (image PNG) du fascicule.
+        3. Dessine les annotations avec dénormalisation coordonnées (ADR-002).
+        4. Ajoute une page de synthèse avec scores.
         5. Sauvegarde et met à jour copy.final_pdf.
+
+        NOTE: Le statut de la copy est géré par GradingService.finalize_copy(),
+        pas ici (respect de la séparation des responsabilités).
         """
-        
         doc = fitz.open()
-        
-        # 0. Récupérer les images des pages.
-        # copy.booklets est ManyToMany. Pour MVP on suppose 1 seul booklet ou on les concatène.
-        # On itère sur les booklets assignés.
+
+        # Récupérer les images des pages
         all_pages_images = []
         for booklet in copy.booklets.all().order_by('start_page'):
             if booklet.pages_images:
-                 all_pages_images.extend(booklet.pages_images)
-        
-        # S'assurer d'avoir des images
-        if not all_pages_images:
-            # Fallback ou erreur. Pour MVP on skip si vide.
-            print(f"Copy {copy.id} has no pages to flatten.")
-            return
+                all_pages_images.extend(booklet.pages_images)
 
-        # 1. & 2. Ajouter pages et dessiner
-        # Charger les annotations
-        annotations = list(copy.annotations.all())
-        
-        # Échelle: Le PDF créé à partir d'une image prend la dimension de l'image.
-        # CanvasLayer enregistre des coordonnées pixels par rapport à l'image affichée.
-        # Si on affiche l'image brute, coordonnée canvas = coordonnée image (si scale 1).
-        # On a passé `pdfDimensions` au CanvasLayer.
-        # Supposons que les annotations sont stockées en coordonnées absolues de l'image source.
-        # Si ce n'est pas le cas, il faudra une conversion.
-        # Hypothèse MVP: Frontend envoie coords relatives à la résolution d'affichage (ex: width=800).
-        # Backend doit savoir quelle était cette résolution ou normaliser (0-1).
-        # Pour ce MVP, on va assumer que l'image insérée fait la même taille que le canvas ou scaler.
-        
-        for idx, img_path in enumerate(all_pages_images):
-            # img_path est relatif ou absolu ? `pages_images` stocke quoi ?
-            # `Splitter` retourne des chemins ou des bytes ?
-            # Dans `Splitter` (placeholder), on n'a pas défini le stockage.
-            # Supposons que ce sont des chemins absolus ou relatifs à MEDIA_ROOT.
+        if not all_pages_images:
+            logger.warning(f"Copy {copy.id} has no pages to flatten.")
+            raise ValueError("No pages found to flatten")
+
+        # Charger toutes les annotations
+        annotations = list(copy.annotations.all().order_by('page_index'))
+
+        # Traiter chaque page
+        for page_idx, img_path in enumerate(all_pages_images):
+            # Construire chemin complet
             full_path = str(settings.MEDIA_ROOT / img_path) if not img_path.startswith('/') else img_path
-            
+
             if not os.path.exists(full_path):
+                logger.warning(f"Image not found: {full_path}")
                 continue
-                
+
+            # Ouvrir l'image et la convertir en page PDF
             img = fitz.open(full_path)
             rect = img[0].rect
             pdfbytes = img.convert_to_pdf()
             img.close()
-            
-            img_pdf = fitz.open("pdf", pdfbytes)
-            page = doc.new_page(width = rect.width, height = rect.height)
-            page.show_pdf_page(rect, img_pdf, 0)
-            
-            # Dessiner les annotations pour cette page (idx + 1 car page_number est souvent 1-based)
-            page_annotations = [a for a in annotations if a.page_number == idx + 1]
-            
-            shape = page.new_shape()
-            shape.draw_rect(rect) # Context ?
-            
-            # CanvasLayer saves: [{type: 'path', color: 'red', points: [{x,y}, {x,y}]}]
-            for annot in page_annotations:
-                data = annot.vector_data
-                # data est une liste d'objets path
-                if isinstance(data, list):
-                   for item in data:
-                       if item.get('type') == 'path' and 'points' in item:
-                           points = item['points']
-                           if len(points) > 1:
-                               # Start path
-                               p0 = points[0]
-                               shape.draw_line(fitz.Point(p0['x'], p0['y']), fitz.Point(p0['x'], p0['y'])) # Start point
-                               # Il faut faire un moveTo, lineTo. fitz Shape API:
-                               # finish() non, draw_polyline
-                               pd_points = [fitz.Point(p['x'], p['y']) for p in points]
-                               shape.draw_polyline(pd_points)
-                               shape.finish(color=(1, 0, 0), width=2) # Red stroke
-            
-            shape.commit()
 
-        # 3. Page de garde (Summary)
-        summary_page = doc.new_page(width=595, height=842) # A4
-        text_writer = fitz.TextWriter(summary_page.rect)
-        
-        # Titre
-        text_writer.append(fitz.Point(50, 50), "Relevé de Notes", fontsize=24)
-        
-        # Récupérer les scores
-        score_obj = copy.scores.first()
-        scores_data = score_obj.scores_data if score_obj else {}
-        
-        y = 100
-        total = 0
-        for key, val in scores_data.items():
-            val_float = self.float_or_zero(val)
-            total += val_float
-            text_writer.append(fitz.Point(50, y), f"{key} : {val_float}", fontsize=12)
-            y += 20
-        
-        text_writer.append(fitz.Point(50, y + 20), f"TOTAL : {total}", fontsize=16)
-        text_writer.write_text(summary_page)
-        
-        # 4. Sauvegarder
+            img_pdf = fitz.open("pdf", pdfbytes)
+            page = doc.new_page(width=rect.width, height=rect.height)
+            page.show_pdf_page(rect, img_pdf, 0)
+
+            # Filtrer annotations pour cette page (page_index 0-based)
+            page_annotations = [a for a in annotations if a.page_index == page_idx]
+
+            if page_annotations:
+                self._draw_annotations_on_page(page, page_annotations, rect.width, rect.height)
+
+        # Ajouter page de synthèse
+        self._add_summary_page(doc, copy)
+
+        # Sauvegarder le PDF
         output_filename = f"copy_{copy.id}_corrected.pdf"
         output_path = settings.MEDIA_ROOT / "corrected" / output_filename
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -130,15 +82,125 @@ class PDFFlattener:
         doc.save(str(output_path))
         doc.close()
 
-        # 5. Mettre à jour copy.final_pdf
-        from django.core.files import File
-        relative_path = f"corrected/{output_filename}"
-
+        # Mettre à jour copy.final_pdf
         with open(str(output_path), 'rb') as pdf_file:
             copy.final_pdf.save(output_filename, File(pdf_file), save=False)
-
-        copy.status = Copy.Status.GRADED
         copy.save()
 
-        print(f"Copy {copy.id} flattened successfully: {relative_path}")
+        logger.info(f"Copy {copy.id} flattened successfully: corrected/{output_filename}")
 
+    def _draw_annotations_on_page(self, page, annotations, page_width, page_height):
+        """
+        Dessine les annotations sur une page PDF.
+        Dénormalise les coordonnées [0,1] → coordonnées PDF (ADR-002).
+        """
+        shape = page.new_shape()
+
+        for annot in annotations:
+            # Dénormalisation ADR-002
+            x_pdf = annot.x * page_width
+            y_pdf = annot.y * page_height
+            w_pdf = annot.w * page_width
+            h_pdf = annot.h * page_height
+
+            # Couleur selon type
+            color = self._get_annotation_color(annot.type)
+
+            # Dessiner rectangle d'annotation
+            rect = fitz.Rect(x_pdf, y_pdf, x_pdf + w_pdf, y_pdf + h_pdf)
+            shape.draw_rect(rect)
+            shape.finish(color=color, width=2, dashes="[3 3]")  # Pointillé
+
+            # Ajouter texte si content non vide
+            if annot.content:
+                # Position texte légèrement décalée
+                text_point = fitz.Point(x_pdf + 5, y_pdf - 5 if y_pdf > 20 else y_pdf + h_pdf + 15)
+                # Limiter longueur du texte affiché
+                display_text = annot.content[:50] + "..." if len(annot.content) > 50 else annot.content
+                shape.insert_text(text_point, display_text, fontsize=10, color=color)
+
+            # Ajouter score_delta si présent
+            if annot.score_delta is not None:
+                score_text = f"{annot.score_delta:+d}"  # Format +5 ou -3
+                score_point = fitz.Point(x_pdf + w_pdf - 20, y_pdf + 15)
+                shape.insert_text(score_point, score_text, fontsize=12, color=(1, 0, 0))
+
+        shape.commit()
+
+    def _get_annotation_color(self, annotation_type):
+        """
+        Retourne la couleur RGB selon le type d'annotation.
+        """
+        colors = {
+            Annotation.Type.COMMENT: (0, 0, 1),      # Bleu
+            Annotation.Type.HIGHLIGHT: (1, 1, 0),    # Jaune
+            Annotation.Type.ERROR: (1, 0, 0),        # Rouge
+            Annotation.Type.BONUS: (0, 0.5, 0),      # Vert
+        }
+        return colors.get(annotation_type, (0, 0, 0))  # Noir par défaut
+
+    def _add_summary_page(self, doc, copy):
+        """
+        Ajoute une page de synthèse avec le score total et les détails.
+        """
+        summary_page = doc.new_page(width=595, height=842)  # A4
+        text_writer = fitz.TextWriter(summary_page.rect)
+
+        # Titre
+        text_writer.append(fitz.Point(50, 50), "Relevé de Notes", fontsize=24)
+        text_writer.append(
+            fitz.Point(50, 80),
+            f"Copie : {copy.anonymous_id}",
+            fontsize=14
+        )
+
+        # Récupérer toutes les annotations avec score_delta
+        annotations_with_score = copy.annotations.filter(
+            score_delta__isnull=False
+        ).order_by('page_index')
+
+        y = 120
+        total_score = 0
+
+        # Détail par annotation
+        if annotations_with_score.exists():
+            text_writer.append(fitz.Point(50, y), "Détail des points :", fontsize=14)
+            y += 30
+
+            for annot in annotations_with_score:
+                score = annot.score_delta
+                total_score += score
+                score_str = f"{score:+d}"  # Format +5 ou -3
+
+                # Limiter le texte affiché
+                display_content = annot.content[:40] + "..." if len(annot.content) > 40 else annot.content
+                line = f"Page {annot.page_index + 1} : {score_str} pts"
+                if display_content:
+                    line += f" ({display_content})"
+
+                text_writer.append(fitz.Point(60, y), line, fontsize=11)
+                y += 20
+
+                # Nouvelle page si débordement
+                if y > 800:
+                    text_writer.write_text(summary_page)
+                    summary_page = doc.new_page(width=595, height=842)
+                    text_writer = fitz.TextWriter(summary_page.rect)
+                    y = 50
+        else:
+            text_writer.append(
+                fitz.Point(50, y),
+                "Aucune annotation avec score.",
+                fontsize=12
+            )
+            y += 30
+
+        # Total
+        y += 20
+        text_writer.append(
+            fitz.Point(50, y),
+            f"SCORE TOTAL : {total_score} points",
+            fontsize=18
+        )
+
+        text_writer.write_text(summary_page)
