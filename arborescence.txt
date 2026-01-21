@@ -1,0 +1,66 @@
+.
+├── arborescence.txt
+├── backend
+│   ├── core
+│   │   ├── celery.py
+│   │   ├── __init__.py
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   └── wsgi.py
+│   ├── db.sqlite3
+│   ├── Dockerfile
+│   ├── exams
+│   │   ├── __init__.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_booklet_pages_images_exam_grading_structure.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── grading
+│   │   ├── __init__.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   └── __init__.py
+│   │   └── models.py
+│   ├── manage.py
+│   ├── processing
+│   │   ├── __init__.py
+│   │   └── services
+│   │       ├── __init__.py
+│   │       ├── pdf_flattener.py
+│   │       ├── splitter.py
+│   │       └── vision.py
+│   └── requirements.txt
+├── docker-compose.yml
+├── dummy.pdf
+├── frontend
+│   ├── Dockerfile
+│   ├── index.html
+│   ├── package.json
+│   ├── src
+│   │   ├── App.vue
+│   │   ├── components
+│   │   │   ├── CanvasLayer.vue
+│   │   │   ├── GradingScaleBuilder.vue
+│   │   │   ├── GradingSidebar.vue
+│   │   │   └── PDFViewer.vue
+│   │   ├── main.js
+│   │   ├── stores
+│   │   │   └── examStore.js
+│   │   └── views
+│   │       ├── CorrectorDesk.vue
+│   │       ├── Dashboard.vue
+│   │       ├── ExamEditor.vue
+│   │       └── StagingArea.vue
+│   └── vite.config.js
+├── Makefile
+├── nginx
+├── README.md
+├── SPEC.md
+└── test_e2e.py
+
+15 directories, 49 files

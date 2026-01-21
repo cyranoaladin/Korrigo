@@ -1,0 +1,13 @@
+django>=5.0
+djangorestframework
+opencv-python-headless
+pdf2image
+psycopg2-binary
+celery
+redis
+django-cors-headers
+python-dotenv
+gunicorn
+PyMuPDF
+dj-database-url
+# Add other dependencies as needed

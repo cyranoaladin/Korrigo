@@ -1,0 +1,305 @@
+from rest_framework import viewsets, status, generics
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext_lazy as _
+from .models import Exam, Booklet, Copy
+from .serializers import ExamSerializer, BookletSerializer, CopySerializer
+from processing.services.vision import HeaderDetector
+
+import fitz  # PyMuPDF
+
+class ExamUploadView(APIView):
+    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, *args, **kwargs):
+        serializer = ExamSerializer(data=request.data)
+        if serializer.is_valid():
+            exam = serializer.save()
+
+            # REAL-TIME PROCESSING using PDFSplitter
+            try:
+                from processing.services.pdf_splitter import PDFSplitter
+
+                splitter = PDFSplitter(pages_per_booklet=4, dpi=150)
+                booklets = splitter.split_exam(exam)
+
+                # Créer les copies en statut STAGING (ADR-003)
+                import uuid
+                import logging
+                logger = logging.getLogger(__name__)
+
+                for booklet in booklets:
+                    copy = Copy.objects.create(
+                        exam=exam,
+                        anonymous_id=str(uuid.uuid4())[:8].upper(),
+                        status=Copy.Status.STAGING,
+                        is_identified=False
+                    )
+                    copy.booklets.add(booklet)
+
+                    logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
+
+                return Response({
+                    **serializer.data,
+                    "booklets_created": len(booklets),
+                    "message": f"{len(booklets)} booklets created successfully"
+                }, status=status.HTTP_201_CREATED)
+
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error processing PDF: {e}", exc_info=True)
+                return Response({
+                    "error": f"PDF processing failed: {str(e)}"
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class BookletListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    serializer_class = BookletSerializer
+
+    def get_queryset(self):
+        exam_id = self.kwargs['exam_id']
+        return Booklet.objects.filter(exam_id=exam_id).order_by('start_page')
+
+class ExamListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    queryset = Exam.objects.all().order_by('-date')
+    serializer_class = ExamSerializer
+
+class BookletHeaderView(APIView):
+    """
+    Serves the header crop of a booklet on-the-fly.
+    """
+    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+
+    def get(self, request, id):
+        booklet = get_object_or_404(Booklet, id=id)
+        if not booklet.exam.pdf_source:
+             return Response({"error": "No PDF source found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            doc = fitz.open(booklet.exam.pdf_source.path)
+            # Pages are 0-indexed in fitz, 1-indexed in DB
+            page_index = booklet.start_page - 1
+            
+            if page_index < 0 or page_index >= doc.page_count:
+                return Response({"error": "Page out of range"}, status=status.HTTP_404_NOT_FOUND)
+                
+            page = doc.load_page(page_index)
+            
+            # Crop Header (Top 20%)
+            rect = page.rect
+            rect.y1 *= 0.2
+            
+            # Render to Pixmap
+            pix = page.get_pixmap(clip=rect, dpi=150) # 150 DPI for reasonable quality/speed
+            img_data = pix.tobytes("png")
+            
+            from django.http import HttpResponse
+            return HttpResponse(img_data, content_type="image/png")
+            
+        except Exception as e:
+            print(f"Error rendering header: {e}")
+            return Response({"error": "Rendering failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ExamDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    queryset = Exam.objects.all()
+    serializer_class = ExamSerializer
+    lookup_field = 'id'
+
+
+class CopyListView(generics.ListAPIView):
+    """
+    Liste les copies d'un examen.
+    """
+    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    serializer_class = CopySerializer
+
+    def get_queryset(self):
+        exam_id = self.kwargs['exam_id']
+        return Copy.objects.filter(exam_id=exam_id).order_by('anonymous_id')
+
+
+class MergeBookletsView(APIView):
+    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+
+    def post(self, request, exam_id):
+        booklet_ids = request.data.get('booklet_ids', [])
+        if not booklet_ids:
+            return Response(
+                {"error": _("Aucun fascicule sélectionné.")}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        booklets = Booklet.objects.filter(id__in=booklet_ids, exam_id=exam_id)
+        if len(booklets) != len(booklet_ids):
+             return Response(
+                {"error": _("Certains fascicules sont introuvables ou ne correspondent pas à cet examen.")}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Logic: Create Copy -> Assign Booklets
+        # Since Copy <-> Booklet relationship is via Booklet.assigned_copy (ManyToMany defined in Copy),
+        # we create the Copy and add booklets.
+        
+        # Generate generic anonymous ID
+        import uuid
+        anon_id = str(uuid.uuid4())[:8].upper()
+        
+        copy = Copy.objects.create(
+            exam_id=exam_id,
+            anonymous_id=anon_id,
+            status=Copy.Status.READY
+        )
+        
+        copy.booklets.set(booklets)
+        copy.save()
+        
+        return Response(
+            {"message": _("Copie créée avec succès."), "copy_id": copy.id, "anonymous_id": copy.anonymous_id},
+            status=status.HTTP_201_CREATED
+        )
+
+class ExportAllView(APIView):
+    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+
+    def post(self, request, id):
+        exam = get_object_or_404(Exam, id=id)
+        # Trigger processing (Sync for MVP)
+        from processing.services.pdf_flattener import PDFFlattener
+        flattener = PDFFlattener()
+
+        copies = exam.copies.all()
+        # Verify related name in Copy model: exam = ForeignKey(Exam) -> default copy_set
+
+        count = 0
+        for copy in copies:
+             flattener.flatten_copy(copy)
+             count += 1
+
+        return Response({"message": f"{count} copies traitées."}, status=status.HTTP_200_OK)
+
+class CSVExportView(APIView):
+    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+
+    def get(self, request, id):
+        import csv
+        from django.http import HttpResponse
+        
+        exam = get_object_or_404(Exam, id=id)
+        copies = exam.copies.all()
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="exam_{id}_results.csv"'
+        
+        writer = csv.writer(response)
+        
+        # Dynamic Header based on Grading Structure?
+        # For simplicity, we dump just Total and the raw JSON keys present in the first copy
+        # Better: iterate all possible keys from exam.grading_structure if possible.
+        # MVP: AnonymousID, Total, JSON_Scores
+        
+        header = ['AnonymousID', 'Total']
+        # Attempt to find all keys
+        all_keys = set()
+        for c in copies:
+            if c.scores.exists():
+                all_keys.update(c.scores.first().scores_data.keys())
+        sorted_keys = sorted(list(all_keys))
+        header.extend(sorted_keys)
+        
+        writer.writerow(header)
+        
+        for c in copies:
+            score_obj = c.scores.first()
+            data = score_obj.scores_data if score_obj else {}
+            
+            # Calculate total
+            total = sum(float(v) for v in data.values() if v)
+            
+            row = [c.anonymous_id, total]
+            for k in sorted_keys:
+                row.append(data.get(k, ''))
+            writer.writerow(row)
+            
+        return response
+
+class CopyIdentificationView(APIView):
+    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+
+    def post(self, request, id):
+        # Mission 17: Identify Copy
+        from students.models import Student
+
+        copy = get_object_or_404(Copy, id=id)
+        student_id = request.data.get('student_id')
+
+        if not student_id:
+            return Response({"error": "Student ID required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        student = get_object_or_404(Student, id=student_id)
+
+        copy.student = student
+        copy.is_identified = True
+        copy.save()
+
+        return Response({"message": "Identification successful"}, status=status.HTTP_200_OK)
+
+class UnidentifiedCopiesView(APIView):
+    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+
+    def get(self, request, id):
+        # Mission 18: List unidentified copies for Video-Coding
+        # Mission 21 Update: Use dynamic header URL
+        copies = Copy.objects.filter(exam_id=id, is_identified=False)
+        data = []
+        for c in copies:
+            booklet = c.booklets.order_by('start_page').first()
+            header_url = None
+            if booklet:
+                # Dynamic URL
+                header_url = f"/api/booklets/{booklet.id}/header/"
+            
+            data.append({
+                "id": c.id,
+                "anonymous_id": c.anonymous_id,
+                "header_image_url": header_url,
+                "status": c.status
+            })
+        return Response(data)
+
+class StudentCopiesView(generics.ListAPIView):
+    from .permissions import IsStudent
+    permission_classes = [IsStudent]
+    
+    def get_queryset(self):
+        student_id = self.request.session.get('student_id')
+        if not student_id:
+            return Copy.objects.none()
+        return Copy.objects.filter(student=student_id, status=Copy.Status.GRADED)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        data = []
+        for copy in queryset:
+            score_obj = copy.scores.first()
+            scores_data = score_obj.scores_data if score_obj else {}
+            total_score = sum(float(v) for v in scores_data.values() if v)
+            
+            data.append({
+                "id": copy.id,
+                "exam_name": copy.exam.name,
+                "date": copy.exam.date,
+                "total_score": total_score,
+                "status": copy.status,
+                "final_pdf_url": copy.final_pdf.url if copy.final_pdf else None,
+                "scores_details": scores_data
+            })
+        return Response(data)
