@@ -10,4 +10,8 @@ python-dotenv
 gunicorn
 PyMuPDF
 dj-database-url
-# Add other dependencies as needed
+
+# Testing
+pytest~=8.0
+pytest-django~=4.8
+pytest-cov~=4.1
