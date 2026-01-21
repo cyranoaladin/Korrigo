@@ -17,43 +17,44 @@ from exams.models import Copy
 logger = logging.getLogger(__name__)
 
 
-def _handle_service_error(e: Exception) -> Response:
+def _handle_service_error(e: Exception, context: str = "unknown") -> Response:
     """
     Convertit une exception métier en Response HTTP standardisée.
     - ValueError → 400 avec {"detail": "<message>"}
     - KeyError → 400 avec {"detail": "Missing required field: <field>"}
     - PermissionError → 403 avec {"detail": "<message>"}
+    - Autre exception → relance (raise) pour traitement par _handle_unexpected_error
     """
     if isinstance(e, ValueError):
-        logger.warning("ValueError in service layer: %s", str(e))
+        logger.warning("Service error (%s): %s", context, str(e))
         return Response(
             {'detail': str(e)},
             status=status.HTTP_400_BAD_REQUEST
         )
     elif isinstance(e, KeyError):
         field = e.args[0] if e.args else str(e)
-        logger.warning("KeyError in service layer: %s", field)
+        logger.info("Missing field (%s): %s", context, field)
         return Response(
             {'detail': f'Missing required field: {field}'},
             status=status.HTTP_400_BAD_REQUEST
         )
     elif isinstance(e, PermissionError):
-        logger.warning("PermissionError in service layer: %s", str(e))
+        logger.warning("Permission denied (%s): %s", context, str(e))
         return Response(
             {'detail': str(e)},
             status=status.HTTP_403_FORBIDDEN
         )
     else:
-        # Fallback (ne devrait pas arriver si appelé correctement)
-        return _handle_unexpected_error(e)
+        # Ne gère pas les exceptions inattendues : relance
+        raise
 
 
-def _handle_unexpected_error(e: Exception) -> Response:
+def _handle_unexpected_error(e: Exception, context: str = "unknown") -> Response:
     """
     Gère une exception inattendue (non métier).
     Log complet côté serveur + message générique au client.
     """
-    logger.exception("Unexpected error in grading views")
+    logger.exception("Unexpected error (%s)", context)
     return Response(
         {'detail': 'Internal server error'},
         status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -88,9 +89,9 @@ class AnnotationListCreateView(generics.ListCreateAPIView):
             serializer = self.get_serializer(annotation)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (ValueError, KeyError, PermissionError) as e:
-            return _handle_service_error(e)
+            return _handle_service_error(e, context="AnnotationListCreateView.create")
         except Exception as e:
-            return _handle_unexpected_error(e)
+            return _handle_unexpected_error(e, context="AnnotationListCreateView.create")
 
 
 class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -118,9 +119,9 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
             serializer = self.get_serializer(updated)
             return Response(serializer.data)
         except (ValueError, KeyError, PermissionError) as e:
-            return _handle_service_error(e)
+            return _handle_service_error(e, context="AnnotationDetailView.update")
         except Exception as e:
-            return _handle_unexpected_error(e)
+            return _handle_unexpected_error(e, context="AnnotationDetailView.update")
 
     def destroy(self, request, *args, **kwargs):
         annotation = self.get_object()
@@ -128,9 +129,9 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
             AnnotationService.delete_annotation(annotation, request.user)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except (ValueError, KeyError, PermissionError) as e:
-            return _handle_service_error(e)
+            return _handle_service_error(e, context="AnnotationDetailView.destroy")
         except Exception as e:
-            return _handle_unexpected_error(e)
+            return _handle_unexpected_error(e, context="AnnotationDetailView.destroy")
 
 
 class CopyLockView(APIView):
@@ -156,9 +157,9 @@ class CopyLockView(APIView):
                 status=status.HTTP_200_OK
             )
         except (ValueError, KeyError, PermissionError) as e:
-            return _handle_service_error(e)
+            return _handle_service_error(e, context="CopyLockView.post")
         except Exception as e:
-            return _handle_unexpected_error(e)
+            return _handle_unexpected_error(e, context="CopyLockView.post")
 
 
 class CopyUnlockView(APIView):
@@ -183,9 +184,9 @@ class CopyUnlockView(APIView):
                 status=status.HTTP_200_OK
             )
         except (ValueError, KeyError, PermissionError) as e:
-            return _handle_service_error(e)
+            return _handle_service_error(e, context="CopyUnlockView.post")
         except Exception as e:
-            return _handle_unexpected_error(e)
+            return _handle_unexpected_error(e, context="CopyUnlockView.post")
 
 
 class CopyFinalizeView(APIView):
@@ -217,6 +218,6 @@ class CopyFinalizeView(APIView):
                 status=status.HTTP_200_OK
             )
         except (ValueError, KeyError, PermissionError) as e:
-            return _handle_service_error(e)
+            return _handle_service_error(e, context="CopyFinalizeView.post")
         except Exception as e:
-            return _handle_unexpected_error(e)
+            return _handle_unexpected_error(e, context="CopyFinalizeView.post")
