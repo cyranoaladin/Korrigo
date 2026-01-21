@@ -22,20 +22,49 @@ class AnnotationService:
     """
 
     @staticmethod
-    def validate_coordinates(x, y, w, h):
+    def validate_coordinates(x: float, y: float, w: float, h: float) -> None:
         """
         Valide que les coordonnées sont dans [0, 1] (ADR-002).
+        Garantit aussi que le rectangle reste dans les bornes.
         """
-        if not (0 <= x <= 1 and 0 <= y <= 1 and 0 <= w <= 1 and 0 <= h <= 1):
-            raise ValueError("Coordinates must be in [0, 1]")
+        # Bornes individuelles
+        if not (0.0 <= x <= 1.0 and 0.0 <= y <= 1.0):
+            raise ValueError("x and y must be in [0, 1]")
+        if not (0.0 < w <= 1.0 and 0.0 < h <= 1.0):
+            raise ValueError("w and h must be in (0, 1]")
+        # Bornes du rectangle (ne doit pas déborder)
+        if x + w > 1.0:
+            raise ValueError("x + w must not exceed 1")
+        if y + h > 1.0:
+            raise ValueError("y + h must not exceed 1")
 
     @staticmethod
-    def validate_page_index(page_index):
+    def _count_total_pages(copy) -> int:
         """
-        Valide que page_index est >= 0.
+        Compte le nombre total de pages dans la copie.
+        Respecte l'ordre utilisé par PDFFlattener.
         """
-        if page_index < 0:
-            raise ValueError("page_index must be >= 0")
+        total = 0
+        for booklet in copy.booklets.all().order_by('start_page'):
+            if booklet.pages_images:
+                total += len(booklet.pages_images)
+        return total
+
+    @staticmethod
+    def validate_page_index(copy, page_index: int) -> None:
+        """
+        Valide que page_index est dans [0, nb_pages-1].
+        """
+        if page_index is None:
+            raise ValueError("page_index is required")
+        if not isinstance(page_index, int):
+            raise ValueError("page_index must be an integer")
+
+        total_pages = AnnotationService._count_total_pages(copy)
+        if total_pages <= 0:
+            raise ValueError("copy has no pages (pages_images empty)")
+        if page_index < 0 or page_index >= total_pages:
+            raise ValueError(f"page_index must be in [0, {total_pages - 1}]")
 
     @staticmethod
     @transaction.atomic
@@ -51,13 +80,13 @@ class AnnotationService:
                 f"Only READY copies can be annotated."
             )
 
+        # Validation page_index
+        AnnotationService.validate_page_index(copy, payload['page_index'])
+
         # Validation coordonnées ADR-002
         AnnotationService.validate_coordinates(
             payload['x'], payload['y'], payload['w'], payload['h']
         )
-
-        # Validation page_index
-        AnnotationService.validate_page_index(payload['page_index'])
 
         # Création annotation
         annotation = Annotation.objects.create(
@@ -94,8 +123,22 @@ class AnnotationService:
                 f"Only READY copies can have their annotations modified."
             )
 
+        # Construire les valeurs candidates (nouvelles ou anciennes)
+        x = float(payload.get('x', annotation.x))
+        y = float(payload.get('y', annotation.y))
+        w = float(payload.get('w', annotation.w))
+        h = float(payload.get('h', annotation.h))
+        page_index = payload.get('page_index', annotation.page_index)
+
+        # Revalider page_index si modifié
+        if 'page_index' in payload:
+            AnnotationService.validate_page_index(annotation.copy, int(page_index))
+
+        # Revalider coordonnées avec les nouvelles valeurs
+        AnnotationService.validate_coordinates(x, y, w, h)
+
         # Mise à jour champs autorisés
-        for field in ['content', 'score_delta', 'type']:
+        for field in ['x', 'y', 'w', 'h', 'page_index', 'content', 'score_delta', 'type']:
             if field in payload:
                 setattr(annotation, field, payload[field])
 
