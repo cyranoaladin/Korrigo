@@ -1,4 +1,4 @@
-# Generated manually for Étape 3
+# Generated for Étape 3 (corrected version)
 
 from django.conf import settings
 from django.db import migrations, models
@@ -73,6 +73,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name='gradingevent',
-            index=models.Index(fields=['copy', '-timestamp'], name='grading_gra_copy_id_c7a0e0_idx'),
+            index=models.Index(fields=['copy', 'timestamp'], name='grading_gra_copy_id_c7a0e0_idx'),
         ),
     ]
