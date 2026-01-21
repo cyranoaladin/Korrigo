@@ -137,7 +137,7 @@ STAGING ──validate──> READY ──lock──> LOCKED ──finalize─�
 
 ## Tests runtime
 
-### Script de validation P0
+### Script de validation P0 (coordonnées)
 
 ```bash
 ./scripts/test_etape3_p0_validation_simple.sh
@@ -149,6 +149,19 @@ STAGING ──validate──> READY ──lock──> LOCKED ──finalize─�
 3. ✅ `page_index` hors bornes rejeté avec 400
 4. ✅ PATCH partiel causant débordement rejeté avec 400
 
+### Script E2E Workflow
+
+```bash
+./scripts/test_etape3_workflow_e2e.sh
+```
+
+**Tests couverts :**
+1. ✅ STAGING → READY (validates booklets have pages)
+2. ✅ Create annotation on READY copy
+3. ✅ READY → LOCKED
+4. ✅ LOCKED → GRADED (finalize)
+5. ✅ Download final PDF (200 response, endpoint functional)
+
 **Prérequis :**
 - Backend up : `docker-compose up -d backend`
 - Migrations appliquées
@@ -158,7 +171,7 @@ STAGING ──validate──> READY ──lock──> LOCKED ──finalize─�
 ```bash
 docker-compose restart backend
 sleep 5
-./scripts/test_etape3_p0_validation_simple.sh
+./scripts/test_etape3_*.sh
 ```
 
 Sans redémarrage, le container utilise l'ancienne version du code (faux positifs/négatifs possibles).
@@ -181,23 +194,25 @@ Sans redémarrage, le container utilise l'ancienne version du code (faux positif
 
 | Méthode | Endpoint | Description | Permission |
 |---------|----------|-------------|------------|
+| POST | `/api/copies/<uuid>/ready/` | STAGING → READY (validates pages exist) | IsTeacherOrAdmin |
 | POST | `/api/copies/<uuid>/lock/` | READY → LOCKED | IsTeacherOrAdmin |
 | POST | `/api/copies/<uuid>/unlock/` | LOCKED → READY | IsTeacherOrAdmin |
 | POST | `/api/copies/<uuid>/finalize/` | LOCKED → GRADED + génère PDF | IsTeacherOrAdmin |
+| GET | `/api/copies/<uuid>/final-pdf/` | Download corrected PDF (FileResponse) | IsTeacherOrAdmin |
 
 ---
 
 ## Known Limitations / Next Steps
 
-1. **Pas de tests unitaires pytest** : Les validations sont prouvées par script bash/curl runtime uniquement. Recommandation : ajouter `tests/test_annotation_service.py` avec pytest-django.
+1. **Pas de tests unitaires pytest** : Les validations sont prouvées par script bash/curl runtime uniquement (scripts/test_etape3_*.sh). Recommandation : ajouter `tests/test_annotation_service.py` avec pytest-django pour coverage automatisé.
 
-2. **Aucun endpoint validate (STAGING→READY)** : La transition STAGING→READY n'est pas exposée en API (probablement gérée par le pipeline Étape 2). Si besoin UI, ajouter un endpoint `POST /api/copies/<uuid>/validate/`.
+2. **Finalize transaction strategy** : `finalize_copy()` est @transaction.atomic et inclut la génération PDF. En cas d'erreur PDF, la transaction DB est rollback (état cohérent), mais le fichier PDF temporaire peut rester sur le storage si Django storage a écrit avant l'erreur. Stratégie acceptable pour MVP : nettoyage manuel des fichiers orphelins si nécessaire. Alternative (non implémentée) : générer PDF hors transaction puis commit, mais risque inverse (Copy GRADED sans PDF si storage échoue).
 
-3. **Score calculation non protégé contre les erreurs DB** : `GradingService.compute_score()` fait une agrégation simple sans transaction. En cas d'erreur DB pendant l'agrégation, l'exception est loggée mais peut laisser la copy dans un état inconsistant.
+3. **Pas de soft-delete pour Annotation** : Une annotation supprimée est définitivement perdue (pas de flag `is_deleted`). Acceptable en MVP, mais envisager un audit trail plus robuste pour production.
 
-4. **Pas de soft-delete pour Annotation** : Une annotation supprimée est définitivement perdue (pas de flag `is_deleted`). Acceptable en MVP, mais envisager un audit trail plus robuste pour production.
+4. **Migration 0002 destructive** : Supprime les anciennes annotations (modèle pré-ADR-002). Si migration sur base existante, prévoir une sauvegarde ou script de conversion.
 
-5. **Migration 0002 destructive** : Supprime les anciennes annotations (modèle pré-ADR-002). Si migration sur base existante, prévoir une sauvegarde ou script de conversion.
+5. **PDF generation requires real page images** : PDFFlattener expects valid PNG/JPG paths in `booklets.pages_images`. E2E test creates fake paths, resulting in empty PDF (endpoint still responds correctly). Real workflow requires exam PDF upload + split.
 
 ---
 
