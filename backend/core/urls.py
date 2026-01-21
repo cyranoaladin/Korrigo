@@ -9,6 +9,7 @@ urlpatterns = [
     path('api/exams/', include('exams.urls')),
     path('api/copies/', include('exams.urls_copies')), # Mission 17
     path('api/students/', include('students.urls')), # Mission 18
+    path('api/', include('grading.urls')),  # Étape 3: Annotations & Grading
     path('api/login/', views.LoginView.as_view(), name='login'),
     path('api/logout/', views.LogoutView.as_view(), name='logout'),
     path('api/me/', views.UserDetailView.as_view(), name='user_detail'),

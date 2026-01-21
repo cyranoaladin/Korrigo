@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 import uuid
 from django.utils.translation import gettext_lazy as _
 
@@ -116,9 +117,37 @@ class Copy(models.Model):
         verbose_name=_("Élève identifié")
     )
     is_identified = models.BooleanField(
-        default=False, 
+        default=False,
         verbose_name=_("Identifié ?"),
         help_text=_("Vrai si la copie a été associée à un élève.")
+    )
+
+    # Traçabilité (ADR-003)
+    validated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Date de validation"),
+        help_text=_("Timestamp STAGING → READY")
+    )
+    locked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Date de verrouillage"),
+        help_text=_("Timestamp READY → LOCKED")
+    )
+    locked_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='locked_copies',
+        verbose_name=_("Verrouillé par")
+    )
+    graded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Date de notation"),
+        help_text=_("Timestamp LOCKED → GRADED")
     )
 
     class Meta:

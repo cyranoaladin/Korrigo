@@ -1,5 +1,15 @@
 from rest_framework import permissions
 
+
+class IsTeacherOrAdmin(permissions.BasePermission):
+    """
+    Allows access only to authenticated staff users (teachers or admins).
+    Used for all grading and annotation endpoints.
+    """
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.is_staff
+
+
 class IsStudent(permissions.BasePermission):
     """
     Allows access only to authenticated students via custom session.
