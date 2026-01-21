@@ -10,6 +10,8 @@ Ces règles de sécurité sont **absolument obligatoires**. Toute violation est 
 
 ### 1.1 Django REST Framework - Permissions
 
+#### 1.1.1 Default Deny Obligatoire (P0 - Baseline)
+
 **INTERDIT ABSOLUMENT** :
 ```python
 REST_FRAMEWORK = {
@@ -27,15 +29,46 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
-        # OU 'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
     ],
 }
 ```
+
+**Configuration Actuelle** (`backend/core/settings.py:82-92`) : ✅ CONFORME
+
+**Conséquence** : Tout endpoint DRF sans `permission_classes` explicite hérite de `IsAuthenticated`.
 
 **Règles** :
 - Permissions explicites sur **chaque ViewSet/APIView**
 - `AllowAny` uniquement si absolument nécessaire et documenté
 - Jamais `AllowAny` sur endpoints manipulant des données élèves/copies/notes
+
+**Endpoints Publics Autorisés** (liste exhaustive) :
+- ✅ `/api/auth/login/` - Authentification professeur/admin
+- ✅ `/api/students/login/` - Authentification élève (session custom)
+- ✅ `/api/students/logout/` - Logout élève (tolérant si session expirée)
+
+**Pattern Obligatoire pour Endpoints Publics** :
+```python
+from rest_framework.permissions import AllowAny
+
+class LoginView(APIView):
+    permission_classes = [AllowAny]  # ✅ Explicite et justifié par commentaire
+
+    def post(self, request):
+        # ... authentification
+```
+
+**Anti-Pattern Interdit** :
+```python
+class SensitiveDataView(APIView):
+    # ❌ INTERDIT - Pas de permission_classes déclaré
+    # Même si IsAuthenticated est hérité, c'est implicite et dangereux
+    def get(self, request):
+        return Response(Copy.objects.all())
+```
+
+**Tout autre endpoint public nécessite une justification explicite dans le code review.**
 
 ### 1.2 Permissions Custom Strictes
 
@@ -63,6 +96,164 @@ class CopyViewSet(viewsets.ModelViewSet):
 - Permissions au niveau view sans permission class
 - Vérifications de permissions dans la logique métier
 - Bypass de permissions via query parameters
+
+### 1.3 Settings Production : Validation Obligatoire (P0 - Baseline)
+
+**Règle** : Les settings critiques DOIVENT échouer en production si non configurés explicitement.
+
+#### 1.3.1 SECRET_KEY
+
+**INTERDIT** :
+```python
+SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-change-me")  # ❌ Fallback dangereux
+```
+
+**OBLIGATOIRE** (`backend/core/settings.py:7-13`) :
+```python
+# Security: No dangerous defaults in production
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    if os.environ.get("DJANGO_ENV") == "production":
+        raise ValueError("SECRET_KEY environment variable must be set in production")
+    # Development fallback only
+    SECRET_KEY = "django-insecure-dev-only-" + "x" * 50
+```
+
+**Configuration** : ✅ CONFORME
+
+**Comportement** :
+- **Production** (`DJANGO_ENV=production`) : Crash immédiat si `SECRET_KEY` non défini → ✅ Sécurisé
+- **Development** : Fallback temporaire accepté → ✅ Pratique
+
+**Anti-Pattern Interdit** :
+```python
+# ❌ INTERDIT - Fallback en dur sans validation
+SECRET_KEY = "my-secret-key-123"  # ❌ Secret en dur dans le code
+```
+
+#### 1.3.2 DEBUG
+
+**INTERDIT** :
+```python
+DEBUG = True  # ❌ Défaut non sécurisé
+DEBUG = os.environ.get("DEBUG", "True")  # ❌ Défaut True
+```
+
+**OBLIGATOIRE** (`backend/core/settings.py:15`) :
+```python
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+```
+
+**Configuration** : ✅ CONFORME
+
+**Comportement** :
+- **Défaut** : `False` (sécurisé)
+- **Activation** : Nécessite `DEBUG=true` explicite
+
+**Rationale** : En cas d'oubli de configuration, `DEBUG=False` est le défaut sécurisé.
+
+#### 1.3.3 ALLOWED_HOSTS
+
+**INTERDIT** :
+```python
+ALLOWED_HOSTS = ["*"]  # ❌ Accepte toutes les requêtes
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")  # ❌ Wildcard par défaut
+```
+
+**OBLIGATOIRE** (`backend/core/settings.py:17-20`) :
+```python
+# ALLOWED_HOSTS: Explicit configuration required
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+if "*" in ALLOWED_HOSTS and os.environ.get("DJANGO_ENV") == "production":
+    raise ValueError("ALLOWED_HOSTS cannot contain '*' in production")
+```
+
+**Configuration** : ✅ CONFORME
+
+**Comportement** :
+- **Défaut** : `localhost,127.0.0.1` (développement sécurisé)
+- **Production** : Crash si `*` présent → Force configuration explicite
+
+**Déploiement Production** :
+```bash
+# Obligatoire
+DJANGO_ENV=production
+ALLOWED_HOSTS=viatique.example.com,www.viatique.example.com
+```
+
+### 1.4 Cookies Secure : Configuration Conditionnelle (P0 - Baseline)
+
+**Règle** : Cookies `Secure` en production SSL, `Non-Secure` en développement local. **Pas de contradiction**.
+
+#### 1.4.1 Configuration Cohérente
+
+**INTERDIT** :
+```python
+# ❌ INTERDIT - Contradiction
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+# ... plus loin dans le fichier
+SESSION_COOKIE_SECURE = False  # ❌ Écrasement incohérent
+```
+
+**OBLIGATOIRE** (`backend/core/settings.py:33-60`) :
+```python
+if not DEBUG:
+    # Production Security Headers
+    if SSL_ENABLED:
+        SECURE_SSL_REDIRECT = True
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
+        SECURE_HSTS_SECONDS = 31536000
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+        SECURE_HSTS_PRELOAD = True
+        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+else:
+    # Development: Cookies not secure (HTTP localhost)
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+
+# Cookie SameSite (all environments)
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+```
+
+**Configuration** : ✅ CONFORME
+
+#### 1.4.2 Comportement selon Environnement
+
+| Environnement | DEBUG | SSL_ENABLED | SESSION_COOKIE_SECURE | CSRF_COOKIE_SECURE | HSTS |
+|---------------|-------|-------------|----------------------|-------------------|------|
+| **Dev Local** | True  | N/A         | False                | False             | Non  |
+| **Prod HTTPS** | False | True        | True                 | True              | Oui (1 an) |
+| **Prod HTTP** | False | False       | False                | False             | Non  |
+
+**Rationale** :
+- **Dev** : `http://localhost` → Cookies `Secure=False` obligatoire sinon navigateur rejette
+- **Prod SSL** : `https://` → Cookies `Secure=True` obligatoire pour sécurité
+- **Prod sans SSL** : Non recommandé mais possible (staging interne)
+
+#### 1.4.3 HSTS et Headers Sécurité
+
+**Obligatoire en Production SSL** :
+- `SECURE_HSTS_SECONDS = 31536000` (1 an)
+- `SECURE_HSTS_INCLUDE_SUBDOMAINS = True`
+- `SECURE_HSTS_PRELOAD = True`
+- `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')`
+
+**Rationale** : Force HTTPS pour tous les sous-domaines pendant 1 an après première visite.
+
+**Anti-Pattern** :
+```python
+# ❌ INTERDIT - HSTS trop court
+SECURE_HSTS_SECONDS = 3600  # 1h est insuffisant
+```
+
+**Note** : Une fois HSTS activé, impossible de revenir en HTTP pendant la durée configurée.
 
 ---
 

@@ -8,6 +8,190 @@ Cette checklist doit être utilisée pour auditer la sécurité du projet.
 
 ---
 
+## 0. Baseline Production (P0) - BLOQUANT
+
+**Statut** : ✅ COMPLÉTÉ (2026-01-21)
+**Référence** : `.claude/ETAPE_1_P0_BASELINE_SECURITY.md`
+
+Cette section DOIT être validée à 100% avant tout déploiement ou développement de features.
+
+### Settings Critiques
+
+- [x] `SECRET_KEY` : Pas de fallback dangereux en production
+  - ✅ `backend/core/settings.py:8-13` - Validation production obligatoire
+  - ✅ Crash si `DJANGO_ENV=production` et `SECRET_KEY` non défini
+  - ✅ Fallback dev uniquement (`django-insecure-dev-only-` + 50 chars)
+
+- [x] `DEBUG` : Défaut sécurisé = `False`
+  - ✅ `backend/core/settings.py:15` - Défaut `False`
+  - ✅ Activation explicite requise (`DEBUG=true`)
+
+- [x] `ALLOWED_HOSTS` : Pas de wildcard `*` en production
+  - ✅ `backend/core/settings.py:17-20` - Défaut `localhost,127.0.0.1`
+  - ✅ Crash si `*` en production (`DJANGO_ENV=production`)
+
+### REST Framework - Default Deny
+
+- [x] `DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]`
+  - ✅ `backend/core/settings.py:82-92` - Configuré
+  - ❌ Plus de `AllowAny` par défaut
+
+- [x] Tous les endpoints publics ont `permission_classes = [AllowAny]` explicite
+  - ✅ `/api/auth/login/` - `core/views.py:10`
+  - ✅ `/api/students/login/` - `students/views.py:10`
+  - ✅ `/api/students/logout/` - `students/views.py:30`
+
+- [x] Tous les autres endpoints ont permissions explicites
+  - ✅ 13 endpoints protégés `[IsAuthenticated]` (Teacher/Admin)
+  - ✅ 2 endpoints protégés `[IsStudent]` (Student only)
+  - ✅ **Total : 18 endpoints, 100% avec permissions explicites**
+
+### Cookies & Headers Sécurité
+
+- [x] `SESSION_COOKIE_SECURE` : Conditionnel à `DEBUG` et `SSL_ENABLED`
+  - ✅ Production SSL : `True`
+  - ✅ Development : `False`
+  - ✅ Pas de contradiction dans settings.py
+
+- [x] `CSRF_COOKIE_SECURE` : Conditionnel à `DEBUG` et `SSL_ENABLED`
+  - ✅ Production SSL : `True`
+  - ✅ Development : `False`
+  - ✅ Cohérent avec SESSION_COOKIE_SECURE
+
+- [x] HSTS configuré en production (`SECURE_HSTS_SECONDS = 31536000`)
+  - ✅ `backend/core/settings.py:39` - 1 an (31536000s)
+  - ✅ `SECURE_HSTS_INCLUDE_SUBDOMAINS = True`
+  - ✅ `SECURE_HSTS_PRELOAD = True`
+
+- [x] Pas de contradiction entre blocs conditionnels
+  - ✅ Structure if/else claire (lignes 33-60)
+  - ✅ Aucun écrasement de valeurs
+
+### Validation Déploiement
+
+- [x] `python manage.py check --deploy` : 0 erreurs critiques
+  - ✅ Exécuté : `docker-compose exec -T backend python manage.py check --deploy`
+  - ✅ Résultat : 1 warning attendu (SECRET_KEY dev avec préfixe 'django-insecure-')
+  - ✅ Environnement Docker : Tous conteneurs Up
+  - 📅 Proof captured: 2026-01-21 10:30 UTC
+
+- [x] Variables d'environnement production documentées
+  - ✅ `DJANGO_ENV=production` (active validations)
+  - ✅ `SECRET_KEY=<généré>` (obligatoire)
+  - ✅ `DATABASE_URL=postgresql://...` (obligatoire)
+  - ✅ `ALLOWED_HOSTS=domain.com` (obligatoire)
+  - ✅ `DEBUG=False` (défaut sécurisé)
+  - ✅ `SSL_ENABLED=True` (défaut sécurisé)
+
+### Tests Fonctionnels
+
+- [x] Test login professeur : ✅ Fonctionne
+  - ✅ Testé : `POST /api/login/` (user: prof/test)
+  - ✅ Résultat : HTTP 200 OK + {"message":"Login successful"}
+  - ✅ Cookies : sessionid + csrftoken (SameSite=Lax)
+  - 📅 Proof captured: 2026-01-21 10:31 UTC
+
+- [x] Test login élève : ✅ Fonctionne
+  - ✅ Testé : `POST /api/students/login/` (INE: 12345, Nom: DUPONT)
+  - ✅ Résultat : HTTP 200 OK + {"message":"Login successful","role":"Student"}
+  - ✅ Cookies : sessionid (HttpOnly, SameSite=Lax)
+  - 📅 Proof captured: 2026-01-21 10:31 UTC
+
+- [x] Test endpoint sans auth : ❌ Refusé (403)
+  - ✅ Testé : `GET /api/exams/` sans cookie session
+  - ✅ Résultat : HTTP 403 Forbidden
+  - ✅ Message : {"detail":"Informations d'authentification non fournies."}
+  - 📅 Proof captured: 2026-01-21 10:31 UTC
+
+- [x] Test endpoint avec auth : ✅ Accessible
+  - ✅ Testé : `GET /api/exams/` avec cookie prof
+  - ✅ Résultat : HTTP 200 OK + liste vide (aucun exam créé)
+  - ✅ Default Deny fonctionne : Sans auth → 403, Avec auth → 200
+  - 📅 Proof captured: 2026-01-21 10:31 UTC
+
+### Conformité Gouvernance
+
+- [x] Règles `.claude/rules/01_security_rules.md` respectées
+  - ✅ § 1.1.1 - Default Deny obligatoire
+  - ✅ § 1.3 - Settings production validation
+  - ✅ § 1.4 - Cookies secure conditionnels
+
+- [x] Documentation mise à jour
+  - ✅ `.claude/ETAPE_1_P0_BASELINE_SECURITY.md` créé
+  - ✅ `.claude/rules/01_security_rules.md` enrichi (§ 1.3, 1.4)
+  - ✅ `.claude/checklists/security_checklist.md` section P0 ajoutée
+
+**🚨 BLOQUANT** : Aucune feature ne peut être développée tant que cette section n'est pas 100% validée.
+
+---
+
+## 0.5 Étape 2 - Pipeline PDF & Workflow Correction (Testé)
+
+**Statut** : ✅ COMPLÉTÉ (2026-01-21)
+**Référence** : `.claude/ETAPE_2_PDF_PIPELINE.md`
+
+### Services Implémentés
+
+- [x] PDFSplitter : Découpe PDF exam → booklets → pages PNG
+  - ✅ Idempotent (skip si booklets existent)
+  - ✅ Loggable (logger.info/debug/error)
+  - ✅ DPI configurable (default 150)
+  - 📅 Runtime proof: 2026-01-21 10:42 UTC
+
+- [x] PDFFlattener (corrigé) : Copy → PDF annoté + scores
+  - ✅ Sauvegarde copy.final_pdf
+  - ✅ Mise à jour status=GRADED
+  - 📅 Runtime proof: 2026-01-21 10:43 UTC
+
+### Endpoints Testés
+
+- [x] POST /api/exams/upload/ : Upload PDF + split auto
+  - ✅ HTTP 201 + booklets_created=2
+  - 📅 Runtime proof: 2026-01-21 10:42 UTC
+
+- [x] GET /api/exams/ : Liste examens
+  - ✅ HTTP 200 + count=1
+  - 📅 Runtime proof: 2026-01-21 10:43 UTC
+
+- [x] GET /api/exams/<exam_id>/booklets/ : Liste booklets
+  - ✅ HTTP 200 + count=2 (pages 1-4, 5-8)
+  - 📅 Runtime proof: 2026-01-21 10:43 UTC
+
+- [x] GET /api/exams/<exam_id>/copies/ : Liste copies
+  - ✅ HTTP 200 + count=2 (status=STAGING)
+  - 📅 Runtime proof: 2026-01-21 10:43 UTC
+
+- [x] POST /api/exams/<id>/export_all/ : Flatten toutes copies
+  - ✅ HTTP 200 + "2 copies traitées"
+  - 📅 Runtime proof: 2026-01-21 10:43 UTC
+
+- [x] GET /api/exams/<id>/csv/ : Export CSV scores
+  - ✅ HTTP 200 + CSV généré (AnonymousID,Total)
+  - 📅 Runtime proof: 2026-01-21 10:44 UTC
+
+### Invariants Validés
+
+- [x] Idempotence : PDFSplitter skip si booklets existent
+- [x] Déterminisme : PNG extraits avec DPI fixe, noms ordonnés
+- [x] Pas de perte : booklet.pages_images stocke tous chemins
+- [x] State Machine : Copies créées en STAGING (ADR-003)
+
+### Migrations Appliquées
+
+- [x] Migration 0004 : header_image et final_pdf → blank=True, null=True
+  - ✅ Appliquée sans erreur
+  - 📅 Applied: 2026-01-21 10:42 UTC
+
+### Fichiers Générés (Smoke Test)
+
+- [x] 8 PNG extraits : media/booklets/{exam_id}/{booklet_id}/page_XXX.png
+- [x] 2 PDF finaux : media/copies/final/copy_{copy_id}_corrected.pdf
+- [x] 1 CSV export : exam_{exam_id}_results.csv
+
+**📌 Note** : Étape 2 complète, prête pour Étape 3 (Annotation frontend + grading workflow).
+
+---
+
 ## 1. Authentification et Autorisation
 
 ### Django Backend
