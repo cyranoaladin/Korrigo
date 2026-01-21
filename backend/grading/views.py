@@ -2,6 +2,7 @@
 Views pour l'app grading.
 Tous les endpoints sont protégés par IsTeacherOrAdmin (staff only).
 """
+import logging
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -12,6 +13,51 @@ from grading.models import Annotation
 from grading.serializers import AnnotationSerializer
 from grading.services import AnnotationService, GradingService
 from exams.models import Copy
+
+logger = logging.getLogger(__name__)
+
+
+def _handle_service_error(e: Exception) -> Response:
+    """
+    Convertit une exception métier en Response HTTP standardisée.
+    - ValueError → 400 avec {"detail": "<message>"}
+    - KeyError → 400 avec {"detail": "Missing required field: <field>"}
+    - PermissionError → 403 avec {"detail": "<message>"}
+    """
+    if isinstance(e, ValueError):
+        logger.warning("ValueError in service layer: %s", str(e))
+        return Response(
+            {'detail': str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    elif isinstance(e, KeyError):
+        field = e.args[0] if e.args else str(e)
+        logger.warning("KeyError in service layer: %s", field)
+        return Response(
+            {'detail': f'Missing required field: {field}'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    elif isinstance(e, PermissionError):
+        logger.warning("PermissionError in service layer: %s", str(e))
+        return Response(
+            {'detail': str(e)},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    else:
+        # Fallback (ne devrait pas arriver si appelé correctement)
+        return _handle_unexpected_error(e)
+
+
+def _handle_unexpected_error(e: Exception) -> Response:
+    """
+    Gère une exception inattendue (non métier).
+    Log complet côté serveur + message générique au client.
+    """
+    logger.exception("Unexpected error in grading views")
+    return Response(
+        {'detail': 'Internal server error'},
+        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+    )
 
 
 class AnnotationListCreateView(generics.ListCreateAPIView):
@@ -41,16 +87,10 @@ class AnnotationListCreateView(generics.ListCreateAPIView):
             )
             serializer = self.get_serializer(annotation)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except ValueError as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        except KeyError as e:
-            return Response(
-                {'error': f'Missing required field: {str(e)}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        except (ValueError, KeyError, PermissionError) as e:
+            return _handle_service_error(e)
+        except Exception as e:
+            return _handle_unexpected_error(e)
 
 
 class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -77,22 +117,20 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
             )
             serializer = self.get_serializer(updated)
             return Response(serializer.data)
-        except ValueError as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        except (ValueError, KeyError, PermissionError) as e:
+            return _handle_service_error(e)
+        except Exception as e:
+            return _handle_unexpected_error(e)
 
     def destroy(self, request, *args, **kwargs):
         annotation = self.get_object()
         try:
             AnnotationService.delete_annotation(annotation, request.user)
             return Response(status=status.HTTP_204_NO_CONTENT)
-        except ValueError as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        except (ValueError, KeyError, PermissionError) as e:
+            return _handle_service_error(e)
+        except Exception as e:
+            return _handle_unexpected_error(e)
 
 
 class CopyLockView(APIView):
@@ -117,11 +155,10 @@ class CopyLockView(APIView):
                 },
                 status=status.HTTP_200_OK
             )
-        except ValueError as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        except (ValueError, KeyError, PermissionError) as e:
+            return _handle_service_error(e)
+        except Exception as e:
+            return _handle_unexpected_error(e)
 
 
 class CopyUnlockView(APIView):
@@ -145,11 +182,10 @@ class CopyUnlockView(APIView):
                 },
                 status=status.HTTP_200_OK
             )
-        except ValueError as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        except (ValueError, KeyError, PermissionError) as e:
+            return _handle_service_error(e)
+        except Exception as e:
+            return _handle_unexpected_error(e)
 
 
 class CopyFinalizeView(APIView):
@@ -167,7 +203,7 @@ class CopyFinalizeView(APIView):
         try:
             GradingService.finalize_copy(copy, request.user)
 
-            # Calcul score final pour la réponse
+            # Calcul score final pour la réponse (protégé dans le try)
             final_score = GradingService.compute_score(copy)
 
             return Response(
@@ -180,8 +216,7 @@ class CopyFinalizeView(APIView):
                 },
                 status=status.HTTP_200_OK
             )
-        except ValueError as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        except (ValueError, KeyError, PermissionError) as e:
+            return _handle_service_error(e)
+        except Exception as e:
+            return _handle_unexpected_error(e)
