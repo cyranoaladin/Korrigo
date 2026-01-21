@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 from exams.models import Copy
 from django.utils.translation import gettext_lazy as _
 import uuid
@@ -65,7 +65,7 @@ class Annotation(models.Model):
     )
 
     created_by = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name='annotations_created',
         verbose_name=_("Créé par")
@@ -110,7 +110,7 @@ class GradingEvent(models.Model):
         verbose_name=_("Action")
     )
     actor = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name='grading_actions',
         verbose_name=_("Acteur")
@@ -131,7 +131,7 @@ class GradingEvent(models.Model):
         verbose_name_plural = _("Événements de correction")
         ordering = ['-timestamp']
         indexes = [
-            models.Index(fields=['copy', '-timestamp']),
+            models.Index(fields=['copy', 'timestamp']),
         ]
 
     def __str__(self):

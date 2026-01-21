@@ -76,7 +76,7 @@ class PDFFlattener:
 
         # Sauvegarder le PDF
         output_filename = f"copy_{copy.id}_corrected.pdf"
-        output_path = settings.MEDIA_ROOT / "corrected" / output_filename
+        output_path = settings.MEDIA_ROOT / "copies" / "final" / output_filename
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
         doc.save(str(output_path))
@@ -87,7 +87,7 @@ class PDFFlattener:
             copy.final_pdf.save(output_filename, File(pdf_file), save=False)
         copy.save()
 
-        logger.info(f"Copy {copy.id} flattened successfully: corrected/{output_filename}")
+        logger.info(f"Copy {copy.id} flattened successfully: copies/final/{output_filename}")
 
     def _draw_annotations_on_page(self, page, annotations, page_width, page_height):
         """

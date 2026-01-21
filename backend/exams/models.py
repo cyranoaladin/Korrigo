@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 import uuid
 from django.utils.translation import gettext_lazy as _
 
@@ -136,7 +136,7 @@ class Copy(models.Model):
         help_text=_("Timestamp READY → LOCKED")
     )
     locked_by = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
