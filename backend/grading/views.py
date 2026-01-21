@@ -7,6 +7,7 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from django.http import FileResponse
 
 from exams.permissions import IsTeacherOrAdmin
 from grading.models import Annotation
@@ -221,3 +222,64 @@ class CopyFinalizeView(APIView):
             return _handle_service_error(e, context="CopyFinalizeView.post")
         except Exception as e:
             return _handle_unexpected_error(e, context="CopyFinalizeView.post")
+
+
+class CopyReadyView(APIView):
+    """
+    POST /api/copies/<id>/ready/
+
+    Valide une copie et la rend prête à corriger (STAGING → READY).
+    Permission : IsTeacherOrAdmin (staff only)
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, id):
+        copy = get_object_or_404(Copy, id=id)
+        try:
+            GradingService.ready_copy(copy, request.user)
+            return Response(
+                {
+                    'message': 'Copy marked as ready successfully',
+                    'copy_id': str(copy.id),
+                    'status': copy.status
+                },
+                status=status.HTTP_200_OK
+            )
+        except (ValueError, KeyError, PermissionError) as e:
+            return _handle_service_error(e, context="CopyReadyView.post")
+        except Exception as e:
+            return _handle_unexpected_error(e, context="CopyReadyView.post")
+
+
+class CopyFinalPdfView(APIView):
+    """
+    GET /api/copies/<id>/final-pdf/
+
+    Télécharge le PDF corrigé final.
+    Permission : IsTeacherOrAdmin (staff only)
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def get(self, request, id):
+        copy = get_object_or_404(Copy, id=id)
+
+        if not copy.final_pdf:
+            return Response(
+                {'detail': 'Final PDF not available for this copy'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            # Open the file from Django storage (works with S3/local)
+            pdf_file = copy.final_pdf.open('rb')
+            response = FileResponse(pdf_file, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="copy_{copy.id}_corrected.pdf"'
+            return response
+        except FileNotFoundError:
+            logger.warning("Final PDF file not found for copy %s", copy.id)
+            return Response(
+                {'detail': 'Final PDF file not found on storage'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return _handle_unexpected_error(e, context="CopyFinalPdfView.get")

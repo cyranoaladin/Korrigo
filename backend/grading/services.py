@@ -209,11 +209,25 @@ class GradingService:
         """
         Transition STAGING → READY.
         Marque une copie comme prête à être corrigée.
+        Vérifie qu'il existe au moins un booklet avec des pages.
         """
         if copy.status != Copy.Status.STAGING:
             raise ValueError(
                 f"Cannot validate copy in status {copy.status}. "
                 f"Only STAGING copies can be validated."
+            )
+
+        # Vérifier qu'il y a au moins un booklet avec pages_images non vide
+        has_pages = False
+        for booklet in copy.booklets.all():
+            if booklet.pages_images and len(booklet.pages_images) > 0:
+                has_pages = True
+                break
+
+        if not has_pages:
+            raise ValueError(
+                "Cannot validate copy: no booklets with pages found. "
+                "Ensure copy has at least one booklet with pages_images."
             )
 
         copy.status = Copy.Status.READY
@@ -229,6 +243,13 @@ class GradingService:
 
         logger.info(f"Copy {copy.id} validated (STAGING → READY) by {user.username}")
         return copy
+
+    @staticmethod
+    def ready_copy(copy: Copy, user):
+        """
+        Alias for validate_copy. Transition STAGING → READY.
+        """
+        return GradingService.validate_copy(copy, user)
 
     @staticmethod
     @transaction.atomic
