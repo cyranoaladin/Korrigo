@@ -8,11 +8,13 @@ from django.utils.translation import gettext_lazy as _
 from .models import Exam, Booklet, Copy
 from .serializers import ExamSerializer, BookletSerializer, CopySerializer
 from processing.services.vision import HeaderDetector
+from grading.services import GradingService
+from .permissions import IsTeacherOrAdmin
 
 import fitz  # PyMuPDF
 
 class ExamUploadView(APIView):
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, *args, **kwargs):
@@ -59,8 +61,36 @@ class ExamUploadView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class CopyImportView(APIView):
+    """
+    Importe un PDF de copie pour un examen donné.
+    POST /api/exams/<exam_id>/copies/import/
+    Payload: multipart (pdf_file)
+    """
+    permission_classes = [IsTeacherOrAdmin]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, exam_id):
+        exam = get_object_or_404(Exam, id=exam_id)
+        pdf_file = request.FILES.get('pdf_file')
+        
+        if not pdf_file:
+             return Response({'error': 'pdf_file is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+             # Utilise le service de grading qui gère l'import + rasterization sync (P0)
+             copy = GradingService.import_pdf(exam, pdf_file, request.user)
+             serializer = CopySerializer(copy)
+             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ValueError as e:
+             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+             return Response({'error': f"Internal Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
 class BookletListView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     serializer_class = BookletSerializer
 
     def get_queryset(self):
@@ -68,7 +98,7 @@ class BookletListView(generics.ListAPIView):
         return Booklet.objects.filter(exam_id=exam_id).order_by('start_page')
 
 class ExamListView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     queryset = Exam.objects.all().order_by('-date')
     serializer_class = ExamSerializer
 
@@ -76,7 +106,7 @@ class BookletHeaderView(APIView):
     """
     Serves the header crop of a booklet on-the-fly.
     """
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
 
     def get(self, request, id):
         booklet = get_object_or_404(Booklet, id=id)
@@ -109,7 +139,7 @@ class BookletHeaderView(APIView):
             return Response({"error": "Rendering failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ExamDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     queryset = Exam.objects.all()
     serializer_class = ExamSerializer
     lookup_field = 'id'
@@ -119,7 +149,7 @@ class CopyListView(generics.ListAPIView):
     """
     Liste les copies d'un examen.
     """
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     serializer_class = CopySerializer
 
     def get_queryset(self):
@@ -128,7 +158,7 @@ class CopyListView(generics.ListAPIView):
 
 
 class MergeBookletsView(APIView):
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
 
     def post(self, request, exam_id):
         booklet_ids = request.data.get('booklet_ids', [])
@@ -168,7 +198,7 @@ class MergeBookletsView(APIView):
         )
 
 class ExportAllView(APIView):
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
 
     def post(self, request, id):
         exam = get_object_or_404(Exam, id=id)
@@ -187,7 +217,7 @@ class ExportAllView(APIView):
         return Response({"message": f"{count} copies traitées."}, status=status.HTTP_200_OK)
 
 class CSVExportView(APIView):
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
 
     def get(self, request, id):
         import csv
@@ -232,7 +262,7 @@ class CSVExportView(APIView):
         return response
 
 class CopyIdentificationView(APIView):
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
 
     def post(self, request, id):
         # Mission 17: Identify Copy
@@ -253,7 +283,7 @@ class CopyIdentificationView(APIView):
         return Response({"message": "Identification successful"}, status=status.HTTP_200_OK)
 
 class UnidentifiedCopiesView(APIView):
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
 
     def get(self, request, id):
         # Mission 18: List unidentified copies for Video-Coding

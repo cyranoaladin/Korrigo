@@ -7,7 +7,7 @@ class Exam(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, verbose_name=_("Nom de l'examen"))
     date = models.DateField(verbose_name=_("Date de l'examen"))
-    pdf_source = models.FileField(upload_to='exams/source/', verbose_name=_("Fichier PDF source"))
+    pdf_source = models.FileField(upload_to='exams/source/', verbose_name=_("Fichier PDF source"), blank=True, null=True)
     grading_structure = models.JSONField(default=list, blank=True, verbose_name=_("Barème (Structure JSON)"))
     is_processed = models.BooleanField(default=False, verbose_name=_("Traité ?"))
 
@@ -89,6 +89,12 @@ class Copy(models.Model):
     final_pdf = models.FileField(
         upload_to='copies/final/',
         verbose_name=_("PDF Final Anonymisé"),
+        blank=True,
+        null=True
+    )
+    pdf_source = models.FileField(
+        upload_to='copies/source/',
+        verbose_name=_("Fichier PDF source"),
         blank=True,
         null=True
     )

@@ -1,19 +1,36 @@
 from django.urls import path
 from .views import (
-    ExamUploadView, BookletListView, MergeBookletsView, ExamDetailView,
-    ExportAllView, CSVExportView, UnidentifiedCopiesView, BookletHeaderView,
-    ExamListView, CopyListView
+    ExamUploadView, BookletListView, ExamListView, BookletHeaderView,
+    ExamDetailView, CopyListView, MergeBookletsView, ExportAllView, CSVExportView,
+    CopyIdentificationView, UnidentifiedCopiesView, StudentCopiesView,
+    CopyImportView
 )
 
 urlpatterns = [
-    path('', ExamListView.as_view(), name='exam-list'),
+    # Mission 14: Upload & List
     path('upload/', ExamUploadView.as_view(), name='exam-upload'),
+    path('', ExamListView.as_view(), name='exam-list'),
     path('<uuid:id>/', ExamDetailView.as_view(), name='exam-detail'),
+    
+    # New Import Route (Phase 3.9)
+    path('<uuid:exam_id>/copies/import/', CopyImportView.as_view(), name='copy-import'),
+
+    # Mission 16: Booklet Management
     path('<uuid:exam_id>/booklets/', BookletListView.as_view(), name='booklet-list'),
-    path('<uuid:exam_id>/copies/', CopyListView.as_view(), name='copy-list'),
-    path('<uuid:id>/export_all/', ExportAllView.as_view(), name='exam-export-all'),
-    path('<uuid:id>/csv/', CSVExportView.as_view(), name='exam-csv'),
     path('booklets/<uuid:id>/header/', BookletHeaderView.as_view(), name='booklet-header'),
-    path('<uuid:exam_id>/merge/', MergeBookletsView.as_view(), name='merge-booklets'),
-    path('<uuid:id>/unidentified_copies/', UnidentifiedCopiesView.as_view(), name='unidentified-copies'),  # Mission 18
+    
+    # Mission 21: New Copy & Identification Endpoints
+    path('<uuid:exam_id>/unidentified-copies/', UnidentifiedCopiesView.as_view(), name='unidentified-copies'),
+    path('copies/<uuid:id>/identify/', CopyIdentificationView.as_view(), name='copy-identify'), # Using UUID
+    
+    # Correction Admin
+    path('<uuid:exam_id>/copies/', CopyListView.as_view(), name='copy-list'),
+    path('<uuid:exam_id>/merge-booklets/', MergeBookletsView.as_view(), name='merge-booklets'),
+    
+    # Export
+    path('<uuid:id>/export-pdf/', ExportAllView.as_view(), name='export-all-pdf'),
+    path('<uuid:id>/export-csv/', CSVExportView.as_view(), name='export-csv'),
+    
+    # Student Portal
+    path('student/copies/', StudentCopiesView.as_view(), name='student-copies'),
 ]
