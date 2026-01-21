@@ -7,7 +7,9 @@ from grading.views import (
     AnnotationDetailView,
     CopyLockView,
     CopyUnlockView,
-    CopyFinalizeView
+    CopyFinalizeView,
+    CopyReadyView,
+    CopyFinalPdfView
 )
 
 urlpatterns = [
@@ -16,7 +18,9 @@ urlpatterns = [
     path('annotations/<uuid:pk>/', AnnotationDetailView.as_view(), name='annotation-detail'),
 
     # Workflow Copy
+    path('copies/<uuid:id>/ready/', CopyReadyView.as_view(), name='copy-ready'),
     path('copies/<uuid:id>/lock/', CopyLockView.as_view(), name='copy-lock'),
     path('copies/<uuid:id>/unlock/', CopyUnlockView.as_view(), name='copy-unlock'),
     path('copies/<uuid:id>/finalize/', CopyFinalizeView.as_view(), name='copy-finalize'),
+    path('copies/<uuid:id>/final-pdf/', CopyFinalPdfView.as_view(), name='copy-final-pdf'),
 ]
