@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 import gradingApi from '../../services/gradingApi'
 import CanvasLayer from '../../components/CanvasLayer.vue'
 // Removed date-fns, using native Intl
+import { useAuthStore } from '../../stores/auth'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const copyId = route.params.copyId
 
 // --- State ---
@@ -31,9 +33,12 @@ const isLockConflict = ref(false) // If true, we are read-only due to other owne
 
 
 // Autosave State
+// Autosave State
 const restoreAvailable = ref(null) // { source: 'LOCAL'|'SERVER', payload: ... }
 const autosaveTimer = ref(null)
+const localSaveTimer = ref(null)
 const clientId = ref(crypto.randomUUID())
+const lastSaveStatus = ref(null) // { source: 'LOCAL'|'SERVER', time: Date }
 
 // UI State
 const activeTab = ref('editor') // 'editor' | 'history'
@@ -176,12 +181,9 @@ const acquireLock = async () => {
 }
 
 // --- Autosave Logic ---
-// --- Autosave Logic ---
-// We try to get user ID from softLock, but it might be missing. 
-// For P0, we use a simple fallback or rely on copyId if single-user per copy assumption holds for "Same Browser".
-// Better: Store userId in localStorage on Login? For now, we use SoftLock owner or a generic browser key.
+// Stable Key using Auth Store
 const getStorageKey = () => {
-    const userId = softLock.value?.owner?.id || 'browser_user';
+    const userId = authStore.user?.id || 'anon';
     return `draft_${copyId}_${userId}`;
 };
 
@@ -263,10 +265,14 @@ watch(draftAnnotation, (newVal) => {
         saved_at: Date.now()
     };
     
-    // 1. Local Save (Immediate)
-    try {
-        localStorage.setItem(getStorageKey(), JSON.stringify(savePayload));
-    } catch {}
+    // 1. Local Save (Debounced)
+    if (localSaveTimer.value) clearTimeout(localSaveTimer.value);
+    localSaveTimer.value = setTimeout(() => {
+        try {
+            localStorage.setItem(getStorageKey(), JSON.stringify(savePayload));
+            lastSaveStatus.value = { source: 'LOCAL', time: new Date() };
+        } catch {}
+    }, 300); // 300ms debounce for local storage optimization
 
     // 2. Server Save (Debounced)
     if (autosaveTimer.value) clearTimeout(autosaveTimer.value);
@@ -274,6 +280,7 @@ watch(draftAnnotation, (newVal) => {
         if (!softLock.value?.token) return;
         try {
            await gradingApi.saveDraft(copyId, savePayload, softLock.value.token, clientId.value);
+           lastSaveStatus.value = { source: 'SERVER', time: new Date() };
         } catch (e) { console.error("Autosave failed", e); }
     }, 2000); // 2s debounce
 
@@ -462,6 +469,16 @@ onUnmounted(() => {
           <span :class="'status-badge status-' + copy.status.toLowerCase()">{{ copy.status }}</span>
         </span>
       </div>
+      
+      <div
+        v-if="lastSaveStatus"
+        class="center-status"
+      >
+        <span class="save-indicator">
+          Autosaved ({{ lastSaveStatus.source }}) at {{ lastSaveStatus.time.toLocaleTimeString() }}
+        </span>
+      </div>
+
       <div class="actions">
         <button
           v-if="isStaging"
@@ -761,6 +778,7 @@ onUnmounted(() => {
 .status-locked { background: #dc3545; color: white; }
 .status-staging { background: #6c757d; color: white; }
 .status-graded { background: #17a2b8; color: white; }
+.save-indicator { font-size: 0.8rem; color: #adb5bd; margin-right: 15px; font-style: italic; }
 
 .actions button { margin-left: 10px; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: 500; }
 .actions button:disabled { opacity: 0.6; cursor: not-allowed; }
