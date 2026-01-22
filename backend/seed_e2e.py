@@ -27,10 +27,10 @@ def seed_e2e():
     
     # 2. Create users
     print("  Creating users...")
-    admin = User.objects.create_superuser('admin', 'admin@test.com', 'password')
+    admin = User.objects.create_superuser('admin', 'admin@test.com', 'admin')
     print(f"    ✓ Admin: {admin.username}")
     
-    teacher = User.objects.create_user('teacher', 'teacher@test.com', 'password')
+    teacher = User.objects.create_user('teacher', 'teacher@test.com', 'teacher')
     teacher.is_staff = True
     teacher.save()
     print(f"    ✓ Teacher: {teacher.username}")

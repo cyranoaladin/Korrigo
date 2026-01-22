@@ -108,6 +108,30 @@ if [ "$DEBUG_STATUS" != "False" ]; then
 fi
 echo "DEBUG=False verified."
 
+# Check Static Files
+echo "Verifying Static Files..."
+mkdir -p proofs/artifacts
+curl -I "http://127.0.0.1:${PRODLIKE_PORT}/static/rest_framework/css/bootstrap.min.css" > proofs/artifacts/static_check_headers.txt 2>&1
+# Extract code (handle HTTP/1.1 200 OK or HTTP/2 200)
+STATIC_HTTP_CODE=$(grep -m 1 "HTTP/" proofs/artifacts/static_check_headers.txt | awk '{print $2}')
+if [ "$STATIC_HTTP_CODE" != "200" ]; then
+    echo -e "${RED}FAIL: Static file check failed at /static/rest_framework/css/bootstrap.min.css (HTTP $STATIC_HTTP_CODE)${NC}"
+    cat proofs/artifacts/static_check_headers.txt
+    exit 1
+fi
+echo "Static files serving verified."
+
+# Check Authentication (Admin)
+echo "Verifying Authentication..."
+curl -i -X POST "http://127.0.0.1:${PRODLIKE_PORT}/api/login/" -H "Content-Type: application/json" -d '{"username":"admin","password":"admin"}' > proofs/artifacts/login_check_response.txt 2>&1
+LOGIN_HTTP_CODE=$(head -n 1 proofs/artifacts/login_check_response.txt | awk '{print $2}')
+if [ "$LOGIN_HTTP_CODE" != "200" ] && [ "$LOGIN_HTTP_CODE" != "302" ]; then
+    echo -e "${RED}FAIL: Admin Login failed (HTTP $LOGIN_HTTP_CODE)${NC}"
+    cat proofs/artifacts/login_check_response.txt
+    exit 1
+fi
+echo "Authentication verified."
+
 # 6) E2E Playwright
 echo -e "${GREEN}[6] E2E Playwright${NC}"
 cd frontend
