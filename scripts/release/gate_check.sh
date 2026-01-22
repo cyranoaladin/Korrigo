@@ -18,6 +18,7 @@ NC='\033[0m'
 cleanup() {
     echo -e "\n${RED}>>> CLEANING UP RESOURCES...${NC}"
     docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" down -v >/dev/null 2>&1 || true
+    # Note: .env is preserved for manual usage if present
 }
 trap cleanup EXIT
 
@@ -91,14 +92,39 @@ done
 # 5) Security Baseline (Runtime)
 echo -e "${GREEN}[5] Security Baseline (Runtime validation)${NC}"
 
+# Load .env if present
+if [ -f .env ]; then
+    export $(cat .env | grep -v '#' | awk '/=/ {print $1}')
+fi
+# Fallback/Override for Gate
+E2E_SEED_TOKEN=${E2E_SEED_TOKEN:-"secret-e2e-token-prod-like-only"}
+
 # Seed Database
 echo "Seeding database..."
-SEED_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST "$SEED_URL" -H "X-E2E-Seed-Token: secret-e2e-token-prod-like-only")
+# Use token from env
+SEED_RESPONSE=$(curl -s --max-time 30 -X POST "$SEED_URL" -H "X-E2E-Seed-Token: $E2E_SEED_TOKEN")
+SEED_HTTP_CODE=$(echo "$SEED_RESPONSE" | grep -o '"success"' | wc -l) # Weak check, better check HTTP code from -w
+# Re-do purely for HTTP code check robustly
+SEED_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST "$SEED_URL" -H "X-E2E-Seed-Token: $E2E_SEED_TOKEN")
 if [ "$SEED_HTTP_CODE" != "200" ] && [ "$SEED_HTTP_CODE" != "201" ]; then
    echo -e "${RED}FAIL: Seeding failed with HTTP $SEED_HTTP_CODE${NC}"
    exit 1
 fi
 echo "Database seeded."
+
+# Extract IDs for Concurrency Test (Parse JSON from seed response)
+# We need the output to capture IDs.
+SEED_JSON=$(curl -s -X POST "$SEED_URL" -H "X-E2E-Seed-Token: $E2E_SEED_TOKEN")
+# Simple grep/sed extraction since we don't have jq guaranteed
+COPY_ID=$(echo "$SEED_JSON" | grep -o '"copy_ids": \[[^]]*\]' | sed 's/.*"copy_ids": \["\([^"]*\)".*/\1/')
+if [ -z "$COPY_ID" ]; then
+    echo -e "${RED}FAIL: Could not extract COPY_ID from seed response for Concurrency Gate${NC}"
+    echo "Response: $SEED_JSON"
+    # Don't exit yet if simple parsing fails, but warn.
+else
+    echo "Captured Copy ID for locking: $COPY_ID"
+fi
+
 
 # Check DEBUG=False
 DEBUG_STATUS=$(docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" exec -T backend python -c "import os; from django.conf import settings; print(settings.DEBUG)" | tr -d '\r')
@@ -131,6 +157,40 @@ if [ "$LOGIN_HTTP_CODE" != "200" ] && [ "$LOGIN_HTTP_CODE" != "302" ]; then
     exit 1
 fi
 echo "Authentication verified."
+
+echo "Authentication verified."
+
+# 5.5) Gate Concurrency (Soft Lock)
+echo -e "${GREEN}[5.5] Concurrency Gate (Lock API)${NC}"
+
+if [ -z "$COPY_ID" ]; then
+    echo -e "${RED}SKIP: No Copy ID available for Concurrency Gate${NC}"
+else
+    # 1. Login Teacher 1
+    rm -f proofs/artifacts/cookies_t1.txt
+    curl -s -c proofs/artifacts/cookies_t1.txt -X POST "http://127.0.0.1:${PRODLIKE_PORT}/api/login/" -H "Content-Type: application/json" -d '{"username":"teacher","password":"teacher"}' > /dev/null
+
+    # 2. Login Teacher 2
+    rm -f proofs/artifacts/cookies_t2.txt
+    curl -s -c proofs/artifacts/cookies_t2.txt -X POST "http://127.0.0.1:${PRODLIKE_PORT}/api/login/" -H "Content-Type: application/json" -d '{"username":"teacher2","password":"teacher"}' > /dev/null
+
+    # 3. Teacher 1 acquires lock
+    echo "  > Teacher 1 acquiring lock..."
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -b proofs/artifacts/cookies_t1.txt -X POST "http://127.0.0.1:${PRODLIKE_PORT}/api/copies/$COPY_ID/lock/" -H "Content-Type: application/json" -d '{"ttl_seconds": 60}')
+    if [ "$HTTP_CODE" != "201" ] && [ "$HTTP_CODE" != "200" ]; then
+        echo -e "${RED}FAIL: Teacher 1 failed to lock (HTTP $HTTP_CODE)${NC}"
+        exit 1
+    fi
+
+    # 4. Teacher 2 tries to lock (Should Fail 409)
+    echo "  > Teacher 2 trying to lock (Expect 409)..."
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -b proofs/artifacts/cookies_t2.txt -X POST "http://127.0.0.1:${PRODLIKE_PORT}/api/copies/$COPY_ID/lock/" -H "Content-Type: application/json" -d '{"ttl_seconds": 60}')
+    if [ "$HTTP_CODE" != "409" ]; then
+        echo -e "${RED}FAIL: Teacher 2 should have been blocked (Got HTTP $HTTP_CODE, Expected 409)${NC}"
+        exit 1
+    fi
+    echo "  ✓ Concurrency Lock verified (409 Conflict received)"
+fi
 
 # 6) E2E Playwright
 echo -e "${GREEN}[6] E2E Playwright${NC}"

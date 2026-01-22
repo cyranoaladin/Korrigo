@@ -23,7 +23,7 @@ def seed_e2e():
     print("  Clearing existing data...")
     Copy.objects.all().delete()
     Exam.objects.all().delete()
-    User.objects.filter(username__in=['admin', 'teacher', 'student_e2e']).delete()
+    User.objects.filter(username__in=['admin', 'teacher', 'teacher2', 'student_e2e']).delete()
     
     # 2. Create users
     print("  Creating users...")
@@ -34,6 +34,11 @@ def seed_e2e():
     teacher.is_staff = True
     teacher.save()
     print(f"    ✓ Teacher: {teacher.username}")
+
+    teacher2 = User.objects.create_user('teacher2', 'teacher2@test.com', 'teacher')
+    teacher2.is_staff = True
+    teacher2.save()
+    print(f"    ✓ Teacher 2: {teacher2.username}")
     
     student = User.objects.create_user('student_e2e', 'student@test.com', 'password')
     print(f"    ✓ Student: {student.username}")
@@ -55,6 +60,7 @@ def seed_e2e():
         print(f"    ⚠ Warning: Fixture not found at {fixture_path}")
     
     # 4. Import copies (if PDF was attached)
+    created_copy_ids = []
     if exam.pdf_source:
         print("  Importing copies from PDF...")
         from grading.services import GradingService
@@ -62,6 +68,7 @@ def seed_e2e():
         
         try:
             copies = service.import_pdf(exam.pdf_source.path, exam, teacher)
+            created_copy_ids = [str(c.id) for c in copies]
             print(f"    ✓ Imported {len(copies)} copies")
             
             # Set first copy to READY for testing
@@ -77,8 +84,10 @@ def seed_e2e():
     return {
         'admin': admin.id,
         'teacher': teacher.id,
+        'teacher2': teacher2.id,
         'student': student.id,
         'exam': exam.id if exam else None,
+        'copy_ids': created_copy_ids,
     }
 
 if __name__ == "__main__":
