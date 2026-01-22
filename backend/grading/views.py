@@ -6,6 +6,7 @@ from .models import Annotation, GradingEvent
 from exams.models import Copy
 from .serializers import AnnotationSerializer, GradingEventSerializer
 from exams.permissions import IsTeacherOrAdmin
+from .permissions import IsLockedByOwnerOrReadOnly
 from django.shortcuts import get_object_or_404
 from grading.services import GradingService, AnnotationService
 import logging
@@ -34,10 +35,10 @@ def _handle_unexpected_error(e, context="API"):
 class AnnotationListCreateView(generics.ListCreateAPIView):
     """
     GET: Liste les annotations d'une copie.
-    POST: Crée une annotation sur une copie (si READY).
-    Permission: IsTeacherOrAdmin
+    POST: Crée une annotation sur une copie (si READY et LOCK détenu).
+    Permission: IsTeacherOrAdmin + IsLockedByOwnerOrReadOnly
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsTeacherOrAdmin, IsLockedByOwnerOrReadOnly]
     serializer_class = AnnotationSerializer
 
     def get_queryset(self):
@@ -66,12 +67,12 @@ class AnnotationListCreateView(generics.ListCreateAPIView):
 class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     GET    /api/annotations/<id>/ - Récupère une annotation
-    PATCH  /api/annotations/<id>/ - Modifie une annotation (si READY)
-    DELETE /api/annotations/<id>/ - Supprime une annotation (si READY)
+    PATCH  /api/annotations/<id>/ - Modifie une annotation (si LOCK détenu)
+    DELETE /api/annotations/<id>/ - Supprime une annotation (si LOCK détenu)
 
-    Permission : IsTeacherOrAdmin (staff only)
+    Permission : IsTeacherOrAdmin (staff only) + IsLockedByOwnerOrReadOnly
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsTeacherOrAdmin, IsLockedByOwnerOrReadOnly]
     serializer_class = AnnotationSerializer
     queryset = Annotation.objects.all()
 
@@ -127,35 +128,11 @@ class CopyReadyView(APIView):
         except ValueError as e:
             return _handle_service_error(e)
 
-class CopyLockView(APIView):
-    permission_classes = [IsTeacherOrAdmin]
-    def post(self, request, id):
-        copy = get_object_or_404(Copy, id=id)
-        # Check if already locked by someone else?
-        # Service handles status check. Assuming concurrent locking is rare or last-write-wins is acceptable for MVP.
-        # Ideally check if locked_by is None.
-        try:
-            GradingService.lock_copy(copy, request.user)
-            return Response({"status": copy.status})
-        except ValueError as e:
-            return _handle_service_error(e)
+# CopyLockView and CopyUnlockView replaced by views_lock.py logic
+# Keeping Ready and Finalize views here
 
-class CopyUnlockView(APIView):
-    permission_classes = [IsTeacherOrAdmin]
-    def post(self, request, id):
-        copy = get_object_or_404(Copy, id=id)
-        # Check permissions: Can only unlock if you locked it OR you are admin?
-        # P0.2 Requirement: "Teacher ne peut pas unlock si non autorisé."
-        # If I locked it, I can unlock it. If I'm admin, I can unlock anyone.
-        if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
-             if copy.locked_by and copy.locked_by != request.user:
-                 return Response({"detail": "Locked by another user."}, status=status.HTTP_403_FORBIDDEN)
-                 
-        try:
-            GradingService.unlock_copy(copy, request.user)
-            return Response({"status": copy.status})
-        except ValueError as e:
-            return _handle_service_error(e)
+
+
 
 class CopyFinalizeView(APIView):
     permission_classes = [IsTeacherOrAdmin]
