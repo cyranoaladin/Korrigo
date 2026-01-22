@@ -169,18 +169,40 @@ const acquireLock = async () => {
 
 const startHeartbeat = () => {
     if (lockInterval.value) clearInterval(lockInterval.value);
+    let failCount = 0;
+    
     lockInterval.value = setInterval(async () => {
         if (!softLock.value?.token) return;
         try {
             const res = await gradingApi.heartbeatLock(copyId, softLock.value.token);
             softLock.value.expires_at = res.expires_at;
+            failCount = 0; // Reset on success
         } catch (err) {
              console.error("Heartbeat failed", err);
-             // If 404/403, we lost lock
-             if (err.response?.status === 404 || err.response?.status === 403) {
+             const status = err.response?.status;
+             
+             if (status === 401) {
+                 // Session Expired
+                 window.location.href = '/login'; // Force login redirect
+                 return; 
+             }
+             
+             if (status === 409 || status === 404 || status === 403) {
+                 // Lock stolen, expired, or forbidden
                  softLock.value = null;
-                 isLockConflict.value = true; // Assume lost to someone else or expired
-                 error.value = "Lock lost. Switching to Read-Only.";
+                 isLockConflict.value = true;
+                 error.value = "Lock lost (taken by another user or expired). Switching to Read-Only.";
+                 clearInterval(lockInterval.value);
+                 return;
+             }
+             
+             // Network errors or 5xx: Tolerate small failures
+             failCount++;
+             if (failCount > 3) {
+                 console.warn("Too many heartbeat failures. Assuming lock lost.");
+                 softLock.value = null;
+                 isLockConflict.value = true;
+                 error.value = "Connection unstable. Lock maintenance failed. Read-Only.";
                  clearInterval(lockInterval.value);
              }
         }
@@ -199,7 +221,10 @@ const releaseLock = async () => {
 
 const handleFinalize = async () => {
     if (isSaving.value) return; isSaving.value = true;
-    try { await gradingApi.finalizeCopy(copyId); await fetchCopy(); }
+    try { 
+        await gradingApi.finalizeCopy(copyId, softLock.value?.token); 
+        await fetchCopy(); 
+    }
     catch (err) { error.value = err.response?.data?.detail || "Action failed"; }
     finally { isSaving.value = false; }
 }
@@ -247,7 +272,7 @@ const saveAnnotation = async () => {
             content: draftAnnotation.value.content,
             score_delta: draftAnnotation.value.score_delta
         }
-        await gradingApi.createAnnotation(copyId, payload)
+        await gradingApi.createAnnotation(copyId, payload, softLock.value?.token)
         await refreshAnnotations()
         await fetchHistory() // Update log
         cancelEditor()
@@ -266,7 +291,7 @@ const handleDeleteAnnotation = async (id) => {
     if (!confirm("Delete this annotation?")) return;
     isSaving.value = true;
     try {
-        await gradingApi.deleteAnnotation(copyId, id)
+        await gradingApi.deleteAnnotation(copyId, id, softLock.value?.token)
         await refreshAnnotations()
         await fetchHistory()
     } catch (err) {
@@ -287,11 +312,17 @@ onMounted(async () => {
       await acquireLock();
   }
   window.addEventListener('keydown', onGlobalKeydown)
+  
+  // Robust Release
+  window.addEventListener('beforeunload', releaseLock)
+  window.addEventListener('pagehide', releaseLock)
 })
 
 onUnmounted(() => {
     releaseLock();
     window.removeEventListener('keydown', onGlobalKeydown)
+    window.removeEventListener('beforeunload', releaseLock)
+    window.removeEventListener('pagehide', releaseLock)
 })
 </script>
 
@@ -324,8 +355,8 @@ onUnmounted(() => {
         </button>
 
         <button
-          v-if="isLocked"
-          :disabled="isSaving"
+          v-if="(isReady && softLock) || isLocked"
+          :disabled="isSaving || isReadOnly"
           class="btn-success"
           @click="handleFinalize"
         >
