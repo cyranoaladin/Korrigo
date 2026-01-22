@@ -79,7 +79,10 @@ def seed_e2e():
         service = GradingService()
         
         try:
-            copies = service.import_pdf(exam.pdf_source.path, exam, teacher)
+            with open(exam.pdf_source.path, 'rb') as f:
+                # import_pdf expects (exam, pdf_file, user)
+                copies = service.import_pdf(exam, File(f), teacher)
+            
             created_copy_ids = [str(c.id) for c in copies]
             print(f"    ✓ Imported {len(copies)} copies")
             
