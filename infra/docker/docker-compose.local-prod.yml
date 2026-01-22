@@ -13,7 +13,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-viatique_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-viatique_password}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-viatique_user} -d ${POSTGRES_DB:-viatique_local}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-viatique_user} -d ${POSTGRES_DB:-viatique_local}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,7 +22,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -32,7 +32,9 @@ services:
       context: ../../backend
       dockerfile: Dockerfile
     restart: unless-stopped
-    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120 --reload
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
+    env_file:
+      - ../../.env
     expose:
       - "8000"
     volumes:
@@ -53,11 +55,11 @@ services:
       ALLOWED_HOSTS: "${ALLOWED_HOSTS:-localhost,127.0.0.1,nginx,backend}"
       DATABASE_URL: "postgres://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique_local}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
-      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:8088}"
-      CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:-http://localhost:8088}"
-      E2E_SEED_TOKEN: "${E2E_SEED_TOKEN:-local-seed-token-123}"
+      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088}"
+      CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088}"
+      E2E_SEED_TOKEN: "${E2E_SEED_TOKEN:-}"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health/" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -93,7 +95,7 @@ services:
     depends_on:
       - backend
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/"]
+      test: [ "CMD", "curl", "-f", "http://localhost/" ]
       interval: 30s
       timeout: 10s
       retries: 3
