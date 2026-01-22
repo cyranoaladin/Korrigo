@@ -2,6 +2,9 @@
 Pytest configuration and fixtures for Korrigo backend tests.
 """
 import pytest
+import shutil
+import tempfile
+from django.conf import settings
 
 
 @pytest.fixture
@@ -77,3 +80,19 @@ def teacher_client(api_client, teacher_user):
     """
     api_client.force_authenticate(user=teacher_user)
     return api_client
+
+
+@pytest.fixture(autouse=True)
+def mock_media(settings):
+    """
+    Automatically override MEDIA_ROOT for all tests to use a temporary directory.
+    Cleans up after tests finish.
+    """
+    # Create temp directory
+    temp_media_root = tempfile.mkdtemp(prefix="korrigo_test_media_")
+    settings.MEDIA_ROOT = temp_media_root
+    
+    yield temp_media_root
+    
+    # Cleanup
+    shutil.rmtree(temp_media_root, ignore_errors=True)

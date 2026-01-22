@@ -25,7 +25,11 @@
 - **Endpoints**: Strict role checks (`IsTeacherOrAdmin`) on all grading actions.
 
 ## 2) Verification Evidence
-All artifacts are located in `proofs/artifacts/` (generated local artifacts) or strictly managed via CI.
+All artifacts are strictly generated in ignored directories:
+- **Build Proofs**: `proofs/artifacts/`
+- **Release Packs**: `release/`
+
+These folders are **not versioned** to keep the repository clean.
 
 ### Automated Tests
 - **Backend (Pytest)**: [backend_tests_log.txt](file:///home/alaeddine/viatique__PMF/proofs/artifacts/backend_tests_log.txt)
