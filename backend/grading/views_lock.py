@@ -3,11 +3,12 @@ from rest_framework.response import Response
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from .models import Copy, CopyLock
+from exams.permissions import IsTeacherOrAdmin
 import uuid
 import datetime
 
 class LockAcquireView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTeacherOrAdmin]
 
     def post(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
@@ -69,7 +70,7 @@ class LockAcquireView(views.APIView):
 
 
 class LockHeartbeatView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTeacherOrAdmin]
 
     def post(self, request, copy_id):
         # We don't check Copy existence first to avoid double DB hit usually, 
@@ -106,7 +107,7 @@ class LockHeartbeatView(views.APIView):
 
 
 class LockReleaseView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTeacherOrAdmin]
 
     def delete(self, request, copy_id):
         try:
@@ -127,7 +128,7 @@ class LockReleaseView(views.APIView):
 
 
 class LockStatusView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTeacherOrAdmin]
 
     def get(self, request, copy_id):
         now = timezone.now()
