@@ -183,11 +183,14 @@ const acquireLock = async () => {
 // --- Autosave Logic ---
 // Stable Key using Auth Store
 const getStorageKey = () => {
+    // Safety: checkDrafts and Autosave are gated by authStore.user presence
     const userId = authStore.user?.id || 'anon';
     return `draft_${copyId}_${userId}`;
 };
 
 const checkDrafts = async () => {
+    if (!authStore.user?.id) return; // Wait for hydration
+    
     // 1. Get Server Draft
     let serverDraft = null;
     try {
@@ -253,10 +256,10 @@ const discardDraft = async () => {
     restoreAvailable.value = null;
 }
 
-// Watcher for Autosave
 watch(draftAnnotation, (newVal) => {
     if (!newVal) return;
     if (isReadOnly.value) return;
+    if (!authStore.user?.id) return; // Prevent saving to 'anon' key
     
     // Construct full payload with Context
     const savePayload = {
@@ -438,10 +441,15 @@ onMounted(async () => {
   }
   window.addEventListener('keydown', onGlobalKeydown)
   
-  // Robust Release
-  window.addEventListener('beforeunload', releaseLock)
-  window.addEventListener('pagehide', releaseLock)
+    // Robust Release
+    window.addEventListener('beforeunload', releaseLock)
+    window.addEventListener('pagehide', releaseLock)
 })
+
+// Watch for Auth Hydration to load drafts
+watch(() => authStore.user, (u) => {
+    if (u?.id) checkDrafts();
+}, { immediate: true })
 
 onUnmounted(() => {
     releaseLock();
@@ -475,7 +483,7 @@ onUnmounted(() => {
         class="center-status"
       >
         <span class="save-indicator">
-          Autosaved ({{ lastSaveStatus.source }}) at {{ lastSaveStatus.time.toLocaleTimeString() }}
+          Sauvegardé ({{ lastSaveStatus.source === 'LOCAL' ? 'Local' : 'Serveur' }}) à {{ lastSaveStatus.time.toLocaleTimeString() }}
         </span>
       </div>
 
