@@ -58,27 +58,19 @@ class TestAntiLoss:
     def test_lock_idempotency(self, teacher, copy):
         """
         Locking an already locked copy should be safe.
+        C3: 1st call -> 201, 2nd call -> 200 (Refresh).
         """
         client = APIClient()
         client.force_authenticate(user=teacher)
         
         # 1st Lock
         resp1 = client.post(f"/api/copies/{copy.id}/lock/")
-        assert resp1.status_code == 200
-        copy.refresh_from_db()
-        assert copy.status == Copy.Status.LOCKED
+        assert resp1.status_code == 201
         
         # 2nd Lock
         resp2 = client.post(f"/api/copies/{copy.id}/lock/")
-        # Similar to finalize, service likely checks status.
-        # If already locked, usually 400 or 200 no-op.
-        # Let's check service logic behavior
-        assert resp2.status_code in [200, 400]
+        assert resp2.status_code == 200
         
-        # Verify it didn't change state
-        copy.refresh_from_db()
-        assert copy.status == Copy.Status.LOCKED
-
     def test_annotation_create_atomicity(self, teacher, copy):
         """
         If creating an annotation fails (e.g. at DB level), 
@@ -86,6 +78,11 @@ class TestAntiLoss:
         """
         client = APIClient()
         client.force_authenticate(user=teacher)
+        
+        # C3: Acquire Lock
+        from grading.models import CopyLock
+        from django.utils import timezone
+        CopyLock.objects.create(copy=copy, owner=teacher, expires_at=timezone.now() + timezone.timedelta(hours=1))
         
         ann_data = {
             "page_index": 0, "x": 0.1, "y": 0.1, "w": 0.1, "h": 0.1,

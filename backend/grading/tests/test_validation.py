@@ -7,9 +7,11 @@ from datetime import date
 
 
 @pytest.fixture
-def exam_with_copy(db):
-    """Creates an exam with a READY copy that has 2 pages."""
+def exam_with_copy(db, admin_user):
+    """Creates an exam with a READY copy that has 2 pages AND IS LOCKED by admin."""
     from exams.models import Exam, Booklet, Copy
+    from grading.models import CopyLock
+    from django.utils import timezone
 
     exam = Exam.objects.create(
         name="Test Exam",
@@ -29,6 +31,13 @@ def exam_with_copy(db):
         status=Copy.Status.READY
     )
     copy.booklets.add(booklet)
+    
+    # Auto-lock for C3
+    CopyLock.objects.create(
+        copy=copy, 
+        owner=admin_user, 
+        expires_at=timezone.now() + timezone.timedelta(hours=1)
+    )
 
     return copy
 
