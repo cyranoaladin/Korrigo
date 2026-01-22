@@ -4,11 +4,11 @@
 - **Date**: 2026-01-22 16:15 (Africa/Tunis)
 - **Git**:
   - **Branch**: main
-  - **Commit**: `2c56aea` (Short: `2c56aea`)
+  - **Commit**: `a3cdcc8` (Short: `a3cdcc8`)
   - **Status**: Sealed
 - **Release Pack**:
-  - **Archive**: `korrigo_release_2c56aea.zip`
-  - **SHA256**: `268aa6772f303a6b19cd08ef32bc9c57489651cc9d170f1d769fa72efb768797` (Sealed)
+  - **Archive**: `korrigo_release_a3cdcc8.zip`
+  - **SHA256**: `a345be827b4037a9c8b783383ca043356149700cc64be779d1e3f0acf53f0e10` (Sealed)
 - **Versions**: Docker 29.1, Node v22, Python 3.9, Django 4.2.27
 
 ## 1) Scope & Hardening
@@ -18,7 +18,7 @@
 - **Tooling**: Proper ESLint separation (.ts vs .vue). Type safety restored in E2E helpers.
 - **E2E Stability**: Fixed `.auth` directory creation and refined hydration using real app flow.
 
-### Voie B: Fixes & Hardening (2c56aea)
+### Voie B: Fixes & Hardening (a3cdcc8)
 - **Static Files**: Fixed Nginx/Django volume mismatch. Verified serving `bootstrap.min.css`.
 - **Authentication**: Aligned seed passwords (`admin`/`teacher`) with manual expectations. Fixed login failures (HTTP 401).
 - **Gate Check**: Hardened `gate_check.sh` with blocking checks for Static Files (HTTP 200) and API Login (HTTP 200). Added `curl` timeouts and `exec -T` for robustness.
