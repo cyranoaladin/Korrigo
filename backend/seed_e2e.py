@@ -51,13 +51,25 @@ def seed_e2e():
     )
     
     # Attach PDF fixture
-    fixture_path = Path(__file__).parent.parent / 'grading/tests/fixtures/pdfs/copy_2p_simple.pdf'
+    # Attach PDF fixture
+    # Path is relative to backend root (where this file is)
+    backend_root = Path(__file__).parent
+    fixture_path = backend_root / 'grading/tests/fixtures/pdfs/copy_2p_simple.pdf'
+    fallback_path = backend_root / 'test_exam.pdf'
+    
+    final_pdf_path = None
     if fixture_path.exists():
-        with open(fixture_path, 'rb') as f:
-            exam.pdf_source.save('exam_e2e.pdf', File(f), save=True)
-        print(f"    ✓ Exam created: {exam.name} (ID: {exam.id})")
+        final_pdf_path = fixture_path
+    elif fallback_path.exists():
+        print(f"    ⚠ Warning: Main fixture not found at {fixture_path}, using fallback {fallback_path}")
+        final_pdf_path = fallback_path
     else:
-        print(f"    ⚠ Warning: Fixture not found at {fixture_path}")
+        print(f"    ⚠ Warning: No PDF fixture found at {fixture_path} or {fallback_path}")
+
+    if final_pdf_path:
+        with open(final_pdf_path, 'rb') as f:
+            exam.pdf_source.save('exam_e2e.pdf', File(f), save=True)
+        print(f"    ✓ Exam created with PDF: {exam.name} (ID: {exam.id})")
     
     # 4. Import copies (if PDF was attached)
     created_copy_ids = []
