@@ -78,6 +78,7 @@ proofs/artifacts/
 test-results/
 playwright-report/
 lint_output.txt
+frontend/e2e/.auth/
 
 # Docker
 *.pid
