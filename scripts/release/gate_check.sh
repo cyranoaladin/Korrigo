@@ -83,6 +83,16 @@ done
 
 # 5) Security Baseline (Runtime)
 echo -e "${GREEN}[5] Security Baseline (Runtime validation)${NC}"
+
+# Seed Database (Critical for E2E)
+echo "Seeding database..."
+SEED_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$SEED_URL" -H "X-E2E-Seed-Token: secret-e2e-token-prod-like-only")
+if [ "$SEED_HTTP_CODE" != "200" ] && [ "$SEED_HTTP_CODE" != "201" ]; then
+   echo -e "${RED}FAIL: Seeding failed with HTTP $SEED_HTTP_CODE${NC}"
+   exit 1
+fi
+echo "Database seeded."
+
 # Check DEBUG
 DEBUG_STATUS=$(docker compose -f $COMPOSE_FILE exec backend python -c "import os; from django.conf import settings; print(settings.DEBUG)")
 if [ "$DEBUG_STATUS" != "False" ]; then
