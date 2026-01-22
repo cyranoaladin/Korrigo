@@ -80,6 +80,33 @@ export default {
         }
     },
 
+    // --- Autosave / Drafts ---
+
+    async getDraft(copyId) {
+        const response = await api.get(`/copies/${copyId}/draft/`);
+        // 204 returns null/undefined data usually, or empty string. 
+        // Axios handles 204 by returning response with empty data.
+        if (response.status === 204) return null;
+        return response.data;
+    },
+
+    async saveDraft(copyId, payload, token, clientId = null) {
+        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+        const body = {
+            payload,
+            token,
+            client_id: clientId
+        };
+        const response = await api.put(`/copies/${copyId}/draft/`, body, config);
+        return response.data;
+    },
+
+    async deleteDraft(copyId, token = null) {
+        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+        const response = await api.delete(`/copies/${copyId}/draft/`, config);
+        return response.data;
+    },
+
     async listAuditLogs(copyId) {
         const response = await api.get(`/copies/${copyId}/audit/`);
         return response.data;

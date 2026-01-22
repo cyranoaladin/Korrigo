@@ -205,6 +205,42 @@ else
         exit 1
     fi
     echo "  ✓ Concurrency Lock verified (409 Conflict received)"
+
+    # 5.6 Draft Gate
+    echo "[5.6] Draft Gate (Autosave)"
+    # Acquire Lock T1 and capture token
+    LOCK_RES=$(curl -s -b proofs/artifacts/cookies_t1.txt -X POST "http://127.0.0.1:${PRODLIKE_PORT}/api/copies/$COPY_ID/lock/" -H "Content-Type: application/json" -H "X-CSRFToken: $CSRF_TOKEN_T1" -d '{"ttl_seconds": 60}')
+    TOKEN=$(echo "$LOCK_RES" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+    
+    if [ -z "$TOKEN" ]; then
+        echo -e "${RED}FAIL: Could not acquire lock for Draft test${NC}"
+        echo "$LOCK_RES"
+        exit 1
+    fi
+    
+    # PUT Draft
+    DRAFT_PAYLOAD='{"payload":{"content":"AutosaveTest"},"token":"'"$TOKEN"'","version":1}'
+    API_URL="http://127.0.0.1:${PRODLIKE_PORT}/api/copies/$COPY_ID/draft/"
+    
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -b proofs/artifacts/cookies_t1.txt -X PUT "$API_URL" -H "Content-Type: application/json" -H "X-CSRFToken: $CSRF_TOKEN_T1" -H "X-Lock-Token: $TOKEN" -d "$DRAFT_PAYLOAD")
+    
+    if [ "$HTTP_CODE" != "200" ]; then
+        echo -e "${RED}FAIL: Draft Save failed HTTP $HTTP_CODE${NC}"
+        exit 1
+    fi
+    
+    # GET Draft
+    GET_RES=$(curl -s -b proofs/artifacts/cookies_t1.txt "$API_URL" -H "X-CSRFToken: $CSRF_TOKEN_T1")
+    if [[ "$GET_RES" != *"AutosaveTest"* ]]; then
+        echo -e "${RED}FAIL: Draft GET mismatch${NC}"
+        echo "$GET_RES"
+        exit 1
+    fi
+    
+    echo "  ✓ Draft Save/Restore verified"
+    
+    # Cleanup: Release Lock
+    curl -s -X DELETE "http://127.0.0.1:${PRODLIKE_PORT}/api/copies/$COPY_ID/lock/release/" -H "Content-Type: application/json" -H "X-CSRFToken: $CSRF_TOKEN_T1" -d '{"token":"'"$TOKEN"'"}' > /dev/null
 fi
 
 # 6) E2E Playwright

@@ -26,7 +26,16 @@ const imageError = ref(false)
 // Lock State
 const softLock = ref(null) // { token, owner, expires_at }
 const lockInterval = ref(null)
+// Lock State
+const softLock = ref(null) // { token, owner, expires_at }
+const lockInterval = ref(null)
 const isLockConflict = ref(false) // If true, we are read-only due to other owner
+
+// Autosave State
+const restoreAvailable = ref(null) // { source: 'LOCAL'|'SERVER', payload: ... }
+const autosaveTimer = ref(null)
+const lastSavedPayload = ref(null)
+const clientId = ref(crypto.randomUUID())
 
 // UI State
 const activeTab = ref('editor') // 'editor' | 'history'
@@ -154,6 +163,7 @@ const acquireLock = async () => {
         softLock.value = response;
         isLockConflict.value = false;
         startHeartbeat();
+        checkDrafts(); // Check for draft restoration
     } catch (err) {
         if (err.response?.status === 409) {
             // Conflict
@@ -166,6 +176,78 @@ const acquireLock = async () => {
         }
     }
 }
+
+// --- Autosave Logic ---
+const getStorageKey = () => `draft_${copyId}_${softLock.value?.owner?.id || 'anon'}`;
+
+const checkDrafts = async () => {
+    // 1. Get Server Draft
+    let serverDraft = null;
+    try {
+        serverDraft = await gradingApi.getDraft(copyId);
+    } catch (e) { console.error("Failed to fetch server draft", e); }
+
+    // 2. Get Local Draft
+    const localRaw = localStorage.getItem(getStorageKey());
+    let localDraft = localRaw ? JSON.parse(localRaw) : null;
+
+    // 3. Logic: Prefer Local if newer, else Server.
+    // If we have ANY draft, propose restore.
+    // Simplification for P0: If Local exists, use it. If not, Server.
+    // If both, compare? For P0, let's just use Local as priority if it exists (offline work).
+    
+    if (localDraft) {
+        restoreAvailable.value = { source: 'LOCAL', payload: localDraft };
+    } else if (serverDraft?.payload) {
+        restoreAvailable.value = { source: 'SERVER', payload: serverDraft.payload };
+    }
+}
+
+const restoreDraft = () => {
+    if (!restoreAvailable.value) return;
+    
+    // Check if we can restore (need to open editor?)
+    const payload = restoreAvailable.value.payload;
+    if (payload && payload.rect) {
+         // It's a draft annotation
+         // We verify if page still valid?
+         // Just hydration:
+         handleDrawComplete(payload.rect); // Opens editor
+         draftAnnotation.value = { ...payload }; 
+         // Force editor show
+         activeTab.value = 'editor';
+         showEditor.value = true;
+    }
+    
+    restoreAvailable.value = null;
+}
+
+const discardDraft = () => {
+    localStorage.removeItem(getStorageKey());
+    // Also clear server? Maybe not, safety first.
+    restoreAvailable.value = null;
+}
+
+// Watcher for Autosave
+watch(draftAnnotation, (newVal) => {
+    if (!newVal) return;
+    if (isReadOnly.value) return;
+    
+    // 1. Local Save (Immediate)
+    try {
+        localStorage.setItem(getStorageKey(), JSON.stringify(newVal));
+    } catch (e) {}
+
+    // 2. Server Save (Debounced)
+    if (autosaveTimer.value) clearTimeout(autosaveTimer.value);
+    autosaveTimer.value = setTimeout(async () => {
+        if (!softLock.value?.token) return;
+        try {
+           await gradingApi.saveDraft(copyId, newVal, softLock.value.token, clientId.value);
+        } catch (e) { console.error("Autosave failed", e); }
+    }, 2000); // 2s debounce
+
+}, { deep: true });
 
 const startHeartbeat = () => {
     if (lockInterval.value) clearInterval(lockInterval.value);
@@ -273,6 +355,12 @@ const saveAnnotation = async () => {
             score_delta: draftAnnotation.value.score_delta
         }
         await gradingApi.createAnnotation(copyId, payload, softLock.value?.token)
+        
+        // Clear Drafts on Success
+        localStorage.removeItem(getStorageKey());
+        try { await gradingApi.deleteDraft(copyId, softLock.value?.token); } catch(e){}
+        restoreAvailable.value = null;
+
         await refreshAnnotations()
         await fetchHistory() // Update log
         cancelEditor()
@@ -672,6 +760,7 @@ onUnmounted(() => {
 .log-action { color: #333; }
 
 .error-banner { background: #f8d7da; color: #721c24; padding: 10px; text-align: center; border-bottom: 1px solid #f5c6cb; }
+.info-banner { background: #d1ecf1; color: #0c5460; padding: 10px; text-align: center; border-bottom: 1px solid #bee5eb; display: flex; justify-content: center; gap: 10px; align-items: center; }
 .loading-state { flex: 1; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; color: #666; }
 .empty-list, .empty-state { padding: 20px; text-align: center; color: #999; }
 .error-state p { color: #dc3545; font-weight: bold; }

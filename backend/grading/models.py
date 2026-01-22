@@ -180,3 +180,52 @@ class CopyLock(models.Model):
         
     def __str__(self):
         return f"Lock {self.copy.anonymous_id} by {self.owner} (expires {self.expires_at})"
+
+
+class DraftState(models.Model):
+    """
+    Etat brouillon (autosave) d'une copie en cours de correction.
+    Permet de ne pas perdre de données en cas de crash/refresh.
+    Un seul draft par user/copie (le dernier).
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    copy = models.ForeignKey(
+        Copy,
+        on_delete=models.CASCADE,
+        related_name='drafts',
+        verbose_name=_("Copie")
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='grading_drafts',
+        verbose_name=_("Propriétaire")
+    )
+    payload = models.JSONField(
+        default=dict,
+        verbose_name=_("Contenu Draft"),
+        help_text=_("Etat complet de l'éditeur (annotations, texte en cours)")
+    )
+    lock_token = models.UUIDField(
+        null=True, 
+        blank=True,
+        verbose_name=_("Token de verrou associé")
+    )
+    client_id = models.UUIDField(
+        null=True,
+        blank=True,
+        verbose_name=_("ID Client (Anti-écrasement)")
+    )
+    version = models.PositiveIntegerField(
+        default=1,
+        verbose_name=_("Version")
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Brouillon de correction")
+        verbose_name_plural = _("Brouillons de correction")
+        unique_together = ['copy', 'owner'] # One draft per copy per user
+    
+    def __str__(self):
+        return f"Draft {self.copy.anonymous_id} by {self.owner} (v{self.version})"
