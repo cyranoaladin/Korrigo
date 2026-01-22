@@ -32,13 +32,24 @@ export default {
         return response.data;
     },
 
-    async lockCopy(id) {
-        const response = await api.post(`/copies/${id}/lock/`);
+    async acquireLock(id, ttlSeconds = 600) {
+        const response = await api.post(`/copies/${id}/lock/`, { ttl_seconds: ttlSeconds });
         return response.data;
     },
 
-    async unlockCopy(id) {
-        const response = await api.post(`/copies/${id}/unlock/`);
+    async heartbeatLock(id, token) {
+        const response = await api.post(`/copies/${id}/lock/heartbeat/`, { token });
+        return response.data;
+    },
+
+    async releaseLock(id, token) {
+        // Use 'data' property for DELETE body in axios
+        const response = await api.delete(`/copies/${id}/lock/release/`, { data: { token } });
+        return response.data;
+    },
+
+    async getLockStatus(id) {
+        const response = await api.get(`/copies/${id}/lock/status/`);
         return response.data;
     },
 

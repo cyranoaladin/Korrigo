@@ -315,8 +315,8 @@ class GradingService:
     @staticmethod
     @transaction.atomic
     def finalize_copy(copy: Copy, user):
-        if copy.status != Copy.Status.LOCKED:
-            raise ValueError("Only LOCKED copies can be finalized")
+        if copy.status not in [Copy.Status.LOCKED, Copy.Status.READY]:
+            raise ValueError("Only LOCKED or READY copies can be finalized")
 
         final_score = GradingService.compute_score(copy)
 
