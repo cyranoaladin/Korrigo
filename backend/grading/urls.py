@@ -16,8 +16,12 @@ from grading.views_lock import (
     LockReleaseView,
     LockStatusView
 )
+from grading.views_draft import DraftReturnView
 
 urlpatterns = [
+    # Drafts
+    path('copies/<uuid:copy_id>/draft/', DraftReturnView.as_view(), name='copy-draft'),
+
     # Annotations
     path('copies/<uuid:copy_id>/annotations/', AnnotationListCreateView.as_view(), name='annotation-list-create'),
     path('annotations/<uuid:pk>/', AnnotationDetailView.as_view(), name='annotation-detail'),
