@@ -124,7 +124,9 @@ echo "Database seeded."
 # We need the output to capture IDs.
 SEED_JSON=$(curl -s -X POST "$SEED_URL" -H "X-E2E-Seed-Token: $E2E_SEED_TOKEN")
 # Simple grep/sed extraction since we don't have jq guaranteed
-COPY_ID=$(echo "$SEED_JSON" | grep -o '"copy_ids": \[[^]]*\]' | sed 's/.*"copy_ids": \["\([^"]*\)".*/\1/')
+# Use || true to prevent set -e from killing script if grep finds nothing
+COPY_ID=$(echo "$SEED_JSON" | grep -o '"copy_ids": \[[^]]*\]' | sed 's/.*"copy_ids": \["\([^"]*\)".*/\1/' || true)
+
 if [ -z "$COPY_ID" ]; then
     echo -e "${RED}FAIL: Could not extract COPY_ID from seed response for Concurrency Gate${NC}"
     echo "Response: $SEED_JSON"
