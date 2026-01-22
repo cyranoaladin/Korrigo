@@ -116,6 +116,7 @@ SEED_RESPONSE=$(curl -s --max-time 30 -X POST "$SEED_URL" -H "X-E2E-Seed-Token: 
 SEED_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST "$SEED_URL" -H "X-E2E-Seed-Token: $E2E_SEED_TOKEN")
 if [ "$SEED_HTTP_CODE" != "200" ] && [ "$SEED_HTTP_CODE" != "201" ]; then
    echo -e "${RED}FAIL: Seeding failed with HTTP $SEED_HTTP_CODE${NC}"
+   echo "Response: $SEED_RESPONSE"
    exit 1
 fi
 echo "Database seeded."
