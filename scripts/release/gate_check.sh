@@ -42,11 +42,14 @@ echo "OK"
 
 # 3) Backend Quality
 echo -e "${GREEN}[3] Backend Quality (Test, Check)${NC}"
+# 3) Backend Quality
+echo -e "${GREEN}[3] Backend Quality (Test, Check)${NC}"
 cd backend
 if [ ! -d "venv" ]; then
     python3 -m venv venv
-    venv/bin/pip install -r requirements.txt
 fi
+# Always ensure dependencies are sync (institutional grade means reproducible env)
+venv/bin/pip install -r requirements.txt --quiet
 
 venv/bin/pytest -q
 venv/bin/python manage.py check
