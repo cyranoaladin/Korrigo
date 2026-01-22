@@ -13,7 +13,7 @@ export async function loginAsAdmin(page: Page) {
 
     // 2) Perform login via API (same format as frontend auth.js)
     const username = process.env.E2E_ADMIN_USERNAME || 'admin';
-    const password = process.env.E2E_ADMIN_PASSWORD || 'password';
+    const password = process.env.E2E_ADMIN_PASSWORD || 'admin';
 
     const loginResult = await page.evaluate(async ({ username, password }) => {
         try {

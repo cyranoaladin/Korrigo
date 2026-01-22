@@ -29,7 +29,7 @@ export default async function globalSetup() {
                 const res = await fetch(`${url}/api/login/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: 'admin', password: 'password' }),
+                    body: JSON.stringify({ username: 'admin', password: 'admin' }),
                     credentials: 'include'  // Important: include cookies
                 });
 
