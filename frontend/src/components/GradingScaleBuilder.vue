@@ -1,11 +1,14 @@
 <script setup>
 import { computed } from 'vue'
 
+defineOptions({
+  name: 'GradingScaleBuilder'
+})
+
 const props = defineProps({
   modelValue: {
     type: Array,
-    required: true,
-    default: () => []
+    required: true
   },
   level: {
     type: Number,
@@ -15,11 +18,20 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
+const generateId = () => {
+    try {
+        return crypto.randomUUID()
+    } catch {
+        return Date.now().toString() + Math.random().toString().slice(2, 8)
+    }
+}
+
 const addNode = () => {
   const newNode = {
-    id: Date.now().toString() + Math.random().toString().slice(2, 5), // Simple unique ID
+    id: generateId(),
     label: props.level === 0 ? `Exercice ${props.modelValue.length + 1}` : 'Question',
     points: 0,
+    points_backup: 0,
     children: []
   }
   const newList = [...props.modelValue, newNode]
@@ -36,34 +48,45 @@ const removeNode = (index) => {
 
 const updateNode = (index, key, value) => {
   const newList = [...props.modelValue]
-  newList[index] = { ...newList[index], [key]: value }
+  const updatedNode = { ...newList[index], [key]: value }
+  // If we manually change points, update the backup
+  if (key === 'points') {
+      updatedNode.points_backup = value
+  }
+  newList[index] = updatedNode
   emit('update:modelValue', newList)
 }
 
 const updateChildren = (index, newChildren) => {
   const newList = [...props.modelValue]
-  newList[index] = { ...newList[index], children: newChildren }
+  const hasChildren = newChildren && newChildren.length > 0
+  const currentNode = { ...newList[index] }
+
+  // Logic senior: capture points before nulling them for the first child
+  // If points_backup is missing or 0, and current points > 0, we backup them.
+  if (hasChildren && (!currentNode.points_backup || currentNode.points_backup === 0) && currentNode.points > 0) {
+    currentNode.points_backup = currentNode.points
+  }
+
+  newList[index] = { 
+    ...currentNode, 
+    children: newChildren,
+    // If children exist, points must be 0 (sum logic takes over)
+    // If children become empty, restore from points_backup
+    points: hasChildren ? 0 : (currentNode.points_backup || 0)
+  }
   emit('update:modelValue', newList)
 }
 
-// Ensure points are number
-const onPointsChange = (index, event) => {
-  const val = parseFloat(event.target.value)
-  updateNode(index, 'points', isNaN(val) ? 0 : val)
+const getNodePoints = (node) => {
+  if (node.children && node.children.length > 0) {
+    return getTotalPoints(node.children)
+  }
+  return node.points || 0
 }
 
 const getTotalPoints = (nodes) => {
-  return nodes.reduce((sum, node) => {
-    let nodePoints = node.points || 0
-    if (node.children && node.children.length > 0) {
-      // If has children, points might be sum of children or defined on node (usually sum)
-      // SPEC implies structure tree. Let's assume points are on leaf nodes or explicitly set.
-      // If we want auto-sum, we can ignore parent points or make it read-only.
-      // For builder flexibility, we let user define points anywhere, but typically leaves.
-      nodePoints += getTotalPoints(node.children)
-    }
-    return sum + nodePoints
-  }, 0)
+  return nodes.reduce((sum, node) => sum + getNodePoints(node), 0)
 }
 
 const totalPoints = computed(() => getTotalPoints(props.modelValue))
@@ -72,77 +95,115 @@ const totalPoints = computed(() => getTotalPoints(props.modelValue))
 
 <template>
   <div class="scale-builder">
-    <div v-if="level === 0" class="global-actions">
-        <h3>Total Examen: {{ totalPoints }} pts</h3>
-        <button @click="addNode" class="btn-add-main">+ Ajouter Exercice</button>
+    <div
+      v-if="level === 0"
+      class="global-actions"
+    >
+      <h3>Total Examen: {{ totalPoints }} pts</h3>
+      <button
+        class="btn-add-main"
+        @click="addNode"
+      >
+        + Ajouter Exercice
+      </button>
     </div>
 
     <!-- Recursive List -->
-    <div v-for="(node, index) in modelValue" :key="node.id" class="node-wrapper" :style="{ marginLeft: level * 20 + 'px' }">
+    <div
+      v-for="(node, nodeIdx) in modelValue"
+      :key="node.id"
+      class="node-wrapper"
+      :style="{ marginLeft: level * 20 + 'px' }"
+    >
       <div class="node-row">
         <!-- Label Input -->
         <input 
           type="text" 
           :value="node.label" 
-          @input="updateNode(index, 'label', $event.target.value)"
           placeholder="Titre (ex: Exercice 1)"
           class="input-label"
-        />
+          @input="updateNode(nodeIdx, 'label', $event.target.value)"
+        >
 
-        <!-- Points Input (Only if no children? Or always? Let's allow always for mixed models) -->
-        <div class="points-wrapper">
-             <input 
+        <!-- Points Input -->
+        <div class="node-controls">
+          <div class="points-input">
+            <input 
               type="number" 
-              :value="node.points" 
-              @input="onPointsChange(index, $event)"
-              min="0"
               step="0.25"
-              class="input-points"
-            />
-            <span>pts</span>
+              :value="getNodePoints(node)"
+              :disabled="node.children && node.children.length > 0"
+              @input="e => updateNode(nodeIdx, 'points', parseFloat(e.target.value))"
+            >
+            <span 
+              v-if="node.children && node.children.length > 0" 
+              class="sum-indicator" 
+              title="Calculé à partir des enfants"
+            >
+              (Σ)
+            </span>
+          </div>
+          
+          <button 
+            v-if="level < 2" 
+            class="btn-icon add-child"
+            title="Ajouter une sous-question"
+            @click="updateChildren(nodeIdx, [...(node.children || []), { 
+              id: generateId(),
+              label: 'Question', 
+              points: 0, 
+              points_backup: 0,
+              children: []
+            }])"
+          >
+            +
+          </button>
+          <button 
+            class="btn-icon delete" 
+            title="Supprimer"
+            @click="removeNode(nodeIdx)"
+          >
+            &times;
+          </button>
         </div>
-
-        <!-- Actions -->
-        <div class="actions">
-             <!-- Add Child -->
-             <button @click="updateChildren(index, [...(node.children || []), {
-                id: Date.now().toString() + Math.random().toString().slice(2,5),
-                label: 'Question', 
-                points: 0, 
-                children: []
-             }])" class="btn-mini" title="Ajouter sous-question">
-               +
-             </button>
-             
-             <!-- Delete -->
-             <button @click="removeNode(index)" class="btn-mini btn-danger" title="Supprimer">
-               🗑️
-             </button>
-        </div>
+      </div>
+      
+      <div 
+        v-if="node.children && node.children.length > 0" 
+        class="children-warning"
+      >
+        Remarque : Les points de cet élément sont calculés automatiquement.
       </div>
 
       <!-- Recursive Children -->
-      <div class="children-block" v-if="node.children && node.children.length > 0">
-         <GradingScaleBuilder 
-            :model-value="node.children"
-            :level="level + 1"
-            @update:modelValue="updateChildren(index, $event)"
-         />
+      <div
+        v-if="node.children && node.children.length > 0"
+        class="children-block"
+      >
+        <GradingScaleBuilder 
+          :model-value="node.children"
+          :level="level + 1"
+          @update:model-value="updateChildren(nodeIdx, $event)"
+        />
       </div>
       <!-- If empty children but want to show drop area? Not needed for MVP -->
     </div>
 
-    <div v-if="level > 0" class="sub-actions">
-      <button @click="addNode" class="btn-add-sub">+ Ajouter Question</button>
+    <div
+      v-if="level > 0"
+      class="sub-actions"
+    >
+      <button
+        class="btn-add-sub"
+        @click="addNode"
+      >
+        + Ajouter Question
+      </button>
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'GradingScaleBuilder'
-}
-</script>
+
 
 <style scoped>
 .scale-builder {
@@ -192,6 +253,16 @@ export default {
   font-size: 0.9em;
   color: #666;
 }
+.children-warning {
+  font-size: 0.75rem;
+  color: #6366f1;
+  margin-top: -0.5rem;
+  margin-bottom: 0.75rem;
+  margin-left: 1rem;
+  font-style: italic;
+}
+
+.sum-indicator { font-size: 0.8rem; font-weight: bold; color: #6366f1; cursor: help; }
 .btn-add-main {
   background: #28a745;
   color: white;

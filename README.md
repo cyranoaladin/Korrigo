@@ -1,6 +1,6 @@
-# OpenViatique PMF
+# Korrigo
 
-**OpenViatique PMF** est une plateforme moderne de correction numérique d'examens scannés, conçue pour simplifier la gestion des copies A3, l'anonymisation et l'annotation vectorielle.
+**Korrigo** est une plateforme moderne de correction numérique d'examens scannés, conçue pour simplifier la gestion des copies A3, l'anonymisation et l'annotation vectorielle.
 
 ## 🚀 Aperçu
 Ce projet permet aux établissements scolaires de numériser leur flux de correction : de l'ingestion des scans A3 à l'export des PDF corrigés, en passant par une interface de correction fluide et un éditeur de barème hiérarchique.
@@ -55,3 +55,7 @@ Pour vérifier que tout fonctionne correctement (Tests E2E inclus) :
 ```bash
 make test
 ```
+
+## 📜 Crédits & Attribution
+**Concepteur** : Aleddine BEN RHOUMA — Labo Maths ERT
+

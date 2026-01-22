@@ -13,6 +13,7 @@ const fetchCopies = async () => {
     loading.value = true
     try {
         const res = await fetch(`${auth.API_URL}/api/student/copies/`, {
+            credentials: 'include',
             headers: auth.authHeaders
         })
         if (res.ok) {
@@ -45,75 +46,116 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="result-view">
-        <header class="navbar">
-            <div class="brand">Espace Élève <span v-if="auth.user" class="student-name">| {{ auth.user.first_name }} {{ auth.user.last_name }}</span></div>
-            <button @click="logout" class="btn-logout">Déconnexion</button>
-        </header>
+  <div class="result-view">
+    <header class="navbar">
+      <div class="brand">
+        Korrigo — Espace Élève <span
+          v-if="auth.user"
+          class="student-name"
+        >| {{ auth.user.first_name }} {{ auth.user.last_name }}</span>
+      </div>
+      <button
+        class="btn-logout"
+        @click="logout"
+      >
+        Déconnexion
+      </button>
+    </header>
         
-        <main class="content-split">
-            <!-- Left: List -->
-            <aside class="sidebar">
-                <h3>Mes Copies</h3>
-                <div v-if="loading" class="loading">Chargement...</div>
-                <div v-else-if="copies.length === 0" class="empty">Aucune copie disponible.</div>
-                <ul v-else class="copy-list">
-                    <li 
-                        v-for="copy in copies" 
-                        :key="copy.id" 
-                        :class="{ active: selectedCopy?.id === copy.id }"
-                        @click="selectCopy(copy)"
-                    >
-                        <div class="copy-header">
-                            <span class="exam-name">{{ copy.exam_name }}</span>
-                            <span class="exam-date">{{ copy.date }}</span>
-                        </div>
-                        <div class="copy-score">
-                            Note: <span class="score-value">{{ copy.total_score.toFixed(2) }}</span> / 20
-                        </div>
-                    </li>
-                </ul>
-            </aside>
+    <main class="content-split">
+      <!-- Left: List -->
+      <aside class="sidebar">
+        <h3>Mes Copies</h3>
+        <div
+          v-if="loading"
+          class="loading"
+        >
+          Chargement...
+        </div>
+        <div
+          v-else-if="copies.length === 0"
+          class="empty"
+        >
+          Aucune copie disponible.
+        </div>
+        <ul
+          v-else
+          class="copy-list"
+        >
+          <li 
+            v-for="copy in copies" 
+            :key="copy.id" 
+            :class="{ active: selectedCopy?.id === copy.id }"
+            @click="selectCopy(copy)"
+          >
+            <div class="copy-header">
+              <span class="exam-name">{{ copy.exam_name }}</span>
+              <span class="exam-date">{{ copy.date }}</span>
+            </div>
+            <div class="copy-score">
+              Note: <span class="score-value">{{ copy.total_score.toFixed(2) }}</span> / 20
+            </div>
+          </li>
+        </ul>
+      </aside>
             
-            <!-- Right: Details -->
-            <section class="details" v-if="selectedCopy">
-                <div class="details-header">
-                    <h2>{{ selectedCopy.exam_name }}</h2>
-                    <a v-if="selectedCopy.final_pdf_url" :href="selectedCopy.final_pdf_url" download class="btn-download">
-                        📥 Télécharger le PDF
-                    </a>
-                </div>
+      <!-- Right: Details -->
+      <section
+        v-if="selectedCopy"
+        class="details"
+      >
+        <div class="details-header">
+          <h2>{{ selectedCopy.exam_name }}</h2>
+          <a
+            v-if="selectedCopy.final_pdf_url"
+            :href="selectedCopy.final_pdf_url"
+            download
+            class="btn-download"
+          >
+            📥 Télécharger le PDF
+          </a>
+        </div>
                 
-                <div class="details-body">
-                    <!-- Tabs or Split vertical? Let's do TOP: Breakdown, BOTTOM: PDF -->
+        <div class="details-body">
+          <!-- Tabs or Split vertical? Let's do TOP: Breakdown, BOTTOM: PDF -->
                     
-                    <div class="score-breakdown">
-                        <h4>Détail des points</h4>
-                        <div class="tags">
-                            <span v-for="(val, key) in selectedCopy.scores_details" :key="key" class="tag">
-                                {{ key }}: <b>{{ val }}</b>
-                            </span>
-                        </div>
-                    </div>
+          <div class="score-breakdown">
+            <h4>Détail des points</h4>
+            <div class="tags">
+              <span
+                v-for="(val, key) in selectedCopy.scores_details"
+                :key="key"
+                class="tag"
+              >
+                {{ key }}: <b>{{ val }}</b>
+              </span>
+            </div>
+          </div>
                     
-                    <div class="pdf-wrapper">
-                         <iframe 
-                            v-if="selectedCopy.final_pdf_url" 
-                            :src="selectedCopy.final_pdf_url" 
-                            width="100%" 
-                            height="100%"
-                        ></iframe>
-                        <div v-else class="no-pdf">
-                            PDF non disponible.
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <section v-else class="details empty-state">
-                <p>Sélectionnez une copie pour voir les détails.</p>
-            </section>
-        </main>
-    </div>
+          <div class="pdf-wrapper">
+            <iframe 
+              v-if="selectedCopy.final_pdf_url" 
+              :src="selectedCopy.final_pdf_url" 
+              width="100%" 
+              height="100%"
+            />
+            <div
+              v-else
+              class="no-pdf"
+            >
+              PDF non disponible.
+            </div>
+          </div>
+        </div>
+      </section>
+      <section
+        v-else
+        class="details empty-state"
+      >
+        <p>Sélectionnez une copie pour voir les détails.</p>
+      </section>
+    </main>
+  </div>
 </template>
 
 <style scoped>

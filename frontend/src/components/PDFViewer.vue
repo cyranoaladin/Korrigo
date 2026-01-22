@@ -69,7 +69,7 @@ watch(() => props.pageNumber, (newVal) => {
 
 <template>
   <div class="pdf-container">
-    <canvas ref="canvasRef"></canvas>
+    <canvas ref="canvasRef" />
   </div>
 </template>
 

@@ -12,6 +12,7 @@ const fetchExams = async () => {
     loading.value = true
     try {
         const res = await fetch(`${authStore.API_URL}/api/exams/`, {
+            credentials: 'include',
             headers: authStore.authHeaders
         })
         if (res.ok) {
@@ -55,10 +56,7 @@ const uploadExam = async (event) => {
     try {
         const res = await fetch(`${authStore.API_URL}/api/exams/upload/`, {
             method: 'POST',
-            headers: {
-                // Determine Authorization header but do NOT set Content-Type (browser does it for FormData)
-                'Authorization': authStore.authHeaders.Authorization
-            },
+            credentials: 'include',
             body: formData
         })
         
@@ -81,74 +79,145 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="admin-dashboard">
-        <nav class="sidebar">
-            <div class="logo">OpenViatique Admin</div>
-            <ul class="nav-links">
-                <li class="active">Gestion Examens</li>
-                <li>Utilisateurs</li>
-                <li>Paramètres</li>
-            </ul>
-            <button @click="handleLogout" class="logout-btn">Déconnexion</button>
-        </nav>
+  <div
+    data-testid="admin-dashboard"
+    class="admin-dashboard"
+  >
+    <nav class="sidebar">
+      <div class="logo">
+        <img
+          src="/images/Korrigo.png"
+          alt="Korrigo Logo"
+          class="sidebar-logo-img"
+        >
+        <span>Korrigo</span>
+      </div>
+      <ul class="nav-links">
+        <li class="active">
+          Gestion Examens
+        </li>
+        <li>Utilisateurs</li>
+        <li>Paramètres</li>
+      </ul>
+      <button
+        data-testid="logout-button"
+        class="logout-btn"
+        @click="handleLogout"
+      >
+        Déconnexion
+      </button>
+      <div class="attribution">
+        Concepteur : Aleddine BEN RHOUMA<br>Labo Maths ERT
+      </div>
+    </nav>
         
-        <main class="content">
-            <header>
-                <h1>Tableau de Bord Administrateur</h1>
-                <div class="user-info">{{ authStore.user?.username }} (Admin)</div>
-            </header>
+    <main class="content">
+      <header>
+        <h1 data-testid="admin-dashboard-title">
+          Korrigo — Tableau de Bord Administrateur
+        </h1>
+        <div class="user-info">
+          {{ authStore.user?.username }} (Admin)
+        </div>
+      </header>
             
-            <section class="exam-management">
-                <div class="actions-bar">
-                    <button class="btn btn-primary">+ Nouvel Examen</button>
-                    <button class="btn btn-outline" @click="triggerUpload">Importer Scans</button>
-                    <input 
-                        type="file" 
-                        ref="fileInput" 
-                        style="display: none" 
-                        accept="application/pdf"
-                        @change="uploadExam"
-                    >
-                </div>
+      <section class="exam-management">
+        <div class="actions-bar">
+          <button
+            data-testid="exams.new"
+            class="btn btn-primary"
+          >
+            + Nouvel Examen
+          </button>
+          <button
+            class="btn btn-outline"
+            data-testid="exams.import"
+            @click="triggerUpload"
+          >
+            Importer Scans
+          </button>
+          <input 
+            ref="fileInput" 
+            type="file" 
+            style="display: none" 
+            accept="application/pdf"
+            data-testid="exams.fileInput"
+            @change="uploadExam"
+          >
+        </div>
                 
-                <div v-if="loading" class="loading">Chargement des examens...</div>
+        <div
+          v-if="loading"
+          class="loading"
+        >
+          Chargement des examens...
+        </div>
                 
-                <table v-else class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Nom</th>
-                            <th>Date</th>
-                            <th>État</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="exam in exams" :key="exam.id">
-                            <td>{{ exam.name }}</td>
-                            <td>{{ exam.date }}</td>
-                            <td>
-                                <span v-if="exam.is_processed" class="badge status-import">Importé</span>
-                                <span v-else class="badge status-pending">En création</span>
-                            </td>
-                            <td>
-                                <button class="btn-sm" @click="alert('Fonctionnalité Agrafer en cours de développement')">Agrafer</button>
-                                <button class="btn-sm" @click="alert('Éditeur de Barème bientôt disponible')">Barème</button>
-                                <button 
-                                    class="btn-sm btn-action" 
-                                    @click="goToIdentification(exam.id)"
-                                >
-                                    Video-Coding
-                                </button>
-                            </td>
-                        </tr>
-                        <tr v-if="exams.length === 0">
-                            <td colspan="4" class="empty-cell">Aucun examen trouvé. Créez-en un ou importez des scans.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-        </main>
-    </div>
+        <table
+          v-else
+          class="data-table"
+          data-testid="exams.list"
+        >
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Date</th>
+              <th>État</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="exam in (exams || [])"
+              :key="exam?.id"
+              :data-testid="exam ? `exam.row.${exam.id}` : ''"
+            >
+              <td>{{ exam?.name }}</td>
+              <td>{{ exam?.date }}</td>
+              <td>
+                <span
+                  v-if="exam?.is_processed"
+                  class="badge status-import"
+                >Importé</span>
+                <span
+                  v-else
+                  class="badge status-pending"
+                >En création</span>
+              </td>
+              <td>
+                <button
+                  class="btn-sm"
+                  @click="alert('Fonctionnalité Agrafer en cours de développement')"
+                >
+                  Agrafer
+                </button>
+                <button
+                  class="btn-sm"
+                  @click="alert('Éditeur de Barème bientôt disponible')"
+                >
+                  Barème
+                </button>
+                <button 
+                  class="btn-sm btn-action" 
+                  @click="goToIdentification(exam?.id)"
+                >
+                  Video-Coding
+                </button>
+              </td>
+            </tr>
+            <tr v-if="exams.length === 0">
+              <td
+                colspan="4"
+                class="empty-cell"
+              >
+                Aucun examen trouvé. Créez-en un ou importez des scans.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
 </template>
 
 <style scoped>
@@ -158,12 +227,14 @@ onMounted(() => {
 .empty-cell { padding: 3rem; text-align: center; color: #9ca3af; font-style: italic; }
 .admin-dashboard { display: flex; height: 100vh; font-family: 'Inter', sans-serif; }
 .sidebar { width: 250px; background: #1e293b; color: white; padding: 1.5rem; display: flex; flex-direction: column; }
-.logo { font-size: 1.25rem; font-weight: 700; margin-bottom: 2rem; color: #60a5fa; }
+.logo { font-size: 1.5rem; font-weight: 800; margin-bottom: 2.5rem; color: #60a5fa; display: flex; align-items: center; gap: 0.75rem; }
+.sidebar-logo-img { height: 32px; width: auto; filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.3)); }
 .nav-links { list-style: none; padding: 0; flex: 1; }
-.nav-links li { padding: 0.75rem 1rem; cursor: pointer; border-radius: 6px; margin-bottom: 0.5rem; color: #94a3b8; }
+.nav-links li { padding: 0.75rem 1rem; cursor: pointer; border-radius: 6px; margin-bottom: 0.5rem; color: #94a3b8; transition: all 0.2s; }
 .nav-links li.active, .nav-links li:hover { background: #334155; color: white; }
-.logout-btn { margin-top: auto; background: none; border: 1px solid #ef4444; color: #ef4444; padding: 0.5rem; border-radius: 6px; cursor: pointer; }
+.logout-btn { margin-top: 1rem; background: none; border: 1px solid #ef4444; color: #ef4444; padding: 0.5rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
 .logout-btn:hover { background: #ef4444; color: white; }
+.attribution { margin-top: 1.5rem; font-size: 0.7rem; color: #475569; text-align: center; line-height: 1.4; border-top: 1px solid #334155; padding-top: 1rem; }
 
 .content { flex: 1; background: #f1f5f9; padding: 2rem; overflow-y: auto; }
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }

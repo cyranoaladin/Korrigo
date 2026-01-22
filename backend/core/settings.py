@@ -26,13 +26,18 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# E2E Testing Configuration
+E2E_SEED_TOKEN = os.environ.get("E2E_SEED_TOKEN")  # Only set in prod-like environment
+
 # Security Settings for Production
 # SSL/HTTPS Configuration
-SSL_ENABLED = os.environ.get("SSL_ENABLED", "True").lower() == "true"
+# SSL_ENABLED: Set to "False" in prod-like (HTTP-only E2E), "True" in real prod
+SSL_ENABLED = os.environ.get("SSL_ENABLED", "False").lower() == "true"
 
 if not DEBUG:
     # Production Security Headers
     if SSL_ENABLED:
+        # Real production: Force HTTPS
         SECURE_SSL_REDIRECT = True
         SESSION_COOKIE_SECURE = True
         CSRF_COOKIE_SECURE = True
@@ -40,6 +45,11 @@ if not DEBUG:
         SECURE_HSTS_INCLUDE_SUBDOMAINS = True
         SECURE_HSTS_PRELOAD = True
         SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    else:
+        # Prod-like (E2E): HTTP-only, no SSL redirect
+        SECURE_SSL_REDIRECT = False
+        SESSION_COOKIE_SECURE = False
+        CSRF_COOKIE_SECURE = False
 
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -52,6 +62,7 @@ else:
 # Cookie SameSite (all environments)
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False  # Required for SPAs to read CSRF token from cookie
 
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = os.environ.get(
@@ -126,7 +137,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
+        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
         conn_max_age=600
     )
 }

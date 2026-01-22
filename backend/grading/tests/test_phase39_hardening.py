@@ -1,4 +1,5 @@
 import pytest
+import os
 from rest_framework import status
 from django.core.files.base import ContentFile
 from django.contrib.auth import get_user_model
@@ -82,18 +83,27 @@ def test_import_success_for_teacher_creates_copy_booklet_and_audit(api_client, t
     
     copy = Copy.objects.get(id=response.data['id'])
     assert copy.exam == exam
-    assert copy.booklets.count() == 1
     
-    # Verify P0.1 & P0.2 fixes
-    booklet = copy.booklets.first()
-    assert booklet.pages_images == [f"copies/pages/{copy.id}/p000.png", f"copies/pages/{copy.id}/p001.png"]
-    assert booklet.start_page == 1 # 1-indexed fix
-    assert booklet.end_page == 2
-    
-    # Check Audit
-    event = GradingEvent.objects.filter(copy=copy, action=GradingEvent.Action.IMPORT).first()
-    assert event is not None
-    assert event.actor == teacher_user
+    try:
+        assert copy.booklets.count() == 1
+        
+        # Verify P0.1 & P0.2 fixes
+        booklet = copy.booklets.first()
+        assert booklet.pages_images == [f"copies/pages/{copy.id}/p000.png", f"copies/pages/{copy.id}/p001.png"]
+        assert booklet.start_page == 1 # 1-indexed fix
+        assert booklet.end_page == 2
+        
+        # Check Audit
+        event = GradingEvent.objects.filter(copy=copy, action=GradingEvent.Action.IMPORT).first()
+        assert event is not None
+        assert event.actor == teacher_user
+    finally:
+        # Cleanup to prevent ResourceWarning
+        if copy.pdf_source:
+             if hasattr(copy.pdf_source, 'close'): copy.pdf_source.close()
+             if hasattr(copy.pdf_source, 'file') and copy.pdf_source.file: copy.pdf_source.file.close()
+             copy.pdf_source.delete(save=False)
+        copy.delete()
 
 @pytest.mark.django_db
 def test_audit_endpoint_requires_staff(api_client, student_user, teacher_user, exam):
@@ -127,16 +137,35 @@ def test_final_pdf_security_gate(api_client, teacher_user, exam):
     if copy.final_pdf:
         copy.final_pdf.close()
     
-    url = f"/api/copies/{copy.id}/final-pdf/"
-    api_client.force_authenticate(user=teacher_user)
-    
-    # LOCKED -> 403
-    response = api_client.get(url)
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    
-    # GRADED -> 200
-    copy.status = Copy.Status.GRADED
-    copy.save()
-    response = api_client.get(url)
-    assert response.status_code == status.HTTP_200_OK
-    assert response['Content-Disposition'].startswith('attachment; filename=')
+    try:
+        url = f"/api/copies/{copy.id}/final-pdf/"
+        api_client.force_authenticate(user=teacher_user)
+        
+        # LOCKED -> 403
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        
+        # GRADED -> 200
+        copy.status = Copy.Status.GRADED
+        copy.save()
+        response = api_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert response['Content-Disposition'].startswith('attachment; filename=')
+        if hasattr(response, 'close'):
+             response.close()
+    finally:
+        # Ensure file handle is closed
+        try:
+             if copy.final_pdf:
+                  if hasattr(copy.final_pdf, 'close'): copy.final_pdf.close()
+                  if hasattr(copy.final_pdf, 'file') and copy.final_pdf.file: copy.final_pdf.file.close()
+                  
+                  # Force delete file path if open handle persists on object
+                  path = copy.final_pdf.path
+                  if os.path.exists(path):
+                       os.remove(path)
+        except Exception:
+             pass
+        
+        # Delete model object
+        copy.delete()

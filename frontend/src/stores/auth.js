@@ -15,6 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
             const res = await fetch(`${API_URL}/api/login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ username, password })
             })
 
@@ -33,6 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
             const res = await fetch(`${API_URL}/api/students/login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ ine: ine, last_name: lastName })
             })
 
@@ -51,7 +53,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function logout() {
         try {
-            await fetch(`${API_URL}/api/logout/`, { method: 'POST' })
+            await fetch(`${API_URL}/api/logout/`, {
+                method: 'POST',
+                credentials: 'include'
+            })
             user.value = null
         } catch (e) {
             console.error(e)
@@ -61,7 +66,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function logoutStudent() {
         try {
-            await fetch(`${API_URL}/api/students/logout/`, { method: 'POST' })
+            await fetch(`${API_URL}/api/students/logout/`, {
+                method: 'POST',
+                credentials: 'include'
+            })
             user.value = null
         } catch (e) {
             console.error(e)
@@ -73,28 +81,31 @@ export const useAuthStore = defineStore('auth', () => {
         isChecking.value = true
         try {
             // Strategy: Try /api/me/ (Standard User) first, UNLESS preferStudent is true
-            // Actually, simplest is to try /api/me/, if 401/403, try /api/students/me/
-            // But 401 on /api/me/ might just mean not logged in at all.
+            // CRITICAL: credentials:'include' required to send session cookies
 
             let res = null
             if (!preferStudent) {
-                res = await fetch(`${API_URL}/api/me/`)
+                res = await fetch(`${API_URL}/api/me/`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                })
                 if (res.ok) {
                     user.value = await res.json()
-                    user.value.role = user.value.role || 'Admin' // Default fallback if field missing, but backend sends it?
-                    // Backend User Detail view typically sends username, email, groups. 
-                    // Assuming 'role' is derived or we add it. 
-                    // For 'Admin' vs 'Teacher', we rely on 'is_staff' or Group. 
-                    // Let's assume standard Django User for now.
+                    user.value.role = user.value.role || 'Admin'
                     return
                 }
             }
 
             // If failed or preferStudent, try student endpoint
-            res = await fetch(`${API_URL}/api/students/me/`)
+            res = await fetch(`${API_URL}/api/students/me/`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
+            })
             if (res.ok) {
                 const student = await res.json()
-                user.value = { ...student, role: 'Student' } // Tag as Student
+                user.value = { ...student, role: 'Student' }
             } else {
                 user.value = null
             }

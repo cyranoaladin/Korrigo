@@ -8,7 +8,7 @@ export const useExamStore = defineStore('exam', () => {
     const error = ref(null)
 
     // API Base URL from env or default
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    const API_URL = import.meta.env.VITE_API_URL || ''
 
     async function uploadExam(file) {
         isLoading.value = true
@@ -21,6 +21,7 @@ export const useExamStore = defineStore('exam', () => {
 
             const response = await fetch(`${API_URL}/api/exams/upload/`, {
                 method: 'POST',
+                credentials: 'include',
                 body: formData,
             })
 
@@ -42,7 +43,9 @@ export const useExamStore = defineStore('exam', () => {
     async function fetchBooklets(examId) {
         isLoading.value = true
         try {
-            const response = await fetch(`${API_URL}/api/exams/${examId}/booklets/`)
+            const response = await fetch(`${API_URL}/api/exams/${examId}/booklets/`, {
+                credentials: 'include'
+            })
             if (!response.ok) throw new Error('Erreur lors de la récupération des fascicules')
             booklets.value = await response.json()
         } catch (e) {
@@ -59,6 +62,7 @@ export const useExamStore = defineStore('exam', () => {
         try {
             const response = await fetch(`${API_URL}/api/exams/${currentExam.value.id}/merge/`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },

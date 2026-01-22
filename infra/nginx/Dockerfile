@@ -10,7 +10,7 @@ RUN npm run build
 FROM nginx:1.25-alpine
 
 RUN rm /etc/nginx/conf.d/default.conf
-COPY nginx/nginx.conf /etc/nginx/conf.d/
+COPY infra/nginx/nginx.conf /etc/nginx/conf.d/
 
 # Copy built assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html

@@ -13,10 +13,10 @@ services:
       - "5435:5432"
 
   backend:
-    build: ./backend
+    build: ../../backend
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./backend:/app
+      - ../../backend:/app
     ports:
       - "8088:8000"
     depends_on:
@@ -34,9 +34,9 @@ services:
       - "6385:6379"
 
   frontend:
-    build: ./frontend
+    build: ../../frontend
     volumes:
-      - ./frontend:/app
+      - ../../frontend:/app
       - /app/node_modules
     ports:
       - "5173:5173"
@@ -44,10 +44,10 @@ services:
       - VITE_API_URL=http://localhost:8088
 
   celery:
-    build: ./backend
+    build: ../../backend
     command: celery -A core worker -l info
     volumes:
-      - ./backend:/app
+      - ../../backend:/app
     depends_on:
       - db
       - redis

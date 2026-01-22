@@ -1,4 +1,4 @@
-# Application Completion Plan - Viatique PMF
+# Application Completion Plan - Korrigo PMF
 
 **Date:** 2026-01-21
 **Status:** Gap Analysis + Planning

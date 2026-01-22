@@ -1,4 +1,4 @@
-# Manuel Technique - OpenViatique PMF
+# Manuel Technique - Korrigo PMF
 
 > **Version:** 1.1.0
 > **Date:** Janvier 2026

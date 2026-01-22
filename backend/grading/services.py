@@ -228,14 +228,13 @@ class GradingService:
         finally:
             copy.pdf_source.close()
             
-        doc = fitz.open("pdf", pdf_bytes)
-        images = []
-        
-        path_rel = f"copies/pages/{copy.id}"
-        path_abs = os.path.join(settings.MEDIA_ROOT, path_rel)
-        os.makedirs(path_abs, exist_ok=True)
-        
-        try:
+        with fitz.open("pdf", pdf_bytes) as doc:
+            images = []
+            
+            path_rel = f"copies/pages/{copy.id}"
+            path_abs = os.path.join(settings.MEDIA_ROOT, path_rel)
+            os.makedirs(path_abs, exist_ok=True)
+            
             for i, page in enumerate(doc):
                  # Matrix 1.5 ~ 108 DPI, 2.0 ~ 144 DPI. 
                  # Use 2.0 for Prod Quality
@@ -244,8 +243,6 @@ class GradingService:
                  filepath = os.path.join(path_abs, filename)
                  pix.save(filepath)
                  images.append(f"{path_rel}/{filename}")
-        finally:
-             doc.close()
              
         return images
 

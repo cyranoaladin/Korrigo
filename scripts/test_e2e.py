@@ -18,12 +18,19 @@ def wait_for_server():
 
 def test_flow():
     # 1. Upload Exam (Simulated)
-    # We need a dummy PDF file
-    with open("dummy.pdf", "wb") as f:
-        f.write(b"%PDF-1.4 empty pdf")
+    # We use the fixture file
+    import os
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fixture_path = os.path.join(base_dir, "backend/tests/fixtures/dummy.pdf")
     
+    # Ensure fixture exists, if not create it (safe fallback)
+    if not os.path.exists(fixture_path):
+        os.makedirs(os.path.dirname(fixture_path), exist_ok=True)
+        with open(fixture_path, "wb") as f:
+            f.write(b"%PDF-1.4 empty pdf")
+
     print("\n[1] Uploading Exam...")
-    files = {'pdf_source': open('dummy.pdf', 'rb')}
+    files = {'pdf_source': open(fixture_path, 'rb')}
     data = {'name': 'E2E Test Exam', 'date': '2026-06-01'}
     
     try:

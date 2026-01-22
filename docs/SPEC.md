@@ -4,7 +4,7 @@ Elle intègre les spécificités "Bac Blanc" (absence de QR Code, pédagogie, Pr
 
 ---
 
-# Projet OpenViatique PMF — Cahier des Charges (Révisé v2.0)
+# Projet Korrigo PMF — Cahier des Charges (Révisé v2.0)
 
 **Version :** 2.0 (Adaptation "Bac Blanc")
 **Date :** 17 Janvier 2026
@@ -164,7 +164,7 @@ Pour des raisons de sécurité et d'ergonomie, les points d'entrée sont distinc
 ## 6. Structure du Projet (Mise à jour Arborescence)
 
 ```text
-open-viatique-pmf/
+korrigo-pmf/
 ├── backend/
 │   ├── exams/              # Gestion administrative
 │   ├── identification/     # [NOUVEAU] Module OCR & Liaison Élèves
@@ -215,7 +215,7 @@ Elle intègre les spécificités "Bac Blanc" (absence de QR Code, pédagogie, Pr
 
 ---
 
-# Projet OpenViatique PMF — Cahier des Charges (Révisé v2.0)
+# Projet Korrigo PMF — Cahier des Charges (Révisé v2.0)
 
 **Version :** 2.0 (Adaptation "Bac Blanc")
 **Date :** 17 Janvier 2026
@@ -375,7 +375,7 @@ Pour des raisons de sécurité et d'ergonomie, les points d'entrée sont distinc
 ## 6. Structure du Projet (Mise à jour Arborescence)
 
 ```text
-open-viatique-pmf/
+korrigo-pmf/
 ├── backend/
 │   ├── exams/              # Gestion administrative
 │   ├── identification/     # [NOUVEAU] Module OCR & Liaison Élèves

@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useExamStore } from '../stores/examStore' // We might need to extend it or fetch manually
+import { useAuthStore } from '../stores/auth'
+import { useExamStore } from '../stores/examStore'
 import GradingScaleBuilder from '../components/GradingScaleBuilder.vue'
 
 const route = useRoute()
@@ -27,12 +28,14 @@ const saveMessage = ref('')
 // path('upload/', ...), path('.../booklets/'), path('.../merge/')
 // We MISS `path('<uuid:pk>/', ...)` for RetrieveUpdateDestroy.
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const authStore = useAuthStore()
 
 const fetchExam = async () => {
     isLoading.value = true
     try {
-        const res = await fetch(`${API_URL}/api/exams/${examId}/`)
+        const res = await fetch(`${authStore.API_URL}/api/exams/${examId}/`, {
+            credentials: 'include'
+        })
         if (!res.ok) throw new Error("Impossible de récupérer l'examen")
         exam.value = await res.json()
         if (!exam.value.grading_structure) {
@@ -49,8 +52,9 @@ const saveExam = async () => {
     isSaving.value = true
     saveMessage.value = ''
     try {
-        const res = await fetch(`${API_URL}/api/exams/${examId}/`, {
+        const res = await fetch(`${authStore.API_URL}/api/exams/${examId}/`, {
             method: 'PATCH',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 grading_structure: exam.value.grading_structure
@@ -76,26 +80,40 @@ onMounted(() => {
 
 <template>
   <div class="exam-editor">
-    <div v-if="isLoading">Chargement...</div>
-    <div v-else-if="error" class="error">{{ error }}</div>
+    <div v-if="isLoading">
+      Chargement...
+    </div>
+    <div
+      v-else-if="error"
+      class="error"
+    >
+      {{ error }}
+    </div>
     <div v-else-if="exam">
-        <div class="header">
-            <h1>Éditeur: {{ exam.name }}</h1>
-            <div class="controls">
-                <span v-if="saveMessage" class="success">{{ saveMessage }}</span>
-                <button @click="saveExam" :disabled="isSaving" class="btn-save">
-                    {{ isSaving ? 'Sauvegarde...' : 'Enregistrer le Barème' }}
-                </button>
-            </div>
+      <div class="header">
+        <h1>Korrigo — Éditeur: {{ exam.name }}</h1>
+        <div class="controls">
+          <span
+            v-if="saveMessage"
+            class="success"
+          >{{ saveMessage }}</span>
+          <button
+            :disabled="isSaving"
+            class="btn-save"
+            @click="saveExam"
+          >
+            {{ isSaving ? 'Sauvegarde...' : 'Enregistrer le Barème' }}
+          </button>
         </div>
+      </div>
         
-        <div class="editor-container">
-            <h2>Structure du Barème</h2>
-            <p class="help-text">
-                Ajoutez des exercices et des questions. Les notes doivent être numériques.
-            </p>
-            <GradingScaleBuilder v-model="exam.grading_structure" />
-        </div>
+      <div class="editor-container">
+        <h2>Structure du Barème</h2>
+        <p class="help-text">
+          Ajoutez des exercices et des questions. Les notes doivent être numériques.
+        </p>
+        <GradingScaleBuilder v-model="exam.grading_structure" />
+      </div>
     </div>
   </div>
 </template>
