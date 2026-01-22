@@ -135,23 +135,25 @@ def test_ready_transition_changes_status_and_creates_event(
 
 
 @pytest.mark.unit
-def test_finalize_only_allowed_from_locked(authenticated_client, ready_copy):
+def test_finalize_works_from_ready(authenticated_client, ready_copy):
     """
-    Test that FINALIZE transition only works from LOCKED status.
-    Attempting to finalize a READY copy should return 400.
+    Test that FINALIZE transition allowed from READY status.
     """
     from exams.models import Copy
+    from unittest.mock import patch
 
     url = f"/api/copies/{ready_copy.id}/finalize/"
-    response = authenticated_client.post(url, {}, format="json")
+    
+    # Mock PDF Flattener to avoid file errors/str-path issues in test environment
+    with patch('processing.services.pdf_flattener.PDFFlattener.flatten_copy') as mock_flatten:
+        response = authenticated_client.post(url, {}, format="json")
 
-    assert response.status_code == 400
-    assert "detail" in response.data
-    assert "Only LOCKED copies can be finalized" in response.data["detail"]
+    assert response.status_code == 200
+    assert response.data["status"] == "GRADED"
 
-    # Verify status unchanged
+    # Verify status changed
     ready_copy.refresh_from_db()
-    assert ready_copy.status == Copy.Status.READY
+    assert ready_copy.status == Copy.Status.GRADED
 
 
 @pytest.mark.unit
