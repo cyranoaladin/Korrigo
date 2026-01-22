@@ -53,13 +53,15 @@ export default {
         return response.data;
     },
 
-    async finalizeCopy(id) {
-        const response = await api.post(`/copies/${id}/finalize/`);
+    async finalizeCopy(id, token = null) {
+        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+        const response = await api.post(`/copies/${id}/finalize/`, {}, config);
         return response.data;
     },
 
-    async createAnnotation(copyId, payload) {
-        const response = await api.post(`/copies/${copyId}/annotations/`, payload);
+    async createAnnotation(copyId, payload, token = null) {
+        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+        const response = await api.post(`/copies/${copyId}/annotations/`, payload, config);
         return response.data;
     },
 
@@ -68,17 +70,12 @@ export default {
         return response.data;
     },
 
-    async deleteAnnotation(copyId, annotationId) {
+    async deleteAnnotation(copyId, annotationId, token = null) {
         try {
-            // Priority: Direct Delete Endpoint
-            const response = await api.delete(`/annotations/${annotationId}/`);
-            return true; // 204 or 200 is success
+            const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+            const response = await api.delete(`/annotations/${annotationId}/`, config);
+            return true;
         } catch (err) {
-            // Fallback: If direct endpoint is missing (404), try nested if structured that way
-            // or just rethrow if we know our backend only has one.
-            // For robustness P0, if we suspect backend might change, we could try fallback.
-            // Currently backend urls.py confirms /annotations/<uuid>/
-            // So we rethrow actual errors (403, 500)
             throw err;
         }
     },
