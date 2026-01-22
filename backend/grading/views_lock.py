@@ -2,7 +2,7 @@ from rest_framework import views, status, permissions
 from rest_framework.response import Response
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-from .models import Copy, CopyLock
+from .models import Copy, CopyLock, GradingEvent
 from exams.permissions import IsTeacherOrAdmin
 import uuid
 import datetime
@@ -57,6 +57,14 @@ class LockAcquireView(views.APIView):
             copy=copy,
             owner=user,
             expires_at=expires_at
+        )
+
+        # Audit
+        GradingEvent.objects.create(
+            copy=copy, 
+            action=GradingEvent.Action.LOCK, 
+            actor=user,
+            metadata={"token_prefix": str(lock.token)[:8]}
         )
         
         return Response({
@@ -123,6 +131,13 @@ class LockReleaseView(views.APIView):
         if lock.owner != request.user:
              return Response({"error": "Not owner"}, status=status.HTTP_403_FORBIDDEN)
              
+        # Audit
+        GradingEvent.objects.create(
+            copy=lock.copy, 
+            action=GradingEvent.Action.UNLOCK, 
+            actor=request.user
+        )
+
         lock.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
