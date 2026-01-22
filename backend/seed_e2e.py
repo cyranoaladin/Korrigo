@@ -106,6 +106,9 @@ def seed_e2e():
         'copy_ids': created_copy_ids,
     }
 
+import json
+
 if __name__ == "__main__":
     result = seed_e2e()
-    print(f"\nCreated IDs: {result}")
+    # Output valid JSON for parsing
+    print(f"\nCreated IDs: {json.dumps(result)}")
