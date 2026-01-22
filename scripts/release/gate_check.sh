@@ -75,7 +75,7 @@ docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" up -d --build
 echo "Waiting for health check at $HEALTH_URL..."
 sleep 5
 for i in {1..30}; do
-    if curl -sf "$HEALTH_URL" >/dev/null; then
+    if curl -sf --max-time 5 "$HEALTH_URL" >/dev/null; then
         echo "Health check passed."
         break
     fi
@@ -93,7 +93,7 @@ echo -e "${GREEN}[5] Security Baseline (Runtime validation)${NC}"
 
 # Seed Database
 echo "Seeding database..."
-SEED_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$SEED_URL" -H "X-E2E-Seed-Token: secret-e2e-token-prod-like-only")
+SEED_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST "$SEED_URL" -H "X-E2E-Seed-Token: secret-e2e-token-prod-like-only")
 if [ "$SEED_HTTP_CODE" != "200" ] && [ "$SEED_HTTP_CODE" != "201" ]; then
    echo -e "${RED}FAIL: Seeding failed with HTTP $SEED_HTTP_CODE${NC}"
    exit 1
@@ -101,7 +101,7 @@ fi
 echo "Database seeded."
 
 # Check DEBUG=False
-DEBUG_STATUS=$(docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" exec backend python -c "import os; from django.conf import settings; print(settings.DEBUG)")
+DEBUG_STATUS=$(docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" exec -T backend python -c "import os; from django.conf import settings; print(settings.DEBUG)" | tr -d '\r')
 if [ "$DEBUG_STATUS" != "False" ]; then
     echo -e "${RED}FAIL: DEBUG is $DEBUG_STATUS in prodlike (expected False)${NC}"
     exit 1
@@ -111,7 +111,7 @@ echo "DEBUG=False verified."
 # Check Static Files
 echo "Verifying Static Files..."
 mkdir -p proofs/artifacts
-curl -I "http://127.0.0.1:${PRODLIKE_PORT}/static/rest_framework/css/bootstrap.min.css" > proofs/artifacts/static_check_headers.txt 2>&1
+curl -I --max-time 10 "http://127.0.0.1:${PRODLIKE_PORT}/static/rest_framework/css/bootstrap.min.css" > proofs/artifacts/static_check_headers.txt 2>&1
 # Extract code (handle HTTP/1.1 200 OK or HTTP/2 200)
 STATIC_HTTP_CODE=$(grep -m 1 "HTTP/" proofs/artifacts/static_check_headers.txt | awk '{print $2}')
 if [ "$STATIC_HTTP_CODE" != "200" ]; then
@@ -123,7 +123,7 @@ echo "Static files serving verified."
 
 # Check Authentication (Admin)
 echo "Verifying Authentication..."
-curl -i -X POST "http://127.0.0.1:${PRODLIKE_PORT}/api/login/" -H "Content-Type: application/json" -d '{"username":"admin","password":"admin"}' > proofs/artifacts/login_check_response.txt 2>&1
+curl -i -X POST --max-time 10 "http://127.0.0.1:${PRODLIKE_PORT}/api/login/" -H "Content-Type: application/json" -d '{"username":"admin","password":"admin"}' > proofs/artifacts/login_check_response.txt 2>&1
 LOGIN_HTTP_CODE=$(head -n 1 proofs/artifacts/login_check_response.txt | awk '{print $2}')
 if [ "$LOGIN_HTTP_CODE" != "200" ] && [ "$LOGIN_HTTP_CODE" != "302" ]; then
     echo -e "${RED}FAIL: Admin Login failed (HTTP $LOGIN_HTTP_CODE)${NC}"
