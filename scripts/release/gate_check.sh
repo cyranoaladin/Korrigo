@@ -123,8 +123,8 @@ echo "Static files serving verified."
 
 # Check Authentication (Admin)
 echo "Verifying Authentication..."
-curl -i -X POST --max-time 10 "http://127.0.0.1:${PRODLIKE_PORT}/api/login/" -H "Content-Type: application/json" -d '{"username":"admin","password":"admin"}' > proofs/artifacts/login_check_response.txt 2>&1
-LOGIN_HTTP_CODE=$(head -n 1 proofs/artifacts/login_check_response.txt | awk '{print $2}')
+curl -is -X POST --max-time 10 "http://127.0.0.1:${PRODLIKE_PORT}/api/login/" -H "Content-Type: application/json" -d '{"username":"admin","password":"admin"}' > proofs/artifacts/login_check_response.txt 2>&1
+LOGIN_HTTP_CODE=$(grep -m 1 "HTTP/" proofs/artifacts/login_check_response.txt | awk '{print $2}')
 if [ "$LOGIN_HTTP_CODE" != "200" ] && [ "$LOGIN_HTTP_CODE" != "302" ]; then
     echo -e "${RED}FAIL: Admin Login failed (HTTP $LOGIN_HTTP_CODE)${NC}"
     cat proofs/artifacts/login_check_response.txt
