@@ -98,9 +98,40 @@ done
 # 5) Security Baseline (Runtime)
 echo -e "${GREEN}[5] Security Baseline (Runtime validation)${NC}"
 
-# ... (Parsing E2E token) ...
+# Load E2E_SEED_TOKEN from .env if present
+if [ -f .env ]; then
+    # We only want to extract E2E_SEED_TOKEN to avoid corrupting DB env vars with bad parsing
+    TOKEN_FROM_ENV=$(grep "^E2E_SEED_TOKEN=" .env | cut -d '=' -f2 | tr -d '"' | tr -d "'")
+    if [ ! -z "$TOKEN_FROM_ENV" ]; then
+        export E2E_SEED_TOKEN="$TOKEN_FROM_ENV"
+    fi
+fi
+# Fallback/Override for Gate
+E2E_SEED_TOKEN=${E2E_SEED_TOKEN:-"secret-e2e-token-prod-like-only"}
 
-# ...
+# Seed Database
+echo "Seeding database..."
+# Use token from env
+SEED_RESPONSE=$(curl -s --max-time 30 -X POST "$SEED_URL" -H "X-E2E-Seed-Token: $E2E_SEED_TOKEN")
+SEED_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST "$SEED_URL" -H "X-E2E-Seed-Token: $E2E_SEED_TOKEN")
+if [ "$SEED_HTTP_CODE" != "200" ] && [ "$SEED_HTTP_CODE" != "201" ]; then
+   echo -e "${RED}FAIL: Seeding failed with HTTP $SEED_HTTP_CODE${NC}"
+   exit 1
+fi
+echo "Database seeded."
+
+# Extract IDs for Concurrency Test (Parse JSON from seed response)
+# We need the output to capture IDs.
+SEED_JSON=$(curl -s -X POST "$SEED_URL" -H "X-E2E-Seed-Token: $E2E_SEED_TOKEN")
+# Simple grep/sed extraction since we don't have jq guaranteed
+COPY_ID=$(echo "$SEED_JSON" | grep -o '"copy_ids": \[[^]]*\]' | sed 's/.*"copy_ids": \["\([^"]*\)".*/\1/')
+if [ -z "$COPY_ID" ]; then
+    echo -e "${RED}FAIL: Could not extract COPY_ID from seed response for Concurrency Gate${NC}"
+    echo "Response: $SEED_JSON"
+    # Don't exit yet if simple parsing fails, but warn.
+else
+    echo "Captured Copy ID for locking: $COPY_ID"
+fi
 
 # Check DEBUG=False
 DEBUG_STATUS=$(docker compose -p "$PROJECT_NAME" $ENV_FILE_OPT -f "$COMPOSE_FILE" exec -T backend python -c "import os; from django.conf import settings; print(settings.DEBUG)" | tr -d '\r')
