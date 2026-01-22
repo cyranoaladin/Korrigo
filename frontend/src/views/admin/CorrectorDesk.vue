@@ -467,10 +467,23 @@ onUnmounted(() => {
     </div>
 
     <!-- Restore Draft Banner -->
-    <div v-if="restoreAvailable" class="info-banner">
-        <span>Restaurer le brouillon non sauvegardé ({{ restoreAvailable.source }}) ?</span>
-        <button class="btn-sm btn-primary" @click="restoreDraft">Oui, restaurer</button>
-        <button class="btn-sm btn-secondary" @click="discardDraft">Non, supprimer</button>
+    <div
+      v-if="restoreAvailable"
+      class="info-banner"
+    >
+      <span>Restaurer le brouillon non sauvegardé ({{ restoreAvailable.source }}) ?</span>
+      <button
+        class="btn-sm btn-primary"
+        @click="restoreDraft"
+      >
+        Oui, restaurer
+      </button>
+      <button
+        class="btn-sm btn-secondary"
+        @click="discardDraft"
+      >
+        Non, supprimer
+      </button>
     </div>
 
     <div
