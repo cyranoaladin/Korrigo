@@ -102,7 +102,7 @@ def seed_e2e():
         'teacher': teacher.id,
         'teacher2': teacher2.id,
         'student': student.id,
-        'exam': exam.id if exam else None,
+        'exam': str(exam.id) if exam else None,
         'copy_ids': created_copy_ids,
     }
 
