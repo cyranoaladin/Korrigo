@@ -1,33 +1,36 @@
-version: '3.8'
+# Production Docker Compose (Image-based, SHA-tagged)
+# Usage: KORRIGO_SHA=<commit_sha> docker compose -f docker-compose.prod.yml up -d
+# Breaking Change: Front+Back must deploy together (client_id enforcement)
 
 services:
   db:
-    image: postgres:15
-    restart: always
+    image: postgres:15-alpine
+    restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=viatique
-      - POSTGRES_USER=viatique_user
-      - POSTGRES_PASSWORD=viatique_password
+      POSTGRES_DB: ${POSTGRES_DB:-viatique}
+      POSTGRES_USER: ${POSTGRES_USER:-viatique_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-viatique_password}
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U viatique_user -d viatique" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-viatique_user} -d ${POSTGRES_DB:-viatique}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
-    image: redis:7
-    restart: always
+    image: redis:7-alpine
+    restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   backend:
-    build: ../../backend
-    restart: always
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-viatique}/korrigo-backend:${KORRIGO_SHA:-latest}
+    restart: unless-stopped
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
     expose:
       - "8000"
     volumes:
@@ -39,17 +42,25 @@ services:
       redis:
         condition: service_healthy
     environment:
-      - DJANGO_ENV=production
-      - DEBUG=False
-      - SSL_ENABLED=False
-      - SECRET_KEY=prod-secret-key-change-it
-      - ALLOWED_HOSTS=localhost,127.0.0.1,nginx,backend
-      - DATABASE_URL=postgres://viatique_user:viatique_password@db:5432/viatique
-      - CELERY_BROKER_URL=redis://redis:6379/0
+      DJANGO_ENV: production
+      DEBUG: "False"
+      SSL_ENABLED: "${SSL_ENABLED:-False}"
+      SECRET_KEY: "${SECRET_KEY:-prod-secret-key-change-it}"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:-localhost,127.0.0.1,nginx,backend}"
+      DATABASE_URL: "postgres://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique}"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:8088}"
+      CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:-http://localhost:8088}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   celery:
-    build: ../../backend
-    restart: always
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-viatique}/korrigo-backend:${KORRIGO_SHA:-latest}
+    restart: unless-stopped
     command: celery -A core worker -l info
     volumes:
       - media_volume:/app/media
@@ -58,25 +69,25 @@ services:
       - redis
       - backend
     environment:
-      - DEBUG=False
-      - DATABASE_URL=postgres://viatique_user:viatique_password@db:5432/viatique
-      - CELERY_BROKER_URL=redis://redis:6379/0
+      DEBUG: "False"
+      DATABASE_URL: "postgres://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique}"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
 
   nginx:
-    # Build context is Root so Dockerfile can access ../frontend
-    build:
-      context: ../../
-      dockerfile: infra/nginx/Dockerfile
-      args:
-        CACHEBUST: 2026-01-17-v4
-    restart: always
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-viatique}/korrigo-nginx:${KORRIGO_SHA:-latest}
+    restart: unless-stopped
     ports:
       - "8088:80"
     volumes:
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
     depends_on:
       - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:
