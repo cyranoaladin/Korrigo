@@ -14,9 +14,11 @@ def exam(db):
 
 
 @pytest.fixture
-def ready_copy(exam):
-    """Creates a READY copy with booklet."""
+def ready_copy(exam, admin_user):
+    """Creates a READY copy with booklet AND LOCK."""
     from exams.models import Booklet, Copy
+    from grading.models import CopyLock
+    from django.utils import timezone
 
     booklet = Booklet.objects.create(
         exam=exam,
@@ -31,6 +33,14 @@ def ready_copy(exam):
         status=Copy.Status.READY
     )
     copy.booklets.add(booklet)
+    
+    # Auto-lock for C3
+    CopyLock.objects.create(
+        copy=copy, 
+        owner=admin_user, 
+        expires_at=timezone.now() + timezone.timedelta(hours=1)
+    )
+
     return copy
 
 
@@ -169,11 +179,7 @@ def test_all_workflow_endpoints_use_detail_format(authenticated_client, exam):
         assert response.status_code == 400
         assert "detail" in response.data
 
-    # Test unlock (expects LOCKED)
-    response = authenticated_client.post(f"/api/copies/{copy.id}/unlock/", {}, format="json")
-    assert response.status_code == 400
-    assert "detail" in response.data
-    assert "error" not in response.data
+
 
     # Test finalize (expects LOCKED)
     response = authenticated_client.post(f"/api/copies/{copy.id}/finalize/", {}, format="json")

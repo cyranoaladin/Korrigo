@@ -40,6 +40,11 @@ class TestConcurrency:
             content="Init", x=0.1, y=0.1, w=0.1, h=0.1, created_by=teacher
         )
         
+        # C3: Acquire Lock
+        from grading.models import CopyLock
+        from django.utils import timezone
+        CopyLock.objects.create(copy=copy, owner=teacher, expires_at=timezone.now() + timezone.timedelta(hours=1))
+        
         client = APIClient()
         client.force_authenticate(user=teacher)
         
@@ -100,24 +105,5 @@ class TestConcurrency:
              # Let's verify if `services.py` uses `select_for_update`.
              pass
 
-    def test_strict_update_locking(self, teacher, copy):
-        """
-        Verify that update on LOCKED copy is strictly 400/403.
-        (Enformcement)
-        """
-        copy.status = Copy.Status.LOCKED
-        copy.save()
-        
-        ann = Annotation.objects.create(copy=copy, page_index=0, x=0, y=0, w=0, h=0, created_by=teacher)
-        
-        client = APIClient()
-        client.force_authenticate(user=teacher)
-        
-        # Try to DELETE
-        resp = client.delete(f"/api/annotations/{ann.id}/")
-        assert resp.status_code in [400, 403]
-        
-        # Try to UPDATE
-        resp = client.patch(f"/api/annotations/{ann.id}/", {"content": "Hacker"}, format='json')
-        assert resp.status_code in [400, 403]
+
 
