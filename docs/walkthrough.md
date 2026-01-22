@@ -1,14 +1,14 @@
 # Korrigo – Rebranding & Production Quality Verification (SIGNABLE)
 
 ## 0) Release Identity
-- **Date**: 2026-01-22 08:50 (Africa/Tunis)
+- **Date**: 2026-01-22 16:15 (Africa/Tunis)
 - **Git**:
   - **Branch**: main
-  - **Commit**: `10665cc6613a43a134e72f9d6084ffc420f66543` (Short: `10665cc`)
+  - **Commit**: `2c56aea` (Short: `2c56aea`)
   - **Status**: Sealed
 - **Release Pack**:
-  - **Archive**: `korrigo_release_10665cc.tar.gz`
-  - **SHA256**: `19da317d68dc4c7c0f5567eff573fdf3bab0f45674757497b1172123266d8359` (Sealed)
+  - **Archive**: `korrigo_release_2c56aea.zip`
+  - **SHA256**: `268aa6772f303a6b19cd08ef32bc9c57489651cc9d170f1d769fa72efb768797` (Sealed)
 - **Versions**: Docker 29.1, Node v22, Python 3.9, Django 4.2.27
 
 ## 1) Scope & Hardening
@@ -17,6 +17,12 @@
 - **Grading Logic**: Fixed double-accounting. Parents sum children automatically. Manual points are backed up and restored if children are removed (UX fix).
 - **Tooling**: Proper ESLint separation (.ts vs .vue). Type safety restored in E2E helpers.
 - **E2E Stability**: Fixed `.auth` directory creation and refined hydration using real app flow.
+
+### Voie B: Fixes & Hardening (2c56aea)
+- **Static Files**: Fixed Nginx/Django volume mismatch. Verified serving `bootstrap.min.css`.
+- **Authentication**: Aligned seed passwords (`admin`/`teacher`) with manual expectations. Fixed login failures (HTTP 401).
+- **Gate Check**: Hardened `gate_check.sh` with blocking checks for Static Files (HTTP 200) and API Login (HTTP 200). Added `curl` timeouts and `exec -T` for robustness.
+- **E2E**: Updated test credentials to match aligned seed data.
 
 ### Security Baseline
 - **CSRF/Cookies**: `SESSION_COOKIE_HTTPONLY=True`, `CSRF_COOKIE_HTTPONLY=True`. (Verified in settings).
@@ -36,6 +42,9 @@ These folders are **not versioned** to keep the repository clean.
 - **Frontend (Lint)**: [frontend_lint.txt](file:///home/alaeddine/viatique__PMF/proofs/artifacts/frontend_lint.txt)
 - **Frontend (Typecheck)**: [frontend_typecheck.txt](file:///home/alaeddine/viatique__PMF/proofs/artifacts/frontend_typecheck.txt)
 - **E2E (Playwright)**: [e2e_tests_log.txt](file:///home/alaeddine/viatique__PMF/proofs/artifacts/e2e_tests_log.txt)
+- **Voie B Proofs**:
+  - **Static Files Header**: [static_check_headers.txt](file:///home/alaeddine/viatique__PMF/proofs/artifacts/static_check_headers.txt)
+  - **Login Response**: [login_check_response.txt](file:///home/alaeddine/viatique__PMF/proofs/artifacts/login_check_response.txt)
 
 ---
 
