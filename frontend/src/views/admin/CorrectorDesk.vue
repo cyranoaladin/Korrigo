@@ -23,6 +23,11 @@ const currentPage = ref(1)
 const pdfDimensions = ref({ width: 0, height: 0 }) 
 const imageError = ref(false)
 
+// Lock State
+const softLock = ref(null) // { token, owner, expires_at }
+const lockInterval = ref(null)
+const isLockConflict = ref(false) // If true, we are read-only due to other owner
+
 // UI State
 const activeTab = ref('editor') // 'editor' | 'history'
 
@@ -37,7 +42,8 @@ const isReady = computed(() => copy.value?.status === 'READY')
 const isLocked = computed(() => copy.value?.status === 'LOCKED')
 const isGraded = computed(() => copy.value?.status === 'GRADED')
 
-const canAnnotate = computed(() => isReady.value)
+const isReadOnly = computed(() => isGraded.value || isLockConflict.value)
+const canAnnotate = computed(() => isReady.value && !isReadOnly.value)
 
 const pages = computed(() => {
     if (!copy.value || !copy.value.booklets) return []
@@ -130,23 +136,65 @@ const fetchHistory = async () => {
 
 const handleMarkReady = async () => {
     if (isSaving.value) return; isSaving.value = true;
-    try { await gradingApi.readyCopy(copyId); await fetchCopy(); }
+    try { 
+        await gradingApi.readyCopy(copyId); 
+        await fetchCopy(); 
+        // Try to acquire lock if now ready
+        if (!softLock.value) await acquireLock();
+    }
     catch (err) { error.value = err.response?.data?.detail || "Action failed"; } 
     finally { isSaving.value = false; }
 }
 
-const handleLock = async () => {
-    if (isSaving.value) return; isSaving.value = true;
-    try { await gradingApi.lockCopy(copyId); await fetchCopy(); }
-    catch (err) { error.value = err.response?.data?.detail || "Action failed"; }
-    finally { isSaving.value = false; }
+// Soft Lock Management
+const acquireLock = async () => {
+    try {
+        const response = await gradingApi.acquireLock(copyId);
+        // Success
+        softLock.value = response;
+        isLockConflict.value = false;
+        startHeartbeat();
+    } catch (err) {
+        if (err.response?.status === 409) {
+            // Conflict
+            isLockConflict.value = true;
+            softLock.value = null; // We don't have the token
+            const owner = err.response.data.owner?.username || "Another user";
+            error.value = `LOCKED by ${owner}. You are in Read-Only mode.`;
+        } else {
+            console.error("Lock acquire failed", err);
+        }
+    }
 }
 
-const handleUnlock = async () => {
-    if (isSaving.value) return; isSaving.value = true;
-    try { await gradingApi.unlockCopy(copyId); await fetchCopy(); }
-    catch (err) { error.value = err.response?.data?.detail || "Action failed"; }
-    finally { isSaving.value = false; }
+const startHeartbeat = () => {
+    if (lockInterval.value) clearInterval(lockInterval.value);
+    lockInterval.value = setInterval(async () => {
+        if (!softLock.value?.token) return;
+        try {
+            const res = await gradingApi.heartbeatLock(copyId, softLock.value.token);
+            softLock.value.expires_at = res.expires_at;
+        } catch (err) {
+             console.error("Heartbeat failed", err);
+             // If 404/403, we lost lock
+             if (err.response?.status === 404 || err.response?.status === 403) {
+                 softLock.value = null;
+                 isLockConflict.value = true; // Assume lost to someone else or expired
+                 error.value = "Lock lost. Switching to Read-Only.";
+                 clearInterval(lockInterval.value);
+             }
+        }
+    }, 30000); // 30s
+}
+
+const releaseLock = async () => {
+    if (lockInterval.value) clearInterval(lockInterval.value);
+    if (softLock.value?.token) {
+        try {
+            await gradingApi.releaseLock(copyId, softLock.value.token);
+            softLock.value = null;
+        } catch (e) { console.error("Release failed", e); }
+    }
 }
 
 const handleFinalize = async () => {
@@ -232,12 +280,17 @@ const formatDate = (isoString) => {
     return new Date(isoString).toLocaleString()
 }
 
-onMounted(() => {
-  fetchCopy()
+onMounted(async () => {
+  await fetchCopy()
+  // Try acquire lock if ready
+  if (isReady.value) {
+      await acquireLock();
+  }
   window.addEventListener('keydown', onGlobalKeydown)
 })
 
 onUnmounted(() => {
+    releaseLock();
     window.removeEventListener('keydown', onGlobalKeydown)
 })
 </script>
@@ -269,22 +322,7 @@ onUnmounted(() => {
         >
           Mark READY
         </button>
-        <button
-          v-if="isReady"
-          :disabled="isSaving"
-          class="btn-danger"
-          @click="handleLock"
-        >
-          Lock
-        </button>
-        <button
-          v-if="isLocked"
-          :disabled="isSaving"
-          class="btn-warning"
-          @click="handleUnlock"
-        >
-          Unlock
-        </button>
+
         <button
           v-if="isLocked"
           :disabled="isSaving"
