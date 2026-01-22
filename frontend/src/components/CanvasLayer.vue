@@ -155,15 +155,15 @@ const stopDrawing = () => {
     :width="canvasWidth"
     :height="canvasHeight"
     :style="{ 
-        width: width + 'px', 
-        height: height + 'px',
+      width: width + 'px', 
+      height: height + 'px',
     }"
     :class="{ 'canvas-layer': true, 'disabled': !enabled }"
     @mousedown="startDrawing"
     @mousemove="draw"
     @mouseup="stopDrawing"
     @mouseleave="stopDrawing"
-  ></canvas>
+  />
 </template>
 
 <style scoped>

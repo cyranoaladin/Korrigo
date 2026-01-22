@@ -105,7 +105,7 @@ def test_permission_error_returns_403_detail(authenticated_client, ready_copy, a
     assert response.status_code == 400
     assert "detail" in response.data
     assert isinstance(response.data["detail"], str)
-    assert "Cannot delete annotation of copy in status LOCKED" in response.data["detail"]
+    assert "Cannot delete annotation in copy status LOCKED" in response.data["detail"]
     assert "error" not in response.data
 
 

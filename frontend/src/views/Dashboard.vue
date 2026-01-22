@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
 const examId = route.params.examId
@@ -9,7 +10,7 @@ const exam = ref(null)
 const isLoading = ref(false)
 const message = ref('')
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const authStore = useAuthStore()
 
 // Computed Stats
 const totalCopies = computed(() => copies.value.length)
@@ -25,7 +26,9 @@ const averageScore = computed(() => {
 const fetchCopies = async () => {
   isLoading.value = true
   try {
-      const res = await fetch(`${API_URL}/api/exams/${examId}/`)
+      const res = await fetch(`${authStore.API_URL}/api/exams/${examId}/`, {
+          credentials: 'include'
+      })
       if (!res.ok) throw new Error("Failed to fetch exam")
       exam.value = await res.json()
       
@@ -51,7 +54,10 @@ const triggerExport = async () => {
     isLoading.value = true
     message.value = "Génération des PDF en cours..."
     try {
-        const res = await fetch(`${API_URL}/api/exams/${examId}/export_all/`, { method: 'POST' })
+        const res = await fetch(`${authStore.API_URL}/api/exams/${examId}/export_all/`, {
+            method: 'POST',
+            credentials: 'include'
+        })
         if (res.ok) {
             const data = await res.json()
             message.value = `Succès: ${data.message}`
@@ -66,7 +72,7 @@ const triggerExport = async () => {
 }
 
 const downloadCSV = () => {
-    window.open(`${API_URL}/api/exams/${examId}/csv/`, '_blank')
+    window.open(`${authStore.API_URL}/api/exams/${examId}/csv/`, '_blank')
 }
 
 onMounted(() => {
@@ -78,86 +84,137 @@ onMounted(() => {
   <div class="dashboard-container">
     <!-- Navbar Placeholder -->
     <nav class="navbar">
-        <div class="brand">OpenViatique <span class="badge-beta">PMF</span></div>
-        <div class="user-profile">
-            <span>Admin User</span>
-            <div class="avatar">A</div>
+      <div class="brand">
+        Korrigo — PMF
+      </div>
+      <div class="user-profile">
+        <span>Admin User</span>
+        <div class="avatar">
+          A
         </div>
+      </div>
     </nav>
 
-    <div class="main-content" v-if="exam">
-        <!-- Header Section -->
-        <header class="page-header">
-            <div class="header-left">
-                <h1>{{ exam.name }}</h1>
-                <p class="subtitle">Tableau de bord de correction - Session {{ exam.date }}</p>
-            </div>
-            <div class="header-actions">
-                <button @click="downloadCSV" class="btn btn-secondary">
-                    <span class="icon">📊</span> Export CSV
+    <div
+      v-if="exam"
+      class="main-content"
+    >
+      <!-- Header Section -->
+      <header class="page-header">
+        <div class="header-left">
+          <h1>{{ exam.name }}</h1>
+          <p class="subtitle">
+            Tableau de bord de correction - Session {{ exam.date }}
+          </p>
+        </div>
+        <div class="header-actions">
+          <button
+            class="btn btn-secondary"
+            @click="downloadCSV"
+          >
+            <span class="icon">📊</span> Export CSV
+          </button>
+          <button
+            class="btn btn-primary"
+            @click="triggerExport"
+          >
+            <span class="icon">📑</span> Générer PDF Finaux
+          </button>
+        </div>
+      </header>
+
+      <!-- Notification Area -->
+      <div
+        v-if="message"
+        class="notification"
+        :class="{ error: message.includes('Erreur') }"
+      >
+        {{ message }}
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value">
+            {{ totalCopies }}
+          </div>
+          <div class="stat-label">
+            Copies Totales
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value highlight">
+            {{ gradedCopies }}
+          </div>
+          <div class="stat-label">
+            Copies Corrigées
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">
+            {{ averageScore }} <span class="unit">/ 20</span>
+          </div>
+          <div class="stat-label">
+            Moyenne Générale
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="table-container shadow-sm">
+        <table class="premium-table">
+          <thead>
+            <tr>
+              <th>ID Anonyme</th>
+              <th>Date Maj</th>
+              <th>Statut</th>
+              <th>Note</th>
+              <th class="text-right">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="copy in copies"
+              :key="copy.id"
+            >
+              <td class="font-medium">
+                {{ copy.anonymous_id }}
+              </td>
+              <td class="text-muted">
+                {{ copy.updated_at }}
+              </td>
+              <td>
+                <span :class="['status-badge', copy.status.toLowerCase()]">
+                  {{ copy.status }}
+                </span>
+              </td>
+              <td class="font-bold">
+                <span v-if="copy.status === 'GRADED'">{{ copy.total_score }}</span>
+                <span
+                  v-else
+                  class="text-muted"
+                >-</span>
+              </td>
+              <td class="text-right">
+                <button
+                  class="btn-icon"
+                  title="Voir Détails"
+                >
+                  👁️
                 </button>
-                <button @click="triggerExport" class="btn btn-primary">
-                    <span class="icon">📑</span> Générer PDF Finaux
-                </button>
-            </div>
-        </header>
-
-        <!-- Notification Area -->
-        <div v-if="message" class="notification" :class="{ error: message.includes('Erreur') }">
-            {{ message }}
-        </div>
-
-        <!-- Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value">{{ totalCopies }}</div>
-                <div class="stat-label">Copies Totales</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value highlight">{{ gradedCopies }}</div>
-                <div class="stat-label">Copies Corrigées</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">{{ averageScore }} <span class="unit">/ 20</span></div>
-                <div class="stat-label">Moyenne Générale</div>
-            </div>
-        </div>
-
-        <!-- Data Table -->
-        <div class="table-container shadow-sm">
-            <table class="premium-table">
-                <thead>
-                    <tr>
-                        <th>ID Anonyme</th>
-                        <th>Date Maj</th>
-                        <th>Statut</th>
-                        <th>Note</th>
-                        <th class="text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="copy in copies" :key="copy.id">
-                        <td class="font-medium">{{ copy.anonymous_id }}</td>
-                        <td class="text-muted">{{ copy.updated_at }}</td>
-                        <td>
-                            <span :class="['status-badge', copy.status.toLowerCase()]">
-                                {{ copy.status }}
-                            </span>
-                        </td>
-                        <td class="font-bold">
-                            <span v-if="copy.status === 'GRADED'">{{ copy.total_score }}</span>
-                            <span v-else class="text-muted">-</span>
-                        </td>
-                        <td class="text-right">
-                            <button class="btn-icon" title="Voir Détails">👁️</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <div v-else class="loading-state">
-        Chargement...
+    <div
+      v-else
+      class="loading-state"
+    >
+      Chargement...
     </div>
   </div>
 </template>

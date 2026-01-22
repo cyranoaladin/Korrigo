@@ -39,10 +39,16 @@ const updateScore = (id, value) => {
 
 <template>
   <div class="grading-sidebar-content">
-    <div v-for="node in structure" :key="node.id" class="node-container">
-      
+    <div
+      v-for="node in structure"
+      :key="node.id"
+      class="node-container"
+    >
       <!-- HEADER NODE (Exercise or Question with children) -->
-      <div v-if="node.children && node.children.length > 0" class="node-header">
+      <div
+        v-if="node.children && node.children.length > 0"
+        class="node-header"
+      >
         <span class="label">{{ node.label }}</span>
         <span class="sub-total">
           {{ calculateNodeTotal(node) }} / {{ calculateNodeMax(node) }}
@@ -50,24 +56,30 @@ const updateScore = (id, value) => {
       </div>
 
       <!-- LEAF NODE (Input field) -->
-      <div v-else class="node-leaf">
+      <div
+        v-else
+        class="node-leaf"
+      >
         <label :for="node.id">{{ node.label }}</label>
         <div class="input-wrapper">
-            <input 
-              :id="node.id"
-              type="number" 
-              :value="scores[node.id] || 0"
-              @input="updateScore(node.id, parseFloat($event.target.value))"
-              min="0"
-              :max="node.points"
-              step="0.25"
-            />
-            <span class="max-points">/ {{ node.points }}</span>
+          <input 
+            :id="node.id"
+            type="number" 
+            :value="scores[node.id] || 0"
+            min="0"
+            :max="node.points"
+            step="0.25"
+            @input="updateScore(node.id, parseFloat($event.target.value))"
+          >
+          <span class="max-points">/ {{ node.points }}</span>
         </div>
       </div>
 
       <!-- RECURSION -->
-      <div v-if="node.children" class="children-container">
+      <div
+        v-if="node.children"
+        class="children-container"
+      >
         <!-- Self-reference for recursion: -->
         <!-- Since we are in the same file, we can't easily self-import in script setup without naming the component.
              In Vue 3, <script setup> components are closed.
@@ -86,11 +98,11 @@ const updateScore = (id, value) => {
              Let's implement a `GradingNode` component SEPARATELY if needed, 
              OR use the `name` export to allow self-reference.
          -->
-         <GradingSidebar 
-            :structure="node.children" 
-            :scores="scores" 
-            @update-score="$emit('update-score', $event)" 
-         />
+        <GradingSidebar 
+          :structure="node.children" 
+          :scores="scores" 
+          @update-score="$emit('update-score', $event)" 
+        />
       </div>
     </div>
   </div>

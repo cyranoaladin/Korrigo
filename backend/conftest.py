@@ -1,5 +1,5 @@
 """
-Pytest configuration and fixtures for Viatique backend tests.
+Pytest configuration and fixtures for Korrigo backend tests.
 """
 import pytest
 

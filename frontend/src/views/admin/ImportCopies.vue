@@ -64,25 +64,49 @@ onMounted(fetchExams)
     <h1>Import Copies (Real PDF)</h1>
     
     <div class="card">
-        <div class="form-group">
-            <label>Select Exam</label>
-            <select v-model="selectedExam">
-                <option v-for="ex in exams" :key="ex.id" :value="ex.id">{{ ex.name }} ({{ ex.date }})</option>
-            </select>
-        </div>
+      <div class="form-group">
+        <label>Select Exam</label>
+        <select v-model="selectedExam">
+          <option
+            v-for="ex in exams"
+            :key="ex.id"
+            :value="ex.id"
+          >
+            {{ ex.name }} ({{ ex.date }})
+          </option>
+        </select>
+      </div>
         
-        <div class="form-group">
-            <label>Upload PDF Copy</label>
-            <input type="file" accept="application/pdf" @change="handleFileChange" />
-            <small>Upload a single PDF file representing one copy (pages will be rasterized).</small>
-        </div>
+      <div class="form-group">
+        <label>Upload PDF Copy</label>
+        <input
+          type="file"
+          accept="application/pdf"
+          @change="handleFileChange"
+        >
+        <small>Upload a single PDF file representing one copy (pages will be rasterized).</small>
+      </div>
         
-        <div v-if="error" class="alert alert-danger">{{ error }}</div>
-        <div v-if="successMessage" class="alert alert-success">{{ successMessage }}</div>
+      <div
+        v-if="error"
+        class="alert alert-danger"
+      >
+        {{ error }}
+      </div>
+      <div
+        v-if="successMessage"
+        class="alert alert-success"
+      >
+        {{ successMessage }}
+      </div>
         
-        <button @click="handleUpload" :disabled="isUploading || !selectedFile" class="btn-primary">
-            {{ isUploading ? 'Processing...' : 'Import & Process' }}
-        </button>
+      <button
+        :disabled="isUploading || !selectedFile"
+        class="btn-primary"
+        @click="handleUpload"
+      >
+        {{ isUploading ? 'Processing...' : 'Import & Process' }}
+      </button>
     </div>
   </div>
 </template>

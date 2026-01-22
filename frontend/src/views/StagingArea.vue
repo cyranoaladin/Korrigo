@@ -38,24 +38,42 @@ const mergeSelection = async () => {
     <h1>Zone d'Agrafage Virtuel</h1>
 
     <!-- Upload Section -->
-    <div v-if="!store.currentExam" class="upload-section">
+    <div
+      v-if="!store.currentExam"
+      class="upload-section"
+    >
       <p>Veuillez téléverser le PDF "Vrac" des copies.</p>
-      <input type="file" ref="fileInput" @change="triggerUpload" accept="application/pdf" />
-      <div v-if="store.isLoading">Traitement en cours (Vision)...</div>
-      <div v-if="store.error" class="error">{{ store.error }}</div>
+      <input
+        ref="fileInput"
+        type="file"
+        accept="application/pdf"
+        @change="triggerUpload"
+      >
+      <div v-if="store.isLoading">
+        Traitement en cours (Vision)...
+      </div>
+      <div
+        v-if="store.error"
+        class="error"
+      >
+        {{ store.error }}
+      </div>
     </div>
 
     <!-- Stapler Interface -->
-    <div v-else class="workspace">
+    <div
+      v-else
+      class="workspace"
+    >
       <div class="header-actions">
-           <h2>Examen: {{ store.currentExam.name }}</h2>
-           <button 
-             @click="mergeSelection" 
-             :disabled="selectedBookletIds.length === 0"
-             class="btn-primary"
-           >
-             Valider / Créer Copie ({{ selectedBookletIds.length }})
-           </button>
+        <h2>Examen: {{ store.currentExam.name }}</h2>
+        <button 
+          :disabled="selectedBookletIds.length === 0" 
+          class="btn-primary"
+          @click="mergeSelection"
+        >
+          Valider / Créer Copie ({{ selectedBookletIds.length }})
+        </button>
       </div>
 
       <div class="grid">
@@ -74,8 +92,13 @@ const mergeSelection = async () => {
               v-if="booklet.header_image_url" 
               :src="booklet.header_image_url" 
               alt="En-tête" 
-            />
-            <div v-else class="placeholder">Pas d'image</div>
+            >
+            <div
+              v-else
+              class="placeholder"
+            >
+              Pas d'image
+            </div>
           </div>
           <div class="card-footer">
             <span v-if="booklet.student_name_guess">{{ booklet.student_name_guess }}</span>
@@ -83,7 +106,10 @@ const mergeSelection = async () => {
           </div>
           
           <div class="checkbox-overlay">
-            <input type="checkbox" :checked="selectedBookletIds.includes(booklet.id)" />
+            <input
+              type="checkbox"
+              :checked="selectedBookletIds.includes(booklet.id)"
+            >
           </div>
         </div>
       </div>

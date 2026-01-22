@@ -1,10 +1,32 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
+import gradingApi from '../services/gradingApi'
 
 const authStore = useAuthStore()
 const router = useRouter()
+
+const copies = ref([])
+const isLoading = ref(true)
+const stats = ref({ total: 0, graded: 0, todo: 0 })
+
+const fetchCopies = async () => {
+    isLoading.value = true
+    try {
+        const data = await gradingApi.listCopies()
+        copies.value = data
+        stats.value.total = data.length
+        stats.value.graded = data.filter(c => c.status === 'GRADED').length
+        stats.value.todo = data.filter(c => ['READY', 'LOCKED'].includes(c.status)).length
+    } catch (err) {
+        console.error("Failed to fetch copies", err)
+    } finally {
+        isLoading.value = false
+    }
+}
+
+onMounted(fetchCopies)
 
 const handleLogout = async () => {
     await authStore.logout()
@@ -14,56 +36,98 @@ const handleLogout = async () => {
 const handleChangePassword = () => {
     alert("Fonctionnalité bientôt disponible. Veuillez contacter l'administrateur.")
 }
+const goToDesk = (copyId) => {
+    router.push(`/corrector/desk/${copyId}`)
+}
 </script>
 
 <template>
-    <div class="corrector-dashboard">
-        <header class="top-nav">
-            <div class="brand">OpenViatique Correcteur</div>
-            <div class="user-menu">
-                <span>{{ authStore.user?.username }}</span>
-                <button @click="handleChangePassword" class="btn-text">Modifier mot de passe</button>
-                <button @click="handleLogout" class="btn-logout">Déconnexion</button>
-            </div>
-        </header>
+  <div class="corrector-dashboard">
+    <header class="top-nav">
+      <div class="brand">
+        Korrigo — Correcteur
+      </div>
+      <div class="user-menu">
+        <span>{{ authStore.user?.username }}</span>
+        <button
+          class="btn-text"
+          @click="handleChangePassword"
+        >
+          Modifier mot de passe
+        </button>
+        <button
+          class="btn-logout"
+          @click="handleLogout"
+        >
+          Déconnexion
+        </button>
+      </div>
+    </header>
 
-        <main class="container">
-            <div class="stats-overview">
-                <div class="card stat">
-                    <h3>Copies Attribuées</h3>
-                    <div class="value">30</div>
-                </div>
-                <div class="card stat">
-                    <h3>Corrigées</h3>
-                    <div class="value success">12</div>
-                </div>
-                <div class="card stat">
-                    <h3>Reste à faire</h3>
-                    <div class="value warning">18</div>
-                </div>
-            </div>
+    <main class="container">
+      <div class="stats-overview">
+        <div class="card stat">
+          <h3>Copies Attribuées</h3>
+          <div class="value">
+            {{ stats.total }}
+          </div>
+        </div>
+        <div class="card stat">
+          <h3>Corrigées</h3>
+          <div class="value success">
+            {{ stats.graded }}
+          </div>
+        </div>
+        <div class="card stat">
+          <h3>Reste à faire</h3>
+          <div class="value warning">
+            {{ stats.todo }}
+          </div>
+        </div>
+      </div>
 
-            <div class="task-list">
-                <h2>Vos Copies à Corriger</h2>
-                <div class="copy-card">
-                    <div class="copy-info">
-                        <div class="exam-name">Bac Blanc Maths</div>
-                        <div class="copy-id">Anonymat: A7X99</div>
-                    </div>
-                    <div class="copy-status pending">À faire</div>
-                    <button class="btn-action">Commencer</button>
-                </div>
-                <div class="copy-card">
-                    <div class="copy-info">
-                        <div class="exam-name">Bac Blanc Maths</div>
-                        <div class="copy-id">Anonymat: B2211</div>
-                    </div>
-                    <div class="copy-status done">Terminé</div>
-                    <button class="btn-action secondary">Revoir</button>
-                </div>
+      <div class="task-list">
+        <h2>Vos Copies à Corriger</h2>
+        <div 
+          v-if="isLoading" 
+          class="loading"
+        >
+          Chargement...
+        </div>
+        <template v-else>
+          <div 
+            v-for="copy in copies" 
+            :key="copy.id"
+            class="copy-card"
+          >
+            <div class="copy-info">
+              <div class="exam-name">
+                {{ copy.exam_name || 'Examen' }}
+              </div>
+              <div class="copy-id">
+                Anonymat: {{ copy.anonymous_id }}
+              </div>
             </div>
-        </main>
-    </div>
+            <div :class="['copy-status', copy.status.toLowerCase()]">
+              {{ copy.status }}
+            </div>
+            <button 
+              class="btn-action"
+              @click="goToDesk(copy.id)"
+            >
+              {{ copy.status === 'GRADED' ? 'Voir' : (copy.status === 'LOCKED' ? 'Continuer' : 'Corriger') }}
+            </button>
+          </div>
+          <div 
+            v-if="copies.length === 0" 
+            class="empty-state"
+          >
+            Aucune copie disponible pour le moment.
+          </div>
+        </template>
+      </div>
+    </main>
+  </div>
 </template>
 
 <style scoped>

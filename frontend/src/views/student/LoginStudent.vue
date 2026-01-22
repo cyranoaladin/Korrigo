@@ -29,34 +29,57 @@ const handleLogin = async () => {
 </script>
 
 <template>
-    <div class="login-container">
-        <div class="login-box">
-            <h1>Espace Élève</h1>
-            <p class="subtitle">Consultez vos copies corrigées</p>
+  <div class="login-container">
+    <div class="login-box">
+      <h1>Espace Élève</h1>
+      <p class="subtitle">
+        Consultez vos copies corrigées
+      </p>
             
-            <form @submit.prevent="handleLogin">
-                <div class="form-group">
-                    <label>Identifiant National (INE)</label>
-                    <input type="text" v-model="ine" placeholder="ex: 123456789A" required />
-                </div>
-                
-                <div class="form-group">
-                    <label>Nom de Famille</label>
-                    <input type="text" v-model="lastName" placeholder="Votre nom" required />
-                </div>
-                
-                <div v-if="error" class="error-msg">{{ error }}</div>
-                
-                <button type="submit" :disabled="loading" class="btn-login">
-                    {{ loading ? 'Connexion...' : 'Accéder à mes copies' }}
-                </button>
-            </form>
-            
-             <div class="footer-links">
-                <router-link to="/login">Accès Enseignant / Admin</router-link>
-            </div>
+      <form @submit.prevent="handleLogin">
+        <div class="form-group">
+          <label>Identifiant National (INE)</label>
+          <input
+            v-model="ine"
+            type="text"
+            placeholder="ex: 123456789A"
+            required
+          >
         </div>
+                
+        <div class="form-group">
+          <label>Nom de Famille</label>
+          <input
+            v-model="lastName"
+            type="text"
+            placeholder="Votre nom"
+            required
+          >
+        </div>
+                
+        <div
+          v-if="error"
+          class="error-msg"
+        >
+          {{ error }}
+        </div>
+                
+        <button
+          type="submit"
+          :disabled="loading"
+          class="btn-login"
+        >
+          {{ loading ? 'Connexion...' : 'Accéder à mes copies' }}
+        </button>
+      </form>
+            
+      <div class="footer-links">
+        <router-link to="/login">
+          Accès Enseignant / Admin
+        </router-link>
+      </div>
     </div>
+  </div>
 </template>
 
 <style scoped>

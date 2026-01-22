@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: viatique
+      POSTGRES_USER: viatique_user
+      POSTGRES_PASSWORD: secure_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U viatique_user -d viatique" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
+    environment:
+      DJANGO_SETTINGS_MODULE: core.settings
+      DATABASE_URL: postgres://viatique_user:secure_password@db:5432/viatique
+      REDIS_URL: redis://redis:6379/0
+      DEBUG: "False"
+      SECRET_KEY: "prod-like-secret-key-must-be-long-and-random-for-check-deploy"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,backend"
+      MEDIA_ROOT: /app/media
+      STATIC_ROOT: /app/staticfiles
+      CORS_ALLOWED_ORIGINS: "http://localhost:8090"
+      CSRF_TRUSTED_ORIGINS: "http://localhost:8090"
+      E2E_SEED_TOKEN: "secret-e2e-token-prod-like-only"
+      SSL_ENABLED: "False"
+    volumes:
+      - media_volume:/app/media
+      - static_volume:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  nginx:
+    # Use the same setup as Prod: build nginx enclosing the frontend
+    build:
+      context: ../../
+      dockerfile: infra/nginx/Dockerfile
+    ports:
+      - "8090:80"
+    volumes:
+      - media_volume:/var/www/viatique/media:ro
+      - static_volume:/var/www/viatique/static:ro
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  media_volume:
+  static_volume:

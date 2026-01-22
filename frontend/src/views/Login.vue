@@ -33,32 +33,67 @@ const handleLogin = async () => {
 </script>
 
 <template>
-    <div class="login-container">
-        <div class="login-card">
-            <div class="brand">
-                <h1>OpenViatique <span class="badge">PMF</span></h1>
-                <p>Plateforme de Correction Numérique</p>
-            </div>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="brand">
+        <img
+          src="/images/Korrigo.png"
+          alt="Korrigo Logo"
+          class="logo-img"
+        >
+        <h1>Korrigo</h1>
+        <p>Plateforme de Correction Numérique</p>
+      </div>
             
-            <form @submit.prevent="handleLogin" class="login-form">
-                <div class="form-group">
-                    <label>Identifiant / Email</label>
-                    <input v-model="username" type="text" required placeholder="admin" />
-                </div>
-                
-                <div class="form-group">
-                    <label>Mot de passe</label>
-                    <input v-model="password" type="password" required placeholder="••••••••" />
-                </div>
-                
-                <div v-if="error" class="error-message">{{ error }}</div>
-                
-                <button type="submit" class="btn-primary" :disabled="isLoading">
-                    {{ isLoading ? 'Connexion en cours...' : 'Se connecter' }}
-                </button>
-            </form>
+      <form
+        class="login-form"
+        @submit.prevent="handleLogin"
+      >
+        <div class="form-group">
+          <label>Identifiant / Email</label>
+          <input
+            v-model="username"
+            data-testid="login.username"
+            type="text"
+            required
+            placeholder="admin"
+          >
         </div>
+                
+        <div class="form-group">
+          <label>Mot de passe</label>
+          <input
+            v-model="password"
+            data-testid="login.password"
+            type="password"
+            required
+            placeholder="••••••••"
+          >
+        </div>
+                
+        <div
+          v-if="error"
+          class="error-message"
+          data-testid="login.error"
+        >
+          {{ error }}
+        </div>
+                
+        <button
+          data-testid="login.submit"
+          type="submit"
+          class="btn-primary"
+          :disabled="isLoading"
+        >
+          {{ isLoading ? 'Connexion en cours...' : 'Se connecter' }}
+        </button>
+      </form>
+
+      <footer class="attribution">
+        Concepteur : Aleddine BEN RHOUMA – Labo Maths ERT
+      </footer>
     </div>
+  </div>
 </template>
 
 <style scoped>
@@ -80,10 +115,11 @@ const handleLogin = async () => {
     max-width: 400px;
 }
 
-.brand { text-align: center; margin-bottom: 2rem; }
-.brand h1 { font-size: 1.5rem; font-weight: 700; color: #111827; margin: 0; }
-.brand p { color: #6b7280; font-size: 0.875rem; margin-top: 0.5rem; }
-.badge { color: #2563eb; background: #dbeafe; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; vertical-align: middle; }
+.brand { text-align: center; margin-bottom: 2rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+.logo-img { height: 64px; width: auto; margin-bottom: 0.5rem; }
+.brand h1 { font-size: 2rem; font-weight: 800; color: #111827; margin: 0; letter-spacing: -0.025em; }
+.brand p { color: #6b7280; font-size: 0.875rem; margin-top: 0; }
+.attribution { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #f3f4f6; text-align: center; font-size: 0.75rem; color: #9ca3af; }
 
 .login-form { display: flex; flex-direction: column; gap: 1.25rem; }
 

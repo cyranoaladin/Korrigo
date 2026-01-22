@@ -13,5 +13,20 @@ urlpatterns = [
     path('api/login/', views.LoginView.as_view(), name='login'),
     path('api/logout/', views.LogoutView.as_view(), name='logout'),
     path('api/me/', views.UserDetailView.as_view(), name='user_detail'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+# Health check endpoint (always available)
+from core.views_health import health_check
+urlpatterns += [
+    path('api/health/', health_check, name='health_check'),
+]
+
+# Dev/E2E endpoints (only if E2E_SEED_TOKEN is set)
+if hasattr(settings, 'E2E_SEED_TOKEN') and settings.E2E_SEED_TOKEN:
+    from core.views_dev import seed_e2e_endpoint
+    urlpatterns += [
+        path('api/dev/seed/', seed_e2e_endpoint, name='seed_e2e'),
+    ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

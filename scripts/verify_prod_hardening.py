@@ -7,9 +7,23 @@ import shutil
 import sys
 
 # Setup Django
-sys.path.append(os.path.join(os.getcwd(), 'backend'))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BACKEND_DIR = os.path.join(BASE_DIR, 'backend')
+sys.path.append(BACKEND_DIR)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 django.setup()
+
+from django.conf import settings
+# OVERRIDE SETTINGS FOR PROOFING (Simulate valid staging)
+import tempfile
+temp_media = tempfile.mkdtemp()
+settings.MEDIA_ROOT = temp_media
+settings.SECURE_SSL_REDIRECT = False
+settings.SESSION_COOKIE_SECURE = False
+settings.CSRF_COOKIE_SECURE = False
+settings.ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1']
+settings.DEBUG = True # To see errors if any
+
 
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
@@ -28,14 +42,23 @@ def create_real_pdf(path="test_real.pdf", pages=3):
     doc.close()
     return path
 
+def print_resp_debug(resp):
+    try:
+        print(f"Data: {resp.data}")
+    except:
+        print(f"Content: {resp.content.decode()}")
+
 def run_proof():
     print(">>> 1. SETUP")
     # Clean media
     media_root = settings.MEDIA_ROOT
-    print(f"MEDIA_ROOT: {media_root}")
+    print(f"MEDIA_ROOT (Override): {media_root}")
     
     # Create Users
     teacher, _ = User.objects.get_or_create(username="teacher_real", defaults={'is_staff': True})
+    teacher.set_password('pass')
+    teacher.save()
+    
     student, _ = User.objects.get_or_create(username="student_real", defaults={'is_staff': False})
     
     # Create Exam
@@ -49,14 +72,16 @@ def run_proof():
     client = APIClient()
 
     print("\n>>> 2. AUTH MATRIX CHECKS")
-    # 2.1 Anon -> 403 on Import
+    # 2.1 Anon -> 401/403 on Import
     resp = client.post(f"/api/exams/{exam.id}/copies/import/", {})
     print(f"Anon Import: {resp.status_code} (Expected 401/403)")
+    if resp.status_code not in [401, 403]: print_resp_debug(resp)
 
     # 2.2 Student -> 403 on Import
     client.force_authenticate(user=student)
     resp = client.post(f"/api/exams/{exam.id}/copies/import/", {})
     print(f"Student Import: {resp.status_code} (Expected 403)")
+    if resp.status_code != 403: print_resp_debug(resp)
 
     print("\n>>> 3. REAL IMPORT (TEACHER)")
     client.force_authenticate(user=teacher)
@@ -66,7 +91,7 @@ def run_proof():
     
     print(f"Teacher Import Status: {resp.status_code}")
     if resp.status_code != 201:
-        print(resp.data)
+        print_resp_debug(resp)
         return
 
     copy_id = resp.data['id']

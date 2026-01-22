@@ -245,129 +245,302 @@ onUnmounted(() => {
 <template>
   <div class="corrector-desk">
     <div class="toolbar">
-        <div class="left">
-             <button @click="router.push('/corrector-dashboard')" class="back-btn">← Back</button>
-             <span v-if="copy" class="copy-info">
-                 <strong>{{ copy.anonymous_id }}</strong> 
-                 <span :class="'status-badge status-' + copy.status.toLowerCase()">{{ copy.status }}</span>
-             </span>
-        </div>
-        <div class="actions">
-            <button v-if="isStaging" @click="handleMarkReady" :disabled="isSaving" class="btn-primary">Mark READY</button>
-            <button v-if="isReady" @click="handleLock" :disabled="isSaving" class="btn-danger">Lock</button>
-            <button v-if="isLocked" @click="handleUnlock" :disabled="isSaving" class="btn-warning">Unlock</button>
-            <button v-if="isLocked" @click="handleFinalize" :disabled="isSaving" class="btn-success">Finalize</button>
-            <button v-if="isGraded" @click="handleDownload" class="btn-info">Download</button>
-        </div>
+      <div class="left">
+        <button
+          class="back-btn"
+          @click="router.push('/corrector-dashboard')"
+        >
+          ← Back
+        </button>
+        <span
+          v-if="copy"
+          class="copy-info"
+        >
+          <strong>{{ copy.anonymous_id }}</strong> 
+          <span :class="'status-badge status-' + copy.status.toLowerCase()">{{ copy.status }}</span>
+        </span>
+      </div>
+      <div class="actions">
+        <button
+          v-if="isStaging"
+          :disabled="isSaving"
+          class="btn-primary"
+          @click="handleMarkReady"
+        >
+          Mark READY
+        </button>
+        <button
+          v-if="isReady"
+          :disabled="isSaving"
+          class="btn-danger"
+          @click="handleLock"
+        >
+          Lock
+        </button>
+        <button
+          v-if="isLocked"
+          :disabled="isSaving"
+          class="btn-warning"
+          @click="handleUnlock"
+        >
+          Unlock
+        </button>
+        <button
+          v-if="isLocked"
+          :disabled="isSaving"
+          class="btn-success"
+          @click="handleFinalize"
+        >
+          Finalize
+        </button>
+        <button
+          v-if="isGraded"
+          class="btn-info"
+          @click="handleDownload"
+        >
+          Download
+        </button>
+      </div>
     </div>
 
-    <div v-if="error" class="error-banner">
-        <span>{{ error }}</span>
-        <button @click="error = null">Dismiss</button>
+    <div
+      v-if="error"
+      class="error-banner"
+    >
+      <span>{{ error }}</span>
+      <button @click="error = null">
+        Dismiss
+      </button>
     </div>
 
-    <div v-if="isLoading" class="loading-state">Loading...</div>
-    <div v-else class="workspace">
-        <!-- Viewer -->
-        <div class="viewer-container">
-            <div class="viewer-toolbar">
-                <div v-if="hasPages" class="pagination">
-                    <button @click="currentPage--" :disabled="currentPage <= 1">Prev</button>
-                    <span>Page {{ currentPage }} / {{ pages.length }}</span>
-                    <button @click="currentPage++" :disabled="currentPage >= pages.length">Next</button>
-                </div>
-                <div v-else class="pagination"><span>No Pages</span></div>
-                <div class="zoom-controls">
-                    <button @click="scale = Math.max(0.2, scale - 0.1)">-</button>
-                    <span>{{ Math.round(scale * 100) }}%</span>
-                    <button @click="scale = Math.min(3.0, scale + 0.1)">+</button>
-                </div>
-            </div>
-            <div class="scroll-area">
-                <div v-if="currentPageImageUrl && !imageError" class="canvas-wrapper" 
-                     :style="{ width: displayWidth + 'px', height: displayHeight + 'px' }">
-                     <img :src="currentPageImageUrl" class="page-image" @load="handleImageLoad" @error="handleImageError" draggable="false"/>
-                     <CanvasLayer
-                        :width="displayWidth"
-                        :height="displayHeight"
-                        :scale="scale"
-                        :initialAnnotations="currentAnnotations"
-                        :enabled="canAnnotate && !showEditor"
-                        @annotation-created="handleDrawComplete"
-                     />
-                </div>
-                <div v-else-if="imageError" class="empty-state error-state">
-                     <p>⚠️ Error loading image.</p>
-                     <button @click="fetchCopy">Retry</button>
-                </div>
-                <div v-else class="empty-state"><p>No pages available.</p></div>
-            </div>
+    <div
+      v-if="isLoading"
+      class="loading-state"
+    >
+      Loading...
+    </div>
+    <div
+      v-else
+      class="workspace"
+    >
+      <!-- Viewer -->
+      <div class="viewer-container">
+        <div class="viewer-toolbar">
+          <div
+            v-if="hasPages"
+            class="pagination"
+          >
+            <button
+              :disabled="currentPage <= 1"
+              @click="currentPage--"
+            >
+              Prev
+            </button>
+            <span>Page {{ currentPage }} / {{ pages.length }}</span>
+            <button
+              :disabled="currentPage >= pages.length"
+              @click="currentPage++"
+            >
+              Next
+            </button>
+          </div>
+          <div
+            v-else
+            class="pagination"
+          >
+            <span>No Pages</span>
+          </div>
+          <div class="zoom-controls">
+            <button @click="scale = Math.max(0.2, scale - 0.1)">
+              -
+            </button>
+            <span>{{ Math.round(scale * 100) }}%</span>
+            <button @click="scale = Math.min(3.0, scale + 0.1)">
+              +
+            </button>
+          </div>
+        </div>
+        <div class="scroll-area">
+          <div
+            v-if="currentPageImageUrl && !imageError"
+            class="canvas-wrapper" 
+            :style="{ width: displayWidth + 'px', height: displayHeight + 'px' }"
+          >
+            <img
+              :src="currentPageImageUrl"
+              class="page-image"
+              draggable="false"
+              @load="handleImageLoad"
+              @error="handleImageError"
+            >
+            <CanvasLayer
+              :width="displayWidth"
+              :height="displayHeight"
+              :scale="scale"
+              :initial-annotations="currentAnnotations"
+              :enabled="canAnnotate && !showEditor"
+              @annotation-created="handleDrawComplete"
+            />
+          </div>
+          <div
+            v-else-if="imageError"
+            class="empty-state error-state"
+          >
+            <p>⚠️ Error loading image.</p>
+            <button @click="fetchCopy">
+              Retry
+            </button>
+          </div>
+          <div
+            v-else
+            class="empty-state"
+          >
+            <p>No pages available.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inspector -->
+      <div class="inspector-panel">
+        <div class="inspector-tabs">
+          <button
+            :class="{ active: activeTab === 'editor' }"
+            @click="activeTab = 'editor'"
+          >
+            Annotations
+          </button>
+          <button
+            :class="{ active: activeTab === 'history' }"
+            @click="activeTab = 'history'"
+          >
+            History
+          </button>
         </div>
 
-        <!-- Inspector -->
-        <div class="inspector-panel">
-            <div class="inspector-tabs">
-                <button :class="{ active: activeTab === 'editor' }" @click="activeTab = 'editor'">Annotations</button>
-                <button :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">History</button>
+        <!-- Tab: Editor/List -->
+        <div
+          v-if="activeTab === 'editor'"
+          class="tab-content"
+        >
+          <div
+            v-if="showEditor"
+            class="editor-panel"
+          >
+            <h4>New Annotation</h4>
+            <div class="form-group">
+              <label>Type</label>
+              <select v-model="draftAnnotation.type">
+                <option value="COMMENT">
+                  Comment
+                </option>
+                <option value="HIGHLIGHT">
+                  Highlight
+                </option>
+                <option value="ERROR">
+                  Error
+                </option>
+                <option value="BONUS">
+                  Bonus
+                </option>
+              </select>
             </div>
-
-            <!-- Tab: Editor/List -->
-            <div v-if="activeTab === 'editor'" class="tab-content">
-                <div v-if="showEditor" class="editor-panel">
-                    <h4>New Annotation</h4>
-                    <div class="form-group">
-                        <label>Type</label>
-                        <select v-model="draftAnnotation.type">
-                            <option value="COMMENT">Comment</option>
-                            <option value="HIGHLIGHT">Highlight</option>
-                            <option value="ERROR">Error</option>
-                            <option value="BONUS">Bonus</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Points</label>
-                        <input type="number" v-model.number="draftAnnotation.score_delta" placeholder="0" />
-                    </div>
-                    <div class="form-group">
-                        <label>Content</label>
-                        <textarea ref="editorInputRef" v-model="draftAnnotation.content" @keydown.ctrl.enter="saveAnnotation"></textarea>
-                    </div>
-                    <div class="editor-actions">
-                        <button @click="cancelEditor" class="btn-sm btn-secondary">Cancel</button>
-                        <button @click="saveAnnotation" class="btn-sm btn-primary">Save</button>
-                    </div>
+            <div class="form-group">
+              <label>Points</label>
+              <input
+                v-model.number="draftAnnotation.score_delta"
+                type="number"
+                placeholder="0"
+              >
+            </div>
+            <div class="form-group">
+              <label>Content</label>
+              <textarea
+                ref="editorInputRef"
+                v-model="draftAnnotation.content"
+                @keydown.ctrl.enter="saveAnnotation"
+              />
+            </div>
+            <div class="editor-actions">
+              <button
+                class="btn-sm btn-secondary"
+                @click="cancelEditor"
+              >
+                Cancel
+              </button>
+              <button
+                class="btn-sm btn-primary"
+                @click="saveAnnotation"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+          <div
+            v-else
+            class="list-panel"
+          >
+            <ul class="annotation-list">
+              <li
+                v-for="ann in currentAnnotations"
+                :key="ann.id"
+                class="annotation-item"
+              >
+                <div class="ann-header">
+                  <span class="ann-type">{{ ann.type }}</span>
+                  <span
+                    v-if="ann.score_delta"
+                    class="ann-score"
+                  >{{ ann.score_delta > 0 ? '+' : '' }}{{ ann.score_delta }}</span>
+                  <button
+                    v-if="canAnnotate"
+                    class="btn-sm btn-delete"
+                    @click="handleDeleteAnnotation(ann.id)"
+                  >
+                    ×
+                  </button>
                 </div>
-                <div v-else class="list-panel">
-                    <ul class="annotation-list">
-                        <li v-for="ann in currentAnnotations" :key="ann.id" class="annotation-item">
-                            <div class="ann-header">
-                                <span class="ann-type">{{ ann.type }}</span>
-                                <span v-if="ann.score_delta" class="ann-score">{{ ann.score_delta > 0 ? '+' : ''}}{{ ann.score_delta }}</span>
-                                <button v-if="canAnnotate" @click="handleDeleteAnnotation(ann.id)" class="btn-sm btn-delete">×</button>
-                            </div>
-                            <div class="ann-content">{{ ann.content }}</div>
-                        </li>
-                        <li v-if="currentAnnotations.length === 0" class="empty-list">No annotations on this page.</li>
-                    </ul>
+                <div class="ann-content">
+                  {{ ann.content }}
                 </div>
-            </div>
-
-            <!-- Tab: History -->
-            <div v-if="activeTab === 'history'" class="tab-content history-panel">
-                <ul class="history-list">
-                    <li v-for="log in historyLogs" :key="log.id" class="history-item">
-                         <div class="log-meta">
-                             <span class="log-actor">{{ log.actor_username }}</span>
-                             <span class="log-date">{{ formatDate(log.timestamp) }}</span>
-                         </div>
-                         <div class="log-action">
-                             <strong>{{ log.action_display }}</strong>
-                         </div>
-                    </li>
-                    <li v-if="historyLogs.length === 0" class="empty-list">No history available.</li>
-                </ul>
-            </div>
+              </li>
+              <li
+                v-if="currentAnnotations.length === 0"
+                class="empty-list"
+              >
+                No annotations on this page.
+              </li>
+            </ul>
+          </div>
         </div>
+
+        <!-- Tab: History -->
+        <div
+          v-if="activeTab === 'history'"
+          class="tab-content history-panel"
+        >
+          <ul class="history-list">
+            <li
+              v-for="log in historyLogs"
+              :key="log.id"
+              class="history-item"
+            >
+              <div class="log-meta">
+                <span class="log-actor">{{ log.actor_username }}</span>
+                <span class="log-date">{{ formatDate(log.timestamp) }}</span>
+              </div>
+              <div class="log-action">
+                <strong>{{ log.action_display }}</strong>
+              </div>
+            </li>
+            <li
+              v-if="historyLogs.length === 0"
+              class="empty-list"
+            >
+              No history available.
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
   </div>
 </template>

@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=viatique
+      - POSTGRES_USER=viatique_user
+      - POSTGRES_PASSWORD=viatique_password
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U viatique_user -d viatique" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    restart: always
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ../../backend
+    restart: always
+    expose:
+      - "8000"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DJANGO_ENV=production
+      - DEBUG=False
+      - SSL_ENABLED=False
+      - SECRET_KEY=prod-secret-key-change-it
+      - ALLOWED_HOSTS=localhost,127.0.0.1,nginx,backend
+      - DATABASE_URL=postgres://viatique_user:viatique_password@db:5432/viatique
+      - CELERY_BROKER_URL=redis://redis:6379/0
+
+  celery:
+    build: ../../backend
+    restart: always
+    command: celery -A core worker -l info
+    volumes:
+      - media_volume:/app/media
+    depends_on:
+      - db
+      - redis
+      - backend
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgres://viatique_user:viatique_password@db:5432/viatique
+      - CELERY_BROKER_URL=redis://redis:6379/0
+
+  nginx:
+    # Build context is Root so Dockerfile can access ../frontend
+    build:
+      context: ../../
+      dockerfile: infra/nginx/Dockerfile
+      args:
+        CACHEBUST: 2026-01-17-v4
+    restart: always
+    ports:
+      - "8088:80"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
