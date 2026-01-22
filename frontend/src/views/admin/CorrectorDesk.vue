@@ -26,15 +26,11 @@ const imageError = ref(false)
 // Lock State
 const softLock = ref(null) // { token, owner, expires_at }
 const lockInterval = ref(null)
-// Lock State
-const softLock = ref(null) // { token, owner, expires_at }
-const lockInterval = ref(null)
-const isLockConflict = ref(false) // If true, we are read-only due to other owner
+
 
 // Autosave State
 const restoreAvailable = ref(null) // { source: 'LOCAL'|'SERVER', payload: ... }
 const autosaveTimer = ref(null)
-const lastSavedPayload = ref(null)
 const clientId = ref(crypto.randomUUID())
 
 // UI State
@@ -189,7 +185,7 @@ const checkDrafts = async () => {
 
     // 2. Get Local Draft
     const localRaw = localStorage.getItem(getStorageKey());
-    let localDraft = localRaw ? JSON.parse(localRaw) : null;
+    const localDraft = localRaw ? JSON.parse(localRaw) : null;
 
     // 3. Logic: Prefer Local if newer, else Server.
     // If we have ANY draft, propose restore.
@@ -236,7 +232,7 @@ watch(draftAnnotation, (newVal) => {
     // 1. Local Save (Immediate)
     try {
         localStorage.setItem(getStorageKey(), JSON.stringify(newVal));
-    } catch (e) {}
+    } catch {}
 
     // 2. Server Save (Debounced)
     if (autosaveTimer.value) clearTimeout(autosaveTimer.value);
@@ -358,7 +354,7 @@ const saveAnnotation = async () => {
         
         // Clear Drafts on Success
         localStorage.removeItem(getStorageKey());
-        try { await gradingApi.deleteDraft(copyId, softLock.value?.token); } catch(e){}
+        try { await gradingApi.deleteDraft(copyId, softLock.value?.token); } catch{}
         restoreAvailable.value = null;
 
         await refreshAnnotations()
@@ -468,6 +464,13 @@ onUnmounted(() => {
       <button @click="error = null">
         Dismiss
       </button>
+    </div>
+
+    <!-- Restore Draft Banner -->
+    <div v-if="restoreAvailable" class="info-banner">
+        <span>Restaurer le brouillon non sauvegardé ({{ restoreAvailable.source }}) ?</span>
+        <button class="btn-sm btn-primary" @click="restoreDraft">Oui, restaurer</button>
+        <button class="btn-sm btn-secondary" @click="discardDraft">Non, supprimer</button>
     </div>
 
     <div
