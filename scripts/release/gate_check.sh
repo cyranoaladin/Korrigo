@@ -124,9 +124,12 @@ echo "Database seeded."
 # Extract IDs for Concurrency Test (Parse JSON from seed response)
 # We need the output to capture IDs.
 SEED_JSON=$(curl -s -X POST "$SEED_URL" -H "X-E2E-Seed-Token: $E2E_SEED_TOKEN")
-# Simple grep/sed extraction since we don't have jq guaranteed
+# Simple grep extraction using explicit marker
 # Use || true to prevent set -e from killing script if grep finds nothing
-COPY_ID=$(echo "$SEED_JSON" | grep -o '"copy_ids": \[[^]]*\]' | sed 's/.*"copy_ids": \["\([^"]*\)".*/\1/' || true)
+# The output is in "output" field of JSON which is escaped, but the marker "__COPY_ID__: " is distinct enough.
+# However, the response is JSON with "output": "Log... __COPY_ID__: uuid ...".
+# grep will find "__COPY_ID__: uuid" inside the line.
+COPY_ID=$(echo "$SEED_JSON" | grep -o "__COPY_ID__: [0-9a-f-]*" | awk '{print $2}' || true)
 
 if [ -z "$COPY_ID" ]; then
     echo -e "${RED}FAIL: Could not extract COPY_ID from seed response for Concurrency Gate${NC}"
