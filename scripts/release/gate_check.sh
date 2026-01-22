@@ -45,17 +45,13 @@ echo -e "${GREEN}[3] Backend Quality (Test, Check)${NC}"
 cd backend
 if [ ! -d "venv" ]; then
     python3 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-else
-    source venv/bin/activate
+    venv/bin/pip install -r requirements.txt
 fi
 
-pytest -q
-python manage.py check
+venv/bin/pytest -q
+venv/bin/python manage.py check
 # Verify critical settings are NOT set to obvious dev values in source (env vars override this at runtime, but source check is good)
 # We grep for dangerous defaults not protected by os.getenv/DEBUG checks if possible, but runtime check (Gate 5) is better.
-deactivate
 cd ..
 echo "OK"
 
