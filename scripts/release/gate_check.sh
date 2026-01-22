@@ -189,7 +189,8 @@ else
 
     # 3. Teacher 1 acquires lock
     echo "  > Teacher 1 acquiring lock..."
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -b proofs/artifacts/cookies_t1.txt -X POST "http://127.0.0.1:${PRODLIKE_PORT}/api/copies/$COPY_ID/lock/" -H "Content-Type: application/json" -d '{"ttl_seconds": 60}')
+    CSRF_TOKEN_T1=$(grep "csrftoken" proofs/artifacts/cookies_t1.txt | awk '{print $7}')
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -b proofs/artifacts/cookies_t1.txt -X POST "http://127.0.0.1:${PRODLIKE_PORT}/api/copies/$COPY_ID/lock/" -H "Content-Type: application/json" -H "X-CSRFToken: $CSRF_TOKEN_T1" -d '{"ttl_seconds": 60}')
     if [ "$HTTP_CODE" != "201" ] && [ "$HTTP_CODE" != "200" ]; then
         echo -e "${RED}FAIL: Teacher 1 failed to lock (HTTP $HTTP_CODE)${NC}"
         exit 1
@@ -197,7 +198,8 @@ else
 
     # 4. Teacher 2 tries to lock (Should Fail 409)
     echo "  > Teacher 2 trying to lock (Expect 409)..."
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -b proofs/artifacts/cookies_t2.txt -X POST "http://127.0.0.1:${PRODLIKE_PORT}/api/copies/$COPY_ID/lock/" -H "Content-Type: application/json" -d '{"ttl_seconds": 60}')
+    CSRF_TOKEN_T2=$(grep "csrftoken" proofs/artifacts/cookies_t2.txt | awk '{print $7}')
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -b proofs/artifacts/cookies_t2.txt -X POST "http://127.0.0.1:${PRODLIKE_PORT}/api/copies/$COPY_ID/lock/" -H "Content-Type: application/json" -H "X-CSRFToken: $CSRF_TOKEN_T2" -d '{"ttl_seconds": 60}')
     if [ "$HTTP_CODE" != "409" ]; then
         echo -e "${RED}FAIL: Teacher 2 should have been blocked (Got HTTP $HTTP_CODE, Expected 409)${NC}"
         exit 1
