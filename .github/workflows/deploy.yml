@@ -109,12 +109,9 @@ jobs:
             cd ${{ secrets.VPS_PATH }}
 
             export KORRIGO_SHA="${GITHUB_SHA}"
-            export GHCR_USER="${{ github.actor }}"
-            export GHCR_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+            export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
 
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-
-            docker compose -f docker-compose.prod.yml down
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
             docker compose -f docker-compose.prod.yml pull
 
@@ -124,5 +121,5 @@ jobs:
             docker compose -f docker-compose.prod.yml up -d
 
             sleep 5
-            curl -sf --max-time 10 http://127.0.0.1:8090/api/health/ >/dev/null
+            curl -sf --max-time 10 http://127.0.0.1:8088/api/health/ >/dev/null
             echo "✅ DEPLOY OK: $KORRIGO_SHA"
