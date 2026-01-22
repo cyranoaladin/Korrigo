@@ -225,7 +225,7 @@ else
     fi
     
     # PUT Draft
-    DRAFT_PAYLOAD='{"payload":{"content":"AutosaveTest"},"token":"'"$TOKEN"'","version":1}'
+    DRAFT_PAYLOAD='{"payload":{"content":"AutosaveTest"},"token":"'"$TOKEN"'","version":1,"client_id":"gate-check-client-id"}'
     API_URL="http://127.0.0.1:${PRODLIKE_PORT}/api/copies/$COPY_ID/draft/"
     
     HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -b proofs/artifacts/cookies_t1.txt -X PUT "$API_URL" -H "Content-Type: application/json" -H "X-CSRFToken: $CSRF_TOKEN_T1" -H "X-Lock-Token: $TOKEN" -d "$DRAFT_PAYLOAD")
