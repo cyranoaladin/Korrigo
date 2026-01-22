@@ -141,3 +141,42 @@ class GradingEvent(models.Model):
 
     def __str__(self):
         return f"{self.get_action_display()} - {self.copy.anonymous_id} par {self.actor.username}"
+
+
+class CopyLock(models.Model):
+    """
+    Soft Lock pour l'édition concurrente des copies (Voie C3).
+    Garantit qu'un seul utilisateur peut éditer une copie à la fois.
+    """
+    copy = models.OneToOneField(
+        Copy,
+        on_delete=models.CASCADE,
+        related_name='lock',
+        verbose_name=_("Copie")
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='copy_locks',
+        verbose_name=_("Propriétaire")
+    )
+    token = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        verbose_name=_("Token de session")
+    )
+    locked_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Verrouillé le")
+    )
+    expires_at = models.DateTimeField(
+        verbose_name=_("Expire le"),
+        db_index=True
+    )
+    
+    class Meta:
+        verbose_name = _("Verrou de copie")
+        verbose_name_plural = _("Verrous de copies")
+        
+    def __str__(self):
+        return f"Lock {self.copy.anonymous_id} by {self.owner} (expires {self.expires_at})"

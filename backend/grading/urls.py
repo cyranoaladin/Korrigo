@@ -5,12 +5,16 @@ from django.urls import path
 from grading.views import (
     AnnotationListCreateView,
     AnnotationDetailView,
-    CopyLockView,
-    CopyUnlockView,
     CopyFinalizeView,
     CopyReadyView,
     CopyFinalPdfView,
     CopyAuditView
+)
+from grading.views_lock import (
+    LockAcquireView,
+    LockHeartbeatView,
+    LockReleaseView,
+    LockStatusView
 )
 
 urlpatterns = [
@@ -20,8 +24,10 @@ urlpatterns = [
 
     # Workflow Copy
     path('copies/<uuid:id>/ready/', CopyReadyView.as_view(), name='copy-ready'),
-    path('copies/<uuid:id>/lock/', CopyLockView.as_view(), name='copy-lock'),
-    path('copies/<uuid:id>/unlock/', CopyUnlockView.as_view(), name='copy-unlock'),
+    path('copies/<uuid:copy_id>/lock/', LockAcquireView.as_view(), name='lock-acquire'), # POST
+    path('copies/<uuid:copy_id>/lock/status/', LockStatusView.as_view(), name='lock-status'), # GET
+    path('copies/<uuid:copy_id>/lock/heartbeat/', LockHeartbeatView.as_view(), name='lock-heartbeat'), # POST
+    path('copies/<uuid:copy_id>/lock/release/', LockReleaseView.as_view(), name='lock-release'), # DELETE
     path('copies/<uuid:id>/finalize/', CopyFinalizeView.as_view(), name='copy-finalize'),
     path('copies/<uuid:id>/final-pdf/', CopyFinalPdfView.as_view(), name='copy-final-pdf'),
     
