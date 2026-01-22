@@ -112,3 +112,6 @@ if __name__ == "__main__":
     result = seed_e2e()
     # Output valid JSON for parsing
     print(f"\nCreated IDs: {json.dumps(result)}")
+    # Explicit marker for Gate Check parsing (avoids JSON escaping hell)
+    if result.get('copy_ids'):
+        print(f"__COPY_ID__: {result['copy_ids'][0]}")
