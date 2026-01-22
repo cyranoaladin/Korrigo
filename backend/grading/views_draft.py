@@ -48,6 +48,18 @@ class DraftReturnView(views.APIView):
         client_id = request.data.get('client_id')
         version_client = request.data.get('version')
         
+        # Check for existing draft to enforce client_id lock
+        try:
+            existing_draft = DraftState.objects.get(copy=copy, owner=request.user)
+            # If draft exists and has a client_id, ensure it matches request
+            if existing_draft.client_id and client_id and str(existing_draft.client_id) != str(client_id):
+                 return Response({
+                     "error": "Draft conflict: Modified by another session",
+                     "server_client_id": existing_draft.client_id
+                 }, status=status.HTTP_409_CONFLICT)
+        except DraftState.DoesNotExist:
+            existing_draft = None
+
         # Create or Update
         draft, created = DraftState.objects.get_or_create(
             copy=copy, 

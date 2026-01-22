@@ -208,7 +208,13 @@ else
 
     # 5.6 Draft Gate
     echo "[5.6] Draft Gate (Autosave)"
-    # Acquire Lock T1 and capture token
+    
+    # Clean Slate: Release any existing lock
+    curl -s -X DELETE "http://127.0.0.1:${PRODLIKE_PORT}/api/copies/$COPY_ID/lock/release/" \
+         -H "Content-Type: application/json" -H "X-CSRFToken: $CSRF_TOKEN_T1" \
+         -d "{}" > /dev/null
+
+    # Acquire Lock T1 and capture token (Fresh)
     LOCK_RES=$(curl -s -b proofs/artifacts/cookies_t1.txt -X POST "http://127.0.0.1:${PRODLIKE_PORT}/api/copies/$COPY_ID/lock/" -H "Content-Type: application/json" -H "X-CSRFToken: $CSRF_TOKEN_T1" -d '{"ttl_seconds": 60}')
     TOKEN=$(echo "$LOCK_RES" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
     

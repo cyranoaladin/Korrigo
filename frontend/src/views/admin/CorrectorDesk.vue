@@ -24,8 +24,10 @@ const pdfDimensions = ref({ width: 0, height: 0 })
 const imageError = ref(false)
 
 // Lock State
+// Lock State
 const softLock = ref(null) // { token, owner, expires_at }
 const lockInterval = ref(null)
+const isLockConflict = ref(false) // If true, we are read-only due to other owner
 
 
 // Autosave State
@@ -174,7 +176,14 @@ const acquireLock = async () => {
 }
 
 // --- Autosave Logic ---
-const getStorageKey = () => `draft_${copyId}_${softLock.value?.owner?.id || 'anon'}`;
+// --- Autosave Logic ---
+// We try to get user ID from softLock, but it might be missing. 
+// For P0, we use a simple fallback or rely on copyId if single-user per copy assumption holds for "Same Browser".
+// Better: Store userId in localStorage on Login? For now, we use SoftLock owner or a generic browser key.
+const getStorageKey = () => {
+    const userId = softLock.value?.owner?.id || 'browser_user';
+    return `draft_${copyId}_${userId}`;
+};
 
 const checkDrafts = async () => {
     // 1. Get Server Draft
@@ -187,40 +196,58 @@ const checkDrafts = async () => {
     const localRaw = localStorage.getItem(getStorageKey());
     const localDraft = localRaw ? JSON.parse(localRaw) : null;
 
-    // 3. Logic: Prefer Local if newer, else Server.
-    // If we have ANY draft, propose restore.
-    // Simplification for P0: If Local exists, use it. If not, Server.
-    // If both, compare? For P0, let's just use Local as priority if it exists (offline work).
+    // 3. Logic: Prefer Local if newer.
+    const localTs = localDraft?.saved_at || 0;
+    const serverTs = serverDraft?.updated_at ? new Date(serverDraft.updated_at).getTime() : 0;
     
-    if (localDraft) {
+    // Choose usage
+    if (localDraft && localTs > serverTs) {
         restoreAvailable.value = { source: 'LOCAL', payload: localDraft };
     } else if (serverDraft?.payload) {
-        restoreAvailable.value = { source: 'SERVER', payload: serverDraft.payload };
+        restoreAvailable.value = { 
+            source: 'SERVER', 
+            payload: serverDraft.payload,
+            client_id: serverDraft.client_id 
+        };
     }
 }
 
 const restoreDraft = () => {
     if (!restoreAvailable.value) return;
+    if (isReadOnly.value) return; // Banner handles this check, but safety here.
     
+    // Adopt Session if Server
+    if (restoreAvailable.value.source === 'SERVER' && restoreAvailable.value.client_id) {
+        clientId.value = restoreAvailable.value.client_id;
+    }
+
     // Check if we can restore (need to open editor?)
-    const payload = restoreAvailable.value.payload;
-    if (payload && payload.rect) {
+    const data = restoreAvailable.value.payload;
+    if (data && data.rect) {
+         // Restore Page
+         if (typeof data.page_index === 'number') {
+             currentPage.value = data.page_index + 1;
+         }
+         
          // It's a draft annotation
-         // We verify if page still valid?
-         // Just hydration:
-         handleDrawComplete(payload.rect); // Opens editor
-         draftAnnotation.value = { ...payload }; 
-         // Force editor show
-         activeTab.value = 'editor';
-         showEditor.value = true;
+         handleDrawComplete(data.rect); // Opens editor
+         draftAnnotation.value = { 
+            rect: data.rect,
+            type: data.type,
+            content: data.content,
+            score_delta: data.score_delta
+         }; 
     }
     
     restoreAvailable.value = null;
 }
 
-const discardDraft = () => {
+const discardDraft = async () => {
     localStorage.removeItem(getStorageKey());
-    // Also clear server? Maybe not, safety first.
+    // Also clear server to prevent 409 on next save (Start Fresh)
+    if (softLock.value?.token) {
+        try { await gradingApi.deleteDraft(copyId, softLock.value.token); } catch {}
+    }
     restoreAvailable.value = null;
 }
 
@@ -229,9 +256,16 @@ watch(draftAnnotation, (newVal) => {
     if (!newVal) return;
     if (isReadOnly.value) return;
     
+    // Construct full payload with Context
+    const savePayload = {
+        ...newVal,
+        page_index: currentPage.value - 1,
+        saved_at: Date.now()
+    };
+    
     // 1. Local Save (Immediate)
     try {
-        localStorage.setItem(getStorageKey(), JSON.stringify(newVal));
+        localStorage.setItem(getStorageKey(), JSON.stringify(savePayload));
     } catch {}
 
     // 2. Server Save (Debounced)
@@ -239,7 +273,7 @@ watch(draftAnnotation, (newVal) => {
     autosaveTimer.value = setTimeout(async () => {
         if (!softLock.value?.token) return;
         try {
-           await gradingApi.saveDraft(copyId, newVal, softLock.value.token, clientId.value);
+           await gradingApi.saveDraft(copyId, savePayload, softLock.value.token, clientId.value);
         } catch (e) { console.error("Autosave failed", e); }
     }, 2000); // 2s debounce
 
