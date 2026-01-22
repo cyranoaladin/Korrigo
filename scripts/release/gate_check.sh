@@ -92,9 +92,13 @@ done
 # 5) Security Baseline (Runtime)
 echo -e "${GREEN}[5] Security Baseline (Runtime validation)${NC}"
 
-# Load .env if present
+# Load E2E_SEED_TOKEN from .env if present
 if [ -f .env ]; then
-    export $(cat .env | grep -v '#' | awk '/=/ {print $1}')
+    # We only want to extract E2E_SEED_TOKEN to avoid corrupting DB env vars with bad parsing
+    TOKEN_FROM_ENV=$(grep "^E2E_SEED_TOKEN=" .env | cut -d '=' -f2 | tr -d '"' | tr -d "'")
+    if [ ! -z "$TOKEN_FROM_ENV" ]; then
+        export E2E_SEED_TOKEN="$TOKEN_FROM_ENV"
+    fi
 fi
 # Fallback/Override for Gate
 E2E_SEED_TOKEN=${E2E_SEED_TOKEN:-"secret-e2e-token-prod-like-only"}
