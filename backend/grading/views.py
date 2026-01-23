@@ -1,6 +1,8 @@
 from rest_framework import generics, status
+from rest_framework import renderers
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.http import FileResponse
 from rest_framework.permissions import IsAuthenticated
 from .models import Annotation, GradingEvent
 from exams.models import Copy
@@ -12,6 +14,16 @@ from grading.services import GradingService, AnnotationService
 import logging
 
 logger = logging.getLogger(__name__)
+
+class PassthroughRenderer(renderers.BaseRenderer):
+    """
+    Renderer minimal pour forcer DRF à accepter application/pdf (évite 406 Not Acceptable).
+    On ne sérialise rien : on laisse FileResponse fournir le flux binaire.
+    """
+    media_type = "application/pdf"
+    format = "pdf"
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return data
 
 
 def _handle_service_error(e, context="API"):
@@ -133,7 +145,6 @@ class CopyReadyView(APIView):
 
 
 
-
 class CopyFinalizeView(APIView):
     permission_classes = [IsTeacherOrAdmin]
     def post(self, request, id):
@@ -146,27 +157,73 @@ class CopyFinalizeView(APIView):
 
 
 class CopyFinalPdfView(APIView):
-    permission_classes = [IsTeacherOrAdmin]
+    """
+    GET /api/copies/<uuid>/final-pdf/
+    
+    Serves the final graded PDF for a copy.
+    
+    Permission: AllowAny (intentional - access control via session-based student auth)
+    - Students authenticate via session (student_id in request.session)
+    - Teachers/Admins authenticate via DRF token/session
+    - Access is strictly controlled in the view logic (see permission gates below)
+    """
+    from rest_framework.permissions import AllowAny
+    permission_classes = [AllowAny]  # Intentional: session-based student auth
+    renderer_classes = [PassthroughRenderer]
     
     def get(self, request, id):
         copy = get_object_or_404(Copy, id=id)
 
-        # SECURITY: Ensure copy is GRADED or user is Admin
+        # ---- Status gate: Final PDF only available for GRADED copies ----
+        # Even teachers/admins cannot access PDF for non-GRADED copies (403)
         if copy.status != Copy.Status.GRADED:
-             # Check if Admin (assuming 'role' field or is_superuser)
-             is_admin = request.user.is_superuser or getattr(request.user, 'role', '') == 'Admin'
-             if not is_admin:
-                 return Response(
-                     {'detail': 'Final PDF is only available when copy is GRADED.'},
-                     status=status.HTTP_403_FORBIDDEN
-                 )
+            return Response(
+                {"detail": "Final PDF is only available when copy is GRADED."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # ---- Permission gate: teacher/admin OR owning student session ----
+        teacher_or_admin = (
+            getattr(request.user, "is_authenticated", False) and (
+                getattr(request.user, "is_staff", False) or
+                getattr(request.user, "is_superuser", False) or
+                request.user.groups.filter(name="Teachers").exists()
+            )
+        )
+        
+        if not teacher_or_admin:
+            student_id = request.session.get("student_id")
+            if not student_id:
+                return Response(
+                    {"detail": "Authentication required."},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            # Cast student_id (session can be str)
+            try:
+                sid = int(student_id)
+            except Exception:
+                return Response(
+                    {"detail": "Invalid session."},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            if not copy.student_id or copy.student_id != sid:
+                return Response(
+                    {"detail": "You do not have permission to view this copy."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
         if not copy.final_pdf:
             return Response({"detail": "No final PDF available."}, status=status.HTTP_404_NOT_FOUND)
-            
-        from django.http import FileResponse
-        response = FileResponse(copy.final_pdf.open('rb'), content_type='application/pdf')
-        filename = f"copy_{copy.anonymous_id}_corrected.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        response = FileResponse(copy.final_pdf.open("rb"), content_type="application/pdf")
+        filename = f'copy_{copy.anonymous_id}_corrected.pdf'
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        # Hardening Headers
+        response["Cache-Control"] = "no-store, private"
+        response["Pragma"] = "no-cache"
+        response["X-Content-Type-Options"] = "nosniff"
         return response
 
 

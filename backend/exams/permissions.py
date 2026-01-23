@@ -5,7 +5,15 @@ class IsTeacherOrAdmin(permissions.BasePermission):
     Allows access only to authenticated staff users (teachers or admins).
     """
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.is_staff
+        if not (request.user and request.user.is_authenticated):
+            return False
+        
+        # Admin access
+        if request.user.is_staff or request.user.is_superuser:
+            return True
+        
+        # Teacher access (Group)
+        return request.user.groups.filter(name='Teachers').exists()
 
 class IsOwnerOrAdmin(permissions.BasePermission):
     """

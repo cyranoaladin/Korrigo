@@ -57,4 +57,4 @@ class GradingEventSerializer(serializers.ModelSerializer):
             'actor', 'actor_username',
             'timestamp', 'metadata'
         ]
-        read_only_fields = '__all__'
+        read_only_fields = ['id', 'copy', 'action', 'actor', 'timestamp', 'metadata']
