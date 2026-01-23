@@ -3,7 +3,7 @@ from .views import (
     ExamUploadView, BookletListView, ExamListView, BookletHeaderView,
     ExamDetailView, CopyListView, MergeBookletsView, ExportAllView, CSVExportView,
     CopyIdentificationView, UnidentifiedCopiesView, StudentCopiesView,
-    CopyImportView
+    CopyImportView, ExamSourceUploadView
 )
 
 urlpatterns = [
@@ -11,6 +11,7 @@ urlpatterns = [
     path('upload/', ExamUploadView.as_view(), name='exam-upload'),
     path('', ExamListView.as_view(), name='exam-list'),
     path('<uuid:id>/', ExamDetailView.as_view(), name='exam-detail'),
+    path('<uuid:pk>/upload/', ExamSourceUploadView.as_view(), name='exam-source-upload'),
     
     # New Import Route (Phase 3.9)
     path('<uuid:exam_id>/copies/import/', CopyImportView.as_view(), name='copy-import'),

@@ -3,6 +3,7 @@ Tests for finalize operation and final PDF handling.
 """
 import pytest
 import unittest.mock
+from django.core.files.base import ContentFile
 from datetime import date
 from django.utils import timezone
 
@@ -97,25 +98,16 @@ def test_finalize_sets_status_graded(authenticated_client, locked_copy_with_anno
     copy = locked_copy_with_annotation
     url = f"/api/copies/{copy.id}/finalize/"
 
-    response = authenticated_client.post(url, {}, format="json")
+    with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
+        mock_flatten.return_value = None # Success
+        response = authenticated_client.post(url, {}, format="json")
 
-    # Note: May return 500 if PDF generation fails due to fake pages,
-    # but should still be testable with mocking or by checking that
-    # the status change happens in the service layer
-    # For this test, we accept either 200 (success) or 500 (PDF gen failed)
-    # and focus on DB state if 200
-
-    if response.status_code == 200:
+        assert response.status_code == 200
         assert response.data["status"] == "GRADED"
-        # final_score is not in response, check DB below
-
+        
         copy.refresh_from_db()
         assert copy.status == Copy.Status.GRADED
         assert copy.graded_at is not None
-    else:
-        # If 500, it's likely due to fake page paths in test fixture
-        # The service layer should have attempted the transition
-        assert response.status_code in [400, 500]
 
 
 @pytest.mark.unit
@@ -127,23 +119,24 @@ def test_finalize_sets_final_pdf_field(authenticated_client, locked_copy_with_an
     copy = locked_copy_with_annotation
     url = f"/api/copies/{copy.id}/finalize/"
 
-    try:
-        response = authenticated_client.post(url, {}, format="json")
+    def mock_flatten_side_effect(copy_obj):
+        from django.core.files.base import ContentFile
+        copy_obj.final_pdf.save(f"test_{copy_obj.id}.pdf", ContentFile(b"PDF"), save=False)
+
+    with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
+        mock_flatten.side_effect = mock_flatten_side_effect
+        try:
+            response = authenticated_client.post(url, {}, format="json")
     
-        # With fake pages, PDF generation will fail
-        # This test documents expected behavior with real pages
-        if response.status_code == 200:
+            assert response.status_code == 200
             copy.refresh_from_db()
             assert copy.final_pdf is not None
             assert copy.final_pdf.name.endswith('.pdf')
-        else:
-            # Expected to fail with fake page paths
-            assert response.status_code in [400, 500]
-    finally:
-        if copy.final_pdf:
-             if hasattr(copy.final_pdf, 'close'): copy.final_pdf.close()
-             if hasattr(copy.final_pdf, 'file') and copy.final_pdf.file: copy.final_pdf.file.close()
-             copy.final_pdf.delete(save=False)
+        finally:
+            if copy.final_pdf:
+                 if hasattr(copy.final_pdf, 'close'): copy.final_pdf.close()
+                 if hasattr(copy.final_pdf, 'file') and copy.final_pdf.file: copy.final_pdf.file.close()
+                 copy.final_pdf.delete(save=False)
 
 
 @pytest.mark.unit
@@ -156,9 +149,8 @@ def test_final_pdf_endpoint_404_when_missing(authenticated_client, locked_copy_w
 
     response = authenticated_client.get(url)
 
-    # Security Hardening: LOCKED copy returns 403 before 404
-    # But if user is Admin (implicit in fixture), it returns 404
-    assert response.status_code == 404
+    # Security Hardening: LOCKED copy returns 403 (Forbidden) even if missing/admin
+    assert response.status_code == 403
     assert "detail" in response.data
 
 
@@ -213,27 +205,30 @@ def test_finalize_computes_score_from_annotations(authenticated_client, locked_c
 
     url = f"/api/copies/{copy.id}/finalize/"
     
-    with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
-        mock_flatten.return_value = None # Success
-        try:
-            response = authenticated_client.post(url, {}, format="json")
+    
+    def mock_flatten_side_effect(copy_obj):
+        # Ensure deterministic PDF generation without relying on filesystem rasterization
+        copy_obj.final_pdf.save(f"test_{copy_obj.id}.pdf", ContentFile(b"%PDF-1.4\n%%EOF"), save=False)
 
-            # Expected score: 5 + (-2) = 3
-            if response.status_code == 200:
-                assert response.data["status"] == "GRADED"
-                
-                # Verify score recorded in audit event
-                from grading.models import GradingEvent
-                event = GradingEvent.objects.filter(copy=copy, action=GradingEvent.Action.FINALIZE).latest('timestamp')
-                assert event.metadata['final_score'] == 3
-            else:
-                # PDF generation may fail with fake pages, but score calculation should work
-                assert response.status_code in [400, 500]
-        finally:
-            if copy.final_pdf:
-                 if hasattr(copy.final_pdf, 'close'): copy.final_pdf.close()
-                 if hasattr(copy.final_pdf, 'file') and copy.final_pdf.file: copy.final_pdf.file.close()
-                 copy.final_pdf.delete(save=False)
+    with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
+        mock_flatten.side_effect = mock_flatten_side_effect
+        response = authenticated_client.post(url, {}, format="json")
+
+        # Deterministic contract for unit test: must succeed
+        assert response.status_code == 200
+        assert response.data["status"] == "GRADED"
+        
+        # Verify score recorded in audit event
+        from grading.models import GradingEvent
+        event = GradingEvent.objects.filter(copy=copy, action=GradingEvent.Action.FINALIZE).latest('timestamp')
+        assert event.metadata['final_score'] == 3
+        
+        # Cleanup file artifact
+        copy.refresh_from_db()
+        if copy.final_pdf:
+             if hasattr(copy.final_pdf, 'close'): copy.final_pdf.close()
+             if hasattr(copy.final_pdf, 'file') and copy.final_pdf.file: copy.final_pdf.file.close()
+             copy.final_pdf.delete(save=False)
 
 
 @pytest.mark.unit

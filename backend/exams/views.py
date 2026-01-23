@@ -97,7 +97,7 @@ class BookletListView(generics.ListAPIView):
         exam_id = self.kwargs['exam_id']
         return Booklet.objects.filter(exam_id=exam_id).order_by('start_page')
 
-class ExamListView(generics.ListAPIView):
+class ExamListView(generics.ListCreateAPIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     queryset = Exam.objects.all().order_by('-date')
     serializer_class = ExamSerializer
@@ -316,12 +316,14 @@ class StudentCopiesView(generics.ListAPIView):
         return Copy.objects.filter(student=student_id, status=Copy.Status.GRADED)
 
     def list(self, request, *args, **kwargs):
+        from grading.services import GradingService
         queryset = self.get_queryset()
         data = []
         for copy in queryset:
-            score_obj = copy.scores.first()
-            scores_data = score_obj.scores_data if score_obj else {}
-            total_score = sum(float(v) for v in scores_data.values() if v)
+            total_score = GradingService.compute_score(copy)
+            # Detailed scores not yet implemented in Annotation model linking to Question ID
+            # For MVP, we just show total.
+            scores_data = {} 
             
             data.append({
                 "id": copy.id,
@@ -329,7 +331,91 @@ class StudentCopiesView(generics.ListAPIView):
                 "date": copy.exam.date,
                 "total_score": total_score,
                 "status": copy.status,
-                "final_pdf_url": copy.final_pdf.url if copy.final_pdf else None,
+                "final_pdf_url": f"/api/copies/{copy.id}/final-pdf/" if copy.final_pdf else None,
                 "scores_details": scores_data
             })
         return Response(data)
+class ExamSourceUploadView(APIView):
+    permission_classes = [IsTeacherOrAdmin]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, pk):
+        exam = get_object_or_404(Exam, pk=pk)
+        
+        # Update PDF
+        if 'pdf_source' in request.FILES:
+            exam.pdf_source = request.FILES['pdf_source']
+            exam.save()
+            
+            # Trigger Processing
+            try:
+                from processing.services.pdf_splitter import PDFSplitter
+                splitter = PDFSplitter(pages_per_booklet=4, dpi=150)
+                booklets = splitter.split_exam(exam)
+                
+                # Create Copies (Staging)
+                import uuid
+                import logging
+                logger = logging.getLogger(__name__)
+                
+                created_count = 0
+                for booklet in booklets:
+                    # Avoid duplicates if reprocessing?
+                    # For MVP, just create new copies.
+                    copy = Copy.objects.create(
+                        exam=exam,
+                        anonymous_id=str(uuid.uuid4())[:8].upper(),
+                        status=Copy.Status.STAGING,
+                        is_identified=False
+                    )
+                    copy.booklets.add(booklet)
+                    created_count += 1
+                
+                return Response({
+                    "message": f"PDF uploaded and processed. {created_count} booklets created.",
+                    "booklets_created": created_count
+                }, status=status.HTTP_201_CREATED)
+                
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response({"error": "pdf_source field required"}, status=status.HTTP_400_BAD_REQUEST)
+class CopyValidationView(APIView):
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, id):
+        copy = get_object_or_404(Copy, id=id)
+        
+        try:
+             # Use service to validate
+             from grading.services import GradingService
+             GradingService.validate_copy(copy, request.user)
+             return Response({"message": "Copy validated and ready for grading.", "status": copy.status})
+        except ValueError as e:
+             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CorrectorCopiesView(generics.ListAPIView):
+    """
+    List all copies available for correction (Global List).
+    GET /api/copies/
+    """
+    permission_classes = [IsTeacherOrAdmin]
+    serializer_class = CopySerializer
+
+    def get_queryset(self):
+        # MVP: Return all copies that are ready/locked/graded
+        return Copy.objects.filter(
+            status__in=[Copy.Status.READY, Copy.Status.LOCKED, Copy.Status.GRADED]
+        ).select_related('exam').order_by('exam__date', 'anonymous_id')
+
+class CorrectorCopyDetailView(generics.RetrieveAPIView):
+    """
+    Permet au correcteur de récupérer les détails d'une copie spécifique.
+    """
+    queryset = Copy.objects.all()
+    serializer_class = CopySerializer
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
+    lookup_field = 'id'
+

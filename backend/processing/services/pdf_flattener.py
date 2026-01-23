@@ -50,7 +50,7 @@ class PDFFlattener:
         # Traiter chaque page
         for page_idx, img_path in enumerate(all_pages_images):
             # Construire chemin complet
-            full_path = str(settings.MEDIA_ROOT / img_path) if not img_path.startswith('/') else img_path
+            full_path = os.path.join(settings.MEDIA_ROOT, img_path) if not img_path.startswith('/') else img_path
 
             if not os.path.exists(full_path):
                 logger.warning(f"Image not found: {full_path}")
@@ -76,15 +76,14 @@ class PDFFlattener:
         self._add_summary_page(doc, copy)
 
         # Sauvegarder le PDF dans un fichier temporaire (storage-agnostic)
+        # Sauvegarder le PDF en mémoire
         output_filename = f"copy_{copy.id}_corrected.pdf"
+        pdf_bytes = doc.write()
+        doc.close()
 
-        with NamedTemporaryFile(suffix=".pdf") as tmp:
-            doc.save(tmp.name)
-            doc.close()
-
-            tmp.seek(0)
-            copy.final_pdf.save(output_filename, File(tmp), save=False)
-            copy.save()
+        from django.core.files.base import ContentFile
+        copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
+        copy.save()
 
         logger.info(f"Copy {copy.id} flattened successfully: {copy.final_pdf.name}")
 
