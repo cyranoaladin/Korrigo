@@ -482,7 +482,7 @@ onUnmounted(() => {
         v-if="lastSaveStatus"
         class="center-status"
       >
-        <span class="save-indicator">
+        <span class="save-indicator" data-testid="save-indicator">
           Sauvegardé ({{ lastSaveStatus.source === 'LOCAL' ? 'Local' : 'Serveur' }}) à {{ lastSaveStatus.time.toLocaleTimeString() }}
         </span>
       </div>
@@ -657,6 +657,7 @@ onUnmounted(() => {
           <div
             v-if="showEditor"
             class="editor-panel"
+            data-testid="editor-panel"
           >
             <h4>New Annotation</h4>
             <div class="form-group">
@@ -716,6 +717,7 @@ onUnmounted(() => {
                 v-for="ann in currentAnnotations"
                 :key="ann.id"
                 class="annotation-item"
+                data-testid="annotation-item"
               >
                 <div class="ann-header">
                   <span class="ann-type">{{ ann.type }}</span>

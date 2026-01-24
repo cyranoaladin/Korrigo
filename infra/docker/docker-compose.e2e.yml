@@ -1,0 +1,20 @@
+# Docker Compose override for E2E testing
+# Usage: docker compose -f docker-compose.local-prod.yml -f docker-compose.e2e.yml up -d --build
+#
+# This override disables rate limiting to allow E2E tests to run without being blocked.
+# The production guard in settings.py prevents this from being used in real production
+# (DJANGO_ENV must not be "production" when RATELIMIT_ENABLE is false).
+
+services:
+  backend:
+    volumes:
+      # Bind mount scripts for E2E - ensures seed_e2e.py is always up-to-date without rebuild
+      - ../../backend/scripts:/app/scripts:ro
+    environment:
+      DJANGO_ENV: "e2e"
+      RATELIMIT_ENABLE: "false"
+
+  celery:
+    environment:
+      DJANGO_ENV: "e2e"
+      RATELIMIT_ENABLE: "false"
