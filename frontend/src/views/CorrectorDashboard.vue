@@ -99,6 +99,8 @@ const goToDesk = (copyId) => {
             v-for="copy in copies" 
             :key="copy.id"
             class="copy-card"
+            data-testid="copy-card"
+            :data-copy-anon="copy.anonymous_id"
           >
             <div class="copy-info">
               <div class="exam-name">
@@ -113,6 +115,7 @@ const goToDesk = (copyId) => {
             </div>
             <button 
               class="btn-action"
+              data-testid="copy-action"
               @click="goToDesk(copy.id)"
             >
               {{ copy.status === 'GRADED' ? 'Voir' : (copy.status === 'LOCKED' ? 'Continuer' : 'Corriger') }}

@@ -159,6 +159,7 @@ const stopDrawing = () => {
       height: height + 'px',
     }"
     :class="{ 'canvas-layer': true, 'disabled': !enabled }"
+    data-testid="canvas-layer"
     @mousedown="startDrawing"
     @mousemove="draw"
     @mouseup="stopDrawing"
