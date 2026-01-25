@@ -1,31 +1,26 @@
-# Stage 1: Build
-FROM node:20-slim AS builder
-
+# Stage 1: Base (Node + Deps)
+FROM node:20-slim AS base
 WORKDIR /app
-
-# Install dependencies causing cache invalidation only when package.json changes
 COPY package.json package-lock.json* ./
 RUN npm ci
-
-# Copy source and build
 COPY . .
-# Bake in the API URL for the Nginx gateway routing
+
+# Stage 2: Development
+FROM base AS development
+ENV NODE_ENV=development
+EXPOSE 5173
+CMD ["npm", "run", "dev", "--", "--host"]
+
+# Stage 3: Builder (Prod Build)
+FROM base AS builder
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
-# Stage 2: Serve
-FROM nginx:alpine
-
-# Remove default nginx static assets
+# Stage 4: Production (Nginx)
+FROM nginx:alpine AS production
 RUN rm -rf /usr/share/nginx/html/*
-
-# Copy static assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy custom nginx config for SPA fallback within the container (optional, but good practice)
-# We can use a simple config block here or rely on default if we don't need SPA routing (history mode).
-# For Vue Router history mode, we need try_files $uri $uri/ /index.html;
 RUN echo 'server { \
     listen 80; \
     server_name localhost; \
@@ -35,7 +30,5 @@ RUN echo 'server { \
     try_files $uri $uri/ /index.html; \
     } \
     }' > /etc/nginx/conf.d/default.conf
-
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]

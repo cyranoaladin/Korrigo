@@ -1,0 +1,111 @@
+import cv2
+import numpy as np
+from PIL import Image
+import pytesseract
+from io import BytesIO
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from .models import OCRResult
+from students.models import Student
+
+
+class OCRService:
+    """
+    Service OCR pour la lecture des en-têtes de copies
+    """
+    
+    @staticmethod
+    def extract_header_from_booklet(booklet):
+        """
+        Extrait l'image de l'en-tête d'un booklet pour OCR
+        """
+        if not booklet.header_image:
+            # Si pas d'image d'en-tête, extraire de la première page
+            # Utiliser la logique de vision.py pour extraire la zone d'en-tête
+            from processing.services.vision import HeaderDetector
+            detector = HeaderDetector()
+            
+            # Extraire la zone d'en-tête de la première page
+            if booklet.pages_images:
+                first_page_path = booklet.pages_images[0]
+                header_bytes = detector.extract_header_crop(first_page_path)
+                
+                # Convertir en fichier Django
+                image_io = BytesIO(header_bytes)
+                image_file = InMemoryUploadedFile(
+                    image_io, None, f"header_{booklet.id}.jpg", 
+                    'image/jpeg', len(header_bytes), None
+                )
+                
+                return image_file
+        
+        return booklet.header_image
+
+    @staticmethod
+    def perform_ocr_on_header(header_image_file):
+        """
+        Effectue l'OCR sur une image d'en-tête
+        """
+        try:
+            # Charger l'image
+            image = Image.open(header_image_file)
+            image_np = np.array(image)
+            
+            # Convertir en grayscale pour meilleur OCR
+            if len(image_np.shape) == 3:
+                gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
+                gray = cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY)
+            else:
+                gray = image_np
+                
+            # Améliorer la qualité pour OCR
+            gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+            
+            # Effectuer OCR
+            custom_config = r'--oem 3 --psm 6 -l fra+eng'
+            text = pytesseract.image_to_string(gray, config=custom_config)
+            
+            # Calculer la confiance moyenne
+            data = pytesseract.image_to_data(gray, output_type=pytesseract.Output.DICT)
+            confidences = [int(conf) for conf in data['conf'] if int(conf) > 0]
+            avg_confidence = sum(confidences) / len(confidences) if confidences else 0
+            
+            return {
+                'text': text.strip(),
+                'confidence': avg_confidence / 100.0  # Normaliser à [0,1]
+            }
+        except Exception as e:
+            # Gérer les erreurs proprement
+            return {
+                'text': '',
+                'confidence': 0.0,
+                'error': str(e)
+            }
+
+    @staticmethod
+    def find_matching_students(ocr_text):
+        """
+        Trouve les élèves correspondant au texte OCR
+        """
+        # Extraire nom/prénom potentiel du texte OCR
+        words = ocr_text.upper().split()
+        
+        # Chercher des correspondances dans la base élèves
+        suggestions = []
+        for word in words:
+            if len(word) > 2:  # Mot suffisamment long pour être un nom
+                matches = Student.objects.filter(
+                    last_name__icontains=word
+                )[:5]  # Limiter à 5 suggestions
+                
+                for student in matches:
+                    suggestions.append(student)
+        
+        # Retirer les doublons
+        seen_ids = set()
+        unique_suggestions = []
+        for student in suggestions:
+            if student.id not in seen_ids:
+                seen_ids.add(student.id)
+                unique_suggestions.append(student)
+        
+        return unique_suggestions[:10]  # Max 10 suggestions

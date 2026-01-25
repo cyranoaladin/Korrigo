@@ -25,7 +25,7 @@ class ExamSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Exam
-        fields = ['id', 'name', 'date', 'grading_structure', 'is_processed', 'booklet_count', 'pdf_source']
+        fields = ['id', 'name', 'date', 'grading_structure', 'is_processed', 'booklet_count', 'pdf_source', 'correctors']
 
     def get_booklet_count(self, obj):
         return obj.booklets.count()

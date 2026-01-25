@@ -33,8 +33,20 @@ const handleLogout = async () => {
     router.push('/login')
 }
 
-const handleChangePassword = () => {
-    alert("Fonctionnalité bientôt disponible. Veuillez contacter l'administrateur.")
+const handleChangePassword = async () => {
+    const newPass = prompt("Nouveau mot de passe (min 6 caractères) :")
+    if (!newPass) return
+    if (newPass.length < 6) {
+        alert("Le mot de passe doit faire au moins 6 caractères.")
+        return
+    }
+    
+    try {
+        await api.post('/change-password/', { password: newPass })
+        alert("Mot de passe mis à jour avec succès.")
+    } catch (e) {
+        alert("Erreur: " + (e.response?.data?.error || "Echec mise à jour"))
+    }
 }
 const goToDesk = (copyId) => {
     router.push(`/corrector/desk/${copyId}`)
