@@ -2,6 +2,28 @@ from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
+class GlobalSettings(models.Model):
+    """
+    Paramètres globaux de l'application (Singleton par convention ou id=1).
+    """
+    institution_name = models.CharField(max_length=255, default="Lycée Pierre Mendès France", verbose_name=_("Nom Etablissement"))
+    theme = models.CharField(max_length=20, default="light", verbose_name=_("Thème par défaut"))
+    default_exam_duration = models.PositiveIntegerField(default=60, verbose_name=_("Durée par défaut (min)"))
+    notifications_enabled = models.BooleanField(default=True, verbose_name=_("Notifications Email"))
+    
+    # Singleton pattern helper
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super(GlobalSettings, self).save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = _("Configuration Système")
+        verbose_name_plural = _("Configuration Système")
 
 class AuditLog(models.Model):
     """

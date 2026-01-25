@@ -122,15 +122,47 @@
             </p>
           </div>
 
+          <!-- OCR Button -->
+          <button
+            v-if="currentCopy && !ocrSuggestions.length"
+            :disabled="submitting"
+            class="w-full bg-blue-600 text-white py-2 rounded-lg mb-2 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            @click="runOCR"
+          >
+            {{ submitting ? 'OCR en cours...' : 'OCR AUTOMATIQUE' }}
+          </button>
+
+          <!-- OCR Suggestions -->
+          <div
+            v-if="ocrSuggestions.length > 0"
+            class="bg-yellow-50 border border-yellow-200 p-4 rounded mb-4"
+          >
+            <h3 class="text-yellow-800 font-bold mb-2">Suggestions OCR:</h3>
+            <div
+              v-for="(suggestion, index) in ocrSuggestions"
+              :key="suggestion.id"
+              :class="['p-2 border-b cursor-pointer hover:bg-yellow-100', {'bg-yellow-100': index === ocrSelectedIndex}]"
+              @click="selectOCRSuggestion(suggestion)"
+            >
+              {{ suggestion.full_name }} - {{ suggestion.class_name }}
+            </div>
+            <button
+              @click="clearOCRSuggestions"
+              class="mt-2 text-sm text-gray-600 hover:text-gray-800"
+            >
+              Effacer suggestions
+            </button>
+          </div>
+
           <!-- Actions -->
-          <button 
-            :disabled="!selectedStudent || submitting" 
+          <button
+            :disabled="!selectedStudent || submitting"
             class="w-full bg-indigo-600 text-white py-3 rounded-lg text-lg font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
             @click="confirmIdentification"
           >
             {{ submitting ? 'Validation...' : 'VALIDER & SUIVANT (Entrée)' }}
           </button>
-            
+
           <p class="text-xs text-center text-gray-400 mt-2">
             Raccourci: Touche Entrée pour valider
           </p>
@@ -142,13 +174,9 @@
 
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 
-const route = useRoute()
 const auth = useAuthStore()
-
-const examId = route.params.examId
 const unidentifiedCopies = ref([])
 const currentCopy = ref(null)
 const loading = ref(true)
@@ -161,10 +189,14 @@ const selectedIndex = ref(0)
 const selectedStudent = ref(null)
 const searchInput = ref(null)
 
+// OCR Logic
+const ocrSuggestions = ref([])
+const ocrSelectedIndex = ref(-1)
+
 const fetchUnidentifiedCopies = async () => {
     loading.value = true
     try {
-        const res = await fetch(`${auth.API_URL}/api/exams/${examId}/unidentified_copies/`, {
+        const res = await fetch(`${auth.API_URL}/api/identification/desk/`, {
             credentials: 'include',
             headers: auth.authHeaders
         })
@@ -232,12 +264,52 @@ const selectFirstResult = () => {
     }
 }
 
-const confirmIdentification = async () => {
-    if (!currentCopy.value || !selectedStudent.value || submitting.value) return
-    
+const runOCR = async () => {
+    if (!currentCopy.value || submitting.value) return
+
     submitting.value = true
     try {
-        const res = await fetch(`${auth.API_URL}/api/copies/${currentCopy.value.id}/identify/`, {
+        const res = await fetch(`${auth.API_URL}/api/identification/perform-ocr/${currentCopy.value.id}/`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: new Headers({
+                'Content-Type': 'application/json',
+                ...auth.authHeaders
+            })
+        })
+
+        if (res.ok) {
+            const data = await res.json()
+            ocrSuggestions.value = data.suggestions || []
+            ocrSelectedIndex.value = 0
+        } else {
+            console.error("OCR failed")
+        }
+    } catch (e) {
+        console.error("OCR error", e)
+    } finally {
+        submitting.value = false
+    }
+}
+
+const selectOCRSuggestion = (suggestion) => {
+    selectedStudent.value = suggestion
+    searchQuery.value = `${suggestion.full_name}`
+    ocrSuggestions.value = []
+    ocrSelectedIndex.value = -1
+}
+
+const clearOCRSuggestions = () => {
+    ocrSuggestions.value = []
+    ocrSelectedIndex.value = -1
+}
+
+const confirmIdentification = async () => {
+    if (!currentCopy.value || !selectedStudent.value || submitting.value) return
+
+    submitting.value = true
+    try {
+        const res = await fetch(`${auth.API_URL}/api/identification/identify/${currentCopy.value.id}/`, {
             method: 'POST',
             credentials: 'include',
             headers: new Headers({
@@ -246,7 +318,7 @@ const confirmIdentification = async () => {
             }),
             body: JSON.stringify({ student_id: selectedStudent.value.id })
         })
-        
+
         if (res.ok) {
             // Remove identified copy from list
             unidentifiedCopies.value.shift()

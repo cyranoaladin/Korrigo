@@ -1,4 +1,5 @@
 from rest_framework import generics, filters, status, views
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
@@ -74,3 +75,56 @@ class StudentListView(generics.ListAPIView):
     serializer_class = StudentSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['first_name', 'last_name', 'ine']
+
+class StudentImportView(views.APIView):
+    permission_classes = [IsAuthenticated] # Teacher/Admin only
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        import csv
+        import io
+        
+        file_obj = request.FILES.get('file')
+        if not file_obj:
+            return Response({'error': 'File required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Basic CSV Import: INE, Last Name, First Name, Class
+        # Or simple XML Sconet parser mock-up
+        
+        results = {"created": 0, "errors": []}
+        
+        try:
+            decoded_file = file_obj.read().decode('utf-8')
+            io_string = io.StringIO(decoded_file)
+            
+            # Auto-detect if it looks like XML
+            if decoded_file.strip().startswith('<'):
+                 # Very basic XML parsing mock for Sconet
+                 # Assuming <Eleves><Eleve><INE>...</INE><Nom>...</Nom>...</Eleve></Eleves>
+                 # For MVP we stick to CSV or basic failure if XML complex
+                 return Response({'error': "XML Sconet parsing not fully implemented yet, please use CSV (INE,Nom,Prenom,Classe)"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+            
+            reader = csv.reader(io_string, delimiter=',')
+            # Skip header if present? Let's assume headers: INE, Last, First, Class
+            
+            for idx, row in enumerate(reader):
+                if idx == 0 and "INE" in row[0].upper(): continue # Skip header
+                if len(row) < 4: continue
+                
+                ine, last, first, class_name = row[0], row[1], row[2], row[3]
+                
+                # Create or Update
+                _, created = Student.objects.update_or_create(
+                    ine=ine,
+                    defaults={
+                        'last_name': last,
+                        'first_name': first,
+                        'class_name': class_name
+                    }
+                )
+                if created: results['created'] += 1
+                
+            return Response(results)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

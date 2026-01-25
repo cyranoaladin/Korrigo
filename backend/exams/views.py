@@ -308,12 +308,21 @@ class UnidentifiedCopiesView(APIView):
 class StudentCopiesView(generics.ListAPIView):
     from .permissions import IsStudent
     permission_classes = [IsStudent]
-    
+
     def get_queryset(self):
+        # Try to get student_id from session (legacy) or from user association (new)
         student_id = self.request.session.get('student_id')
-        if not student_id:
-            return Copy.objects.none()
-        return Copy.objects.filter(student=student_id, status=Copy.Status.GRADED)
+        if student_id:
+            # Legacy method: using session
+            return Copy.objects.filter(student=student_id, status=Copy.Status.GRADED)
+        else:
+            # New method: get student via user association
+            try:
+                from students.models import Student
+                student = Student.objects.get(user=self.request.user)
+                return Copy.objects.filter(student=student, status=Copy.Status.GRADED)
+            except Student.DoesNotExist:
+                return Copy.objects.none()
 
     def list(self, request, *args, **kwargs):
         from grading.services import GradingService

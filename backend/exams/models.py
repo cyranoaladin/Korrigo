@@ -30,6 +30,14 @@ class Exam(models.Model):
     )
     grading_structure = models.JSONField(default=list, blank=True, verbose_name=_("Barème (Structure JSON)"))
     is_processed = models.BooleanField(default=False, verbose_name=_("Traité ?"))
+    
+    # Mission 24: Assigned Correctors
+    correctors = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='assigned_exams',
+        verbose_name=_("Correcteurs assignés"),
+        blank=True
+    )
 
     class Meta:
         verbose_name = _("Examen")

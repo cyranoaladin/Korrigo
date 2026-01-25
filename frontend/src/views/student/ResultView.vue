@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import api from '../../services/api'
 import { useRouter } from 'vue-router'
 
 const auth = useAuthStore()
@@ -12,19 +13,15 @@ const loading = ref(true)
 const fetchCopies = async () => {
     loading.value = true
     try {
-        const res = await fetch(`${auth.API_URL}/api/students/copies/`, {
-            credentials: 'include',
-            headers: auth.authHeaders
-        })
-        if (res.ok) {
-            copies.value = await res.json()
-            if (copies.value.length > 0) {
-                selectedCopy.value = copies.value[0]
-            }
-        } else if (res.status === 401) {
-            router.push('/student/login')
+        const res = await api.get('/students/copies/')
+        copies.value = res.data
+        if (copies.value.length > 0) {
+            selectedCopy.value = copies.value[0]
         }
     } catch (e) {
+        if (e.response?.status === 401) {
+            router.push('/student/login')
+        }
         console.error(e)
     } finally {
         loading.value = false
@@ -36,8 +33,8 @@ const selectCopy = (copy) => {
 }
 
 const logout = async () => {
-    await auth.logoutStudent()
-    router.push('/student/login')
+    await auth.logout()
+    router.push('/')
 }
 
 onMounted(() => {

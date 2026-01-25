@@ -1,0 +1,281 @@
+# Patch Critique - Module d'Identification OCR
+
+## Problème
+Le module d'identification OCR est manquant, empêchant le workflow "sans QR Code" spécifié dans les documents.
+
+## Solution
+Implémenter un module d'identification avec OCR pour lire les noms/prénoms sur les en-têtes des copies.
+
+## Fichiers à créer/modifier
+
+### 1. backend/identification/models.py
+```python
+from django.db import models
+from students.models import Student
+from exams.models import Copy
+
+class OCRResult(models.Model):
+    """
+    Résultat de l'OCR sur un en-tête de copie
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    copy = models.OneToOneField(
+        Copy,
+        on_delete=models.CASCADE,
+        related_name='ocr_result',
+        verbose_name="Copie"
+    )
+    detected_text = models.TextField(
+        verbose_name="Texte détecté par OCR"
+    )
+    confidence = models.FloatField(
+        verbose_name="Confiance OCR",
+        help_text="Valeur entre 0 et 1"
+    )
+    suggested_students = models.ManyToManyField(
+        Student,
+        related_name='ocr_suggestions',
+        verbose_name="Élèves suggérés",
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Résultat OCR"
+        verbose_name_plural = "Résultats OCR"
+```
+
+### 2. backend/identification/views.py
+```python
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .services import OCRService
+from exams.models import Copy
+from students.models import Student
+
+class IdentificationDeskView(APIView):
+    """
+    Interface "Video-Coding" pour l'identification manuelle des copies
+    """
+    def get(self, request):
+        # Récupérer les copies non identifiées avec en-tête
+        from exams.models import Copy, Booklet
+        
+        unidentified_copies = Copy.objects.filter(is_identified=False).select_related('exam')
+        
+        data = []
+        for copy in unidentified_copies:
+            booklet = copy.booklets.first()
+            if booklet and booklet.header_image:
+                data.append({
+                    'id': copy.id,
+                    'anonymous_id': copy.anonymous_id,
+                    'header_image_url': booklet.header_image.url if booklet.header_image else None,
+                    'student_name_guess': booklet.student_name_guess,
+                    'exam_name': copy.exam.name
+                })
+        
+        return Response(data)
+
+class OCRIdentifyView(APIView):
+    """
+    Endpoint pour identifier une copie via OCR + validation humaine
+    """
+    def post(self, request, copy_id):
+        copy = get_object_or_404(Copy, id=copy_id)
+        student_id = request.data.get('student_id')
+        
+        if student_id:
+            student = get_object_or_404(Student, id=student_id)
+            
+            # Associer la copie à l'élève
+            copy.student = student
+            copy.is_identified = True
+            copy.status = Copy.Status.READY  # Passer à READY après identification
+            copy.save()
+            
+            return Response({
+                'message': 'Copie identifiée avec succès',
+                'copy_id': copy.id,
+                'student_name': f"{student.first_name} {student.last_name}"
+            })
+        
+        return Response({
+            'error': 'student_id requis'
+        }, status=status.HTTP_400_BAD_REQUEST)
+```
+
+### 3. backend/identification/services.py
+```python
+import cv2
+import numpy as np
+from PIL import Image
+import pytesseract
+from io import BytesIO
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from .models import OCRResult
+from students.models import Student
+
+class OCRService:
+    """
+    Service OCR pour la lecture des en-têtes de copies
+    """
+    
+    @staticmethod
+    def extract_header_from_booklet(booklet):
+        """
+        Extrait l'image de l'en-tête d'un booklet pour OCR
+        """
+        if not booklet.header_image:
+            # Si pas d'image d'en-tête, extraire de la première page
+            # Utiliser la logique de vision.py pour extraire la zone d'en-tête
+            from processing.services.vision import HeaderDetector
+            detector = HeaderDetector()
+            
+            # Extraire la zone d'en-tête de la première page
+            if booklet.pages_images:
+                first_page_path = booklet.pages_images[0]
+                header_bytes = detector.extract_header_crop(first_page_path)
+                
+                # Convertir en fichier Django
+                image_io = BytesIO(header_bytes)
+                image_file = InMemoryUploadedFile(
+                    image_io, None, f"header_{booklet.id}.jpg", 
+                    'image/jpeg', len(header_bytes), None
+                )
+                
+                return image_file
+        
+        return booklet.header_image
+
+    @staticmethod
+    def perform_ocr_on_header(header_image_file):
+        """
+        Effectue l'OCR sur une image d'en-tête
+        """
+        # Charger l'image
+        image = Image.open(header_image_file)
+        image_np = np.array(image)
+        
+        # Convertir en grayscale pour meilleur OCR
+        if len(image_np.shape) == 3:
+            gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
+        else:
+            gray = image_np
+            
+        # Améliorer la qualité pour OCR
+        gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+        
+        # Effectuer OCR
+        custom_config = r'--oem 3 --psm 6 -l fra+eng'
+        text = pytesseract.image_to_string(gray, config=custom_config)
+        
+        # Calculer la confiance moyenne
+        data = pytesseract.image_to_data(gray, output_type=pytesseract.Output.DICT)
+        confidences = [int(conf) for conf in data['conf'] if int(conf) > 0]
+        avg_confidence = sum(confidences) / len(confidences) if confidences else 0
+        
+        return {
+            'text': text.strip(),
+            'confidence': avg_confidence / 100.0  # Normaliser à [0,1]
+        }
+
+    @staticmethod
+    def find_matching_students(ocr_text):
+        """
+        Trouve les élèves correspondant au texte OCR
+        """
+        # Extraire nom/prénom potentiel du texte OCR
+        words = ocr_text.upper().split()
+        
+        # Chercher des correspondances dans la base élèves
+        suggestions = []
+        for word in words:
+            if len(word) > 2:  # Mot suffisamment long pour être un nom
+                matches = Student.objects.filter(
+                    last_name__icontains=word
+                )[:5]  # Limiter à 5 suggestions
+                
+                for student in matches:
+                    suggestions.append(student)
+        
+        # Retirer les doublons
+        seen_ids = set()
+        unique_suggestions = []
+        for student in suggestions:
+            if student.id not in seen_ids:
+                seen_ids.add(student.id)
+                unique_suggestions.append(student)
+        
+        return unique_suggestions[:10]  # Max 10 suggestions
+```
+
+### 4. backend/identification/urls.py
+```python
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('desk/', views.IdentificationDeskView.as_view(), name='identification-desk'),
+    path('identify/<uuid:copy_id>/', views.OCRIdentifyView.as_view(), name='ocr-identify'),
+]
+```
+
+### 5. backend/requirements.txt (ajouter)
+```
+pytesseract==0.3.10
+```
+
+### 6. Mise à jour de backend/exams/urls.py
+```python
+# Ajouter à la liste des imports
+from identification.views import IdentificationDeskView, OCRIdentifyView
+
+# Ajouter à urlpatterns
+path('identification/desk/', IdentificationDeskView.as_view(), name='identification-desk'),
+path('identification/identify/<uuid:copy_id>/', OCRIdentifyView.as_view(), name='ocr-identify'),
+```
+
+## Tests à ajouter
+
+### backend/identification/tests.py
+```python
+from django.test import TestCase
+from django.contrib.auth.models import User
+from exams.models import Exam, Copy
+from students.models import Student
+from .services import OCRService
+
+class OCRServiceTest(TestCase):
+    def setUp(self):
+        self.student = Student.objects.create(
+            ine="1234567890A",
+            first_name="Jean",
+            last_name="Dupont",
+            class_name="TG2"
+        )
+        
+        self.exam = Exam.objects.create(
+            name="Bac Blanc Maths",
+            date="2026-01-25"
+        )
+        
+        self.copy = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id="ABC123",
+            status=Copy.Status.STAGING
+        )
+
+    def test_perform_ocr_on_header(self):
+        # Test OCR sur une image d'en-tête simulée
+        # (à implémenter avec une image de test)
+        pass
+
+    def test_find_matching_students(self):
+        ocr_text = "JEAN DUPONT"
+        suggestions = OCRService.find_matching_students(ocr_text)
+        
+        self.assertIn(self.student, suggestions)
+```

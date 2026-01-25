@@ -1,7 +1,14 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+
+const props = defineProps({
+  roleContext: {
+    type: String,
+    default: ''
+  }
+})
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -10,6 +17,12 @@ const username = ref('')
 const password = ref('')
 const error = ref('')
 const isLoading = ref(false)
+
+const title = computed(() => {
+    if (props.roleContext === 'Admin') return 'Administration'
+    if (props.roleContext === 'Teacher') return 'Espace Enseignant'
+    return 'Connexion'
+})
 
 const handleLogin = async () => {
     isLoading.value = true
@@ -20,11 +33,14 @@ const handleLogin = async () => {
     isLoading.value = false
     
     if (success) {
-        // Redirect based on role
+        // Redirect based on ACTUAL role from backend
         if (authStore.user?.role === 'Admin') {
             router.push('/admin-dashboard')
-        } else {
+        } else if (authStore.user?.role === 'Teacher') {
             router.push('/corrector-dashboard')
+        } else {
+             // Fallback
+             router.push('/')
         }
     } else {
         error.value = "Identifiants incorrects."
@@ -34,7 +50,13 @@ const handleLogin = async () => {
 
 <template>
   <div class="login-container">
-    <div class="login-card">
+    <div 
+      class="login-card"
+      :class="{
+        'role-admin': props.roleContext === 'Admin',
+        'role-teacher': props.roleContext === 'Teacher'
+      }"
+    >
       <div class="brand">
         <img
           src="/images/Korrigo.png"
@@ -42,7 +64,7 @@ const handleLogin = async () => {
           class="logo-img"
         >
         <h1>Korrigo</h1>
-        <p>Plateforme de Correction Numérique</p>
+        <p>{{ title }}</p>
       </div>
             
       <form
@@ -56,7 +78,7 @@ const handleLogin = async () => {
             data-testid="login.username"
             type="text"
             required
-            placeholder="admin"
+            :placeholder="props.roleContext === 'Admin' ? 'admin' : 'enseignant'"
           >
         </div>
                 
@@ -89,6 +111,12 @@ const handleLogin = async () => {
         </button>
       </form>
 
+      <div class="footer-links">
+        <router-link to="/">
+          ← Retour à l'accueil
+        </router-link>
+      </div>
+
       <footer class="attribution">
         Concepteur : Aleddine BEN RHOUMA – Labo Maths ERT
       </footer>
@@ -113,12 +141,15 @@ const handleLogin = async () => {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     width: 100%;
     max-width: 400px;
+    border-top: 4px solid #cbd5e1; /* Default */
 }
+.login-card.role-admin { border-top-color: #ef4444; }
+.login-card.role-teacher { border-top-color: #3b82f6; }
 
 .brand { text-align: center; margin-bottom: 2rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
 .logo-img { height: 64px; width: auto; margin-bottom: 0.5rem; }
 .brand h1 { font-size: 2rem; font-weight: 800; color: #111827; margin: 0; letter-spacing: -0.025em; }
-.brand p { color: #6b7280; font-size: 0.875rem; margin-top: 0; }
+.brand p { color: #6b7280; font-size: 1rem; font-weight: 500; margin-top: 0; }
 .attribution { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #f3f4f6; text-align: center; font-size: 0.75rem; color: #9ca3af; }
 
 .login-form { display: flex; flex-direction: column; gap: 1.25rem; }
@@ -154,5 +185,19 @@ const handleLogin = async () => {
     background: #fee2e2;
     padding: 0.5rem;
     border-radius: 4px;
+}
+
+.footer-links {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+.footer-links a {
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+.footer-links a:hover {
+    color: #1f2937;
+    text-decoration: underline;
 }
 </style>

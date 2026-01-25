@@ -20,7 +20,7 @@ const handleLogin = async () => {
         } else {
             error.value = "Identifiants invalides."
         }
-    } catch (e) {
+    } catch {
         error.value = "Erreur de connexion."
     } finally {
         loading.value = false
@@ -74,8 +74,8 @@ const handleLogin = async () => {
       </form>
             
       <div class="footer-links">
-        <router-link to="/login">
-          Accès Enseignant / Admin
+        <router-link to="/">
+          ← Retour à l'accueil
         </router-link>
       </div>
     </div>
@@ -115,7 +115,7 @@ input {
     outline: none;
     transition: border-color 0.2s;
 }
-input:focus { border-color: #667eea; ring: 2px solid #667eea; }
+input:focus { border-color: #667eea; box-shadow: 0 0 0 2px #667eea; outline: none; }
 
 .btn-login {
     width: 100%;
