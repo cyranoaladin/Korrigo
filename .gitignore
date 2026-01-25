@@ -69,7 +69,7 @@ PROOF_PACK_FINAL/
 RELEASE_PACK/
 PROOF_PACK_FINAL/
 /release/
-proofs/artifacts/
+# proofs/artifacts/  # Temporarily allow for baseline
 *.zip
 *.tar.gz
 *_SHA256.txt
@@ -83,3 +83,4 @@ frontend/e2e/.auth/
 # Docker
 *.pid
 .env
+!proofs/

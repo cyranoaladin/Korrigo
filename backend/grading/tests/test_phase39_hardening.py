@@ -3,9 +3,11 @@ from rest_framework import status
 from django.core.files.base import ContentFile
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from exams.models import Exam, Copy
 from grading.models import GradingEvent
 from rest_framework.test import APIClient
+from core.auth import UserRole
 import io
 import os
 
@@ -14,11 +16,18 @@ User = get_user_model()
 # TransactionTestCase required because tests involve I/O, streaming, and multiple
 # transactions that fail with regular TestCase in a Docker environment.
 class TestPhase39Hardening(TransactionTestCase):
-    
+
     def setUp(self):
         super().setUp()
         self.client = APIClient()
-        self.teacher_user = User.objects.create_user(username='teacher', password='password123', is_staff=True)
+
+        # Create groups if they don't exist
+        self.teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        self.admin_group, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
+
+        self.teacher_user = User.objects.create_user(username='teacher', password='password123')
+        self.teacher_user.groups.add(self.teacher_group)  # Add to teacher group instead of is_staff
+
         self.student_user = User.objects.create_user(username='student_user', password='password123', is_staff=False)
         self.exam = Exam.objects.create(name="Test Exam", date="2024-06-01", is_processed=False)
         
@@ -73,14 +82,14 @@ class TestPhase39Hardening(TransactionTestCase):
     def test_audit_endpoint_requires_staff(self):
         copy = Copy.objects.create(exam=self.exam, anonymous_id="AUDIT-TEST", status=Copy.Status.READY)
         url = f"/api/copies/{copy.id}/audit/"
-        
-        # Student -> 403
-        self.client.force_authenticate(user=self.student_user)
+
+        # Login as student -> 403
+        self.client.force_login(self.student_user)
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        
-        # Teacher -> 200
-        self.client.force_authenticate(user=self.teacher_user)
+
+        # Login as teacher -> 200
+        self.client.force_login(self.teacher_user)
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -89,15 +98,15 @@ class TestPhase39Hardening(TransactionTestCase):
         content = ContentFile(b"PDF CONTENT")
         copy.final_pdf.save("final.pdf", content)
         copy.save()
-        
+
         try:
             url = f"/api/copies/{copy.id}/final-pdf/"
-            self.client.force_authenticate(user=self.teacher_user)
-            
+            self.client.force_login(self.teacher_user)
+
             # LOCKED -> 403
             response = self.client.get(url)
             self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-            
+
             # GRADED -> 200
             copy.status = Copy.Status.GRADED
             copy.save()

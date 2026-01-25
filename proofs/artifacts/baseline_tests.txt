@@ -1,49 +1,26 @@
 Using existing test database for alias 'default'...
 Found 19 test(s).
 System check identified no issues (0 silenced).
-........F...F..FF.F
+.............F..Import failed for copy 81db72f9-9961-4741-a0c9-434e50d7170f: Failed to open stream
+..F
 ======================================================================
-FAIL: test_list_booklets (exams.tests.APITests)
+FAIL: test_final_pdf_security_gate (grading.tests.test_phase39_hardening.TestPhase39Hardening)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/alaeddine/viatique__PMF/backend/exams/tests.py", line 46, in test_list_booklets
+  File "/home/alaeddine/viatique__PMF/backend/grading/tests/test_phase39_hardening.py", line 114, in test_final_pdf_security_gate
     self.assertEqual(response.status_code, status.HTTP_200_OK)
-AssertionError: 403 != 200
-
-======================================================================
-FAIL: test_audit_endpoint_requires_staff (grading.tests.test_phase39_hardening.TestPhase39Hardening)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/alaeddine/viatique__PMF/backend/grading/tests/test_phase39_hardening.py", line 85, in test_audit_endpoint_requires_staff
-    self.assertEqual(response.status_code, status.HTTP_200_OK)
-AssertionError: 403 != 200
-
-======================================================================
-FAIL: test_import_success_for_teacher_creates_copy_booklet_and_audit (grading.tests.test_phase39_hardening.TestPhase39Hardening)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/alaeddine/viatique__PMF/backend/grading/tests/test_phase39_hardening.py", line 58, in test_import_success_for_teacher_creates_copy_booklet_and_audit
-    self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-AssertionError: 403 != 201
-
-======================================================================
-FAIL: test_workflow_import_corrupted_rollback (grading.tests.test_workflow_complete.TestWorkflowComplete)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/alaeddine/viatique__PMF/backend/grading/tests/test_workflow_complete.py", line 163, in test_workflow_import_corrupted_rollback
-    self.assertIn(resp.status_code, [400, 500])
-AssertionError: 403 not found in [400, 500]
+AssertionError: 401 != 200
 
 ======================================================================
 FAIL: test_workflow_teacher_full_cycle_success (grading.tests.test_workflow_complete.TestWorkflowComplete)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/alaeddine/viatique__PMF/backend/grading/tests/test_workflow_complete.py", line 38, in test_workflow_teacher_full_cycle_success
-    self.assertEqual(resp.status_code, 201)
-AssertionError: 403 != 201
+  File "/home/alaeddine/viatique__PMF/backend/grading/tests/test_workflow_complete.py", line 132, in test_workflow_teacher_full_cycle_success
+    self.assertEqual(resp.status_code, 200)
+AssertionError: 401 != 200
 
 ----------------------------------------------------------------------
-Ran 19 tests in 1.426s
+Ran 19 tests in 2.665s
 
-FAILED (failures=5)
+FAILED (failures=2)
 Preserving test database for alias 'default'...

@@ -4,8 +4,10 @@ import shutil
 from django.conf import settings
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from exams.models import Exam, Copy, Booklet
 from grading.models import GradingEvent, Annotation
+from core.auth import UserRole
 
 User = get_user_model()
 FIXTURES_DIR = os.path.join(settings.BASE_DIR, "grading/tests/fixtures/pdfs")
@@ -17,7 +19,14 @@ class TestWorkflowComplete(TransactionTestCase):
     def setUp(self):
         super().setUp()
         self.client = APIClient()
-        self.teacher = User.objects.create_user(username='teacher_flow', password='password', is_staff=True)
+
+        # Create groups if they don't exist
+        self.teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        self.admin_group, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
+
+        self.teacher = User.objects.create_user(username='teacher_flow', password='password')
+        self.teacher.groups.add(self.teacher_group)  # Add to teacher group instead of is_staff
+
         self.student = User.objects.create_user(username='student_flow', password='password', is_staff=False)
         self.exam = Exam.objects.create(name="E2E Exam", date="2024-01-01")
 
@@ -25,8 +34,8 @@ class TestWorkflowComplete(TransactionTestCase):
         super().tearDown()
 
     def test_workflow_teacher_full_cycle_success(self):
-        self.client.force_authenticate(user=self.teacher)
-        
+        self.client.force_login(self.teacher)
+
         # 1. IMPORT
         pdf_path = os.path.join(FIXTURES_DIR, "copy_2p_simple.pdf")
         with open(pdf_path, 'rb') as f:
@@ -149,31 +158,31 @@ class TestWorkflowComplete(TransactionTestCase):
 
 
     def test_workflow_import_corrupted_rollback(self):
-        self.client.force_authenticate(user=self.teacher)
-        
+        self.client.force_login(self.teacher)
+
         pdf_path = os.path.join(FIXTURES_DIR, "copy_corrupted.pdf")
-        
+
         with open(pdf_path, 'rb') as f:
             resp = self.client.post(
                 f"/api/exams/{self.exam.id}/copies/import/",
                 {'pdf_file': f},
                 format='multipart'
             )
-        
+
         self.assertIn(resp.status_code, [400, 500])
         self.assertEqual(Copy.objects.count(), 0)
         self.assertEqual(Booklet.objects.count(), 0)
 
     def test_workflow_student_access_denied(self):
-        self.client.force_authenticate(user=self.student)
-        
+        self.client.force_login(self.student)
+
         # 1. IMPORT denied
         resp = self.client.post(f"/api/exams/{self.exam.id}/copies/import/", {}, format='json')
         self.assertEqual(resp.status_code, 403)
-        
+
         # Create a copy (as admin) to test other endpoints
         copy = Copy.objects.create(exam=self.exam, anonymous_id="STUDENT_TEST", status=Copy.Status.READY)
-        
+
         # 2. ANNOTATE denied
         ann_data = {
             "page_index": 0, "x": 0.1, "y": 0.1, "w": 0.1, "h": 0.1,
@@ -181,11 +190,11 @@ class TestWorkflowComplete(TransactionTestCase):
         }
         resp = self.client.post(f"/api/copies/{copy.id}/annotations/", ann_data, format='json')
         self.assertEqual(resp.status_code, 403)
-        
+
         # 3. LOCK denied
         resp = self.client.post(f"/api/copies/{copy.id}/lock/", {}, format='json')
         self.assertEqual(resp.status_code, 403)
-        
+
         # 4. FINALIZE denied
         resp = self.client.post(f"/api/copies/{copy.id}/finalize/", {}, format='json')
         self.assertEqual(resp.status_code, 403)
