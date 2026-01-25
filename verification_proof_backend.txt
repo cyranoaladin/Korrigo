@@ -1,0 +1,208 @@
+ Container docker-redis-1 Running 
+ Container docker-db-1 Running 
+ Container docker-db-1 Waiting 
+ Container docker-redis-1 Waiting 
+ Container docker-redis-1 Healthy 
+ Container docker-db-1 Healthy 
+ Container docker-backend-run-e4ac93d8cf68 Creating 
+ Container docker-backend-run-e4ac93d8cf68 Created 
+--> Applied database migrations...
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, core, exams, grading, sessions, students
+Running migrations:
+  No migrations to apply.
+--> Collecting static files...
+
+0 static files copied to '/app/staticfiles', 161 unmodified.
+Args passed: pytest -vv --trace-config
+Arg count: 3
+PLUGIN registered: <_pytest.config.PytestPluginManager object at 0x7b995df41ed0>
+PLUGIN registered: <_pytest.config.Config object at 0x7b995dcf9e50>
+PLUGIN registered: <module '_pytest.mark' from '/usr/local/lib/python3.11/site-packages/_pytest/mark/__init__.py'>
+PLUGIN registered: <module '_pytest.main' from '/usr/local/lib/python3.11/site-packages/_pytest/main.py'>
+PLUGIN registered: <module '_pytest.runner' from '/usr/local/lib/python3.11/site-packages/_pytest/runner.py'>
+PLUGIN registered: <module '_pytest.fixtures' from '/usr/local/lib/python3.11/site-packages/_pytest/fixtures.py'>
+PLUGIN registered: <module '_pytest.helpconfig' from '/usr/local/lib/python3.11/site-packages/_pytest/helpconfig.py'>
+PLUGIN registered: <module '_pytest.python' from '/usr/local/lib/python3.11/site-packages/_pytest/python.py'>
+PLUGIN registered: <module '_pytest.terminal' from '/usr/local/lib/python3.11/site-packages/_pytest/terminal.py'>
+PLUGIN registered: <module '_pytest.debugging' from '/usr/local/lib/python3.11/site-packages/_pytest/debugging.py'>
+PLUGIN registered: <module '_pytest.unittest' from '/usr/local/lib/python3.11/site-packages/_pytest/unittest.py'>
+PLUGIN registered: <module '_pytest.capture' from '/usr/local/lib/python3.11/site-packages/_pytest/capture.py'>
+PLUGIN registered: <module '_pytest.skipping' from '/usr/local/lib/python3.11/site-packages/_pytest/skipping.py'>
+PLUGIN registered: <module '_pytest.legacypath' from '/usr/local/lib/python3.11/site-packages/_pytest/legacypath.py'>
+PLUGIN registered: <module '_pytest.tmpdir' from '/usr/local/lib/python3.11/site-packages/_pytest/tmpdir.py'>
+PLUGIN registered: <module '_pytest.monkeypatch' from '/usr/local/lib/python3.11/site-packages/_pytest/monkeypatch.py'>
+PLUGIN registered: <module '_pytest.recwarn' from '/usr/local/lib/python3.11/site-packages/_pytest/recwarn.py'>
+PLUGIN registered: <module '_pytest.pastebin' from '/usr/local/lib/python3.11/site-packages/_pytest/pastebin.py'>
+PLUGIN registered: <module '_pytest.assertion' from '/usr/local/lib/python3.11/site-packages/_pytest/assertion/__init__.py'>
+PLUGIN registered: <module '_pytest.junitxml' from '/usr/local/lib/python3.11/site-packages/_pytest/junitxml.py'>
+PLUGIN registered: <module '_pytest.doctest' from '/usr/local/lib/python3.11/site-packages/_pytest/doctest.py'>
+PLUGIN registered: <module '_pytest.cacheprovider' from '/usr/local/lib/python3.11/site-packages/_pytest/cacheprovider.py'>
+PLUGIN registered: <module '_pytest.freeze_support' from '/usr/local/lib/python3.11/site-packages/_pytest/freeze_support.py'>
+PLUGIN registered: <module '_pytest.setuponly' from '/usr/local/lib/python3.11/site-packages/_pytest/setuponly.py'>
+PLUGIN registered: <module '_pytest.setupplan' from '/usr/local/lib/python3.11/site-packages/_pytest/setupplan.py'>
+PLUGIN registered: <module '_pytest.stepwise' from '/usr/local/lib/python3.11/site-packages/_pytest/stepwise.py'>
+PLUGIN registered: <module '_pytest.unraisableexception' from '/usr/local/lib/python3.11/site-packages/_pytest/unraisableexception.py'>
+PLUGIN registered: <module '_pytest.threadexception' from '/usr/local/lib/python3.11/site-packages/_pytest/threadexception.py'>
+PLUGIN registered: <module '_pytest.warnings' from '/usr/local/lib/python3.11/site-packages/_pytest/warnings.py'>
+PLUGIN registered: <module '_pytest.logging' from '/usr/local/lib/python3.11/site-packages/_pytest/logging.py'>
+PLUGIN registered: <module '_pytest.reports' from '/usr/local/lib/python3.11/site-packages/_pytest/reports.py'>
+PLUGIN registered: <module '_pytest.faulthandler' from '/usr/local/lib/python3.11/site-packages/_pytest/faulthandler.py'>
+PLUGIN registered: <module 'pytest_cov.plugin' from '/usr/local/lib/python3.11/site-packages/pytest_cov/plugin.py'>
+PLUGIN registered: <module 'pytest_django.plugin' from '/usr/local/lib/python3.11/site-packages/pytest_django/plugin.py'>
+PLUGIN registered: <CaptureManager _method='fd' _global_capturing=<MultiCapture out=<FDCapture 1 oldfd=5 _state='suspended' tmpfile=<_io.TextIOWrapper name="<_io.FileIO name=6 mode='rb+' closefd=True>" mode='r+' encoding='utf-8'>> err=<FDCapture 2 oldfd=7 _state='suspended' tmpfile=<_io.TextIOWrapper name="<_io.FileIO name=8 mode='rb+' closefd=True>" mode='r+' encoding='utf-8'>> in_=<FDCapture 0 oldfd=3 _state='started' tmpfile=<_io.TextIOWrapper name='/dev/null' mode='r' encoding='utf-8'>> _state='suspended' _in_suspended=False> _capture_fixture=None>
+PLUGIN registered: <module 'conftest' from '/app/conftest.py'>
+PLUGIN registered: <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=0>
+PLUGIN registered: <_pytest.cacheprovider.LFPlugin object at 0x7b99553e1450>
+PLUGIN registered: <_pytest.cacheprovider.NFPlugin object at 0x7b99553f0590>
+PLUGIN registered: <class '_pytest.legacypath.LegacyTmpdirPlugin'>
+PLUGIN registered: <_pytest.terminal.TerminalReporter object at 0x7b99553f0e90>
+PLUGIN registered: <_pytest.logging.LoggingPlugin object at 0x7b99552777d0>
+PLUGIN registered: <_pytest.fixtures.FixtureManager object at 0x7b995542b7d0>
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-8.4.2, pluggy-1.6.0 -- /usr/local/bin/python3.11
+using: pytest-8.4.2
+registered third-party plugins:
+  pytest-cov-4.1.0 at /usr/local/lib/python3.11/site-packages/pytest_cov/plugin.py
+  pytest-django-4.11.1 at /usr/local/lib/python3.11/site-packages/pytest_django/plugin.py
+active plugins:
+    135898636492496     : <_pytest.config.PytestPluginManager object at 0x7b995df41ed0>
+    pytestconfig        : <_pytest.config.Config object at 0x7b995dcf9e50>
+    mark                : /usr/local/lib/python3.11/site-packages/_pytest/mark/__init__.py
+    main                : /usr/local/lib/python3.11/site-packages/_pytest/main.py
+    runner              : /usr/local/lib/python3.11/site-packages/_pytest/runner.py
+    fixtures            : /usr/local/lib/python3.11/site-packages/_pytest/fixtures.py
+    helpconfig          : /usr/local/lib/python3.11/site-packages/_pytest/helpconfig.py
+    python              : /usr/local/lib/python3.11/site-packages/_pytest/python.py
+    terminal            : /usr/local/lib/python3.11/site-packages/_pytest/terminal.py
+    debugging           : /usr/local/lib/python3.11/site-packages/_pytest/debugging.py
+    unittest            : /usr/local/lib/python3.11/site-packages/_pytest/unittest.py
+    capture             : /usr/local/lib/python3.11/site-packages/_pytest/capture.py
+    skipping            : /usr/local/lib/python3.11/site-packages/_pytest/skipping.py
+    legacypath          : /usr/local/lib/python3.11/site-packages/_pytest/legacypath.py
+    tmpdir              : /usr/local/lib/python3.11/site-packages/_pytest/tmpdir.py
+    monkeypatch         : /usr/local/lib/python3.11/site-packages/_pytest/monkeypatch.py
+    recwarn             : /usr/local/lib/python3.11/site-packages/_pytest/recwarn.py
+    pastebin            : /usr/local/lib/python3.11/site-packages/_pytest/pastebin.py
+    assertion           : /usr/local/lib/python3.11/site-packages/_pytest/assertion/__init__.py
+    junitxml            : /usr/local/lib/python3.11/site-packages/_pytest/junitxml.py
+    doctest             : /usr/local/lib/python3.11/site-packages/_pytest/doctest.py
+    cacheprovider       : /usr/local/lib/python3.11/site-packages/_pytest/cacheprovider.py
+    freeze_support      : /usr/local/lib/python3.11/site-packages/_pytest/freeze_support.py
+    setuponly           : /usr/local/lib/python3.11/site-packages/_pytest/setuponly.py
+    setupplan           : /usr/local/lib/python3.11/site-packages/_pytest/setupplan.py
+    stepwise            : /usr/local/lib/python3.11/site-packages/_pytest/stepwise.py
+    unraisableexception : /usr/local/lib/python3.11/site-packages/_pytest/unraisableexception.py
+    threadexception     : /usr/local/lib/python3.11/site-packages/_pytest/threadexception.py
+    warnings            : /usr/local/lib/python3.11/site-packages/_pytest/warnings.py
+    logging             : /usr/local/lib/python3.11/site-packages/_pytest/logging.py
+    reports             : /usr/local/lib/python3.11/site-packages/_pytest/reports.py
+    faulthandler        : /usr/local/lib/python3.11/site-packages/_pytest/faulthandler.py
+    pytest_cov          : /usr/local/lib/python3.11/site-packages/pytest_cov/plugin.py
+    django              : /usr/local/lib/python3.11/site-packages/pytest_django/plugin.py
+    capturemanager      : <CaptureManager _method='fd' _global_capturing=<MultiCapture out=<FDCapture 1 oldfd=5 _state='suspended' tmpfile=<_io.TextIOWrapper name="<_io.FileIO name=6 mode='rb+' closefd=True>" mode='r+' encoding='utf-8'>> err=<FDCapture 2 oldfd=7 _state='suspended' tmpfile=<_io.TextIOWrapper name="<_io.FileIO name=8 mode='rb+' closefd=True>" mode='r+' encoding='utf-8'>> in_=<FDCapture 0 oldfd=3 _state='started' tmpfile=<_io.TextIOWrapper name='/dev/null' mode='r' encoding='utf-8'>> _state='suspended' _in_suspended=False> _capture_fixture=None>
+    /app/conftest.py    : /app/conftest.py
+    session             : <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=0>
+    lfplugin            : <_pytest.cacheprovider.LFPlugin object at 0x7b99553e1450>
+    nfplugin            : <_pytest.cacheprovider.NFPlugin object at 0x7b99553f0590>
+    legacypath-tmpdir   : <class '_pytest.legacypath.LegacyTmpdirPlugin'>
+    terminalreporter    : <_pytest.terminal.TerminalReporter object at 0x7b99553f0e90>
+    logging-plugin      : <_pytest.logging.LoggingPlugin object at 0x7b99552777d0>
+    funcmanage          : <_pytest.fixtures.FixtureManager object at 0x7b995542b7d0>
+cachedir: .pytest_cache
+django: version: 4.2.27, settings: core.settings_test (from ini)
+rootdir: /app
+configfile: pytest.ini
+plugins: cov-4.1.0, django-4.11.1
+collecting ... collected 88 items
+
+core/tests/test_audit_trail.py::TestAuditLog::test_create_audit_log PASSED [  1%]
+core/tests/test_audit_trail.py::TestAuditLog::test_audit_log_ordering PASSED [  2%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_get_client_ip_direct PASSED [  3%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_get_client_ip_forwarded PASSED [  4%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_log_audit PASSED  [  5%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_log_authentication_attempt_success PASSED [  6%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_log_authentication_attempt_failed PASSED [  7%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_log_data_access PASSED [  9%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_log_workflow_action PASSED [ 10%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_audit_log_student_session PASSED [ 11%]
+core/tests/test_rate_limiting.py::TestRateLimiting::test_login_rate_limit_under_threshold PASSED [ 12%]
+core/tests/test_rate_limiting.py::TestRateLimiting::test_student_login_rate_limit_under_threshold PASSED [ 13%]
+core/tests/test_rate_limiting.py::TestRateLimiting::test_login_rate_limit_exceeded SKIPPED [ 14%]
+core/tests/test_rate_limiting.py::TestRateLimiting::test_student_login_rate_limit_exceeded SKIPPED [ 15%]
+core/tests/test_rate_limiting.py::TestRateLimiting::test_successful_login_not_rate_limited PASSED [ 17%]
+exams/tests/test_pdf_validators.py::TestPDFValidatorsIntegration::test_exam_pdf_source_with_invalid_extension PASSED [ 18%]
+exams/tests/test_pdf_validators.py::TestPDFValidatorsIntegration::test_exam_pdf_source_with_valid_pdf PASSED [ 19%]
+exams/tests/test_pdf_validators.py::TestPDFValidatorsIntegration::test_copy_pdf_source_with_too_large_file PASSED [ 20%]
+grading/tests/test_anti_loss.py::TestAntiLoss::test_finalize_idempotency_or_safety PASSED [ 21%]
+grading/tests/test_anti_loss.py::TestAntiLoss::test_lock_idempotency PASSED [ 22%]
+grading/tests/test_anti_loss.py::TestAntiLoss::test_annotation_create_atomicity PASSED [ 23%]
+grading/tests/test_anti_loss.py::TestAntiLoss::test_import_transaction_atomicity PASSED [ 25%]
+grading/tests/test_error_handling.py::test_value_error_returns_400_detail PASSED [ 26%]
+grading/tests/test_error_handling.py::test_permission_error_returns_403_detail PASSED [ 27%]
+grading/tests/test_error_handling.py::test_unexpected_error_returns_500_generic_detail PASSED [ 28%]
+grading/tests/test_error_handling.py::test_all_workflow_endpoints_use_detail_format PASSED [ 29%]
+grading/tests/test_error_handling.py::test_missing_required_field_returns_400_detail PASSED [ 30%]
+grading/tests/test_error_handling.py::test_unauthenticated_request_returns_403 PASSED [ 31%]
+grading/tests/test_error_handling.py::test_non_staff_user_returns_403 PASSED [ 32%]
+grading/tests/test_finalize.py::test_finalize_sets_status_graded PASSED  [ 34%]
+grading/tests/test_finalize.py::test_finalize_sets_final_pdf_field PASSED [ 35%]
+grading/tests/test_finalize.py::test_final_pdf_endpoint_404_when_missing PASSED [ 36%]
+grading/tests/test_finalize.py::test_final_pdf_endpoint_200_when_present PASSED [ 37%]
+grading/tests/test_finalize.py::test_finalize_computes_score_from_annotations PASSED [ 38%]
+grading/tests/test_finalize.py::test_finalize_creates_grading_event PASSED [ 39%]
+grading/tests/test_integration_real.py::TestIntegrationReal::test_full_import_flow_real_fs PASSED [ 40%]
+grading/tests/test_integration_real.py::TestIntegrationReal::test_security_gates_real PASSED [ 42%]
+grading/tests/test_integration_real.py::TestIntegrationReal::test_student_block_real PASSED [ 43%]
+grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_rasterize_pdf_handles_resources_strictly PASSED [ 44%]
+grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_rasterize_pdf_raises_value_error_on_empty_pdf PASSED [ 45%]
+grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_import_pdf_rollback_on_raster_failure PASSED [ 46%]
+grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_validate_copy_invariants PASSED [ 47%]
+grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_lock_copy_invariants PASSED [ 48%]
+grading/tests/test_validation.py::test_reject_annotation_with_w_zero PASSED [ 50%]
+grading/tests/test_validation.py::test_reject_annotation_with_overflow_x_plus_w PASSED [ 51%]
+grading/tests/test_validation.py::test_reject_annotation_with_overflow_y_plus_h PASSED [ 52%]
+grading/tests/test_validation.py::test_reject_annotation_with_negative_values PASSED [ 53%]
+grading/tests/test_validation.py::test_reject_page_index_out_of_bounds PASSED [ 54%]
+grading/tests/test_validation.py::test_accept_page_index_as_string_int PASSED [ 55%]
+grading/tests/test_workflow.py::test_ready_transition_requires_pages PASSED [ 56%]
+grading/tests/test_workflow.py::test_ready_transition_changes_status_and_creates_event PASSED [ 57%]
+grading/tests/test_workflow.py::test_finalize_works_from_ready PASSED    [ 59%]
+grading/tests/test_workflow.py::test_lock_transition_success PASSED      [ 60%]
+grading/tests/test_workflow.py::test_unlock_transition_success PASSED    [ 61%]
+grading/tests/test_concurrency.py::TestConcurrency::test_concurrent_annotation_updates_sequential_lww PASSED [ 62%]
+grading/tests/test_concurrency.py::TestConcurrency::test_double_finalize_race PASSED [ 63%]
+grading/tests/test_phase39_hardening.py::TestPhase39Hardening::test_audit_endpoint_requires_staff PASSED [ 64%]
+grading/tests/test_phase39_hardening.py::TestPhase39Hardening::test_final_pdf_security_gate PASSED [ 65%]
+grading/tests/test_phase39_hardening.py::TestPhase39Hardening::test_import_permissions_forbidden_for_non_staff PASSED [ 67%]
+grading/tests/test_phase39_hardening.py::TestPhase39Hardening::test_import_success_for_teacher_creates_copy_booklet_and_audit PASSED [ 68%]
+grading/tests/test_workflow_complete.py::TestWorkflowComplete::test_workflow_import_corrupted_rollback PASSED [ 69%]
+grading/tests/test_workflow_complete.py::TestWorkflowComplete::test_workflow_student_access_denied PASSED [ 70%]
+grading/tests/test_workflow_complete.py::TestWorkflowComplete::test_workflow_teacher_full_cycle_success PASSED [ 71%]
+students/tests/test_gate4_flow.py::TestGate4StudentFlow::test_student_copies_list_permissions PASSED [ 72%]
+students/tests/test_gate4_flow.py::TestGate4StudentFlow::test_student_login_success PASSED [ 73%]
+students/tests/test_gate4_flow.py::TestGate4StudentFlow::test_student_pdf_access_security PASSED [ 75%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_size_valid PASSED [ 76%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_size_too_large PASSED [ 77%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_size_exactly_50mb PASSED [ 78%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_not_empty_valid PASSED [ 79%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_not_empty_zero_bytes PASSED [ 80%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_mime_type_valid PASSED [ 81%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_mime_type_fake_pdf PASSED [ 82%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_integrity_valid PASSED [ 84%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_integrity_corrupted PASSED [ 85%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_integrity_too_many_pages PASSED [ 86%]
+grading/tests/test_fixtures_advanced.py::test_advanced_fixtures_existence PASSED [ 87%]
+grading/tests/test_fixtures_advanced.py::test_scan_like_properties PASSED [ 88%]
+grading/tests/test_fixtures_advanced.py::test_multi_booklet_properties PASSED [ 89%]
+grading/tests/test_fixtures_advanced.py::test_heavy_properties PASSED    [ 90%]
+grading/tests/test_fixtures_advanced.py::test_mixed_orientation_properties PASSED [ 92%]
+grading/tests/test_fixtures_advanced.py::test_corrupted_truncated_fails_gracefully PASSED [ 93%]
+grading/tests/test_fixtures_p1.py::test_fixtures_existence PASSED        [ 94%]
+grading/tests/test_fixtures_p1.py::test_simple_pdf_properties PASSED     [ 95%]
+grading/tests/test_fixtures_p1.py::test_heavy_pdf_properties PASSED      [ 96%]
+grading/tests/test_fixtures_p1.py::test_corrupted_pdf_raises_error PASSED [ 97%]
+grading/tests/test_serializers_strict.py::TestSerializersStrict::test_booklet_serializer_integrity PASSED [ 98%]
+grading/tests/test_serializers_strict.py::TestSerializersStrict::test_copy_serializer_embedding PASSED [100%]
+
+======================== 86 passed, 2 skipped in 7.13s =========================

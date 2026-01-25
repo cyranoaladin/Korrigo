@@ -317,7 +317,15 @@ class StudentCopiesView(generics.ListAPIView):
 
     def list(self, request, *args, **kwargs):
         from grading.services import GradingService
+        from core.utils.audit import log_data_access
+        
         queryset = self.get_queryset()
+        
+        # Audit trail: Accès liste copies élève
+        student_id = request.session.get('student_id')
+        if student_id:
+            log_data_access(request, 'Copy', f'student_{student_id}_list', action_detail='list')
+        
         data = []
         for copy in queryset:
             total_score = GradingService.compute_score(copy)

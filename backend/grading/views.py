@@ -162,13 +162,34 @@ class CopyFinalPdfView(APIView):
     
     Serves the final graded PDF for a copy.
     
-    Permission: AllowAny (intentional - access control via session-based student auth)
-    - Students authenticate via session (student_id in request.session)
-    - Teachers/Admins authenticate via DRF token/session
-    - Access is strictly controlled in the view logic (see permission gates below)
+    SECURITY JUSTIFICATION - AllowAny:
+    ====================================
+    This endpoint uses AllowAny permission class because it implements
+    a DUAL authentication system:
+    
+    1. Teachers/Admins: Standard Django authentication (request.user)
+    2. Students: Session-based authentication (request.session['student_id'])
+    
+    SECURITY GATES (enforced in view logic):
+    -----------------------------------------
+    Gate 1 - Status Check (line 179):
+        - Only GRADED copies are accessible
+        - Even admins cannot access non-GRADED copies
+    
+    Gate 2 - Permission Check (lines 186-215):
+        - Teachers/Admins: Verified via is_staff/is_superuser/Teachers group
+        - Students: Verified via session student_id + ownership check
+        - Students can ONLY access THEIR OWN copies
+        - 401 if no authentication
+        - 403 if wrong student tries to access
+    
+    Audit Trail: All downloads are logged (line 222)
+    
+    Conformité: .antigravity/rules/01_security_rules.md § 2.2
+    Référence Audit: P1 Security Review - 2026-01-24
     """
     from rest_framework.permissions import AllowAny
-    permission_classes = [AllowAny]  # Intentional: session-based student auth
+    permission_classes = [AllowAny]  # JUSTIFIED - See docstring security gates
     renderer_classes = [PassthroughRenderer]
     
     def get(self, request, id):
@@ -216,6 +237,10 @@ class CopyFinalPdfView(APIView):
 
         if not copy.final_pdf:
             return Response({"detail": "No final PDF available."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Audit trail: Téléchargement PDF final
+        from core.utils.audit import log_data_access
+        log_data_access(request, 'Copy', copy.id, action_detail='download')
 
         response = FileResponse(copy.final_pdf.open("rb"), content_type="application/pdf")
         filename = f'copy_{copy.anonymous_id}_corrected.pdf'

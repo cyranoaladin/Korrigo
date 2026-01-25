@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.db import transaction
 from exams.models import Exam, Booklet
 
 logger = logging.getLogger(__name__)
@@ -36,9 +37,13 @@ class PDFSplitter:
         self.pages_per_booklet = pages_per_booklet
         self.dpi = dpi
 
+    @transaction.atomic
     def split_exam(self, exam: Exam, force=False):
         """
         Découpe le PDF de l'examen en booklets.
+        
+        Transaction atomique: Si une erreur survient pendant le split,
+        tous les booklets créés sont rollback pour éviter état incohérent.
 
         Args:
             exam (Exam): Instance d'examen avec pdf_source
