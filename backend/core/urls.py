@@ -10,10 +10,15 @@ urlpatterns = [
     path('api/exams/', include('exams.urls')),
     path('api/copies/', include('exams.urls_copies')), # Mission 17
     path('api/students/', include('students.urls')), # Mission 18
+    path('api/identification/', include('identification.urls')), # ÉTAPE 1-2: OCR & Identification
     path('api/', include('grading.urls')),  # Étape 3: Annotations & Grading
     path('api/login/', views.LoginView.as_view(), name='login'),
     path('api/logout/', views.LogoutView.as_view(), name='logout'),
     path('api/me/', views.UserDetailView.as_view(), name='user_detail'),
+    path('api/settings/', views.GlobalSettingsView.as_view(), name='settings'),
+    path('api/change-password/', views.ChangePasswordView.as_view(), name='change_password'),
+    path('api/users/', views.UserListView.as_view(), name='user_list'),
+    path('api/users/<int:pk>/', views.UserManageView.as_view(), name='user_manage'),
 ]
 
 # API Documentation (DRF Spectacular)
