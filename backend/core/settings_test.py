@@ -39,3 +39,7 @@ PASSWORD_HASHERS = [
 # Ensure we are in test mode
 DEBUG = False
 CELERY_TASK_ALWAYS_EAGER = True
+
+# Disable rate limiting in tests (django-ratelimit)
+# This allows login tests to work without Redis and without hitting rate limits
+RATELIMIT_ENABLE = False

@@ -1,13 +1,33 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
 import uuid
 from django.utils.translation import gettext_lazy as _
+from .validators import (
+    validate_pdf_size,
+    validate_pdf_not_empty,
+    validate_pdf_mime_type,
+    validate_pdf_integrity,
+)
 
 class Exam(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, verbose_name=_("Nom de l'examen"))
     date = models.DateField(verbose_name=_("Date de l'examen"))
-    pdf_source = models.FileField(upload_to='exams/source/', verbose_name=_("Fichier PDF source"), blank=True, null=True)
+    pdf_source = models.FileField(
+        upload_to='exams/source/',
+        verbose_name=_("Fichier PDF source"),
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=['pdf']),
+            validate_pdf_size,
+            validate_pdf_not_empty,
+            validate_pdf_mime_type,
+            validate_pdf_integrity,
+        ],
+        help_text=_("Fichier PDF uniquement. Taille max: 50 MB, 500 pages max")
+    )
     grading_structure = models.JSONField(default=list, blank=True, verbose_name=_("Barème (Structure JSON)"))
     is_processed = models.BooleanField(default=False, verbose_name=_("Traité ?"))
 
@@ -96,7 +116,15 @@ class Copy(models.Model):
         upload_to='copies/source/',
         verbose_name=_("Fichier PDF source"),
         blank=True,
-        null=True
+        null=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=['pdf']),
+            validate_pdf_size,
+            validate_pdf_not_empty,
+            validate_pdf_mime_type,
+            validate_pdf_integrity,
+        ],
+        help_text=_("Fichier PDF uniquement. Taille max: 50 MB, 500 pages max")
     )
     status = models.CharField(
         max_length=20, 
