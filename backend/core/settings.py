@@ -12,7 +12,7 @@ if not SECRET_KEY:
     # Development fallback only
     SECRET_KEY = "django-insecure-dev-only-" + "x" * 50
 
-DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
 
 # ALLOWED_HOSTS: Explicit configuration required
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
@@ -67,7 +67,7 @@ CSRF_COOKIE_HTTPONLY = False  # Required for SPAs to read CSRF token from cookie
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     "CSRF_TRUSTED_ORIGINS",
-    "http://localhost:8088,http://127.0.0.1:8088"
+    "http://localhost:8088,http://127.0.0.1:8088,http://localhost:5173,http://127.0.0.1:5173"
 ).split(",")
 
 
@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     'grading',
     'processing',
     'students',
+    'identification',
 ]
 
 # Django REST Framework Configuration
@@ -139,12 +140,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-        conn_max_age=600
-    )
-}
+if DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+            conn_max_age=600
+        )
+    }
 
 
 
@@ -221,23 +230,32 @@ CORS_ALLOW_HEADERS = [
 # Conformité: Phase 3 - Review sécurité frontend
 if not DEBUG:
     # CSP stricte en production
-    CSP_DEFAULT_SRC = ("'self'",)
-    CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'")  # Vue.js nécessite unsafe-inline
-    CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")   # CSS inline nécessaire
-    CSP_IMG_SRC = ("'self'", "data:", "blob:")      # PDF.js utilise blob:
-    CSP_FONT_SRC = ("'self'",)
-    CSP_CONNECT_SRC = ("'self'",)
-    CSP_FRAME_ANCESTORS = ("'none'",)               # Déjà X-Frame-Options: DENY
-    CSP_BASE_URI = ("'self'",)
-    CSP_FORM_ACTION = ("'self'",)
-    CSP_UPGRADE_INSECURE_REQUESTS = True
+    CONTENT_SECURITY_POLICY = {
+        'DIRECTIVES': {
+            'default-src': ["'self'"],
+            'script-src': ["'self'", "'unsafe-inline'"],
+            'style-src': ["'self'", "'unsafe-inline'"],
+            'img-src': ["'self'", "data:", "blob:"],
+            'font-src': ["'self'"],
+            'connect-src': ["'self'"],
+            'frame-ancestors': ["'none'"],
+            'base-uri': ["'self'"],
+            'form-action': ["'self'"],
+            'upgrade-insecure-requests': True,
+        }
+    }
 else:
     # CSP permissive en développement
-    CSP_DEFAULT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
-    CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
-    CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
-    CSP_IMG_SRC = ("'self'", "data:", "blob:", "http:", "https:")
-    CSP_CONNECT_SRC = ("'self'", "http://localhost:*", "ws://localhost:*")
+    CONTENT_SECURITY_POLICY = {
+        'DIRECTIVES': {
+            'default-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            'style-src': ["'self'", "'unsafe-inline'"],
+            'img-src': ["'self'", "data:", "blob:", "http:", "https:"],
+            'connect-src': ["'self'", "http://localhost:*", "ws://localhost:*"],
+            'frame-ancestors': ["'self'"], 
+        }
+    }
 
 # DRF Spectacular Configuration
 # OpenAPI 3.0 Schema Generation
