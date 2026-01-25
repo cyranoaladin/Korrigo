@@ -35,10 +35,21 @@ class ExamTests(TestCase):
         Booklet.objects.create(exam=self.exam, start_page=1, end_page=2)
         self.assertEqual(self.exam.booklets.count(), 1)
 
+from django.contrib.auth.models import User, Group
+from core.auth import UserRole
+
 class APITests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.exam = Exam.objects.create(name='Test API', date='2026-01-01')
+
+        # Create test user with teacher role
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        self.user.groups.add(self.teacher_group)
+
+        # Authenticate the client
+        self.client.force_authenticate(user=self.user)
 
     def test_list_booklets(self):
         url = reverse('booklet-list', kwargs={'exam_id': self.exam.id})
