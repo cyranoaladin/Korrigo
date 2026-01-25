@@ -80,7 +80,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'drf_spectacular',
     'corsheaders',
+    'csp',
     'core',
     'exams',
     'grading',
@@ -100,10 +102,12 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 
 MIDDLEWARE = [
+    'csp.middleware.CSPMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -157,8 +161,109 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
 
+# Cache Configuration (required for django-ratelimit)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0"),
+    }
+}
+
+# Rate limiting configuration
+RATELIMIT_USE_CACHE = 'default'
+
+# Enable/disable django-ratelimit via env (default: enabled)
+# Can be disabled for E2E testing environment only
+RATELIMIT_ENABLE = os.environ.get("RATELIMIT_ENABLE", "true").lower() == "true"
+
+# Production guard: prevent accidental rate limiting disable in production
+DJANGO_ENV = os.environ.get("DJANGO_ENV", "development")
+if DJANGO_ENV == "production" and not RATELIMIT_ENABLE:
+    raise ValueError("RATELIMIT_ENABLE cannot be false in production environment")
+
 # CORS Configuration
-# For production, we serve everything via Nginx on the same origin (Port 80).
-# If specific cross-origin is needed, use CORS_ALLOWED_ORIGINS list.
+# Conformité: .antigravity/rules/01_security_rules.md § 4.2
+if DEBUG:
+    # Development: Allow localhost origins for frontend dev server
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8088",
+        "http://127.0.0.1:8088",
+    ]
+    CORS_ALLOW_CREDENTIALS = True
+else:
+    # Production: Explicit origins only
+    # Set via environment variable CORS_ALLOWED_ORIGINS (comma-separated)
+    cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "")
+    if cors_origins:
+        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(",")]
+        CORS_ALLOW_CREDENTIALS = True
+    else:
+        # Same-origin only (Nginx serves frontend + backend on same domain)
+        CORS_ALLOWED_ORIGINS = []
+        CORS_ALLOW_CREDENTIALS = False
 
+# CORS Security Headers
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
+# Content Security Policy (CSP)
+# Conformité: Phase 3 - Review sécurité frontend
+if not DEBUG:
+    # CSP stricte en production
+    CSP_DEFAULT_SRC = ("'self'",)
+    CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'")  # Vue.js nécessite unsafe-inline
+    CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")   # CSS inline nécessaire
+    CSP_IMG_SRC = ("'self'", "data:", "blob:")      # PDF.js utilise blob:
+    CSP_FONT_SRC = ("'self'",)
+    CSP_CONNECT_SRC = ("'self'",)
+    CSP_FRAME_ANCESTORS = ("'none'",)               # Déjà X-Frame-Options: DENY
+    CSP_BASE_URI = ("'self'",)
+    CSP_FORM_ACTION = ("'self'",)
+    CSP_UPGRADE_INSECURE_REQUESTS = True
+else:
+    # CSP permissive en développement
+    CSP_DEFAULT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
+    CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
+    CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
+    CSP_IMG_SRC = ("'self'", "data:", "blob:", "http:", "https:")
+    CSP_CONNECT_SRC = ("'self'", "http://localhost:*", "ws://localhost:*")
+
+# DRF Spectacular Configuration
+# OpenAPI 3.0 Schema Generation
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Viatique API',
+    'DESCRIPTION': 'API de la plateforme Viatique - Correction numérique de copies d\'examens',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'CONTACT': {
+        'name': 'Aleddine BEN RHOUMA',
+        'email': 'contact@viatique.edu',
+    },
+    'LICENSE': {
+        'name': 'Proprietary - AEFE/Éducation Nationale',
+    },
+    'TAGS': [
+        {'name': 'Authentication', 'description': 'Endpoints d\'authentification (Professeurs, Admins, Élèves)'},
+        {'name': 'Exams', 'description': 'Gestion des examens et copies'},
+        {'name': 'Grading', 'description': 'Correction et annotations'},
+        {'name': 'Students', 'description': 'Gestion des élèves et accès résultats'},
+        {'name': 'Admin', 'description': 'Administration système'},
+    ],
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': r'/api/',
+    'SERVERS': [
+        {'url': 'http://localhost:8088', 'description': 'Serveur de développement'},
+        {'url': 'https://viatique.example.com', 'description': 'Production'},
+    ],
+}

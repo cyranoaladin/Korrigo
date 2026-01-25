@@ -1,6 +1,6 @@
 import api from './api';
 
-const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || 'http://localhost:8000/media';
+const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || '/media';
 
 export default {
     /**
@@ -19,7 +19,12 @@ export default {
 
     async listCopies(params = {}) {
         const response = await api.get('/copies/', { params });
-        return response.data;
+        // Handle DRF pagination: extract results array if paginated response
+        const data = response.data;
+        if (data && typeof data === 'object' && Array.isArray(data.results)) {
+            return data.results;
+        }
+        return data;
     },
 
     async getCopy(id) {
@@ -67,7 +72,12 @@ export default {
 
     async listAnnotations(copyId) {
         const response = await api.get(`/copies/${copyId}/annotations/`);
-        return response.data;
+        // Handle DRF pagination: extract results array if paginated response
+        const data = response.data;
+        if (data && typeof data === 'object' && Array.isArray(data.results)) {
+            return data.results;
+        }
+        return data;
     },
 
     async deleteAnnotation(copyId, annotationId, token = null) {
@@ -109,7 +119,12 @@ export default {
 
     async listAuditLogs(copyId) {
         const response = await api.get(`/copies/${copyId}/audit/`);
-        return response.data;
+        // Handle DRF pagination: extract results array if paginated response
+        const data = response.data;
+        if (data && typeof data === 'object' && Array.isArray(data.results)) {
+            return data.results;
+        }
+        return data;
     },
 
     getFinalPdfUrl(id) {

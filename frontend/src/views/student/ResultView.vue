@@ -12,7 +12,7 @@ const loading = ref(true)
 const fetchCopies = async () => {
     loading.value = true
     try {
-        const res = await fetch(`${auth.API_URL}/api/student/copies/`, {
+        const res = await fetch(`${auth.API_URL}/api/students/copies/`, {
             credentials: 'include',
             headers: auth.authHeaders
         })
