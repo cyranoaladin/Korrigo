@@ -3,7 +3,7 @@
 > **Version**: 1.2.0  
 > **Date**: Janvier 2026  
 > **SGBD**: PostgreSQL 15+  
-> **ORM**: Django 5.0
+> **ORM**: Django 4.2 LTS
 
 Ce document décrit le schéma complet de la base de données du projet Korrigo PMF, incluant tous les modèles, leurs relations, contraintes et workflows d'états.
 
