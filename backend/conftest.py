@@ -5,6 +5,8 @@ import pytest
 import shutil
 import tempfile
 from django.conf import settings
+from django.contrib.auth.models import Group
+from core.auth import UserRole
 
 
 @pytest.fixture
@@ -29,6 +31,8 @@ def admin_user(db):
         is_staff=True,
         is_superuser=True
     )
+    g, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
+    user.groups.add(g)
     return user
 
 
@@ -45,6 +49,8 @@ def teacher_user(db):
         is_staff=True,
         is_superuser=False
     )
+    g, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+    user.groups.add(g)
     return user
 
 

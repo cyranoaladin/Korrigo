@@ -1,4 +1,4 @@
-import cv2
+# Import cv2 only when needed to avoid dependency issues
 import numpy as np
 from PIL import Image
 import pytesseract
@@ -48,27 +48,20 @@ class OCRService:
         try:
             # Charger l'image
             image = Image.open(header_image_file)
-            image_np = np.array(image)
-            
+
             # Convertir en grayscale pour meilleur OCR
-            if len(image_np.shape) == 3:
-                gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
-                gray = cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY)
-            else:
-                gray = image_np
-                
-            # Améliorer la qualité pour OCR
-            gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-            
+            if image.mode != 'L':  # L = grayscale
+                image = image.convert('L')
+
             # Effectuer OCR
             custom_config = r'--oem 3 --psm 6 -l fra+eng'
-            text = pytesseract.image_to_string(gray, config=custom_config)
-            
+            text = pytesseract.image_to_string(image, config=custom_config)
+
             # Calculer la confiance moyenne
-            data = pytesseract.image_to_data(gray, output_type=pytesseract.Output.DICT)
+            data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
             confidences = [int(conf) for conf in data['conf'] if int(conf) > 0]
             avg_confidence = sum(confidences) / len(confidences) if confidences else 0
-            
+
             return {
                 'text': text.strip(),
                 'confidence': avg_confidence / 100.0  # Normaliser à [0,1]

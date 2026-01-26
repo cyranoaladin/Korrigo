@@ -227,7 +227,7 @@ class RBACPermissionsTest(TestCase):
         
         permission = IsStudent()
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': unauthenticated_user})(),
+            type('MockRequest', (), {'user': unauthenticated_user, 'session': {}})(),
             None
         ))
 

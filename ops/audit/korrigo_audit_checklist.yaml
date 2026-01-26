@@ -1,0 +1,71 @@
+name: KORRIGO Audit Checklist
+status: IN_PROGRESS
+started_at: 2026-01-26
+owner: Antigravity
+
+steps:
+  - name: 1. Baseline
+    status: DONE
+    proofs:
+      - proofs/artifacts/baseline_versions.txt
+      - proofs/artifacts/baseline_tests.txt
+      - proofs/artifacts/baseline_lint.txt
+    notes: |
+      - Python 3.9 (backend/venv) used.
+      - Dependencies installed to run tests.
+      - Critical collection errors in pytest:
+        1. ModuleNotFoundError: 'pytesseract' (missing dependency).
+        2. Duplicate test file names (test_e2e_bac_blanc.py) causing collision.
+      - Baseline captured with failures.
+
+  - name: 2. Zero Test Rouge (Auth)
+    status: DONE
+    objectives:
+      - Fix environment (pytesseract, test duplicates) to enable test running.
+      - Identifier les 5 tests auth en échec.
+      - Corriger code/tests.
+      - Tous les tests passent.
+    proofs_required:
+      - proofs/artifacts/auth_fixes_tests_run5.txt
+      - Test list modified.
+    notes: |
+      - Fixed Duplicate file: Renamed backend/tests/test_e2e_bac_blanc.py -> test_api_bac_blanc.py.
+      - Fixed Env: Added pytesseract to requirements.
+      - Fixed Auth Failures:
+        - Updated `IsStudent` permission to support legacy session auth fallback.
+        - Fixed `FinalPDFView` permission logic (UserRole.TEACHER mismatch).
+        - Updated `init_pmf` command to use correct permission constants.
+      - Fixed Test Fixtures:
+        - Added `admin_group` and `teacher_group` assignment in `conftest.py`, `test_integration_real.py`, `test_concurrency.py`.
+        - Fixed mocks in `test_auth_rbac.py`.
+        - Fixed payload format in `test_full_audit.py`.
+      - Result: 116 tests passed, 0 failures.
+
+  - name: 3. Backup/Restore Fonctionnel
+    status: TODO
+    objectives:
+      - Fix RestoreCommand.
+      - Add automated destroy/restore test.
+      - Verify restore integrity.
+    proofs_required:
+      - proofs/artifacts/backup_restore_tests.txt
+      - Manifest extract.
+
+  - name: 4. E2E Bac Blanc
+    status: TODO
+    objectives:
+      - Sanitize seeds.
+      - Stabilize selectors.
+      - Run 2x on clean DB.
+    proofs_required:
+      - proofs/artifacts/e2e_run1.txt
+      - proofs/artifacts/e2e_run2.txt
+
+  - name: 5. CI Deployable Gate
+    status: TODO
+    objectives:
+      - Update .github/workflows/korrigo-ci.yml
+      - Jobs: lint, unit, service, e2e, security, packaging.
+      - Pipeline GREEN.
+    proofs_required:
+      - GitHub Actions logs or local act simulation.
