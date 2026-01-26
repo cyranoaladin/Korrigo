@@ -4,6 +4,8 @@ from django.db import transaction
 from rest_framework.test import APIClient
 from exams.models import Copy, Exam, Booklet
 from grading.models import Annotation, GradingEvent
+from django.contrib.auth.models import Group
+from core.auth import UserRole
 from django.contrib.auth import get_user_model
 import unittest.mock
 
@@ -14,7 +16,10 @@ class TestAntiLoss:
 
     @pytest.fixture
     def teacher(self):
-        return User.objects.create_user(username='teacher_safe', password='password', is_staff=True)
+        u = User.objects.create_user(username='teacher_safe', password='password', is_staff=True)
+        g, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        u.groups.add(g)
+        return u
 
     @pytest.fixture
     def exam(self):

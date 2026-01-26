@@ -3,6 +3,8 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 from .models import Exam, Booklet
+from django.contrib.auth.models import User, Group
+from core.auth import UserRole
 import json
 from datetime import date
 
@@ -39,6 +41,14 @@ class APITests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.exam = Exam.objects.create(name='Test API', date='2026-01-01')
+
+        # Create test user with teacher role
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        self.user.groups.add(self.teacher_group)
+
+        # Authenticate the client
+        self.client.force_login(self.user)
 
     def test_list_booklets(self):
         url = reverse('booklet-list', kwargs={'exam_id': self.exam.id})

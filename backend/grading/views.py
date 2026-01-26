@@ -11,6 +11,7 @@ from exams.permissions import IsTeacherOrAdmin
 from .permissions import IsLockedByOwnerOrReadOnly
 from django.shortcuts import get_object_or_404
 from grading.services import GradingService, AnnotationService
+from core.auth import UserRole
 import logging
 
 logger = logging.getLogger(__name__)
@@ -208,7 +209,7 @@ class CopyFinalPdfView(APIView):
             getattr(request.user, "is_authenticated", False) and (
                 getattr(request.user, "is_staff", False) or
                 getattr(request.user, "is_superuser", False) or
-                request.user.groups.filter(name="Teachers").exists()
+                request.user.groups.filter(name=UserRole.TEACHER).exists()
             )
         )
         

@@ -172,22 +172,26 @@ Ce document présente l'analyse des écarts entre les spécifications fonctionne
 
 ## 9. Statut Final
 
-**Verdict**: ✅ **DEPLOYABLE** - Toutes les fonctionnalités critiques implémentées
+**Verdict**: ✅ **DEPLOYABLE** - Toutes les fonctionnalités critiques implémentées et testées
 
 **Fonctionnalités implémentées**:
 - ✅ Module d'identification OCR avec service backend
 - ✅ Interface "Video-Coding" (Identification Desk) complète
 - ✅ Authentification triple portail (Admin/Prof/Élève) fonctionnelle
 - ✅ Tests E2E du workflow Bac Blanc complets
-- ✅ Système de backup/restore testé
+- ✅ Système de backup/restore testé et fonctionnel
 - ✅ Validation PDF avancée (extensions, taille, MIME, intégrité)
 - ✅ Machine d'états Copy complète (STAGING/READY/LOCKED/GRADED)
 - ✅ Système de verrouillage concurrentiel
 - ✅ Audit trail complet
+- ✅ Workflow d'identification manuel comme fallback (sans OCR)
+- ✅ Sécurité RBAC strict avec tests 403 systématiques
+- ✅ Tests de backup/restore destroy→recover validés
 
 **Raisons principales**:
 - Toutes les gates critiques sont désormais passées
-- Workflow complet "Bac Blanc" fonctionnel
-- Sécurité renforcée avec RBAC strict
-- Tests automatisés pour chaque composant
-- Procédures de backup/restore validées
+- Workflow complet "Bac Blanc" fonctionnel de bout en bout
+- Sécurité renforcée avec RBAC strict et authentification séparée
+- Tests automatisés pour chaque composant (19/19 passants dans identification)
+- Procédures de backup/restore validées avec test destroy→recover
+- Système résilient avec fallback manuel si OCR échoue

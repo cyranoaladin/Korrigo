@@ -59,9 +59,13 @@ class TestFullSystemAudit:
         assert response.status_code == 200, "Student Login Failed"
         
         # Access Student Me
+        # Note: session auth might need passing session cookie, failing that check if client handles it
         response = self.client.get('/api/students/me/')
+        if response.status_code == 403:
+             # If 403, it means IsStudent failed. We fixed IsStudent to check session.
+             pass
         assert response.status_code == 200
-        assert response.data['ine'] == '123456789'
+        assert str(response.data['ine']) == '123456789'
 
     def test_04_global_settings_persistence(self):
         """Vérifie que les settings sont bien sauvegardés en DB"""
@@ -73,7 +77,7 @@ class TestFullSystemAudit:
             "defaultDuration": 90,
             "notifications": False
         }
-        res = self.client.post('/api/settings/', payload)
+        res = self.client.post('/api/settings/', payload, format='json')
         assert res.status_code == 200
         
         # Reload from DB
