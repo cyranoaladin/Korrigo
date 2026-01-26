@@ -307,6 +307,7 @@ Apply all P0 data integrity fixes in the main repository (NOT in worktree).
 ---
 
 ### [ ] Step: Apply P0 Operational Fixes
+<!-- chat-id: 4fa30dc6-c36a-421b-afe3-1cc1ed4c4bef -->
 Apply all P0 operational fixes in the main repository (NOT in worktree).
 
 **Critical Constraint**: ALL changes MUST be made in `/home/alaeddine/viatique__PMF` (main repo), NOT in worktree.
