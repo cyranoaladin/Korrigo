@@ -163,7 +163,7 @@ docker-compose exec -T backend bash -c "cd /app && pytest grading/tests/ -q --tb
 **Résultat:**
 ```
 ============================= test session starts ==============================
-platform linux -- Python 3.11.14, pytest-8.4.2, pluggy-1.6.0
+platform linux -- Python 3.9, pytest-8.4.2, pluggy-1.6.0
 django: version: 5.2.10, settings: core.settings (from ini)
 rootdir: /app
 configfile: pytest.ini
