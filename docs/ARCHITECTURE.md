@@ -145,7 +145,7 @@ graph TB
 #### 2. Couche API (Backend - Interface)
 - **Responsabilité**: Exposition des endpoints REST, authentification, permissions
 - **Technologies**: Django REST Framework
-- **Principe**: API-first, session-based auth, RBAC
+- **Principe**: API-first, session-based auth, RBAC via `UserRole` (Admin, Teacher, Student)
 
 #### 3. Couche Logique Métier (Backend - Services)
 - **Responsabilité**: Logique applicative, règles métier, workflows

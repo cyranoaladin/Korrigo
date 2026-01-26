@@ -388,51 +388,31 @@ docker-compose -f infra/docker/docker-compose.prod.yml exec -T db psql -U viatiq
 
 ---
 
-## Backup et Restauration
-
-### Backup Automatique (Cron)
+### Backup Automatique
+Cette procédure utilise la commande interne `manage.py backup` qui génère une archive complète (JSON DB + Media).
 
 **Script `/root/backup_viatique.sh`**:
-
 ```bash
 #!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/backups/viatique"
-
-# Backup PostgreSQL
-docker-compose -f /opt/viatique/infra/docker/docker-compose.prod.yml exec -T db pg_dump -U viatique_user viatique_prod | gzip > $BACKUP_DIR/db_$DATE.sql.gz
-
-# Backup Media
-tar -czf $BACKUP_DIR/media_$DATE.tar.gz /opt/viatique/backend/media/
-
-# Nettoyer anciens backups (> 30 jours)
-find $BACKUP_DIR -name "*.gz" -mtime +30 -delete
-
-# Upload vers S3 (optionnel)
-# aws s3 cp $BACKUP_DIR/db_$DATE.sql.gz s3://viatique-backups/
-```
-
-**Crontab**:
-
-```bash
-# Backup quotidien à 2h du matin
-0 2 * * * /root/backup_viatique.sh >> /var/log/viatique_backup.log 2>&1
+# Backup complet via Django
+docker-compose -f /opt/viatique/infra/docker/docker-compose.prod.yml exec -T backend python manage.py backup --include-media --output-dir /backups/viatique
 ```
 
 ### Restauration
+⚠️ **ATTENTION**: La restauration écrase les données existantes.
 
 ```bash
-# 1. Arrêter services
-docker-compose -f infra/docker/docker-compose.prod.yml down
+# 1. Identifier le dossier de backup
+BACKUP_PATH="/backups/viatique/korrigo_backup_20260126_120000"
 
-# 2. Restaurer DB
-gunzip -c backup_20260125.sql.gz | docker-compose -f infra/docker/docker-compose.prod.yml exec -T db psql -U viatique_user viatique_prod
+# 2. Lancer la restauration
+docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manage.py restore $BACKUP_PATH
+```
 
-# 3. Restaurer media
-tar -xzf media_backup_20260125.tar.gz -C backend/
-
-# 4. Redémarrer
-docker-compose -f infra/docker/docker-compose.prod.yml up -d
+### Alternative (Raw PostgreSQL)
+Pour les administrateurs DBAG, `pg_dump` reste utilisable pour la base de données seule.
+```bash
+docker-compose exec -T db pg_dump -U viatique_user viatique_prod | gzip > db.sql.gz
 ```
 
 ---
