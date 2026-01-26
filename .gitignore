@@ -89,3 +89,7 @@ frontend/e2e/.auth/
 /SYNC_ON_NETWORKED_MACHINE.md
 
 /docs_audit_sync.patch
+
+# forensic handoff artifacts
+/docs_audit_sync.patch
+/SYNC_ON_NETWORKED_MACHINE.md
