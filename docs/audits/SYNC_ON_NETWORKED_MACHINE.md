@@ -2,16 +2,31 @@
 
 **Objective**: Manually synchronize the documentation audit commits to `origin/main`.
 
-1.  **Transfer** `docs_audit_sync.patch` to a machine with internet access and the repository.
-2.  **Run** the following commands:
+# 0) Sécurité : vérifier repo & remote
+git remote -v
+git status -sb
 
-```bash
+# 1) Se caler sur le remote
 git checkout main
-git pull --ff-only origin main
-git am < docs_audit_sync.patch
-git push origin main
-git log -3 --oneline origin/main    # Verify hashes match patch contents
-```
+git fetch origin
+git reset --hard origin/main
 
-**Validation**:
-Push is successful only if the 3 audit commits (Update task, Clean SPEC, Sanitize legacy) appear in `git log origin/main`.
+# 2) Appliquer le patch
+git am --3way < docs_audit_sync.patch
+
+# 3) Push
+git push origin main
+
+# 4) Preuve distante
+git fetch origin
+git rev-parse origin/main
+git log -10 --oneline --decorate origin/main
+
+---
+
+### Si git am échoue
+```bash
+git am --abort
+git apply --reject --whitespace=fix docs_audit_sync.patch
+# puis résolution manuelle + commit + push
+```
