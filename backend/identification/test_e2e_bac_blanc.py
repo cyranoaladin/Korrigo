@@ -237,7 +237,6 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         print(f"   - Audit trail: OK ({events.count()} événements)")
         print(f"   - Export prêt: OK")
 
-        return True
 
     def test_bac_blanc_state_transitions(self):
         """
@@ -286,7 +285,6 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         
         print("✅ TRANSITIONS ÉTATS VALIDES!")
         
-        return True
 
 
 class BacBlancSecurityTest(TestCase):
@@ -361,4 +359,3 @@ class BacBlancSecurityTest(TestCase):
         
         print("✅ SÉCURITÉ ACCÈS ÉLÈVES VALIDÉE!")
         
-        return True
