@@ -41,16 +41,8 @@ class PDFSplitter:
     def split_exam(self, exam: Exam, force=False):
         """
         Découpe le PDF de l'examen en booklets.
-        
-        Transaction atomique: Si une erreur survient pendant le split,
-        tous les booklets créés sont rollback pour éviter état incohérent.
-
-        Args:
-            exam (Exam): Instance d'examen avec pdf_source
-            force (bool): Si True, recrée les booklets même s'ils existent
-
-        Returns:
-            list[Booklet]: Liste des booklets créés
+        Adapte le nombre de pages en fonction de exam.pages_per_booklet.
+        Gère les reliquats (pages restantes).
         """
         # Idempotence check
         if not force and exam.booklets.exists():
@@ -68,15 +60,18 @@ class PDFSplitter:
 
         doc = fitz.open(pdf_path)
         total_pages = doc.page_count
-        booklets_count = total_pages // self.pages_per_booklet
+        ppb = exam.pages_per_booklet or self.pages_per_booklet
+        
+        # Calculate chunks (ceil division)
+        booklets_count = (total_pages + ppb - 1) // ppb
 
-        logger.info(f"Total pages: {total_pages}, Booklets: {booklets_count}")
+        logger.info(f"Total pages: {total_pages}, Pages/Booklet: {ppb}, Expected Booklets: {booklets_count}")
 
         booklets_created = []
 
         for i in range(booklets_count):
-            start_page = i * self.pages_per_booklet + 1  # 1-based
-            end_page = (i + 1) * self.pages_per_booklet
+            start_page = i * ppb + 1  # 1-based
+            end_page = min((i + 1) * ppb, total_pages) # Clamp to total
 
             logger.info(f"Creating booklet {i+1}/{booklets_count}: pages {start_page}-{end_page}")
 
@@ -85,13 +80,19 @@ class PDFSplitter:
                 exam=exam,
                 start_page=start_page,
                 end_page=end_page,
-                student_name_guess=f"Booklet {i+1}"  # Placeholder
+                student_name_guess=f"Booklet {i+1}"
             )
 
+            # Check for anomaly (orphan pages / partial booklet)
+            actual_count = end_page - start_page + 1
+            if actual_count != ppb:
+                logger.warning(f"Booklet {booklet.id} (Index {i}) has {actual_count} pages instead of {ppb}. Possible orphan/end of scan.")
+                # We could mark it as suspicious if needed, but for now we just log ensuring no data loss.
+            
             # Extraire les pages
             pages_images = self._extract_pages(doc, start_page, end_page, exam.id, booklet.id)
 
-            # Sauvegarder les chemins dans pages_images
+            # Sauvegarder les chemins
             booklet.pages_images = pages_images
             booklet.save()
 
@@ -106,7 +107,6 @@ class PDFSplitter:
         exam.save()
 
         logger.info(f"PDF split complete for exam {exam.id}: {len(booklets_created)} booklets created")
-
         return booklets_created
 
     def _extract_pages(self, doc: fitz.Document, start_page: int, end_page: int, exam_id, booklet_id):

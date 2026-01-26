@@ -9,6 +9,20 @@ export default defineConfig({
     port: 5173,
     watch: {
       usePolling: true
+    },
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8088',
+        changeOrigin: true,
+      },
+      '/media': {
+        target: 'http://127.0.0.1:8088',
+        changeOrigin: true,
+      },
+      '/static': {
+        target: 'http://127.0.0.1:8088',
+        changeOrigin: true,
+      }
     }
   }
 })

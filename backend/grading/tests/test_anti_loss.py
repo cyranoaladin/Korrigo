@@ -46,13 +46,13 @@ class TestAntiLoss:
         # Mock flattening to avoid FS overhead/errors
         with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
             # 1st Call
-            resp1 = client.post(f"/api/copies/{copy.id}/finalize/")
+            resp1 = client.post(f"/api/grading/copies/{copy.id}/finalize/")
             assert resp1.status_code == 200
             assert mock_flatten.call_count == 1
             
             # 2nd Call
             # Should be rejected because status is now GRADED
-            resp2 = client.post(f"/api/copies/{copy.id}/finalize/")
+            resp2 = client.post(f"/api/grading/copies/{copy.id}/finalize/")
             
             # If API is strict, 400 "Already Graded". If Idempotent, 200 but no-op.
             # Based on previous knowledge (Copy.Status.LOCKED check in service), it raises ValueError if not LOCKED.
@@ -69,11 +69,11 @@ class TestAntiLoss:
         client.force_authenticate(user=teacher)
         
         # 1st Lock
-        resp1 = client.post(f"/api/copies/{copy.id}/lock/")
+        resp1 = client.post(f"/api/grading/copies/{copy.id}/lock/")
         assert resp1.status_code == 201
         
         # 2nd Lock
-        resp2 = client.post(f"/api/copies/{copy.id}/lock/")
+        resp2 = client.post(f"/api/grading/copies/{copy.id}/lock/")
         assert resp2.status_code == 200
         
     def test_annotation_create_atomicity(self, teacher, copy):
@@ -96,7 +96,7 @@ class TestAntiLoss:
         
         # Simulate DB error during save
         with unittest.mock.patch("grading.models.Annotation.save", side_effect=Exception("DB Crash")):
-            resp = client.post(f"/api/copies/{copy.id}/annotations/", ann_data, format='json')
+            resp = client.post(f"/api/grading/copies/{copy.id}/annotations/", ann_data, format='json')
             
         assert resp.status_code == 500
         assert Annotation.objects.count() == 0 # Must be 0
