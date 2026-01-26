@@ -129,7 +129,7 @@ Maîtrise requise :
 - Celery + Redis
 - Docker
 - Gunicorn
-- Python 3.11+
+- Python 3.9
 
 ## Exemples de Code
 
