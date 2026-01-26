@@ -1,4 +1,5 @@
-# Verdict Final de l'Audit - 26 Janvier 2026
+# Audit Report (26 Jan 2026) - ARCHIVED
+> **Note**: This is a point-in-time audit report. For current operational procedures, see `RUNBOOK_PROD.md`.
 
 **Statut Global**: ✅ **GREEN (DÉPLOYABLE)**
 

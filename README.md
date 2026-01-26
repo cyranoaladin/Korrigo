@@ -7,7 +7,7 @@ Ce projet permet aux établissements scolaires de numériser leur flux de correc
 
 ## 🏗 Architecture Technique
 Le projet repose sur une stack robuste et conteneurisée :
-*   **Backend** : Django 5 (Python 3.9) + Django REST Framework.
+*   **Backend** : Django 4.2 (Python 3.9) + Django REST Framework.
 *   **Frontend** : Vue.js 3 (Composition API) + Pinia + Vite.
 *   **Base de Données** : PostgreSQL 15.
 *   **Files de Tâches** : Redis + Celery (pour le traitement d'images asynchrone).
