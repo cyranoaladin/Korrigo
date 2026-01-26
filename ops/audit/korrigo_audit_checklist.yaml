@@ -42,7 +42,7 @@ steps:
       - Result: 116 tests passed, 0 failures.
 
   - name: 3. Backup/Restore Fonctionnel
-    status: TODO
+    status: DONE
     objectives:
       - Fix RestoreCommand.
       - Add automated destroy/restore test.
@@ -50,6 +50,12 @@ steps:
     proofs_required:
       - proofs/artifacts/backup_restore_tests.txt
       - Manifest extract.
+    notes: |
+      - Fixed `restore.py`:
+        - Renamed class `RestoreCommand` -> `Command`.
+        - Implemented Multi-pass Insertion to resolve Foreign Key dependencies (Topological Sort approximation).
+      - Added `backend/identification/test_backup_restore_full.py`.
+      - Result: Full Destroy/Recover cycle verified successfully.
 
   - name: 4. E2E Bac Blanc
     status: TODO
