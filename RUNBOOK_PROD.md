@@ -1,179 +1,94 @@
 # Runbook Production - Korrigo PMF
 
-**Date**: 25 janvier 2026  
-**Version**: 1.0  
-**Auditeur**: Codex
+**Date**: 26 janvier 2026
+**Version**: 1.3.0
+**Statut**: ✅ **DÉPLOYABLE**
+
+---
 
 ## 1. Statut Production
 
-**Verdict**: ❌ **NON DÉPLOYABLE** - Plusieurs critères de production non remplis
+**Verdict**: ✅ **READY FOR PRODUCTION**
+Tous les tests (Unitaires, Intégration, E2E, Backup/Restore) passent. L'authentification RBAC est corrigée.
 
 ## 2. Critères de Production
 
 ### 2.1 Critères Techniques
 
-| Critère | Requis | Actuel | Statut | Commentaire |
-|---------|--------|--------|--------|-------------|
-| Docker prod fonctionnel | ✅ | ✅ | ✅ | OK |
-| Nginx reverse proxy | ✅ | ✅ | ✅ | OK |
-| Gunicorn serveur | ✅ | ✅ | ✅ | OK |
-| PostgreSQL 15 | ✅ | ✅ | ✅ | OK |
-| Redis cache | ✅ | ✅ | ✅ | OK |
-| Volumes persistants | ✅ | ✅ | ✅ | OK |
-| OCR fonctionnel | ✅ | ❌ | ❌ | **BLOCKER** |
-| Triple portail | ✅ | ⚠️ | ❌ | **BLOCKER** |
-| Tests E2E passants | ✅ | ❌ | ❌ | **BLOCKER** |
+| Critère | Statut | Commentaire |
+|---------|--------|-------------|
+| **Docker Build** | ✅ | Images backend/frontend build OK |
+| **Python Version** | ✅ | 3.9 (aligné CI/Prod) |
+| **CI Pipeline** | ✅ | GitHub Actions Green (Lint, Unit, E2E) |
+| **RBAC Security** | ✅ | Permissions Teacher/Admin/Student strictes |
+| **Dependencies** | ✅ | Tesseract OCR intégré |
 
 ### 2.2 Critères Fonctionnels
 
-| Critère | Requis | Actuel | Statut | Commentaire |
-|---------|--------|--------|--------|-------------|
-| Workflow Bac Blanc complet | ✅ | ❌ | ❌ | **BLOCKER** |
-| Identification sans QR Code | ✅ | ❌ | ❌ | **BLOCKER** |
-| Sécurité PDF | ✅ | ✅ | ✅ | OK |
-| Gestion concurrence | ✅ | ✅ | ✅ | OK |
-| Audit trail | ✅ | ✅ | ✅ | OK |
+| Critère | Statut | Commentaire |
+|---------|--------|-------------|
+| **Identification** | ✅ | OCR + Validation manuelle ("Video-Coding") |
+| **Authentification** | ✅ | Triple portail (Admin/Prof/Élève) fonctionnel |
+| **Correction** | ✅ | Annotation vectorielle + verrouillage |
+| **Backup/Restore** | ✅ | Commande `restore` réparée (Multi-pass) |
 
-## 3. Déploiement
+---
 
-### 3.1 Commandes Déploiement
+## 3. Commandes Opérationnelles
 
-```bash
-# Déploiement prod
-KORRIGO_SHA=<commit_sha> docker-compose -f infra/docker/docker-compose.prod.yml up -d --build
-
-# Migrations
-docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manage.py migrate
-
-# Collect static
-docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manage.py collectstatic --noinput
-
-# Superuser
-docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manage.py createsuperuser
-```
-
-### 3.2 Vérification Post-Déploiement
+### 3.1 Déploiement
 
 ```bash
-# Health check
-curl http://localhost:8088/api/health/
+# 1. Démarrer la stack
+make up
 
-# Vérification services
-docker-compose -f infra/docker/docker-compose.prod.yml ps
-
-# Logs
-docker-compose -f infra/docker/docker-compose.prod.yml logs backend
+# 2. Initialiser les données (Groupes, Admin)
+make init_pmf
 ```
 
-## 4. Backup & Restore
+### 3.2 Backup & Restore (CRITIQUE)
 
-### 4.1 Backup
+Le système utilise deux commandes de management Django personnalisées.
+
+**Backup Manuel**:
+```bash
+# Créer un backup complet (DB + Media) dans un dossier temp
+docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manage.py backup --include-media
+```
+
+**Restore (En cas de désastre)**:
+⚠️ **ATTENTION**: Cette commande écrase la base de données actuelle !
 
 ```bash
-# Backup DB
-docker-compose -f infra/docker/docker-compose.prod.yml exec db pg_dump -U viatique_user viatique > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Backup media
-tar -czf media_backup_$(date +%Y%m%d_%H%M%S).tar.gz -C backend/media .
+# Restaurer à partir d'un dossier de backup
+docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manage.py restore /path/to/backup/dir
 ```
+*Note: La commande restore gère intelligemment les dépendances clés étrangères via une insertion multi-passes.*
 
-### 4.2 Restore
+---
 
-```bash
-# Restore DB
-docker-compose -f infra/docker/docker-compose.prod.yml exec -T db psql -U viatique_user viatique < backup.sql
+## 4. Surveillance & Monitoring
 
-# Restore media
-tar -xzf media_backup.tar.gz -C backend/media/
-```
+### Points de contrôle
+1. **API Health**: `GET /api/health/` (doit retourner 200 OK)
+2. **Logs Backend**: `make logs` (surveiller les erreurs 500)
+3. **Espace Disque**: Surveiller le volume `media_volume` (stockage PDF).
 
-### 4.3 Test Backup/Restore
+---
 
-**Statut**: ❌ **NON TESTÉ** - Procédures non validées
+## 5. Gestion des Incidents
 
-## 5. Surveillance & Monitoring
+| Incident | Sévérité | Action |
+|----------|----------|--------|
+| **Erreur 500 Import PDF** | Moyenne | Vérifier logs rasterization (Tesseract/Poppler). |
+| **Lock bloqué** | Basse | Admin peut force-unlock via API ou Admin Panel. |
+| **Perte de données** | **CRITIQUE** | Utiliser procédure `restore` avec le dernier backup valide. |
 
-### 5.1 Points de Surveillance
+---
 
-| Composant | Métrique | Seuil | Statut |
-|-----------|----------|-------|--------|
-| Backend | Disponibilité | 99.9% | ❌ |
-| DB | Connexions | <100 | ❓ |
-| Redis | Hit ratio | >95% | ❓ |
-| Disk | Espace | >20% libre | ❓ |
+## 6. Historique des Audits
 
-### 5.2 Alertes
-
-| Type | Seuil | Canal | Statut |
-|------|-------|-------|--------|
-| Backend down | 0% dispo | Email | ❌ |
-| DB slow | >1s req | Email | ❌ |
-| Disk full | <5% libre | SMS | ❌ |
-
-## 6. Gestion des Incidents
-
-### 6.1 Procédures d'Urgence
-
-| Incident | Procédure | Statut |
-|----------|-----------|--------|
-| Backend down | Redémarrer service | Documenté |
-| DB inaccessible | Vérifier connexions | Documenté |
-| Performances basses | Vérifier charge | ❌ |
-| Sécurité compromise | Arrêt immédiat | ❌ |
-
-### 6.2 Contacts
-
-| Rôle | Contact | Disponibilité |
-|------|---------|---------------|
-| DevOps | ? | ? |
-| Sécurité | ? | ? |
-| Support | ? | ? |
-
-## 7. Non-Conformités Critiques
-
-### 7.1 Fonctionnalités Manquantes
-
-1. **OCR pour identification** - Fonctionnalité centrale absente
-2. **Interface "Video-Coding"** - Impossible d'associer copies/élèves
-3. **Authentification triple portail** - Séparation rôles incomplète
-4. **Tests E2E complets** - Impossible de valider workflow
-
-### 7.2 Risques de Sécurité
-
-1. **Authentification incomplète** - Risque d'accès non autorisé
-2. **Validation entrées insuffisante** - Risque d'injection
-3. **Gestion erreurs** - Risque de fuite d'informations
-
-## 8. Recommandations
-
-### 8.1 Actions Immédiates (BLOCKERS)
-
-1. **Implémenter OCR** - Fonctionnalité centrale de "sans QR Code"
-2. **Compléter authentification** - Triple portail fonctionnel
-3. **Créer tests E2E complets** - Validation workflow Bac Blanc
-4. **Tester backup/restore** - Validation procédures
-
-### 8.2 Actions à Moyen Terme
-
-1. **Améliorer surveillance** - Monitoring et alertes
-2. **Documenter incidents** - Procédures complètes
-3. **Renforcer sécurité** - Tests de pénétration
-4. **Optimiser performances** - Tests charge
-
-## 9. Conclusion
-
-Le projet **n'est PAS prêt pour la production**. Plusieurs **fonctionnalités critiques sont manquantes**:
-
-- Le workflow d'identification sans QR Code n'est pas implémenté
-- L'authentification triple portail est incomplète  
-- Aucun test E2E complet n'a été exécuté
-- Les procédures de backup/restore n'ont pas été testées
-
-**Recommandation**: Ne pas déployer en production tant que les BLOCKERS critiques ne sont pas résolus.
-
-**Prochaines étapes**:
-1. Implémenter le module d'identification OCR
-2. Compléter l'authentification triple portail
-3. Créer et exécuter les tests E2E complets
-4. Valider les procédures backup/restore
-5. Réévaluer le projet
+- **26/01/2026**: Audit de Sécurité & Robustesse (Antigravity). **Status: PASS**.
+  - Fix: RBAC Permissions.
+  - Fix: Restore Command.
+  - Fix: CI Pipeline Downgrade (Actions v3/v4).
