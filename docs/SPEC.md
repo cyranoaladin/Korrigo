@@ -247,8 +247,8 @@ L'application doit permettre la correction numérique de copies d'examens scann�
 
 ### 2.1. Backend (API & Logique)
 
-* **Langage :** Python 3.11+
-* **Framework :** Django 5.0 (API REST).
+* **Langage :** Python 3.9
+* **Framework :** Django 4.2 LTS (API REST).
 * **Traitement d'image & OCR :**
 * `opencv-python-headless` : Découpage et détection de structure.
 * `pytesseract` ou `EasyOCR` : **[Ajout]** Pour la reconnaissance du Nom/Prénom dans l'en-tête.
