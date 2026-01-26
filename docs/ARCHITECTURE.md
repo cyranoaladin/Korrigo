@@ -47,8 +47,8 @@ Korrigo PMF est une plateforme locale de correction dématérialisée pour exame
 
 | Composant | Version | Rôle |
 |-----------|---------|------|
-| **Python** | 3.11+ | Langage principal |
-| **Django** | 5.0 | Framework web, ORM, Admin |
+| **Python** | 3.9 | Langage principal |
+| **Django** | 4.2 (LTS) | Framework web, ORM, Admin |
 | **Django REST Framework** | 3.16+ | API REST |
 | **PostgreSQL** | 15+ | Base de données relationnelle |
 | **Redis** | 7+ | Cache, broker Celery |
