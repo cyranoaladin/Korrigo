@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, watch } from 'vue'
 import * as pdfjsLib from 'pdfjs-dist/build/pdf.mjs'
 
 // Worker setup handled via CDN for simplicity in this MVP environment
