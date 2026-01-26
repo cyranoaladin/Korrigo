@@ -36,7 +36,7 @@ Guide complet pour configurer l'environnement de développement et contribuer au
 
 | Logiciel | Version | Usage |
 |----------|---------|-------|
-| **Python** | 3.11+ | Tests backend hors Docker |
+| **Python** | 3.9 | Tests backend hors Docker |
 | **Node.js** | 18+ | Tests frontend hors Docker |
 | **PostgreSQL Client** | 15+ | Inspection DB |
 

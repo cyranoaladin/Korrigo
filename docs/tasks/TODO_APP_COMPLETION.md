@@ -8,7 +8,7 @@
 
 ## Current State
 
-### Backend Architecture (Django 5.0 + DRF)
+### Backend Architecture (Django 4.2 + DRF)
 
 #### Apps & Responsibilities
 
