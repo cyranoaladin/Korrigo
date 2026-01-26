@@ -27,10 +27,13 @@ We allow no flakes, no skipped tests without strict justification, and no warnin
 **Goal**: User Journey Verification.
 - **Scope**: Full Stack (Browser -> Nginx -> Django -> DB).
 - **Tool**: Playwright.
-- **Scenarios**:
-  - Teacher Import -> Grade -> Finalize.
-  - Student security blocks.
-  - Concurrent locking.
+### D. E2E Tests (Top)
+**Goal**: User Journey Verification.
+- **Backend E2E**: Verified via `test_api_bac_blanc.py` covering full workflow (Import -> Annotation -> Finalize).
+  - **Cmd**: `make test` (includes `pytest` integration).
+- **Frontend E2E**: Playwright tests (in `frontend/` package).
+  - **Tool**: Playwright.
+  - **Status**: Setup available (`pnpm test:e2e`), pending full coverage.
 
 ## 2. Coverage Requirements
 - **Global**: >80%

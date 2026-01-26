@@ -1,7 +1,7 @@
 # API Reference - Korrigo PMF
 
-> **Version**: 1.2.0  
-> **Date**: Janvier 2026  
+> **Version**: 1.3.0
+> **Date**: 26 Janvier 2026  
 > **Base URL**: `http://localhost:8088/api/` (dev) | `https://viatique.example.com/api/` (prod)
 
 Documentation complète de l'API REST de la plateforme Korrigo PMF.
