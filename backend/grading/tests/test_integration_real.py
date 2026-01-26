@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from exams.models import Exam, Copy, Booklet
 from grading.models import GradingEvent
+from django.contrib.auth.models import Group
+from core.auth import UserRole
 
 User = get_user_model()
 
@@ -39,7 +41,10 @@ class TestIntegrationReal:
 
     @pytest.fixture
     def teacher(self):
-        return User.objects.create_user(username='teacher_real', password='password', is_staff=True)
+        u = User.objects.create_user(username='teacher_real', password='password', is_staff=True)
+        g, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        u.groups.add(g)
+        return u
 
     @pytest.fixture
     def exam(self):

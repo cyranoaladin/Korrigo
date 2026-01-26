@@ -1,49 +1,45 @@
-Using existing test database for alias 'default'...
-Found 19 test(s).
-System check identified no issues (0 silenced).
-........F...F..FF.F
-======================================================================
-FAIL: test_list_booklets (exams.tests.APITests)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/alaeddine/viatique__PMF/backend/exams/tests.py", line 46, in test_list_booklets
-    self.assertEqual(response.status_code, status.HTTP_200_OK)
-AssertionError: 403 != 200
+============================= test session starts ==============================
+platform linux -- Python 3.9.23, pytest-8.4.2, pluggy-1.6.0 -- /home/alaeddine/viatique__PMF/backend/../backend/venv/bin/python3
+cachedir: .pytest_cache
+django: version: 4.2.27, settings: core.settings_test (from ini)
+rootdir: /home/alaeddine/viatique__PMF/backend
+configfile: pytest.ini
+plugins: cov-4.1.0, django-4.11.1
+collecting ... collected 108 items / 3 errors
 
-======================================================================
-FAIL: test_audit_endpoint_requires_staff (grading.tests.test_phase39_hardening.TestPhase39Hardening)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/alaeddine/viatique__PMF/backend/grading/tests/test_phase39_hardening.py", line 85, in test_audit_endpoint_requires_staff
-    self.assertEqual(response.status_code, status.HTTP_200_OK)
-AssertionError: 403 != 200
-
-======================================================================
-FAIL: test_import_success_for_teacher_creates_copy_booklet_and_audit (grading.tests.test_phase39_hardening.TestPhase39Hardening)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/alaeddine/viatique__PMF/backend/grading/tests/test_phase39_hardening.py", line 58, in test_import_success_for_teacher_creates_copy_booklet_and_audit
-    self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-AssertionError: 403 != 201
-
-======================================================================
-FAIL: test_workflow_import_corrupted_rollback (grading.tests.test_workflow_complete.TestWorkflowComplete)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/alaeddine/viatique__PMF/backend/grading/tests/test_workflow_complete.py", line 163, in test_workflow_import_corrupted_rollback
-    self.assertIn(resp.status_code, [400, 500])
-AssertionError: 403 not found in [400, 500]
-
-======================================================================
-FAIL: test_workflow_teacher_full_cycle_success (grading.tests.test_workflow_complete.TestWorkflowComplete)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/alaeddine/viatique__PMF/backend/grading/tests/test_workflow_complete.py", line 38, in test_workflow_teacher_full_cycle_success
-    self.assertEqual(resp.status_code, 201)
-AssertionError: 403 != 201
-
-----------------------------------------------------------------------
-Ran 19 tests in 1.426s
-
-FAILED (failures=5)
-Preserving test database for alias 'default'...
+==================================== ERRORS ====================================
+_____________ ERROR collecting identification/test_ocr_assisted.py _____________
+ImportError while importing test module '/home/alaeddine/viatique__PMF/backend/identification/test_ocr_assisted.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+../../micromamba/lib/python3.9/importlib/__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+identification/test_ocr_assisted.py:6: in <module>
+    from identification.services import OCRService
+identification/services.py:4: in <module>
+    import pytesseract
+E   ModuleNotFoundError: No module named 'pytesseract'
+_______________ ERROR collecting identification/test_workflow.py _______________
+ImportError while importing test module '/home/alaeddine/viatique__PMF/backend/identification/test_workflow.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+../../micromamba/lib/python3.9/importlib/__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+identification/test_workflow.py:6: in <module>
+    from identification.services import OCRService
+identification/services.py:4: in <module>
+    import pytesseract
+E   ModuleNotFoundError: No module named 'pytesseract'
+_________________ ERROR collecting tests/test_e2e_bac_blanc.py _________________
+import file mismatch:
+imported module 'test_e2e_bac_blanc' has this __file__ attribute:
+  /home/alaeddine/viatique__PMF/backend/identification/test_e2e_bac_blanc.py
+which is not the same as the test file we want to collect:
+  /home/alaeddine/viatique__PMF/backend/tests/test_e2e_bac_blanc.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
+=========================== short test summary info ============================
+ERROR identification/test_ocr_assisted.py
+ERROR identification/test_workflow.py
+ERROR tests/test_e2e_bac_blanc.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 3 errors during collection !!!!!!!!!!!!!!!!!!!!
+============================== 3 errors in 0.51s ===============================
