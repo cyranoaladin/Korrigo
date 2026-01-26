@@ -101,11 +101,11 @@ class TestIntegrationReal:
         # 1. Final PDF Gate
         copy.status = Copy.Status.LOCKED
         copy.save()
-        resp = client.get(f"/api/copies/{copy.id}/final-pdf/")
+        resp = client.get(f"/api/grading/copies/{copy.id}/final-pdf/")
         assert resp.status_code == 403
         
         # 2. Audit Gate (Teacher OK)
-        resp = client.get(f"/api/copies/{copy.id}/audit/")
+        resp = client.get(f"/api/grading/copies/{copy.id}/audit/")
         assert resp.status_code == 200
 
     def test_student_block_real(self, exam):

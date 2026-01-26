@@ -5,6 +5,7 @@ import Login from '../views/Login.vue'
 import AdminDashboard from '../views/AdminDashboard.vue'
 import CorrectorDashboard from '../views/CorrectorDashboard.vue'
 import ImportCopies from '../views/admin/ImportCopies.vue'
+import LoginStudent from '../views/student/LoginStudent.vue'
 
 const routes = [
     {
@@ -62,7 +63,7 @@ const routes = [
     {
         path: '/student/login',
         name: 'StudentLogin',
-        component: () => import('../views/student/LoginStudent.vue')
+        component: LoginStudent
     },
     {
         path: '/student-portal',

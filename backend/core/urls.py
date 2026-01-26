@@ -11,7 +11,7 @@ urlpatterns = [
     path('api/copies/', include('exams.urls_copies')), # Mission 17
     path('api/students/', include('students.urls')), # Mission 18
     path('api/identification/', include('identification.urls')), # ÉTAPE 1-2: OCR & Identification
-    path('api/', include('grading.urls')),  # Étape 3: Annotations & Grading
+    path('api/grading/', include('grading.urls')),  # Étape 3: Annotations & Grading (Prefix explicit)
     path('api/login/', views.LoginView.as_view(), name='login'),
     path('api/logout/', views.LogoutView.as_view(), name='logout'),
     path('api/me/', views.UserDetailView.as_view(), name='user_detail'),
@@ -41,5 +41,7 @@ if hasattr(settings, 'E2E_SEED_TOKEN') and settings.E2E_SEED_TOKEN:
         path('api/dev/seed/', seed_e2e_endpoint, name='seed_e2e'),
     ]
 
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Patch B: Static media only in DEBUG
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

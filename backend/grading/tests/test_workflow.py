@@ -84,7 +84,7 @@ def test_ready_transition_requires_pages(authenticated_client, exam):
         status=Copy.Status.STAGING
     )
 
-    url = f"/api/copies/{copy.id}/ready/"
+    url = f"/api/grading/copies/{copy.id}/ready/"
     response = authenticated_client.post(url, {}, format="json")
 
     assert response.status_code == 400
@@ -109,7 +109,7 @@ def test_ready_transition_changes_status_and_creates_event(
     from exams.models import Copy
     from grading.models import GradingEvent
 
-    url = f"/api/copies/{staging_copy.id}/ready/"
+    url = f"/api/grading/copies/{staging_copy.id}/ready/"
 
     # Check no events exist yet
     assert GradingEvent.objects.filter(copy=staging_copy).count() == 0
@@ -142,7 +142,7 @@ def test_finalize_works_from_ready(authenticated_client, ready_copy):
     from exams.models import Copy
     from unittest.mock import patch
 
-    url = f"/api/copies/{ready_copy.id}/finalize/"
+    url = f"/api/grading/copies/{ready_copy.id}/finalize/"
     
     # Mock PDF Flattener to avoid file errors/str-path issues in test environment
     with patch('processing.services.pdf_flattener.PDFFlattener.flatten_copy') as mock_flatten:
@@ -164,7 +164,7 @@ def test_lock_transition_success(authenticated_client, ready_copy, admin_user):
     """
     from grading.models import CopyLock
 
-    url = f"/api/copies/{ready_copy.id}/lock/"
+    url = f"/api/grading/copies/{ready_copy.id}/lock/"
     response = authenticated_client.post(url, {}, format="json")
 
     assert response.status_code == 201
@@ -192,7 +192,7 @@ def test_unlock_transition_success(authenticated_client, locked_copy, admin_user
     # We must create the CopyLock manually for the test to delete it
     CopyLock.objects.create(copy=locked_copy, owner=admin_user, expires_at="2099-01-01T00:00Z")
 
-    url = f"/api/copies/{locked_copy.id}/lock/release/"
+    url = f"/api/grading/copies/{locked_copy.id}/lock/release/"
     response = authenticated_client.delete(url) # DELETE
 
     assert response.status_code == 204

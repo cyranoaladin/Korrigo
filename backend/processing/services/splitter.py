@@ -33,32 +33,41 @@ class A3Splitter:
 
         height, width, _ = image.shape
         
+        # Patch C: Functional Split with tempfile
+        import tempfile
+        import os
+
         # Découpage vertical strict à 50%
         mid_x = width // 2
         left_crop = image[:, :mid_x]
         right_crop = image[:, mid_x:]
 
-        # Sauvegarde temporaire pour la détection (HeaderDetector attend un chemin)
-        # Optimisation: HeaderDetector pourrait accepter un ndarray directement.
-        # Pour ce MVP, on suppose que HeaderDetector a été refactorisé ou on garde l'API path.
-        # Modifions HeaderDetector pour accepter une image en mémoire si on pouvait, 
-        # mais respectons l'interface existante. Hack: sauvegarder temp.
+        # Create localized temp file for detection
+        # We need check right crop for Header
+        fd, temp_path = tempfile.mkstemp(suffix=".jpg")
+        os.close(fd) # Close handle so cv2 can write
         
-        # Pour l'instant on réimplémente une logique simple ou on mock.
-        # Utilisons la logique "Right Half has Header => Recto"
-        
-        # Simuler la détection sur la partie DROITE
-        # En prod, on passerait right_crop à detector.detect_header_from_array(right_crop)
-        
-        # Placeholder logic: On assume que create_temp_file est géré ailleurs. 
-        # Ici on retourne les crops.
-        
-        return {
-            'left': left_crop,
-            'right': right_crop,
-            'width': width,
-            'height': height
-        }
+        try:
+             # Logic is delegated to determine_scan_type_and_order
+             # which writes to temp_path and calls detector
+             result = self.determine_scan_type_and_order(left_crop, right_crop, temp_path)
+             
+             # Enrich result with crops if needed by caller (optional but good for debug)
+             # But the contract says 'type' + 'pages'
+             result['has_header'] = (result['type'] == 'RECTO')
+             return result
+             
+        except Exception as e:
+             # Fallback
+             return {
+                 'type': 'UNKNOWN',
+                 'left': left_crop,
+                 'right': right_crop,
+                 'error': str(e)
+             }
+        finally:
+             if os.path.exists(temp_path):
+                 os.unlink(temp_path)
 
     def determine_scan_type_and_order(self, left_img, right_img, temp_right_path: str) -> dict:
         """
