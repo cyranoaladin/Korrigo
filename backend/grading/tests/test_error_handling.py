@@ -72,7 +72,7 @@ def test_value_error_returns_400_detail(authenticated_client, ready_copy):
     Test that ValueError from service layer returns 400 with {"detail": "..."}.
     Trigger: invalid coordinate (w=0).
     """
-    url = f"/api/copies/{ready_copy.id}/annotations/"
+    url = f"/api/grading/copies/{ready_copy.id}/annotations/"
 
     payload = {
         "page_index": 0,
@@ -108,7 +108,7 @@ def test_permission_error_returns_403_detail(authenticated_client, ready_copy, a
     ready_copy.status = Copy.Status.LOCKED
     ready_copy.save()
 
-    url = f"/api/annotations/{annotation.id}/"
+    url = f"/api/grading/annotations/{annotation.id}/"
     response = authenticated_client.delete(url)
 
     # Service raises ValueError, not PermissionError, for state violations
@@ -129,7 +129,7 @@ def test_unexpected_error_returns_500_generic_detail(authenticated_client):
     a consistent response structure where possible.
     """
     # Attempting to access non-existent copy triggers 404 from get_object_or_404
-    url = "/api/copies/not-a-uuid/annotations/"
+    url = "/api/grading/copies/not-a-uuid/annotations/"
 
     payload = {
         "page_index": 0,
@@ -164,14 +164,14 @@ def test_all_workflow_endpoints_use_detail_format(authenticated_client, exam):
     )
 
     # Test ready (expects STAGING)
-    response = authenticated_client.post(f"/api/copies/{copy.id}/ready/", {}, format="json")
+    response = authenticated_client.post(f"/api/grading/copies/{copy.id}/ready/", {}, format="json")
     assert response.status_code == 400
     assert "detail" in response.data
     assert "error" not in response.data
 
     # Test lock (expects READY, but now C3 allows lock anywhere or checks differently)
     # The view returns 201 Created now.
-    response = authenticated_client.post(f"/api/copies/{copy.id}/lock/", {}, format="json")
+    response = authenticated_client.post(f"/api/grading/copies/{copy.id}/lock/", {}, format="json")
     if response.status_code == 201:
         assert "status" in response.data
     else:
@@ -182,7 +182,7 @@ def test_all_workflow_endpoints_use_detail_format(authenticated_client, exam):
 
 
     # Test finalize (expects LOCKED)
-    response = authenticated_client.post(f"/api/copies/{copy.id}/finalize/", {}, format="json")
+    response = authenticated_client.post(f"/api/grading/copies/{copy.id}/finalize/", {}, format="json")
     assert response.status_code == 400
     assert "detail" in response.data
     assert "error" not in response.data
@@ -193,7 +193,7 @@ def test_missing_required_field_returns_400_detail(authenticated_client, ready_c
     """
     Test that missing required fields return 400 with {"detail": "..."}.
     """
-    url = f"/api/copies/{ready_copy.id}/annotations/"
+    url = f"/api/grading/copies/{ready_copy.id}/annotations/"
 
     payload = {
         # Missing: page_index, x, y, w, h
@@ -214,7 +214,7 @@ def test_unauthenticated_request_returns_403(api_client, ready_copy):
     Test that unauthenticated requests to protected endpoints return 403.
     All grading endpoints require IsTeacherOrAdmin permission.
     """
-    url = f"/api/copies/{ready_copy.id}/annotations/"
+    url = f"/api/grading/copies/{ready_copy.id}/annotations/"
 
     payload = {
         "page_index": 0,
@@ -239,7 +239,7 @@ def test_non_staff_user_returns_403(api_client, regular_user, ready_copy):
     """
     api_client.force_authenticate(user=regular_user)
 
-    url = f"/api/copies/{ready_copy.id}/annotations/"
+    url = f"/api/grading/copies/{ready_copy.id}/annotations/"
 
     payload = {
         "page_index": 0,

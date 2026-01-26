@@ -1,5 +1,9 @@
-from rest_framework import viewsets, status, generics
+from rest_framework import viewsets, status, generics, serializers # Added serializers import
 from rest_framework.views import APIView
+
+# ... (omitted)
+
+
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
@@ -26,7 +30,7 @@ class ExamUploadView(APIView):
             try:
                 from processing.services.pdf_splitter import PDFSplitter
 
-                splitter = PDFSplitter(pages_per_booklet=4, dpi=150)
+                splitter = PDFSplitter(dpi=150)
                 booklets = splitter.split_exam(exam)
 
                 # Créer les copies en statut STAGING (ADR-003)
@@ -102,41 +106,70 @@ class ExamListView(generics.ListCreateAPIView):
     queryset = Exam.objects.all().order_by('-date')
     serializer_class = ExamSerializer
 
-class BookletHeaderView(APIView):
-    """
-    Serves the header crop of a booklet on-the-fly.
-    """
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+class BookletDetailView(generics.RetrieveDestroyAPIView):
+    queryset = Booklet.objects.all()
+    serializer_class = BookletSerializer
+    permission_classes = [IsTeacherOrAdmin]
+    lookup_field = 'id'
 
-    def get(self, request, id):
+    def perform_destroy(self, instance):
+        # Mission 1.3: Prevent modification if attached to a locked/graded copy
+        if instance.assigned_copy.exclude(status=Copy.Status.STAGING).exists():
+             raise 	serializers.ValidationError(
+                 {"error": _("Impossible de supprimer un fascicule associé à une copie validée ou corrigée.")}
+             )
+        instance.delete()
+
+class BookletSplitView(APIView):
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, id):
         booklet = get_object_or_404(Booklet, id=id)
+        
+        # Mission 1.3: Protocol Enforce
+        if booklet.assigned_copy.exclude(status=Copy.Status.STAGING).exists():
+             return Response(
+                 {"error": _("Impossible de scinder un fascicule associé à une copie validée.")},
+                 status=status.HTTP_403_FORBIDDEN
+             )
+
         if not booklet.exam.pdf_source:
              return Response({"error": "No PDF source found"}, status=status.HTTP_404_NOT_FOUND)
         
+        # Determine source page index
+        page_index = booklet.start_page - 1
+        
+        import tempfile
+        import os
+        from processing.services.splitter import A3Splitter
+
         try:
             doc = fitz.open(booklet.exam.pdf_source.path)
-            # Pages are 0-indexed in fitz, 1-indexed in DB
-            page_index = booklet.start_page - 1
-            
             if page_index < 0 or page_index >= doc.page_count:
                 return Response({"error": "Page out of range"}, status=status.HTTP_404_NOT_FOUND)
                 
             page = doc.load_page(page_index)
+            pix = page.get_pixmap(dpi=150)
             
-            # Crop Header (Top 20%)
-            rect = page.rect
-            rect.y1 *= 0.2
+            fd, temp_path = tempfile.mkstemp(suffix=".png")
+            os.close(fd)
+            pix.save(temp_path)
             
-            # Render to Pixmap
-            pix = page.get_pixmap(clip=rect, dpi=150) # 150 DPI for reasonable quality/speed
-            img_data = pix.tobytes("png")
+            # Use Splitter Service
+            splitter = A3Splitter()
+            result = splitter.process_scan(temp_path)
             
-            from django.http import HttpResponse
-            return HttpResponse(img_data, content_type="image/png")
+            return Response({
+                "message": "Split analysis complete",
+                "type": result.get('type'),
+                "has_header": result.get('has_header', False)
+            }, status=status.HTTP_200_OK)
             
         except Exception as e:
-            print(f"Error rendering header: {e}")
-            return Response({"error": "Rendering failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        finally:
+            if 'temp_path' in locals() and os.path.exists(temp_path):
+                os.unlink(temp_path)
 
 class ExamDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
@@ -236,7 +269,9 @@ class CSVExportView(APIView):
         # Better: iterate all possible keys from exam.grading_structure if possible.
         # MVP: AnonymousID, Total, JSON_Scores
         
-        header = ['AnonymousID', 'Total']
+        # Mission 3.2: Explicit Mapping
+        header = ['AnonymousID', 'Student Name', 'Status', 'Total']
+        
         # Attempt to find all keys
         all_keys = set()
         for c in copies:
@@ -251,10 +286,16 @@ class CSVExportView(APIView):
             score_obj = c.scores.first()
             data = score_obj.scores_data if score_obj else {}
             
+            # Mission 3.2: Student Name
+            student_name = "Inconnu"
+            if c.is_identified and c.student:
+                 # Check if Student model has name/first_name or just string representation
+                 student_name = str(c.student) 
+            
             # Calculate total
             total = sum(float(v) for v in data.values() if v)
             
-            row = [c.anonymous_id, total]
+            row = [c.anonymous_id, student_name, c.get_status_display(), total]
             for k in sorted_keys:
                 row.append(data.get(k, ''))
             writer.writerow(row)
@@ -348,7 +389,7 @@ class StudentCopiesView(generics.ListAPIView):
                 "date": copy.exam.date,
                 "total_score": total_score,
                 "status": copy.status,
-                "final_pdf_url": f"/api/copies/{copy.id}/final-pdf/" if copy.final_pdf else None,
+                "final_pdf_url": f"/api/grading/copies/{copy.id}/final-pdf/" if copy.final_pdf else None,
                 "scores_details": scores_data
             })
         return Response(data)
@@ -367,7 +408,7 @@ class ExamSourceUploadView(APIView):
             # Trigger Processing
             try:
                 from processing.services.pdf_splitter import PDFSplitter
-                splitter = PDFSplitter(pages_per_booklet=4, dpi=150)
+                splitter = PDFSplitter(dpi=150)
                 booklets = splitter.split_exam(exam)
                 
                 # Create Copies (Staging)

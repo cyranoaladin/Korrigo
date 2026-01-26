@@ -17,7 +17,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import transaction
-from exams.models import Exam, Copy, Booklet
+from exams.models import Exam, Booklet, Copy
+from students.models import Student
 from grading.models import GradingEvent
 from pathlib import Path
 
@@ -93,9 +94,11 @@ def _png_bytes_page():
         )
 
 
+from core.auth import UserRole
+
 def ensure_teacher(username="prof1", password="password"):
     """Crée ou récupère un teacher E2E."""
-    teachers, _ = Group.objects.get_or_create(name="Teachers")
+    teachers, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
     u, created = User.objects.get_or_create(
         username=username, 
         defaults={"email": f"{username}@example.com"}
@@ -208,6 +211,19 @@ def main():
             "metadata": {"seed": True, "e2e": True}
         }
     )
+
+    # 4b. Deterministic "Other Student" for Security Tests (avoid timeouts)
+    other_student_user, _ = User.objects.get_or_create(username="other_student", defaults={"email": "other@example.com"})
+    other_student, _ = Student.objects.get_or_create(ine="987654321", defaults={"user": other_student_user, "last_name": "OTHER", "first_name": "Student"})
+    
+    other_copy = Copy.objects.create(
+        exam=exam,
+        anonymous_id="E2E-OTHER",
+        status=Copy.Status.READY,
+        is_identified=True,
+        student=other_student
+    )
+    print(f"  ✓ Other Copy created: {other_copy.id} (student={other_student.ine})")
 
     # 5. Trigger Gate 4 Seed (si disponible)
     try:

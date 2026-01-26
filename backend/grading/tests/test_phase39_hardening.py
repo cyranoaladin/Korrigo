@@ -84,7 +84,7 @@ class TestPhase39Hardening(TransactionTestCase):
 
     def test_audit_endpoint_requires_staff(self):
         copy = Copy.objects.create(exam=self.exam, anonymous_id="AUDIT-TEST", status=Copy.Status.READY)
-        url = f"/api/copies/{copy.id}/audit/"
+        url = f"/api/grading/copies/{copy.id}/audit/"
 
         # Student -> 403
         self.client.force_login(self.student_user)
@@ -103,7 +103,7 @@ class TestPhase39Hardening(TransactionTestCase):
         copy.save()
         
         try:
-            url = f"/api/copies/{copy.id}/final-pdf/"
+            url = f"/api/grading/copies/{copy.id}/final-pdf/"
             self.client.force_authenticate(user=self.teacher_user)
             
             # LOCKED -> 403

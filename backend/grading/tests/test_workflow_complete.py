@@ -58,7 +58,7 @@ class TestWorkflowComplete(TransactionTestCase):
         copy.save()
         
         # 2. LOCK (New C3 Requirement: Must lock before annotating)
-        resp = self.client.post(f"/api/copies/{copy_id}/lock/", {}, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy_id}/lock/", {}, format='json')
         self.assertEqual(resp.status_code, 201)
         
         # 3. ANNOTATE (CRUD)
@@ -70,7 +70,7 @@ class TestWorkflowComplete(TransactionTestCase):
             "content": "Good job",
             "score_delta": 2
         }
-        resp = self.client.post(f"/api/copies/{copy_id}/annotations/", ann_data, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy_id}/annotations/", ann_data, format='json')
         self.assertEqual(resp.status_code, 201)
         ann1_id = resp.data['id']
 
@@ -82,27 +82,27 @@ class TestWorkflowComplete(TransactionTestCase):
             "content": "Typo",
             "score_delta": -1
         }
-        resp = self.client.post(f"/api/copies/{copy_id}/annotations/", ann_data2, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy_id}/annotations/", ann_data2, format='json')
         self.assertEqual(resp.status_code, 201)
         ann2_id = resp.data['id']
         
         # Update (PATCH)
-        resp = self.client.patch(f"/api/annotations/{ann1_id}/", {"score_delta": 3}, format='json')
+        resp = self.client.patch(f"/api/grading/annotations/{ann1_id}/", {"score_delta": 3}, format='json')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data['score_delta'], 3)
         
         # Delete
-        resp = self.client.delete(f"/api/annotations/{ann2_id}/")
+        resp = self.client.delete(f"/api/grading/annotations/{ann2_id}/")
         self.assertEqual(resp.status_code, 204)
         self.assertEqual(Annotation.objects.count(), 1) # Only ann1 remains
         
         # Verify Lock enforcement (Cannot create annotation WITHOUT lock?) 
         # Release lock
-        resp = self.client.delete(f"/api/copies/{copy_id}/lock/release/")
+        resp = self.client.delete(f"/api/grading/copies/{copy_id}/lock/release/")
         self.assertEqual(resp.status_code, 204)
         
         # Now try to annotate -> Should fail 403 (Write Requires Lock)
-        resp = self.client.post(f"/api/copies/{copy_id}/annotations/", ann_data, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy_id}/annotations/", ann_data, format='json')
         self.assertEqual(resp.status_code, 403)
         
         # Re-acquire lock for Finalize?
@@ -111,7 +111,7 @@ class TestWorkflowComplete(TransactionTestCase):
         copy.save()
         
         # 4. FINALIZE
-        resp = self.client.post(f"/api/copies/{copy_id}/finalize/", {}, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy_id}/finalize/", {}, format='json')
         self.assertEqual(resp.status_code, 200)
         copy.refresh_from_db()
         self.assertEqual(copy.status, Copy.Status.GRADED)
@@ -128,7 +128,7 @@ class TestWorkflowComplete(TransactionTestCase):
         self.assertGreater(copy.final_pdf.size, 0)
         copy.final_pdf.close()
 
-        url = f"/api/copies/{copy_id}/final-pdf/"
+        url = f"/api/grading/copies/{copy_id}/final-pdf/"
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp['Content-Type'], 'application/pdf')
@@ -189,13 +189,13 @@ class TestWorkflowComplete(TransactionTestCase):
             "page_index": 0, "x": 0.1, "y": 0.1, "w": 0.1, "h": 0.1,
             "type": Annotation.Type.COMMENT, "content": "Hacker"
         }
-        resp = self.client.post(f"/api/copies/{copy.id}/annotations/", ann_data, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy.id}/annotations/", ann_data, format='json')
         self.assertEqual(resp.status_code, 403)
         
         # 3. LOCK denied
-        resp = self.client.post(f"/api/copies/{copy.id}/lock/", {}, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy.id}/lock/", {}, format='json')
         self.assertEqual(resp.status_code, 403)
         
         # 4. FINALIZE denied
-        resp = self.client.post(f"/api/copies/{copy.id}/finalize/", {}, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy.id}/finalize/", {}, format='json')
         self.assertEqual(resp.status_code, 403)

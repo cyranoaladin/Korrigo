@@ -22,13 +22,13 @@ test.describe('Corrector Flow & Robustness', () => {
         });
 
         // 1. LOGIN
-        await page.goto('http://127.0.0.1:8088/login');
+        await page.goto('/teacher/login');
         await page.fill('input[type="text"]', 'prof1');
         await page.fill('input[type="password"]', 'password');
         await page.click('button[type="submit"]');
 
         // Wait for Dashboard
-        await expect(page).toHaveURL('http://127.0.0.1:8088/corrector-dashboard');
+        await expect(page).toHaveURL(/\/corrector-dashboard/);
 
         // 2. OPEN COPY
         // Verify Dashboard Loaded

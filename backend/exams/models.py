@@ -28,6 +28,11 @@ class Exam(models.Model):
         ],
         help_text=_("Fichier PDF uniquement. Taille max: 50 MB, 500 pages max")
     )
+    pages_per_booklet = models.PositiveIntegerField(
+        default=4,
+        verbose_name=_("Pages par fascicule"),
+        help_text=_("Nombre de pages par copie/fascicule pour le découpage automatique.")
+    )
     grading_structure = models.JSONField(default=list, blank=True, verbose_name=_("Barème (Structure JSON)"))
     is_processed = models.BooleanField(default=False, verbose_name=_("Traité ?"))
     

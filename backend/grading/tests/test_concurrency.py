@@ -58,7 +58,7 @@ class TestConcurrency:
         
         # User A saves
         resp_a = client.patch(
-            f"/api/annotations/{ann.id}/", 
+            f"/api/grading/annotations/{ann.id}/", 
             {"content": "Update A", "score_delta": 5}, 
             format='json'
         )
@@ -66,7 +66,7 @@ class TestConcurrency:
         
         # User B saves (blind overwrite)
         resp_b = client.patch(
-            f"/api/annotations/{ann.id}/", 
+            f"/api/grading/annotations/{ann.id}/", 
             {"content": "Update B", "score_delta": 10}, 
             format='json'
         )

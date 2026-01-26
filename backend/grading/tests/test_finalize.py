@@ -96,7 +96,7 @@ def test_finalize_sets_status_graded(authenticated_client, locked_copy_with_anno
     from exams.models import Copy
 
     copy = locked_copy_with_annotation
-    url = f"/api/copies/{copy.id}/finalize/"
+    url = f"/api/grading/copies/{copy.id}/finalize/"
 
     with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
         mock_flatten.return_value = None # Success
@@ -117,7 +117,7 @@ def test_finalize_sets_final_pdf_field(authenticated_client, locked_copy_with_an
     Note: May fail if pages_images paths are fake.
     """
     copy = locked_copy_with_annotation
-    url = f"/api/copies/{copy.id}/finalize/"
+    url = f"/api/grading/copies/{copy.id}/finalize/"
 
     def mock_flatten_side_effect(copy_obj):
         from django.core.files.base import ContentFile
@@ -142,10 +142,10 @@ def test_finalize_sets_final_pdf_field(authenticated_client, locked_copy_with_an
 @pytest.mark.unit
 def test_final_pdf_endpoint_404_when_missing(authenticated_client, locked_copy_with_annotation):
     """
-    Test GET /api/copies/<id>/final-pdf/ returns 404 when final_pdf is not set.
+    Test GET /api/grading/copies/<id>/final-pdf/ returns 404 when final_pdf is not set.
     """
     copy = locked_copy_with_annotation
-    url = f"/api/copies/{copy.id}/final-pdf/"
+    url = f"/api/grading/copies/{copy.id}/final-pdf/"
 
     response = authenticated_client.get(url)
 
@@ -157,10 +157,10 @@ def test_final_pdf_endpoint_404_when_missing(authenticated_client, locked_copy_w
 @pytest.mark.unit
 def test_final_pdf_endpoint_200_when_present(authenticated_client, graded_copy_with_pdf):
     """
-    Test GET /api/copies/<id>/final-pdf/ returns 200 with PDF content when final_pdf exists.
+    Test GET /api/grading/copies/<id>/final-pdf/ returns 200 with PDF content when final_pdf exists.
     """
     copy = graded_copy_with_pdf
-    url = f"/api/copies/{copy.id}/final-pdf/"
+    url = f"/api/grading/copies/{copy.id}/final-pdf/"
 
     try:
         response = authenticated_client.get(url)
@@ -203,7 +203,7 @@ def test_finalize_computes_score_from_annotations(authenticated_client, locked_c
         created_by=admin_user
     )
 
-    url = f"/api/copies/{copy.id}/finalize/"
+    url = f"/api/grading/copies/{copy.id}/finalize/"
     
     
     def mock_flatten_side_effect(copy_obj):
@@ -239,7 +239,7 @@ def test_finalize_creates_grading_event(authenticated_client, locked_copy_with_a
     from grading.models import GradingEvent
 
     copy = locked_copy_with_annotation
-    url = f"/api/copies/{copy.id}/finalize/"
+    url = f"/api/grading/copies/{copy.id}/finalize/"
 
     initial_count = GradingEvent.objects.filter(copy=copy).count()
 
