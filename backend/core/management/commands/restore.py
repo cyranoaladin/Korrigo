@@ -7,7 +7,7 @@ from django.core import serializers
 from django.db import transaction
 
 
-class RestoreCommand(BaseCommand):
+class Command(BaseCommand):
     help = 'Restore database and media files from backup'
 
     def add_arguments(self, parser):
@@ -71,19 +71,55 @@ class RestoreCommand(BaseCommand):
                         if hasattr(model, '_meta') and model._meta.managed:
                             model.objects.all().delete()
                     
-                    # Load data
+                    # Load and deserialize data
                     with open(db_backup_path, 'r') as f:
                         data = json.load(f)
                     
-                    # Deserialize and save
+                    objects_to_save = []
                     for item in data:
                         try:
-                            obj = serializers.deserialize('json', json.dumps([item]))
-                            for obj_instance in obj:
-                                obj_instance.save()
+                            # deserialize returns a generator
+                            for obj in serializers.deserialize('json', json.dumps([item])):
+                                objects_to_save.append(obj)
                         except Exception as e:
-                            self.stderr.write(f"Error restoring object: {e}")
+                            self.stderr.write(f"Error deserializing object: {e}")
                             continue
+
+                    # Multi-pass insertion to resolve FK dependencies (Topological Sort approximation)
+                    pending_objects = objects_to_save
+                    max_passes = 15
+                    pass_num = 1
+                    
+                    self.stdout.write(f"Starting restoration of {len(pending_objects)} objects...")
+                    
+                    while pending_objects and pass_num <= max_passes:
+                        next_pending = []
+                        saved_count = 0
+                        
+                        for obj_wrapper in pending_objects:
+                            try:
+                                # Try to save
+                                with transaction.atomic():
+                                    obj_wrapper.save()
+                                saved_count += 1
+                            except Exception as e:
+                                # Keep for next pass
+                                next_pending.append(obj_wrapper)
+                        
+                        if saved_count == 0 and next_pending:
+                            # We are stuck
+                            self.stderr.write(f"Pass {pass_num}: No progress made. {len(next_pending)} objects failed to save.")
+                            self.stderr.write(f"Sample failure: {next_pending[0].object}")
+                            break
+                            
+                        self.stdout.write(f"Pass {pass_num}: Saved {saved_count} objects. {len(next_pending)} remaining.")
+                        pending_objects = next_pending
+                        pass_num += 1
+                        
+                    if pending_objects:
+                        self.stderr.write(f"Restore incomplete! {len(pending_objects)} objects could not be restored.")
+                    else:
+                        self.stdout.write("Database restored successfully")
                     
                     self.stdout.write("Database restored successfully")
                 else:
