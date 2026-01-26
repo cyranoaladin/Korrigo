@@ -1,28 +1,37 @@
-# CI Workflows
+# CI Workflows - Korrigo PMF
 
-## Quality Gate Workflow (`quality_gate.yml`)
+## Deployable Gate Workflow (`korrigo-ci.yml`)
 
-Triggers on `push` to `main` and all `pull_request` events.
+Triggers on `push` to `main`, `master`, `develop` and all `pull_request` events.
 
 ### Jobs
 
-1.  **Backend Quality**
-    - **Lint**: `ruff check .`
-    - **Typecheck**: `mypy .`
-    - **Tests**: `pytest -W error` (Strict Mode)
-    - **Deploy Check**: `python manage.py check --deploy`
+1.  **Likn (Backend)**
+    - **Tools**: `flake8`
+    - **Checks**: Syntax errors, cyclomatic complexity (<10), line length (<127).
 
-2.  **Frontend Quality**
-    - **Install**: `pnpm install --frozen-lockfile`
-    - **Lint**: `pnpm lint`
-    - **Typecheck**: `pnpm typecheck`
-    - **Build**: `pnpm build` (Fail on warnings)
+2.  **Unit Tests (pytest)**
+    - **Environment**: Python 3.9, Tesseract OCR installed.
+    - **Scope**: All unit tests (`pytest -q`).
+    - **Dependencies**: `requirements.txt`.
 
-3.  **E2E (Prod-Like)**
-    - **Setup**: Docker Compose Up.
-    - **Run**: Playwright tests against `localhost:8080`.
-    - **Artifacts**: Upload video/trace on failure.
+3.  **Security**
+    - **Dependency Audit**: `pip-audit`.
+    - **Static Analysis**: `bandit` (scans for security issues).
+
+4.  **Integration (Gate)**
+    - **Scope**: Critical Workflows (Grading, Workflow Complete, PDF Validators, Audit).
+    - **Environment**: Python 3.9, Tesseract OCR.
+    - **Cmd**: `pytest grading/tests/test_workflow_complete.py ...`
+
+5.  **Packaging**
+    - **Action**: Build Docker Image (`korrigo-backend:ci`).
+
+6.  **Deployable Gate**
+    - **Condition**: All previous jobs must pass.
+    - **Output**: "DEPLOYABLE: all CI gates passed."
 
 ### Acceptance Criteria
 - All jobs MUST pass (Green).
-- No skipped tests allowed without explicit exemption.
+- Tests run on Python 3.9.
+- No high-severity security vulnerabilities.

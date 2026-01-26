@@ -17,10 +17,8 @@ superuser:
 	docker-compose -f infra/docker/docker-compose.prod.yml run --rm backend python manage.py createsuperuser
 
 test:
-	@echo "Running Backend Unit Tests..."
-	docker-compose -f infra/docker/docker-compose.prod.yml exec -T backend python manage.py test exams
-	@echo "\nRunning E2E Integration Script..."
-	python3 scripts/test_e2e.py
+	@echo "Running Full Test Suite (Unit, Integration, E2E)..."
+	docker-compose -f infra/docker/docker-compose.prod.yml exec -T backend pytest
 
 shell:
 	docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manage.py shell
