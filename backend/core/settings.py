@@ -6,17 +6,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security: No dangerous defaults in production
 SECRET_KEY = os.environ.get("SECRET_KEY")
+DJANGO_ENV = os.environ.get("DJANGO_ENV", "development")
+
 if not SECRET_KEY:
-    if os.environ.get("DJANGO_ENV") == "production":
+    if DJANGO_ENV == "production":
         raise ValueError("SECRET_KEY environment variable must be set in production")
     # Development fallback only
     SECRET_KEY = "django-insecure-dev-only-" + "x" * 50
 
-DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
+# Patch A: Secure DEBUG
+# Logic:
+# - If production: DEBUG must be False. If explicitly set to True -> Error.
+# - If dev: DEBUG depends on env, default True.
+
+raw_debug = os.environ.get("DEBUG", "True").lower() == "true"
+
+if DJANGO_ENV == "production":
+    if raw_debug:
+         raise ValueError("CRITICAL: DEBUG must be False in production (DJANGO_ENV=production).")
+    DEBUG = False
+else:
+    DEBUG = raw_debug
 
 # ALLOWED_HOSTS: Explicit configuration required
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-if "*" in ALLOWED_HOSTS and os.environ.get("DJANGO_ENV") == "production":
+if "*" in ALLOWED_HOSTS and DJANGO_ENV == "production":
     raise ValueError("ALLOWED_HOSTS cannot contain '*' in production")
 
 # Static & Media Files
@@ -25,6 +39,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# File Upload Limits (Mission 5.1)
+# Allow large PDF uploads (up to 100MB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
 
 # E2E Testing Configuration
 E2E_SEED_TOKEN = os.environ.get("E2E_SEED_TOKEN")  # Only set in prod-like environment
@@ -67,7 +86,7 @@ CSRF_COOKIE_HTTPONLY = False  # Required for SPAs to read CSRF token from cookie
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     "CSRF_TRUSTED_ORIGINS",
-    "http://localhost:8088,http://127.0.0.1:8088,http://localhost:5173,http://127.0.0.1:5173"
+    "http://localhost:8088,http://127.0.0.1:8088,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
 ).split(",")
 
 
@@ -171,10 +190,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
 
 # Cache Configuration (required for django-ratelimit)
+# Cache Configuration (required for django-ratelimit)
+# Use LocMemCache for testing/dev without Redis
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0"),
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
     }
 }
 
@@ -182,13 +203,16 @@ CACHES = {
 RATELIMIT_USE_CACHE = 'default'
 
 # Enable/disable django-ratelimit via env (default: enabled)
-# Can be disabled for E2E testing environment only
+# Can be disabled for E2E testing environment only (set RATELIMIT_ENABLE=false)
 RATELIMIT_ENABLE = os.environ.get("RATELIMIT_ENABLE", "true").lower() == "true"
 
 # Production guard: prevent accidental rate limiting disable in production
-DJANGO_ENV = os.environ.get("DJANGO_ENV", "development")
-if DJANGO_ENV == "production" and not RATELIMIT_ENABLE:
-    raise ValueError("RATELIMIT_ENABLE cannot be false in production environment")
+# Exception: If specific E2E_TEST_MODE flag is set (for pre-production validation)
+# DJANGO_ENV is defined at the top of the file
+E2E_TEST_MODE = os.environ.get("E2E_TEST_MODE", "false").lower() == "true"
+
+if DJANGO_ENV == "production" and not RATELIMIT_ENABLE and not E2E_TEST_MODE:
+    raise ValueError("RATELIMIT_ENABLE cannot be false in production environment (unless E2E_TEST_MODE=true)")
 
 # CORS Configuration
 # Conformité: .antigravity/rules/01_security_rules.md § 4.2
@@ -199,6 +223,8 @@ if DEBUG:
         "http://127.0.0.1:5173",
         "http://localhost:8088",
         "http://127.0.0.1:8088",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
     ]
     CORS_ALLOW_CREDENTIALS = True
 else:

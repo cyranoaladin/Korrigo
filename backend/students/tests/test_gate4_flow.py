@@ -73,7 +73,7 @@ class TestGate4StudentFlow(TransactionTestCase):
         data = resp.json()
         
         # Should contain ONLY the GRADED owned copy
-        ids = [c['id'] for c in data]
+        ids = [str(c['id']) for c in data]
         self.assertIn(str(self.copy_graded.id), ids)
         self.assertNotIn(str(self.copy_locked.id), ids) # Locked not visible
         self.assertNotIn(str(self.copy_other.id), ids)  # Other not visible
@@ -83,19 +83,24 @@ class TestGate4StudentFlow(TransactionTestCase):
         self.client.post("/api/students/login/", {"ine": "123456789", "last_name": "E2E_STUDENT"})
         
         # 1. Access Own Graded -> 200
-        resp = self.client.get(f"/api/copies/{self.copy_graded.id}/final-pdf/")
+        # Endpoint: /api/grading/copies/{id}/final-pdf/
+        resp = self.client.get(f"/api/grading/copies/{self.copy_graded.id}/final-pdf/")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp['Content-Type'], 'application/pdf')
         if hasattr(resp, 'close'): resp.close()
         
-        # 2. Access Own Locked -> 403 (Not Graded)
-        resp = self.client.get(f"/api/copies/{self.copy_locked.id}/final-pdf/")
-        self.assertEqual(resp.status_code, 403)
+        # 2. Access Own Locked -> 403 (Not Graded) OR 404 (Filtered)
+        # MUST use canonical URL to test security, not routing
+        resp = self.client.get(f"/api/grading/copies/{self.copy_locked.id}/final-pdf/")
+        # 403 Forbidden (Permission) OR 404 Not Found (QuerySet filtering) are both valid security outcomes
+        self.assertIn(resp.status_code, [403, 404])
         if hasattr(resp, 'close'): resp.close()
         
-        # 3. Access Other's Graded -> 403
-        resp = self.client.get(f"/api/copies/{self.copy_other.id}/final-pdf/")
-        self.assertEqual(resp.status_code, 403)
+        # 3. Access Other's Graded -> 403 OR 404
+        # MUST use canonical URL to test security, not routing
+        resp = self.client.get(f"/api/grading/copies/{self.copy_other.id}/final-pdf/")
+        # 403 Forbidden (Permission) OR 404 Not Found (QuerySet filtering) are both valid security outcomes
+        self.assertIn(resp.status_code, [403, 404])
         if hasattr(resp, 'close'): resp.close()
         
     def tearDown(self):
