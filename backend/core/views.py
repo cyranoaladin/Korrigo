@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -9,6 +9,7 @@ from core.utils.ratelimit import maybe_ratelimit
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from core.utils.audit import log_authentication_attempt
+from core.auth import UserRole
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
@@ -63,7 +64,7 @@ class UserDetailView(APIView):
         role = "Teacher"
         if user.is_superuser or user.is_staff:
             role = "Admin"
-        elif user.groups.filter(name="Teachers").exists():
+        elif user.groups.filter(name=UserRole.TEACHER).exists():
             role = "Teacher"
         return Response({
             "id": user.id,
@@ -133,7 +134,7 @@ class UserListView(APIView):
             from django.db.models import Q
             queryset = queryset.filter(Q(is_staff=True) | Q(is_superuser=True))
         elif role == 'Teacher':
-            queryset = queryset.filter(groups__name='Teachers')
+            queryset = queryset.filter(groups__name=UserRole.TEACHER)
         
         users = []
         for u in queryset:
@@ -174,7 +175,7 @@ class UserListView(APIView):
             user.save()
         elif role == 'Teacher':
             from django.contrib.auth.models import Group
-            g, _ = Group.objects.get_or_create(name='Teachers')
+            g, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
             user.groups.add(g)
             
         return Response({"message": "User created", "id": user.id}, status=status.HTTP_201_CREATED)

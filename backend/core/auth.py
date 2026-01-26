@@ -50,6 +50,9 @@ class IsStudent(BasePermission):
     def has_permission(self, request, view):
         if request.user.is_authenticated:
             return request.user.groups.filter(name=UserRole.STUDENT).exists()
+        # Fallback for legacy session auth
+        if request.session.get('student_id'):
+            return True
         return False
 
 class IsAdminOrTeacher(BasePermission):
