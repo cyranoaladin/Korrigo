@@ -137,7 +137,9 @@
             v-if="ocrSuggestions.length > 0"
             class="bg-yellow-50 border border-yellow-200 p-4 rounded mb-4"
           >
-            <h3 class="text-yellow-800 font-bold mb-2">Suggestions OCR:</h3>
+            <h3 class="text-yellow-800 font-bold mb-2">
+              Suggestions OCR:
+            </h3>
             <div
               v-for="(suggestion, index) in ocrSuggestions"
               :key="suggestion.id"
@@ -147,8 +149,8 @@
               {{ suggestion.full_name }} - {{ suggestion.class_name }}
             </div>
             <button
-              @click="clearOCRSuggestions"
               class="mt-2 text-sm text-gray-600 hover:text-gray-800"
+              @click="clearOCRSuggestions"
             >
               Effacer suggestions
             </button>
@@ -173,7 +175,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 
 const auth = useAuthStore()

@@ -482,7 +482,10 @@ onUnmounted(() => {
         v-if="lastSaveStatus"
         class="center-status"
       >
-        <span class="save-indicator" data-testid="save-indicator">
+        <span
+          class="save-indicator"
+          data-testid="save-indicator"
+        >
           Sauvegardé ({{ lastSaveStatus.source === 'LOCAL' ? 'Local' : 'Serveur' }}) à {{ lastSaveStatus.time.toLocaleTimeString() }}
         </span>
       </div>

@@ -65,6 +65,7 @@ const triggerExport = async () => {
             message.value = "Erreur lors de l'export."
         }
     } catch (e) {
+        console.error(e)
         message.value = "Erreur réseau."
     } finally {
         isLoading.value = false
