@@ -31,7 +31,7 @@ class A3Splitter:
         if image is None:
             raise ValueError(_("Impossible de lire l'image : ") + image_path)
 
-        height, width, _ = image.shape
+        height, width, channels = image.shape
         
         # Patch C: Functional Split with tempfile
         import tempfile
