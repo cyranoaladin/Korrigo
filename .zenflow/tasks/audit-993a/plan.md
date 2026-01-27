@@ -127,7 +127,7 @@ Map all state machines, transactions, and data validation.
 
 ---
 
-### [ ] Step: Inventory - Testing & Quality Assurance
+### [x] Step: Inventory - Testing & Quality Assurance
 <!-- chat-id: 1164b6ce-a55f-4001-a14c-da6596e96928 -->
 Inventory all existing tests and identify coverage gaps.
 
@@ -147,6 +147,22 @@ Inventory all existing tests and identify coverage gaps.
 - `.github/workflows/*.yml`
 
 **Deliverable**: Test coverage matrix + gaps analysis
+
+**Status**: ✅ COMPLETED - 2026-01-27
+**Output**: `.zenflow/tasks/audit-993a/INVENTORY_TESTING_QA.md`
+**Key Findings**:
+- 29 backend test files, 137 test functions
+- 3 frontend E2E test files (Playwright), 0 frontend unit tests
+- pytest configured with strict markers, warnings-as-errors
+- Deterministic seed scripts confirmed (2+ students, graded/locked/other states)
+- GitHub Actions CI with 5 stages (backend only)
+- ❌ P0: No coverage enforcement (--cov-fail-under missing)
+- ❌ P0: No frontend unit tests
+- ❌ P0: No E2E in CI
+- ❌ P0: No CSV export tests
+- ⚠️ P1: Marker underutilization (cannot filter unit/integration/e2e reliably)
+- ⚠️ P1: No real concurrency tests (SQLite limitation)
+- ⚠️ P1: Incomplete E2E coverage (teacher/student flows missing)
 
 ---
 
