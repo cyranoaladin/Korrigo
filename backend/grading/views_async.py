@@ -97,13 +97,13 @@ def cancel_task(request, task_id):
     
     Returns:
         200: {"status": "cancelled", "task_id": "..."}
-        400: {"error": "Task already completed"}
+        400: {"detail": "Task already completed"}
     """
     result = AsyncResult(task_id)
     
     if result.state in ['SUCCESS', 'FAILURE']:
         return Response(
-            {'error': 'Task already completed, cannot cancel'},
+            {'detail': 'Task already completed, cannot cancel'},
             status=http_status.HTTP_400_BAD_REQUEST
         )
     
