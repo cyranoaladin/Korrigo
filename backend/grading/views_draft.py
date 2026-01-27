@@ -1,8 +1,35 @@
 from rest_framework import views, status, permissions
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from .models import DraftState, Copy, CopyLock
+from .models import DraftState, CopyLock
+from exams.models import Copy
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _handle_value_error(message: str, context: str):
+    logger.warning(f"{context} ValueError: {message}")
+    return Response({"detail": message}, status=status.HTTP_400_BAD_REQUEST)
+
+
+def _handle_permission_error(message: str, context: str):
+    logger.warning(f"{context} PermissionError: {message}")
+    return Response({"detail": message}, status=status.HTTP_403_FORBIDDEN)
+
+
+def _handle_lock_conflict_error(message: str, context: str):
+    logger.warning(f"{context} LockConflictError: {message}")
+    return Response({"detail": message}, status=status.HTTP_409_CONFLICT)
+
+
+def _handle_unexpected_error(e: Exception, context: str):
+    logger.error(f"{context} Unexpected Error: {e}", exc_info=True)
+    return Response(
+        {"detail": "An unexpected error occurred. Please contact support."},
+        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
 
 class DraftReturnView(views.APIView):
     """
@@ -28,66 +55,70 @@ class DraftReturnView(views.APIView):
              return Response(status=status.HTTP_204_NO_CONTENT)
 
     def put(self, request, copy_id):
-        copy = get_object_or_404(Copy, id=copy_id)
-        
-        # Lock Enforcement
-        token = request.headers.get('X-Lock-Token') or request.data.get('token')
-        
-        # Verify Lock is held by user (and matches token if provided)
+        context = "DraftReturnView.put"
         try:
-            lock = CopyLock.objects.get(copy=copy)
+            copy = get_object_or_404(Copy, id=copy_id)
+
+            token = request.headers.get('X-Lock-Token') or request.data.get('token')
+            if not token:
+                return _handle_permission_error("Missing lock token.", context=context)
+
+            try:
+                lock = CopyLock.objects.select_related("owner").get(copy=copy)
+            except CopyLock.DoesNotExist:
+                return _handle_lock_conflict_error("Lock lost (not found).", context=context)
+
             if lock.owner != request.user:
-                 return Response({"error": "Lock not held by user"}, status=status.HTTP_409_CONFLICT)
-            if token and str(lock.token) != str(token):
-                 return Response({"error": "Lock token mismatch"}, status=status.HTTP_409_CONFLICT)
-        except CopyLock.DoesNotExist:
-             # Lock expired or released
-             return Response({"error": "Lock lost (not found)"}, status=status.HTTP_409_CONFLICT)
+                return _handle_lock_conflict_error("Lock owner mismatch.", context=context)
 
-        payload = request.data.get('payload', {})
-        client_id = request.data.get('client_id')
-        version_client = request.data.get('version')
-        
-        if not client_id:
-            return Response({"error": "client_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Check for existing draft to enforce client_id lock
-        try:
-            existing_draft = DraftState.objects.get(copy=copy, owner=request.user)
-            # Strict Check: If draft exists with ID, request must match
-            if existing_draft.client_id and str(existing_draft.client_id) != str(client_id):
-                 return Response({
-                     "error": "Draft conflict: Modified by another session",
-                     "server_client_id": existing_draft.client_id
-                 }, status=status.HTTP_409_CONFLICT)
-        except DraftState.DoesNotExist:
-            existing_draft = None
+            if str(lock.token) != str(token):
+                return _handle_permission_error("Invalid lock token.", context=context)
 
-        # Create or Update
-        draft, created = DraftState.objects.get_or_create(
-            copy=copy, 
-            owner=request.user,
-            defaults={
-                "payload": payload,
-                "lock_token": token,
-                "client_id": client_id,
-                "version": 1
-            }
-        )
-        
-        if not created:
-            # Update
-            draft.payload = payload
-            draft.lock_token = token
-            draft.client_id = client_id
-            draft.version += 1
-            draft.save()
-            
-        return Response({
-            "status": "SAVED",
-            "version": draft.version,
-            "updated_at": draft.updated_at
-        })
+            payload = request.data.get('payload', {})
+            client_id = request.data.get('client_id')
+
+            if not client_id:
+                return _handle_value_error("client_id is required", context=context)
+
+            try:
+                existing_draft = DraftState.objects.get(copy=copy, owner=request.user)
+                if existing_draft.client_id and str(existing_draft.client_id) != str(client_id):
+                    return _handle_lock_conflict_error(
+                        "Draft conflict: Modified by another session.",
+                        context=context,
+                    )
+            except DraftState.DoesNotExist:
+                pass
+
+            draft, created = DraftState.objects.get_or_create(
+                copy=copy,
+                owner=request.user,
+                defaults={
+                    "payload": payload,
+                    "lock_token": token,
+                    "client_id": client_id,
+                    "version": 1,
+                },
+            )
+
+            if not created:
+                draft.payload = payload
+                draft.lock_token = token
+                draft.client_id = client_id
+                draft.version += 1
+                draft.save()
+
+            return Response({
+                "status": "SAVED",
+                "version": draft.version,
+                "updated_at": draft.updated_at
+            })
+        except (ValueError, KeyError) as e:
+            return _handle_value_error(str(e), context=context)
+        except PermissionError as e:
+            return _handle_permission_error(str(e), context=context)
+        except Exception as e:
+            return _handle_unexpected_error(e, context=context)
 
     def delete(self, request, copy_id):
         """

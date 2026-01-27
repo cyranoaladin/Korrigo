@@ -3,6 +3,7 @@ Tests for annotation coordinate validation (ADR-002) and page_index validation.
 """
 import pytest
 from django.utils import timezone
+import datetime
 from datetime import date
 
 
@@ -34,9 +35,9 @@ def exam_with_copy(db, admin_user):
     
     # Auto-lock for C3
     CopyLock.objects.create(
-        copy=copy, 
-        owner=admin_user, 
-        expires_at=timezone.now() + timezone.timedelta(hours=1)
+        copy=copy,
+        owner=admin_user,
+        expires_at=timezone.now() + datetime.timedelta(hours=1),
     )
 
     return copy

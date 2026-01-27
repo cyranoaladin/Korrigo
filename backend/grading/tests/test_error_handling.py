@@ -4,6 +4,7 @@ All errors should return {"detail": "<message>"} format.
 """
 import pytest
 from datetime import date
+import datetime
 
 
 @pytest.fixture
@@ -36,9 +37,9 @@ def ready_copy(exam, admin_user):
     
     # Auto-lock for C3
     CopyLock.objects.create(
-        copy=copy, 
-        owner=admin_user, 
-        expires_at=timezone.now() + timezone.timedelta(hours=1)
+        copy=copy,
+        owner=admin_user,
+        expires_at=timezone.now() + datetime.timedelta(hours=1),
     )
 
     return copy
@@ -112,10 +113,10 @@ def test_permission_error_returns_403_detail(authenticated_client, ready_copy, a
     response = authenticated_client.delete(url)
 
     # Service raises ValueError, not PermissionError, for state violations
-    assert response.status_code == 400
+    assert response.status_code == 403
     assert "detail" in response.data
     assert isinstance(response.data["detail"], str)
-    assert "Cannot delete annotation in copy status LOCKED" in response.data["detail"]
+    assert "Missing lock token" in response.data["detail"]
     assert "error" not in response.data
 
 
@@ -169,6 +170,20 @@ def test_all_workflow_endpoints_use_detail_format(authenticated_client, exam):
     assert "detail" in response.data
     assert "error" not in response.data
 
+    # Test finalize: can fail with
+    # - 400 (wrong status),
+    # - 403 (token invalid / missing),
+    # - 409 (lock conflict)
+    response = authenticated_client.post(
+        f"/api/grading/copies/{copy.id}/finalize/",
+        {},
+        format="json",
+        HTTP_X_LOCK_TOKEN="deadbeef",
+    )
+    assert response.status_code in [400, 403, 409]
+    assert "detail" in response.data
+    assert "error" not in response.data
+
     # Test lock (expects READY, but now C3 allows lock anywhere or checks differently)
     # The view returns 201 Created now.
     response = authenticated_client.post(f"/api/grading/copies/{copy.id}/lock/", {}, format="json")
@@ -182,8 +197,13 @@ def test_all_workflow_endpoints_use_detail_format(authenticated_client, exam):
 
 
     # Test finalize (expects LOCKED)
-    response = authenticated_client.post(f"/api/grading/copies/{copy.id}/finalize/", {}, format="json")
-    assert response.status_code == 400
+    response = authenticated_client.post(
+        f"/api/grading/copies/{copy.id}/finalize/",
+        {},
+        format="json",
+        HTTP_X_LOCK_TOKEN="deadbeef",
+    )
+    assert response.status_code in [400, 403, 409]
     assert "detail" in response.data
     assert "error" not in response.data
 

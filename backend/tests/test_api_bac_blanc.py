@@ -11,6 +11,7 @@ from grading.models import Annotation, GradingEvent, CopyLock
 from identification.models import OCRResult
 from core.auth import UserRole
 from django.utils import timezone
+import datetime
 import tempfile
 import os
 from PIL import Image
@@ -156,7 +157,7 @@ class BacBlancE2ETest(TestCase):
         lock = CopyLock.objects.create(
             copy=copy,
             owner=self.teacher_user,
-            expires_at=timezone.now() + timezone.timedelta(hours=1)
+            expires_at=timezone.now() + datetime.timedelta(hours=1)
         )
         
         # Update copy status to LOCKED
