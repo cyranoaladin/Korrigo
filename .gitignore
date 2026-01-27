@@ -96,3 +96,4 @@ frontend/e2e/.auth/
 
 # local helpers (do not commit)
 push_korrigo_clean.sh
+push_to_github.sh
