@@ -166,7 +166,7 @@ Inventory all existing tests and identify coverage gaps.
 
 ---
 
-### [ ] Step: Inventory - Production Configuration
+### [x] Step: Inventory - Production Configuration
 <!-- chat-id: 5fbb1243-9dcb-43cb-b716-6a0c55ecd471 -->
 Inventory all production settings, environment variables, and deployment configurations.
 
@@ -187,6 +187,25 @@ Inventory all production settings, environment variables, and deployment configu
 - `docs/DEPLOYMENT_GUIDE.md`
 
 **Deliverable**: Production configuration checklist
+
+**Status**: ✅ COMPLETED - 2026-01-27
+**Output**: `.zenflow/tasks/audit-993a/INVENTORY_PRODUCTION_CONFIG.md`
+**Key Findings**:
+- ✅ Security guards robustes (DEBUG, SECRET_KEY, ALLOWED_HOSTS fail-fast en production)
+- ✅ SSL/HTTPS configurable (SSL_ENABLED), HSTS, secure cookies
+- ✅ CORS/CSRF strict en production, CSP strict, Rate limiting avec production guard
+- ✅ Health checks endpoints (/api/health/, /readyz/ avec DB check)
+- ✅ Docker health checks (db, redis, backend, nginx)
+- ✅ CI/CD mature (korrigo-ci.yml, deploy.yml avec security scans)
+- ✅ Gunicorn configuré (workers auto-scaling, timeout 120s pour PDF)
+- ✅ Logging configuré (settings_prod.py)
+- ❌ P0: Fallback SECRET_KEY dangereux (docker-compose.prod.yml)
+- ❌ P0: SSL_ENABLED=False par défaut en production
+- ❌ P0: Pas de backup automatique media_volume
+- ⚠️ P1: Celery sans health check, Cache LocMemCache (non partagé)
+- ⚠️ P1: Incohérences variables, CONN_MAX_AGE incohérent
+- ⚠️ P1: Pas de rollback automatique, migrations bloquantes
+- 📝 P2: Pas de métriques/APM, alerting, tests E2E dans CI, stockage S3
 
 ---
 
