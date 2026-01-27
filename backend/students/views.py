@@ -127,4 +127,8 @@ class StudentImportView(views.APIView):
             return Response(results)
             
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            from core.utils.errors import safe_error_response
+            return Response(
+                safe_error_response(e, context="CSV import", user_message="Failed to import students. Please check file format."),
+                status=status.HTTP_400_BAD_REQUEST
+            )

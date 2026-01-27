@@ -107,14 +107,19 @@ class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+        
         user = request.user
         password = request.data.get('password')
-        if not password or len(password) < 6:
-            return Response({"error": "Password too short"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            validate_password(password, user=user)
+        except ValidationError as e:
+            return Response({"error": e.messages}, status=status.HTTP_400_BAD_REQUEST)
         
         user.set_password(password)
         user.save()
-        # Updating password logs out all other sessions, usually, but need to keep current session active
         update_session_auth_hash(request, user)
         
         return Response({"message": "Password updated successfully"})
