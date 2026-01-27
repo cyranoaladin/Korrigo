@@ -59,7 +59,7 @@ class Booklet(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(
         Exam, 
-        on_delete=models.CASCADE, 
+        on_delete=models.PROTECT,  # P0-DI-005 FIX: Prevent accidental deletion of booklets
         related_name='booklets',
         verbose_name=_("Examen")
     )
@@ -100,12 +100,14 @@ class Copy(models.Model):
         STAGING = 'STAGING', _("En attente")
         READY = 'READY', _("Prêt à corriger")
         LOCKED = 'LOCKED', _("Verrouillé")
+        GRADING_IN_PROGRESS = 'GRADING_IN_PROGRESS', _("Correction en cours")
+        GRADING_FAILED = 'GRADING_FAILED', _("Échec de correction")
         GRADED = 'GRADED', _("Corrigé")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(
         Exam, 
-        on_delete=models.CASCADE, 
+        on_delete=models.PROTECT,  # P0-DI-005 FIX: Prevent catastrophic deletion of all student data
         related_name='copies',
         verbose_name=_("Examen")
     )
@@ -175,6 +177,19 @@ class Copy(models.Model):
         blank=True,
         verbose_name=_("Date de validation"),
         help_text=_("Timestamp STAGING → READY")
+    )
+    
+    # P0-DI-004: Error tracking for failed grading operations
+    grading_error_message = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name=_("Message d'erreur de correction"),
+        help_text=_("Détails de l'erreur si la correction échoue")
+    )
+    grading_retries = models.IntegerField(
+        default=0,
+        verbose_name=_("Nombre de tentatives"),
+        help_text=_("Nombre de tentatives de correction automatique")
     )
     locked_at = models.DateTimeField(
         null=True,
