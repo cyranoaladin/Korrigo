@@ -56,12 +56,11 @@ class ExamUploadView(APIView):
                 }, status=status.HTTP_201_CREATED)
 
             except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error processing PDF: {e}", exc_info=True)
-                return Response({
-                    "error": f"PDF processing failed: {str(e)}"
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                from core.utils.errors import safe_error_response
+                return Response(
+                    safe_error_response(e, context="PDF processing", user_message="PDF upload failed. Please verify the file is valid."),
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -87,9 +86,13 @@ class CopyImportView(APIView):
              serializer = CopySerializer(copy)
              return Response(serializer.data, status=status.HTTP_201_CREATED)
         except ValueError as e:
-             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+             return Response({'error': 'Invalid PDF file'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-             return Response({'error': f"Internal Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+             from core.utils.errors import safe_error_response
+             return Response(
+                 safe_error_response(e, context="PDF import", user_message="Failed to import PDF. Please try again."),
+                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+             )
 
 
 
@@ -166,7 +169,11 @@ class BookletSplitView(APIView):
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            from core.utils.errors import safe_error_response
+            return Response(
+                safe_error_response(e, context="Page analysis", user_message="Failed to analyze page."),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         finally:
             if 'temp_path' in locals() and os.path.exists(temp_path):
                 os.unlink(temp_path)
@@ -187,7 +194,10 @@ class CopyListView(generics.ListAPIView):
 
     def get_queryset(self):
         exam_id = self.kwargs['exam_id']
-        return Copy.objects.filter(exam_id=exam_id).order_by('anonymous_id')
+        return Copy.objects.filter(exam_id=exam_id)\
+            .select_related('exam', 'student', 'locked_by')\
+            .prefetch_related('booklets', 'annotations__created_by')\
+            .order_by('anonymous_id')
 
 
 class MergeBookletsView(APIView):
@@ -435,7 +445,11 @@ class ExamSourceUploadView(APIView):
                 }, status=status.HTTP_201_CREATED)
                 
             except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                from core.utils.errors import safe_error_response
+                return Response(
+                    safe_error_response(e, context="PDF upload", user_message="Failed to process PDF upload."),
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
         
         return Response({"error": "pdf_source field required"}, status=status.HTTP_400_BAD_REQUEST)
 class CopyValidationView(APIView):
@@ -450,9 +464,13 @@ class CopyValidationView(APIView):
              GradingService.validate_copy(copy, request.user)
              return Response({"message": "Copy validated and ready for grading.", "status": copy.status})
         except ValueError as e:
-             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+             return Response({"error": "Invalid copy state"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+             from core.utils.errors import safe_error_response
+             return Response(
+                 safe_error_response(e, context="Copy validation", user_message="Failed to validate copy."),
+                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+             )
 
 class CorrectorCopiesView(generics.ListAPIView):
     """
@@ -472,7 +490,8 @@ class CorrectorCopyDetailView(generics.RetrieveAPIView):
     """
     Permet au correcteur de récupérer les détails d'une copie spécifique.
     """
-    queryset = Copy.objects.all()
+    queryset = Copy.objects.select_related('exam', 'student', 'locked_by')\
+        .prefetch_related('booklets', 'annotations__created_by')
     serializer_class = CopySerializer
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     lookup_field = 'id'

@@ -46,32 +46,29 @@ class OCRService:
         Effectue l'OCR sur une image d'en-tête
         """
         try:
-            # Charger l'image
-            image = Image.open(header_image_file)
+            with Image.open(header_image_file) as image:
+                if image.mode != 'L':
+                    image = image.convert('L')
 
-            # Convertir en grayscale pour meilleur OCR
-            if image.mode != 'L':  # L = grayscale
-                image = image.convert('L')
+                custom_config = r'--oem 3 --psm 6 -l fra+eng'
+                text = pytesseract.image_to_string(image, config=custom_config)
 
-            # Effectuer OCR
-            custom_config = r'--oem 3 --psm 6 -l fra+eng'
-            text = pytesseract.image_to_string(image, config=custom_config)
+                data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
+                confidences = [int(conf) for conf in data['conf'] if int(conf) > 0]
+                avg_confidence = sum(confidences) / len(confidences) if confidences else 0
 
-            # Calculer la confiance moyenne
-            data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
-            confidences = [int(conf) for conf in data['conf'] if int(conf) > 0]
-            avg_confidence = sum(confidences) / len(confidences) if confidences else 0
-
-            return {
-                'text': text.strip(),
-                'confidence': avg_confidence / 100.0  # Normaliser à [0,1]
-            }
+                return {
+                    'text': text.strip(),
+                    'confidence': avg_confidence / 100.0
+                }
         except Exception as e:
-            # Gérer les erreurs proprement
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"OCR failed: {e}", exc_info=True)
             return {
                 'text': '',
                 'confidence': 0.0,
-                'error': str(e)
+                'error': 'OCR processing failed'
             }
 
     @staticmethod
@@ -79,26 +76,17 @@ class OCRService:
         """
         Trouve les élèves correspondant au texte OCR
         """
-        # Extraire nom/prénom potentiel du texte OCR
+        from django.db.models import Q
+        
         words = ocr_text.upper().split()
         
-        # Chercher des correspondances dans la base élèves
-        suggestions = []
+        q_objects = Q()
         for word in words:
-            if len(word) > 2:  # Mot suffisamment long pour être un nom
-                matches = Student.objects.filter(
-                    last_name__icontains=word
-                )[:5]  # Limiter à 5 suggestions
-                
-                for student in matches:
-                    suggestions.append(student)
+            if len(word) > 2:
+                q_objects |= Q(last_name__icontains=word) | Q(first_name__icontains=word)
         
-        # Retirer les doublons
-        seen_ids = set()
-        unique_suggestions = []
-        for student in suggestions:
-            if student.id not in seen_ids:
-                seen_ids.add(student.id)
-                unique_suggestions.append(student)
+        if q_objects:
+            matches = Student.objects.filter(q_objects).distinct()[:10]
+            return list(matches)
         
-        return unique_suggestions[:10]  # Max 10 suggestions
+        return []
