@@ -1,3 +1,7 @@
+# Production Docker Compose Configuration
+# SECURITY: All secrets MUST be provided via environment variables
+# NO DEFAULT VALUES for production secrets (fail-closed architecture)
+
 services:
   db:
     image: postgres:15-alpine
@@ -5,13 +9,14 @@ services:
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: ${DB_NAME:-viatique}
-      POSTGRES_USER: ${DB_USER:-viatique_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-viatique_password}
+      # CRITICAL: NO DEFAULTS - Fail fast if not set
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "55432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-viatique_user} -d ${DB_NAME:-viatique}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -27,21 +32,25 @@ services:
       - "18000:8000"
     environment:
       DJANGO_SETTINGS_MODULE: core.settings_prod
+      # CRITICAL: SECRET_KEY is required and validated in settings.py
       SECRET_KEY: ${SECRET_KEY}
-      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
-      DB_NAME: ${DB_NAME:-viatique}
-      DB_USER: ${DB_USER:-viatique_user}
-      DB_PASSWORD: ${DB_PASSWORD:-viatique_password}
+      DJANGO_ENV: production
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+      # Database credentials (NO DEFAULTS)
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_HOST: db
       DB_PORT: 5432
       DB_CONN_MAX_AGE: ${DB_CONN_MAX_AGE:-60}
       DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL:-INFO}
-      SECURE_HSTS_SECONDS: ${SECURE_HSTS_SECONDS:-0}
-      SECURE_HSTS_INCLUDE_SUBDOMAINS: ${SECURE_HSTS_INCLUDE_SUBDOMAINS:-false}
-      SECURE_HSTS_PRELOAD: ${SECURE_HSTS_PRELOAD:-false}
+      # SSL/HTTPS settings (explicit configuration)
+      SECURE_HSTS_SECONDS: ${SECURE_HSTS_SECONDS:-31536000}
+      SECURE_HSTS_INCLUDE_SUBDOMAINS: ${SECURE_HSTS_INCLUDE_SUBDOMAINS:-true}
+      SECURE_HSTS_PRELOAD: ${SECURE_HSTS_PRELOAD:-true}
     command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
       interval: 10s
       timeout: 5s
       retries: 10
