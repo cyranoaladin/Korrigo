@@ -122,8 +122,11 @@ onMounted(() => {
           </div>
         </div>
         
-        <div v-if="booklets.length === 0" class="empty-state">
-            Aucun fascicule trouvé.
+        <div
+          v-if="booklets.length === 0"
+          class="empty-state"
+        >
+          Aucun fascicule trouvé.
         </div>
       </div>
     </div>

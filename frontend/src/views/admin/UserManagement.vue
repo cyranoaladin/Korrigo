@@ -162,221 +162,221 @@ const deleteUser = async (user) => {
           class="search-input"
         >
         
-    <div v-if="activeTab === 'students'">
-      <input 
-        ref="fileInput"
-        type="file"
-        accept=".csv,.xml"
-        style="display:none"
-        @change="handleImport"
-      >
-      <button
-        class="btn btn-primary"
-        :disabled="importing"
-        @click="$refs.fileInput.click()"
-      >
-        {{ importing ? 'Import...' : 'Import CSV/XML' }}
-      </button>
-    </div>
-        
-    <div v-else>
-      <button
-        class="btn btn-primary"
-        @click="openCreateModal"
-      >
-        + Ajouter {{ activeTab === 'admins' ? 'Administrateur' : 'Enseignant' }}
-      </button>
-    </div>
-  </div>
-</header>
-
-<div class="tabs">
-  <button 
-    class="tab" 
-    :class="{ active: activeTab === 'students' }"
-    @click="activeTab = 'students'"
-  >
-    Élèves
-  </button>
-  <button
-    class="tab"
-    :class="{ active: activeTab === 'teachers' }"
-    @click="activeTab = 'teachers'"
-  >
-    Enseignants
-  </button>
-  <button
-    class="tab"
-    :class="{ active: activeTab === 'admins' }"
-    @click="activeTab = 'admins'"
-  >
-    Administrateurs
-  </button>
-</div>
-
-<div
-  v-if="loading"
-  class="loading"
->
-  Chargement...
-</div>
-
-<table
-  v-else
-  class="data-table"
->
-  <thead>
-    <tr v-if="activeTab === 'students'">
-      <th>INE</th>
-      <th>Nom</th>
-      <th>Prénom</th>
-      <th>Classe</th>
-      <th>Actions</th>
-    </tr>
-    <tr v-else>
-      <th>Utilisateur</th>
-      <th>Email</th>
-      <th>Statut</th>
-      <th>Dernière Connexion</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr
-      v-for="item in filteredItems"
-      :key="item.id"
-    >
-      <!-- Student Row -->
-      <template v-if="activeTab === 'students'">
-        <td>{{ item.ine }}</td>
-        <td class="font-bold">
-          {{ item.last_name }}
-        </td>
-        <td>{{ item.first_name }}</td>
-        <td>{{ item.class_name }}</td>
-        <td>
-          <button
-            class="btn-sm btn-outline"
-            @click="alert('Détails élève #' + item.id)"
+        <div v-if="activeTab === 'students'">
+          <input 
+            ref="fileInput"
+            type="file"
+            accept=".csv,.xml"
+            style="display:none"
+            @change="handleImport"
           >
-            Voir
+          <button
+            class="btn btn-primary"
+            :disabled="importing"
+            @click="$refs.fileInput.click()"
+          >
+            {{ importing ? 'Import...' : 'Import CSV/XML' }}
           </button>
-        </td>
-      </template>
+        </div>
+        
+        <div v-else>
+          <button
+            class="btn btn-primary"
+            @click="openCreateModal"
+          >
+            + Ajouter {{ activeTab === 'admins' ? 'Administrateur' : 'Enseignant' }}
+          </button>
+        </div>
+      </div>
+    </header>
 
-      <!-- User Row -->
-      <template v-else>
-        <td class="font-bold">
-          {{ item.username }}
-        </td>
-        <td>{{ item.email || '-' }}</td>
-        <td>
-          <span :class="item.is_active ? 'status-active' : 'status-inactive'">
-            {{ item.is_active ? 'Actif' : 'Inactif' }}
-          </span>
-        </td>
-        <td>{{ item.last_login ? new Date(item.last_login).toLocaleDateString() : 'Jamais' }}</td>
-        <td>
-          <div class="btn-group">
-            <button
-              class="btn-sm btn-outline"
-              @click="openEditModal(item)"
-            >
-              Éditer
-            </button>
-            <button
-              class="btn-sm btn-danger"
-              @click="deleteUser(item)"
-            >
-              Supprimer
-            </button>
-          </div>
-        </td>
-      </template>
-    </tr>
-    <tr v-if="filteredItems.length === 0">
-      <td
-        colspan="5"
-        class="empty-cell"
+    <div class="tabs">
+      <button 
+        class="tab" 
+        :class="{ active: activeTab === 'students' }"
+        @click="activeTab = 'students'"
       >
-        Aucun résultat trouvé.
-      </td>
-    </tr>
-  </tbody>
-</table>
+        Élèves
+      </button>
+      <button
+        class="tab"
+        :class="{ active: activeTab === 'teachers' }"
+        @click="activeTab = 'teachers'"
+      >
+        Enseignants
+      </button>
+      <button
+        class="tab"
+        :class="{ active: activeTab === 'admins' }"
+        @click="activeTab = 'admins'"
+      >
+        Administrateurs
+      </button>
+    </div>
 
-<!-- Generic Modal for User Creation / Edit -->
-<div 
-  v-if="showModal" 
-  class="modal-overlay"
->
-  <div class="modal-card">
-    <h3>{{ modalMode === 'create' ? 'Ajouter' : 'Modifier' }} un {{ newUser.role === 'Admin' ? 'Administrateur' : 'Enseignant' }}</h3>
-    
-    <div 
-      v-if="modalMode === 'create'" 
-      class="form-group"
+    <div
+      v-if="loading"
+      class="loading"
     >
-      <label>Identifiant (Login)</label>
-      <input 
-        v-model="newUser.username" 
-        type="text" 
-        placeholder="ex: jdupont" 
-        class="form-input" 
-      >
+      Chargement...
     </div>
+
+    <table
+      v-else
+      class="data-table"
+    >
+      <thead>
+        <tr v-if="activeTab === 'students'">
+          <th>INE</th>
+          <th>Nom</th>
+          <th>Prénom</th>
+          <th>Classe</th>
+          <th>Actions</th>
+        </tr>
+        <tr v-else>
+          <th>Utilisateur</th>
+          <th>Email</th>
+          <th>Statut</th>
+          <th>Dernière Connexion</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          v-for="item in filteredItems"
+          :key="item.id"
+        >
+          <!-- Student Row -->
+          <template v-if="activeTab === 'students'">
+            <td>{{ item.ine }}</td>
+            <td class="font-bold">
+              {{ item.last_name }}
+            </td>
+            <td>{{ item.first_name }}</td>
+            <td>{{ item.class_name }}</td>
+            <td>
+              <button
+                class="btn-sm btn-outline"
+                @click="alert('Détails élève #' + item.id)"
+              >
+                Voir
+              </button>
+            </td>
+          </template>
+
+          <!-- User Row -->
+          <template v-else>
+            <td class="font-bold">
+              {{ item.username }}
+            </td>
+            <td>{{ item.email || '-' }}</td>
+            <td>
+              <span :class="item.is_active ? 'status-active' : 'status-inactive'">
+                {{ item.is_active ? 'Actif' : 'Inactif' }}
+              </span>
+            </td>
+            <td>{{ item.last_login ? new Date(item.last_login).toLocaleDateString() : 'Jamais' }}</td>
+            <td>
+              <div class="btn-group">
+                <button
+                  class="btn-sm btn-outline"
+                  @click="openEditModal(item)"
+                >
+                  Éditer
+                </button>
+                <button
+                  class="btn-sm btn-danger"
+                  @click="deleteUser(item)"
+                >
+                  Supprimer
+                </button>
+              </div>
+            </td>
+          </template>
+        </tr>
+        <tr v-if="filteredItems.length === 0">
+          <td
+            colspan="5"
+            class="empty-cell"
+          >
+            Aucun résultat trouvé.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Generic Modal for User Creation / Edit -->
+    <div 
+      v-if="showModal" 
+      class="modal-overlay"
+    >
+      <div class="modal-card">
+        <h3>{{ modalMode === 'create' ? 'Ajouter' : 'Modifier' }} un {{ newUser.role === 'Admin' ? 'Administrateur' : 'Enseignant' }}</h3>
     
-    <div class="form-group">
-      <label>Email (Optionnel)</label>
-      <input 
-        v-model="newUser.email" 
-        type="email" 
-        placeholder="email@exemple.com" 
-        class="form-input" 
-      >
-    </div>
+        <div 
+          v-if="modalMode === 'create'" 
+          class="form-group"
+        >
+          <label>Identifiant (Login)</label>
+          <input 
+            v-model="newUser.username" 
+            type="text" 
+            placeholder="ex: jdupont" 
+            class="form-input" 
+          >
+        </div>
     
-      <div 
-        v-if="modalMode === 'edit'" 
-        class="form-group"
-      >
-      <label>Statut</label>
-      <label class="checkbox-label">
-        <input 
-          v-model="newUser.is_active" 
-          type="checkbox"
-        > 
-        Compte Actif
-      </label>
-    </div>
+        <div class="form-group">
+          <label>Email (Optionnel)</label>
+          <input 
+            v-model="newUser.email" 
+            type="email" 
+            placeholder="email@exemple.com" 
+            class="form-input" 
+          >
+        </div>
     
-    <div class="form-group">
-      <label>Mot de passe {{ modalMode === 'edit' ? '(Laisser vide pour ne pas changer)' : '' }}</label>
-      <input 
-        v-model="newUser.password" 
-        type="password" 
-        placeholder="********" 
-        class="form-input" 
-      >
-    </div>
+        <div 
+          v-if="modalMode === 'edit'" 
+          class="form-group"
+        >
+          <label>Statut</label>
+          <label class="checkbox-label">
+            <input 
+              v-model="newUser.is_active" 
+              type="checkbox"
+            > 
+            Compte Actif
+          </label>
+        </div>
     
-    <div class="modal-actions">
-      <button 
-        class="btn btn-outline"
-        @click="showModal = false"
-      >
-        Annuler
-      </button>
-      <button 
-        class="btn btn-primary"
-        @click="saveUser"
-      >
-        {{ modalMode === 'create' ? 'Créer' : 'Sauvegarder' }}
-      </button>
+        <div class="form-group">
+          <label>Mot de passe {{ modalMode === 'edit' ? '(Laisser vide pour ne pas changer)' : '' }}</label>
+          <input 
+            v-model="newUser.password" 
+            type="password" 
+            placeholder="********" 
+            class="form-input" 
+          >
+        </div>
+    
+        <div class="modal-actions">
+          <button 
+            class="btn btn-outline"
+            @click="showModal = false"
+          >
+            Annuler
+          </button>
+          <button 
+            class="btn btn-primary"
+            @click="saveUser"
+          >
+            {{ modalMode === 'create' ? 'Créer' : 'Sauvegarder' }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
-</div>
-</div>
 </template>
 
 <style scoped>
