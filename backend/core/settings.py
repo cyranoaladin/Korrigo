@@ -127,6 +127,7 @@ REST_FRAMEWORK = {
 
 
 MIDDLEWARE = [
+    'core.middleware.metrics.MetricsMiddleware',
     'csp.middleware.CSPMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -167,20 +168,26 @@ if DEBUG:
         }
     }
 else:
-    DATABASES = {
-        'default': dj_database_url.config(
-            default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-            conn_max_age=600
-        )
-    }
+    db_config = dj_database_url.config(
+        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+        conn_max_age=600
+    )
+    
+    # P0-OP-04: Add database lock timeout protection
+    if db_config.get('ENGINE') == 'django.db.backends.postgresql':
+        db_config['OPTIONS'] = {
+            'connect_timeout': 10,
+            'options': '-c lock_timeout=5000 -c statement_timeout=30000 -c idle_in_transaction_session_timeout=60000'
+        }
+        db_config['CONN_HEALTH_CHECKS'] = True
+    
+    DATABASES = {'default': db_config}
 
 
 
 
 
 
-# Password Validation (ANSSI/CNIL compliant)
-# P1.2: Enforce strong passwords (min 12 chars, no common passwords, no user attributes)
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -188,7 +195,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
         'OPTIONS': {
-            'min_length': 12,  # ANSSI recommends 12+ characters
+            'min_length': 12,
         }
     },
     {
@@ -199,29 +206,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Session Security Configuration
-# P1.3: Session timeout and security settings for GDPR compliance
-SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'  # Faster than pure DB
-
-# Session timeout: 4 hours (reasonable for exam grading workflow)
-SESSION_COOKIE_AGE = 14400  # 4 hours in seconds
-
-# Sessions expire on browser close (GDPR best practice)
-# Note: This provides additional security for shared computers
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+SESSION_COOKIE_AGE = 14400
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-
-# Session cookie security (already configured above based on SSL_ENABLED)
 SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
 
-LANGUAGE_CODE = 'fr-fr'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
-# STATIC_URL is defined at the top
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Logging Configuration
-# P1.1: Structured logging for production monitoring and security auditing
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -238,19 +228,19 @@ LOGGING = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose' if not DEBUG else 'simple',
+            'formatter': 'verbose',
         },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'maxBytes': 10485760,  # 10MB
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'maxBytes': 10485760,
             'backupCount': 10,
             'formatter': 'verbose',
         },
         'audit_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'audit.log',
-            'maxBytes': 10485760,  # 10MB
+            'filename': os.path.join(BASE_DIR, 'logs', 'audit.log'),
+            'maxBytes': 10485760,
             'backupCount': 10,
             'formatter': 'verbose',
         },
@@ -265,26 +255,41 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'django.security': {
-            'handlers': ['console', 'file'],
-            'level': 'WARNING',
-        },
         'grading': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
         },
-        'exams': {
+        'metrics': {
             'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'level': 'WARNING',
+        },
+        'django.security': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
         },
     },
     'root': {
         'handlers': ['console'],
-        'level': 'INFO' if not DEBUG else 'DEBUG',
+        'level': 'INFO',
     }
 }
 
+LANGUAGE_CODE = 'fr-fr'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+# STATIC_URL is defined at the top
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 300
+CELERY_TASK_SOFT_TIME_LIMIT = 270
 
 # Cache Configuration (required for django-ratelimit)
 # Cache Configuration (required for django-ratelimit)
@@ -352,12 +357,11 @@ CORS_ALLOW_HEADERS = [
 # Content Security Policy (CSP)
 # Conformité: Phase 3 - Review sécurité frontend
 if not DEBUG:
-    # CSP stricte en production
     CONTENT_SECURITY_POLICY = {
         'DIRECTIVES': {
             'default-src': ["'self'"],
-            'script-src': ["'self'", "'unsafe-inline'"],
-            'style-src': ["'self'", "'unsafe-inline'"],
+            'script-src': ["'self'"],
+            'style-src': ["'self'"],
             'img-src': ["'self'", "data:", "blob:"],
             'font-src': ["'self'"],
             'connect-src': ["'self'"],
@@ -408,3 +412,95 @@ SPECTACULAR_SETTINGS = {
         {'url': 'https://viatique.example.com', 'description': 'Production'},
     ],
 }
+
+# Logging Configuration (P0-OP-01: Production Readiness)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.environ.get('LOG_FILE', '/var/log/korrigo/django.log'),
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'audit_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.environ.get('AUDIT_LOG_FILE', '/var/log/korrigo/audit.log'),
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 10,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'audit': {
+            'handlers': ['audit_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'grading': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+        },
+        'processing': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+        },
+        'identification': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+        },
+    },
+}
+
+# Error Notification Configuration (P0-OP-02: Production Readiness)
+ADMINS = [
+    ('Admin', os.environ.get('ADMIN_EMAIL', 'admin@example.com')),
+]
+MANAGERS = ADMINS
+
+if not DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.example.com')
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+    SERVER_EMAIL = os.environ.get('SERVER_EMAIL', 'korrigo@example.com')
+    
+    LOGGING['handlers']['mail_admins'] = {
+        'level': 'ERROR',
+        'class': 'django.utils.log.AdminEmailHandler',
+        'filters': ['require_debug_false'],
+    }
+    LOGGING['loggers']['django']['handlers'].append('mail_admins')
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
