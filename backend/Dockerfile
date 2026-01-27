@@ -17,6 +17,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 RUN chmod +x entrypoint.sh
 
+# Ensure logs directory exists with proper permissions
+# P0-OP-01 fix: Logging directory must exist for RotatingFileHandler
+RUN mkdir -p /app/logs && chmod 777 /app/logs
+
 ENTRYPOINT ["/app/entrypoint.sh"]
 
 CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
