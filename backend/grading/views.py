@@ -33,18 +33,15 @@ def _handle_service_error(e, context="API"):
     Formate les erreurs du service layer (ValueError, PermissionError, etc.) en réponses HTTP.
     PermissionError -> 403 Forbidden
     Autres erreurs -> 400 Bad Request
+    Always returns specific error messages for better debugging
     """
-    from django.conf import settings
     logger.warning(f"{context} Service Error: {e}")
     
     if isinstance(e, PermissionError):
         return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
     
-    if settings.DEBUG:
-        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    else:
-        return Response({"detail": "Invalid operation. Please check your input."}, status=status.HTTP_400_BAD_REQUEST)
-
+    # Always return specific error messages, not generic ones
+    return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 def _handle_unexpected_error(e, context="API"):
     """
