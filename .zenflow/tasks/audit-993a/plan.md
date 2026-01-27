@@ -454,19 +454,41 @@ Apply all P0 data integrity fixes in the main repository (NOT in worktree).
 
 ---
 
-### [ ] Step: Apply P0 Operational Fixes
+### [x] Step: Apply P0 Operational Fixes
 <!-- chat-id: 4fa30dc6-c36a-421b-afe3-1cc1ed4c4bef -->
 Apply all P0 operational fixes in the main repository (NOT in worktree).
 
 **Critical Constraint**: ALL changes MUST be made in `/home/alaeddine/viatique__PMF` (main repo), NOT in worktree.
 
 **Actions**:
-- Fix startup validation
-- Add health check endpoints
-- Fix crash recovery mechanisms
-- Add error notifications
+- ✅ Fix startup validation
+- ✅ Add health check endpoints (liveness + readiness probes)
+- ✅ Fix crash recovery mechanisms (recover_stuck_copies command)
+- ✅ Add error notifications (LOGGING + email alerts)
+- ✅ Add database lock timeout protection
+- ✅ Document migration rollback strategy
 
 **Verification**: Test startup, health checks, error scenarios
+
+**Status**: ✅ COMPLETED - 2026-01-27
+**Commit**: 1861601 - "fix(ops): Apply P0 operational fixes for production readiness"
+
+**Changes Applied**:
+- P0-OP-01: LOGGING configuration with rotating file handlers (settings.py)
+- P0-OP-02: Email error notifications via ADMINS + mail_admins handler (settings.py)
+- P0-OP-04: PostgreSQL lock timeout protection (settings.py)
+- P0-OP-05: Crash recovery management command (backend/grading/management/commands/recover_stuck_copies.py)
+- P0-OP-06: Comprehensive migration rollback documentation (docs/DEPLOYMENT_GUIDE.md)
+- P0-OP-07: Enhanced health checks with liveness + readiness probes (views_health.py, urls.py)
+
+**Impact**: 
+- 6 critical operational blockers resolved
+- Observability: structured logging, rotating files, audit logs
+- Error alerting: email notifications for critical failures
+- Database safety: deadlock prevention via timeouts
+- Recovery: automated cleanup of stuck copies
+- Orchestration: K8s-compatible health probes (/api/health/live/, /api/health/ready/)
+- Deployment safety: documented rollback procedures
 
 ---
 
