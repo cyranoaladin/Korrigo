@@ -1,6 +1,8 @@
 from rest_framework import views, status, permissions
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from django.db.models import F
+from django.db import transaction
 from .models import DraftState, CopyLock
 from exams.models import Copy
 import uuid
@@ -102,11 +104,23 @@ class DraftReturnView(views.APIView):
             )
 
             if not created:
-                draft.payload = payload
-                draft.lock_token = token
-                draft.client_id = client_id
-                draft.version += 1
-                draft.save()
+                # P0-DI-002 FIX: Atomic version increment with F() expression
+                updated_count = DraftState.objects.filter(
+                    id=draft.id,
+                    client_id=draft.client_id  # Prevent session conflict
+                ).update(
+                    payload=payload,
+                    lock_token=token,
+                    version=F('version') + 1  # Atomic increment
+                )
+                
+                if updated_count == 0:
+                    return _handle_lock_conflict_error(
+                        "Draft conflict: Modified by another session.",
+                        context=context
+                    )
+                
+                draft.refresh_from_db()
 
             return Response({
                 "status": "SAVED",
