@@ -29,9 +29,11 @@ urlpatterns += [
 ]
 
 # Health check endpoint (always available)
-from core.views_health import health_check
+from core.views_health import health_check, readyz_check
 urlpatterns += [
     path('api/health/', health_check, name='health_check'),
+    path('health/', health_check, name='health_root'),
+    path('readyz/', readyz_check, name='readyz_root'),
 ]
 
 # Dev/E2E endpoints (only if E2E_SEED_TOKEN is set)
