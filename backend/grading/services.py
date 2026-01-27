@@ -572,7 +572,7 @@ class GradingService:
                 action=GradingEvent.Action.FINALIZE,
                 actor=user,
                 metadata={
-                    'error': error_msg,
+                    'detail': error_msg,
                     'retries': copy.grading_retries,
                     'success': False
                 }

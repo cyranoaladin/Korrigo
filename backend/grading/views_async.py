@@ -39,7 +39,7 @@ def task_status(request, task_id):
         200: {
             "task_id": "abc-123",
             "status": "FAILURE",
-            "error": "Failed to generate PDF: ...",
+            "detail": "Failed to generate PDF: ...",
             "traceback": "..."
         }
     """
@@ -65,7 +65,7 @@ def task_status(request, task_id):
         
     elif result.state == 'FAILURE':
         response_data['progress'] = 0
-        response_data['error'] = str(result.info)
+        response_data['detail'] = str(result.info)
         response_data['message'] = 'Task failed'
         
         # Include traceback for debugging (admin only)
