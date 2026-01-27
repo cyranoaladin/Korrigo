@@ -80,6 +80,7 @@ class StudentImportView(views.APIView):
     permission_classes = [IsAuthenticated] # Teacher/Admin only
     parser_classes = [MultiPartParser, FormParser]
 
+    @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request):
         import csv
         import io

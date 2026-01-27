@@ -106,6 +106,7 @@ class GlobalSettingsView(APIView):
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @method_decorator(maybe_ratelimit(key='user', rate='5/h', method='POST', block=True))
     def post(self, request):
         from django.contrib.auth.password_validation import validate_password
         from django.core.exceptions import ValidationError
@@ -155,6 +156,7 @@ class UserListView(APIView):
             
         return Response(users)
 
+    @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request):
         # Allow admins to create users
         if not request.user.is_superuser and not request.user.is_staff:

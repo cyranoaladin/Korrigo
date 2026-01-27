@@ -9,6 +9,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
+from django.utils.decorators import method_decorator
+from core.utils.ratelimit import maybe_ratelimit
 from .models import Exam, Booklet, Copy
 from .serializers import ExamSerializer, BookletSerializer, CopySerializer
 from processing.services.vision import HeaderDetector
@@ -21,6 +23,7 @@ class ExamUploadView(APIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     parser_classes = (MultiPartParser, FormParser)
 
+    @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, *args, **kwargs):
         serializer = ExamSerializer(data=request.data)
         if serializer.is_valid():
@@ -407,6 +410,7 @@ class ExamSourceUploadView(APIView):
     permission_classes = [IsTeacherOrAdmin]
     parser_classes = (MultiPartParser, FormParser)
 
+    @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, pk):
         exam = get_object_or_404(Exam, pk=pk)
         

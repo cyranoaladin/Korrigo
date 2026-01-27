@@ -212,6 +212,68 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'maxBytes': 10485760,
+            'backupCount': 10,
+            'formatter': 'verbose',
+        },
+        'audit_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'audit.log'),
+            'maxBytes': 10485760,
+            'backupCount': 10,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
+        },
+        'audit': {
+            'handlers': ['console', 'audit_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'grading': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+        },
+        'metrics': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+        },
+        'django.security': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    }
+}
+
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'UTC'
 USE_I18N = True
@@ -295,12 +357,11 @@ CORS_ALLOW_HEADERS = [
 # Content Security Policy (CSP)
 # Conformité: Phase 3 - Review sécurité frontend
 if not DEBUG:
-    # CSP stricte en production
     CONTENT_SECURITY_POLICY = {
         'DIRECTIVES': {
             'default-src': ["'self'"],
-            'script-src': ["'self'", "'unsafe-inline'"],
-            'style-src': ["'self'", "'unsafe-inline'"],
+            'script-src': ["'self'"],
+            'style-src': ["'self'"],
             'img-src': ["'self'", "data:", "blob:"],
             'font-src': ["'self'"],
             'connect-src': ["'self'"],
