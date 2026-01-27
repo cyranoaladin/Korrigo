@@ -36,6 +36,12 @@ urlpatterns += [
     path('api/health/ready/', readiness_check, name='readiness'),
 ]
 
+# Metrics endpoint (admin only - P0-OP-08)
+from core.views_metrics import MetricsView
+urlpatterns += [
+    path('api/metrics/', MetricsView.as_view(), name='metrics'),
+]
+
 # Dev/E2E endpoints (only if E2E_SEED_TOKEN is set)
 if hasattr(settings, 'E2E_SEED_TOKEN') and settings.E2E_SEED_TOKEN:
     from core.views_dev import seed_e2e_endpoint

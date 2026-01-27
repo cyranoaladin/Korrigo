@@ -72,6 +72,13 @@ class Annotation(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+    
+    # P0-DI-008: Optimistic locking to prevent lost updates
+    version = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Version"),
+        help_text=_("Numéro de version pour le verrouillage optimiste")
+    )
 
     class Meta:
         verbose_name = _("Annotation")
@@ -177,6 +184,14 @@ class CopyLock(models.Model):
     class Meta:
         verbose_name = _("Verrou de copie")
         verbose_name_plural = _("Verrous de copies")
+        constraints = [
+            models.UniqueConstraint(fields=["copy"], name="uniq_copylock_copy"),
+        ]
+        indexes = [
+            models.Index(fields=["expires_at"], name="idx_copylock_expires_at"),
+            models.Index(fields=["owner"], name="idx_copylock_owner"),
+            models.Index(fields=["copy"], name="idx_copylock_copy"),
+        ]
         
     def __str__(self):
         return f"Lock {self.copy.anonymous_id} by {self.owner} (expires {self.expires_at})"

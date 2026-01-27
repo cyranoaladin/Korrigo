@@ -10,11 +10,16 @@ from django.db import transaction
 from django.utils import timezone
 from django.conf import settings
 from django.core.files.base import ContentFile
-from grading.models import Annotation, GradingEvent
+from grading.models import Annotation, GradingEvent, CopyLock
 from exams.models import Copy, Booklet, Exam
 import logging
+import datetime
 
 logger = logging.getLogger(__name__)
+
+
+class LockConflictError(Exception):
+    pass
 
 
 class AnnotationService:
@@ -57,9 +62,34 @@ class AnnotationService:
 
     @staticmethod
     @transaction.atomic
-    def add_annotation(copy: Copy, payload: dict, user):
-        if copy.status != Copy.Status.READY:
+    def _require_active_lock(copy: Copy, user, lock_token: str):
+        now = timezone.now()
+        try:
+            lock = CopyLock.objects.select_related("owner").get(copy=copy)
+        except CopyLock.DoesNotExist:
+            raise LockConflictError("Lock required.")
+
+        if lock.expires_at < now:
+            lock.delete()
+            raise LockConflictError("Lock expired.")
+
+        if lock.owner != user:
+            raise LockConflictError("Copy is locked by another user.")
+
+        if not lock_token:
+            raise PermissionError("Missing lock token.")
+        if str(lock.token) != str(lock_token):
+            raise PermissionError("Invalid lock token.")
+
+        return lock
+
+    @staticmethod
+    @transaction.atomic
+    def add_annotation(copy: Copy, payload: dict, user, lock_token=None):
+        if copy.status != Copy.Status.LOCKED:
             raise ValueError(f"Cannot annotate copy in status {copy.status}")
+
+        AnnotationService._require_active_lock(copy=copy, user=user, lock_token=lock_token)
 
         AnnotationService.validate_page_index(copy, payload['page_index'])
         AnnotationService.validate_coordinates(
@@ -90,13 +120,21 @@ class AnnotationService:
 
     @staticmethod
     @transaction.atomic
-    def update_annotation(annotation: Annotation, payload: dict, user):
-        if annotation.copy.status != Copy.Status.READY:
+    def update_annotation(annotation: Annotation, payload: dict, user, lock_token=None):
+        if annotation.copy.status != Copy.Status.LOCKED:
             raise ValueError(f"Cannot update annotation in copy status {annotation.copy.status}")
 
-        # Basic ownership check (if not enforced by Permission class)
-        # But Service usually enforces invariant logic, permissions enforce access.
-        # We'll rely on View permissions for Owner check, but invariant logic here.
+        AnnotationService._require_active_lock(copy=annotation.copy, user=user, lock_token=lock_token)
+
+        # P0-DI-008 FIX: Optimistic locking to prevent lost updates
+        expected_version = payload.get('version', None)
+        if expected_version is not None:
+            if int(expected_version) != annotation.version:
+                raise ValueError(
+                    f"Version mismatch - annotation was modified by another user. "
+                    f"Expected version {expected_version}, current version {annotation.version}. "
+                    f"Please refresh and try again."
+                )
         
         x = float(payload.get('x', annotation.x))
         y = float(payload.get('y', annotation.y))
@@ -111,7 +149,11 @@ class AnnotationService:
                 changes[field] = str(payload[field])
                 setattr(annotation, field, payload[field])
 
+        # P0-DI-008: Increment version on update (atomic with F() expression)
+        from django.db.models import F
+        annotation.version = F('version') + 1
         annotation.save()
+        annotation.refresh_from_db()  # Refresh to get actual version value
 
         # AUDIT
         GradingEvent.objects.create(
@@ -124,9 +166,11 @@ class AnnotationService:
 
     @staticmethod
     @transaction.atomic
-    def delete_annotation(annotation: Annotation, user):
-        if annotation.copy.status != Copy.Status.READY:
+    def delete_annotation(annotation: Annotation, user, lock_token=None):
+        if annotation.copy.status != Copy.Status.LOCKED:
              raise ValueError(f"Cannot delete annotation in copy status {annotation.copy.status}")
+
+        AnnotationService._require_active_lock(copy=annotation.copy, user=user, lock_token=lock_token)
 
         copy = annotation.copy
         ann_id = str(annotation.id)
@@ -158,6 +202,156 @@ class GradingService:
             if annotation.score_delta is not None:
                 total += annotation.score_delta
         return total
+
+    @staticmethod
+    def _reconcile_lock_state(copy: Copy) -> None:
+        now = timezone.now()
+
+        try:
+            lock = copy.lock
+        except CopyLock.DoesNotExist:
+            lock = None
+
+        if lock and lock.expires_at < now:
+            lock.delete()
+            lock = None
+
+        if lock and copy.status != Copy.Status.LOCKED:
+            copy.status = Copy.Status.LOCKED
+            copy.locked_at = now
+            copy.locked_by = lock.owner
+            copy.save(update_fields=["status", "locked_at", "locked_by"])
+            return
+
+        if not lock and copy.status == Copy.Status.LOCKED:
+            copy.status = Copy.Status.READY
+            copy.locked_at = None
+            copy.locked_by = None
+            copy.save(update_fields=["status", "locked_at", "locked_by"])
+
+    @staticmethod
+    @transaction.atomic
+    def acquire_lock(copy: Copy, user, ttl_seconds: int = 600):
+        now = timezone.now()
+        
+        # P0-DI-001 FIX: Lock the Copy object to prevent race conditions
+        copy = Copy.objects.select_for_update().get(id=copy.id)
+        
+        ttl = max(int(ttl_seconds), 1)
+        ttl = min(ttl, 3600)
+        expires_at = now + datetime.timedelta(seconds=ttl)
+
+        # P0-DI-001 FIX: Clean up expired locks atomically
+        CopyLock.objects.filter(copy=copy, expires_at__lt=now).delete()
+
+        # P0-DI-001 FIX: Use get_or_create to handle race conditions atomically
+        lock, created = CopyLock.objects.get_or_create(
+            copy=copy,
+            defaults={'owner': user, 'expires_at': expires_at}
+        )
+
+        if not created:
+            # Lock already exists, check ownership
+            if lock.owner != user:
+                raise LockConflictError("Copy is locked by another user.")
+            
+            # Refresh expiration for the existing lock owned by requester
+            lock.expires_at = expires_at
+            lock.save(update_fields=["expires_at"])
+
+        # Update Copy status atomically
+        copy.status = Copy.Status.LOCKED
+        copy.locked_at = now
+        copy.locked_by = user
+        copy.save(update_fields=["status", "locked_at", "locked_by"])
+
+        if created:
+            # Only create GradingEvent for new locks
+            GradingEvent.objects.create(
+                copy=copy,
+                action=GradingEvent.Action.LOCK,
+                actor=user,
+                metadata={"token_prefix": str(lock.token)[:8]},
+            )
+
+        return lock, created
+
+    @staticmethod
+    @transaction.atomic
+    def heartbeat_lock(copy: Copy, user, lock_token: str, ttl_seconds: int = 600):
+        now = timezone.now()
+        try:
+            lock = (
+                CopyLock.objects.select_for_update()
+                .select_related("owner")
+                .get(copy=copy)
+            )
+        except CopyLock.DoesNotExist:
+            raise LockConflictError("Lock not found or expired.")
+
+        if lock.expires_at < now:
+            lock.delete()
+            GradingService._reconcile_lock_state(copy)
+            raise LockConflictError("Lock expired.")
+
+        if lock.owner != user:
+            raise LockConflictError("Lock owner mismatch.")
+
+        if not lock_token:
+            raise PermissionError("Missing lock token.")
+        if str(lock.token) != str(lock_token):
+            raise PermissionError("Invalid lock token.")
+
+        ttl = max(int(ttl_seconds), 1)
+        ttl = min(ttl, 3600)
+        lock.expires_at = now + datetime.timedelta(seconds=ttl)
+        lock.save(update_fields=["expires_at"])
+        GradingService._reconcile_lock_state(copy)
+        return lock
+
+    @staticmethod
+    @transaction.atomic
+    def release_lock(copy: Copy, user, lock_token: str):
+        try:
+            lock = CopyLock.objects.select_for_update().get(copy=copy)
+        except CopyLock.DoesNotExist:
+            return False
+
+        if not lock_token:
+            raise PermissionError("Missing lock token.")
+        if str(lock.token) != str(lock_token):
+            raise PermissionError("Invalid lock token.")
+
+        if lock.owner != user:
+            raise LockConflictError("Lock owner mismatch.")
+
+        GradingEvent.objects.create(
+            copy=copy,
+            action=GradingEvent.Action.UNLOCK,
+            actor=user,
+        )
+
+        lock.delete()
+        GradingService._reconcile_lock_state(copy)
+        return True
+
+    @staticmethod
+    @transaction.atomic
+    def get_lock_status(copy: Copy):
+        now = timezone.now()
+        try:
+            lock = CopyLock.objects.select_related("owner").get(copy=copy)
+        except CopyLock.DoesNotExist:
+            GradingService._reconcile_lock_state(copy)
+            return None
+
+        if lock.expires_at < now:
+            lock.delete()
+            GradingService._reconcile_lock_state(copy)
+            return None
+
+        GradingService._reconcile_lock_state(copy)
+        return lock
 
     @staticmethod
     @transaction.atomic
@@ -276,67 +470,121 @@ class GradingService:
     @staticmethod
     @transaction.atomic
     def lock_copy(copy: Copy, user):
-        if copy.status != Copy.Status.READY:
-            raise ValueError("Only READY copies can be locked")
-
-        copy.status = Copy.Status.LOCKED
-        copy.locked_at = timezone.now()
-        copy.locked_by = user
-        copy.save()
-
-        GradingEvent.objects.create(
-            copy=copy,
-            action=GradingEvent.Action.LOCK,
-            actor=user
-        )
-        return copy
+        lock, _created = GradingService.acquire_lock(copy=copy, user=user, ttl_seconds=600)
+        return lock
 
     @staticmethod
     @transaction.atomic
     def unlock_copy(copy: Copy, user):
-        if copy.status != Copy.Status.LOCKED:
-            raise ValueError("Only LOCKED copies can be unlocked")
-
-        previous_locker = copy.locked_by.username if copy.locked_by else "unknown"
-
-        copy.status = Copy.Status.READY
-        copy.locked_at = None
-        copy.locked_by = None
-        copy.save()
-
-        GradingEvent.objects.create(
-            copy=copy,
-            action=GradingEvent.Action.UNLOCK,
-            actor=user,
-            metadata={'previous_locker': previous_locker}
-        )
-        return copy
+        raise ValueError("Use release_lock with token.")
 
     @staticmethod
     @transaction.atomic
-    def finalize_copy(copy: Copy, user):
-        if copy.status not in [Copy.Status.LOCKED, Copy.Status.READY]:
-            raise ValueError("Only LOCKED or READY copies can be finalized")
+    def finalize_copy(copy: Copy, user, lock_token=None):
+        # P0-DI-003 FIX: Lock the Copy object to prevent race conditions
+        copy = Copy.objects.select_for_update().get(id=copy.id)
+
+        # P0-DI-003 FIX: Idempotency - If already GRADED, return success
+        if copy.status == Copy.Status.GRADED:
+            logger.info(f"Copy {copy.id} already graded, skipping duplicate finalization")
+            return copy
+
+        # P0-DI-004 FIX: Handle GRADING_FAILED - allow retry
+        if copy.status == Copy.Status.GRADING_FAILED:
+            logger.info(f"Copy {copy.id} previously failed, retrying finalization (attempt {copy.grading_retries + 1})")
+            # Continue with finalization logic
+
+        if copy.status not in [Copy.Status.LOCKED, Copy.Status.GRADING_FAILED]:
+            raise ValueError("Only LOCKED or GRADING_FAILED copies can be finalized")
+
+        # Lock CopyLock row as well to prevent concurrent finalize.
+        now = timezone.now()
+        try:
+            lock = (
+                CopyLock.objects.select_for_update()
+                .select_related("owner")
+                .get(copy=copy)
+            )
+        except CopyLock.DoesNotExist:
+            raise LockConflictError("Lock required.")
+
+        if lock.expires_at < now:
+            lock.delete()
+            raise LockConflictError("Lock expired.")
+
+        if lock.owner != user:
+            raise LockConflictError("Copy is locked by another user.")
+
+        if not lock_token:
+            raise PermissionError("Missing lock token.")
+        if str(lock.token) != str(lock_token):
+            raise PermissionError("Invalid lock token.")
 
         final_score = GradingService.compute_score(copy)
 
-        # Generate Final PDF
+        # P0-DI-004 FIX: Set intermediate status during processing
+        copy.status = Copy.Status.GRADING_IN_PROGRESS
+        copy.grading_retries += 1
+        copy.locked_at = None
+        copy.locked_by = None
+        copy.save(update_fields=["status", "grading_retries", "locked_at", "locked_by"])
+
+        # Delete lock immediately after status change
+        lock.delete()
+
+        # Generate Final PDF with comprehensive error handling
         from processing.services.pdf_flattener import PDFFlattener
         flattener = PDFFlattener()
+        
         try:
-             flattener.flatten_copy(copy)
+            # Check if PDF already exists (additional idempotency check)
+            if not copy.final_pdf:
+                pdf_bytes = flattener.flatten_copy(copy)
+                output_filename = f"copy_{copy.id}_corrected.pdf"
+                
+                # Save PDF first
+                copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
+            
+            # P0-DI-004 FIX: Mark as GRADED only after PDF generation succeeds
+            copy.status = Copy.Status.GRADED
+            copy.graded_at = timezone.now()
+            copy.grading_error_message = None  # Clear previous errors
+            copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf"])
+            
+            # P0-DI-007 FIX: Audit event for success (idempotent with get_or_create)
+            GradingEvent.objects.get_or_create(
+                copy=copy,
+                action=GradingEvent.Action.FINALIZE,
+                actor=user,
+                defaults={'metadata': {'final_score': final_score, 'retries': copy.grading_retries}}
+            )
+            
         except Exception as e:
-             logger.error(f"Flattten failed: {e}")
-             raise ValueError(f"Failed to generate final PDF: {e}")
+            # P0-DI-004 FIX: Save error state with detailed message
+            error_msg = str(e)[:500]  # Limit message length
+            copy.status = Copy.Status.GRADING_FAILED
+            copy.grading_error_message = error_msg
+            copy.save(update_fields=["status", "grading_error_message"])
+            
+            # P0-DI-007 FIX: Audit event for failure
+            GradingEvent.objects.create(
+                copy=copy,
+                action=GradingEvent.Action.FINALIZE,
+                actor=user,
+                metadata={
+                    'error': error_msg,
+                    'retries': copy.grading_retries,
+                    'success': False
+                }
+            )
+            
+            logger.error(f"PDF generation failed for copy {copy.id} (attempt {copy.grading_retries}): {e}", exc_info=True)
+            
+            # Alert if max retries exceeded
+            if copy.grading_retries >= 3:
+                logger.critical(f"Copy {copy.id} failed {copy.grading_retries} times - manual intervention required")
+                # TODO: Send email notification to admins
+            
+            raise ValueError(f"Failed to generate final PDF: {error_msg}")
 
-        copy.status = Copy.Status.GRADED
-        copy.graded_at = timezone.now()
-        copy.save()
-
-        GradingEvent.objects.create(
-            copy=copy,
-            action=GradingEvent.Action.FINALIZE,
-            actor=user,
-            metadata={'final_score': final_score}
-        )
         return copy
