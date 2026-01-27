@@ -77,7 +77,7 @@ class StudentListView(generics.ListAPIView):
     search_fields = ['first_name', 'last_name', 'ine']
 
 class StudentImportView(views.APIView):
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only
+    permission_classes = [IsAuthenticated] # Teacher/Admin only
     parser_classes = [MultiPartParser, FormParser]
 
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
@@ -130,6 +130,6 @@ class StudentImportView(views.APIView):
         except Exception as e:
             from core.utils.errors import safe_error_response
             return Response(
-                safe_error_response(e, context="Student CSV import", user_message="CSV import failed. Please check the file format."),
+                safe_error_response(e, context="CSV import", user_message="Failed to import students. Please check file format."),
                 status=status.HTTP_400_BAD_REQUEST
             )

@@ -10,7 +10,7 @@ from .serializers import AnnotationSerializer, GradingEventSerializer
 from exams.permissions import IsTeacherOrAdmin
 from .permissions import IsLockedByOwnerOrReadOnly
 from django.shortcuts import get_object_or_404
-from grading.services import GradingService, AnnotationService, LockConflictError
+from grading.services import GradingService, AnnotationService
 from core.auth import UserRole
 import logging
 
@@ -27,19 +27,17 @@ class PassthroughRenderer(renderers.BaseRenderer):
         return data
 
 
-def _handle_value_error(e, context="API"):
-    logger.warning(f"{context} ValueError: {e}")
-    return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-def _handle_permission_error(e, context="API"):
-    logger.warning(f"{context} PermissionError: {e}")
-    return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
-
-
-def _handle_lock_conflict_error(e, context="API"):
-    logger.warning(f"{context} LockConflictError: {e}")
-    return Response({"detail": str(e)}, status=status.HTTP_409_CONFLICT)
+def _handle_service_error(e, context="API"):
+    """
+    Formate les erreurs du service layer (ValueError, etc.) en réponses HTTP 400.
+    """
+    from django.conf import settings
+    logger.warning(f"{context} Service Error: {e}")
+    
+    if settings.DEBUG:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        return Response({"detail": "Invalid operation. Please check your input."}, status=status.HTTP_400_BAD_REQUEST)
 
 def _handle_unexpected_error(e, context="API"):
     """
@@ -71,21 +69,15 @@ class AnnotationListCreateView(generics.ListCreateAPIView):
         copy = get_object_or_404(Copy, id=copy_id)
         
         try:
-            lock_token = request.headers.get("X-Lock-Token") or request.data.get("token")
             annotation = AnnotationService.add_annotation(
                 copy=copy,
                 payload=request.data,
-                user=request.user,
-                lock_token=lock_token,
+                user=request.user
             )
             serializer = self.get_serializer(annotation)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except LockConflictError as e:
-            return _handle_lock_conflict_error(e, context="AnnotationListCreateView.create")
-        except PermissionError as e:
-            return _handle_permission_error(e, context="AnnotationListCreateView.create")
         except (ValueError, KeyError) as e:
-            return _handle_value_error(e, context="AnnotationListCreateView.create")
+            return _handle_service_error(e, context="AnnotationListCreateView.create")
         except Exception as e:
             return _handle_unexpected_error(e, context="AnnotationListCreateView.create")
 
@@ -109,34 +101,20 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
         # Check permissions logic (Owner or Admin for non-admins)?
         # For P0.2: Teacher ne peut pas DELETE annotation d’un autre.
         # But here we are in update.
-        is_admin_user = (
-            request.user.is_superuser
-            or request.user.is_staff
-            or request.user.groups.filter(name=UserRole.ADMIN).exists()
-        )
-        if not is_admin_user:
-            if annotation.created_by != request.user:
-                return Response(
-                    {"detail": "You do not have permission to edit this annotation."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+        if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
+             if annotation.created_by != request.user:
+                 return Response({"detail": "You do not have permission to edit this annotation."}, status=status.HTTP_403_FORBIDDEN)
 
         try:
-            lock_token = request.headers.get("X-Lock-Token") or request.data.get("token")
             updated = AnnotationService.update_annotation(
                 annotation=annotation,
                 payload=request.data,
-                user=request.user,
-                lock_token=lock_token,
+                user=request.user
             )
             serializer = self.get_serializer(updated)
             return Response(serializer.data)
-        except LockConflictError as e:
-            return _handle_lock_conflict_error(e, context="AnnotationDetailView.update")
-        except PermissionError as e:
-            return _handle_permission_error(e, context="AnnotationDetailView.update")
-        except (ValueError, KeyError) as e:
-            return _handle_value_error(e, context="AnnotationDetailView.update")
+        except (ValueError, KeyError, PermissionError) as e:
+            return _handle_service_error(e, context="AnnotationDetailView.update")
         except Exception as e:
             return _handle_unexpected_error(e, context="AnnotationDetailView.update")
 
@@ -144,29 +122,16 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
         annotation = self.get_object()
         
         # Permission check: Teacher cannot delete others' annotations
-        is_admin_user = (
-            request.user.is_superuser
-            or request.user.is_staff
-            or request.user.groups.filter(name=UserRole.ADMIN).exists()
-        )
-        if not is_admin_user:
-            if annotation.created_by != request.user:
-                return Response(
-                    {"detail": "You do not have permission to delete this annotation."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+        if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
+             if annotation.created_by != request.user:
+                 return Response({"detail": "You do not have permission to delete this annotation."}, status=status.HTTP_403_FORBIDDEN)
         
         try:
-            lock_token = request.headers.get("X-Lock-Token") or request.data.get("token")
-            AnnotationService.delete_annotation(annotation, request.user, lock_token=lock_token)
+            AnnotationService.delete_annotation(annotation, request.user)
             # 204 No Content is standard
             return Response(status=status.HTTP_204_NO_CONTENT)
-        except LockConflictError as e:
-            return _handle_lock_conflict_error(e, context="AnnotationDetailView.destroy")
-        except PermissionError as e:
-            return _handle_permission_error(e, context="AnnotationDetailView.destroy")
-        except (ValueError, KeyError) as e:
-            return _handle_value_error(e, context="AnnotationDetailView.destroy")
+        except (ValueError, KeyError, PermissionError) as e:
+            return _handle_service_error(e, context="AnnotationDetailView.destroy")
         except Exception as e:
             return _handle_unexpected_error(e, context="AnnotationDetailView.destroy")
 
@@ -179,9 +144,7 @@ class CopyReadyView(APIView):
             GradingService.ready_copy(copy, request.user)
             return Response({"status": copy.status})
         except ValueError as e:
-            return _handle_value_error(e, context="CopyReadyView.post")
-        except Exception as e:
-            return _handle_unexpected_error(e, context="CopyReadyView.post")
+            return _handle_service_error(e)
 
 # CopyLockView and CopyUnlockView replaced by views_lock.py logic
 # Keeping Ready and Finalize views here
@@ -193,17 +156,10 @@ class CopyFinalizeView(APIView):
     def post(self, request, id):
         copy = get_object_or_404(Copy, id=id)
         try:
-            lock_token = request.headers.get("X-Lock-Token") or request.data.get("token")
-            updated_copy = GradingService.finalize_copy(copy, request.user, lock_token=lock_token)
-            return Response({"status": updated_copy.status})
-        except LockConflictError as e:
-            return _handle_lock_conflict_error(e, context="CopyFinalizeView.post")
-        except PermissionError as e:
-            return _handle_permission_error(e, context="CopyFinalizeView.post")
+            GradingService.finalize_copy(copy, request.user)
+            return Response({"status": copy.status})
         except ValueError as e:
-            return _handle_value_error(e, context="CopyFinalizeView.post")
-        except Exception as e:
-            return _handle_unexpected_error(e, context="CopyFinalizeView.post")
+            return _handle_service_error(e)
 
 
 class CopyFinalPdfView(APIView):

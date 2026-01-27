@@ -388,6 +388,172 @@ docker-compose -f infra/docker/docker-compose.prod.yml exec -T db psql -U viatiq
 
 ---
 
+### Migration Rollback Strategy (P0-OP-06)
+
+⚠️ **CRITICAL**: Migrations must be handled carefully in production to avoid data loss and service downtime.
+
+#### Pre-Deployment: Migration Safety Checklist
+
+Before deploying any migration to production, verify:
+
+1. **Migration is reversible** (has backward operations)
+2. **No destructive operations** without explicit data migration
+3. **Default values provided** for new NOT NULL columns
+4. **Tested on production-sized dataset** (staging environment)
+5. **Backward compatible** (can run with old code during rolling update)
+
+#### Testing Migrations (CI/CD)
+
+Always test forward AND backward migrations before production:
+
+```bash
+# Test forward migration
+python manage.py migrate <app> <migration>
+
+# Test backward migration
+python manage.py migrate <app> <previous_migration>
+
+# Test forward again (idempotency)
+python manage.py migrate <app> <migration>
+
+# Verify data integrity
+python manage.py check --database default
+```
+
+#### Safe Migration Deployment Process
+
+**Step 1: Pre-deployment check**
+```bash
+# Check for pending migrations (fail-fast if not reviewed)
+docker-compose -f infra/docker/docker-compose.prod.yml exec backend \
+    python manage.py showmigrations --plan | grep '\[ \]'
+
+# Review migration SQL (PostgreSQL)
+docker-compose -f infra/docker/docker-compose.prod.yml exec backend \
+    python manage.py sqlmigrate <app> <migration_number>
+```
+
+**Step 2: Backup before migration**
+```bash
+# ALWAYS backup before running migrations
+docker-compose -f infra/docker/docker-compose.prod.yml exec db \
+    pg_dump -U viatique_user viatique_prod > pre_migration_backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+**Step 3: Apply migration with monitoring**
+```bash
+# Apply migration (automatic via entrypoint.sh)
+docker-compose -f infra/docker/docker-compose.prod.yml up -d backend
+
+# Monitor logs
+docker-compose -f infra/docker/docker-compose.prod.yml logs -f backend
+
+# Verify migration success
+docker-compose -f infra/docker/docker-compose.prod.yml exec backend \
+    python manage.py showmigrations | grep '\[X\]'
+```
+
+#### Rollback Failed Migration
+
+**Scenario 1: Migration failed mid-execution**
+
+```bash
+# 1. Stop backend to prevent further damage
+docker-compose -f infra/docker/docker-compose.prod.yml stop backend
+
+# 2. Restore database from pre-migration backup
+docker-compose -f infra/docker/docker-compose.prod.yml exec -T db \
+    psql -U viatique_user viatique_prod < pre_migration_backup_YYYYMMDD_HHMMSS.sql
+
+# 3. Rollback code to previous version
+git checkout <previous_commit>
+docker-compose -f infra/docker/docker-compose.prod.yml up -d --build
+
+# 4. Verify system healthy
+curl https://viatique.example.com/api/health/
+```
+
+**Scenario 2: Migration succeeded but introduces bugs**
+
+```bash
+# 1. Check migration history
+docker-compose -f infra/docker/docker-compose.prod.yml exec backend \
+    python manage.py showmigrations <app>
+
+# 2. Rollback to specific migration (if reversible)
+docker-compose -f infra/docker/docker-compose.prod.yml exec backend \
+    python manage.py migrate <app> <previous_migration_number>
+
+# Example: Roll back grading app to migration 0023
+docker-compose -f infra/docker/docker-compose.prod.yml exec backend \
+    python manage.py migrate grading 0023
+
+# 3. Deploy previous code version
+git checkout <previous_commit>
+docker-compose -f infra/docker/docker-compose.prod.yml up -d --build
+```
+
+**Scenario 3: Irreversible migration (no backward operations)**
+
+```bash
+# CRITICAL: Manual intervention required
+
+# 1. Stop all services immediately
+docker-compose -f infra/docker/docker-compose.prod.yml down
+
+# 2. Restore from backup (ONLY option for irreversible migrations)
+docker-compose -f infra/docker/docker-compose.prod.yml up -d db
+docker-compose -f infra/docker/docker-compose.prod.yml exec -T db \
+    psql -U viatique_user viatique_prod < pre_migration_backup_YYYYMMDD_HHMMSS.sql
+
+# 3. Verify data integrity manually before restart
+docker-compose -f infra/docker/docker-compose.prod.yml exec db \
+    psql -U viatique_user viatique_prod -c "SELECT COUNT(*) FROM exams_copy;"
+
+# 4. Deploy previous code and restart services
+git checkout <previous_commit>
+docker-compose -f infra/docker/docker-compose.prod.yml up -d --build
+```
+
+#### Migration Best Practices
+
+**DO:**
+- ✅ Always provide default values for new NOT NULL columns
+- ✅ Use two-phase migrations for schema changes (add column nullable → populate → make NOT NULL)
+- ✅ Test rollback in staging before production
+- ✅ Keep migrations small and atomic
+- ✅ Use `RunPython` operations with reverse functions
+- ✅ Document manual steps required for data migrations
+
+**DON'T:**
+- ❌ Never delete columns directly (deprecate first, delete later)
+- ❌ Never rename tables/columns without data migration
+- ❌ Never deploy migrations without testing rollback
+- ❌ Never run migrations without backup
+- ❌ Never assume migrations are reversible (verify explicitly)
+
+#### Emergency Migration Guard
+
+In production, the entrypoint includes a migration guard:
+
+```bash
+# backend/entrypoint.sh
+if [ "$DJANGO_ENV" = "production" ] && [ "$SKIP_MIGRATION_CHECK" != "true" ]; then
+    # Requires explicit approval to run migrations in production
+    echo "ERROR: Pending migrations in production. Review carefully."
+    echo "Set SKIP_MIGRATION_CHECK=true to proceed (use with caution)."
+    exit 1
+fi
+```
+
+To bypass (only after manual review):
+```bash
+export SKIP_MIGRATION_CHECK=true
+docker-compose -f infra/docker/docker-compose.prod.yml up -d backend
+```
+
+---
+
 ### Backup Automatique
 Cette procédure utilise la commande interne `manage.py backup` qui génère une archive complète (JSON DB + Media).
 
