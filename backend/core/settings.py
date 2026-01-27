@@ -179,13 +179,110 @@ else:
 
 
 
-AUTH_PASSWORD_VALIDATORS = []
+# Password Validation (ANSSI/CNIL compliant)
+# P1.2: Enforce strong passwords (min 12 chars, no common passwords, no user attributes)
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 12,  # ANSSI recommends 12+ characters
+        }
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+# Session Security Configuration
+# P1.3: Session timeout and security settings for GDPR compliance
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'  # Faster than pure DB
+
+# Session timeout: 4 hours (reasonable for exam grading workflow)
+SESSION_COOKIE_AGE = 14400  # 4 hours in seconds
+
+# Sessions expire on browser close (GDPR best practice)
+# Note: This provides additional security for shared computers
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# Session cookie security (already configured above based on SSL_ENABLED)
+SESSION_COOKIE_HTTPONLY = True
+
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 # STATIC_URL is defined at the top
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Logging Configuration
+# P1.1: Structured logging for production monitoring and security auditing
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose' if not DEBUG else 'simple',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 10,
+            'formatter': 'verbose',
+        },
+        'audit_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'audit.log',
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 10,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
+        },
+        'audit': {
+            'handlers': ['console', 'audit_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+        },
+        'grading': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+        },
+        'exams': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO' if not DEBUG else 'DEBUG',
+    }
+}
 
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
 
