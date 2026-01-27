@@ -23,7 +23,7 @@ class ExamUploadView(APIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     parser_classes = (MultiPartParser, FormParser)
 
-    @method_decorator(maybe_ratelimit(key=\'user\', rate=\'20/h\', method=\'POST\', block=True))
+    @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, *args, **kwargs):
         serializer = ExamSerializer(data=request.data)
         if serializer.is_valid():
@@ -101,7 +101,7 @@ class CopyImportView(APIView):
         except Exception as e:
             from core.utils.errors import safe_error_response
             return Response(
-                safe_error_response(e, context=\"Copy import\", user_message=\"Failed to import copy. Please check the file format.\"),
+                safe_error_response(e, context="Copy import", user_message="Failed to import copy. Please check the file format."),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -454,11 +454,11 @@ class ExamSourceUploadView(APIView):
                 }, status=status.HTTP_201_CREATED)
                 
             except Exception as e:
-            from core.utils.errors import safe_error_response
-            return Response(
-                safe_error_response(e, context="A3 split processing"),
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+                from core.utils.errors import safe_error_response
+                return Response(
+                    safe_error_response(e, context="A3 split processing"),
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
         
         return Response({"error": "pdf_source field required"}, status=status.HTTP_400_BAD_REQUEST)
 class CopyValidationView(APIView):
