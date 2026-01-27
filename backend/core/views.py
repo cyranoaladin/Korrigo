@@ -108,12 +108,11 @@ class ChangePasswordView(APIView):
 
     @method_decorator(maybe_ratelimit(key='user', rate='5/h', method='POST', block=True))
     def post(self, request):
-        user = request.user
-        password = request.data.get('password')
-        
-        # Use Django password validation (configured in settings.py)
         from django.contrib.auth.password_validation import validate_password
         from django.core.exceptions import ValidationError
+        
+        user = request.user
+        password = request.data.get('password')
         
         try:
             validate_password(password, user=user)
@@ -122,7 +121,6 @@ class ChangePasswordView(APIView):
         
         user.set_password(password)
         user.save()
-        # Updating password logs out all other sessions, usually, but need to keep current session active
         update_session_auth_hash(request, user)
         
         return Response({"message": "Password updated successfully"})
@@ -158,6 +156,7 @@ class UserListView(APIView):
             
         return Response(users)
 
+    @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request):
         # Allow admins to create users
         if not request.user.is_superuser and not request.user.is_staff:
