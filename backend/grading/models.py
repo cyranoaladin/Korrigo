@@ -72,6 +72,13 @@ class Annotation(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+    
+    # P0-DI-008: Optimistic locking to prevent lost updates
+    version = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Version"),
+        help_text=_("Numéro de version pour le verrouillage optimiste")
+    )
 
     class Meta:
         verbose_name = _("Annotation")
