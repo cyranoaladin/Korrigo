@@ -201,6 +201,6 @@ class OCRPerformView(APIView):
         except Exception as e:
             from core.utils.errors import safe_error_response
             return Response(
-                safe_error_response(e, context="OCR", user_message="Erreur lors de l'OCR. Veuillez réessayer ou identifier manuellement."),
+                safe_error_response(e, context="OCR", user_message="OCR processing failed. Please try again."),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

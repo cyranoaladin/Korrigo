@@ -6,11 +6,11 @@ from rest_framework.views import APIView
 
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
-from core.utils.ratelimit import maybe_ratelimit
-from django.utils.decorators import method_decorator
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
+from django.utils.decorators import method_decorator
+from core.utils.ratelimit import maybe_ratelimit
 from .models import Exam, Booklet, Copy
 from .serializers import ExamSerializer, BookletSerializer, CopySerializer
 from processing.services.vision import HeaderDetector
@@ -59,18 +59,10 @@ class ExamUploadView(APIView):
                 }, status=status.HTTP_201_CREATED)
 
             except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error processing PDF: {e}", exc_info=True)
-
                 from core.utils.errors import safe_error_response
-
                 return Response(
-
                     safe_error_response(e, context="PDF processing", user_message="PDF upload failed. Please verify the file is valid."),
-
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
-
                 )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -97,13 +89,13 @@ class CopyImportView(APIView):
              serializer = CopySerializer(copy)
              return Response(serializer.data, status=status.HTTP_201_CREATED)
         except ValueError as e:
-             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+             return Response({'error': 'Invalid PDF file'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            from core.utils.errors import safe_error_response
-            return Response(
-                safe_error_response(e, context="Copy import", user_message="Failed to import copy. Please check the file format."),
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+             from core.utils.errors import safe_error_response
+             return Response(
+                 safe_error_response(e, context="PDF import", user_message="Failed to import PDF. Please try again."),
+                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+             )
 
 
 
@@ -165,10 +157,9 @@ class BookletSplitView(APIView):
             page = doc.load_page(page_index)
             pix = page.get_pixmap(dpi=150)
             
-            # P1-REL-007: Use NamedTemporaryFile with proper cleanup
-            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-                temp_path = tmp.name
-                pix.save(temp_path)
+            fd, temp_path = tempfile.mkstemp(suffix=".png")
+            os.close(fd)
+            pix.save(temp_path)
             
             # Use Splitter Service
             splitter = A3Splitter()
@@ -183,7 +174,7 @@ class BookletSplitView(APIView):
         except Exception as e:
             from core.utils.errors import safe_error_response
             return Response(
-                safe_error_response(e, context="A3 split processing"),
+                safe_error_response(e, context="Page analysis", user_message="Failed to analyze page."),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         finally:
@@ -206,7 +197,10 @@ class CopyListView(generics.ListAPIView):
 
     def get_queryset(self):
         exam_id = self.kwargs['exam_id']
-        return Copy.objects.filter(exam_id=exam_id).order_by('anonymous_id')
+        return Copy.objects.filter(exam_id=exam_id)\
+            .select_related('exam', 'student', 'locked_by')\
+            .prefetch_related('booklets', 'annotations__created_by')\
+            .order_by('anonymous_id')
 
 
 class MergeBookletsView(APIView):
@@ -416,6 +410,7 @@ class ExamSourceUploadView(APIView):
     permission_classes = [IsTeacherOrAdmin]
     parser_classes = (MultiPartParser, FormParser)
 
+    @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, pk):
         exam = get_object_or_404(Exam, pk=pk)
         
@@ -456,7 +451,7 @@ class ExamSourceUploadView(APIView):
             except Exception as e:
                 from core.utils.errors import safe_error_response
                 return Response(
-                    safe_error_response(e, context="A3 split processing"),
+                    safe_error_response(e, context="PDF upload", user_message="Failed to process PDF upload."),
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
         
@@ -473,13 +468,13 @@ class CopyValidationView(APIView):
              GradingService.validate_copy(copy, request.user)
              return Response({"message": "Copy validated and ready for grading.", "status": copy.status})
         except ValueError as e:
-             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+             return Response({"error": "Invalid copy state"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            from core.utils.errors import safe_error_response
-            return Response(
-                safe_error_response(e, context="A3 split processing"),
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+             from core.utils.errors import safe_error_response
+             return Response(
+                 safe_error_response(e, context="Copy validation", user_message="Failed to validate copy."),
+                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+             )
 
 class CorrectorCopiesView(generics.ListAPIView):
     """
@@ -499,7 +494,8 @@ class CorrectorCopyDetailView(generics.RetrieveAPIView):
     """
     Permet au correcteur de récupérer les détails d'une copie spécifique.
     """
-    queryset = Copy.objects.all()
+    queryset = Copy.objects.select_related('exam', 'student', 'locked_by')\
+        .prefetch_related('booklets', 'annotations__created_by')
     serializer_class = CopySerializer
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     lookup_field = 'id'

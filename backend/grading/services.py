@@ -126,9 +126,15 @@ class AnnotationService:
 
         AnnotationService._require_active_lock(copy=annotation.copy, user=user, lock_token=lock_token)
 
-        # Basic ownership check (if not enforced by Permission class)
-        # But Service usually enforces invariant logic, permissions enforce access.
-        # We'll rely on View permissions for Owner check, but invariant logic here.
+        # P0-DI-008 FIX: Optimistic locking to prevent lost updates
+        expected_version = payload.get('version', None)
+        if expected_version is not None:
+            if int(expected_version) != annotation.version:
+                raise ValueError(
+                    f"Version mismatch - annotation was modified by another user. "
+                    f"Expected version {expected_version}, current version {annotation.version}. "
+                    f"Please refresh and try again."
+                )
         
         x = float(payload.get('x', annotation.x))
         y = float(payload.get('y', annotation.y))
@@ -143,7 +149,11 @@ class AnnotationService:
                 changes[field] = str(payload[field])
                 setattr(annotation, field, payload[field])
 
+        # P0-DI-008: Increment version on update (atomic with F() expression)
+        from django.db.models import F
+        annotation.version = F('version') + 1
         annotation.save()
+        annotation.refresh_from_db()  # Refresh to get actual version value
 
         # AUDIT
         GradingEvent.objects.create(
@@ -479,8 +489,13 @@ class GradingService:
             logger.info(f"Copy {copy.id} already graded, skipping duplicate finalization")
             return copy
 
-        if copy.status != Copy.Status.LOCKED:
-            raise ValueError("Only LOCKED copies can be finalized")
+        # P0-DI-004 FIX: Handle GRADING_FAILED - allow retry
+        if copy.status == Copy.Status.GRADING_FAILED:
+            logger.info(f"Copy {copy.id} previously failed, retrying finalization (attempt {copy.grading_retries + 1})")
+            # Continue with finalization logic
+
+        if copy.status not in [Copy.Status.LOCKED, Copy.Status.GRADING_FAILED]:
+            raise ValueError("Only LOCKED or GRADING_FAILED copies can be finalized")
 
         # Lock CopyLock row as well to prevent concurrent finalize.
         now = timezone.now()
@@ -507,44 +522,69 @@ class GradingService:
 
         final_score = GradingService.compute_score(copy)
 
-        # P0-DI-003 FIX: Set status to GRADED BEFORE slow PDF generation
-        # This prevents race conditions where two requests both generate PDFs
-        copy.status = Copy.Status.GRADED
-        copy.graded_at = timezone.now()
+        # P0-DI-004 FIX: Set intermediate status during processing
+        copy.status = Copy.Status.GRADING_IN_PROGRESS
+        copy.grading_retries += 1
         copy.locked_at = None
         copy.locked_by = None
-        copy.save(update_fields=["status", "graded_at", "locked_at", "locked_by"])
+        copy.save(update_fields=["status", "grading_retries", "locked_at", "locked_by"])
 
         # Delete lock immediately after status change
         lock.delete()
 
-        # Generate Final PDF (now safe from race conditions)
+        # Generate Final PDF with comprehensive error handling
         from processing.services.pdf_flattener import PDFFlattener
         flattener = PDFFlattener()
+        
         try:
             # Check if PDF already exists (additional idempotency check)
             if not copy.final_pdf:
                 pdf_bytes = flattener.flatten_copy(copy)
                 output_filename = f"copy_{copy.id}_corrected.pdf"
                 
-                def _save_final_pdf():
-                    copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
-                    copy.save(update_fields=["final_pdf"])
-                
-                transaction.on_commit(_save_final_pdf)
+                # Save PDF first
+                copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
+            
+            # P0-DI-004 FIX: Mark as GRADED only after PDF generation succeeds
+            copy.status = Copy.Status.GRADED
+            copy.graded_at = timezone.now()
+            copy.grading_error_message = None  # Clear previous errors
+            copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf"])
+            
+            # P0-DI-007 FIX: Audit event for success (idempotent with get_or_create)
+            GradingEvent.objects.get_or_create(
+                copy=copy,
+                action=GradingEvent.Action.FINALIZE,
+                actor=user,
+                defaults={'metadata': {'final_score': final_score, 'retries': copy.grading_retries}}
+            )
+            
         except Exception as e:
-            logger.error(f"PDF generation failed for copy {copy.id}: {e}", exc_info=True)
-            # Note: Status is already GRADED, but final_pdf is empty
-            # This is acceptable - the copy is graded, but PDF needs regeneration
-            # TODO P0-DI-004: Add GRADING_FAILED status for better error handling
-            raise ValueError(f"Failed to generate final PDF: {e}")
-
-        # Audit event (idempotent with get_or_create)
-        GradingEvent.objects.get_or_create(
-            copy=copy,
-            action=GradingEvent.Action.FINALIZE,
-            actor=user,
-            defaults={'metadata': {'final_score': final_score}}
-        )
+            # P0-DI-004 FIX: Save error state with detailed message
+            error_msg = str(e)[:500]  # Limit message length
+            copy.status = Copy.Status.GRADING_FAILED
+            copy.grading_error_message = error_msg
+            copy.save(update_fields=["status", "grading_error_message"])
+            
+            # P0-DI-007 FIX: Audit event for failure
+            GradingEvent.objects.create(
+                copy=copy,
+                action=GradingEvent.Action.FINALIZE,
+                actor=user,
+                metadata={
+                    'error': error_msg,
+                    'retries': copy.grading_retries,
+                    'success': False
+                }
+            )
+            
+            logger.error(f"PDF generation failed for copy {copy.id} (attempt {copy.grading_retries}): {e}", exc_info=True)
+            
+            # Alert if max retries exceeded
+            if copy.grading_retries >= 3:
+                logger.critical(f"Copy {copy.id} failed {copy.grading_retries} times - manual intervention required")
+                # TODO: Send email notification to admins
+            
+            raise ValueError(f"Failed to generate final PDF: {error_msg}")
 
         return copy
