@@ -31,8 +31,13 @@ def _handle_service_error(e, context="API"):
     """
     Formate les erreurs du service layer (ValueError, etc.) en réponses HTTP 400.
     """
+    from django.conf import settings
     logger.warning(f"{context} Service Error: {e}")
-    return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if settings.DEBUG:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        return Response({"detail": "Invalid operation. Please check your input."}, status=status.HTTP_400_BAD_REQUEST)
 
 def _handle_unexpected_error(e, context="API"):
     """
