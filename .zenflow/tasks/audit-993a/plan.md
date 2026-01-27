@@ -69,7 +69,7 @@ Map all critical business workflows from end to end.
 
 ---
 
-### [ ] Step: Inventory - Security & Permissions
+### [x] Step: Inventory - Security & Permissions
 <!-- chat-id: 9737736a-364e-46a7-ae7b-535ef69a208b -->
 Map all authentication, authorization, and security controls.
 
