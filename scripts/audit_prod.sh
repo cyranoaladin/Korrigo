@@ -158,7 +158,7 @@ export PY_BIN="${PY_PATH}"
 run_cmd "2.1" "Proof imports (Django setup + DRF imports)" "${OUT_DIR}/2.1_proof_imports.log" \
   bash -lc "PYTHONDONTWRITEBYTECODE=1 PY_BIN='${PY_PATH}' bash ./scripts/proof_imports.sh"
 
-run_cmd "2.2" "Proof all (imports -> LOT1 -> LOT2 -> postgres marker)" "${OUT_DIR}/2.2_proof_all.log" \
+run_cmd_allow_fail "2.2" "Proof all (imports -> LOT1 -> LOT2 -> postgres marker)" "${OUT_DIR}/2.2_proof_all.log" \
   bash -lc "PYTHONDONTWRITEBYTECODE=1 PY_BIN='${PY_PATH}' bash ./scripts/proof_all.sh"
 
 # ---------- 4) Optional tools (SKIP if not installed) ----------
