@@ -46,7 +46,7 @@ Map all critical system components and their interactions.
 
 ---
 
-### [ ] Step: Inventory - Critical Workflows
+### [x] Step: Inventory - Critical Workflows
 <!-- chat-id: bf813a81-4ea7-4bf6-af46-37d0ce07284d -->
 Map all critical business workflows from end to end.
 
