@@ -5,7 +5,12 @@ Exposes collected metrics via HTTP endpoint
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
+from django.utils.decorators import method_decorator
 from core.middleware.metrics import metrics_collector
+from core.utils.ratelimit import maybe_ratelimit
+import logging
+
+logger = logging.getLogger('audit')
 
 
 class MetricsView(APIView):
@@ -14,11 +19,15 @@ class MetricsView(APIView):
     Permission: Admin only
     
     P0-OP-08 FIX: Provides observability endpoint for monitoring systems
+    Security: Rate limited to prevent reconnaissance, audit logged
     """
     permission_classes = [IsAdminUser]
     
+    @method_decorator(maybe_ratelimit(key='user', rate='60/h', method='GET', block=True))
     def get(self, request):
         """Return current metrics"""
+        logger.info(f"Metrics accessed by user {request.user.username}")
+        
         metrics = metrics_collector.get_metrics()
         
         # Calculate aggregates
@@ -48,7 +57,9 @@ class MetricsView(APIView):
         
         return Response(summary)
     
+    @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='DELETE', block=True))
     def delete(self, request):
         """Reset metrics (admin only)"""
+        logger.warning(f"Metrics reset by user {request.user.username}")
         metrics_collector.reset()
         return Response({'status': 'metrics_reset'})
