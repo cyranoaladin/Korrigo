@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from exams.models import Exam, Copy
 from grading.models import Annotation
-from grading.services import AnnotationService
+from grading.services import AnnotationService, GradingService
 
 User = get_user_model()
 
@@ -26,9 +26,11 @@ class OptimisticLockingTests(TestCase):
         self.copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='LOCK-001',
-            status=Copy.Status.LOCKED,
-            locked_by=self.user
+            status=Copy.Status.READY
         )
+        # Acquire lock for tests
+        lock, _ = GradingService.acquire_lock(self.copy, self.user)
+        self.lock_token = str(lock.token)
 
     def test_annotation_has_version_field(self):
         """Annotation model has version field defaulting to 0"""
@@ -61,7 +63,7 @@ class OptimisticLockingTests(TestCase):
             annotation_id=annotation.id,
             user=self.user,
             payload={'content': 'Updated', 'version': initial_version},
-            lock_token=None
+            lock_token=self.lock_token
         )
         
         self.assertEqual(updated.version, initial_version + 1)
@@ -84,7 +86,7 @@ class OptimisticLockingTests(TestCase):
             annotation_id=annotation.id,
             user=self.user,
             payload={'content': 'First update', 'version': 0},
-            lock_token=None
+            lock_token=self.lock_token
         )
         
         # Second update with stale version fails
@@ -92,8 +94,8 @@ class OptimisticLockingTests(TestCase):
             AnnotationService.update_annotation(
                 annotation_id=annotation.id,
                 user=self.user,
-                payload={'content': 'Stale update', 'version': 0},  # Stale version
-                lock_token=None
+                payload={'content': 'Stale update', 'version': 0},
+                lock_token=self.lock_token
             )
         
         self.assertIn('Version mismatch', str(cm.exception))
@@ -116,11 +118,11 @@ class OptimisticLockingTests(TestCase):
             annotation_id=annotation.id,
             user=self.user,
             payload={'content': 'Updated without version'},
-            lock_token=None
+            lock_token=self.lock_token
         )
         
         self.assertEqual(updated.content, 'Updated without version')
-        self.assertEqual(updated.version, 1)  # Still incremented
+        self.assertEqual(updated.version, 1)
 
     def test_concurrent_updates_prevented(self):
         """Simulates concurrent edit scenario"""
@@ -142,7 +144,7 @@ class OptimisticLockingTests(TestCase):
             annotation_id=annotation.id,
             user=self.user,
             payload={'content': 'User B update', 'version': 0},
-            lock_token=None
+            lock_token=self.lock_token
         )
         
         # User A tries to update with stale version
@@ -151,7 +153,7 @@ class OptimisticLockingTests(TestCase):
                 annotation_id=annotation.id,
                 user=self.user,
                 payload={'content': 'User A update', 'version': version_a},
-                lock_token=None
+                lock_token=self.lock_token
             )
         
         # Verify User B's update persisted
