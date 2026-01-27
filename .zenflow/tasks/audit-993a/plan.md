@@ -258,7 +258,7 @@ Identify and document P0 data integrity issues.
 
 ---
 
-### [ ] Step: Audit P0 - Critical Operational Issues
+### [x] Step: Audit P0 - Critical Operational Issues
 <!-- chat-id: 0188a852-99c3-4e7a-8ccb-2946bb7f112e -->
 Identify and document P0 operational issues that would prevent production deployment.
 
@@ -271,9 +271,23 @@ Identify and document P0 operational issues that would prevent production deploy
 
 **Deliverable**: P0 operational issues list with proof and remediation
 
+**Completed**: 2026-01-27 - 8 critical operational issues identified and documented in `.zenflow/tasks/audit-993a/P0_CRITICAL_OPERATIONAL_ISSUES.md`
+
+**Key Findings**:
+- P0-OP-01: No logging configuration (CRITICAL - incident blindness)
+- P0-OP-02: No error alerting system (CRITICAL - silent failures)
+- P0-OP-03: Synchronous PDF processing (CRITICAL - blocking, timeouts)
+- P0-OP-04: No DB lock timeout protection (CRITICAL - deadlocks)
+- P0-OP-05: No crash recovery for PDF ops (CRITICAL - data corruption)
+- P0-OP-06: No migration rollback strategy (CRITICAL - deployment safety)
+- P0-OP-07: No readiness/liveness probes (HIGH - orchestration)
+- P0-OP-08: No metrics/monitoring (HIGH - observability)
+
+**Verdict**: 🔴 NO-GO for production until critical issues resolved
+
 ---
 
-### [ ] Step: Audit P1 - High-Severity Security Issues
+### [x] Step: Audit P1 - High-Severity Security Issues
 <!-- chat-id: 5e7f18f2-b10c-4a2a-be1a-c8806d893311 -->
 Identify and document P1 (serious but not blocking) security issues.
 
@@ -286,6 +300,13 @@ Identify and document P1 (serious but not blocking) security issues.
 - **Information disclosure**: Stack traces in production, version exposure
 
 **Deliverable**: P1 security issues list with proof and remediation
+
+**Completion Notes**:
+- **7 P1 security issues** identified and documented
+- Full report: `.zenflow/tasks/audit-993a/P1_SECURITY_FINDINGS.md`
+- Issues: Missing logging config, weak password validation, missing session timeout, info disclosure, CSP unsafe-inline, missing rate limits, N+1 queries
+- Estimated remediation effort: 15-17 hours
+- Priority fixes required before production: P1.1, P1.2, P1.3, P1.4
 
 ---
 
