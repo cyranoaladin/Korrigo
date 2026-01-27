@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../../services/api'
-import gradingApi from '../../services/gradingApi'
 
 const router = useRouter()
 const exams = ref([])
@@ -17,7 +16,7 @@ const fetchExams = async () => {
         const res = await api.get('/exams/')
         exams.value = res.data
         if (exams.value.length > 0) selectedExam.value = exams.value[0].id
-    } catch (err) {
+    } catch {
         error.value = "Failed to load exams"
     }
 }
@@ -48,7 +47,7 @@ const handleUpload = async () => {
                  router.push(`/corrector/desk/${res.data.id}`)
              }, 1000)
         }
-    } catch (err) {
+    } catch {
         console.error(err)
         error.value = err.response?.data?.error || "Import failed"
     } finally {
