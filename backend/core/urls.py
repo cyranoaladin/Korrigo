@@ -28,10 +28,12 @@ urlpatterns += [
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
 
-# Health check endpoint (always available)
-from core.views_health import health_check
+# Health check endpoints (always available)
+from core.views_health import health_check, liveness_check, readiness_check
 urlpatterns += [
     path('api/health/', health_check, name='health_check'),
+    path('api/health/live/', liveness_check, name='liveness'),
+    path('api/health/ready/', readiness_check, name='readiness'),
 ]
 
 # Dev/E2E endpoints (only if E2E_SEED_TOKEN is set)

@@ -167,12 +167,20 @@ if DEBUG:
         }
     }
 else:
-    DATABASES = {
-        'default': dj_database_url.config(
-            default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-            conn_max_age=600
-        )
-    }
+    db_config = dj_database_url.config(
+        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+        conn_max_age=600
+    )
+    
+    # P0-OP-04: Add database lock timeout protection
+    if db_config.get('ENGINE') == 'django.db.backends.postgresql':
+        db_config['OPTIONS'] = {
+            'connect_timeout': 10,
+            'options': '-c lock_timeout=5000 -c statement_timeout=30000 -c idle_in_transaction_session_timeout=60000'
+        }
+        db_config['CONN_HEALTH_CHECKS'] = True
+    
+    DATABASES = {'default': db_config}
 
 
 
@@ -311,3 +319,95 @@ SPECTACULAR_SETTINGS = {
         {'url': 'https://viatique.example.com', 'description': 'Production'},
     ],
 }
+
+# Logging Configuration (P0-OP-01: Production Readiness)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.environ.get('LOG_FILE', '/var/log/korrigo/django.log'),
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'audit_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.environ.get('AUDIT_LOG_FILE', '/var/log/korrigo/audit.log'),
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 10,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'audit': {
+            'handlers': ['audit_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'grading': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+        },
+        'processing': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+        },
+        'identification': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+        },
+    },
+}
+
+# Error Notification Configuration (P0-OP-02: Production Readiness)
+ADMINS = [
+    ('Admin', os.environ.get('ADMIN_EMAIL', 'admin@example.com')),
+]
+MANAGERS = ADMINS
+
+if not DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.example.com')
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+    SERVER_EMAIL = os.environ.get('SERVER_EMAIL', 'korrigo@example.com')
+    
+    LOGGING['handlers']['mail_admins'] = {
+        'level': 'ERROR',
+        'class': 'django.utils.log.AdminEmailHandler',
+        'filters': ['require_debug_false'],
+    }
+    LOGGING['loggers']['django']['handlers'].append('mail_admins')
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
