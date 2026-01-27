@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useExamStore } from '../stores/examStore'
 import { useAuthStore } from '../stores/auth' // Need auth for direct calls if store lacks methods
 
@@ -43,7 +43,7 @@ const deleteBooklet = async (id, e) => {
             headers: authStore.authHeaders
         })
         store.fetchBooklets(store.currentExam.id)
-    } catch(err) {
+    } catch {
         alert("Erreur suppression")
     }
 }
@@ -68,7 +68,7 @@ const performSplit = async () => {
         } else {
             alert("Erreur split")
         }
-    } catch(err) {
+    } catch {
         alert("Erreur réseau")
     }
 }
@@ -110,13 +110,13 @@ const performSplit = async () => {
       <div class="header-actions">
         <h2>Examen: {{ store.currentExam.name }}</h2>
         <div class="controls">
-             <button 
-              :disabled="selectedBookletIds.length === 0" 
-              class="btn-primary"
-              @click="mergeSelection"
-            >
-              Agrafer sélection ({{ selectedBookletIds.length }})
-            </button>
+          <button 
+            :disabled="selectedBookletIds.length === 0" 
+            class="btn-primary"
+            @click="mergeSelection"
+          >
+            Agrafer sélection ({{ selectedBookletIds.length }})
+          </button>
         </div>
       </div>
 
@@ -149,16 +149,20 @@ const performSplit = async () => {
             <span v-if="booklet.student_name_guess">{{ booklet.student_name_guess }}</span>
             <span v-else>Nom inconnu</span>
             <div class="mini-actions">
-                <button 
-                    class="btn-xs" 
-                    title="Scinder"
-                    @click="openSplit(booklet, $event)"
-                >✂️</button>
-                <button 
-                    class="btn-xs btn-danger" 
-                    title="Supprimer" 
-                    @click="deleteBooklet(booklet.id, $event)"
-                >🗑️</button>
+              <button 
+                class="btn-xs" 
+                title="Scinder"
+                @click="openSplit(booklet, $event)"
+              >
+                ✂️
+              </button>
+              <button 
+                class="btn-xs btn-danger" 
+                title="Supprimer" 
+                @click="deleteBooklet(booklet.id, $event)"
+              >
+                🗑️
+              </button>
             </div>
           </div>
           
@@ -173,23 +177,38 @@ const performSplit = async () => {
     </div>
 
     <!-- Split Modal -->
-    <div v-if="splitMode" class="modal-overlay">
-        <div class="modal">
-            <h3>Scinder le fascicule</h3>
-            <p>Couper après la page :</p>
-            <div class="split-controls">
-                <input type="range" min="1" :max="(splitMode.pages_images.length - 1)" v-model.number="splitIndex">
-                <span>{{ splitIndex }} / {{ splitMode.pages_images.length }}</span>
-            </div>
-            <div class="preview-split">
-                Garder pages 1 à {{ splitIndex }} <br>
-                Nouveau fascicule : pages {{ splitIndex + 1 }} à {{ splitMode.pages_images.length }}
-            </div>
-            <div class="modal-actions">
-                <button @click="splitMode = null">Annuler</button>
-                <button class="btn-primary" @click="performSplit">Confirmer Scission</button>
-            </div>
+    <div
+      v-if="splitMode"
+      class="modal-overlay"
+    >
+      <div class="modal">
+        <h3>Scinder le fascicule</h3>
+        <p>Couper après la page :</p>
+        <div class="split-controls">
+          <input
+            v-model.number="splitIndex"
+            type="range"
+            min="1"
+            :max="(splitMode.pages_images.length - 1)"
+          >
+          <span>{{ splitIndex }} / {{ splitMode.pages_images.length }}</span>
         </div>
+        <div class="preview-split">
+          Garder pages 1 à {{ splitIndex }} <br>
+          Nouveau fascicule : pages {{ splitIndex + 1 }} à {{ splitMode.pages_images.length }}
+        </div>
+        <div class="modal-actions">
+          <button @click="splitMode = null">
+            Annuler
+          </button>
+          <button
+            class="btn-primary"
+            @click="performSplit"
+          >
+            Confirmer Scission
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
