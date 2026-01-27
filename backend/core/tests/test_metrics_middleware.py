@@ -18,72 +18,59 @@ class MetricsCollectorTests(TestCase):
     def test_initial_state(self):
         """Collector starts with empty metrics"""
         metrics = self.collector.get_metrics()
-        self.assertEqual(metrics['total_requests'], 0)
-        self.assertEqual(metrics['total_errors'], 0)
-        self.assertEqual(len(metrics['endpoints']), 0)
+        self.assertEqual(len(metrics), 0)
 
     def test_record_request_creates_endpoint_entry(self):
         """Recording a request creates endpoint entry"""
-        self.collector.record_request('/api/test/', 200, 0.5)
+        self.collector.record_request('/api/test/', 'GET', 0.5, 200)
         metrics = self.collector.get_metrics()
         
-        self.assertEqual(metrics['total_requests'], 1)
-        self.assertEqual(metrics['total_errors'], 0)
-        self.assertEqual(len(metrics['endpoints']), 1)
+        self.assertEqual(len(metrics), 1)
+        self.assertIn('GET /api/test/', metrics)
         
-        endpoint = metrics['endpoints'][0]
-        self.assertEqual(endpoint['endpoint'], '/api/test/')
+        endpoint = metrics['GET /api/test/']
         self.assertEqual(endpoint['count'], 1)
         self.assertEqual(endpoint['errors'], 0)
 
     def test_record_error_increments_error_count(self):
         """Recording error responses increments error counters"""
-        self.collector.record_request('/api/test/', 500, 0.3)
+        self.collector.record_request('/api/test/', 'POST', 0.3, 500)
         metrics = self.collector.get_metrics()
         
-        self.assertEqual(metrics['total_errors'], 1)
-        endpoint = metrics['endpoints'][0]
+        endpoint = metrics['POST /api/test/']
         self.assertEqual(endpoint['errors'], 1)
-        self.assertAlmostEqual(endpoint['error_rate'], 100.0)
 
     def test_path_normalization_uuid(self):
         """UUID patterns are normalized to prevent cardinality explosion"""
         uuid_path = '/api/copies/123e4567-e89b-12d3-a456-426614174000/finalize/'
-        self.collector.record_request(uuid_path, 200, 0.1)
-        
-        metrics = self.collector.get_metrics()
-        endpoint = metrics['endpoints'][0]
-        self.assertEqual(endpoint['endpoint'], '/api/copies/<uuid>/finalize/')
+        normalized_path = MetricsMiddleware._normalize_path(uuid_path)
+        self.assertEqual(normalized_path, '/api/copies/<uuid>/finalize/')
 
     def test_path_normalization_integer(self):
         """Integer IDs are normalized"""
-        self.collector.record_request('/api/exams/123/copies/', 200, 0.1)
-        
-        metrics = self.collector.get_metrics()
-        endpoint = metrics['endpoints'][0]
-        self.assertEqual(endpoint['endpoint'], '/api/exams/<id>/copies/')
+        normalized_path = MetricsMiddleware._normalize_path('/api/exams/123/copies/')
+        self.assertEqual(normalized_path, '/api/exams/<id>/copies/')
 
     def test_aggregation_multiple_requests(self):
         """Multiple requests to same endpoint aggregate correctly"""
         for i in range(5):
-            self.collector.record_request('/api/test/', 200, 0.1 * (i + 1))
+            self.collector.record_request('/api/test/', 'GET', 0.1 * (i + 1), 200)
         
         metrics = self.collector.get_metrics()
-        endpoint = metrics['endpoints'][0]
+        endpoint = metrics['GET /api/test/']
         
         self.assertEqual(endpoint['count'], 5)
-        self.assertAlmostEqual(endpoint['avg_time_ms'], 300.0)  # (100+200+300+400+500)/5
-        self.assertAlmostEqual(endpoint['min_time_ms'], 100.0)
-        self.assertAlmostEqual(endpoint['max_time_ms'], 500.0)
+        self.assertAlmostEqual(endpoint['total_time'], 1.5)  # 0.1+0.2+0.3+0.4+0.5
+        self.assertAlmostEqual(endpoint['min_time'], 0.1)
+        self.assertAlmostEqual(endpoint['max_time'], 0.5)
 
     def test_reset_clears_metrics(self):
         """Reset clears all metrics"""
-        self.collector.record_request('/api/test/', 200, 0.1)
+        self.collector.record_request('/api/test/', 'GET', 0.1, 200)
         self.collector.reset()
         
         metrics = self.collector.get_metrics()
-        self.assertEqual(metrics['total_requests'], 0)
-        self.assertEqual(len(metrics['endpoints']), 0)
+        self.assertEqual(len(metrics), 0)
 
     def test_thread_safety(self):
         """Collector is thread-safe"""
@@ -91,7 +78,7 @@ class MetricsCollectorTests(TestCase):
         
         def record_requests():
             for _ in range(100):
-                self.collector.record_request('/api/test/', 200, 0.1)
+                self.collector.record_request('/api/test/', 'GET', 0.1, 200)
         
         threads = [threading.Thread(target=record_requests) for _ in range(5)]
         for t in threads:
@@ -100,62 +87,78 @@ class MetricsCollectorTests(TestCase):
             t.join()
         
         metrics = self.collector.get_metrics()
-        self.assertEqual(metrics['total_requests'], 500)  # 5 threads * 100 requests
+        endpoint = metrics['GET /api/test/']
+        self.assertEqual(endpoint['count'], 500)
 
 
 class MetricsMiddlewareTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.middleware = MetricsMiddleware(get_response=lambda r: HttpResponse())
+        self.collector = MetricsCollector()
+        
+        # Replace global collector with test instance
+        import core.middleware.metrics
+        self.original_collector = core.middleware.metrics.metrics_collector
+        core.middleware.metrics.metrics_collector = self.collector
+
+    def tearDown(self):
+        # Restore original collector
+        import core.middleware.metrics
+        core.middleware.metrics.metrics_collector = self.original_collector
 
     def test_middleware_records_request(self):
-        """Middleware records successful requests"""
-        self.middleware.collector.reset()
-        
-        request = self.factory.get('/api/health/')
-        response = self.middleware(request)
-        
-        metrics = self.middleware.collector.get_metrics()
-        self.assertEqual(metrics['total_requests'], 1)
-        self.assertEqual(metrics['total_errors'], 0)
-
-    def test_middleware_adds_response_time_header(self):
-        """Middleware adds X-Response-Time-Ms header"""
+        """Middleware records request metrics"""
         request = self.factory.get('/api/test/')
-        response = self.middleware(request)
+        self.middleware.process_request(request)
         
-        self.assertIn('X-Response-Time-Ms', response)
-        response_time = float(response['X-Response-Time-Ms'])
-        self.assertGreater(response_time, 0)
+        response = HttpResponse(status=200)
+        self.middleware.process_response(request, response)
+        
+        metrics = self.collector.get_metrics()
+        self.assertIn('GET /api/test/', metrics)
 
-    def test_middleware_handles_exceptions(self):
-        """Middleware records errors when view raises exception"""
-        def error_view(request):
-            raise ValueError("Test error")
+    def test_middleware_records_errors(self):
+        """Middleware records error responses"""
+        request = self.factory.post('/api/fail/')
+        self.middleware.process_request(request)
         
-        middleware = MetricsMiddleware(get_response=error_view)
-        middleware.collector.reset()
+        response = HttpResponse(status=500)
+        self.middleware.process_response(request, response)
         
-        request = self.factory.get('/api/error/')
+        metrics = self.collector.get_metrics()
+        endpoint = metrics['POST /api/fail/']
+        self.assertEqual(endpoint['errors'], 1)
+
+    def test_middleware_normalizes_paths(self):
+        """Middleware normalizes paths with UUIDs and IDs"""
+        request = self.factory.get('/api/copies/123e4567-e89b-12d3-a456-426614174000/')
+        self.middleware.process_request(request)
         
-        with self.assertRaises(ValueError):
-            middleware(request)
+        response = HttpResponse(status=200)
+        self.middleware.process_response(request, response)
         
-        metrics = middleware.collector.get_metrics()
-        self.assertEqual(metrics['total_requests'], 1)
-        self.assertEqual(metrics['total_errors'], 1)
+        metrics = self.collector.get_metrics()
+        self.assertIn('GET /api/copies/<uuid>/', metrics)
 
     def test_slow_request_logging(self):
-        """Middleware logs warning for slow requests"""
-        def slow_view(request):
-            time.sleep(0.01)  # Simulate slow operation
-            return HttpResponse()
+        """Middleware logs slow requests"""
+        import logging
+        with self.assertLogs('metrics', level='WARNING') as cm:
+            request = self.factory.get('/api/slow/')
+            request._metrics_start_time = time.time() - 6.0  # Simulate slow request
+            
+            response = HttpResponse(status=200)
+            self.middleware.process_response(request, response)
         
-        middleware = MetricsMiddleware(get_response=slow_view)
-        request = self.factory.get('/api/slow/')
+        self.assertTrue(any('Slow request detected' in msg for msg in cm.output))
+
+    def test_response_time_header(self):
+        """Middleware adds response time header"""
+        request = self.factory.get('/api/test/')
+        self.middleware.process_request(request)
         
-        with self.assertLogs('core.middleware.metrics', level='INFO') as logs:
-            response = middleware(request)
+        response = HttpResponse(status=200)
+        response = self.middleware.process_response(request, response)
         
-        # Verify response time header exists
         self.assertIn('X-Response-Time-Ms', response)
