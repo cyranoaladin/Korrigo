@@ -27,17 +27,24 @@ class PassthroughRenderer(renderers.BaseRenderer):
         return data
 
 
+
 def _handle_service_error(e, context="API"):
     """
-    Formate les erreurs du service layer (ValueError, etc.) en réponses HTTP 400.
+    Formate les erreurs du service layer (ValueError, PermissionError, etc.) en réponses HTTP.
+    PermissionError -> 403 Forbidden
+    Autres erreurs -> 400 Bad Request
     """
     from django.conf import settings
     logger.warning(f"{context} Service Error: {e}")
+    
+    if isinstance(e, PermissionError):
+        return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
     
     if settings.DEBUG:
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     else:
         return Response({"detail": "Invalid operation. Please check your input."}, status=status.HTTP_400_BAD_REQUEST)
+
 
 def _handle_unexpected_error(e, context="API"):
     """
@@ -76,7 +83,7 @@ class AnnotationListCreateView(generics.ListCreateAPIView):
             )
             serializer = self.get_serializer(annotation)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except (ValueError, KeyError) as e:
+        except (ValueError, KeyError, PermissionError) as e:
             return _handle_service_error(e, context="AnnotationListCreateView.create")
         except Exception as e:
             return _handle_unexpected_error(e, context="AnnotationListCreateView.create")
@@ -143,7 +150,7 @@ class CopyReadyView(APIView):
         try:
             GradingService.ready_copy(copy, request.user)
             return Response({"status": copy.status})
-        except ValueError as e:
+        except (ValueError, PermissionError) as e:
             return _handle_service_error(e)
 
 # CopyLockView and CopyUnlockView replaced by views_lock.py logic
@@ -158,7 +165,7 @@ class CopyFinalizeView(APIView):
         try:
             GradingService.finalize_copy(copy, request.user)
             return Response({"status": copy.status})
-        except ValueError as e:
+        except (ValueError, PermissionError) as e:
             return _handle_service_error(e)
 
 
