@@ -688,7 +688,7 @@ Verify Docker production configuration is correct.
 
 ---
 
-### [ ] Step: Smoke Test Execution
+### [x] Step: Smoke Test Execution
 <!-- chat-id: 541f1587-3058-4cac-8482-2b587409ad85 -->
 Execute smoke tests to verify critical paths work end-to-end.
 
@@ -701,6 +701,23 @@ Execute smoke tests to verify critical paths work end-to-end.
 - Document results
 
 **Deliverable**: Smoke test execution report
+
+**Status**: ✅ COMPLETED - 2026-01-27
+**Output**: `.zenflow/tasks/audit-993a/SMOKE_TEST_REPORT.md`
+**Key Findings**:
+- ⚠️ **OVERALL VERDICT: NOT READY FOR PRODUCTION**
+- ✅ 8/10 tests PASSED with existing (old) container images
+- ❌ 🚨 **P0 BLOCKER**: Container rebuild fails due to missing log directory `/var/log/korrigo/audit.log`
+- ❌ **P1**: Configuration drift - 'identification' app in source code but not loaded in running container
+- ❌ **P1**: Identification workflow completely unavailable (404 on all endpoints)
+- ✅ Health checks working (200 OK)
+- ✅ Security controls enforced (authentication required, media gate blocks public access)
+- ✅ Student portal endpoints protected and accessible
+- ✅ Exam management endpoints protected
+- ✅ Frontend serving correctly via Nginx
+- **Critical Issue**: Application crashes on startup after rebuild (logging handler configuration)
+- **Impact**: Cannot deploy current source code to production
+- **Recommendation**: Fix logging configuration IMMEDIATELY before any deployment attempt
 
 ---
 
