@@ -46,26 +46,25 @@ class OCRService:
         Effectue l'OCR sur une image d'en-tête
         """
         try:
-            # Charger l'image
-            image = Image.open(header_image_file)
+            # Charger l'image (P1-REL-006: Use context manager to prevent resource leak)
+            with Image.open(header_image_file) as image:
+                # Convertir en grayscale pour meilleur OCR
+                if image.mode != 'L':  # L = grayscale
+                    image = image.convert('L')
 
-            # Convertir en grayscale pour meilleur OCR
-            if image.mode != 'L':  # L = grayscale
-                image = image.convert('L')
+                # Effectuer OCR
+                custom_config = r'--oem 3 --psm 6 -l fra+eng'
+                text = pytesseract.image_to_string(image, config=custom_config)
 
-            # Effectuer OCR
-            custom_config = r'--oem 3 --psm 6 -l fra+eng'
-            text = pytesseract.image_to_string(image, config=custom_config)
+                # Calculer la confiance moyenne
+                data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
+                confidences = [int(conf) for conf in data['conf'] if int(conf) > 0]
+                avg_confidence = sum(confidences) / len(confidences) if confidences else 0
 
-            # Calculer la confiance moyenne
-            data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
-            confidences = [int(conf) for conf in data['conf'] if int(conf) > 0]
-            avg_confidence = sum(confidences) / len(confidences) if confidences else 0
-
-            return {
-                'text': text.strip(),
-                'confidence': avg_confidence / 100.0  # Normaliser à [0,1]
-            }
+                return {
+                    'text': text.strip(),
+                    'confidence': avg_confidence / 100.0  # Normaliser à [0,1]
+                }
         except Exception as e:
             # Gérer les erreurs proprement
             return {
@@ -83,15 +82,23 @@ class OCRService:
         words = ocr_text.upper().split()
         
         # Chercher des correspondances dans la base élèves
+        # P1-REL-009: Use single query with OR conditions instead of N queries
+        from django.db.models import Q
+        
         suggestions = []
+        if not words:
+            return suggestions
+        
+        # Build Q objects for all valid words
+        q_objects = Q()
         for word in words:
             if len(word) > 2:  # Mot suffisamment long pour être un nom
-                matches = Student.objects.filter(
-                    last_name__icontains=word
-                )[:5]  # Limiter à 5 suggestions
-                
-                for student in matches:
-                    suggestions.append(student)
+                q_objects |= Q(last_name__icontains=word) | Q(first_name__icontains=word)
+        
+        # Single query instead of N queries
+        if q_objects:
+            matches = Student.objects.filter(q_objects).distinct()[:20]  # Get top 20 matches
+            suggestions = list(matches)
         
         # Retirer les doublons
         seen_ids = set()

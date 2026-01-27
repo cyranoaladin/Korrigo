@@ -14,7 +14,7 @@ pytestmark = pytest.mark.django_db(transaction=True)
     connection.vendor != "postgresql",
     reason="PostgreSQL required for real row-level locking semantics.",
 )
-def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user, exam):
+def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user):
     """Postgres-only: two concurrent finalize attempts on same Copy.
 
     Run locally:
@@ -26,10 +26,12 @@ def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user,
     - flatten_copy called exactly once
     """
 
-    from exams.models import Booklet, Copy
+    from datetime import date
+    from exams.models import Booklet, Copy, Exam
     from grading.models import CopyLock
     from grading.services import GradingService
 
+    exam = Exam.objects.create(name="Postgres Concurrency", date=date.today())
     b = Booklet.objects.create(exam=exam, start_page=0, end_page=0, pages_images=["p0.png"])
     copy = Copy.objects.create(
         exam=exam,
@@ -58,16 +60,21 @@ def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user,
 
     def worker():
         import unittest.mock
+        from django.db import connections
 
         try:
-            with unittest.mock.patch(
-                "processing.services.pdf_flattener.PDFFlattener.flatten_copy",
-                side_effect=flatten_side_effect,
-            ):
+            with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener") as mock_flattener_cls:
+                mock_flattener = unittest.mock.Mock()
+                mock_flattener.flatten_copy.side_effect = flatten_side_effect
+                mock_flattener_cls.return_value = mock_flattener
+
                 GradingService.finalize_copy(copy, teacher_user, lock_token=str(lock.token))
             results.append("ok")
         except Exception as e:
             results.append(type(e).__name__)
+        finally:
+            # Prevent leaked connections keeping the test DB from being dropped.
+            connections.close_all()
 
     t1 = threading.Thread(target=worker)
     t2 = threading.Thread(target=worker)
