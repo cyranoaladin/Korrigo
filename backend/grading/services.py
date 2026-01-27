@@ -10,11 +10,16 @@ from django.db import transaction
 from django.utils import timezone
 from django.conf import settings
 from django.core.files.base import ContentFile
-from grading.models import Annotation, GradingEvent
+from grading.models import Annotation, GradingEvent, CopyLock
 from exams.models import Copy, Booklet, Exam
 import logging
+import datetime
 
 logger = logging.getLogger(__name__)
+
+
+class LockConflictError(Exception):
+    pass
 
 
 class AnnotationService:
@@ -57,9 +62,34 @@ class AnnotationService:
 
     @staticmethod
     @transaction.atomic
-    def add_annotation(copy: Copy, payload: dict, user):
-        if copy.status != Copy.Status.READY:
+    def _require_active_lock(copy: Copy, user, lock_token: str):
+        now = timezone.now()
+        try:
+            lock = CopyLock.objects.select_related("owner").get(copy=copy)
+        except CopyLock.DoesNotExist:
+            raise LockConflictError("Lock required.")
+
+        if lock.expires_at < now:
+            lock.delete()
+            raise LockConflictError("Lock expired.")
+
+        if lock.owner != user:
+            raise LockConflictError("Copy is locked by another user.")
+
+        if not lock_token:
+            raise PermissionError("Missing lock token.")
+        if str(lock.token) != str(lock_token):
+            raise PermissionError("Invalid lock token.")
+
+        return lock
+
+    @staticmethod
+    @transaction.atomic
+    def add_annotation(copy: Copy, payload: dict, user, lock_token=None):
+        if copy.status != Copy.Status.LOCKED:
             raise ValueError(f"Cannot annotate copy in status {copy.status}")
+
+        AnnotationService._require_active_lock(copy=copy, user=user, lock_token=lock_token)
 
         AnnotationService.validate_page_index(copy, payload['page_index'])
         AnnotationService.validate_coordinates(
@@ -90,9 +120,11 @@ class AnnotationService:
 
     @staticmethod
     @transaction.atomic
-    def update_annotation(annotation: Annotation, payload: dict, user):
-        if annotation.copy.status != Copy.Status.READY:
+    def update_annotation(annotation: Annotation, payload: dict, user, lock_token=None):
+        if annotation.copy.status != Copy.Status.LOCKED:
             raise ValueError(f"Cannot update annotation in copy status {annotation.copy.status}")
+
+        AnnotationService._require_active_lock(copy=annotation.copy, user=user, lock_token=lock_token)
 
         # Basic ownership check (if not enforced by Permission class)
         # But Service usually enforces invariant logic, permissions enforce access.
@@ -124,9 +156,11 @@ class AnnotationService:
 
     @staticmethod
     @transaction.atomic
-    def delete_annotation(annotation: Annotation, user):
-        if annotation.copy.status != Copy.Status.READY:
+    def delete_annotation(annotation: Annotation, user, lock_token=None):
+        if annotation.copy.status != Copy.Status.LOCKED:
              raise ValueError(f"Cannot delete annotation in copy status {annotation.copy.status}")
+
+        AnnotationService._require_active_lock(copy=annotation.copy, user=user, lock_token=lock_token)
 
         copy = annotation.copy
         ann_id = str(annotation.id)
@@ -158,6 +192,158 @@ class GradingService:
             if annotation.score_delta is not None:
                 total += annotation.score_delta
         return total
+
+    @staticmethod
+    def _reconcile_lock_state(copy: Copy) -> None:
+        now = timezone.now()
+
+        try:
+            lock = copy.lock
+        except CopyLock.DoesNotExist:
+            lock = None
+
+        if lock and lock.expires_at < now:
+            lock.delete()
+            lock = None
+
+        if lock and copy.status != Copy.Status.LOCKED:
+            copy.status = Copy.Status.LOCKED
+            copy.locked_at = now
+            copy.locked_by = lock.owner
+            copy.save(update_fields=["status", "locked_at", "locked_by"])
+            return
+
+        if not lock and copy.status == Copy.Status.LOCKED:
+            copy.status = Copy.Status.READY
+            copy.locked_at = None
+            copy.locked_by = None
+            copy.save(update_fields=["status", "locked_at", "locked_by"])
+
+    @staticmethod
+    @transaction.atomic
+    def acquire_lock(copy: Copy, user, ttl_seconds: int = 600):
+        now = timezone.now()
+        GradingService._reconcile_lock_state(copy)
+
+        ttl = max(int(ttl_seconds), 1)
+        ttl = min(ttl, 3600)
+        expires_at = now + datetime.timedelta(seconds=ttl)
+
+        try:
+            lock = (
+                CopyLock.objects.select_for_update()
+                .select_related("owner")
+                .get(copy=copy)
+            )
+        except CopyLock.DoesNotExist:
+            lock = None
+
+        if lock and lock.expires_at < now:
+            lock.delete()
+            lock = None
+
+        if lock:
+            if lock.owner != user:
+                raise LockConflictError("Copy is locked by another user.")
+            lock.expires_at = expires_at
+            lock.save(update_fields=["expires_at"])
+            copy.status = Copy.Status.LOCKED
+            copy.locked_at = now
+            copy.locked_by = user
+            copy.save(update_fields=["status", "locked_at", "locked_by"])
+            return lock, False
+
+        lock = CopyLock.objects.create(copy=copy, owner=user, expires_at=expires_at)
+        copy.status = Copy.Status.LOCKED
+        copy.locked_at = now
+        copy.locked_by = user
+        copy.save(update_fields=["status", "locked_at", "locked_by"])
+
+        GradingEvent.objects.create(
+            copy=copy,
+            action=GradingEvent.Action.LOCK,
+            actor=user,
+            metadata={"token_prefix": str(lock.token)[:8]},
+        )
+
+        return lock, True
+
+    @staticmethod
+    @transaction.atomic
+    def heartbeat_lock(copy: Copy, user, lock_token: str, ttl_seconds: int = 600):
+        now = timezone.now()
+        try:
+            lock = (
+                CopyLock.objects.select_for_update()
+                .select_related("owner")
+                .get(copy=copy)
+            )
+        except CopyLock.DoesNotExist:
+            raise LockConflictError("Lock not found or expired.")
+
+        if lock.expires_at < now:
+            lock.delete()
+            GradingService._reconcile_lock_state(copy)
+            raise LockConflictError("Lock expired.")
+
+        if lock.owner != user:
+            raise LockConflictError("Lock owner mismatch.")
+
+        if not lock_token:
+            raise PermissionError("Missing lock token.")
+        if str(lock.token) != str(lock_token):
+            raise PermissionError("Invalid lock token.")
+
+        ttl = max(int(ttl_seconds), 1)
+        ttl = min(ttl, 3600)
+        lock.expires_at = now + datetime.timedelta(seconds=ttl)
+        lock.save(update_fields=["expires_at"])
+        GradingService._reconcile_lock_state(copy)
+        return lock
+
+    @staticmethod
+    @transaction.atomic
+    def release_lock(copy: Copy, user, lock_token: str):
+        try:
+            lock = CopyLock.objects.select_for_update().get(copy=copy)
+        except CopyLock.DoesNotExist:
+            return False
+
+        if not lock_token:
+            raise PermissionError("Missing lock token.")
+        if str(lock.token) != str(lock_token):
+            raise PermissionError("Invalid lock token.")
+
+        if lock.owner != user:
+            raise LockConflictError("Lock owner mismatch.")
+
+        GradingEvent.objects.create(
+            copy=copy,
+            action=GradingEvent.Action.UNLOCK,
+            actor=user,
+        )
+
+        lock.delete()
+        GradingService._reconcile_lock_state(copy)
+        return True
+
+    @staticmethod
+    @transaction.atomic
+    def get_lock_status(copy: Copy):
+        now = timezone.now()
+        try:
+            lock = CopyLock.objects.select_related("owner").get(copy=copy)
+        except CopyLock.DoesNotExist:
+            GradingService._reconcile_lock_state(copy)
+            return None
+
+        if lock.expires_at < now:
+            lock.delete()
+            GradingService._reconcile_lock_state(copy)
+            return None
+
+        GradingService._reconcile_lock_state(copy)
+        return lock
 
     @staticmethod
     @transaction.atomic
@@ -276,47 +462,44 @@ class GradingService:
     @staticmethod
     @transaction.atomic
     def lock_copy(copy: Copy, user):
-        if copy.status != Copy.Status.READY:
-            raise ValueError("Only READY copies can be locked")
-
-        copy.status = Copy.Status.LOCKED
-        copy.locked_at = timezone.now()
-        copy.locked_by = user
-        copy.save()
-
-        GradingEvent.objects.create(
-            copy=copy,
-            action=GradingEvent.Action.LOCK,
-            actor=user
-        )
-        return copy
+        lock, _created = GradingService.acquire_lock(copy=copy, user=user, ttl_seconds=600)
+        return lock
 
     @staticmethod
     @transaction.atomic
     def unlock_copy(copy: Copy, user):
-        if copy.status != Copy.Status.LOCKED:
-            raise ValueError("Only LOCKED copies can be unlocked")
-
-        previous_locker = copy.locked_by.username if copy.locked_by else "unknown"
-
-        copy.status = Copy.Status.READY
-        copy.locked_at = None
-        copy.locked_by = None
-        copy.save()
-
-        GradingEvent.objects.create(
-            copy=copy,
-            action=GradingEvent.Action.UNLOCK,
-            actor=user,
-            metadata={'previous_locker': previous_locker}
-        )
-        return copy
+        raise ValueError("Use release_lock with token.")
 
     @staticmethod
     @transaction.atomic
-    def finalize_copy(copy: Copy, user):
-        if copy.status not in [Copy.Status.LOCKED, Copy.Status.READY]:
-            raise ValueError("Only LOCKED or READY copies can be finalized")
+    def finalize_copy(copy: Copy, user, lock_token=None):
+        copy = Copy.objects.select_for_update().get(id=copy.id)
+
+        if copy.status != Copy.Status.LOCKED:
+            raise ValueError("Only LOCKED copies can be finalized")
+
+        # Lock CopyLock row as well to prevent concurrent finalize.
+        now = timezone.now()
+        try:
+            lock = (
+                CopyLock.objects.select_for_update()
+                .select_related("owner")
+                .get(copy=copy)
+            )
+        except CopyLock.DoesNotExist:
+            raise LockConflictError("Lock required.")
+
+        if lock.expires_at < now:
+            lock.delete()
+            raise LockConflictError("Lock expired.")
+
+        if lock.owner != user:
+            raise LockConflictError("Copy is locked by another user.")
+
+        if not lock_token:
+            raise PermissionError("Missing lock token.")
+        if str(lock.token) != str(lock_token):
+            raise PermissionError("Invalid lock token.")
 
         final_score = GradingService.compute_score(copy)
 
@@ -324,14 +507,24 @@ class GradingService:
         from processing.services.pdf_flattener import PDFFlattener
         flattener = PDFFlattener()
         try:
-             flattener.flatten_copy(copy)
+             pdf_bytes = flattener.flatten_copy(copy)
         except Exception as e:
              logger.error(f"Flattten failed: {e}")
              raise ValueError(f"Failed to generate final PDF: {e}")
 
+        output_filename = f"copy_{copy.id}_corrected.pdf"
+
+        def _save_final_pdf():
+            copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
+            copy.save(update_fields=["final_pdf"])
+
+        transaction.on_commit(_save_final_pdf)
+
         copy.status = Copy.Status.GRADED
         copy.graded_at = timezone.now()
-        copy.save()
+        copy.locked_at = None
+        copy.locked_by = None
+        copy.save(update_fields=["status", "graded_at", "locked_at", "locked_by"])
 
         GradingEvent.objects.create(
             copy=copy,
@@ -339,4 +532,6 @@ class GradingService:
             actor=user,
             metadata={'final_score': final_score}
         )
+
+        lock.delete()
         return copy
