@@ -26,7 +26,7 @@ class HeaderDetector:
             if image is None:
                 raise ValueError(_("Impossible de lire l'image : ") + image_path)
 
-            height, width, _ = image.shape
+            height, width, channels = image.shape
             
             # Logic Placeholder : Détection de contour rectangulaire dans le top 20%
             # On se concentre sur la partie supérieure
@@ -36,7 +36,7 @@ class HeaderDetector:
             blurred = cv2.GaussianBlur(gray, (5, 5), 0)
             edged = cv2.Canny(blurred, 50, 150)
             
-            contours, _ = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, hierarchy = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
             for contour in contours:
                 # Approximation du contour
@@ -72,7 +72,7 @@ class HeaderDetector:
             if image is None:
                 raise ValueError(_("Image introuvable"))
 
-            height, width, _ = image.shape
+            height, width, channels = image.shape
             
             # Placeholder: On prend arbitrairement le top 15% centré
             # En réalité, utiliser les coordonnées du contour détecté par detect_header
