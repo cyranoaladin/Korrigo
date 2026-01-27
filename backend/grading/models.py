@@ -177,6 +177,14 @@ class CopyLock(models.Model):
     class Meta:
         verbose_name = _("Verrou de copie")
         verbose_name_plural = _("Verrous de copies")
+        constraints = [
+            models.UniqueConstraint(fields=["copy"], name="uniq_copylock_copy"),
+        ]
+        indexes = [
+            models.Index(fields=["expires_at"], name="idx_copylock_expires_at"),
+            models.Index(fields=["owner"], name="idx_copylock_owner"),
+            models.Index(fields=["copy"], name="idx_copylock_copy"),
+        ]
         
     def __str__(self):
         return f"Lock {self.copy.anonymous_id} by {self.owner} (expires {self.expires_at})"
