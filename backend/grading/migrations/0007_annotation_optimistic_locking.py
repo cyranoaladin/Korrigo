@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('grading', '0003_alter_annotation_copy'),
+        ('grading', '0006_copylock_idx_copylock_expires_at_and_more'),
     ]
 
     operations = [
