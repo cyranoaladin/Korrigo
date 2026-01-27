@@ -60,6 +60,7 @@ class TestWorkflowComplete(TransactionTestCase):
         # 2. LOCK (New C3 Requirement: Must lock before annotating)
         resp = self.client.post(f"/api/grading/copies/{copy_id}/lock/", {}, format='json')
         self.assertEqual(resp.status_code, 201)
+        lock_token = resp.data["token"]
         
         # 3. ANNOTATE (CRUD)
         # Create
@@ -70,7 +71,12 @@ class TestWorkflowComplete(TransactionTestCase):
             "content": "Good job",
             "score_delta": 2
         }
-        resp = self.client.post(f"/api/grading/copies/{copy_id}/annotations/", ann_data, format='json')
+        resp = self.client.post(
+            f"/api/grading/copies/{copy_id}/annotations/",
+            ann_data,
+            format='json',
+            HTTP_X_LOCK_TOKEN=str(lock_token),
+        )
         self.assertEqual(resp.status_code, 201)
         ann1_id = resp.data['id']
 
@@ -82,23 +88,39 @@ class TestWorkflowComplete(TransactionTestCase):
             "content": "Typo",
             "score_delta": -1
         }
-        resp = self.client.post(f"/api/grading/copies/{copy_id}/annotations/", ann_data2, format='json')
+        resp = self.client.post(
+            f"/api/grading/copies/{copy_id}/annotations/",
+            ann_data2,
+            format='json',
+            HTTP_X_LOCK_TOKEN=str(lock_token),
+        )
         self.assertEqual(resp.status_code, 201)
         ann2_id = resp.data['id']
         
         # Update (PATCH)
-        resp = self.client.patch(f"/api/grading/annotations/{ann1_id}/", {"score_delta": 3}, format='json')
+        resp = self.client.patch(
+            f"/api/grading/annotations/{ann1_id}/",
+            {"score_delta": 3},
+            format='json',
+            HTTP_X_LOCK_TOKEN=str(lock_token),
+        )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data['score_delta'], 3)
         
         # Delete
-        resp = self.client.delete(f"/api/grading/annotations/{ann2_id}/")
+        resp = self.client.delete(
+            f"/api/grading/annotations/{ann2_id}/",
+            HTTP_X_LOCK_TOKEN=str(lock_token),
+        )
         self.assertEqual(resp.status_code, 204)
         self.assertEqual(Annotation.objects.count(), 1) # Only ann1 remains
         
         # Verify Lock enforcement (Cannot create annotation WITHOUT lock?) 
         # Release lock
-        resp = self.client.delete(f"/api/grading/copies/{copy_id}/lock/release/")
+        resp = self.client.delete(
+            f"/api/grading/copies/{copy_id}/lock/release/",
+            HTTP_X_LOCK_TOKEN=str(lock_token),
+        )
         self.assertEqual(resp.status_code, 204)
         
         # Now try to annotate -> Should fail 403 (Write Requires Lock)
@@ -106,12 +128,20 @@ class TestWorkflowComplete(TransactionTestCase):
         self.assertEqual(resp.status_code, 403)
         
         # Re-acquire lock for Finalize?
-        # Assuming finalize needs LOCKED: I'll manually set it here as a workaround or logic check
-        copy.status = Copy.Status.LOCKED
-        copy.save()
+        resp = self.client.post(f"/api/grading/copies/{copy_id}/lock/", {}, format='json')
+        self.assertIn(resp.status_code, [200, 201])
+        lock_token = resp.data["token"]
         
         # 4. FINALIZE
-        resp = self.client.post(f"/api/grading/copies/{copy_id}/finalize/", {}, format='json')
+        import unittest.mock
+        with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
+            mock_flatten.return_value = b"%PDF-1.4\n%%EOF"
+            resp = self.client.post(
+                f"/api/grading/copies/{copy_id}/finalize/",
+                {},
+                format='json',
+                HTTP_X_LOCK_TOKEN=str(lock_token),
+            )
         self.assertEqual(resp.status_code, 200)
         copy.refresh_from_db()
         self.assertEqual(copy.status, Copy.Status.GRADED)

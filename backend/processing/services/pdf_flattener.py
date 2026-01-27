@@ -27,7 +27,7 @@ class PDFFlattener:
         2. Ajoute chaque page (image PNG) du fascicule.
         3. Dessine les annotations avec dénormalisation coordonnées (ADR-002).
         4. Ajoute une page de synthèse avec scores.
-        5. Sauvegarde et met à jour copy.final_pdf.
+        5. Retourne les bytes du PDF final (sans side-effects DB).
 
         NOTE: Le statut de la copy est géré par GradingService.finalize_copy(),
         pas ici (respect de la séparation des responsabilités).
@@ -81,11 +81,8 @@ class PDFFlattener:
         pdf_bytes = doc.write()
         doc.close()
 
-        from django.core.files.base import ContentFile
-        copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
-        copy.save()
-
-        logger.info(f"Copy {copy.id} flattened successfully: {copy.final_pdf.name}")
+        logger.info(f"Copy {copy.id} flattened successfully: {output_filename}")
+        return pdf_bytes
 
     def _draw_annotations_on_page(self, page, annotations, page_width, page_height):
         """

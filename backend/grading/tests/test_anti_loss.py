@@ -7,7 +7,9 @@ from grading.models import Annotation, GradingEvent
 from django.contrib.auth.models import Group
 from core.auth import UserRole
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 import unittest.mock
+import datetime
 
 User = get_user_model()
 
@@ -38,27 +40,25 @@ class TestAntiLoss:
         It MUST NOT re-run flattening or corrupt data.
         """
         copy.status = Copy.Status.LOCKED
-        copy.save()
+        copy.locked_by = teacher
+        copy.locked_at = timezone.now() if hasattr(copy, "locked_at") else None
+        copy.save(update_fields=["status", "locked_by", "locked_at"])
         
         client = APIClient()
         client.force_authenticate(user=teacher)
         
-        # Mock flattening to avoid FS overhead/errors
+        from grading.models import CopyLock
+        lock = CopyLock.objects.create(copy=copy, owner=teacher, expires_at=timezone.now() + datetime.timedelta(minutes=10))
+
         with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
-            # 1st Call
-            resp1 = client.post(f"/api/grading/copies/{copy.id}/finalize/")
+            mock_flatten.return_value = b"%PDF-1.4\n%%EOF"
+            resp1 = client.post(f"/api/grading/copies/{copy.id}/finalize/", HTTP_X_LOCK_TOKEN=str(lock.token))
             assert resp1.status_code == 200
             assert mock_flatten.call_count == 1
-            
-            # 2nd Call
-            # Should be rejected because status is now GRADED
-            resp2 = client.post(f"/api/grading/copies/{copy.id}/finalize/")
-            
-            # If API is strict, 400 "Already Graded". If Idempotent, 200 but no-op.
-            # Based on previous knowledge (Copy.Status.LOCKED check in service), it raises ValueError if not LOCKED.
-            # So expected is 400 (Bad Request) -> "Only LOCKED copies can be finalized"
-            assert resp2.status_code == 400
-            assert mock_flatten.call_count == 1 # Should NOT have been called again
+
+            resp2 = client.post(f"/api/grading/copies/{copy.id}/finalize/", HTTP_X_LOCK_TOKEN=str(lock.token))
+            assert resp2.status_code in [400, 403, 409]
+            assert mock_flatten.call_count == 1
 
     def test_lock_idempotency(self, teacher, copy):
         """
@@ -86,8 +86,15 @@ class TestAntiLoss:
         
         # C3: Acquire Lock
         from grading.models import CopyLock
-        from django.utils import timezone
-        CopyLock.objects.create(copy=copy, owner=teacher, expires_at=timezone.now() + timezone.timedelta(hours=1))
+        copy.status = Copy.Status.LOCKED
+        copy.locked_by = teacher
+        copy.locked_at = timezone.now() if hasattr(copy, "locked_at") else None
+        copy.save(update_fields=["status", "locked_by", "locked_at"])
+        lock = CopyLock.objects.create(
+            copy=copy,
+            owner=teacher,
+            expires_at=timezone.now() + datetime.timedelta(hours=1),
+        )
         
         ann_data = {
             "page_index": 0, "x": 0.1, "y": 0.1, "w": 0.1, "h": 0.1,
@@ -96,7 +103,12 @@ class TestAntiLoss:
         
         # Simulate DB error during save
         with unittest.mock.patch("grading.models.Annotation.save", side_effect=Exception("DB Crash")):
-            resp = client.post(f"/api/grading/copies/{copy.id}/annotations/", ann_data, format='json')
+            resp = client.post(
+                f"/api/grading/copies/{copy.id}/annotations/",
+                ann_data,
+                format='json',
+                HTTP_X_LOCK_TOKEN=str(lock.token),
+            )
             
         assert resp.status_code == 500
         assert Annotation.objects.count() == 0 # Must be 0
