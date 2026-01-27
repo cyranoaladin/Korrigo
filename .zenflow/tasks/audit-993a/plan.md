@@ -93,7 +93,7 @@ Map all authentication, authorization, and security controls.
 
 ---
 
-### [ ] Step: Inventory - Data Integrity & State Management
+### [x] Step: Inventory - Data Integrity & State Management
 <!-- chat-id: 8cc0fa54-79fb-42b4-a8b8-c6acfd47bf52 -->
 Map all state machines, transactions, and data validation.
 
@@ -111,6 +111,19 @@ Map all state machines, transactions, and data validation.
 - Tests: `backend/grading/tests/test_concurrency.py`
 
 **Deliverable**: State machine diagrams + transaction boundaries + validation rules
+
+**Status**: ✅ COMPLETED - 2026-01-27
+**Output**: `.zenflow/tasks/audit-993a/INVENTORY_DATA_INTEGRITY.md`
+**Key Findings**:
+- ❌ P0: No pessimistic locking (select_for_update) → race conditions on lock/unlock/finalize
+- ❌ P0: GradingEvent cascade deletion → audit trail loss on copy deletion
+- ❌ P0: Annotation status inconsistency (checks READY but should check LOCKED)
+- ❌ P0: PDF flattening not in transaction → partial state on failure
+- ⚠️ P1: No lock expiry enforcement, no draft cleanup mechanism
+- ⚠️ P1: Missing indexes on Copy(status,exam), Copy(student_id,status)
+- ✅ Comprehensive validation: PDF (size, mime, integrity), annotations (coordinates), grading structure
+- ✅ Well-defined state machine with comprehensive audit trail (GradingEvent + AuditLog)
+- ✅ Atomic transactions on most operations (annotation CRUD, state transitions, PDF split)
 
 ---
 
