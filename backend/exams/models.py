@@ -59,7 +59,7 @@ class Booklet(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(
         Exam, 
-        on_delete=models.CASCADE, 
+        on_delete=models.PROTECT,  # P0-DI-005 FIX: Prevent accidental deletion of booklets
         related_name='booklets',
         verbose_name=_("Examen")
     )
@@ -105,7 +105,7 @@ class Copy(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(
         Exam, 
-        on_delete=models.CASCADE, 
+        on_delete=models.PROTECT,  # P0-DI-005 FIX: Prevent catastrophic deletion of all student data
         related_name='copies',
         verbose_name=_("Examen")
     )

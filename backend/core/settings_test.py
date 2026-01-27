@@ -21,6 +21,11 @@ except Exception:
 
 from .settings import *
 
+try:
+    import dj_database_url
+except Exception:
+    dj_database_url = None
+
 raw_suffix = os.environ.get("CI_NODE_INDEX") or os.environ.get("PYTEST_XDIST_WORKER") or "0"
 # Normalize suffix for CI/xdist (e.g., "gw0") and avoid unexpected chars
 DB_SUFFIX = "".join(ch for ch in str(raw_suffix) if ch.isalnum() or ch in "_").lower() or "0"
@@ -30,6 +35,15 @@ DATABASES['default']['TEST'] = {
     'NAME': f'test_viatique_{DB_SUFFIX}',
     'SERIALIZE': False, # Prevent IntegrityErrors in django_content_type
 }
+
+database_url = os.environ.get("DATABASE_URL")
+if database_url and dj_database_url is not None:
+    DATABASES['default'] = dj_database_url.parse(database_url)
+    DATABASES['default']['CONN_MAX_AGE'] = 0
+    DATABASES['default']['TEST'] = {
+        'NAME': f'test_viatique_{DB_SUFFIX}',
+        'SERIALIZE': False,
+    }
 
 # Faster password hashing for tests
 PASSWORD_HASHERS = [

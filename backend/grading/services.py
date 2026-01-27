@@ -223,50 +223,48 @@ class GradingService:
     @transaction.atomic
     def acquire_lock(copy: Copy, user, ttl_seconds: int = 600):
         now = timezone.now()
-        GradingService._reconcile_lock_state(copy)
-
+        
+        # P0-DI-001 FIX: Lock the Copy object to prevent race conditions
+        copy = Copy.objects.select_for_update().get(id=copy.id)
+        
         ttl = max(int(ttl_seconds), 1)
         ttl = min(ttl, 3600)
         expires_at = now + datetime.timedelta(seconds=ttl)
 
-        try:
-            lock = (
-                CopyLock.objects.select_for_update()
-                .select_related("owner")
-                .get(copy=copy)
-            )
-        except CopyLock.DoesNotExist:
-            lock = None
+        # P0-DI-001 FIX: Clean up expired locks atomically
+        CopyLock.objects.filter(copy=copy, expires_at__lt=now).delete()
 
-        if lock and lock.expires_at < now:
-            lock.delete()
-            lock = None
+        # P0-DI-001 FIX: Use get_or_create to handle race conditions atomically
+        lock, created = CopyLock.objects.get_or_create(
+            copy=copy,
+            defaults={'owner': user, 'expires_at': expires_at}
+        )
 
-        if lock:
+        if not created:
+            # Lock already exists, check ownership
             if lock.owner != user:
                 raise LockConflictError("Copy is locked by another user.")
+            
+            # Refresh expiration for the existing lock owned by requester
             lock.expires_at = expires_at
             lock.save(update_fields=["expires_at"])
-            copy.status = Copy.Status.LOCKED
-            copy.locked_at = now
-            copy.locked_by = user
-            copy.save(update_fields=["status", "locked_at", "locked_by"])
-            return lock, False
 
-        lock = CopyLock.objects.create(copy=copy, owner=user, expires_at=expires_at)
+        # Update Copy status atomically
         copy.status = Copy.Status.LOCKED
         copy.locked_at = now
         copy.locked_by = user
         copy.save(update_fields=["status", "locked_at", "locked_by"])
 
-        GradingEvent.objects.create(
-            copy=copy,
-            action=GradingEvent.Action.LOCK,
-            actor=user,
-            metadata={"token_prefix": str(lock.token)[:8]},
-        )
+        if created:
+            # Only create GradingEvent for new locks
+            GradingEvent.objects.create(
+                copy=copy,
+                action=GradingEvent.Action.LOCK,
+                actor=user,
+                metadata={"token_prefix": str(lock.token)[:8]},
+            )
 
-        return lock, True
+        return lock, created
 
     @staticmethod
     @transaction.atomic
@@ -473,7 +471,13 @@ class GradingService:
     @staticmethod
     @transaction.atomic
     def finalize_copy(copy: Copy, user, lock_token=None):
+        # P0-DI-003 FIX: Lock the Copy object to prevent race conditions
         copy = Copy.objects.select_for_update().get(id=copy.id)
+
+        # P0-DI-003 FIX: Idempotency - If already GRADED, return success
+        if copy.status == Copy.Status.GRADED:
+            logger.info(f"Copy {copy.id} already graded, skipping duplicate finalization")
+            return copy
 
         if copy.status != Copy.Status.LOCKED:
             raise ValueError("Only LOCKED copies can be finalized")
@@ -503,35 +507,44 @@ class GradingService:
 
         final_score = GradingService.compute_score(copy)
 
-        # Generate Final PDF
-        from processing.services.pdf_flattener import PDFFlattener
-        flattener = PDFFlattener()
-        try:
-             pdf_bytes = flattener.flatten_copy(copy)
-        except Exception as e:
-             logger.error(f"Flattten failed: {e}")
-             raise ValueError(f"Failed to generate final PDF: {e}")
-
-        output_filename = f"copy_{copy.id}_corrected.pdf"
-
-        def _save_final_pdf():
-            copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
-            copy.save(update_fields=["final_pdf"])
-
-        transaction.on_commit(_save_final_pdf)
-
+        # P0-DI-003 FIX: Set status to GRADED BEFORE slow PDF generation
+        # This prevents race conditions where two requests both generate PDFs
         copy.status = Copy.Status.GRADED
         copy.graded_at = timezone.now()
         copy.locked_at = None
         copy.locked_by = None
         copy.save(update_fields=["status", "graded_at", "locked_at", "locked_by"])
 
-        GradingEvent.objects.create(
+        # Delete lock immediately after status change
+        lock.delete()
+
+        # Generate Final PDF (now safe from race conditions)
+        from processing.services.pdf_flattener import PDFFlattener
+        flattener = PDFFlattener()
+        try:
+            # Check if PDF already exists (additional idempotency check)
+            if not copy.final_pdf:
+                pdf_bytes = flattener.flatten_copy(copy)
+                output_filename = f"copy_{copy.id}_corrected.pdf"
+                
+                def _save_final_pdf():
+                    copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
+                    copy.save(update_fields=["final_pdf"])
+                
+                transaction.on_commit(_save_final_pdf)
+        except Exception as e:
+            logger.error(f"PDF generation failed for copy {copy.id}: {e}", exc_info=True)
+            # Note: Status is already GRADED, but final_pdf is empty
+            # This is acceptable - the copy is graded, but PDF needs regeneration
+            # TODO P0-DI-004: Add GRADING_FAILED status for better error handling
+            raise ValueError(f"Failed to generate final PDF: {e}")
+
+        # Audit event (idempotent with get_or_create)
+        GradingEvent.objects.get_or_create(
             copy=copy,
             action=GradingEvent.Action.FINALIZE,
             actor=user,
-            metadata={'final_score': final_score}
+            defaults={'metadata': {'final_score': final_score}}
         )
 
-        lock.delete()
         return copy

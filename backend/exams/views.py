@@ -6,6 +6,8 @@ from rest_framework.views import APIView
 
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
+from core.utils.ratelimit import maybe_ratelimit
+from django.utils.decorators import method_decorator
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
@@ -21,6 +23,7 @@ class ExamUploadView(APIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     parser_classes = (MultiPartParser, FormParser)
 
+    @method_decorator(maybe_ratelimit(key=\'user\', rate=\'20/h\', method=\'POST\', block=True))
     def post(self, request, *args, **kwargs):
         serializer = ExamSerializer(data=request.data)
         if serializer.is_valid():
@@ -59,9 +62,16 @@ class ExamUploadView(APIView):
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(f"Error processing PDF: {e}", exc_info=True)
-                return Response({
-                    "error": f"PDF processing failed: {str(e)}"
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                from core.utils.errors import safe_error_response
+
+                return Response(
+
+                    safe_error_response(e, context="PDF processing", user_message="PDF upload failed. Please verify the file is valid."),
+
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+
+                )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -89,7 +99,11 @@ class CopyImportView(APIView):
         except ValueError as e:
              return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-             return Response({'error': f"Internal Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            from core.utils.errors import safe_error_response
+            return Response(
+                safe_error_response(e, context=\"Copy import\", user_message=\"Failed to import copy. Please check the file format.\"),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 
@@ -151,9 +165,10 @@ class BookletSplitView(APIView):
             page = doc.load_page(page_index)
             pix = page.get_pixmap(dpi=150)
             
-            fd, temp_path = tempfile.mkstemp(suffix=".png")
-            os.close(fd)
-            pix.save(temp_path)
+            # P1-REL-007: Use NamedTemporaryFile with proper cleanup
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                temp_path = tmp.name
+                pix.save(temp_path)
             
             # Use Splitter Service
             splitter = A3Splitter()
@@ -166,7 +181,11 @@ class BookletSplitView(APIView):
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            from core.utils.errors import safe_error_response
+            return Response(
+                safe_error_response(e, context="A3 split processing"),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         finally:
             if 'temp_path' in locals() and os.path.exists(temp_path):
                 os.unlink(temp_path)
@@ -435,7 +454,11 @@ class ExamSourceUploadView(APIView):
                 }, status=status.HTTP_201_CREATED)
                 
             except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            from core.utils.errors import safe_error_response
+            return Response(
+                safe_error_response(e, context="A3 split processing"),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         return Response({"error": "pdf_source field required"}, status=status.HTTP_400_BAD_REQUEST)
 class CopyValidationView(APIView):
@@ -452,7 +475,11 @@ class CopyValidationView(APIView):
         except ValueError as e:
              return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            from core.utils.errors import safe_error_response
+            return Response(
+                safe_error_response(e, context="A3 split processing"),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class CorrectorCopiesView(generics.ListAPIView):
     """
