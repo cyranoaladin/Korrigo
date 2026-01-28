@@ -262,6 +262,9 @@ LOGGING = {
             # S5-A: Inject request context (request_id, path, method, user_id) into logs
             '()': 'core.middleware.request_id.RequestContextLogFilter',
         },
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
     },
     'handlers': {
         'console': {
