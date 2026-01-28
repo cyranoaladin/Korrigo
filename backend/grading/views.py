@@ -132,7 +132,6 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
         
         try:
             AnnotationService.delete_annotation(annotation, request.user)
-            # 204 No Content is standard
             return Response(status=status.HTTP_204_NO_CONTENT)
         except (ValueError, KeyError, PermissionError) as e:
             return _handle_service_error(e, context="AnnotationDetailView.destroy")
@@ -159,6 +158,8 @@ class CopyFinalizeView(APIView):
     permission_classes = [IsTeacherOrAdmin]
     def post(self, request, id):
         copy = get_object_or_404(Copy, id=id)
+        if copy.status == Copy.Status.GRADED:
+            return Response({"detail": "Copy already graded."}, status=status.HTTP_400_BAD_REQUEST)
         try:
             GradingService.finalize_copy(copy, request.user)
             return Response({"status": copy.status})
