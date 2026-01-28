@@ -36,6 +36,12 @@ urlpatterns += [
     path('api/health/ready/', readiness_check, name='readiness'),
 ]
 
+# Prometheus metrics endpoint (S5-B - standard /metrics convention)
+from core.views_prometheus import prometheus_metrics_view
+urlpatterns += [
+    path('metrics', prometheus_metrics_view, name='prometheus_metrics'),
+]
+
 # Metrics endpoint (admin only - P0-OP-08)
 from core.views_metrics import MetricsView
 urlpatterns += [
