@@ -96,7 +96,10 @@ jobs:
       - name: Bandit (backend)
         working-directory: backend
         run: |
-          bandit -r . -x ./.venv,./staticfiles,./db.sqlite3 -q
+          # Use .bandit config file for security policy (tests vs prod scope)
+          # Config excludes: migrations, .venv, staticfiles, __pycache__
+          # False positives suppressed via targeted # nosec comments in code
+          bandit -r . -c .bandit -q
 
   integration:
     name: Integration (workflow complete tests subset)
