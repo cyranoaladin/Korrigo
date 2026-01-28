@@ -15,7 +15,7 @@ def exam(db):
 
 
 @pytest.fixture
-def ready_copy(exam, admin_user):
+def ready_copy_with_lock(exam, admin_user):
     """Creates a READY copy with booklet AND LOCK."""
     from exams.models import Booklet, Copy
     from grading.models import CopyLock
@@ -36,12 +36,19 @@ def ready_copy(exam, admin_user):
     copy.booklets.add(booklet)
     
     # Auto-lock for C3
-    CopyLock.objects.create(
+    lock = CopyLock.objects.create(
         copy=copy,
         owner=admin_user,
         expires_at=timezone.now() + datetime.timedelta(hours=1),
     )
 
+    return copy, lock
+
+
+@pytest.fixture
+def ready_copy(ready_copy_with_lock):
+    """Creates a READY copy with booklet AND LOCK (returns only copy for backward compatibility)."""
+    copy, _lock = ready_copy_with_lock
     return copy
 
 
@@ -68,11 +75,12 @@ def annotation(ready_copy, admin_user):
 # ============================================================================
 
 @pytest.mark.unit
-def test_value_error_returns_400_detail(authenticated_client, ready_copy):
+def test_value_error_returns_400_detail(authenticated_client, ready_copy_with_lock):
     """
     Test that ValueError from service layer returns 400 with {"detail": "..."}.
     Trigger: invalid coordinate (w=0).
     """
+    ready_copy, lock = ready_copy_with_lock
     url = f"/api/grading/copies/{ready_copy.id}/annotations/"
 
     payload = {
@@ -85,7 +93,7 @@ def test_value_error_returns_400_detail(authenticated_client, ready_copy):
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json")
+    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
 
     assert response.status_code == 400
     assert "detail" in response.data

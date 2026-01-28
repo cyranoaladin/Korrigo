@@ -70,8 +70,8 @@ Switch to main project directory and create branch for the task.
 
 ---
 
-### [ ] Step: Fix Lock Token Validation in _require_active_lock
-<!-- chat-id: fix-require-active-lock -->
+### [x] Step: Fix Lock Token Validation in _require_active_lock
+<!-- chat-id: 32d42318-408c-411c-900c-4962cd482907 -->
 
 Fix the `_require_active_lock` method to always require a valid lock token.
 
