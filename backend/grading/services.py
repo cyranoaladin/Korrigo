@@ -502,10 +502,14 @@ class GradingService:
         # P0-DI-003 FIX: Lock the Copy object to prevent race conditions
         copy = Copy.objects.select_for_update().get(id=copy.id)
 
-        # P0-DI-003 FIX: Idempotency - If already GRADED, return success
+        # P0-DI-003 FIX: Detect concurrent finalization (single-winner enforcement)
+        # If status is already GRADED, another request won the race - reject duplicate
         if copy.status == Copy.Status.GRADED:
-            logger.info(f"Copy {copy.id} already graded, skipping duplicate finalization")
-            return copy
+            logger.warning(
+                f"Copy {copy.id} already graded (concurrent finalization detected) - "
+                f"rejecting duplicate request"
+            )
+            raise LockConflictError("Copy already finalized by another request")
 
         # P0-DI-004 FIX: Handle GRADING_FAILED - allow retry
         if copy.status == Copy.Status.GRADING_FAILED:
