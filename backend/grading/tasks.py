@@ -7,7 +7,9 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 import os
 import logging
-import os
+
+from grading.services import GradingService
+PDFProcessor = GradingService
 
 logger = logging.getLogger('grading')
 User = get_user_model()
@@ -36,7 +38,6 @@ def async_finalize_copy(self, copy_id, user_id, lock_token=None):
     """
     try:
         from exams.models import Copy
-        from grading.services import GradingService
         
         copy = Copy.objects.get(id=copy_id)
         user = User.objects.get(id=user_id)
@@ -53,9 +54,17 @@ def async_finalize_copy(self, copy_id, user_id, lock_token=None):
         
         return {
             'copy_id': str(copy_id),
-            'status': 'graded',
+            'status': 'success',
             'final_score': final_score,
             'attempt': self.request.retries + 1
+        }
+        
+    except Copy.DoesNotExist:
+        logger.error(f"Copy {copy_id} not found")
+        return {
+            'copy_id': str(copy_id),
+            'status': 'error',
+            'error': f'Copy {copy_id} not found'
         }
         
     except Exception as exc:
@@ -69,8 +78,12 @@ def async_finalize_copy(self, copy_id, user_id, lock_token=None):
         # Retry on transient failures (network, temporary DB issues)
         # Don't retry on validation errors (wrong status, permissions)
         if "Lock" in str(exc) or "Permission" in str(exc) or "Only LOCKED" in str(exc):
-            # Business logic error - don't retry
-            raise
+            # Business logic error - don't retry, return error
+            return {
+                'copy_id': str(copy_id),
+                'status': 'error',
+                'error': str(exc)
+            }
         
         # Transient error - retry
         raise self.retry(exc=exc, countdown=60)
@@ -96,8 +109,6 @@ def async_import_pdf(self, exam_id, pdf_path, user_id, anonymous_id):
     """
     try:
         from exams.models import Exam
-        from grading.services import GradingService
-        import os
         
         exam = Exam.objects.get(id=exam_id)
         user = User.objects.get(id=user_id)
@@ -110,7 +121,7 @@ def async_import_pdf(self, exam_id, pdf_path, user_id, anonymous_id):
         
         with open(pdf_path, 'rb') as pdf_file:
             # This will create Copy, rasterize pages, create Booklet
-            copy = GradingService.import_pdf(exam, pdf_file, user, anonymous_id=anonymous_id)
+            copy = PDFProcessor.import_pdf(exam, pdf_file, user)
         
         # Get page count
         booklets = copy.booklets.all()
@@ -126,7 +137,7 @@ def async_import_pdf(self, exam_id, pdf_path, user_id, anonymous_id):
         
         return {
             'copy_id': str(copy.id),
-            'status': 'staging',
+            'status': 'success',
             'pages': total_pages,
             'attempt': self.request.retries + 1
         }
@@ -138,8 +149,11 @@ def async_import_pdf(self, exam_id, pdf_path, user_id, anonymous_id):
             exc_info=True
         )
         
-        # Retry on transient failures
-        raise self.retry(exc=exc, countdown=60)
+        # Return error for business logic failures
+        return {
+            'status': 'error',
+            'error': str(exc)
+        }
 
 
 @shared_task
