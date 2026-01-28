@@ -56,18 +56,18 @@ class AsyncFinalizeCopyTests(TestCase):
         mock_finalize.side_effect = Exception("PDF generation failed")
         
         result = async_finalize_copy(str(copy.id), self.user.id)
-        
+
         self.assertEqual(result['status'], 'error')
-        self.assertIn('PDF generation failed', result['error'])
+        self.assertIn('PDF generation failed', result['detail'])
 
     def test_async_finalize_copy_not_found(self):
         """Task handles non-existent copy"""
         fake_id = str(uuid.uuid4())
         
         result = async_finalize_copy(fake_id, self.user.id)
-        
+
         self.assertEqual(result['status'], 'error')
-        self.assertIn('not found', result['error'].lower())
+        self.assertIn('not found', result['detail'].lower())
 
 
 class AsyncImportPDFTests(TestCase):
@@ -110,9 +110,9 @@ class AsyncImportPDFTests(TestCase):
             self.user.id,
             'TEST-004'
         )
-        
+
         self.assertEqual(result['status'], 'error')
-        self.assertIn('Invalid PDF format', result['error'])
+        self.assertIn('Invalid PDF format', result['detail'])
 
 
 class CleanupOrphanedFilesTests(TestCase):
