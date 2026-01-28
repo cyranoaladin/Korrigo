@@ -157,11 +157,11 @@ def cleanup_orphaned_files():
     
     logger.info("Starting orphaned file cleanup")
     
+    removed_count = 0
     # Find files older than 24 hours in temp upload directory
     temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp_uploads')
     if os.path.exists(temp_dir):
         cutoff_time = datetime.now().timestamp() - (24 * 3600)
-        cleaned_count = 0
         
         for filename in os.listdir(temp_dir):
             filepath = os.path.join(temp_dir, filename)
@@ -170,12 +170,12 @@ def cleanup_orphaned_files():
                 if file_mtime < cutoff_time:
                     try:
                         os.remove(filepath)
-                        cleaned_count += 1
+                        removed_count += 1
                     except Exception as e:
                         logger.error(f"Failed to remove orphaned file {filepath}: {e}")
         
-        logger.info(f"Cleaned up {cleaned_count} orphaned temp files")
+        logger.info(f"Cleaned up {removed_count} orphaned temp files")
     
     # TODO: Clean up orphaned page images (pages with no corresponding Copy)
     
-    return {'cleaned_files': cleaned_count}
+    return {'removed_count': removed_count}
