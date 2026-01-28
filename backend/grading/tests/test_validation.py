@@ -9,7 +9,7 @@ from datetime import date
 
 @pytest.fixture
 def exam_with_copy(db, admin_user):
-    """Creates an exam with a READY copy that has 2 pages AND IS LOCKED by admin."""
+    """Creates an exam with a READY copy that has 2 pages AND IS LOCKED by admin. Returns (copy, lock)."""
     from exams.models import Exam, Booklet, Copy
     from grading.models import CopyLock
     from django.utils import timezone
@@ -34,13 +34,13 @@ def exam_with_copy(db, admin_user):
     copy.booklets.add(booklet)
     
     # Auto-lock for C3
-    CopyLock.objects.create(
+    lock = CopyLock.objects.create(
         copy=copy,
         owner=admin_user,
         expires_at=timezone.now() + datetime.timedelta(hours=1),
     )
 
-    return copy
+    return copy, lock
 
 
 # ============================================================================
@@ -53,7 +53,7 @@ def test_reject_annotation_with_w_zero(authenticated_client, exam_with_copy):
     ADR-002: w must be in (0, 1] (strictly positive).
     Test that w=0 is rejected with 400.
     """
-    copy = exam_with_copy
+    copy, lock = exam_with_copy
     url = f"/api/grading/copies/{copy.id}/annotations/"
 
     payload = {
@@ -66,7 +66,7 @@ def test_reject_annotation_with_w_zero(authenticated_client, exam_with_copy):
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json")
+    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
 
     assert response.status_code == 400
     assert "detail" in response.data
@@ -79,7 +79,7 @@ def test_reject_annotation_with_overflow_x_plus_w(authenticated_client, exam_wit
     ADR-002: x + w must not exceed 1.
     Test that x=0.9, w=0.2 (x+w=1.1) is rejected with 400.
     """
-    copy = exam_with_copy
+    copy, lock = exam_with_copy
     url = f"/api/grading/copies/{copy.id}/annotations/"
 
     payload = {
@@ -92,7 +92,7 @@ def test_reject_annotation_with_overflow_x_plus_w(authenticated_client, exam_wit
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json")
+    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
 
     assert response.status_code == 400
     assert "detail" in response.data
@@ -105,7 +105,7 @@ def test_reject_annotation_with_overflow_y_plus_h(authenticated_client, exam_wit
     ADR-002: y + h must not exceed 1.
     Test that y=0.8, h=0.3 (y+h=1.1) is rejected with 400.
     """
-    copy = exam_with_copy
+    copy, lock = exam_with_copy
     url = f"/api/grading/copies/{copy.id}/annotations/"
 
     payload = {
@@ -118,7 +118,7 @@ def test_reject_annotation_with_overflow_y_plus_h(authenticated_client, exam_wit
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json")
+    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
 
     assert response.status_code == 400
     assert "detail" in response.data
@@ -131,7 +131,7 @@ def test_reject_annotation_with_negative_values(authenticated_client, exam_with_
     ADR-002: x, y must be in [0, 1].
     Test that negative values are rejected with 400.
     """
-    copy = exam_with_copy
+    copy, lock = exam_with_copy
     url = f"/api/grading/copies/{copy.id}/annotations/"
 
     payload = {
@@ -144,7 +144,7 @@ def test_reject_annotation_with_negative_values(authenticated_client, exam_with_
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json")
+    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
 
     assert response.status_code == 400
     assert "detail" in response.data
@@ -161,7 +161,7 @@ def test_reject_page_index_out_of_bounds(authenticated_client, exam_with_copy):
     Test that page_index >= total_pages is rejected with 400.
     Copy has 2 pages (indices 0, 1), so page_index=2 should fail.
     """
-    copy = exam_with_copy
+    copy, lock = exam_with_copy
     url = f"/api/grading/copies/{copy.id}/annotations/"
 
     payload = {
@@ -174,7 +174,7 @@ def test_reject_page_index_out_of_bounds(authenticated_client, exam_with_copy):
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json")
+    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
 
     assert response.status_code == 400
     assert "detail" in response.data
@@ -186,7 +186,7 @@ def test_accept_page_index_as_string_int(authenticated_client, exam_with_copy):
     """
     Test that page_index as string "0" or "1" is accepted (int-like handling).
     """
-    copy = exam_with_copy
+    copy, lock = exam_with_copy
     url = f"/api/grading/copies/{copy.id}/annotations/"
 
     payload = {
@@ -199,7 +199,7 @@ def test_accept_page_index_as_string_int(authenticated_client, exam_with_copy):
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json")
+    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
 
     assert response.status_code == 201
     assert response.data["page_index"] == 1  # Converted to int
