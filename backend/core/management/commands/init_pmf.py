@@ -1,3 +1,4 @@
+import os
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ObjectDoesNotExist
@@ -18,8 +19,14 @@ class Command(BaseCommand):
 
         # 2. Create Admin
         admin_email = 'alaeddine.benrhouma@ert.tn'
-        admin_pass = 'adminpass'
-        
+        # Security: Use environment variable for admin password
+        admin_pass = os.environ.get('ADMIN_DEFAULT_PASSWORD', 'CHANGE_ME_ADMIN')
+
+        if admin_pass == 'CHANGE_ME_ADMIN':  # nosec B105 - Checking for default value, not hardcoding
+            self.stdout.write(self.style.WARNING(
+                'WARNING: Using default admin password. Set ADMIN_DEFAULT_PASSWORD environment variable.'
+            ))
+
         try:
             admin_user = User.objects.get(username=admin_email)
             self.stdout.write(f'Admin user {admin_email} already exists. Updating Permissions.')
@@ -49,7 +56,13 @@ class Command(BaseCommand):
             'selima.klibi@ert.tn',
             'philippe.carr@ert.tn'
         ]
-        default_pass = 'profpass'
+        # Security: Use environment variable for teacher default password
+        default_pass = os.environ.get('TEACHER_DEFAULT_PASSWORD', 'CHANGE_ME_TEACHER')
+
+        if default_pass == 'CHANGE_ME_TEACHER':  # nosec B105 - Checking for default value, not hardcoding
+            self.stdout.write(self.style.WARNING(
+                'WARNING: Using default teacher password. Set TEACHER_DEFAULT_PASSWORD environment variable.'
+            ))
 
         for email in teachers_data:
             try:

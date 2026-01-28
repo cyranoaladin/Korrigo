@@ -27,7 +27,7 @@ def admin_user(db):
     User = get_user_model()
     user = User.objects.create_user(
         username="admin_test",
-        password="testpass123",
+        password="testpass123",  # nosec B106 - Test fixture password, not used in production
         is_staff=True,
         is_superuser=True
     )
@@ -45,7 +45,7 @@ def teacher_user(db):
     User = get_user_model()
     user = User.objects.create_user(
         username="teacher_test",
-        password="testpass123",
+        password="testpass123",  # nosec B106 - Test fixture password, not used in production
         is_staff=True,
         is_superuser=False
     )
@@ -63,7 +63,7 @@ def regular_user(db):
     User = get_user_model()
     user = User.objects.create_user(
         username="user_test",
-        password="testpass123",
+        password="testpass123",  # nosec B106 - Test fixture password, not used in production
         is_staff=False,
         is_superuser=False
     )
