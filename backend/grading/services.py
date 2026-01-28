@@ -614,3 +614,26 @@ class GradingService:
             raise ValueError(f"Failed to generate final PDF: {error_msg}")
 
         return copy
+
+
+class PDFProcessor:
+    """
+    Wrapper service for PDF import operations.
+    Provides test-friendly interface for async tasks.
+    """
+
+    @staticmethod
+    def import_pdf(exam: Exam, pdf_file, user, anonymous_id=None):
+        """
+        Import PDF and create Copy. Wraps GradingService.import_pdf.
+        
+        Args:
+            exam: Exam instance
+            pdf_file: File object containing PDF
+            user: User performing the import
+            anonymous_id: Optional anonymous identifier (for future use)
+            
+        Returns:
+            Copy instance in STAGING status
+        """
+        return GradingService.import_pdf(exam, pdf_file, user)
