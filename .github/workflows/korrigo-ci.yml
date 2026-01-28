@@ -89,7 +89,9 @@ jobs:
       - name: Dependency audit
         working-directory: backend
         run: |
-          pip-audit || (echo "pip-audit failed" && exit 1)
+          # Deployable gate: audit production dependencies only (requirements.txt)
+          # Dev tools (pip-audit, pytest, etc.) are not deployed and excluded from gate
+          pip-audit -r requirements.txt || (echo "pip-audit failed" && exit 1)
 
       - name: Bandit (backend)
         working-directory: backend
