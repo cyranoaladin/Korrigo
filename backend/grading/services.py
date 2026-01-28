@@ -120,7 +120,11 @@ class AnnotationService:
 
     @staticmethod
     @transaction.atomic
-    def update_annotation(annotation: Annotation, payload: dict, user, lock_token=None):
+    def update_annotation(annotation: Annotation = None, payload: dict = None, user=None, lock_token=None, annotation_id=None):
+        if annotation is None and annotation_id is not None:
+            annotation = Annotation.objects.select_related("copy").get(id=annotation_id)
+        if payload is None:
+            payload = {}
         if annotation.copy.status != Copy.Status.LOCKED:
             raise ValueError(f"Cannot update annotation in copy status {annotation.copy.status}")
 
@@ -131,17 +135,17 @@ class AnnotationService:
         if expected_version is not None:
             if int(expected_version) != annotation.version:
                 raise ValueError(
-                    f"Version mismatch - annotation was modified by another user. "
+                    f"Version mismatch - concurrent edit detected. "
                     f"Expected version {expected_version}, current version {annotation.version}. "
                     f"Please refresh and try again."
                 )
         
-        x = float(payload.get('x', annotation.x))
-        y = float(payload.get('y', annotation.y))
-        w = float(payload.get('w', annotation.w))
-        h = float(payload.get('h', annotation.h))
-        
-        AnnotationService.validate_coordinates(x, y, w, h)
+        if any(field in payload for field in ['x', 'y', 'w', 'h']):
+            x = float(payload.get('x', annotation.x))
+            y = float(payload.get('y', annotation.y))
+            w = float(payload.get('w', annotation.w))
+            h = float(payload.get('h', annotation.h))
+            AnnotationService.validate_coordinates(x, y, w, h)
 
         changes = {}
         for field in ['x', 'y', 'w', 'h', 'content', 'score_delta', 'type']:

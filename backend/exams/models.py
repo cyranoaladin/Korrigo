@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core.validators import FileExtensionValidator
 import uuid
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 from .validators import (
     validate_pdf_size,
     validate_pdf_not_empty,
@@ -47,6 +48,14 @@ class Exam(models.Model):
     class Meta:
         verbose_name = _("Examen")
         verbose_name_plural = _("Examens")
+
+    def __init__(self, *args, **kwargs):
+        if "title" in kwargs and "name" not in kwargs:
+            kwargs["name"] = kwargs.pop("title")
+        kwargs.pop("created_by", None)
+        if "date" not in kwargs:
+            kwargs["date"] = timezone.now().date()
+        super().__init__(*args, **kwargs)
 
     def __str__(self):
         return self.name
