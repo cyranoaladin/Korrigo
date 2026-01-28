@@ -538,8 +538,7 @@ class GradingService:
                 raise LockConflictError("Copy is locked by another user.")
 
             if not lock_token:
-                if lock.owner != user:
-                    raise PermissionError("Missing lock token.")
+                raise PermissionError("Missing lock token.")
             elif str(lock.token) != str(lock_token):
                 raise PermissionError("Invalid lock token.")
 

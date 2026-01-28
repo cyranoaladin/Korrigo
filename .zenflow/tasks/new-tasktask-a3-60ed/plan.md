@@ -55,7 +55,7 @@ The issue is in `backend/grading/services.py` where the `_require_active_lock` m
 
 **Implementation Plan:**
 
-### [ ] Step: Pre-flight Branch Setup
+### [x] Step: Pre-flight Branch Setup
 <!-- chat-id: f5ff08c2-2235-4901-9953-9c06f995f86a -->
 
 Switch to main project directory and create branch for the task.
