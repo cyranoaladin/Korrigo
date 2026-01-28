@@ -84,26 +84,36 @@ class AsyncImportPDFTests(TestCase):
             created_by=self.user
         )
 
+    @patch('grading.tasks.os.path.exists')
+    @patch('grading.tasks.open')
     @patch('grading.tasks.PDFProcessor.import_pdf')
-    def test_async_import_success(self, mock_import):
+    def test_async_import_success(self, mock_import, mock_open, mock_exists):
         """Task successfully imports PDF"""
-        mock_import.return_value = Mock(id=uuid.uuid4(), status=Copy.Status.READY)
-        
+        mock_exists.return_value = True  # File exists check passes
+        mock_open.return_value.__enter__.return_value = Mock()  # Mock file object
+        mock_copy = Mock(id=uuid.uuid4(), status=Copy.Status.READY)
+        mock_copy.booklets.all.return_value = []  # No booklets, 0 pages
+        mock_import.return_value = mock_copy
+
         result = async_import_pdf(
             self.exam.id,
             '/tmp/test.pdf',
             self.user.id,
             'TEST-003'
         )
-        
+
         self.assertEqual(result['status'], 'success')
         mock_import.assert_called_once()
 
+    @patch('grading.tasks.os.path.exists')
+    @patch('grading.tasks.open')
     @patch('grading.tasks.PDFProcessor.import_pdf')
-    def test_async_import_handles_errors(self, mock_import):
+    def test_async_import_handles_errors(self, mock_import, mock_open, mock_exists):
         """Task handles import failures"""
+        mock_exists.return_value = True  # File exists check passes
+        mock_open.return_value.__enter__.return_value = Mock()  # Mock file object
         mock_import.side_effect = ValueError("Invalid PDF format")
-        
+
         result = async_import_pdf(
             self.exam.id,
             '/tmp/invalid.pdf',

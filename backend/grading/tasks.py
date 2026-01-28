@@ -10,13 +10,11 @@ import logging
 
 # P0-OP-03: Module-level imports required for test patching
 from grading.services import GradingService
+from grading.pdf_processor import PDFProcessor
 from exams.models import Copy, Exam
 
 logger = logging.getLogger('grading')
 User = get_user_model()
-
-# Alias pour compatibilité des tests (PDFProcessor = GradingService)
-PDFProcessor = GradingService
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
