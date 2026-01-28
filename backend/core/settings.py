@@ -48,6 +48,23 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
 # E2E Testing Configuration
 E2E_SEED_TOKEN = os.environ.get("E2E_SEED_TOKEN")  # Only set in prod-like environment
 
+# Prometheus Metrics Configuration (S5-B)
+# METRICS_TOKEN: Optional token for /metrics endpoint authentication
+# - Development (DEBUG=True): No authentication required
+# - Production (DEBUG=False):
+#   - If METRICS_TOKEN set: Token required via X-Metrics-Token header or ?token= query param
+#   - If METRICS_TOKEN not set: Public access (operator's choice, warning logged on startup)
+METRICS_TOKEN = os.environ.get("METRICS_TOKEN")
+
+# Warn if METRICS_TOKEN not set in production
+if DJANGO_ENV == "production" and not METRICS_TOKEN and not DEBUG:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(
+        "METRICS_TOKEN not set in production. /metrics endpoint will be publicly accessible. "
+        "Set METRICS_TOKEN environment variable to secure the endpoint."
+    )
+
 # Security Settings for Production
 # SSL/HTTPS Configuration
 # SSL_ENABLED: Set to "False" in prod-like (HTTP-only E2E), "True" in real prod
