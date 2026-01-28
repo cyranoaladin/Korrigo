@@ -97,7 +97,7 @@ class AsyncImportPDFTests(TestCase):
 
         result = async_import_pdf(
             self.exam.id,
-            '/tmp/test.pdf',
+            '/tmp/test.pdf',  # nosec B108 - Test file path with mocked filesystem
             self.user.id,
             'TEST-003'
         )
@@ -116,7 +116,7 @@ class AsyncImportPDFTests(TestCase):
 
         result = async_import_pdf(
             self.exam.id,
-            '/tmp/invalid.pdf',
+            '/tmp/invalid.pdf',  # nosec B108 - Test file path with mocked filesystem
             self.user.id,
             'TEST-004'
         )
