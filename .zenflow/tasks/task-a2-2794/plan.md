@@ -107,7 +107,7 @@ Make `GradingService` and `PDFProcessor` accessible at module level:
 
 ---
 
-### [ ] Step: Fix Copy.DoesNotExist error handling
+### [x] Step: Fix Copy.DoesNotExist error handling
 <!-- chat-id: a29a0909-ef52-42d7-895b-a262fc3dd333 -->
 
 Test `test_async_finalize_copy_not_found` (line 63-70) expects graceful error response:
