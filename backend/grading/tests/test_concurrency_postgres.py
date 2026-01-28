@@ -49,20 +49,22 @@ def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user)
     )
 
     calls = {"count": 0}
-    barrier = threading.Barrier(2)
 
     def flatten_side_effect(_copy):
-        barrier.wait(timeout=5)
         calls["count"] += 1
         return b"%PDF-1.4\n%%EOF"
 
     results = []
+    ready_barrier = threading.Barrier(2)  # Synchronize thread start
 
     def worker():
         import unittest.mock
         from django.db import connections
 
         try:
+            # Wait for both threads to be ready before attempting finalize
+            ready_barrier.wait(timeout=5)
+
             with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener") as mock_flattener_cls:
                 mock_flattener = unittest.mock.Mock()
                 mock_flattener.flatten_copy.side_effect = flatten_side_effect
