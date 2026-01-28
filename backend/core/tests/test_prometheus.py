@@ -182,7 +182,7 @@ class PrometheusEndpointTest(TestCase):
         response = self.client.get('/metrics?token=wrong-token')
         self.assertEqual(response.status_code, 403)
 
-    @override_settings(DEBUG=False)
+    @override_settings(DEBUG=False, METRICS_TOKEN=None)
     def test_metrics_endpoint_public_without_token_setting(self):
         """Test that /metrics is public if METRICS_TOKEN not set (operator's choice)"""
         # When METRICS_TOKEN not set, should be publicly accessible
