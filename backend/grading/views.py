@@ -10,7 +10,7 @@ from .serializers import AnnotationSerializer, GradingEventSerializer
 from exams.permissions import IsTeacherOrAdmin
 from .permissions import IsLockedByOwnerOrReadOnly
 from django.shortcuts import get_object_or_404
-from grading.services import GradingService, AnnotationService
+from grading.services import AnnotationService, GradingService, LockConflictError
 from core.auth import UserRole
 import logging
 
@@ -162,6 +162,8 @@ class CopyFinalizeView(APIView):
         try:
             GradingService.finalize_copy(copy, request.user)
             return Response({"status": copy.status})
+        except LockConflictError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_409_CONFLICT)
         except (ValueError, PermissionError) as e:
             return _handle_service_error(e)
 
