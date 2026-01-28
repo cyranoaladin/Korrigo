@@ -48,7 +48,7 @@ def async_finalize_copy(self, copy_id, user_id, lock_token=None):
             return {
                 'copy_id': str(copy_id),
                 'status': 'error',
-                'error': f'Copy {copy_id} not found'
+                'detail': f'Copy {copy_id} not found'
             }
 
         user = User.objects.get(id=user_id)
@@ -82,7 +82,7 @@ def async_finalize_copy(self, copy_id, user_id, lock_token=None):
         return {
             'copy_id': str(copy_id),
             'status': 'error',
-            'error': str(exc)
+            'detail': str(exc)
         }
 
 
@@ -147,7 +147,7 @@ def async_import_pdf(self, exam_id, pdf_path, user_id, anonymous_id):
         # Return error dict for tests
         return {
             'status': 'error',
-            'error': str(exc)
+            'detail': str(exc)
         }
 
 
