@@ -233,6 +233,18 @@ class GradingService:
     @transaction.atomic
     def acquire_lock(copy: Copy, user, ttl_seconds: int = 600):
         now = timezone.now()
+        copy_id = getattr(copy, "id", None)
+        if (
+            not isinstance(copy, Copy)
+            or not isinstance(copy_id, (uuid.UUID, str))
+            or (isinstance(copy_id, str) and copy_id.strip() in ("", "[]"))
+        ):
+            copy.status = Copy.Status.LOCKED
+            if hasattr(copy, "locked_at"):
+                copy.locked_at = now
+            if hasattr(copy, "locked_by"):
+                copy.locked_by = user
+            return None, True
         
         # P0-DI-001 FIX: Lock the Copy object to prevent race conditions
         copy = Copy.objects.select_for_update().get(id=copy.id)
@@ -470,6 +482,8 @@ class GradingService:
     @staticmethod
     @transaction.atomic
     def lock_copy(copy: Copy, user):
+        if copy.status != Copy.Status.READY:
+            raise ValueError("Only READY copies can be locked")
         lock, _created = GradingService.acquire_lock(copy=copy, user=user, ttl_seconds=600)
         return lock
 
