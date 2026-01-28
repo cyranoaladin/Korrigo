@@ -4,6 +4,8 @@ P0-DI-008: Concurrent edit protection tests
 """
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from core.auth import UserRole
 from exams.models import Exam, Copy
 from grading.models import Annotation
 from grading.services import AnnotationService, GradingService
@@ -16,9 +18,10 @@ class OptimisticLockingTests(TestCase):
         self.user = User.objects.create_user(
             username='testcorrector',
             email='corrector@test.com',
-            password='testpass123',
-            role=User.Role.TEACHER
+            password='testpass123'
         )
+        teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        self.user.groups.add(teacher_group)
         self.exam = Exam.objects.create(
             title='Lock Test Exam',
             created_by=self.user

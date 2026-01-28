@@ -5,6 +5,8 @@ P0-OP-03: Async task monitoring tests
 from unittest.mock import patch, Mock
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from core.auth import UserRole
 from rest_framework.test import APIClient
 from celery.result import AsyncResult
 
@@ -17,9 +19,10 @@ class TaskStatusViewTests(TestCase):
         self.user = User.objects.create_user(
             username='testuser',
             email='test@test.com',
-            password='testpass123',
-            role=User.Role.TEACHER
+            password='testpass123'
         )
+        teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        self.user.groups.add(teacher_group)
         self.client.force_authenticate(user=self.user)
 
     @patch('grading.views_async.AsyncResult')
