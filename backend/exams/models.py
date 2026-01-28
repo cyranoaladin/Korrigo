@@ -53,7 +53,7 @@ class Exam(models.Model):
         if "title" in kwargs and "name" not in kwargs:
             kwargs["name"] = kwargs.pop("title")
         kwargs.pop("created_by", None)
-        if "date" not in kwargs:
+        if not args and "date" not in kwargs:
             kwargs["date"] = timezone.now().date()
         super().__init__(*args, **kwargs)
 

@@ -43,7 +43,8 @@ Tests in `backend/grading/tests/test_tasks.py` fail with `AttributeError` becaus
 
 ---
 
-### [ ] Step: Pre-flight checks
+### [x] Step: Pre-flight checks
+<!-- chat-id: 34457257-e948-4784-8faf-5c27805adc1c -->
 
 Verify environment and branch setup:
 - Ensure in main directory `/home/alaeddine/viatique__PMF`
@@ -56,6 +57,7 @@ Verify environment and branch setup:
 ---
 
 ### [ ] Step: Audit test expectations
+<!-- chat-id: 5f928f6a-2485-4425-a139-fd91103ee05e -->
 
 Analyze what tests expect from `grading.tasks`:
 - Extract all patch targets from `backend/grading/tests/test_tasks.py` (lines 31, 48, 87, 102)
@@ -71,6 +73,7 @@ Analyze what tests expect from `grading.tasks`:
 ---
 
 ### [ ] Step: Create PDFProcessor class
+<!-- chat-id: 42f59f99-4711-4e92-9dc0-af93322ea846 -->
 
 Since tests expect `grading.tasks.PDFProcessor.import_pdf` but it doesn't exist:
 - Add `PDFProcessor` class to `backend/grading/services.py`
@@ -89,6 +92,7 @@ class PDFProcessor:
 ---
 
 ### [ ] Step: Fix module-level exports in tasks.py
+<!-- chat-id: fc8f45b8-929c-42af-8a56-d770e519990d -->
 
 Make `GradingService` and `PDFProcessor` accessible at module level:
 - Add imports at top of `backend/grading/tasks.py` (after logger, before first task):
@@ -104,6 +108,7 @@ Make `GradingService` and `PDFProcessor` accessible at module level:
 ---
 
 ### [ ] Step: Fix Copy.DoesNotExist error handling
+<!-- chat-id: a29a0909-ef52-42d7-895b-a262fc3dd333 -->
 
 Test `test_async_finalize_copy_not_found` (line 63-70) expects graceful error response:
 - Wrap `Copy.objects.get(id=copy_id)` in `async_finalize_copy` (line 41)
@@ -125,7 +130,8 @@ except Copy.DoesNotExist:
 
 ---
 
-### [ ] Step: Run targeted tests locally
+### [x] Step: Run targeted tests locally
+<!-- chat-id: e684ee13-5b9d-4bfe-a9ea-bcb64900ff55 -->
 
 Execute tests before committing:
 ```bash
@@ -149,6 +155,7 @@ echo "RC=$?" >> /tmp/zf_A2_tasks.txt
 ---
 
 ### [ ] Step: Commit changes atomically
+<!-- chat-id: 702bde58-9189-42e1-8c03-b46b859092ec -->
 
 Commit only the fixed files:
 ```bash
@@ -169,6 +176,7 @@ Fixes AttributeError in grading/tests/test_tasks.py"
 ---
 
 ### [ ] Step: Push and verify CI
+<!-- chat-id: ed7d2e11-73c6-4dc4-8cf7-58b05c9a28dd -->
 
 Push to remote and monitor CI:
 ```bash
