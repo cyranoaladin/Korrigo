@@ -1,12 +1,14 @@
 """
 P0-OP-08: Basic metrics collection middleware
 Collects HTTP request metrics for monitoring and alerting
+Conformité: Phase S5-B - Prometheus metrics integration
 """
 import time
 import logging
 from django.utils.deprecation import MiddlewareMixin
 from collections import defaultdict
 from threading import Lock
+from core.prometheus import record_request_metrics
 
 logger = logging.getLogger('metrics')
 
@@ -87,6 +89,14 @@ class MetricsMiddleware(MiddlewareMixin):
                 }
             )
 
+            # S5-B: Record Prometheus metrics
+            record_request_metrics(
+                method=request.method,
+                path=path,
+                status_code=response.status_code,
+                duration=duration
+            )
+
             # Log slow requests (> 5 seconds)
             if duration > 5.0:
                 logger.warning(
@@ -115,6 +125,14 @@ class MetricsMiddleware(MiddlewareMixin):
                 method=request.method,
                 duration=duration,
                 status_code=500  # Mark as error
+            )
+
+            # S5-B: Record Prometheus metrics for exceptions
+            record_request_metrics(
+                method=request.method,
+                path=path,
+                status_code=500,
+                duration=duration
             )
 
             # S5-A: Structured logging with extra context for JSON logs
