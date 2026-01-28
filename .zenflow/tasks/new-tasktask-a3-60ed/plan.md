@@ -197,7 +197,7 @@ cd /home/alaeddine/viatique__PMF/backend
 
 ---
 
-### [ ] Step: Commit and Push Changes
+### [x] Step: Commit and Push Changes
 <!-- chat-id: 027bd887-83ff-4f1d-b204-b0e527128518 -->
 
 Commit the changes and push to remote.
