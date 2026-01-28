@@ -128,8 +128,8 @@ Finalize operation requires both lock ownership AND a valid lock token header, r
 
 ---
 
-### [ ] Step: Run Contract Runtime Tests
-<!-- chat-id: test-runtime -->
+### [x] Step: Run Contract Runtime Tests
+<!-- chat-id: c2814bcd-29e5-40cb-b58a-9f78574a7d8d -->
 
 Run the contract runtime tests to verify the fixes.
 
@@ -153,8 +153,8 @@ cd /home/alaeddine/viatique__PMF/backend
 
 ---
 
-### [ ] Step: Run Error Handling Tests
-<!-- chat-id: test-error-handling -->
+### [x] Step: Run Error Handling Tests
+<!-- chat-id: 9c7b6b37-c118-445b-a431-3cf1d62b4628 -->
 
 Run the error handling tests to ensure the fixes work correctly.
 
@@ -176,8 +176,8 @@ cd /home/alaeddine/viatique__PMF/backend
 
 ---
 
-### [ ] Step: Run Full Test Suite
-<!-- chat-id: test-full -->
+### [x] Step: Run Full Test Suite
+<!-- chat-id: bb640667-acf6-45cb-87a2-6aabe05f4bac -->
 
 Run the complete test suite for the grading module to ensure no regressions.
 
@@ -198,7 +198,7 @@ cd /home/alaeddine/viatique__PMF/backend
 ---
 
 ### [ ] Step: Commit and Push Changes
-<!-- chat-id: commit-push -->
+<!-- chat-id: 027bd887-83ff-4f1d-b204-b0e527128518 -->
 
 Commit the changes and push to remote.
 
@@ -224,7 +224,7 @@ git push -u origin zf/A3-auth-token-403
 ---
 
 ### [ ] Step: CI Verification
-<!-- chat-id: ci-verify -->
+<!-- chat-id: 53f2a0f9-1d65-47ac-8b92-618ad5b8692c -->
 
 Verify that CI passes with the changes.
 
