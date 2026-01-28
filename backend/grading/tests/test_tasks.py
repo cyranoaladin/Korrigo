@@ -5,6 +5,8 @@ P0-OP-03: Async PDF processing tests
 from unittest.mock import patch, Mock
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from core.auth import UserRole
 from exams.models import Exam, Copy
 from grading.tasks import async_finalize_copy, async_import_pdf, cleanup_orphaned_files
 import uuid
@@ -17,9 +19,10 @@ class AsyncFinalizeCopyTests(TestCase):
         self.user = User.objects.create_user(
             username='testteacher',
             email='teacher@test.com',
-            password='testpass123',
-            role=User.Role.TEACHER
+            password='testpass123'
         )
+        teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        self.user.groups.add(teacher_group)
         self.exam = Exam.objects.create(
             title='Test Exam',
             created_by=self.user
@@ -72,9 +75,10 @@ class AsyncImportPDFTests(TestCase):
         self.user = User.objects.create_user(
             username='testimporter',
             email='importer@test.com',
-            password='testpass123',
-            role=User.Role.TEACHER
+            password='testpass123'
         )
+        teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        self.user.groups.add(teacher_group)
         self.exam = Exam.objects.create(
             title='Import Test Exam',
             created_by=self.user
