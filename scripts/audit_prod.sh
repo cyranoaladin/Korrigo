@@ -143,6 +143,38 @@ else
   echo "[FAIL] 2.0b — log: ${OUT_DIR}/2.0b_venv_fingerprint.log" >> "$SUMMARY_FILE"
 fi
 
+# ---------- 2.0c) Proof scripts fingerprint ----------
+set +e
+{
+  if command -v sha256sum >/dev/null 2>&1; then
+    if [[ -f "${ROOT_DIR}/scripts/proof_imports.sh" ]]; then
+      proof_imports_sha="$(sha256sum "${ROOT_DIR}/scripts/proof_imports.sh" | awk '{print $1}')"
+      echo "PROOF_IMPORTS_SHA256=${proof_imports_sha}"
+    else
+      echo "PROOF_IMPORTS_SHA256=missing"
+    fi
+    if [[ -f "${ROOT_DIR}/scripts/proof_all.sh" ]]; then
+      proof_all_sha="$(sha256sum "${ROOT_DIR}/scripts/proof_all.sh" | awk '{print $1}')"
+      echo "PROOF_ALL_SHA256=${proof_all_sha}"
+    else
+      echo "PROOF_ALL_SHA256=missing"
+    fi
+  else
+    echo "PROOF_IMPORTS_SHA256=sha256sum missing"
+    echo "PROOF_ALL_SHA256=sha256sum missing"
+  fi
+} > "${OUT_DIR}/2.0c_proof_fingerprint.log" 2>&1
+fp_code=$?
+set -e
+
+if [[ $fp_code -eq 0 ]]; then
+  printf "2.0c\tOK\t%s\n" "${OUT_DIR}/2.0c_proof_fingerprint.log" >> "$STATUS_FILE"
+  echo "[OK] 2.0c — log: ${OUT_DIR}/2.0c_proof_fingerprint.log" >> "$SUMMARY_FILE"
+else
+  printf "2.0c\tFAIL\t%s\n" "${OUT_DIR}/2.0c_proof_fingerprint.log" >> "$STATUS_FILE"
+  echo "[FAIL] 2.0c — log: ${OUT_DIR}/2.0c_proof_fingerprint.log" >> "$SUMMARY_FILE"
+fi
+
 # ---------- 3) Proof scripts (source of truth) ----------
 # Always run via bash; do NOT require exec bit.
 if [[ -z "${PY_PATH}" ]]; then
