@@ -184,18 +184,31 @@ cd /home/alaeddine/viatique__PMF
 git push -u origin zf/A2-grading-tasks-exports
 ```
 
-**COMPLETED**: Force pushed task-a2-2794 branch to zf/A2-grading-tasks-exports
+**COMPLETED**: Pushed branch to remote successfully
+```bash
+git push -u origin task-a2-2794
+# remote: Create a pull request for 'task-a2-2794' on GitHub by visiting:
+# remote:      https://github.com/cyranoaladin/Korrigo/pull/new/task-a2-2794
+# To https://github.com/cyranoaladin/Korrigo.git
+#  * [new branch]      task-a2-2794 -> task-a2-2794
 ```
-git push origin task-a2-2794:zf/A2-grading-tasks-exports --force
-```
+
+**CI Status**:
+- ⚠️ **CI will NOT run automatically** - branch `task-a2-2794` doesn't match configured patterns
+- Configured triggers: `push` to `main`, `master`, `develop` only (.github/workflows/korrigo-ci.yml)
+- **Required**: Create PR to `main` to trigger CI pipeline
+- PR URL: https://github.com/cyranoaladin/Korrigo/pull/new/task-a2-2794
 
 **Deliverables**:
 - ✅ Local tests: RC=0 (7/7 tests PASSED)
-- ✅ Branch: zf/A2-grading-tasks-exports
-- ✅ Changes:
-  - `backend/grading/services.py`: Added PDFProcessor class (+23 lines)
-  - `backend/grading/tasks.py`: Module-level imports, error handling (-2 lines +1)
+- ✅ Branch pushed: `task-a2-2794` → `origin/task-a2-2794`
+- ✅ Code changes diff:
+  - `backend/grading/services.py`: +23 lines (PDFProcessor class)
+  - `backend/grading/tasks.py`: +37/-25 lines (module imports, Copy.DoesNotExist handling)
+  - `backend/exams/models.py`: +1/-1 lines (Exam.__init__ fix)
+  - Total: 6 files, 603 insertions(+), 25 deletions(-)
 - ✅ Latest commit: 946acca "Update plan.md: mark implementation steps complete"
+- ⏳ CI run ID: N/A (requires PR creation)
 
 ---
 
