@@ -1,11 +1,14 @@
 import os
 import tempfile
 import zipfile
+import logging
 from datetime import datetime
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.core import serializers
 import json
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -187,10 +190,11 @@ class Command(BaseCommand):
                         for model in reversed(models_to_restore):
                             table_name = model._meta.db_table
                             try:
-                                cursor.execute(f"DELETE FROM {table_name};")
-                            except Exception:
+                                # table_name is from Django ORM model._meta.db_table (not user input)
+                                cursor.execute(f"DELETE FROM {table_name};")  # nosec B608
+                            except Exception as e:
                                 # Table might not exist or have foreign key constraints
-                                pass
+                                logger.warning(f"Could not delete from table {table_name}: {e}")  # nosec B608
                     
                     # Load data
                     with open(db_backup_path, 'r') as f:

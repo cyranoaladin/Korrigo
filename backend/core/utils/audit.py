@@ -19,7 +19,7 @@ def get_client_ip(request: HttpRequest) -> str:
     if x_forwarded_for:
         ip = x_forwarded_for.split(',')[0].strip()
     else:
-        ip = request.META.get('REMOTE_ADDR', '0.0.0.0')
+        ip = request.META.get('REMOTE_ADDR', '0.0.0.0')  # nosec B104 - Fallback IP value, not binding
     return ip
 
 
