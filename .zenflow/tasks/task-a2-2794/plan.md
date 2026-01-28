@@ -56,7 +56,7 @@ Verify environment and branch setup:
 
 ---
 
-### [ ] Step: Audit test expectations
+### [x] Step: Audit test expectations
 <!-- chat-id: 5f928f6a-2485-4425-a139-fd91103ee05e -->
 
 Analyze what tests expect from `grading.tasks`:

@@ -8,8 +8,7 @@ from django.db import transaction
 import os
 import logging
 
-from grading.services import GradingService
-PDFProcessor = GradingService
+from grading.services import GradingService, PDFProcessor
 
 logger = logging.getLogger('grading')
 User = get_user_model()
