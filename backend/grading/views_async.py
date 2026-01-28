@@ -66,6 +66,7 @@ def task_status(request, task_id):
     elif result.state == 'FAILURE':
         response_data['progress'] = 0
         response_data['detail'] = str(result.info)
+        response_data['error'] = response_data['detail']
         response_data['message'] = 'Task failed'
         
         # Include traceback for debugging (admin only)
