@@ -1,0 +1,31 @@
+# Bandit Security Scanner Configuration
+# https://bandit.readthedocs.io/en/latest/config.html
+
+# Viatique Security Policy:
+# - Production code: Strict scanning (all checks enabled)
+# - Test code: Scanned but with known false positives suppressed via # nosec
+# - Management commands: Scanned with env var validation enforced
+
+# Directories to exclude from scanning
+exclude_dirs:
+  - .venv
+  - venv
+  - staticfiles
+  - __pycache__
+  - migrations  # Django migrations are auto-generated
+  - .pytest_cache
+
+# Tests to skip globally (use sparingly - prefer targeted # nosec)
+# Currently: None - we suppress false positives via targeted # nosec comments
+
+# Severity levels to report (Medium and High are CI-blocking)
+# Low: Informational only, does not block CI
+tests:
+
+# Plugin allowlist (empty = all plugins enabled)
+# We want strict scanning on production code
+plugins:
+
+# Baseline file for tracking known issues over time
+# Not used currently - we fix issues as they appear
+# baseline: bandit-baseline.json
