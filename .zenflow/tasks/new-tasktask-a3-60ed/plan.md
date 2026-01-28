@@ -101,8 +101,8 @@ All write operations on annotations require both lock ownership AND a valid lock
 
 ---
 
-### [ ] Step: Fix Lock Token Validation in finalize_copy
-<!-- chat-id: fix-finalize -->
+### [x] Step: Fix Lock Token Validation in finalize_copy
+<!-- chat-id: 183ef5c0-f1eb-4a18-b04a-60436c0a0968 -->
 
 Fix the `finalize_copy` method to always require a valid lock token.
 

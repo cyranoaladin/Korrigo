@@ -217,10 +217,11 @@ def test_all_workflow_endpoints_use_detail_format(authenticated_client, exam):
 
 
 @pytest.mark.unit
-def test_missing_required_field_returns_400_detail(authenticated_client, ready_copy):
+def test_missing_required_field_returns_400_detail(authenticated_client, ready_copy_with_lock):
     """
     Test that missing required fields return 400 with {"detail": "..."}.
     """
+    ready_copy, lock = ready_copy_with_lock
     url = f"/api/grading/copies/{ready_copy.id}/annotations/"
 
     payload = {
@@ -229,7 +230,7 @@ def test_missing_required_field_returns_400_detail(authenticated_client, ready_c
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json")
+    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
 
     # DRF serializer will catch this before service layer
     assert response.status_code == 400
