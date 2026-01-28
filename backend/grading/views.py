@@ -16,6 +16,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def _get_lock_token(request):
+    return request.META.get("HTTP_X_LOCK_TOKEN")
+
 class PassthroughRenderer(renderers.BaseRenderer):
     """
     Renderer minimal pour forcer DRF à accepter application/pdf (évite 406 Not Acceptable).
@@ -71,12 +75,14 @@ class AnnotationListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         copy_id = self.kwargs['copy_id']
         copy = get_object_or_404(Copy, id=copy_id)
+        lock_token = _get_lock_token(request)
         
         try:
             annotation = AnnotationService.add_annotation(
                 copy=copy,
                 payload=request.data,
-                user=request.user
+                user=request.user,
+                lock_token=lock_token,
             )
             serializer = self.get_serializer(annotation)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -100,6 +106,7 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def update(self, request, *args, **kwargs):
         annotation = self.get_object()
+        lock_token = _get_lock_token(request)
         # Not using kwargs.pop('partial') because we pass payload directly
         
         # Check permissions logic (Owner or Admin for non-admins)?
@@ -113,7 +120,8 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
             updated = AnnotationService.update_annotation(
                 annotation=annotation,
                 payload=request.data,
-                user=request.user
+                user=request.user,
+                lock_token=lock_token,
             )
             serializer = self.get_serializer(updated)
             return Response(serializer.data)
@@ -124,6 +132,7 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         annotation = self.get_object()
+        lock_token = _get_lock_token(request)
         
         # Permission check: Teacher cannot delete others' annotations
         if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
@@ -131,7 +140,7 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
                  return Response({"detail": "You do not have permission to delete this annotation."}, status=status.HTTP_403_FORBIDDEN)
         
         try:
-            AnnotationService.delete_annotation(annotation, request.user)
+            AnnotationService.delete_annotation(annotation, request.user, lock_token=lock_token)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except (ValueError, KeyError, PermissionError) as e:
             return _handle_service_error(e, context="AnnotationDetailView.destroy")
@@ -160,9 +169,10 @@ class CopyFinalizeView(APIView):
         copy = get_object_or_404(Copy, id=id)
         if copy.status == Copy.Status.GRADED:
             return Response({"detail": "Copy already graded."}, status=status.HTTP_400_BAD_REQUEST)
+        lock_token = _get_lock_token(request)
         try:
-            GradingService.finalize_copy(copy, request.user)
-            return Response({"status": copy.status})
+            finalized = GradingService.finalize_copy(copy, request.user, lock_token=lock_token)
+            return Response({"status": finalized.status})
         except LockConflictError as e:
             return Response({"detail": str(e)}, status=status.HTTP_409_CONFLICT)
         except (ValueError, PermissionError) as e:
