@@ -53,7 +53,10 @@ class Exam(models.Model):
         if "title" in kwargs and "name" not in kwargs:
             kwargs["name"] = kwargs.pop("title")
         kwargs.pop("created_by", None)
-        if "date" not in kwargs:
+        # P0-DI-006 FIX: Only set default date if not loading from DB
+        # When loading from DB, Django passes field values via *args
+        # Adding date to kwargs would cause "positional and keyword" conflict
+        if not args and "date" not in kwargs:
             kwargs["date"] = timezone.now().date()
         super().__init__(*args, **kwargs)
 
