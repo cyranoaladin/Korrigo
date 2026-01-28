@@ -66,48 +66,68 @@ class MetricsMiddleware(MiddlewareMixin):
         """Record request metrics"""
         if hasattr(request, '_metrics_start_time'):
             duration = time.time() - request._metrics_start_time
-            
+            duration_ms = duration * 1000
+
             # Normalize path to avoid explosion of unique paths
             path = self._normalize_path(request.path)
-            
+
             metrics_collector.record_request(
                 path=path,
                 method=request.method,
                 duration=duration,
                 status_code=response.status_code
             )
-            
+
+            # S5-A: Structured logging with extra context for JSON logs
+            logger.info(
+                f"{request.method} {request.path} {response.status_code}",
+                extra={
+                    'status_code': response.status_code,
+                    'duration_ms': duration_ms,
+                }
+            )
+
             # Log slow requests (> 5 seconds)
             if duration > 5.0:
                 logger.warning(
                     f"Slow request detected: {request.method} {request.path} "
-                    f"took {duration:.2f}s (status {response.status_code})"
+                    f"took {duration:.2f}s (status {response.status_code})",
+                    extra={
+                        'status_code': response.status_code,
+                        'duration_ms': duration_ms,
+                    }
                 )
-            
+
             # Add metrics header (useful for debugging)
-            response['X-Response-Time-Ms'] = f"{duration * 1000:.2f}"
-        
+            response['X-Response-Time-Ms'] = f"{duration_ms:.2f}"
+
         return response
     
     def process_exception(self, request, exception):
         """Record exception metrics"""
         if hasattr(request, '_metrics_start_time'):
             duration = time.time() - request._metrics_start_time
+            duration_ms = duration * 1000
             path = self._normalize_path(request.path)
-            
+
             metrics_collector.record_request(
                 path=path,
                 method=request.method,
                 duration=duration,
                 status_code=500  # Mark as error
             )
-            
+
+            # S5-A: Structured logging with extra context for JSON logs
             logger.error(
                 f"Request exception: {request.method} {request.path} "
                 f"after {duration:.2f}s: {exception}",
+                extra={
+                    'status_code': 500,
+                    'duration_ms': duration_ms,
+                },
                 exc_info=True
             )
-        
+
         return None
     
     @staticmethod

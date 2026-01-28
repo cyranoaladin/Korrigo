@@ -127,6 +127,7 @@ REST_FRAMEWORK = {
 
 
 MIDDLEWARE = [
+    'core.middleware.request_id.RequestIDMiddleware',  # S5-A: Request ID for log correlation
     'core.middleware.metrics.MetricsMiddleware',
     'csp.middleware.CSPMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -216,6 +217,11 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 os.makedirs(LOGS_DIR, exist_ok=True)
 
+# S5-A: Environment-specific formatter selection
+# Production: JSON logs for parsing by log aggregation tools
+# Development: Human-readable logs for developer convenience
+LOG_FORMATTER = 'json' if not DEBUG else 'verbose'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -228,25 +234,39 @@ LOGGING = {
             'format': '{levelname} {message}',
             'style': '{',
         },
+        'json': {
+            # S5-A: Structured JSON logs for production
+            '()': 'core.logging.ViatiqueJSONFormatter',
+            'format': '%(timestamp)s %(level)s %(logger)s %(message)s',
+        },
+    },
+    'filters': {
+        'request_context': {
+            # S5-A: Inject request context (request_id, path, method, user_id) into logs
+            '()': 'core.middleware.request_id.RequestContextLogFilter',
+        },
     },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+            'formatter': LOG_FORMATTER,  # Dynamic: verbose or json based on DEBUG
+            'filters': ['request_context'],
         },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
-            'maxBytes': 10485760,
+            'maxBytes': 10485760,  # 10MB
             'backupCount': 10,
-            'formatter': 'verbose',
+            'formatter': LOG_FORMATTER,
+            'filters': ['request_context'],
         },
         'audit_file': {
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'audit.log'),
-            'maxBytes': 10485760,
+            'maxBytes': 10485760,  # 10MB
             'backupCount': 10,
-            'formatter': 'verbose',
+            'formatter': LOG_FORMATTER,
+            'filters': ['request_context'],
         },
     },
     'loggers': {
