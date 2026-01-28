@@ -2,8 +2,9 @@
 P0-OP-03: Async task status endpoints
 Allows clients to poll for task completion
 """
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.authentication import BasicAuthentication
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status as http_status
 from celery.result import AsyncResult
@@ -11,7 +12,8 @@ from django.conf import settings
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@authentication_classes([BasicAuthentication])
+@permission_classes([AllowAny])
 def task_status(request, task_id):
     """
     GET /api/grading/tasks/<task_id>/
@@ -43,6 +45,11 @@ def task_status(request, task_id):
             "traceback": "..."
         }
     """
+    if not request.user or not request.user.is_authenticated:
+        payload = {'detail': 'Authentication credentials were not provided.'}
+        payload['error'] = payload['detail']
+        return Response(payload, status=http_status.HTTP_401_UNAUTHORIZED)
+
     result = AsyncResult(task_id)
     
     response_data = {
@@ -60,7 +67,14 @@ def task_status(request, task_id):
         
     elif result.state == 'SUCCESS':
         response_data['progress'] = 100
-        response_data['result'] = result.result
+        if isinstance(result.info, dict):
+            response_data['result'] = result.info
+        elif isinstance(result.result, (dict, list, str, int, float, bool)) or result.result is None:
+            response_data['result'] = result.result
+        elif isinstance(result.info, (dict, list, str, int, float, bool)) or result.info is None:
+            response_data['result'] = result.info
+        else:
+            response_data['result'] = str(result.result or result.info)
         response_data['message'] = 'Task completed successfully'
         
     elif result.state == 'FAILURE':
@@ -76,7 +90,10 @@ def task_status(request, task_id):
     elif result.state == 'RETRY':
         response_data['progress'] = 25
         response_data['message'] = 'Task is retrying after failure'
-        response_data['retry_count'] = result.info.get('retry', 0) if result.info else 0
+        if isinstance(result.info, dict):
+            response_data['retry_count'] = result.info.get('retry', 0)
+        else:
+            response_data['retry_count'] = 0
         
     else:
         # Unknown state
@@ -86,7 +103,8 @@ def task_status(request, task_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@authentication_classes([BasicAuthentication])
+@permission_classes([AllowAny])
 def cancel_task(request, task_id):
     """
     POST /api/grading/tasks/<task_id>/cancel/
@@ -103,10 +121,9 @@ def cancel_task(request, task_id):
     result = AsyncResult(task_id)
     
     if result.state in ['SUCCESS', 'FAILURE']:
-        return Response(
-            {'detail': 'Task already completed, cannot cancel'},
-            status=http_status.HTTP_400_BAD_REQUEST
-        )
+        payload = {'detail': 'Task already completed, cannot cancel'}
+        payload['error'] = payload['detail']
+        return Response(payload, status=http_status.HTTP_400_BAD_REQUEST)
     
     # Revoke the task
     result.revoke(terminate=True, signal='SIGTERM')
