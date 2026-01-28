@@ -72,7 +72,7 @@ Analyze what tests expect from `grading.tasks`:
 
 ---
 
-### [ ] Step: Create PDFProcessor class
+### [x] Step: Create PDFProcessor class
 <!-- chat-id: 42f59f99-4711-4e92-9dc0-af93322ea846 -->
 
 Since tests expect `grading.tasks.PDFProcessor.import_pdf` but it doesn't exist:
@@ -91,7 +91,7 @@ class PDFProcessor:
 
 ---
 
-### [ ] Step: Fix module-level exports in tasks.py
+### [x] Step: Fix module-level exports in tasks.py
 <!-- chat-id: fc8f45b8-929c-42af-8a56-d770e519990d -->
 
 Make `GradingService` and `PDFProcessor` accessible at module level:
@@ -154,7 +154,7 @@ echo "RC=$?" >> /tmp/zf_A2_tasks.txt
 
 ---
 
-### [ ] Step: Commit changes atomically
+### [x] Step: Commit changes atomically
 <!-- chat-id: 702bde58-9189-42e1-8c03-b46b859092ec -->
 
 Commit only the fixed files:
