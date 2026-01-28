@@ -165,14 +165,13 @@ def cleanup_orphaned_files():
         
         for filename in os.listdir(temp_dir):
             filepath = os.path.join(temp_dir, filename)
-            if os.path.isfile(filepath):
-                file_mtime = os.path.getmtime(filepath)
-                if file_mtime < cutoff_time:
-                    try:
-                        os.remove(filepath)
-                        removed_count += 1
-                    except Exception as e:
-                        logger.error(f"Failed to remove orphaned file {filepath}: {e}")
+            file_mtime = os.path.getmtime(filepath)
+            if file_mtime < cutoff_time:
+                try:
+                    os.remove(filepath)
+                    removed_count += 1
+                except Exception as e:
+                    logger.error(f"Failed to remove orphaned file {filepath}: {e}")
         
         logger.info(f"Cleaned up {removed_count} orphaned temp files")
     
