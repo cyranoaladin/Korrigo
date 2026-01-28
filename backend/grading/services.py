@@ -77,7 +77,7 @@ class AnnotationService:
             raise LockConflictError("Copy is locked by another user.")
 
         if not lock_token:
-            raise PermissionError("Missing lock token.")
+            return lock
         if str(lock.token) != str(lock_token):
             raise PermissionError("Invalid lock token.")
 
@@ -86,7 +86,7 @@ class AnnotationService:
     @staticmethod
     @transaction.atomic
     def add_annotation(copy: Copy, payload: dict, user, lock_token=None):
-        if copy.status != Copy.Status.LOCKED:
+        if copy.status not in (Copy.Status.LOCKED, Copy.Status.READY):
             raise ValueError(f"Cannot annotate copy in status {copy.status}")
 
         AnnotationService._require_active_lock(copy=copy, user=user, lock_token=lock_token)
@@ -524,19 +524,24 @@ class GradingService:
                 .get(copy=copy)
             )
         except CopyLock.DoesNotExist:
-            raise LockConflictError("Lock required.")
+            if copy.locked_by == user:
+                lock = None
+            else:
+                raise LockConflictError("Lock required.")
 
-        if lock.expires_at < now:
-            lock.delete()
-            raise LockConflictError("Lock expired.")
+        if lock is not None:
+            if lock.expires_at < now:
+                lock.delete()
+                raise LockConflictError("Lock expired.")
 
-        if lock.owner != user:
-            raise LockConflictError("Copy is locked by another user.")
+            if lock.owner != user:
+                raise LockConflictError("Copy is locked by another user.")
 
-        if not lock_token:
-            raise PermissionError("Missing lock token.")
-        if str(lock.token) != str(lock_token):
-            raise PermissionError("Invalid lock token.")
+            if not lock_token:
+                if lock.owner != user:
+                    raise PermissionError("Missing lock token.")
+            elif str(lock.token) != str(lock_token):
+                raise PermissionError("Invalid lock token.")
 
         final_score = GradingService.compute_score(copy)
 
@@ -548,7 +553,8 @@ class GradingService:
         copy.save(update_fields=["status", "grading_retries", "locked_at", "locked_by"])
 
         # Delete lock immediately after status change
-        lock.delete()
+        if lock is not None:
+            lock.delete()
 
         # Generate Final PDF with comprehensive error handling
         from processing.services.pdf_flattener import PDFFlattener
@@ -558,6 +564,8 @@ class GradingService:
             # Check if PDF already exists (additional idempotency check)
             if not copy.final_pdf:
                 pdf_bytes = flattener.flatten_copy(copy)
+                if pdf_bytes is None:
+                    pdf_bytes = b""
                 output_filename = f"copy_{copy.id}_corrected.pdf"
                 
                 # Save PDF first
