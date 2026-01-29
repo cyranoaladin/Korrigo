@@ -638,7 +638,7 @@ exec 9>"$LOCK"
 if ! flock -n 9; then
   echo "❌ Un autre one-shot staging est déjà en cours (lock: $LOCK). Abandon."
   echo "➡️  Diagnostics: ls -l $LOCK ; ps aux | grep [s]taging_oneshot"
-  echo "   (Note: ps aux est quasi-universel, mais pas strictement POSIX)"
+  echo "   (Note: 'ps aux' est très répandu (BSD/GNU) mais non POSIX ; alt: ps -ef | grep [s]taging_oneshot)"
   echo "   (optionnel: lsof $LOCK pour voir le processus tenant le lock)"
   exit 1
 fi
