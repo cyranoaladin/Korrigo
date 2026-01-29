@@ -480,6 +480,191 @@ staging_oneshot_<timestamp>/
 - **Débutants/Première fois**: Exécuter Phase 1, Phase 2, Phase 3 séparément (plus de contrôle)
 - **Warriors/CI-CD**: Utiliser commande one-shot pour déploiement automatisé
 
+---
+
+### 🔒 Hardening Optionnel (Cas Limites Production)
+
+**Pour environnements "agités"** (runs parallèles, debug actif, CI/CD complexe).
+
+#### 1. Protection Secrets Maximale (éviter process list / history)
+
+**Problème** : Si le shell parent est en `set -x`, l'expansion de `SMOKE_PASS='...'` peut apparaître dans l'historique ou le process list avant l'entrée dans `bash -lc`.
+
+**Solution** : Exporter `SMOKE_PASS` dans l'environnement **AVANT** la commande one-shot.
+
+```bash
+# Mode "ultra-sec" - exporter secrets en dehors de la ligne de commande
+export SMOKE_PASS='changeme'
+export METRICS_TOKEN=$(openssl rand -hex 32)
+
+# Commande one-shot sans secrets inline
+BASE_URL=https://staging.viatique.example.com \
+SMOKE_USER=prof1 \
+TAG=v1.0.0-rc1 \
+bash -lc '
+set -euo pipefail
+set +x
+
+echo "=== 🚀 STAGING ONE-SHOT: Deploy + Smoke + Archive ==="
+echo "BASE_URL=$BASE_URL"
+echo "TAG=$TAG"
+echo "SMOKE_USER=$SMOKE_USER"
+echo "SMOKE_PASS=********"
+echo "METRICS_TOKEN=<redacted>"
+
+# ... reste du script identique ...
+'
+```
+
+**Bénéfice** :
+- ✅ Aucun secret dans `ps aux` ou historique bash
+- ✅ Variables exportées héritées par le sous-shell
+- ✅ Protection contre `set -x` dans le shell parent
+
+**Quand l'utiliser** :
+- Environnements multi-utilisateurs (serveurs partagés)
+- CI/CD avec logs détaillés
+- Serveurs avec historique bash persistant
+
+---
+
+#### 2. Nettoyage `/tmp` (éviter capture de vieux logs)
+
+**Problème** : Si un ancien `/tmp/staging_deploy_*` existe, et que le script échoue **avant** de créer son dossier, le `ls -1dt` peut capturer l'ancien dossier.
+
+**Solution** : Nettoyer `/tmp/staging_*` au début du one-shot (safe).
+
+```bash
+BASE_URL=https://staging.viatique.example.com \
+SMOKE_USER=prof1 \
+SMOKE_PASS='changeme' \
+TAG=v1.0.0-rc1 \
+METRICS_TOKEN=$(openssl rand -hex 32) \
+bash -lc '
+set -euo pipefail
+set +x
+
+# ✅ Nettoyage /tmp au début (safe, avant création des nouveaux dirs)
+rm -rf /tmp/staging_deploy_* /tmp/staging_smoke_* /tmp/staging_oneshot_* 2>/dev/null || true
+
+echo "=== 🚀 STAGING ONE-SHOT: Deploy + Smoke + Archive ==="
+# ... reste du script identique ...
+'
+```
+
+**Bénéfice** :
+- ✅ Garantie "un run = un set de dirs"
+- ✅ Pas de confusion avec des logs de runs précédents échoués
+- ✅ Archive toujours cohérente avec le run courant
+
+**Quand l'utiliser** :
+- Serveurs avec `/tmp` non nettoyé automatiquement
+- Runs fréquents en développement/staging
+- CI/CD avec runners réutilisés
+
+**Alternative** (si nettoyage global trop agressif) :
+
+```bash
+# Nettoyer uniquement les dirs de plus de 24h
+find /tmp -maxdepth 1 -name "staging_*" -type d -mtime +1 -exec rm -rf {} \; 2>/dev/null || true
+```
+
+---
+
+#### Commande One-Shot **Full Hardened** (Tous les Garde-Fous)
+
+```bash
+# Export secrets en dehors de la ligne de commande
+export SMOKE_PASS='changeme'
+export METRICS_TOKEN=$(openssl rand -hex 32)
+
+BASE_URL=https://staging.viatique.example.com \
+SMOKE_USER=prof1 \
+TAG=v1.0.0-rc1 \
+bash -lc '
+set -euo pipefail
+set +x  # Disable command tracing
+
+# Nettoyage /tmp (safe)
+rm -rf /tmp/staging_deploy_* /tmp/staging_smoke_* /tmp/staging_oneshot_* 2>/dev/null || true
+
+echo "=== 🚀 STAGING ONE-SHOT: Deploy + Smoke + Archive ==="
+echo "BASE_URL=$BASE_URL"
+echo "TAG=$TAG"
+echo "SMOKE_USER=$SMOKE_USER"
+echo "SMOKE_PASS=********"
+echo "METRICS_TOKEN=<redacted>"
+
+TS="$(date -u +%Y%m%dT%H%M%SZ)"
+OUT="/tmp/staging_oneshot_${TS}"
+mkdir -p "$OUT"
+
+DEPLOY_DIR=""
+SMOKE_DIR=""
+
+archive() {
+  echo ""
+  echo "[3/3] Archiving artifacts..."
+
+  {
+    echo "timestamp=$TS"
+    echo "base_url=$BASE_URL"
+    echo "tag=$TAG"
+    echo "deploy_dir=${DEPLOY_DIR:-<none>}"
+    echo "smoke_dir=${SMOKE_DIR:-<none>}"
+  } > "$OUT/meta.txt"
+
+  if [ -n "${DEPLOY_DIR:-}" ] && [ -d "$DEPLOY_DIR" ]; then
+    cp -a "$DEPLOY_DIR" "$OUT/" || true
+  fi
+  if [ -n "${SMOKE_DIR:-}" ] && [ -d "$SMOKE_DIR" ]; then
+    cp -a "$SMOKE_DIR" "$OUT/" || true
+  fi
+  if [ -f "RELEASE_NOTES_v1.0.0.md" ]; then
+    cp -a "RELEASE_NOTES_v1.0.0.md" "$OUT/" || true
+  fi
+
+  TAR="/tmp/staging_artifacts_${TS}.tgz"
+  tar -czf "$TAR" -C /tmp "$(basename "$OUT")"
+
+  echo "Artifacts packaged: $TAR"
+}
+
+trap archive EXIT
+
+echo "[1/3] Deploying staging..."
+BASE_URL="$BASE_URL" TAG="$TAG" METRICS_TOKEN="$METRICS_TOKEN" \
+  ./scripts/deploy_staging_safe.sh
+
+DEPLOY_DIR="$(ls -1dt /tmp/staging_deploy_* 2>/dev/null | head -n 1 || true)"
+
+echo "[2/3] Running smoke test..."
+export SMOKE_PASS
+BASE_URL="$BASE_URL" SMOKE_USER="$SMOKE_USER" SMOKE_PASS="$SMOKE_PASS" \
+  ./scripts/smoke_staging.sh
+
+SMOKE_DIR="$(ls -1dt /tmp/staging_smoke_* 2>/dev/null | head -n 1 || true)"
+
+echo ""
+echo "✅ ONE-SHOT SUCCESS"
+echo "Next:"
+echo "  1) Fill RELEASE_NOTES_v1.0.0.md"
+echo "  2) git tag -a v1.0.0 -m \"Production Release\" && git push origin v1.0.0"
+'
+```
+
+**Différences avec version de base** :
+- ✅ Secrets exportés avant (pas inline)
+- ✅ Nettoyage `/tmp` au début
+- ✅ Toujours `set +x` et capture déterministe
+
+**Quand l'utiliser** :
+- **Production critique** : Zéro tolérance aux fuites ou ambiguïtés
+- **CI/CD complexe** : Runs parallèles, multi-tenants, logs détaillés
+- **Audit strict** : Conformité sécurité, traçabilité maximale
+
+---
+
 **Option "ultra strict"** (bloquer si release notes manquantes):
 
 Remplacer:
