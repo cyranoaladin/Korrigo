@@ -50,7 +50,7 @@ jobs:
           git cat-file -e "${HEAD_SHA}^{commit}" || { echo "❌ HEAD_SHA not present after fetch"; exit 1; }
           
           # List changed files between base and head
-          CHANGED_FILES=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")
+          CHANGED_FILES=$(git diff --name-only "${BASE_SHA}..${HEAD_SHA}")
           
           FILE_COUNT=$(printf '%s\n' "$CHANGED_FILES" | sed '/^$/d' | wc -l | tr -d ' ')
           echo "Changed files count: ${FILE_COUNT}"
