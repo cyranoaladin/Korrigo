@@ -125,6 +125,24 @@ jobs:
           # Check connectivity without running commands
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "uptime" || echo "Test connection failed (expected if keys not set yet)"
 
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Sync compose files to VPS
+        run: |
+          # Create infra directory structure on VPS if not exists
+          ssh -o StrictHostKeyChecking=yes ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "mkdir -p ${{ secrets.VPS_PATH }}/infra/docker"
+
+          # Sync compose file and nginx config
+          scp -o StrictHostKeyChecking=yes \
+            infra/docker/docker-compose.prod.yml \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_PATH }}/infra/docker/
+
+          scp -o StrictHostKeyChecking=yes -r \
+            infra/nginx/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_PATH }}/infra/
+
       - name: Deploy
         run: |
           ssh -o StrictHostKeyChecking=yes ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << EOF
