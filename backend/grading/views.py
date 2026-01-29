@@ -301,7 +301,7 @@ class QuestionRemarkListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         copy_id = self.kwargs['copy_id']
         copy = get_object_or_404(Copy, id=copy_id)
-        return QuestionRemark.objects.filter(copy=copy).select_related('created_by')
+        return QuestionRemark.objects.filter(copy=copy).select_related('created_by').order_by('created_at')
 
     def create(self, request, *args, **kwargs):
         copy_id = self.kwargs['copy_id']
