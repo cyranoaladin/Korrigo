@@ -104,6 +104,7 @@ jobs:
           [ -n "${{ secrets.VPS_HOST }}" ] || (echo "❌ VPS_HOST missing" && exit 1)
           [ -n "${{ secrets.VPS_USER }}" ] || (echo "❌ VPS_USER missing" && exit 1)
           [ -n "${{ secrets.VPS_SSH_KEY }}" ] || (echo "❌ VPS_SSH_KEY missing" && exit 1)
+          [ -n "${{ secrets.VPS_PATH }}" ] || (echo "❌ VPS_PATH missing" && exit 1)
           [ -n "${{ secrets.GHCR_USER }}" ] || (echo "❌ GHCR_USER missing" && exit 1)
           [ -n "${{ secrets.GHCR_PAT }}" ] || (echo "❌ GHCR_PAT missing" && exit 1)
           echo "✅ Secrets OK"
