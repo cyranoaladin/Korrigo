@@ -23,12 +23,20 @@ def admin_user(db):
 
 @pytest.fixture
 def teacher_user(db):
+    from django.contrib.auth.models import Group
+    from core.auth import UserRole
+    
     user = User.objects.create_user(
         username='teacher1',
         password='teacher123'
     )
     user.role = 'Teacher'
     user.save()
+    
+    # Add user to Teacher group for permissions
+    teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+    user.groups.add(teacher_group)
+    
     return user
 
 
