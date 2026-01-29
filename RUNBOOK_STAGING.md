@@ -623,7 +623,10 @@ set +x  # Disable command tracing
 # Vérifier flock disponible
 command -v flock >/dev/null || {
   echo "❌ flock non disponible (requis pour Full Hardened)."
-  echo "➡️  Installer: apt-get install util-linux (ou équivalent)"
+  echo "➡️  Installer util-linux via votre gestionnaire de paquets:"
+  echo "   - Debian/Ubuntu: apt-get install util-linux"
+  echo "   - RHEL/CentOS: yum install util-linux"
+  echo "   - Alpine: apk add util-linux"
   exit 1
 }
 
@@ -632,7 +635,8 @@ LOCK=/tmp/staging_oneshot.lock
 exec 9>"$LOCK"
 if ! flock -n 9; then
   echo "❌ Un autre one-shot staging est déjà en cours (lock: $LOCK). Abandon."
-  echo "➡️  Attendre la fin du run en cours, ou vérifier: lsof $LOCK ; ps aux | grep staging"
+  echo "➡️  Diagnostics: ls -l $LOCK ; ps aux | grep staging_oneshot"
+  echo "   (optionnel: lsof $LOCK pour voir le processus tenant le lock)"
   exit 1
 fi
 
