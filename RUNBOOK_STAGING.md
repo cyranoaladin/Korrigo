@@ -16,6 +16,7 @@ Vérifier **AVANT** de lancer:
 - [ ] Accès DB/Redis sur la stack staging (via docker compose)
 - [ ] Compte prof staging valide (`SMOKE_USER` + `SMOKE_PASS`)
 - [ ] Machine d'exécution: Linux avec `docker`, `docker compose`, `openssl`, `curl`, `jq`
+- [ ] **Si mode Full Hardened** : `flock` disponible (util-linux, pour lock exclusion mutuelle)
 - [ ] Git repo à jour sur `main` (commit `bf86716` ou plus récent)
 - [ ] Tag `v1.0.0-rc1` existe
 
@@ -29,6 +30,9 @@ docker --version && \
   curl --version && \
   jq --version
 
+# Vérifier flock (si mode Full Hardened)
+command -v flock >/dev/null && echo "flock: OK" || echo "flock: MISSING (requis pour Full Hardened)"
+
 # Vérifier tag RC1 existe
 git tag | grep v1.0.0-rc1
 
@@ -36,7 +40,7 @@ git tag | grep v1.0.0-rc1
 ls -l infra/docker/docker-compose.staging.yml
 ```
 
-**Critère GO**: Toutes les commandes retournent RC=0, aucune erreur.
+**Critère GO**: Toutes les commandes retournent RC=0, aucune erreur. `flock` optionnel (requis uniquement pour mode Full Hardened).
 
 ---
 
@@ -539,8 +543,10 @@ export HISTCONTROL=ignorespace
 
 Ou utiliser un prompt interactif sans echo :
 ```bash
-read -sp "SMOKE_PASS: " SMOKE_PASS && export SMOKE_PASS
+read -sp "SMOKE_PASS: " SMOKE_PASS; echo; export SMOKE_PASS
 ```
+
+**Note** : Le `echo` après `read -sp` assure un retour à la ligne (UX).
 
 ---
 
@@ -614,11 +620,19 @@ bash -lc '
 set -euo pipefail
 set +x  # Disable command tracing
 
-# Lock global pour éviter exécutions concurrentes (optionnel)
+# Vérifier flock disponible
+command -v flock >/dev/null || {
+  echo "❌ flock non disponible (requis pour Full Hardened)."
+  echo "➡️  Installer: apt-get install util-linux (ou équivalent)"
+  exit 1
+}
+
+# Lock global pour éviter exécutions concurrentes
 LOCK=/tmp/staging_oneshot.lock
 exec 9>"$LOCK"
 if ! flock -n 9; then
-  echo "❌ Another staging one-shot is running. Aborting."
+  echo "❌ Un autre one-shot staging est déjà en cours (lock: $LOCK). Abandon."
+  echo "➡️  Attendre la fin du run en cours, ou vérifier: lsof $LOCK ; ps aux | grep staging"
   exit 1
 fi
 
