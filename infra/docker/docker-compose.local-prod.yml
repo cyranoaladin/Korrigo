@@ -34,7 +34,8 @@ services:
     restart: unless-stopped
     command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
     env_file:
-      - ../../.env
+      - path: ../../.env
+        required: false  # Optional: for CI compatibility (env vars passed directly)
     expose:
       - "8000"
     volumes:
