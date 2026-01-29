@@ -364,9 +364,11 @@ docker compose -f infra/docker/docker-compose.staging.yml ps
 
 ---
 
-## 🎯 Commande Unique (One-Shot) — TOUT EN UNE LIGNE
+## 🎯 Commande Unique (One-Shot) — Version Durcie
 
-**Pour les warriors qui veulent deploy + smoke + archive en une seule commande**:
+**Pour les warriors qui veulent deploy + smoke + archive en une seule commande**.
+
+**Version robuste** avec archivage garanti même en cas d'échec (debug-friendly):
 
 ```bash
 BASE_URL=https://staging.viatique.example.com \
@@ -374,53 +376,120 @@ SMOKE_USER=prof1 \
 SMOKE_PASS='changeme' \
 TAG=v1.0.0-rc1 \
 METRICS_TOKEN=$(openssl rand -hex 32) \
-bash -c '
+bash -lc '
 set -euo pipefail
 
 echo "=== 🚀 STAGING ONE-SHOT: Deploy + Smoke + Archive ==="
+echo "BASE_URL=$BASE_URL"
+echo "TAG=$TAG"
+echo "SMOKE_USER=$SMOKE_USER"
+echo "SMOKE_PASS=********"
+echo "METRICS_TOKEN=<redacted>"
 
-# Phase 1: Deploy
+TS="$(date -u +%Y%m%dT%H%M%SZ)"
+OUT="/tmp/staging_oneshot_${TS}"
+mkdir -p "$OUT"
+
+# Helper: find latest matching dir created by scripts
+latest_dir() {
+  ls -1dt /tmp/"$1"_* 2>/dev/null | head -n 1 || true
+}
+
+# Always archive at the end (success or failure)
+archive() {
+  echo ""
+  echo "[3/3] Archiving artifacts..."
+  DEPLOY_DIR="$(latest_dir staging_deploy)"
+  SMOKE_DIR="$(latest_dir staging_smoke)"
+
+  {
+    echo "timestamp=$TS"
+    echo "base_url=$BASE_URL"
+    echo "tag=$TAG"
+    echo "deploy_dir=${DEPLOY_DIR:-<none>}"
+    echo "smoke_dir=${SMOKE_DIR:-<none>}"
+  } > "$OUT/meta.txt"
+
+  # Copy logs if found
+  if [ -n "${DEPLOY_DIR:-}" ] && [ -d "$DEPLOY_DIR" ]; then
+    cp -a "$DEPLOY_DIR" "$OUT/" || true
+  fi
+  if [ -n "${SMOKE_DIR:-}" ] && [ -d "$SMOKE_DIR" ]; then
+    cp -a "$SMOKE_DIR" "$OUT/" || true
+  fi
+
+  # Copy release notes template if present
+  if [ -f "RELEASE_NOTES_v1.0.0.md" ]; then
+    cp -a "RELEASE_NOTES_v1.0.0.md" "$OUT/" || true
+  fi
+
+  TAR="/tmp/staging_artifacts_${TS}.tgz"
+  tar -czf "$TAR" -C /tmp "$(basename "$OUT")"
+
+  echo "Artifacts packaged: $TAR"
+}
+
+trap archive EXIT
+
 echo "[1/3] Deploying staging..."
-BASE_URL=$BASE_URL TAG=$TAG METRICS_TOKEN=$METRICS_TOKEN ./scripts/deploy_staging_safe.sh || {
-  echo "❌ Deploy FAILED. Aborting."
-  exit 1
-}
+BASE_URL="$BASE_URL" TAG="$TAG" METRICS_TOKEN="$METRICS_TOKEN" \
+  ./scripts/deploy_staging_safe.sh
 
-# Phase 2: Smoke
 echo "[2/3] Running smoke test..."
-BASE_URL=$BASE_URL SMOKE_USER=$SMOKE_USER SMOKE_PASS=$SMOKE_PASS ./scripts/smoke_staging.sh || {
-  echo "❌ Smoke test FAILED. Aborting."
-  exit 1
-}
+BASE_URL="$BASE_URL" SMOKE_USER="$SMOKE_USER" SMOKE_PASS="$SMOKE_PASS" \
+  ./scripts/smoke_staging.sh
 
-# Phase 3: Archive
-echo "[3/3] Archiving artifacts..."
-TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
-tar -czf /tmp/staging_artifacts_${TIMESTAMP}.tgz \
-  /tmp/staging_deploy_* \
-  /tmp/staging_smoke_* \
-  RELEASE_NOTES_v1.0.0.md
-
-echo "✅ ONE-SHOT SUCCESS"
-echo "Artifacts: /tmp/staging_artifacts_${TIMESTAMP}.tgz"
 echo ""
-echo "Next: Fill RELEASE_NOTES_v1.0.0.md and run:"
-echo "  git tag -a v1.0.0 -m \"Production Release\""
-echo "  git push origin v1.0.0"
+echo "✅ ONE-SHOT SUCCESS"
+echo "Next:"
+echo "  1) Fill RELEASE_NOTES_v1.0.0.md"
+echo "  2) git tag -a v1.0.0 -m \"Production Release\" && git push origin v1.0.0"
 '
 ```
 
-**Avantages**:
-- ✅ Tout ou rien (fail-fast)
-- ✅ Archive créée automatiquement si succès
-- ✅ Message final avec next steps clairs
-- ✅ RC=0 uniquement si deploy + smoke PASS
+### Améliorations par rapport à la version de base
 
-**Inconvénient**:
-- ⚠️ Moins de visibilité sur logs intermédiaires (tout en stdout)
-- ⚠️ Si échec, relire stdout pour identifier quelle phase a échoué
+**✅ Avantages**:
+- **Archive garantie**: Même en cas d'échec, les logs sont archivés (via `trap EXIT`)
+- **Pas de pollution**: Collecte uniquement le dernier run (pas de vieux `/tmp/staging_*`)
+- **Masquage password**: `SMOKE_PASS=********` dans l'affichage (sécurité)
+- **Traçabilité**: `meta.txt` avec timestamp, base_url, tag, et paths réels des logs
+- **Fail-fast**: Si deploy échoue, smoke n'est pas lancé
+- **RC=0 uniquement si tout passe**: Comportement strict pour CI/CD
 
-**Recommandation**: Utiliser commande one-shot **uniquement si** vous êtes à l'aise avec le process. Sinon, exécuter Phase 1, Phase 2, Phase 3 séparément pour plus de contrôle.
+**⚠️ Points d'attention**:
+- Moins de visibilité sur logs intermédiaires (tout en stdout)
+- Si échec, consulter `/tmp/staging_artifacts_<timestamp>.tgz` pour debug
+
+**Contenu de l'archive** (`/tmp/staging_artifacts_<timestamp>.tgz`):
+```
+staging_oneshot_<timestamp>/
+├── meta.txt                      # Metadata du run
+├── staging_deploy_<timestamp>/   # Logs deploy (si exécuté)
+├── staging_smoke_<timestamp>/    # Logs smoke (si exécuté)
+└── RELEASE_NOTES_v1.0.0.md       # Template release notes (si présent)
+```
+
+**Recommandation**:
+- **Débutants/Première fois**: Exécuter Phase 1, Phase 2, Phase 3 séparément (plus de contrôle)
+- **Warriors/CI-CD**: Utiliser commande one-shot pour déploiement automatisé
+
+**Option "ultra strict"** (bloquer si release notes manquantes):
+
+Remplacer:
+```bash
+if [ -f "RELEASE_NOTES_v1.0.0.md" ]; then
+  cp -a "RELEASE_NOTES_v1.0.0.md" "$OUT/" || true
+fi
+```
+
+Par:
+```bash
+test -f "RELEASE_NOTES_v1.0.0.md"
+cp -a "RELEASE_NOTES_v1.0.0.md" "$OUT/"
+```
+
+Cela force la discipline (échec si fichier absent).
 
 ---
 
