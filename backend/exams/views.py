@@ -500,3 +500,94 @@ class CorrectorCopyDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     lookup_field = 'id'
 
+
+class ExamDispatchView(APIView):
+    """
+    Dispatches unassigned copies to correctors fairly and randomly.
+    POST /api/exams/<exam_id>/dispatch/
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, exam_id):
+        from django.db import transaction
+        from django.utils import timezone
+        import uuid
+        import random
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        exam = get_object_or_404(Exam, id=exam_id)
+
+        correctors = list(exam.correctors.all())
+        if not correctors:
+            return Response(
+                {"error": _("Aucun correcteur assigné à cet examen.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        unassigned_copies = list(
+            Copy.objects.filter(
+                exam=exam,
+                assigned_corrector__isnull=True
+            ).order_by('anonymous_id')
+        )
+
+        if not unassigned_copies:
+            return Response(
+                {"message": _("Aucune copie à dispatcher.")},
+                status=status.HTTP_200_OK
+            )
+
+        run_id = uuid.uuid4()
+        now = timezone.now()
+
+        random.shuffle(unassigned_copies)
+
+        distribution = {corrector.id: 0 for corrector in correctors}
+        assignments = []
+
+        for i, copy in enumerate(unassigned_copies):
+            corrector = correctors[i % len(correctors)]
+            copy.assigned_corrector = corrector
+            copy.dispatch_run_id = run_id
+            copy.assigned_at = now
+            assignments.append(copy)
+            distribution[corrector.id] += 1
+
+        try:
+            with transaction.atomic():
+                Copy.objects.bulk_update(
+                    assignments,
+                    ['assigned_corrector', 'dispatch_run_id', 'assigned_at']
+                )
+
+                logger.info(
+                    f"Dispatch completed for exam {exam_id}: "
+                    f"{len(assignments)} copies assigned to {len(correctors)} correctors. "
+                    f"Run ID: {run_id}"
+                )
+
+            distribution_stats = {
+                corrector.username: distribution[corrector.id]
+                for corrector in correctors
+            }
+
+            return Response({
+                "message": _("Dispatch effectué avec succès."),
+                "dispatch_run_id": str(run_id),
+                "copies_assigned": len(assignments),
+                "correctors_count": len(correctors),
+                "distribution": distribution_stats,
+                "min_assigned": min(distribution.values()),
+                "max_assigned": max(distribution.values())
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            from core.utils.errors import safe_error_response
+            logger.error(f"Dispatch failed for exam {exam_id}: {str(e)}")
+            return Response(
+                safe_error_response(e, context="Copy dispatch", user_message="Failed to dispatch copies."),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+

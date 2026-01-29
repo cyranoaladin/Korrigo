@@ -129,5 +129,35 @@ export default {
 
     getFinalPdfUrl(id) {
         return `${api.defaults.baseURL}/grading/copies/${id}/final-pdf/`;
+    },
+
+    async fetchRemarks(copyId) {
+        const response = await api.get(`/grading/copies/${copyId}/remarks/`);
+        return response.data;
+    },
+
+    async saveRemark(copyId, questionId, remark, token = null) {
+        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+        const response = await api.post(
+            `/grading/copies/${copyId}/remarks/`,
+            { question_id: questionId, remark },
+            config
+        );
+        return response.data;
+    },
+
+    async fetchGlobalAppreciation(copyId) {
+        const response = await api.get(`/grading/copies/${copyId}/global-appreciation/`);
+        return response.data;
+    },
+
+    async saveGlobalAppreciation(copyId, appreciation, token = null) {
+        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+        const response = await api.patch(
+            `/grading/copies/${copyId}/global-appreciation/`,
+            { global_appreciation: appreciation },
+            config
+        );
+        return response.data;
     }
 };
