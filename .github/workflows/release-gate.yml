@@ -136,12 +136,18 @@ jobs:
               exit 1
             fi
 
-            # Fix: Only match actual skipped tests (lines with "X skipped"), not test names
-            if grep -qE '\d+ skipped' "$PYTEST_LOG"; then
+            # Fix: Only match actual skipped in pytest summary (=== X skipped ===)
+            # Pattern matches pytest summary line with "skipped" word
+            if grep -qE '=.*\d+ skipped' "$PYTEST_LOG"; then
               echo "❌ FAILED: Tests have skipped tests (zero-tolerance)"
-              grep -E 'skipped' "$PYTEST_LOG" | head -20
+              grep -E '=.*skipped' "$PYTEST_LOG" | head -5
               exit 1
             fi
+
+            # Check for XFAIL (expected failures) - optional: decide policy
+            # if grep -qE '\d+ xfailed' "$PYTEST_LOG"; then
+            #   echo "⚠️  WARNING: Tests have expected failures (xfailed)"
+            # fi
 
             PASSED=$(grep -oP '\d+(?= passed)' "$PYTEST_LOG" | tail -1)
             echo "✅ PASS: $PASSED tests passed, 0 failed, 0 skipped"
