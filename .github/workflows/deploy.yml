@@ -177,28 +177,32 @@ jobs:
           KORRIGO_SHA: ${{ github.sha }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
-          ssh -o StrictHostKeyChecking=yes "${VPS_USER}@${VPS_HOST}" << 'EOSSH'
+          ssh -o StrictHostKeyChecking=yes "${VPS_USER}@${VPS_HOST}" bash <<EOSSH
             set -euo pipefail
             
-            # Export environment variables with defensive expansion
-            export VPS_PATH="${VPS_PATH:?VPS_PATH not set}"
-            export KORRIGO_SHA="${KORRIGO_SHA:?KORRIGO_SHA not set}"
-            export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY_OWNER:?GITHUB_REPOSITORY_OWNER not set}"
-            export GHCR_USER="${GHCR_USER:?GHCR_USER not set}"
-            export GHCR_PAT="${GHCR_PAT:?GHCR_PAT not set}"
+            # Export environment variables passed from GitHub Actions runner
+            export VPS_PATH="${VPS_PATH}"
+            export KORRIGO_SHA="${KORRIGO_SHA}"
+            export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY_OWNER}"
+            export GHCR_USER="${GHCR_USER}"
+            export GHCR_PAT="${GHCR_PAT}"
+            
+            # Verify they were passed correctly
+            test -n "\${VPS_PATH}" || { echo "❌ VPS_PATH empty after export"; exit 1; }
+            test -n "\${KORRIGO_SHA}" || { echo "❌ KORRIGO_SHA empty after export"; exit 1; }
             
             # ═══════════════════════════════════════
             # PRE-FLIGHT CHECKS
             # ═══════════════════════════════════════
             echo "🔍 Pre-flight checks..."
-            echo "  User: $(whoami)"
-            echo "  Host: $(hostname)"
-            echo "  PWD: $(pwd)"
+            echo "  User: \$(whoami)"
+            echo "  Host: \$(hostname)"
+            echo "  PWD: \$(pwd)"
             
             # Defensive cd with explicit error
             echo "📂 Changing to deployment directory..."
-            cd "${VPS_PATH}" || { echo "❌ Failed to cd to ${VPS_PATH}"; exit 1; }
-            echo "  ✅ Now in: $(pwd)"
+            cd "\${VPS_PATH}" || { echo "❌ Failed to cd to \${VPS_PATH}"; exit 1; }
+            echo "  ✅ Now in: \$(pwd)"
             
             # Verify directory structure
             echo "📁 Verifying directory structure..."
@@ -223,7 +227,7 @@ jobs:
             # GHCR LOGIN
             # ═══════════════════════════════════════
             echo "🔐 Logging in to GitHub Container Registry..."
-            echo "${GHCR_PAT}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin || {
+            echo "\${GHCR_PAT}" | docker login ghcr.io -u "\${GHCR_USER}" --password-stdin || {
               echo "❌ GHCR login failed"
               exit 1
             }
@@ -232,7 +236,7 @@ jobs:
             # ═══════════════════════════════════════
             # DEPLOYMENT
             # ═══════════════════════════════════════
-            echo "📥 Pulling latest images (SHA: ${KORRIGO_SHA})..."
+            echo "📥 Pulling latest images (SHA: \${KORRIGO_SHA})..."
             docker compose -f infra/docker/docker-compose.prod.yml pull || {
               echo "❌ Failed to pull images"
               exit 1
@@ -281,6 +285,6 @@ jobs:
             # ═══════════════════════════════════════
             echo ""
             echo "╔════════════════════════════════════════╗"
-            echo "║  ✅ DEPLOY OK: ${KORRIGO_SHA:0:8}         ║"
+            echo "║  ✅ DEPLOY OK: \${KORRIGO_SHA:0:8}         ║"
             echo "╚════════════════════════════════════════╝"
           EOSSH
