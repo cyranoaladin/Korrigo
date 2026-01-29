@@ -51,8 +51,13 @@ echo ""
 
 ts="$(date -u +%Y%m%dT%H%M%SZ)"
 runlog="/tmp/staging_run_$ts"
+
+# Strict permissions (audit & secrets protection)
+umask 077
 mkdir -p "$runlog"
-echo "Logs directory created: $runlog"
+chmod 700 "$runlog"
+
+echo "Logs directory created: $runlog (mode 700)"
 echo ""
 
 # Context dump (audit-ready)
@@ -109,8 +114,9 @@ echo "========================================="
 echo ""
 
 if ! bash scripts/deploy_staging_safe.sh 2>&1 | tee "$runlog/deploy.log"; then
+  rc=${PIPESTATUS[0]:-1}
   echo ""
-  echo "❌ Deploy failed (check logs for details)"
+  echo "❌ Deploy failed (RC=$rc)"
   echo "Logs: $runlog/deploy.log"
   echo ""
   echo "Rollback command:"
@@ -133,8 +139,9 @@ echo "========================================="
 echo ""
 
 if ! bash scripts/smoke_staging.sh 2>&1 | tee "$runlog/smoke.log"; then
+  rc=${PIPESTATUS[0]:-1}
   echo ""
-  echo "❌ Smoke test failed (check logs for details)"
+  echo "❌ Smoke test failed (RC=$rc)"
   echo "Logs: $runlog/smoke.log"
   echo ""
   echo "Rollback command:"
