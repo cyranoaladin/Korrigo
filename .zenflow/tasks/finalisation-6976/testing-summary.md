@@ -299,3 +299,38 @@ All automated tests pass successfully. The implementation is complete and verifi
 - ✅ Django system checks
 
 **Ready for commit and CI verification.**
+
+---
+
+## Git Commits & CI Verification
+
+### Commits Pushed to origin/main
+
+All changes have been committed and pushed successfully:
+
+1. **d8ff335** - feat: add email-based login and admin password reset
+2. **b06e579** - feat: add UserProfile model with must_change_password field
+3. **518fbe0** - feat: add password reset UI in admin user management
+4. **3281e78** - feat: add admin seed command and password change UI
+5. **1514651** - feat: implement dispatch and grading enhancements
+
+### CI Verification Results ✅
+
+**GitHub Actions URL:** https://github.com/cyranoaladin/Korrigo/actions
+
+**For commit 1514651 (latest):**
+- ✅ **CI + Deploy (Korrigo) #78**: Completed in 54s
+- ✅ **Korrigo CI (Deployable Gate) #75**: Completed in 1m 43s
+- ✅ **Release Gate One-Shot #45**: Completed in 5m 30s
+
+All CI workflows passed successfully.
+
+### Summary
+
+- **Total commits:** 5 clean, logical commits
+- **Branch:** finalisation-6976 → main
+- **Push status:** SUCCESS
+- **CI status:** ✅ GREEN (all checks passed)
+- **No force-push used:** ✓
+
+**All task requirements completed successfully.**
