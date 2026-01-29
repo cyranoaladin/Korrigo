@@ -148,6 +148,40 @@ const deleteUser = async (user) => {
     }
 }
 
+const showResetModal = ref(false)
+const temporaryPassword = ref('')
+const resettingUser = ref(null)
+const resettingPassword = ref(false)
+
+const openResetPasswordModal = async (user) => {
+    if (!confirm(`Voulez-vous vraiment réinitialiser le mot de passe de ${user.username} ?`)) return
+    
+    resettingUser.value = user
+    resettingPassword.value = true
+    
+    try {
+        const res = await api.post(`/users/${user.id}/reset-password/`)
+        temporaryPassword.value = res.data.temporary_password
+        showResetModal.value = true
+    } catch (e) {
+        console.error("Password reset failed", e)
+        alert("Erreur réinitialisation: " + (e.response?.data?.error || e.message))
+    } finally {
+        resettingPassword.value = false
+    }
+}
+
+const closeResetModal = () => {
+    showResetModal.value = false
+    temporaryPassword.value = ''
+    resettingUser.value = null
+}
+
+const copyToClipboard = () => {
+    navigator.clipboard.writeText(temporaryPassword.value)
+    alert("Mot de passe copié dans le presse-papier")
+}
+
 </script>
 
 <template>
@@ -285,6 +319,13 @@ const deleteUser = async (user) => {
                   Éditer
                 </button>
                 <button
+                  class="btn-sm btn-warning"
+                  :disabled="resettingPassword"
+                  @click="openResetPasswordModal(item)"
+                >
+                  Réinitialiser MDP
+                </button>
+                <button
                   class="btn-sm btn-danger"
                   @click="deleteUser(item)"
                 >
@@ -376,6 +417,52 @@ const deleteUser = async (user) => {
         </div>
       </div>
     </div>
+
+    <!-- Password Reset Modal -->
+    <div 
+      v-if="showResetModal" 
+      class="modal-overlay"
+    >
+      <div class="modal-card">
+        <h3>⚠️ Mot de passe temporaire</h3>
+        
+        <div class="warning-box">
+          <p><strong>ATTENTION :</strong> Communiquez ce mot de passe à l'utilisateur <strong>{{ resettingUser?.username }}</strong>.</p>
+          <p>Ce mot de passe ne sera affiché qu'une seule fois.</p>
+        </div>
+
+        <div class="form-group">
+          <label>Mot de passe temporaire</label>
+          <div class="password-display">
+            <input 
+              :value="temporaryPassword" 
+              type="text" 
+              readonly 
+              class="form-input password-readonly"
+            >
+            <button 
+              class="btn btn-outline btn-copy"
+              @click="copyToClipboard"
+            >
+              📋 Copier
+            </button>
+          </div>
+        </div>
+
+        <p class="info-text">
+          L'utilisateur devra changer ce mot de passe lors de sa prochaine connexion.
+        </p>
+
+        <div class="modal-actions">
+          <button 
+            class="btn btn-primary"
+            @click="closeResetModal"
+          >
+            J'ai noté le mot de passe
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -399,6 +486,8 @@ const deleteUser = async (user) => {
 .btn-danger { background: #ef4444; color: white; margin-left: 0.5rem; }
 .btn-sm { padding: 4px 8px; font-size: 0.8rem; }
 .btn-outline { background: white; border: 1px solid #cbd5e1; color: #475569; }
+.btn-warning { background: #f59e0b; color: white; }
+.btn-warning:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-group { display: flex; gap: 0.5rem; }
 
 /* Modal Styles */
@@ -410,4 +499,44 @@ const deleteUser = async (user) => {
 .form-input { width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
 .checkbox-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+
+/* Password Reset Modal Styles */
+.warning-box { 
+  background: #fef3c7; 
+  border: 2px solid #f59e0b; 
+  border-radius: 8px; 
+  padding: 1rem; 
+  margin-bottom: 1.5rem; 
+}
+.warning-box p { margin: 0.5rem 0; color: #78350f; }
+.password-display { 
+  display: flex; 
+  gap: 0.5rem; 
+  align-items: center; 
+}
+.password-readonly { 
+  flex: 1; 
+  font-family: 'Courier New', monospace; 
+  font-size: 1.1rem; 
+  font-weight: bold; 
+  background: #f8fafc; 
+}
+.btn-copy { 
+  padding: 0.5rem 1rem; 
+  white-space: nowrap; 
+}
+.info-text { 
+  color: #64748b; 
+  font-size: 0.9rem; 
+  margin-top: 1rem; 
+  font-style: italic; 
+}
+.status-active { 
+  color: #16a34a; 
+  font-weight: 500; 
+}
+.status-inactive { 
+  color: #dc2626; 
+  font-weight: 500; 
+}
 </style>
