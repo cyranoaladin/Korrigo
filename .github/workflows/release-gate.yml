@@ -1,0 +1,220 @@
+name: Release Gate One-Shot
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'infra/**'
+      - 'scripts/**'
+      - '.github/workflows/release-gate.yml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  release-gate-oneshot:
+    name: Release Gate Validation (Zero-Tolerance)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install dependencies (jq, curl)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y jq curl netcat-openbsd
+
+      - name: Verify script exists and is executable
+        run: |
+          ls -lh scripts/release_gate_oneshot.sh
+          test -x scripts/release_gate_oneshot.sh || chmod +x scripts/release_gate_oneshot.sh
+
+      - name: Run Release Gate One-Shot (Production-like)
+        env:
+          # Production environment
+          DJANGO_ENV: production
+          DEBUG: "False"
+
+          # Security: METRICS_TOKEN from GitHub Secrets (or empty = public, with warning)
+          METRICS_TOKEN: "${{ secrets.METRICS_TOKEN || '' }}"
+
+          # Passwords: allow random generation if not set
+          # For CI, we can set these or let seed generate random ones
+          ADMIN_PASSWORD: "${{ secrets.ADMIN_PASSWORD || '' }}"
+          TEACHER_PASSWORD: "${{ secrets.TEACHER_PASSWORD || '' }}"
+
+          # Test password for E2E (needs to match what seed sets)
+          TEST_PROF_PASSWORD: "prof"
+
+          # Compose file
+          COMPOSE_FILE: "infra/docker/docker-compose.local-prod.yml"
+        run: |
+          echo "========================================="
+          echo "Release Gate One-Shot Validation"
+          echo "========================================="
+          echo "Environment:"
+          echo "  DJANGO_ENV=$DJANGO_ENV"
+          echo "  DEBUG=$DEBUG"
+          echo "  METRICS_TOKEN: $([ -n "$METRICS_TOKEN" ] && echo 'set (secured)' || echo 'empty (public metrics)')"
+          echo "========================================="
+
+          # Run the one-shot script
+          ./scripts/release_gate_oneshot.sh
+
+      - name: Collect Release Gate logs and artifacts
+        if: always()
+        run: |
+          echo "Searching for release_gate_* directories in /tmp..."
+          ls -lah /tmp | grep release_gate || echo "No release_gate directories found"
+
+          # Find the latest release_gate_* directory
+          RG_DIR="$(ls -dt /tmp/release_gate_* 2>/dev/null | head -n1 || true)"
+
+          if [ -z "$RG_DIR" ]; then
+            echo "❌ No release_gate_* directory found under /tmp"
+            echo "Available directories in /tmp:"
+            ls -la /tmp | head -30
+            exit 0  # Don't fail artifact collection
+          fi
+
+          echo "Found Release Gate directory: $RG_DIR"
+          echo "RG_DIR=$RG_DIR" >> $GITHUB_ENV
+
+          # List contents
+          echo ""
+          echo "Logs available:"
+          ls -lh "$RG_DIR"
+
+          # Create tarball
+          tar -czf /tmp/release_gate_logs.tgz -C "$(dirname "$RG_DIR")" "$(basename "$RG_DIR")"
+          echo "Tarball created: $(ls -lh /tmp/release_gate_logs.tgz)"
+
+      - name: Display validation summary
+        if: always()
+        run: |
+          if [ -n "$RG_DIR" ] && [ -f "$RG_DIR/17_validation_summary.log" ]; then
+            echo "========================================="
+            echo "VALIDATION SUMMARY"
+            echo "========================================="
+            cat "$RG_DIR/17_validation_summary.log"
+          else
+            echo "⚠️  Validation summary not found"
+          fi
+
+      - name: Check zero-tolerance criteria
+        if: always()
+        run: |
+          if [ -z "$RG_DIR" ]; then
+            echo "❌ No release gate directory found - validation did not complete"
+            exit 1
+          fi
+
+          echo "========================================="
+          echo "ZERO-TOLERANCE VALIDATION"
+          echo "========================================="
+
+          PYTEST_LOG="$RG_DIR/13_pytest_full.log"
+          E2E_LOG="$RG_DIR/12_e2e_3runs.log"
+          SEED_LOG="$RG_DIR/08_seed_run1.log"
+
+          # Check pytest results
+          if [ -f "$PYTEST_LOG" ]; then
+            echo ""
+            echo "=== Test Results ==="
+            if grep -qE 'failed|ERROR' "$PYTEST_LOG"; then
+              echo "❌ FAILED: Tests have failures or errors"
+              grep -E 'FAILED|ERROR' "$PYTEST_LOG" | head -20
+              exit 1
+            fi
+
+            if grep -qE 'skipped' "$PYTEST_LOG"; then
+              echo "❌ FAILED: Tests have skipped tests (zero-tolerance)"
+              grep -E 'skipped' "$PYTEST_LOG" | head -20
+              exit 1
+            fi
+
+            PASSED=$(grep -oP '\d+(?= passed)' "$PYTEST_LOG" | tail -1)
+            echo "✅ PASS: $PASSED tests passed, 0 failed, 0 skipped"
+          else
+            echo "❌ FAILED: pytest log not found"
+            exit 1
+          fi
+
+          # Check E2E results
+          if [ -f "$E2E_LOG" ]; then
+            echo ""
+            echo "=== E2E Results ==="
+            if ! grep -q "✅ E2E: 3/3 RUNS PASSED" "$E2E_LOG"; then
+              echo "❌ FAILED: E2E runs did not pass 3/3"
+              tail -50 "$E2E_LOG"
+              exit 1
+            fi
+
+            # Check annotation POST = 201
+            if ! grep -qE "Annotation created.*201" "$E2E_LOG"; then
+              echo "❌ FAILED: Annotation POST did not return 201"
+              exit 1
+            fi
+
+            echo "✅ PASS: E2E 3/3 runs with annotations (POST 201, GET 200)"
+          else
+            echo "❌ FAILED: E2E log not found"
+            exit 1
+          fi
+
+          # Check seed validation (pages > 0)
+          if [ -f "$SEED_LOG" ]; then
+            echo ""
+            echo "=== Seed Validation ==="
+            if ! grep -qE 'Booklets.*Pages' "$SEED_LOG"; then
+              echo "❌ FAILED: Seed did not create copies with pages"
+              exit 1
+            fi
+
+            # Check that all READY copies have pages > 0
+            PAGES_LINES=$(grep -E 'READY.*Booklets.*Pages' "$SEED_LOG" || true)
+            if echo "$PAGES_LINES" | grep -q "Pages: 0"; then
+              echo "❌ FAILED: Some READY copies have 0 pages"
+              echo "$PAGES_LINES"
+              exit 1
+            fi
+
+            echo "✅ PASS: All READY copies have pages > 0"
+            echo "$PAGES_LINES"
+          else
+            echo "❌ FAILED: Seed log not found"
+            exit 1
+          fi
+
+          echo ""
+          echo "========================================="
+          echo "✅ ZERO-TOLERANCE VALIDATION COMPLETE"
+          echo "========================================="
+
+      - name: Upload Release Gate logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-logs
+          path: /tmp/release_gate_logs.tgz
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload individual critical logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-critical-logs
+          path: |
+            /tmp/release_gate_*/08_seed_run1.log
+            /tmp/release_gate_*/12_e2e_3runs.log
+            /tmp/release_gate_*/13_pytest_full.log
+            /tmp/release_gate_*/17_validation_summary.log
+          retention-days: 30
+          if-no-files-found: warn
