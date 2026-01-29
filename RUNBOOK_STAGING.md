@@ -635,7 +635,7 @@ LOCK=/tmp/staging_oneshot.lock
 exec 9>"$LOCK"
 if ! flock -n 9; then
   echo "❌ Un autre one-shot staging est déjà en cours (lock: $LOCK). Abandon."
-  echo "➡️  Diagnostics: ls -l $LOCK ; ps aux | grep staging_oneshot"
+  echo "➡️  Diagnostics: ls -l $LOCK ; ps aux | grep [s]taging_oneshot"
   echo "   (optionnel: lsof $LOCK pour voir le processus tenant le lock)"
   exit 1
 fi
