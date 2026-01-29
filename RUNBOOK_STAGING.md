@@ -364,7 +364,7 @@ docker compose -f infra/docker/docker-compose.staging.yml ps
 
 ---
 
-## 🎯 Commande Unique (One-Shot) — Version Durcie
+## 🎯 Commande Unique (One-Shot) — Version Durcie Production-Ready
 
 **Pour les warriors qui veulent deploy + smoke + archive en une seule commande**.
 
@@ -378,6 +378,7 @@ TAG=v1.0.0-rc1 \
 METRICS_TOKEN=$(openssl rand -hex 32) \
 bash -lc '
 set -euo pipefail
+set +x  # Disable command tracing (prevent secrets leakage)
 
 echo "=== 🚀 STAGING ONE-SHOT: Deploy + Smoke + Archive ==="
 echo "BASE_URL=$BASE_URL"
@@ -390,17 +391,14 @@ TS="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="/tmp/staging_oneshot_${TS}"
 mkdir -p "$OUT"
 
-# Helper: find latest matching dir created by scripts
-latest_dir() {
-  ls -1dt /tmp/"$1"_* 2>/dev/null | head -n 1 || true
-}
+# Capture actual dirs created by scripts (not "latest dir")
+DEPLOY_DIR=""
+SMOKE_DIR=""
 
 # Always archive at the end (success or failure)
 archive() {
   echo ""
   echo "[3/3] Archiving artifacts..."
-  DEPLOY_DIR="$(latest_dir staging_deploy)"
-  SMOKE_DIR="$(latest_dir staging_smoke)"
 
   {
     echo "timestamp=$TS"
@@ -435,9 +433,16 @@ echo "[1/3] Deploying staging..."
 BASE_URL="$BASE_URL" TAG="$TAG" METRICS_TOKEN="$METRICS_TOKEN" \
   ./scripts/deploy_staging_safe.sh
 
+# Capture deploy dir IMMEDIATELY after execution (deterministic)
+DEPLOY_DIR="$(ls -1dt /tmp/staging_deploy_* 2>/dev/null | head -n 1 || true)"
+
 echo "[2/3] Running smoke test..."
+export SMOKE_PASS  # Prevent accidental logging in subshells
 BASE_URL="$BASE_URL" SMOKE_USER="$SMOKE_USER" SMOKE_PASS="$SMOKE_PASS" \
   ./scripts/smoke_staging.sh
+
+# Capture smoke dir IMMEDIATELY after execution (deterministic)
+SMOKE_DIR="$(ls -1dt /tmp/staging_smoke_* 2>/dev/null | head -n 1 || true)"
 
 echo ""
 echo "✅ ONE-SHOT SUCCESS"
@@ -451,8 +456,9 @@ echo "  2) git tag -a v1.0.0 -m \"Production Release\" && git push origin v1.0.0
 
 **✅ Avantages**:
 - **Archive garantie**: Même en cas d'échec, les logs sont archivés (via `trap EXIT`)
-- **Pas de pollution**: Collecte uniquement le dernier run (pas de vieux `/tmp/staging_*`)
-- **Masquage password**: `SMOKE_PASS=********` dans l'affichage (sécurité)
+- **Déterminisme total**: Capture le dossier créé par chaque script **immédiatement après exécution** (pas de risque de race condition ou run parallèle)
+- **Masquage password**: `SMOKE_PASS=********` dans l'affichage + `set +x` pour bloquer le tracing
+- **Protection secrets**: `export SMOKE_PASS` avant smoke test (évite fuites accidentelles dans subshells)
 - **Traçabilité**: `meta.txt` avec timestamp, base_url, tag, et paths réels des logs
 - **Fail-fast**: Si deploy échoue, smoke n'est pas lancé
 - **RC=0 uniquement si tout passe**: Comportement strict pour CI/CD
