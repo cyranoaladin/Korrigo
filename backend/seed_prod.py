@@ -9,11 +9,15 @@ Creates realistic data for production validation:
 - 1 copy GRADED (with PDF)
 
 Idempotent: Can be run multiple times without errors or duplicates.
+
+Security: Uses env vars for passwords or generates random secure passwords for local dev.
 """
 import os
 import django
 import sys
 from pathlib import Path
+import secrets
+import string
 
 # Setup Django environment
 sys.path.append(str(Path(__file__).resolve().parent))
@@ -28,6 +32,42 @@ from students.models import Student
 from datetime import date
 
 User = get_user_model()
+
+def generate_secure_password(length=24):
+    """Generate a cryptographically secure random password."""
+    alphabet = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+def get_or_generate_password(env_var, default_for_local=None):
+    """
+    Get password from environment or generate a secure one.
+
+    Args:
+        env_var: Environment variable name (e.g., 'ADMIN_PASSWORD')
+        default_for_local: Optional default for local dev (insecure, warns user)
+
+    Returns:
+        tuple: (password, is_generated)
+    """
+    password = os.environ.get(env_var)
+
+    if password:
+        return password, False
+
+    # No env var set - check if we're in a dev/local context
+    is_local = os.environ.get('DJANGO_ENV', 'development') != 'production'
+
+    if is_local and default_for_local:
+        print(f"  ⚠️  WARNING: Using default password for {env_var} (LOCAL DEV ONLY)")
+        print(f"      DO NOT USE IN PRODUCTION!")
+        return default_for_local, False
+
+    # Generate secure random password
+    generated = generate_secure_password()
+    print(f"  🔐 Generated secure password for {env_var}")
+    print(f"      Password: {generated}")
+    print(f"      ⚠️  SAVE THIS - it won't be shown again!")
+    return generated, True
 
 def seed_prod():
     """
@@ -52,7 +92,12 @@ def seed_prod():
         }
     )
     if created:
-        admin.set_password('admin')
+        # Secure password handling: env var or generated
+        admin_password, was_generated = get_or_generate_password(
+            'ADMIN_PASSWORD',
+            default_for_local='admin'  # Only for local dev
+        )
+        admin.set_password(admin_password)
         admin.save()
         print(f"  ✓ Created admin: {admin.username}")
     else:
@@ -66,6 +111,13 @@ def seed_prod():
     # 2. Create Professors
     print("\n👨‍🏫 Creating Professors...")
     professors = []
+
+    # Get professor password once (same for all profs in local dev)
+    prof_password, was_generated = get_or_generate_password(
+        'TEACHER_PASSWORD',
+        default_for_local='prof'  # Only for local dev
+    )
+
     for i in range(1, 4):  # 3 professors
         prof, created = User.objects.get_or_create(
             username=f'prof{i}',
@@ -78,7 +130,7 @@ def seed_prod():
             }
         )
         if created:
-            prof.set_password('prof')
+            prof.set_password(prof_password)
             prof.save()
             print(f"  ✓ Created professor: {prof.username}")
         else:
@@ -152,19 +204,36 @@ def seed_prod():
     from grading.services import GradingService
     from django.core.files import File
 
+    # FAIL FAST: Verify PDF source exists
+    if not exam.pdf_source:
+        raise RuntimeError(
+            "❌ CRITICAL: No PDF fixture found for exam. "
+            "Cannot create annotatable copies. "
+            "This is a P0 blocker for production validation."
+        )
+
     for i in range(1, 4):
         # Check if copy already exists
         existing = Copy.objects.filter(anonymous_id=f"PROD-READY-{i}").first()
 
+        needs_reimport = False
         if existing:
             print(f"  ↻ READY copy already exists: {existing.anonymous_id}")
-            # Ensure it has booklets with pages (re-import if necessary)
-            if not existing.booklets.exists():
-                print(f"    ⚠️  Copy has no booklets, re-importing...")
+
+            # ROBUST CHECK: Verify booklets AND pages_images
+            has_valid_pages = False
+            for booklet in existing.booklets.all():
+                if booklet.pages_images and len(booklet.pages_images) > 0:
+                    has_valid_pages = True
+                    break
+
+            if not has_valid_pages:
+                print(f"    ⚠️  Copy has no booklets with pages_images, re-importing...")
                 existing.delete()  # Delete and re-create
+                needs_reimport = True
                 existing = None
 
-        if not existing and exam.pdf_source:
+        if not existing or needs_reimport:
             # Import PDF to create copy with pages
             with open(exam.pdf_source.path, 'rb') as f:
                 imported_copy = GradingService.import_pdf(exam, File(f), professors[0])
@@ -177,6 +246,13 @@ def seed_prod():
             # Verify booklets and pages
             booklet_count = imported_copy.booklets.count()
             page_count = sum([len(b.pages_images) if b.pages_images else 0 for b in imported_copy.booklets.all()])
+
+            # VALIDATION: Ensure pages > 0 (P0 requirement)
+            if page_count <= 0:
+                raise RuntimeError(
+                    f"❌ CRITICAL: Copy {imported_copy.anonymous_id} created but has 0 pages. "
+                    "PDF import failed. This breaks annotation workflow."
+                )
 
             print(f"  ✓ Imported READY copy: {imported_copy.anonymous_id} (ID: {imported_copy.id})")
             print(f"    - Booklets: {booklet_count}, Pages: {page_count}")
@@ -204,11 +280,11 @@ def seed_prod():
         else:
             print(f"  ↻ GRADED copy already exists: {copy_graded.anonymous_id}")
 
-    # Ensure GRADED copy has a PDF
+    # Ensure GRADED copy has a PDF (use same fixture as exam)
     if not copy_graded.final_pdf:
-        # Create a minimal valid PDF (ASCII only)
-        minimal_pdf = b"%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >> endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\ntrailer << /Size 4 /Root 1 0 R >>\nstartxref\n190\n%%EOF\n"
-        copy_graded.final_pdf.save('prod_graded_copy.pdf', ContentFile(minimal_pdf), save=True)
+        # Reuse the same fixture PDF used for exam (already verified to exist)
+        with open(exam.pdf_source.path, 'rb') as f:
+            copy_graded.final_pdf.save('prod_graded_copy.pdf', f, save=True)
         print(f"  ✓ Attached PDF to GRADED copy: {copy_graded.id}")
     else:
         print(f"  ↻ GRADED copy already has PDF: {copy_graded.id}")
