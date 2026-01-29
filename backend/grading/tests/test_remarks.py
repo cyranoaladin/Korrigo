@@ -134,7 +134,8 @@ class TestQuestionRemarks:
         response = client.get(f'/api/grading/copies/{copy_obj.id}/remarks/')
         
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 2
+        assert response.data['count'] == 2
+        assert len(response.data['results']) == 2
     
     def test_delete_remark(self, teacher_user, copy_obj):
         """Test deleting a remark."""
