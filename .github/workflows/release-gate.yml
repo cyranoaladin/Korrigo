@@ -33,6 +33,12 @@ jobs:
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           
           echo "Comparing base $BASE_SHA with head $HEAD_SHA"
+          
+          # Fetch base commit if not available (shallow checkout issue)
+          if ! git cat-file -e "$BASE_SHA" 2>/dev/null; then
+            echo "Fetching base commit $BASE_SHA..."
+            git fetch --depth=1 origin "$BASE_SHA"
+          fi
           CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
 
           # Critical Release Gate files
