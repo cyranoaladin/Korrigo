@@ -97,6 +97,12 @@ const selectedExamId = ref(null)
 const selectedExamName = ref('')
 const loadingTeachers = ref(false)
 
+const showDispatchModal = ref(false)
+const showDispatchResultsModal = ref(false)
+const dispatchResults = ref(null)
+const dispatchingExam = ref(null)
+const isDispatching = ref(false)
+
 const loadTeachers = async () => {
     loadingTeachers.value = true
     try {
@@ -127,11 +133,39 @@ const saveCorrectors = async () => {
         })
         alert("Correcteurs assignés avec succès")
         showCorrectorModal.value = false
-        fetchExams() // Refresh list to update local state if needed
+        fetchExams()
     } catch (e) {
         console.error("Save correctors failed", e)
         alert("Erreur lors de l'enregistrement")
     }
+}
+
+const openDispatchModal = (exam) => {
+    dispatchingExam.value = exam
+    showDispatchModal.value = true
+}
+
+const confirmDispatch = async () => {
+    if (!dispatchingExam.value) return
+    
+    isDispatching.value = true
+    try {
+        const res = await api.post(`/exams/${dispatchingExam.value.id}/dispatch/`)
+        dispatchResults.value = res.data
+        showDispatchModal.value = false
+        showDispatchResultsModal.value = true
+        await fetchExams()
+    } catch (e) {
+        console.error("Dispatch failed", e)
+        const errMsg = e.response?.data?.error || e.response?.data?.detail || 'Erreur lors de la distribution'
+        alert(errMsg)
+    } finally {
+        isDispatching.value = false
+    }
+}
+
+const canDispatch = (exam) => {
+    return exam.correctors && exam.correctors.length > 0
 }
 
 onMounted(() => {
@@ -283,6 +317,15 @@ onMounted(() => {
                 >
                   Correcteurs
                 </button>
+                <button 
+                  class="btn-sm btn-dispatch"
+                  :class="{ 'btn-disabled': !canDispatch(exam) }"
+                  :disabled="!canDispatch(exam)"
+                  :title="canDispatch(exam) ? 'Distribuer les copies' : 'Aucun correcteur assigné'"
+                  @click="openDispatchModal(exam)"
+                >
+                  Dispatcher
+                </button>
               </td>
             </tr>
             <tr v-if="exams.length === 0">
@@ -399,6 +442,111 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Dispatch Confirmation Modal -->
+    <div 
+      v-if="showDispatchModal" 
+      class="modal-overlay"
+    >
+      <div class="modal-card">
+        <h3>Dispatcher les Copies</h3>
+        <p class="modal-subtitle">
+          Pour: {{ dispatchingExam?.name }}
+        </p>
+        
+        <div class="dispatch-info">
+          <p>
+            Voulez-vous distribuer les copies non assignées de cet examen aux correcteurs de manière aléatoire et équitable ?
+          </p>
+          <p class="warning-text">
+            ⚠️ Les copies déjà assignées ne seront pas modifiées.
+          </p>
+        </div>
+        
+        <div class="modal-actions">
+          <button 
+            class="btn btn-outline"
+            :disabled="isDispatching"
+            @click="showDispatchModal = false" 
+          >
+            Annuler
+          </button>
+          <button 
+            class="btn btn-primary"
+            :disabled="isDispatching"
+            @click="confirmDispatch" 
+          >
+            {{ isDispatching ? 'Distribution...' : 'Confirmer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dispatch Results Modal -->
+    <div 
+      v-if="showDispatchResultsModal" 
+      class="modal-overlay"
+    >
+      <div class="modal-card modal-card-wide">
+        <h3>Distribution Terminée</h3>
+        
+        <div 
+          v-if="dispatchResults" 
+          class="dispatch-results"
+        >
+          <div class="result-summary">
+            <div class="result-item">
+              <span class="result-label">Copies assignées :</span>
+              <span class="result-value">{{ dispatchResults.copies_assigned || 0 }}</span>
+            </div>
+            <div class="result-item">
+              <span class="result-label">Nombre de correcteurs :</span>
+              <span class="result-value">{{ dispatchResults.correctors_count || 0 }}</span>
+            </div>
+            <div 
+              v-if="dispatchResults.dispatch_run_id" 
+              class="result-item"
+            >
+              <span class="result-label">ID Distribution :</span>
+              <span class="result-value result-id">{{ dispatchResults.dispatch_run_id }}</span>
+            </div>
+          </div>
+          
+          <div 
+            v-if="dispatchResults.distribution" 
+            class="distribution-table"
+          >
+            <h4>Répartition par correcteur</h4>
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Correcteur</th>
+                  <th>Copies assignées</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr 
+                  v-for="(count, username) in dispatchResults.distribution" 
+                  :key="username"
+                >
+                  <td>{{ username }}</td>
+                  <td>{{ count }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="modal-actions">
+          <button 
+            class="btn btn-primary"
+            @click="showDispatchResultsModal = false" 
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -472,5 +620,103 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
   color: #94a3b8;
   padding: 1rem;
   font-style: italic;
+}
+
+/* Dispatch Styles */
+.btn-dispatch {
+  background: #10b981;
+  color: white;
+}
+.btn-dispatch:hover:not(:disabled) {
+  background: #059669;
+}
+.btn-disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.dispatch-info {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 6px;
+}
+.warning-text {
+  color: #f59e0b;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.dispatch-results {
+  margin: 1rem 0;
+}
+.result-summary {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e0f2fe;
+}
+.result-item:last-child {
+  border-bottom: none;
+}
+.result-label {
+  font-weight: 500;
+  color: #475569;
+}
+.result-value {
+  font-weight: 600;
+  color: #0f172a;
+}
+.result-id {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.distribution-table {
+  margin-top: 1rem;
+}
+.distribution-table h4 {
+  margin-bottom: 0.75rem;
+  color: #334155;
+  font-size: 1rem;
+}
+.mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.mini-table th {
+  background: #f1f5f9;
+  padding: 0.75rem;
+  text-align: left;
+  font-size: 0.9rem;
+  color: #475569;
+  border-bottom: 2px solid #cbd5e1;
+}
+.mini-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+.mini-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.mini-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.modal-card-wide {
+  width: 600px;
+  max-width: 90vw;
 }
 </style>
