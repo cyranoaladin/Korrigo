@@ -70,10 +70,6 @@ class TestRateLimitingProtection:
     Pour CI: Assurez-vous que Redis est disponible dans le workflow de test.
     """
 
-    @pytest.mark.skipif(
-        not pytest.config.getoption("--with-redis", default=False),
-        reason="Rate limiting requires Redis. Run with --with-redis to test protection."
-    )
     def test_login_rate_limit_protection_active(self):
         """
         Test que le rate limiting protège effectivement après N tentatives.
@@ -102,10 +98,6 @@ class TestRateLimitingProtection:
             f"Attempt 6 should be rate limited (429), got {response.status_code}. " \
             "Rate limiting protection is NOT active!"
 
-    @pytest.mark.skipif(
-        not pytest.config.getoption("--with-redis", default=False),
-        reason="Rate limiting requires Redis. Run with --with-redis to test protection."
-    )
     def test_student_login_rate_limit_protection_active(self):
         """Test que le rate limiting protège les logins élèves"""
         client = Client()
