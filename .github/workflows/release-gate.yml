@@ -127,13 +127,17 @@ jobs:
           if [ -f "$PYTEST_LOG" ]; then
             echo ""
             echo "=== Test Results ==="
-            if grep -qE 'failed|ERROR' "$PYTEST_LOG"; then
+            # Fix: Only match actual pytest failures (lines starting with FAILED/ERROR),
+            # not test names containing "failed" or "error"
+            if grep -qE '^FAILED |^ERROR ' "$PYTEST_LOG"; then
               echo "❌ FAILED: Tests have failures or errors"
-              grep -E 'FAILED|ERROR' "$PYTEST_LOG" | head -20
+              echo "Failing test nodeids:"
+              grep -E '^(FAILED|ERROR) ' "$PYTEST_LOG" | sed -E 's/^(FAILED|ERROR) +//' | head -20
               exit 1
             fi
 
-            if grep -qE 'skipped' "$PYTEST_LOG"; then
+            # Fix: Only match actual skipped tests (lines with "X skipped"), not test names
+            if grep -qE '\d+ skipped' "$PYTEST_LOG"; then
               echo "❌ FAILED: Tests have skipped tests (zero-tolerance)"
               grep -E 'skipped' "$PYTEST_LOG" | head -20
               exit 1

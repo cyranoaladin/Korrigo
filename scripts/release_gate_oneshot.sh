@@ -288,6 +288,30 @@ echo \"========================================\"
 log "Phase F: Backend Tests"
 run_logged "13_pytest_full" docker compose -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" pytest -v --tb=short
 
+# Extract failing test nodeids if any failures detected
+PYTEST_LOG="$LOG_DIR/13_pytest_full.log"
+if [ -f "$PYTEST_LOG" ]; then
+  # Only match actual pytest failures (lines starting with FAILED/ERROR)
+  if grep -qE '^FAILED |^ERROR ' "$PYTEST_LOG"; then
+    log "❌ Pytest failures detected. Extracting failing nodeids..."
+    grep -E '^(FAILED|ERROR) ' "$PYTEST_LOG" \
+      | sed -E 's/^(FAILED|ERROR) +//' \
+      | tee "$LOG_DIR/13_pytest_failing_tests.txt"
+
+    log "❌ RELEASE GATE FAILED: Tests have failures"
+    log "   Failing tests saved to: $LOG_DIR/13_pytest_failing_tests.txt"
+    log "   Review logs: $LOG_DIR/13_pytest_full.log"
+    exit 1
+  fi
+
+  # Check for skipped tests (zero-tolerance)
+  if grep -qE '\d+ skipped' "$PYTEST_LOG"; then
+    log "❌ RELEASE GATE FAILED: Tests have skipped tests (zero-tolerance)"
+    grep -E 'skipped' "$PYTEST_LOG" | tee "$LOG_DIR/13_pytest_skipped.txt"
+    exit 1
+  fi
+fi
+
 # ---- Logs capture (compose + service logs)
 log "Phase G: Logs Capture"
 run_logged "14_compose_logs" docker compose -f "$COMPOSE_FILE" logs --no-color
@@ -310,13 +334,13 @@ if [ -f \"\$pytest_log\" ]; then
   echo \"=== Test Results ===\"
   grep -E '===.*passed' \"\$pytest_log\" | tail -1 || echo 'Test summary not found'
 
-  # Check for failures/errors/skipped
-  if grep -qE 'FAILED|ERROR' \"\$pytest_log\"; then
+  # Check for failures/errors/skipped (only match actual pytest output)
+  if grep -qE '^FAILED |^ERROR ' \"\$pytest_log\"; then
     echo \"❌ FAILURES/ERRORS DETECTED IN TESTS\"
-    grep -E 'FAILED|ERROR' \"\$pytest_log\" || true
+    grep -E '^(FAILED|ERROR) ' \"\$pytest_log\" | head -20 || true
   fi
 
-  if grep -qE 'skipped' \"\$pytest_log\"; then
+  if grep -qE '\d+ skipped' \"\$pytest_log\"; then
     echo \"⚠️  SKIPPED TESTS DETECTED\"
     grep -E 'skipped' \"\$pytest_log\" || true
   fi
