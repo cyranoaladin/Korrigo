@@ -5,6 +5,7 @@ import api from '../services/api' // Import Axios instance
 export const useAuthStore = defineStore('auth', () => {
     const user = ref(null)
     const isAuthenticated = computed(() => !!user.value)
+    const mustChangePassword = computed(() => user.value?.must_change_password || false)
 
     // Check if we are checking auth status
     const isChecking = ref(false)
@@ -79,5 +80,21 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-    return { user, isAuthenticated, isChecking, login, loginStudent, logout, fetchUser }
+    function clearMustChangePassword() {
+        if (user.value) {
+            user.value.must_change_password = false
+        }
+    }
+
+    return { 
+        user, 
+        isAuthenticated, 
+        mustChangePassword, 
+        isChecking, 
+        login, 
+        loginStudent, 
+        logout, 
+        fetchUser,
+        clearMustChangePassword
+    }
 })
