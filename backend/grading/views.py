@@ -4,9 +4,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.http import FileResponse
 from rest_framework.permissions import IsAuthenticated
-from .models import Annotation, GradingEvent
+from .models import Annotation, GradingEvent, QuestionRemark
 from exams.models import Copy
-from .serializers import AnnotationSerializer, GradingEventSerializer
+from .serializers import AnnotationSerializer, GradingEventSerializer, QuestionRemarkSerializer
 from exams.permissions import IsTeacherOrAdmin
 from .permissions import IsLockedByOwnerOrReadOnly
 from django.shortcuts import get_object_or_404
@@ -288,3 +288,121 @@ class CopyAuditView(generics.ListAPIView):
         # Verify copy exists
         get_object_or_404(Copy, id=copy_id)
         return GradingEvent.objects.filter(copy_id=copy_id).select_related('actor').order_by('-timestamp')
+
+
+class QuestionRemarkListCreateView(generics.ListCreateAPIView):
+    """
+    GET: Liste les remarques d'une copie.
+    POST: Crée ou met à jour une remarque sur une question.
+    """
+    permission_classes = [IsTeacherOrAdmin]
+    serializer_class = QuestionRemarkSerializer
+
+    def get_queryset(self):
+        copy_id = self.kwargs['copy_id']
+        copy = get_object_or_404(Copy, id=copy_id)
+        return QuestionRemark.objects.filter(copy=copy).select_related('created_by')
+
+    def create(self, request, *args, **kwargs):
+        copy_id = self.kwargs['copy_id']
+        copy = get_object_or_404(Copy, id=copy_id)
+        question_id = request.data.get('question_id')
+        remark = request.data.get('remark', '')
+
+        if not question_id:
+            return Response(
+                {"detail": "question_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Update or create
+        obj, created = QuestionRemark.objects.update_or_create(
+            copy=copy,
+            question_id=question_id,
+            defaults={
+                'remark': remark,
+                'created_by': request.user
+            }
+        )
+
+        serializer = self.get_serializer(obj)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+
+
+class QuestionRemarkDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET    /api/remarks/<id>/ - Récupère une remarque
+    PATCH  /api/remarks/<id>/ - Modifie une remarque
+    DELETE /api/remarks/<id>/ - Supprime une remarque
+    """
+    permission_classes = [IsTeacherOrAdmin]
+    serializer_class = QuestionRemarkSerializer
+    queryset = QuestionRemark.objects.all()
+
+    def update(self, request, *args, **kwargs):
+        remark_obj = self.get_object()
+
+        # Permission check: only creator or admin can update
+        if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
+            if remark_obj.created_by != request.user:
+                return Response(
+                    {"detail": "You do not have permission to edit this remark."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(remark_obj, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        remark_obj = self.get_object()
+
+        # Permission check: only creator or admin can delete
+        if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
+            if remark_obj.created_by != request.user:
+                return Response(
+                    {"detail": "You do not have permission to delete this remark."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        remark_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CopyGlobalAppreciationView(APIView):
+    """
+    GET/PUT/PATCH /api/copies/<uuid>/global-appreciation/
+    Gère l'appréciation globale d'une copie.
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def get(self, request, copy_id):
+        copy = get_object_or_404(Copy, id=copy_id)
+        return Response({
+            'copy_id': str(copy.id),
+            'global_appreciation': copy.global_appreciation or ''
+        })
+
+    def put(self, request, copy_id):
+        return self._update(request, copy_id)
+
+    def patch(self, request, copy_id):
+        return self._update(request, copy_id)
+
+    def _update(self, request, copy_id):
+        copy = get_object_or_404(Copy, id=copy_id)
+        global_appreciation = request.data.get('global_appreciation', '')
+        
+        copy.global_appreciation = global_appreciation
+        copy.save(update_fields=['global_appreciation'])
+
+        return Response({
+            'copy_id': str(copy.id),
+            'global_appreciation': copy.global_appreciation or ''
+        })

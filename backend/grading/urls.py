@@ -8,7 +8,10 @@ from grading.views import (
     CopyFinalizeView,
     CopyReadyView,
     CopyFinalPdfView,
-    CopyAuditView
+    CopyAuditView,
+    QuestionRemarkListCreateView,
+    QuestionRemarkDetailView,
+    CopyGlobalAppreciationView
 )
 from grading.views_lock import (
     LockAcquireView,
@@ -42,4 +45,11 @@ urlpatterns = [
     
     # Audit
     path('copies/<uuid:id>/audit/', CopyAuditView.as_view(), name='copy-audit'),
+    
+    # Question Remarks
+    path('copies/<uuid:copy_id>/remarks/', QuestionRemarkListCreateView.as_view(), name='question-remark-list-create'),
+    path('remarks/<uuid:pk>/', QuestionRemarkDetailView.as_view(), name='question-remark-detail'),
+    
+    # Global Appreciation
+    path('copies/<uuid:copy_id>/global-appreciation/', CopyGlobalAppreciationView.as_view(), name='copy-global-appreciation'),
 ]

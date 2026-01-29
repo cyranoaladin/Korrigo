@@ -183,6 +183,28 @@ class Copy(models.Model):
         help_text=_("Vrai si la copie a été associée à un élève.")
     )
 
+    # Dispatch fields for copy assignment
+    assigned_corrector = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_copies',
+        verbose_name=_("Correcteur assigné")
+    )
+    dispatch_run_id = models.UUIDField(
+        null=True,
+        blank=True,
+        verbose_name=_("ID d'exécution du dispatch"),
+        help_text=_("UUID généré lors du dispatch pour traçabilité")
+    )
+    assigned_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Date d'assignation"),
+        help_text=_("Timestamp de l'assignation au correcteur")
+    )
+
     # Traçabilité (ADR-003)
     validated_at = models.DateTimeField(
         null=True,
@@ -222,6 +244,14 @@ class Copy(models.Model):
         blank=True,
         verbose_name=_("Date de notation"),
         help_text=_("Timestamp LOCKED → GRADED")
+    )
+    
+    # Global appreciation for the copy
+    global_appreciation = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_("Appréciation globale"),
+        help_text=_("Commentaire global du correcteur pour cette copie")
     )
 
     class Meta:

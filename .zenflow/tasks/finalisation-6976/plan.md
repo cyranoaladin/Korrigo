@@ -51,7 +51,7 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 
 ---
 
-### [ ] Step: Backend - UserProfile Model & Admin Seed
+### [x] Step: Backend - UserProfile Model & Admin Seed
 <!-- chat-id: 026e222f-7def-4ee7-b059-1b8aee62328e -->
 
 Create UserProfile model for tracking must_change_password flag and admin seed command.
@@ -77,7 +77,8 @@ Create UserProfile model for tracking must_change_password flag and admin seed c
 
 ---
 
-### [ ] Step: Backend - Email Login & Password Reset
+### [x] Step: Backend - Email Login & Password Reset
+<!-- chat-id: d9ba556d-1041-4ddc-9874-254a40e4fda9 -->
 
 Enable email-based login and admin password reset functionality.
 
@@ -103,7 +104,8 @@ Enable email-based login and admin password reset functionality.
 
 ---
 
-### [ ] Step: Frontend - Password Toggle & Forced Password Change
+### [x] Step: Frontend - Password Toggle & Forced Password Change
+<!-- chat-id: 993c8faa-1d11-41ce-ad07-c44b6499344d -->
 
 Add password visibility toggle and handle forced password changes.
 
@@ -132,7 +134,8 @@ Add password visibility toggle and handle forced password changes.
 
 ---
 
-### [ ] Step: Frontend - Admin User Management UI
+### [x] Step: Frontend - Admin User Management UI
+<!-- chat-id: aade4ca9-2c77-4e78-8f8c-47afc350defa -->
 
 Add password reset UI in admin user management.
 
@@ -152,7 +155,8 @@ Add password reset UI in admin user management.
 
 ---
 
-### [ ] Step: Backend - Copy Dispatch Model & Algorithm
+### [x] Step: Backend - Copy Dispatch Model & Algorithm
+<!-- chat-id: 9574b400-4786-435b-a332-285b5e31aed3 -->
 
 Add dispatch fields to Copy model and implement fair distribution algorithm.
 
@@ -185,7 +189,8 @@ Add dispatch fields to Copy model and implement fair distribution algorithm.
 
 ---
 
-### [ ] Step: Frontend - Dispatch UI in Admin Dashboard
+### [x] Step: Frontend - Dispatch UI in Admin Dashboard
+<!-- chat-id: 97673899-c5c2-48fe-86f7-0443c125b2fc -->
 
 Add dispatch button and results display in admin interface.
 
@@ -212,7 +217,8 @@ Add dispatch button and results display in admin interface.
 
 ---
 
-### [ ] Step: Backend - Question Remarks & Global Appreciation
+### [x] Step: Backend - Question Remarks & Global Appreciation
+<!-- chat-id: c1d4a659-6172-49d9-96ff-447955ad9a72 -->
 
 Add models and endpoints for per-question remarks and global appreciation.
 
@@ -248,7 +254,8 @@ Add models and endpoints for per-question remarks and global appreciation.
 
 ---
 
-### [ ] Step: Frontend - Correction UI Remarks & Appreciation
+### [x] Step: Frontend - Correction UI Remarks & Appreciation
+<!-- chat-id: d996727f-2ba0-462e-8ff2-2982d61e72a2 -->
 
 Add remarks and global appreciation fields to correction interface.
 
@@ -284,7 +291,8 @@ Add remarks and global appreciation fields to correction interface.
 
 ---
 
-### [ ] Step: Testing & Quality Assurance
+### [x] Step: Testing & Quality Assurance
+<!-- chat-id: ed4e2784-c5eb-4f36-92b0-cd4da8c75370 -->
 
 Run comprehensive tests and verify all functionality.
 
@@ -318,6 +326,7 @@ Run comprehensive tests and verify all functionality.
 ---
 
 ### [ ] Step: Commit, Push & CI Verification
+<!-- chat-id: 6f09f577-decc-4229-bebb-623917406eb9 -->
 
 Create clean commits and verify CI passes.
 

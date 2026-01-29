@@ -41,12 +41,20 @@ const clientId = ref(crypto.randomUUID())
 const lastSaveStatus = ref(null) // { source: 'LOCAL'|'SERVER', time: Date }
 
 // UI State
-const activeTab = ref('editor') // 'editor' | 'history'
+const activeTab = ref('editor') // 'editor' | 'history' | 'grading'
 
 // Editor
 const showEditor = ref(false) // Overlay editor
 const draftAnnotation = ref(null) // { normalizedRect, type, content }
 const editorInputRef = ref(null)
+
+// Grading / Remarks
+const questionRemarks = ref(new Map()) // Map<question_id, remark_text>
+const globalAppreciation = ref('')
+const remarksSaving = ref(new Map()) // Map<question_id, boolean> for save indicators
+const appreciationSaving = ref(false)
+const remarkTimers = ref(new Map()) // Map<question_id, timerId> for debouncing
+const appreciationTimer = ref(null)
 
 // --- Computed ---
 const isStaging = computed(() => copy.value?.status === 'STAGING')
@@ -83,6 +91,33 @@ const currentAnnotations = computed(() => {
 
 const displayWidth = computed(() => pdfDimensions.value.width * scale.value)
 const displayHeight = computed(() => pdfDimensions.value.height * scale.value)
+
+const gradingStructure = computed(() => {
+    if (!copy.value?.exam?.grading_structure) return []
+    return copy.value.exam.grading_structure
+})
+
+const flattenQuestions = (structure, parentId = '') => {
+    let questions = []
+    structure.forEach((item, index) => {
+        const itemId = parentId ? `${parentId}.${index + 1}` : `${index + 1}`
+        if (item.type === 'question') {
+            questions.push({
+                id: itemId,
+                title: item.title || `Question ${itemId}`,
+                maxScore: item.maxScore || 0
+            })
+        }
+        if (item.children && Array.isArray(item.children)) {
+            questions = questions.concat(flattenQuestions(item.children, itemId))
+        }
+    })
+    return questions
+}
+
+const flatQuestions = computed(() => {
+    return flattenQuestions(gradingStructure.value)
+})
 
 // --- Global Key Handling ---
 const onGlobalKeydown = (e) => {
@@ -123,6 +158,8 @@ const fetchCopy = async () => {
     copy.value = await gradingApi.getCopy(copyId)
     await refreshAnnotations()
     await fetchHistory()
+    await fetchRemarks()
+    await fetchGlobalAppreciation()
   } catch (err) {
     if (err.response?.status === 403) {
         error.value = "Access Denied: You do not have permission to view this copy."
@@ -144,6 +181,74 @@ const fetchHistory = async () => {
     try {
         historyLogs.value = await gradingApi.listAuditLogs(copyId)
     } catch (err) { console.error("Failed to load history", err) }
+}
+
+const fetchRemarks = async () => {
+    try {
+        const remarks = await gradingApi.fetchRemarks(copyId)
+        const remarksMap = new Map()
+        remarks.forEach(r => {
+            remarksMap.set(r.question_id, r.remark)
+        })
+        questionRemarks.value = remarksMap
+    } catch (err) { console.error("Failed to load remarks", err) }
+}
+
+const fetchGlobalAppreciation = async () => {
+    try {
+        const response = await gradingApi.fetchGlobalAppreciation(copyId)
+        globalAppreciation.value = response.global_appreciation || ''
+    } catch (err) { console.error("Failed to load global appreciation", err) }
+}
+
+const saveRemark = async (questionId, remark) => {
+    remarksSaving.value.set(questionId, true)
+    try {
+        await gradingApi.saveRemark(copyId, questionId, remark, softLock.value?.token)
+    } catch (err) {
+        console.error("Failed to save remark", err)
+        error.value = "Failed to save remark"
+    } finally {
+        remarksSaving.value.set(questionId, false)
+    }
+}
+
+const saveGlobalAppreciationToServer = async () => {
+    appreciationSaving.value = true
+    try {
+        await gradingApi.saveGlobalAppreciation(copyId, globalAppreciation.value, softLock.value?.token)
+    } catch (err) {
+        console.error("Failed to save global appreciation", err)
+        error.value = "Failed to save global appreciation"
+    } finally {
+        appreciationSaving.value = false
+    }
+}
+
+const onRemarkChange = (questionId, value) => {
+    questionRemarks.value.set(questionId, value)
+    
+    if (remarkTimers.value.has(questionId)) {
+        clearTimeout(remarkTimers.value.get(questionId))
+    }
+    
+    const timerId = setTimeout(() => {
+        saveRemark(questionId, value)
+    }, 1000)
+    
+    remarkTimers.value.set(questionId, timerId)
+}
+
+const onAppreciationChange = (value) => {
+    globalAppreciation.value = value
+    
+    if (appreciationTimer.value) {
+        clearTimeout(appreciationTimer.value)
+    }
+    
+    appreciationTimer.value = setTimeout(() => {
+        saveGlobalAppreciationToServer()
+    }, 1000)
 }
 
 const handleMarkReady = async () => {
@@ -645,6 +750,12 @@ onUnmounted(() => {
             Annotations
           </button>
           <button
+            :class="{ active: activeTab === 'grading' }"
+            @click="activeTab = 'grading'"
+          >
+            Barème
+          </button>
+          <button
             :class="{ active: activeTab === 'history' }"
             @click="activeTab = 'history'"
           >
@@ -750,6 +861,71 @@ onUnmounted(() => {
           </div>
         </div>
 
+        <!-- Tab: Grading -->
+        <div
+          v-if="activeTab === 'grading'"
+          class="tab-content grading-panel"
+        >
+          <div
+            v-if="flatQuestions.length === 0"
+            class="empty-list"
+          >
+            Aucun barème disponible pour cet examen.
+          </div>
+          <div
+            v-else
+            class="grading-content"
+          >
+            <div class="questions-list">
+              <div
+                v-for="question in flatQuestions"
+                :key="question.id"
+                class="question-item"
+              >
+                <div class="question-header">
+                  <span class="question-title">{{ question.title }}</span>
+                  <span class="question-score">{{ question.maxScore }} pts</span>
+                </div>
+                <div class="question-remark-field">
+                  <label :for="'remark-' + question.id">Remarque (facultatif)</label>
+                  <textarea
+                    :id="'remark-' + question.id"
+                    :value="questionRemarks.get(question.id) || ''"
+                    :disabled="isReadOnly"
+                    :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une remarque...'"
+                    rows="3"
+                    @input="onRemarkChange(question.id, $event.target.value)"
+                  />
+                  <span
+                    v-if="remarksSaving.get(question.id)"
+                    class="save-indicator small"
+                  >
+                    Enregistrement...
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="global-appreciation-section">
+              <label for="global-appreciation">Appréciation globale</label>
+              <textarea
+                id="global-appreciation"
+                v-model="globalAppreciation"
+                :disabled="isReadOnly"
+                :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une appréciation globale...'"
+                rows="5"
+                @input="onAppreciationChange($event.target.value)"
+              />
+              <span
+                v-if="appreciationSaving"
+                class="save-indicator small"
+              >
+                Enregistrement...
+              </span>
+            </div>
+          </div>
+        </div>
+
         <!-- Tab: History -->
         <div
           v-if="activeTab === 'history'"
@@ -845,4 +1021,24 @@ onUnmounted(() => {
 .loading-state { flex: 1; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; color: #666; }
 .empty-list, .empty-state { padding: 20px; text-align: center; color: #999; }
 .error-state p { color: #dc3545; font-weight: bold; }
+
+.grading-panel { flex: 1; overflow-y: auto; }
+.grading-content { padding: 15px; }
+.questions-list { margin-bottom: 20px; }
+.question-item { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6; }
+.question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.question-title { font-weight: bold; font-size: 0.95rem; color: #333; }
+.question-score { font-size: 0.85rem; color: #666; background: #e9ecef; padding: 2px 8px; border-radius: 4px; }
+.question-remark-field { display: flex; flex-direction: column; }
+.question-remark-field label { font-size: 0.85rem; color: #666; margin-bottom: 5px; }
+.question-remark-field textarea { padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9rem; font-family: inherit; resize: vertical; }
+.question-remark-field textarea:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25); }
+.question-remark-field textarea:disabled { background: #e9ecef; cursor: not-allowed; }
+.save-indicator.small { font-size: 0.75rem; color: #28a745; margin-top: 3px; font-style: italic; }
+
+.global-appreciation-section { padding: 20px; background: #fff3cd; border-radius: 6px; border: 1px solid #ffeeba; }
+.global-appreciation-section label { font-weight: bold; font-size: 1rem; color: #333; margin-bottom: 10px; display: block; }
+.global-appreciation-section textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.95rem; font-family: inherit; resize: vertical; }
+.global-appreciation-section textarea:focus { outline: none; border-color: #ffc107; box-shadow: 0 0 0 0.2rem rgba(255,193,7,0.25); }
+.global-appreciation-section textarea:disabled { background: #e9ecef; cursor: not-allowed; }
 </style>

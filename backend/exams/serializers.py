@@ -68,15 +68,24 @@ class CopySerializer(serializers.ModelSerializer):
     exam_name = serializers.CharField(source='exam.name', read_only=True)
     final_pdf_url = serializers.SerializerMethodField()
     booklet_ids = serializers.SerializerMethodField()
+    assigned_corrector_username = serializers.CharField(
+        source='assigned_corrector.username', 
+        read_only=True, 
+        allow_null=True
+    )
 
     class Meta:
         model = Copy
         fields = [
             'id', 'exam', 'exam_name', 'anonymous_id', 'final_pdf',
             'final_pdf_url', 'status', 'is_identified', 'student',
-            'booklet_ids'
+            'booklet_ids', 'assigned_corrector', 'assigned_corrector_username',
+            'dispatch_run_id', 'assigned_at', 'global_appreciation'
         ]
-        read_only_fields = ['id', 'exam_name', 'final_pdf_url', 'booklet_ids']
+        read_only_fields = [
+            'id', 'exam_name', 'final_pdf_url', 'booklet_ids',
+            'assigned_corrector_username', 'dispatch_run_id', 'assigned_at'
+        ]
 
     def get_final_pdf_url(self, obj):
         if obj.final_pdf:
