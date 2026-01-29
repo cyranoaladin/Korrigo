@@ -304,10 +304,10 @@ if [ -f "$PYTEST_LOG" ]; then
     exit 1
   fi
 
-  # Check for skipped tests (zero-tolerance)
-  if grep -qE '\d+ skipped' "$PYTEST_LOG"; then
+  # Check for skipped tests in pytest summary (zero-tolerance)
+  if grep -qE '=.*\d+ skipped' "$PYTEST_LOG"; then
     log "❌ RELEASE GATE FAILED: Tests have skipped tests (zero-tolerance)"
-    grep -E 'skipped' "$PYTEST_LOG" | tee "$LOG_DIR/13_pytest_skipped.txt"
+    grep -E '=.*skipped' "$PYTEST_LOG" | tee "$LOG_DIR/13_pytest_skipped.txt"
     exit 1
   fi
 fi
@@ -340,9 +340,9 @@ if [ -f \"\$pytest_log\" ]; then
     grep -E '^(FAILED|ERROR) ' \"\$pytest_log\" | head -20 || true
   fi
 
-  if grep -qE '\d+ skipped' \"\$pytest_log\"; then
+  if grep -qE '=.*\d+ skipped' \"\$pytest_log\"; then
     echo \"⚠️  SKIPPED TESTS DETECTED\"
-    grep -E 'skipped' \"\$pytest_log\" || true
+    grep -E '=.*skipped' \"\$pytest_log\" || true
   fi
   echo \"\"
 fi
