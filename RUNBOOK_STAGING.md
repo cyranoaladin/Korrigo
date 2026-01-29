@@ -517,14 +517,30 @@ echo "METRICS_TOKEN=<redacted>"
 ```
 
 **Bénéfice** :
-- ✅ Aucun secret dans `ps aux` ou historique bash
+- ✅ Aucun secret dans `ps aux` (process list visible par tous les users)
 - ✅ Variables exportées héritées par le sous-shell
-- ✅ Protection contre `set -x` dans le shell parent
+- ✅ Protection contre `set -x` dans le shell parent (pas de trace des valeurs)
 
 **Quand l'utiliser** :
 - Environnements multi-utilisateurs (serveurs partagés)
 - CI/CD avec logs détaillés
-- Serveurs avec historique bash persistant
+- Serveurs où `ps aux` est accessible
+
+**⚠️ Note sur l'historique bash** :
+La commande `export SMOKE_PASS='...'` peut quand même finir dans l'historique bash selon la configuration (`HISTCONTROL`, `HISTIGNORE`).
+
+**Protection historique** (optionnel, selon config shell) :
+```bash
+# Empêcher logging dans l'historique
+export HISTCONTROL=ignorespace
+ export SMOKE_PASS='changeme'   # Note: espace initial => ignoré si HISTCONTROL=ignorespace
+ export METRICS_TOKEN=$(openssl rand -hex 32)
+```
+
+Ou utiliser un prompt interactif sans echo :
+```bash
+read -sp "SMOKE_PASS: " SMOKE_PASS && export SMOKE_PASS
+```
 
 ---
 
@@ -560,7 +576,18 @@ echo "=== 🚀 STAGING ONE-SHOT: Deploy + Smoke + Archive ==="
 **Quand l'utiliser** :
 - Serveurs avec `/tmp` non nettoyé automatiquement
 - Runs fréquents en développement/staging
-- CI/CD avec runners réutilisés
+- CI/CD avec runners réutilisés **isolés** (1 runner = 1 host)
+
+**⚠️ ATTENTION : Runs Concurrents** :
+Le `rm -rf /tmp/staging_*` peut créer des **effets collatéraux** si deux one-shots tournent **en parallèle sur le même hôte**.
+
+**Règle opérationnelle** : **Ne pas exécuter deux one-shots simultanément sur le même hôte.**
+- ✅ OK : 1 staging host = 1 run à la fois
+- ✅ OK : CI/CD avec runners isolés (chaque runner = 1 VM/conteneur)
+- ❌ KO : Runs parallèles sur serveur partagé
+
+**Protection lock** (optionnel, voir section Full Hardened) :
+Utiliser `flock` pour garantir l'exclusion mutuelle.
 
 **Alternative** (si nettoyage global trop agressif) :
 
@@ -572,6 +599,8 @@ find /tmp -maxdepth 1 -name "staging_*" -type d -mtime +1 -exec rm -rf {} \; 2>/
 ---
 
 #### Commande One-Shot **Full Hardened** (Tous les Garde-Fous)
+
+**Includes** : Secrets exportés + Nettoyage /tmp + Lock exclusion mutuelle
 
 ```bash
 # Export secrets en dehors de la ligne de commande
@@ -585,7 +614,15 @@ bash -lc '
 set -euo pipefail
 set +x  # Disable command tracing
 
-# Nettoyage /tmp (safe)
+# Lock global pour éviter exécutions concurrentes (optionnel)
+LOCK=/tmp/staging_oneshot.lock
+exec 9>"$LOCK"
+if ! flock -n 9; then
+  echo "❌ Another staging one-shot is running. Aborting."
+  exit 1
+fi
+
+# Nettoyage /tmp (safe si lock acquis)
 rm -rf /tmp/staging_deploy_* /tmp/staging_smoke_* /tmp/staging_oneshot_* 2>/dev/null || true
 
 echo "=== 🚀 STAGING ONE-SHOT: Deploy + Smoke + Archive ==="
@@ -655,13 +692,25 @@ echo "  2) git tag -a v1.0.0 -m \"Production Release\" && git push origin v1.0.0
 
 **Différences avec version de base** :
 - ✅ Secrets exportés avant (pas inline)
-- ✅ Nettoyage `/tmp` au début
+- ✅ Lock `flock` pour exclusion mutuelle (évite runs concurrents)
+- ✅ Nettoyage `/tmp` au début (safe si lock acquis)
 - ✅ Toujours `set +x` et capture déterministe
+
+**Bénéfice du lock** :
+- ✅ Garantit qu'un seul one-shot tourne à la fois sur le host
+- ✅ Évite que le nettoyage `/tmp` supprime les dossiers d'un run parallèle
+- ✅ Message clair si tentative de run concurrent
 
 **Quand l'utiliser** :
 - **Production critique** : Zéro tolérance aux fuites ou ambiguïtés
-- **CI/CD complexe** : Runs parallèles, multi-tenants, logs détaillés
+- **CI/CD complexe** : Multi-tenants, logs détaillés
+- **Serveur partagé** : Plusieurs users peuvent lancer des runs
 - **Audit strict** : Conformité sécurité, traçabilité maximale
+
+**Quand le lock n'est PAS nécessaire** :
+- Runners CI/CD isolés (1 runner = 1 VM/conteneur)
+- Orchestration contrôlée (Kubernetes jobs avec concurrency=1)
+- Environnement mono-utilisateur
 
 ---
 
