@@ -8,7 +8,8 @@ set -euo pipefail
 # ==========================================
 
 # ---- Config (adjust if needed)
-ROOT="${ROOT:-/home/alaeddine/viatique__PMF}"
+# Use current directory if ROOT not set (for CI compatibility)
+ROOT="${ROOT:-$(pwd)}"
 COMPOSE_FILE="${COMPOSE_FILE:-infra/docker/docker-compose.local-prod.yml}"
 NGINX_BASE_URL="${NGINX_BASE_URL:-http://localhost:8088}"
 BACKEND_SVC="${BACKEND_SVC:-backend}"
