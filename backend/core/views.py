@@ -30,12 +30,30 @@ class LoginView(APIView):
         
         user = authenticate(request, username=username, password=password)
         
+        if user is None and username and '@' in username:
+            try:
+                user_obj = User.objects.get(email=username)
+                user = authenticate(request, username=user_obj.username, password=password)
+            except User.DoesNotExist:
+                pass
+        
         if user is not None:
             if user.is_active:
                 login(request, user)
                 # Audit trail: Login réussi
                 log_authentication_attempt(request, success=True, username=username)
-                return Response({"message": "Login successful"})
+                
+                must_change_password = False
+                try:
+                    if hasattr(user, 'profile'):
+                        must_change_password = user.profile.must_change_password
+                except Exception:
+                    pass
+                
+                return Response({
+                    "message": "Login successful",
+                    "must_change_password": must_change_password
+                })
             else:
                 # Audit trail: Compte désactivé
                 log_authentication_attempt(request, success=False, username=username)
@@ -66,12 +84,21 @@ class UserDetailView(APIView):
             role = "Admin"
         elif user.groups.filter(name=UserRole.TEACHER).exists():
             role = "Teacher"
+        
+        must_change_password = False
+        try:
+            if hasattr(user, 'profile'):
+                must_change_password = user.profile.must_change_password
+        except Exception:
+            pass
+        
         return Response({
             "id": user.id,
             "username": user.username,
             "email": user.email,
             "role": role,
-            "is_superuser": user.is_superuser
+            "is_superuser": user.is_superuser,
+            "must_change_password": must_change_password
         })
 
 class GlobalSettingsView(APIView):
@@ -123,6 +150,13 @@ class ChangePasswordView(APIView):
         user.save()
         update_session_auth_hash(request, user)
         
+        try:
+            if hasattr(user, 'profile'):
+                user.profile.must_change_password = False
+                user.profile.save()
+        except Exception:
+            pass
+        
         return Response({"message": "Password updated successfully"})
 
 class UserListView(APIView):
@@ -173,6 +207,9 @@ class UserListView(APIView):
             
         if User.objects.filter(username=username).exists():
             return Response({"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if email and User.objects.filter(email=email).exists():
+            return Response({"error": "Email already exists"}, status=status.HTTP_400_BAD_REQUEST)
             
         user = User.objects.create_user(username=username, email=email, password=password)
         
@@ -202,7 +239,10 @@ class UserManageView(APIView):
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
             
         data = request.data
-        if 'email' in data: user.email = data['email']
+        if 'email' in data:
+            if data['email'] and User.objects.filter(email=data['email']).exclude(pk=pk).exists():
+                return Response({"error": "Email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+            user.email = data['email']
         if 'is_active' in data: user.is_active = bool(data['is_active'])
         if 'password' in data and data['password']:
             if len(data['password']) >= 6:
@@ -228,3 +268,50 @@ class UserManageView(APIView):
             
         user.delete()
         return Response({"message": "User deleted"}, status=status.HTTP_204_NO_CONTENT)
+
+
+class UserResetPasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
+    def post(self, request, pk):
+        if not request.user.is_superuser and not request.user.is_staff:
+            return Response({"error": "Admin only"}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        if user.id == request.user.id:
+            return Response({"error": "Cannot reset your own password"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        import secrets
+        import string
+        alphabet = string.ascii_letters + string.digits
+        temporary_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+        
+        user.set_password(temporary_password)
+        user.save()
+        
+        try:
+            from core.models import UserProfile
+            profile, created = UserProfile.objects.get_or_create(user=user)
+            profile.must_change_password = True
+            profile.save()
+        except Exception:
+            pass
+        
+        from core.utils.audit import log_audit
+        log_audit(
+            request,
+            'password.reset',
+            'User',
+            user.id,
+            metadata={'reset_by': request.user.username}
+        )
+        
+        return Response({
+            "message": "Password reset successfully",
+            "temporary_password": temporary_password
+        })
