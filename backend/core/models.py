@@ -1,6 +1,9 @@
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class GlobalSettings(models.Model):
     """
@@ -89,3 +92,28 @@ class AuditLog(models.Model):
     def __str__(self):
         actor = self.user.username if self.user else f"Student#{self.student_id}" if self.student_id else "Anonymous"
         return f"{self.action} by {actor} at {self.timestamp}"
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='profile',
+        verbose_name=_("Utilisateur")
+    )
+    must_change_password = models.BooleanField(
+        default=False,
+        verbose_name=_("Doit changer le mot de passe"),
+        help_text=_("Force l'utilisateur à changer son mot de passe à la prochaine connexion")
+    )
+
+    class Meta:
+        verbose_name = _("Profil Utilisateur")
+        verbose_name_plural = _("Profils Utilisateurs")
+
+    def __str__(self):
+        return f"Profile: {self.user.username}"
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
