@@ -25,15 +25,20 @@ fi
 cd "$(dirname "$0")/.." || exit 1  # Repo root
 
 echo "=== Git status check ==="
-git status --porcelain  # Attendu: vide
-git rev-parse --short HEAD  # Attendu: 4ed8d9e ou plus récent
+if [ -n "$(git status --porcelain)" ]; then
+  echo "❌ Working tree not clean. Commit/stash changes before running."
+  git status --porcelain
+  exit 1
+fi
+echo "✅ Working tree clean"
+git rev-parse --short HEAD
 git log --oneline -1
 echo ""
 
 # Pre-flight tools
 echo "=== Tools check ==="
 command -v docker >/dev/null && docker --version
-docker compose version >/dev/null 2>&1 && docker compose version
+docker compose version  # Fail-fast if not available
 command -v flock  >/dev/null && echo "flock: OK"
 command -v jq     >/dev/null && jq --version
 command -v curl   >/dev/null && curl --version
@@ -103,12 +108,9 @@ echo "PHASE 1: DEPLOY STAGING"
 echo "========================================="
 echo ""
 
-bash scripts/deploy_staging_safe.sh 2>&1 | tee "$runlog/deploy.log"
-deploy_rc=${PIPESTATUS[0]}
-
-if [ $deploy_rc -ne 0 ]; then
+if ! bash scripts/deploy_staging_safe.sh 2>&1 | tee "$runlog/deploy.log"; then
   echo ""
-  echo "❌ Deploy failed (RC=$deploy_rc)"
+  echo "❌ Deploy failed (check logs for details)"
   echo "Logs: $runlog/deploy.log"
   echo ""
   echo "Rollback command:"
@@ -130,12 +132,9 @@ echo "PHASE 2: SMOKE TEST"
 echo "========================================="
 echo ""
 
-bash scripts/smoke_staging.sh 2>&1 | tee "$runlog/smoke.log"
-smoke_rc=${PIPESTATUS[0]}
-
-if [ $smoke_rc -ne 0 ]; then
+if ! bash scripts/smoke_staging.sh 2>&1 | tee "$runlog/smoke.log"; then
   echo ""
-  echo "❌ Smoke test failed (RC=$smoke_rc)"
+  echo "❌ Smoke test failed (check logs for details)"
   echo "Logs: $runlog/smoke.log"
   echo ""
   echo "Rollback command:"
