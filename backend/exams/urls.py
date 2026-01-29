@@ -3,7 +3,8 @@ from .views import (
     ExamUploadView, BookletListView, ExamListView,
     ExamDetailView, CopyListView, MergeBookletsView, ExportAllView, CSVExportView,
     CopyIdentificationView, UnidentifiedCopiesView, StudentCopiesView,
-    CopyImportView, ExamSourceUploadView, BookletSplitView, BookletDetailView
+    CopyImportView, ExamSourceUploadView, BookletSplitView, BookletDetailView,
+    ExamDispatchView
 )
 
 urlpatterns = [
@@ -33,6 +34,9 @@ urlpatterns = [
     # Export
     path('<uuid:id>/export-pdf/', ExportAllView.as_view(), name='export-all-pdf'),
     path('<uuid:id>/export-csv/', CSVExportView.as_view(), name='export-csv'),
+    
+    # Dispatch
+    path('<uuid:exam_id>/dispatch/', ExamDispatchView.as_view(), name='exam-dispatch'),
     
     # Student Portal
     path('student/copies/', StudentCopiesView.as_view(), name='student-copies'),

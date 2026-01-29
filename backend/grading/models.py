@@ -258,3 +258,44 @@ class DraftState(models.Model):
     
     def __str__(self):
         return f"Draft {self.copy.anonymous_id} by {self.owner} (v{self.version})"
+
+
+class QuestionRemark(models.Model):
+    """
+    Remarque facultative pour une question du barème.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    copy = models.ForeignKey(
+        Copy,
+        on_delete=models.CASCADE,
+        related_name='question_remarks',
+        verbose_name=_("Copie")
+    )
+    question_id = models.CharField(
+        max_length=255,
+        verbose_name=_("ID de la question"),
+        help_text=_("Identifiant de la question dans le barème")
+    )
+    remark = models.TextField(
+        verbose_name=_("Remarque"),
+        blank=True
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='question_remarks_created',
+        verbose_name=_("Créé par")
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+
+    class Meta:
+        verbose_name = _("Remarque de question")
+        verbose_name_plural = _("Remarques de questions")
+        unique_together = ['copy', 'question_id']
+        indexes = [
+            models.Index(fields=['copy', 'question_id']),
+        ]
+
+    def __str__(self):
+        return f"Remarque {self.question_id} - {self.copy.anonymous_id}"
