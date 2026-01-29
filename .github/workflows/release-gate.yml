@@ -21,27 +21,41 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Check Release Gate Integrity (Reminder)
         if: github.event_name == 'pull_request'
         run: |
+          set -euo pipefail
+          
           echo "Checking if PR modifies Release Gate critical files..."
 
-          # List changed files in PR
-          # Use GitHub event context for reliable base/head SHAs (no fetch required)
+          # Get base and head SHAs from GitHub PR event context
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           
-          echo "Comparing base $BASE_SHA with head $HEAD_SHA"
+          echo "PR base=${BASE_SHA:0:7} head=${HEAD_SHA:0:7}"
           
-          # Fetch base commit if not available (shallow checkout issue)
-          if ! git cat-file -e "$BASE_SHA" 2>/dev/null; then
-            echo "Fetching base commit $BASE_SHA..."
-            git fetch --depth=1 origin "$BASE_SHA"
+          # Fetch commits if not present (shallow checkout default depth=1)
+          if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "Fetching base commit ${BASE_SHA:0:7}..."
+            git fetch --no-tags --prune --depth=1 origin "${BASE_SHA}"
           fi
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          if ! git cat-file -e "${HEAD_SHA}^{commit}" 2>/dev/null; then
+            echo "Fetching head commit ${HEAD_SHA:0:7}..."
+            git fetch --no-tags --prune --depth=1 origin "${HEAD_SHA}"
+          fi
+          
+          # Assert both commits are now available
+          git cat-file -e "${BASE_SHA}^{commit}" || { echo "❌ BASE_SHA not present after fetch"; exit 1; }
+          git cat-file -e "${HEAD_SHA}^{commit}" || { echo "❌ HEAD_SHA not present after fetch"; exit 1; }
+          
+          # List changed files between base and head
+          CHANGED_FILES=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")
+          
+          FILE_COUNT=$(printf '%s\n' "$CHANGED_FILES" | sed '/^$/d' | wc -l | tr -d ' ')
+          echo "Changed files count: ${FILE_COUNT}"
+          
+          [ -z "${CHANGED_FILES// }" ] && echo "No changed files detected"
 
           # Critical Release Gate files
           CRITICAL_FILES=(
