@@ -22,6 +22,46 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check Release Gate Integrity (Reminder)
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Checking if PR modifies Release Gate critical files..."
+
+          # List changed files in PR
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+
+          # Critical Release Gate files
+          CRITICAL_FILES=(
+            "scripts/release_gate_oneshot.sh"
+            ".github/workflows/release-gate.yml"
+            "infra/docker/docker-compose.local-prod.yml"
+          )
+
+          MODIFIED_CRITICAL=""
+          for file in "${CRITICAL_FILES[@]}"; do
+            if echo "$CHANGED_FILES" | grep -q "^$file$"; then
+              MODIFIED_CRITICAL="$MODIFIED_CRITICAL\n  - $file"
+            fi
+          done
+
+          if [ -n "$MODIFIED_CRITICAL" ]; then
+            echo "⚠️  RELEASE GATE CRITICAL FILES MODIFIED"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo -e "Modified files:$MODIFIED_CRITICAL"
+            echo ""
+            echo "📋 Release Gate Integrity Checklist:"
+            echo "  [ ] CI run on this PR: Must be SUCCESS"
+            echo "  [ ] After merge: Run 'gh workflow run release-gate.yml --ref main'"
+            echo "  [ ] Post-merge run: Must be SUCCESS before considering done"
+            echo ""
+            echo "📖 See: .github/RELEASE_GATE_INTEGRITY.md for full rules"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "⚙️  Proceeding with validation on PR branch..."
+          else
+            echo "✅ No Release Gate critical files modified in this PR"
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
