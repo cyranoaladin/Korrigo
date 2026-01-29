@@ -633,9 +633,12 @@ command -v flock >/dev/null || {
 # Lock global pour éviter exécutions concurrentes
 LOCK=/tmp/staging_oneshot.lock
 exec 9>"$LOCK"
+# Note: Le lock est tenu tant que le FD 9 est ouvert (donc libéré automatiquement
+# à la fin du script, même en cas d'échec ou de signal)
 if ! flock -n 9; then
   echo "❌ Un autre one-shot staging est déjà en cours (lock: $LOCK). Abandon."
   echo "➡️  Diagnostics: ls -l $LOCK ; ps aux | grep [s]taging_oneshot"
+  echo "   (Note: ps aux est quasi-universel, mais pas strictement POSIX)"
   echo "   (optionnel: lsof $LOCK pour voir le processus tenant le lock)"
   exit 1
 fi
