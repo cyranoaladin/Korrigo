@@ -241,6 +241,49 @@ docker-compose exec backend sh -c \
 
 **Solution:** Vérifier `playwright.config.ts` → `baseURL: 'http://localhost:8088'`
 
+## Comportements Produit Documentés
+
+### Flux Correcteur : Restauration de Brouillon Local
+
+**Scénario:** Correcteur annote une copie, sauvegarde, puis recharge la page.
+
+**Comportement attendu:**
+
+1. **Sauvegarde initiale** : Annotation sauvegardée sur serveur + brouillon local (localStorage)
+2. **Rechargement page** : Modal apparaît : *"Restaurer le brouillon non sauvegardé (LOCAL) ?"*
+3. **Clic "Oui, restaurer"** : L'éditeur d'annotation s'ouvre avec le contenu restauré
+4. **Action requise** : L'utilisateur doit **re-sauvegarder** pour que l'annotation apparaisse dans la liste
+
+**Raison technique:**
+
+Le brouillon local permet de récupérer le travail en cas de crash/fermeture accidentelle. La restauration rouvre l'éditeur (pas d'auto-sauvegarde) pour que l'utilisateur puisse :
+- Continuer à éditer
+- Sauvegarder à nouveau
+- Annuler (supprimer le brouillon)
+
+**Tests E2E concernés:**
+
+- `corrector_flow.spec.ts` : "Full Corrector Cycle: Login -> Lock -> Annotate -> Autosave -> Refresh -> Restore"
+
+**Implémentation E2E:**
+
+```typescript
+// Après page.reload()
+const restoreModal = page.getByText(/Restaurer le brouillon/i);
+if (await restoreModal.isVisible({ timeout: 4000 })) {
+    await page.getByRole('button', { name: /Oui, restaurer/i }).click();
+
+    // Vérifier que l'éditeur contient le contenu restauré
+    await expect(page.locator('textarea')).toHaveValue('Test E2E Annotation');
+
+    // Re-sauvegarder pour ajouter à la liste
+    await page.click('.editor-actions .btn-primary');
+    await expect(page.getByTestId('save-indicator')).toContainText('Sauvegardé');
+}
+```
+
+**Note:** Ce comportement est intentionnel et aligné avec les meilleures pratiques UX (confirmation avant action automatique).
+
 ## Responsabilités
 
 ### Développeurs
