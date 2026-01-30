@@ -111,6 +111,28 @@ def ensure_teacher(username="prof1", password="password"):
     return u
 
 
+def ensure_admin(email="alaeddine.benrhouma@ert.tn", password="password"):
+    """Crée ou récupère l'admin E2E."""
+    # Ensure Admin exists for e2e tests
+    u, created = User.objects.get_or_create(
+        email=email,
+        defaults={"username": "admin_e2e"}
+    )
+    u.username = "admin"
+    u.set_password(password)
+    u.is_staff = True
+    u.is_superuser = True
+    u.role = "Admin"
+    u.save()
+    
+    admins, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
+    u.groups.add(admins)
+    
+    if created:
+        print(f"  ✓ Admin created: {email}")
+    return u
+
+
 def _save_page_image(page_num: int) -> str:
     """
     Sauvegarde une image PNG dans MEDIA_ROOT et retourne le chemin relatif.
@@ -163,11 +185,16 @@ def _cleanup_e2e_media():
 def main():
     """Seed principal - idempotent et déterministe."""
     teacher = ensure_teacher()
+    ensure_admin()
 
     # Clean up old seed data to ensure fresh state
     # Note: Exam.delete() cascade vers Booklet via FK on_delete=CASCADE
     # Using unique tag to avoid collision with user-created exams
-    Exam.objects.filter(name__contains=E2E_SEED_TAG).delete()
+    exams_to_delete = Exam.objects.filter(name__contains=E2E_SEED_TAG)
+    for e in exams_to_delete:
+        Booklet.objects.filter(exam=e).delete()
+        Copy.objects.filter(exam=e).delete()
+    exams_to_delete.delete()
     # Supprimer aussi les copies orphelines E2E (cas rare mais possible)
     Copy.objects.filter(anonymous_id="E2E-READY").delete()
     
@@ -178,6 +205,8 @@ def main():
         name=f"{E2E_EXAM_PREFIX} {timezone.now().strftime('%Y%m%d-%H%M%S')}",
         date=timezone.now().date(),
     )
+    # Assign correctors to enable Dispatch flow tests
+    exam.correctors.add(teacher)
 
     # 1. Créer l'image de page AVANT le booklet
     page_image_path = _save_page_image(1)
