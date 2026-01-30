@@ -52,7 +52,7 @@ Chaque utilisateur reçoit des identifiants personnels lors de la création de s
 - Les sauvegardes sont automatiques et sécurisées
 - Les données sont hébergées localement dans le lycée
 
-Pour plus de détails, consultez la [Politique de Confidentialité](../legal/POLITIQUE_CONFID@ert.tnIALITE.md).
+Pour plus de détails, consultez la [Politique de Confidentialité](../legal/POLITIQUE_CONFIDENTIALITE.md).
 
 ### Quels navigateurs sont compatibles ?
 
@@ -1031,7 +1031,7 @@ docker-compose exec redis redis-benchmark -q -n 10000
 - [Audit de Conformité](../security/AUDIT_CONFORMITE.md)
 
 **Légal** :
-- [Politique de Confidentialité](../legal/POLITIQUE_CONFID@ert.tnIALITE.md)
+- [Politique de Confidentialité](../legal/POLITIQUE_CONFIDENTIALITE.md)
 - [Conditions d'Utilisation](../legal/CONDITIONS_UTILISATION.md)
 
 **Support** :
