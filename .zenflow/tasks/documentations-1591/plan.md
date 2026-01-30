@@ -144,7 +144,7 @@ Create comprehensive security and RGPD compliance documentation.
 
 ---
 
-### [ ] Step: Phase 4 - Legal Documentation
+### [x] Step: Phase 4 - Legal Documentation
 <!-- chat-id: 3c1ff13f-e390-43fa-97e1-01a08888fbda -->
 
 Create legal and compliance documents for users and school.
