@@ -102,6 +102,15 @@ jobs:
           ls -lh scripts/release_gate_oneshot.sh
           test -x scripts/release_gate_oneshot.sh || chmod +x scripts/release_gate_oneshot.sh
 
+      - name: Ensure .env exists
+        run: |
+          if [ ! -f .env ]; then
+            echo "Creating .env from .env.example..."
+            cp .env.example .env
+          else
+            echo ".env already exists"
+          fi
+
       - name: Run Release Gate One-Shot (Production-like)
         env:
           # Production environment
