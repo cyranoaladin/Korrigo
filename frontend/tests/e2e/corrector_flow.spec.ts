@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { CREDS } from './helpers/auth';
 
 // Base URL: http://127.0.0.1:8088
 test.describe('Corrector Flow & Robustness', () => {
@@ -23,8 +24,8 @@ test.describe('Corrector Flow & Robustness', () => {
 
         // 1. LOGIN
         await page.goto('/teacher/login');
-        await page.fill('input[type="text"]', 'prof1');
-        await page.fill('input[type="password"]', 'password');
+        await page.fill('input[type="text"]', CREDS.teacher.username);
+        await page.fill('input[type="password"]', CREDS.teacher.password);
         await page.click('button[type="submit"]');
 
         // Wait for Dashboard
