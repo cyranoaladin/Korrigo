@@ -64,6 +64,7 @@ services:
       METRICS_TOKEN: "${METRICS_TOKEN:-}"
       RATELIMIT_ENABLE: "false"
       E2E_SEED_TOKEN: "${E2E_SEED_TOKEN:-}"
+      DJANGO_AUTO_MIGRATE: "false"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health/" ]
       interval: 30s
