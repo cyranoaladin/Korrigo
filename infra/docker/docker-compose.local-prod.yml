@@ -63,6 +63,7 @@ services:
       #   - Production: MUST set a strong secret (64+ chars)
       METRICS_TOKEN: "${METRICS_TOKEN:-}"
       RATELIMIT_ENABLE: "false"
+      E2E_TEST_MODE: "true"
       E2E_SEED_TOKEN: "${E2E_SEED_TOKEN:-}"
       DJANGO_AUTO_MIGRATE: "false"
     healthcheck:
