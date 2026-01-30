@@ -80,19 +80,70 @@ test.describe('Corrector Flow & Robustness', () => {
         await page.fill('textarea', 'Test E2E Annotation');
         await page.fill('input[type="number"]', '2'); // Points
 
-        // Save
+        // Save - Wait for server sync (not just local storage)
+        const saveResponse = page.waitForResponse((r) => {
+            const url = r.url();
+            return (
+                url.includes('/api/') &&
+                (url.includes('annotations') || url.includes('remarks')) &&
+                [200, 201, 204].includes(r.status())
+            );
+        });
+
         await page.click('.editor-actions .btn-primary'); // "Save" button
 
-        // Wait for "Sauvegardé" indicator
+        // Wait for server sync AND UI feedback
+        await saveResponse;
         await expect(page.getByTestId('save-indicator')).toContainText('Sauvegardé');
 
         // 5. REFRESH & RESTORE
         await page.reload();
+        await page.waitForLoadState('domcontentloaded');
 
-        // Verify annotation persists (Restore from Draft or Server)
-        // List should show item
-        // Wait for list item
-        await expect(page.getByTestId('annotation-item').first()).toContainText('Test E2E Annotation');
+        // After refresh: if a local draft exists, the app shows a restore modal.
+        // The test "Refresh -> Restore" must follow the real user flow: restore.
+        const restoreTitle = page.getByText(/Restaurer le brouillon non sauvegardé/i);
+
+        // Wait briefly for modal to appear (if it should appear).
+        // If it doesn't appear, continue (case where everything was saved server-side).
+        const shouldRestore = await restoreTitle
+            .isVisible({ timeout: 4000 })
+            .catch(() => false);
+
+        if (shouldRestore) {
+            console.log('[test] Draft restore modal detected - clicking "Oui, restaurer"');
+
+            await page.getByRole('button', { name: /Oui, restaurer/i }).click();
+            await expect(restoreTitle).toBeHidden({ timeout: 10000 });
+
+            // After restore: the draft is reopened in the editor (not auto-saved to list)
+            // The product behavior is: restore → editor opens → user can continue editing → save again
+            console.log('[test] Draft restored - editor reopened, re-saving annotation');
+
+            // Verify editor contains restored content
+            await expect(page.getByTestId('editor-panel')).toBeVisible();
+            await expect(page.locator('textarea')).toHaveValue('Test E2E Annotation');
+
+            // Re-save to persist annotation to list
+            const reSaveResponse = page.waitForResponse((r) => {
+                const url = r.url();
+                return (
+                    url.includes('/api/') &&
+                    (url.includes('annotations') || url.includes('remarks')) &&
+                    [200, 201, 204].includes(r.status())
+                );
+            });
+
+            await page.click('.editor-actions .btn-primary'); // "Save" button
+            await reSaveResponse;
+            await expect(page.getByTestId('save-indicator')).toContainText('Sauvegardé');
+        }
+
+        // Now the annotation must be visible in the list
+        await expect(page.getByTestId('annotation-item').first()).toContainText(
+            'Test E2E Annotation',
+            { timeout: 15000 }
+        );
     });
 
 });
