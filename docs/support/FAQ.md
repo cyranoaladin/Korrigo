@@ -15,7 +15,7 @@ Documentation des questions fréquemment posées et leurs réponses pour tous le
 2. [FAQ Administrateur](#faq-administrateur)
 3. [FAQ Enseignant](#faq-enseignant)
 4. [FAQ Secrétariat](#faq-secrétariat)
-5. [FAQ Étudiant](#faq-étudiant)
+5. [FAQ Élève](#faq-élève)
 6. [FAQ Technique](#faq-technique)
 7. [Contact et Support](#contact-et-support)
 
@@ -38,7 +38,7 @@ Documentation des questions fréquemment posées et leurs réponses pour tous le
 - **Administrateurs** : Gestion complète du système, utilisateurs, examens
 - **Enseignants** : Correction des copies qui leur sont assignées
 - **Secrétariat** : Identification des copies et gestion des carnets
-- **Étudiants** : Consultation de leurs copies corrigées uniquement
+- **Élèves** : Consultation de leurs copies corrigées uniquement
 
 Chaque utilisateur reçoit des identifiants personnels lors de la création de son compte.
 
@@ -52,7 +52,7 @@ Chaque utilisateur reçoit des identifiants personnels lors de la création de s
 - Les sauvegardes sont automatiques et sécurisées
 - Les données sont hébergées localement dans le lycée
 
-Pour plus de détails, consultez la [Politique de Confidentialité](../legal/POLITIQUE_CONFIDENTIALITE.md).
+Pour plus de détails, consultez la [Politique de Confidentialité](../legal/POLITIQUE_CONFID@ert.tnIALITE.md).
 
 ### Quels navigateurs sont compatibles ?
 
@@ -72,11 +72,13 @@ Pour plus de détails, consultez la [Politique de Confidentialité](../legal/POL
 ### Comment obtenir un compte ?
 
 **Réponse**: 
-- **Enseignants et Secrétariat** : Contactez l'administrateur du lycée qui créera votre compte
-- **Étudiants** : Vos comptes sont créés automatiquement lors de l'import depuis Pronote
+- **Enseignants** : Contactez l'administrateur du lycée qui créera votre compte. Vous vous connecterez avec votre adresse email **@ert.tn**
+- **Secrétariat** : L'administrateur créera votre compte avec un nom d'utilisateur (**secretariat**) et un mot de passe
+- **Administrateurs** : Compte créé avec un nom d'utilisateur (**admin**) et un mot de passe
+- **Élèves** : Vos comptes sont créés automatiquement lors de l'import depuis Pronote. Vous vous connecterez avec votre adresse email **@ert.tn**
 - **Identifiants** : Vous recevrez vos identifiants par email ou en main propre
 
-### J'ai oublié mon mot de passe, que faire ?
+### J'ai oublié mon mot de passe
 
 **Réponse**: 
 1. Sur la page de connexion, cliquez sur "Mot de passe oublié ?"
@@ -85,16 +87,21 @@ Pour plus de détails, consultez la [Politique de Confidentialité](../legal/POL
 4. Si vous ne recevez pas d'email sous 10 minutes, vérifiez vos spams
 5. En cas de problème, contactez l'administrateur du lycée
 
-**Note** : Les étudiants doivent utiliser leur email académique (ENT).
+**Note** :
+- Les élèves et enseignants se connectent avec leur adresse email **@ert.tn**
+- Les administrateurs et secrétariat utilisent leur nom d'utilisateur (admin ou secretariat)
 
 ### La plateforme est-elle accessible depuis mon domicile ?
 
 **Réponse**: 
-- **Par défaut** : Non, l'accès est limité au réseau du lycée pour des raisons de sécurité
-- **Accès distant** : Peut être activé par l'administrateur si nécessaire (VPN, authentification renforcée)
-- **Étudiants** : L'accès au portail étudiant peut être configuré pour être accessible depuis Internet
+**Oui**, la plateforme Korrigo est accessible depuis n'importe où avec une connexion Internet :
+- ✅ Depuis le lycée
+- ✅ Depuis votre domicile
+- ✅ Depuis tout lieu disposant d'une connexion Internet
 
-Consultez votre administrateur pour connaître la politique d'accès distant de votre établissement.
+**Tous les profils** (administrateurs, enseignants, secrétariat, élèves) peuvent accéder à la plateforme à distance.
+
+**Sécurité** : L'accès est protégé par authentification (identifiants personnels) et HTTPS.
 
 ### Les données sont-elles conservées combien de temps ?
 
@@ -125,13 +132,13 @@ Les données sont supprimées automatiquement après expiration. Voir [Gestion d
 
 **Création en masse** : Utilisez l'import CSV pour créer plusieurs utilisateurs d'un coup. Voir [Gestion des Utilisateurs](../admin/GESTION_UTILISATEURS.md).
 
-### Comment importer des étudiants depuis Pronote ?
+### Comment importer des élèves depuis Pronote ?
 
 **Réponse**:
 1. Dans Pronote, exportez la liste des élèves au format CSV :
    - Fichier > Exporter > Élèves
    - Colonnes requises : INE, Nom, Prénom, Classe, Email
-2. Dans Korrigo, allez dans **Admin > Étudiants > Importer CSV**
+2. Dans Korrigo, allez dans **Admin > Élèves > Importer CSV**
 3. Sélectionnez le fichier CSV
 4. Vérifiez le mapping des colonnes
 5. Cliquez sur **"Importer"**
@@ -140,7 +147,7 @@ Les données sont supprimées automatiquement après expiration. Voir [Gestion d
 **Format CSV attendu** :
 ```csv
 INE,Nom,Prenom,Classe,Email
-1234567890A,DUPONT,Jean,TG1,jean.dupont@ac-paris.fr
+1234567890A,DUPONT,Jean,TG1,jean.dupont@ert.tn
 ```
 
 ### Comment sauvegarder la base de données ?
@@ -560,7 +567,7 @@ Le système crée une nouvelle copie unique avec toutes les pages.
 - Unité physique : Un carnet de copies
 - Créé automatiquement lors du découpage du PDF source
 - Peut contenir 4, 8, 12, 16 pages (selon format)
-- Status : `PENDING_IDENTIFICATION`
+- Status : `PENDING_ID@ert.tnIFICATION`
 
 **Copy (Copie)** :
 - Unité logique : La copie d'un élève
@@ -596,28 +603,26 @@ Booklet 3 (pages 5-6)  ─────→ Copy de MARTIN Marie (READY)
 
 ---
 
-## FAQ Étudiant
+## FAQ Élève
 
 ### Je ne peux pas me connecter, pourquoi ?
 
 **Réponse**:
 **Vérifications** :
 1. **Identifiants corrects ?**
-   - Nom d'utilisateur : Généralement votre INE ou nom.prenom
+   - Adresse email : Votre adresse **@ert.tn**
    - Mot de passe : Celui reçu par email ou fourni par le lycée
 
-2. **Email académique ?**
-   - Utilisez votre adresse email ENT (@ac-paris.fr, etc.)
-
-3. **Compte activé ?**
-   - Les comptes étudiants sont activés après l'import Pronote
+2. **Compte activé ?**
+   - Les comptes élèves sont activés après l'import Pronote
    - Contactez le secrétariat si votre compte n'existe pas
 
-4. **Connexion depuis l'extérieur ?**
-   - L'accès peut être limité au réseau du lycée
-   - Vérifiez avec l'administration si l'accès distant est autorisé
+3. **Connexion Internet ?**
+   - Vérifiez que vous avez une connexion Internet fonctionnelle
+   - La plateforme est accessible depuis n'importe où (lycée ou domicile)
 
 **Toujours bloqué ?** Contactez le secrétariat avec votre INE.
+
 
 ### Je ne vois pas ma copie corrigée, pourquoi ?
 
@@ -642,7 +647,7 @@ Booklet 3 (pages 5-6)  ─────→ Copy de MARTIN Marie (READY)
 
 **Réponse**:
 **Procédure** :
-1. Connectez-vous au portail étudiant
+1. Connectez-vous au portail élève
 2. Allez dans **"Mes copies"**
 3. Cliquez sur la copie souhaitée
 4. Bouton **"Télécharger PDF"** (📥) en haut à droite
@@ -660,7 +665,7 @@ Booklet 3 (pages 5-6)  ─────→ Copy de MARTIN Marie (READY)
 2. **Consultez l'enseignant** : Lors du cours suivant ou par email
 3. **Forums/ressources** : Cherchez l'explication en ligne si c'est une notion de cours
 
-**Note** : Le système ne permet pas de messagerie directe enseignant-élève pour des raisons RGPD. Utilisez les canaux officiels du lycée (email ENT, Pronote).
+**Note** : Le système ne permet pas de messagerie directe enseignant-élève pour des raisons RGPD. Utilisez les canaux officiels du lycée (email @ert.tn, Pronote).
 
 ### Puis-je contester une note ?
 
@@ -1010,7 +1015,7 @@ docker-compose exec redis redis-benchmark -q -n 10000
 **Pour les utilisateurs** :
 - [Guide Enseignant](../users/GUIDE_ENSEIGNANT.md)
 - [Guide Secrétariat](../users/GUIDE_SECRETARIAT.md)
-- [Guide Étudiant](../users/GUIDE_ETUDIANT.md)
+- [Guide Élève](../users/GUIDE_ETUDIANT.md)
 - [Navigation UI](../users/NAVIGATION_UI.md)
 
 **Pour les administrateurs** :
@@ -1026,7 +1031,7 @@ docker-compose exec redis redis-benchmark -q -n 10000
 - [Audit de Conformité](../security/AUDIT_CONFORMITE.md)
 
 **Légal** :
-- [Politique de Confidentialité](../legal/POLITIQUE_CONFIDENTIALITE.md)
+- [Politique de Confidentialité](../legal/POLITIQUE_CONFID@ert.tnIALITE.md)
 - [Conditions d'Utilisation](../legal/CONDITIONS_UTILISATION.md)
 
 **Support** :

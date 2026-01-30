@@ -164,7 +164,7 @@ Le support Korrigo PMF a pour missions :
 ┌─────────────────┐
 │   Utilisateur   │
 │ (Enseignant,    │
-│  Étudiant, etc.)│
+│  Élève, etc.)│
 └────────┬────────┘
          │
          ▼
@@ -241,7 +241,7 @@ Le support Korrigo PMF a pour missions :
 3. ...
 
 ## Impact
-- **Utilisateurs affectés** : [nombre] enseignants / étudiants
+- **Utilisateurs affectés** : [nombre] enseignants / élèves
 - **Fonctionnalités bloquées** : ...
 - **Contournement possible** : Oui / Non (si oui, décrire)
 
@@ -271,7 +271,7 @@ Le support Korrigo PMF a pour missions :
 
 ## Procédures de Support par Rôle
 
-### Support pour les Étudiants
+### Support pour les Élèves
 
 **Problèmes courants** :
 1. Impossible de se connecter
@@ -295,7 +295,7 @@ Le support Korrigo PMF a pour missions :
    - Vérifier statut des copies (GRADED + published)
    - Envoyer par email si problème technique
 
-**Documentation** : [Guide Étudiant](../users/GUIDE_ETUDIANT.md)
+**Documentation** : [Guide Élève](../users/GUIDE_ETUDIANT.md)
 
 ### Support pour les Enseignants
 
@@ -525,7 +525,7 @@ Base de Connaissance Korrigo
 ├── Prise en main
 │   ├── Premiers pas - Enseignant
 │   ├── Premiers pas - Secrétariat
-│   └── Premiers pas - Étudiant
+│   └── Premiers pas - Élève
 ├── Problèmes courants
 │   ├── Authentification
 │   ├── Correction
@@ -702,7 +702,7 @@ EMAIL_SUBJECT_PREFIX = '[Korrigo Error] '
 - 15h30-16h30 : TP : Identifier un lot de 20 copies
 - 16h30-17h : Q&A, bonnes pratiques
 
-**Formation Étudiants (15 minutes)** :
+**Formation Élèves (15 minutes)** :
 - Email avec vidéo tutorielle (3 min)
 - Guide PDF "Comment accéder à mes copies"
 - Session Q&A en classe (optionnel)
@@ -724,7 +724,7 @@ docker-compose -f docker-compose.demo.yml up -d
 # - 3 examens
 # - 50 copies (déjà identifiées)
 # - 5 utilisateurs enseignants
-# - 100 étudiants
+# - 100 élèves
 ```
 
 **Ressources** :
