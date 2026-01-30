@@ -99,3 +99,10 @@ frontend/e2e/.auth/
 # local helpers (do not commit)
 push_korrigo_clean.sh
 push_to_github.sh
+
+# Local audit artifacts (do not commit)
+.env.backup
+.zenflow/tasks/local-prod-ready-v2/proofs/
+.zenflow/tasks/local-prod-ready-v2/report*.md
+.zenflow/tasks/local-prod-ready-v2/CORRECTIONS_APPLIED.md
+.zenflow/tasks/local-prod-ready-v2/REPORT_FINAL.md
