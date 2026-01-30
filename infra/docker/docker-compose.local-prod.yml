@@ -66,7 +66,7 @@ services:
       E2E_SEED_TOKEN: "${E2E_SEED_TOKEN:-}"
       DJANGO_AUTO_MIGRATE: "false"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health/" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health/live/" ]
       interval: 30s
       timeout: 10s
       retries: 3
