@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { CREDS } from './helpers/auth';
 
 test.describe('Exam Copy Dispatch Flow', () => {
   test.beforeEach(async ({ page }) => {
     page.on('console', msg => console.log(`[browser] ${msg.text()}`));
     await page.goto('/teacher/login');
-    await page.fill('[data-testid="login.username"]', 'admin');
-    await page.fill('[data-testid="login.password"]', 'password');
+    await page.fill('[data-testid="login.username"]', CREDS.admin.username);
+    await page.fill('[data-testid="login.password"]', CREDS.admin.password);
     await page.click('[data-testid="login.submit"]');
     await expect(page).toHaveURL('http://localhost:8088/admin-dashboard');
     await page.waitForLoadState('networkidle');

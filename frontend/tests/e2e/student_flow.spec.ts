@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { CREDS } from './helpers/auth';
 
 test.describe('Student Flow (Mission 17)', () => {
     test('Full Student Cycle: Login -> List -> PDF accessible', async ({ page }) => {
@@ -46,8 +47,8 @@ test.describe('Student Flow (Mission 17)', () => {
         await page.goto('/student/login');
         await expect(page).toHaveURL(/student\/login/, { timeout: 15000 });
 
-        await page.fill('input[placeholder="ex: 123456789A"]', '123456789');
-        await page.fill('input[placeholder="Votre nom"]', 'E2E_STUDENT');
+        await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
+        await page.fill('input[placeholder="Votre nom"]', CREDS.student.lastname);
 
         // Wait for login API 200 (more robust than URL-only)
         const loginRespPromise = page.waitForResponse(resp =>
@@ -109,7 +110,7 @@ test.describe('Student Flow (Mission 17)', () => {
         // CONTEXT A: Student 1 (E2E_STUDENT)
         const ctxA = await browser.newContext();
         const pageA = await ctxA.newPage();
-        await loginAs(pageA, '123456789', 'E2E_STUDENT');
+        await loginAs(pageA, CREDS.student.ine, CREDS.student.lastname);
 
         // CONTEXT B: Student 2 (OTHER)
         const ctxB = await browser.newContext();
@@ -138,8 +139,8 @@ test.describe('Student Flow (Mission 17)', () => {
         // Login as the test student
         await page.goto('/student/login');
         await expect(page).toHaveURL(/\/student\/login/, { timeout: 15000 });
-        await page.fill('input[placeholder="ex: 123456789A"]', '123456789');
-        await page.fill('input[placeholder="Votre nom"]', 'E2E_STUDENT');
+        await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
+        await page.fill('input[placeholder="Votre nom"]', CREDS.student.lastname);
 
         const loginRespPromise = page.waitForResponse(resp =>
             resp.url().includes('/api/students/login/') && resp.status() === 200
