@@ -105,8 +105,10 @@ jobs:
       - name: Ensure .env exists
         run: |
           if [ ! -f .env ]; then
-            echo "Creating .env from .env.example..."
-            cp .env.example .env
+            echo "Creating minimal .env for docker-compose..."
+            # Don't copy .env.example as it contains DB_HOST=127.0.0.1
+            # which conflicts with docker-compose DATABASE_URL
+            touch .env
           else
             echo ".env already exists"
           fi
