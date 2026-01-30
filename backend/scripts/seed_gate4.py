@@ -12,15 +12,22 @@ from django.core.files.base import ContentFile
 from exams.models import Exam, Copy
 from students.models import Student
 
-def seed_gate4():
+def seed_gate4(student_ine=None, student_lastname=None):
+    """Seed Gate 4 data with parameterizable student credentials."""
     print("Seeding Gate 4 Data...")
-    
+
+    # Use env vars if not provided
+    if student_ine is None:
+        student_ine = os.environ.get("E2E_STUDENT_INE", "123456789")
+    if student_lastname is None:
+        student_lastname = os.environ.get("E2E_STUDENT_LASTNAME", "E2E_STUDENT")
+
     # 1. Create Student
     student, created = Student.objects.get_or_create(
-        ine="123456789",
+        ine=student_ine,
         defaults={
             "first_name": "Jean",
-            "last_name": "E2E_STUDENT",
+            "last_name": student_lastname,
             "class_name": "Terminale S",
             "email": "jean.e2e@example.com"
         }

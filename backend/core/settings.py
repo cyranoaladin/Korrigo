@@ -1,8 +1,12 @@
 import os
 import dj_database_url
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file
+load_dotenv(BASE_DIR.parent / '.env')
 
 # Security: No dangerous defaults in production
 SECRET_KEY = os.environ.get("SECRET_KEY")
@@ -28,10 +32,35 @@ if DJANGO_ENV == "production":
 else:
     DEBUG = raw_debug
 
+# Helper for CSV environment variables
+def csv_env(name: str, default: str = "") -> list:
+    """Parse comma-separated environment variable."""
+    v = os.environ.get(name, default).strip()
+    return [x.strip() for x in v.split(",") if x.strip()]
+
 # ALLOWED_HOSTS: Explicit configuration required
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = csv_env("ALLOWED_HOSTS", "localhost,127.0.0.1")
 if "*" in ALLOWED_HOSTS and DJANGO_ENV == "production":
     raise ValueError("ALLOWED_HOSTS cannot contain '*' in production")
+
+# CSRF & CORS Configuration (prod-like safe)
+CSRF_TRUSTED_ORIGINS = csv_env(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://localhost:8088,http://127.0.0.1:8088"
+)
+
+CORS_ALLOWED_ORIGINS = csv_env(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:8088,http://localhost:5173"
+)
+
+# Cookie settings for E2E/prod-like
+SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
+CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "Lax")
+
+# In real prod behind TLS, set via env; in local-prod-like keep false
+SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "false").lower() == "true"
+CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "false").lower() == "true"
 
 # Static & Media Files
 STATIC_URL = '/static/'

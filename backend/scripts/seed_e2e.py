@@ -24,6 +24,16 @@ from pathlib import Path
 
 User = get_user_model()
 
+# E2E Credentials (paramétrable via env pour contrat avec tests)
+E2E_ADMIN_USERNAME = os.environ.get("E2E_ADMIN_USERNAME", "admin")
+E2E_ADMIN_PASSWORD = os.environ.get("E2E_ADMIN_PASSWORD", "admin")
+
+E2E_TEACHER_USERNAME = os.environ.get("E2E_TEACHER_USERNAME", "prof1")
+E2E_TEACHER_PASSWORD = os.environ.get("E2E_TEACHER_PASSWORD", "password")
+
+E2E_STUDENT_INE = os.environ.get("E2E_STUDENT_INE", "123456789")
+E2E_STUDENT_LASTNAME = os.environ.get("E2E_STUDENT_LASTNAME", "E2E_STUDENT")
+
 # Image dimensions for E2E (A4 ratio ~0.707)
 E2E_IMAGE_WIDTH = 1000
 E2E_IMAGE_HEIGHT = 1414  # A4 ratio
@@ -36,6 +46,15 @@ E2E_EXAM_PREFIX = f"{E2E_SEED_TAG} Exam"
 # Pillow image ~13KB, fallback 1x1 ~67 bytes
 MIN_PNG_SIZE_PILLOW = 5000
 MIN_PNG_SIZE_FALLBACK = 60
+
+# ===== GUARD: E2E Mode Required =====
+# Prevent accidental execution against non-E2E databases
+if os.environ.get("E2E_TEST_MODE") != "true":
+    print("❌ ERROR: E2E_TEST_MODE must be set to 'true' to run this seed.")
+    print("   This seed is designed for E2E testing environments only.")
+    print("   If you're running E2E tests, use: bash tools/e2e.sh")
+    import sys
+    sys.exit(1)
 
 
 # Track Pillow availability globally for logging
@@ -96,11 +115,14 @@ def _png_bytes_page():
 
 from core.auth import UserRole
 
-def ensure_teacher(username="prof1", password="password"):
+def ensure_teacher(username=None, password=None):
     """Crée ou récupère un teacher E2E."""
+    username = username or E2E_TEACHER_USERNAME
+    password = password or E2E_TEACHER_PASSWORD
+
     teachers, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
     u, created = User.objects.get_or_create(
-        username=username, 
+        username=username,
         defaults={"email": f"{username}@example.com"}
     )
     u.set_password(password)
@@ -111,14 +133,17 @@ def ensure_teacher(username="prof1", password="password"):
     return u
 
 
-def ensure_admin(email="alaeddine.benrhouma@ert.tn", password="password"):
+def ensure_admin(username=None, password=None, email="alaeddine.benrhouma@ert.tn"):
     """Crée ou récupère l'admin E2E."""
+    username = username or E2E_ADMIN_USERNAME
+    password = password or E2E_ADMIN_PASSWORD
+
     # Ensure Admin exists for e2e tests
     u, created = User.objects.get_or_create(
         email=email,
-        defaults={"username": "admin_e2e"}
+        defaults={"username": username}
     )
-    u.username = "admin"
+    u.username = username
     u.set_password(password)
     u.is_staff = True
     u.is_superuser = True
@@ -257,7 +282,7 @@ def main():
     # 5. Trigger Gate 4 Seed (si disponible)
     try:
         from scripts.seed_gate4 import seed_gate4
-        seed_gate4()
+        seed_gate4(student_ine=E2E_STUDENT_INE, student_lastname=E2E_STUDENT_LASTNAME)
     except ImportError:
         print("  \u26a0 seed_gate4 not available, skipping")
 

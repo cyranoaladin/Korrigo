@@ -48,6 +48,7 @@ __pycache__/
 # Environments
 .env
 .env.prod
+.env.e2e
 .venv
 env/
 venv/
