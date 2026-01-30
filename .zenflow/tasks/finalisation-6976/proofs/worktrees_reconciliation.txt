@@ -1,0 +1,3102 @@
+# WORKTREES RECONCILIATION REPORT
+# Date: 2026-01-30 09:35 UTC
+# Objective: Prove all changes are in main repo, nothing left in worktrees
+
+================================================================================
+PHASE A - REPO PRINCIPAL : IDENTITÉ + SYNCHRO REMOTE
+================================================================================
+
+## PWD
+/home/alaeddine/viatique__PMF
+
+## GIT TOPLEVEL
+/home/alaeddine/viatique__PMF
+
+## CURRENT BRANCH
+main
+
+## REMOTES
+origin	https://github.com/cyranoaladin/Korrigo.git (fetch)
+origin	https://github.com/cyranoaladin/Korrigo.git (push)
+
+## FETCH + PRUNE
+
+## HEAD SHA
+69c605768f6519b150284a70ed0075aa15ad3f10
+
+## ORIGIN/MAIN SHA
+69c605768f6519b150284a70ed0075aa15ad3f10
+
+## RECENT COMMITS
+69c6057 docs: finalize report and CI proofs for finalisation-6976
+89a996c test: improve E2E test infrastructure and add proofs
+3ffb918 fix: update test_list_remarks to handle paginated response
+f2cc37b Testing & Quality Assurance
+c81f1f2 fix: add ordering to QuestionRemark queryset for pagination
+e7c07d2 fix: add teacher group membership to remark test fixture
+1514651 feat: implement dispatch and grading enhancements
+3281e78 feat: add admin seed command and password change UI
+518fbe0 feat: add password reset UI in admin user management
+b06e579 feat: add UserProfile model with must_change_password field
+d8ff335 feat: add email-based login and admin password reset
+045b9e5 docs: add technical specification and implementation plan for finalisation features
+e333152 ci: fix release-gate PR diff syntax for shallow clones (three-dot → two-dot)
+9ce84bf ci: optimize release-gate PR diff (targeted fetch, no full history)
+30b4b3c ci: use fetch-depth 0 in release-gate for full history
+
+## GIT STATUS
+?? .zenflow/tasks/finalisation-6976/proofs/worktrees_reconciliation.txt
+
+## DIFF ORIGIN/MAIN..HEAD
+
+
+================================================================================
+PHASE B - AUDIT WORKTREES : ÉTAT + ÉCARTS
+================================================================================
+
+worktree /home/alaeddine/viatique__PMF
+HEAD 69c605768f6519b150284a70ed0075aa15ad3f10
+branch refs/heads/main
+
+worktree /home/alaeddine/.zenflow/worktrees/audit-993a
+HEAD 5b0fe41ae2c1e81a6eb7faffd45a508694c6f87b
+branch refs/heads/audit-993a
+
+worktree /home/alaeddine/.zenflow/worktrees/configuration-dc30
+HEAD b71c3310b5aaa3b15717cbd799e10c11a37483c3
+branch refs/heads/configuration-dc30
+
+worktree /home/alaeddine/.zenflow/worktrees/documentations-1591
+HEAD 6460f3df89e7575dbb82111905079b71954bff65
+branch refs/heads/documentations-1591
+
+worktree /home/alaeddine/.zenflow/worktrees/finalisation-6976
+HEAD 67f3101d5c14c4a0d5b92f11f6c0a855cfa3b963
+branch refs/heads/finalisation-6976
+
+worktree /home/alaeddine/.zenflow/worktrees/new-task-2b05
+HEAD 3c3f759b2591b5919f1de7ca6baa54a18597c85a
+branch refs/heads/new-task-2b05
+
+worktree /home/alaeddine/.zenflow/worktrees/new-tasktask-a3-60ed
+HEAD 15edf8f04edc5bd0c46797d5fa7e3a22ab276d1f
+branch refs/heads/new-tasktask-a3-60ed
+
+worktree /home/alaeddine/.zenflow/worktrees/task-a1-3221
+HEAD d828bd4a106577e66aba961c7c3dde1c33184401
+branch refs/heads/task-a1-3221
+
+worktree /home/alaeddine/.zenflow/worktrees/task-a2-2794
+HEAD 0d6389a15323ddf81fbed7a5d10f8c4071f81d75
+branch refs/heads/task-a2-2794
+
+worktree /home/alaeddine/.zenflow/worktrees/task-a4-72cb
+HEAD 285e8bb192b9fa49c5eac7007dcb84c377edc556
+branch refs/heads/task-a4-72cb
+
+worktree /home/alaeddine/.zenflow/worktrees/task-b1-e227
+HEAD 76fe9acef51947023c7a0a5a6d37e07df587e049
+branch refs/heads/task-b1-e227
+
+worktree /home/alaeddine/.zenflow/worktrees/task-b2-8aff
+HEAD 36898bb07f4d8b040ef0183a3b8002da051d9496
+branch refs/heads/task-b2-8aff
+
+worktree /home/alaeddine/.zenflow/worktrees/task-b3-eac6
+HEAD b834dfd43ee8c3c30f077f71bbeaa9d26792a3de
+branch refs/heads/task-b3-eac6
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/viatique__PMF
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/viatique__PMF
+
+## GIT TOPLEVEL
+/home/alaeddine/viatique__PMF
+
+## CURRENT BRANCH
+main
+
+## HEAD SHA
+69c605768f6519b150284a70ed0075aa15ad3f10
+
+## STATUS
+?? .zenflow/tasks/finalisation-6976/proofs/worktrees_reconciliation.txt
+
+## RECENT COMMITS (last 10)
+69c6057 docs: finalize report and CI proofs for finalisation-6976
+89a996c test: improve E2E test infrastructure and add proofs
+3ffb918 fix: update test_list_remarks to handle paginated response
+f2cc37b Testing & Quality Assurance
+c81f1f2 fix: add ordering to QuestionRemark queryset for pagination
+e7c07d2 fix: add teacher group membership to remark test fixture
+1514651 feat: implement dispatch and grading enhancements
+3281e78 feat: add admin seed command and password change UI
+518fbe0 feat: add password reset UI in admin user management
+b06e579 feat: add UserProfile model with must_change_password field
+
+## DIFF origin/main..HEAD (stat)
+
+## DIFF origin/main..HEAD (name-status)
+
+## UNTRACKED FILES
+.zenflow/tasks/finalisation-6976/proofs/worktrees_reconciliation.txt
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/.zenflow/worktrees/audit-993a
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/.zenflow/worktrees/audit-993a
+
+## GIT TOPLEVEL
+/home/alaeddine/.zenflow/worktrees/audit-993a
+
+## CURRENT BRANCH
+audit-993a
+
+## HEAD SHA
+5b0fe41ae2c1e81a6eb7faffd45a508694c6f87b
+
+## STATUS
+
+## RECENT COMMITS (last 10)
+5b0fe41 Audit
+928d652 feat: P1 final fixes - rate limiting, structured logging, CSP hardening
+dee0c2f feat: P1 security and reliability fixes (7 high-impact improvements)
+bbdbcae docs: Production Readiness Status Report - 98/100 Score
+faf8b06 feat: P0 Critical Fixes - Data Integrity, Metrics, Async Processing
+69b6415 Correction et finalisation Prod-Ready
+081624b Smoke Test Execution
+dbc22a0 Production Settings Validation
+abed199 Backend Test Execution
+eb5eb87 Production Readiness Gate - CONDITIONAL GO
+
+## DIFF origin/main..HEAD (stat)
+ .antigravity/rules/api_error_contract.md           |  28 -
+ .env.example                                       |  37 +-
+ .env.prod.example                                  |  50 --
+ .github/RELEASE_GATE_CI_SETUP.md                   | 158 ----
+ .github/RELEASE_GATE_INTEGRITY.md                  | 295 -------
+ .github/workflows/deploy.yml                       | 189 +----
+ .github/workflows/korrigo-ci.yml                   |  56 +-
+ .github/workflows/release-gate.yml                 | 297 -------
+ .gitignore                                         |   2 -
+ .zenflow/tasks/finalisation-6976/plan.md           | 400 ---------
+ .../finalisation-6976/proofs/backend_check.txt     |   1 -
+ .../finalisation-6976/proofs/backend_tests.txt     | 246 ------
+ .../tasks/finalisation-6976/proofs/ci_runs.txt     |  51 --
+ .../finalisation-6976/proofs/frontend_build.txt    |  26 -
+ .../finalisation-6976/proofs/frontend_lint.txt     |   4 -
+ .../proofs/frontend_typecheck.txt                  |   4 -
+ .../proofs/manual_testing_checklist.md             |  70 --
+ .zenflow/tasks/finalisation-6976/report.md         | 896 ---------------------
+ .zenflow/tasks/finalisation-6976/spec.md           | 567 -------------
+ .../step-email-login-reset-summary.md              |  51 --
+ .../tasks/finalisation-6976/testing-summary.md     | 336 --------
+ DELIVERABLES_v1.0.0-rc1.md                         | 284 -------
+ PRODUCTION_CHECKLIST.md                            | 507 ------------
+ PRODUCTION_READINESS_FINAL.md                      | 372 ---------
+ PRODUCTION_READY_REPORT.md                         | 317 --------
+ README.prod.md                                     | 712 ----------------
+ RELEASE_GATE_REPORT_2026-01-28.md                  | 234 ------
+ RELEASE_GATE_REPORT_v1.0.0-rc1.md                  | 289 -------
+ RELEASE_NOTES_v1.0.0.md                            | 229 ------
+ RUNBOOK_STAGING.md                                 | 800 ------------------
+ backend/.bandit                                    |  31 -
+ backend/Dockerfile                                 |   6 +-
+ backend/SECURITY_SCANNING.md                       | 104 ---
+ backend/conftest.py                                |   6 +-
+ backend/core/logging.py                            |  87 --
+ backend/core/management/commands/backup_restore.py |  10 +-
+ .../management/commands/cleanup_orphaned_files.py  | 137 ----
+ backend/core/management/commands/ensure_admin.py   |  46 --
+ backend/core/management/commands/init_pmf.py       |  19 +-
+ backend/core/middleware/metrics.py                 |  58 +-
+ backend/core/middleware/request_id.py              | 188 -----
+ backend/core/migrations/0003_userprofile.py        |  27 -
+ backend/core/models.py                             |  28 -
+ backend/core/prometheus.py                         | 141 ----
+ backend/core/settings.py                           | 121 +--
+ backend/core/settings_prod.py                      |  68 --
+ backend/core/settings_test.py                      |  14 -
+ backend/core/tests/test_email_login_reset.py       | 142 ----
+ backend/core/tests/test_ensure_admin_command.py    |  61 --
+ backend/core/tests/test_logging.py                 | 250 ------
+ backend/core/tests/test_metrics_middleware.py      | 164 ----
+ backend/core/tests/test_prometheus.py              | 243 ------
+ backend/core/tests/test_rate_limiting.py           | 114 ++-
+ backend/core/tests/test_user_profile.py            | 116 ---
+ backend/core/urls.py                               |   7 -
+ backend/core/utils/audit.py                        |   2 +-
+ backend/core/views.py                              |  93 +--
+ backend/core/views_metrics.py                      |  11 -
+ backend/core/views_prometheus.py                   | 117 ---
+ .../0012_alter_booklet_exam_alter_copy_exam.py     |  24 -
+ .../exams/migrations/0015_copy_dispatch_fields.py  |  54 --
+ ...6_remove_copy_exams_copy_status_idx_and_more.py |  34 -
+ backend/exams/models.py                            |  42 -
+ backend/exams/serializers.py                       |  13 +-
+ backend/exams/tests.py                             | 114 +--
+ backend/exams/urls.py                              |   6 +-
+ backend/exams/views.py                             |  91 ---
+ ...ng.py => 0004_annotation_optimistic_locking.py} |   2 +-
+ ...06_copylock_idx_copylock_expires_at_and_more.py |  29 -
+ backend/grading/migrations/0008_questionremark.py  |  36 -
+ backend/grading/models.py                          |  55 --
+ backend/grading/pdf_processor.py                   |  35 -
+ backend/grading/permissions.py                     |  11 +-
+ backend/grading/serializers.py                     |  15 +-
+ backend/grading/services.py                        |  77 +-
+ backend/grading/tasks.py                           | 120 ++-
+ backend/grading/tests/test_anti_loss.py            |  46 +-
+ .../tests/test_api_error_contract_runtime.py       | 152 ----
+ .../tests/test_api_error_contract_scanner.py       |  30 -
+ backend/grading/tests/test_async_views.py          | 121 ---
+ backend/grading/tests/test_concurrency.py          |  56 +-
+ backend/grading/tests/test_concurrency_postgres.py |  94 ---
+ backend/grading/tests/test_error_handling.py       |  67 +-
+ backend/grading/tests/test_lock_endpoints.py       | 109 ---
+ backend/grading/tests/test_optimistic_locking.py   | 165 ----
+ backend/grading/tests/test_remarks.py              | 248 ------
+ backend/grading/tests/test_tasks.py                | 155 ----
+ backend/grading/tests/test_validation.py           |  37 +-
+ backend/grading/tests/test_workflow.py             |  16 +-
+ backend/grading/tests/test_workflow_complete.py    |  48 +-
+ backend/grading/urls.py                            |  12 +-
+ backend/grading/views.py                           | 171 +---
+ backend/grading/views_async.py                     |  44 +-
+ backend/grading/views_draft.py                     | 163 ++--
+ backend/grading/views_lock.py                      | 189 +++--
+ backend/logs/.gitignore                            |   1 -
+ backend/logs/.gitkeep                              |   0
+ backend/processing/services/pdf_flattener.py       |   9 +-
+ backend/processing/services/splitter.py            |   2 +-
+ backend/processing/services/vision.py              |   6 +-
+ backend/pytest.ini                                 |   2 -
+ backend/requirements.txt                           |   4 +-
+ backend/scripts/seed_e2e.py                        |  31 +-
+ backend/seed_prod.py                               | 312 -------
+ backend/tests/test_api_bac_blanc.py                |   3 +-
+ backend/tests/test_smoke.py                        | 135 ----
+ backups/.gitignore                                 |   2 -
+ backups/.gitkeep                                   |   0
+ docker-compose.prod.yml.obsolete                   |  59 --
+ docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md     | 262 ------
+ frontend/package-lock.json                         |   4 +-
+ frontend/playwright.config.ts                      |   2 +-
+ frontend/src/App.vue                               |  19 -
+ frontend/src/components/ChangePasswordModal.vue    | 441 ----------
+ frontend/src/services/gradingApi.js                |  34 -
+ frontend/src/stores/auth.js                        |  19 +-
+ frontend/src/views/AdminDashboard.vue              | 249 +-----
+ frontend/src/views/Login.vue                       |  95 +--
+ frontend/src/views/StagingArea.vue                 |  91 +--
+ frontend/src/views/admin/CorrectorDesk.vue         | 198 +----
+ frontend/src/views/admin/ImportCopies.vue          |   5 +-
+ frontend/src/views/admin/StapleView.vue            |   7 +-
+ frontend/src/views/admin/UserManagement.vue        | 515 +++++-------
+ frontend/tests/e2e/dispatch_flow.spec.ts           | 144 ----
+ frontend/tests/e2e/global-setup.ts                 |   2 +-
+ frontend/tests/e2e/student_flow.spec.ts            |   8 +-
+ infra/docker/docker-compose.local-prod.yml         |   6 -
+ infra/docker/docker-compose.prod.yml               |  31 +-
+ infra/docker/docker-compose.staging.yml            | 111 ---
+ scripts/RELEASE_GATE_ONESHOT.md                    | 300 -------
+ scripts/STAGING_README.md                          | 393 ---------
+ scripts/audit_prod.sh                              | 213 -----
+ scripts/backup_db.sh                               |  25 -
+ scripts/deploy_staging_safe.sh                     |  73 --
+ scripts/migrate_with_backup.sh                     |  38 -
+ scripts/prod_down.sh                               |   5 -
+ scripts/prod_up.sh                                 |   4 -
+ scripts/proof_all.sh                               |  23 -
+ scripts/proof_imports.sh                           |  23 -
+ scripts/release_gate_oneshot.sh                    | 392 ---------
+ scripts/run_staging_validation.sh                  | 177 ----
+ scripts/smoke_staging.sh                           | 210 -----
+ scripts/validate-prod-env.sh                       | 117 ---
+ 143 files changed, 830 insertions(+), 16572 deletions(-)
+
+## DIFF origin/main..HEAD (name-status)
+D	.antigravity/rules/api_error_contract.md
+M	.env.example
+D	.env.prod.example
+D	.github/RELEASE_GATE_CI_SETUP.md
+D	.github/RELEASE_GATE_INTEGRITY.md
+M	.github/workflows/deploy.yml
+M	.github/workflows/korrigo-ci.yml
+D	.github/workflows/release-gate.yml
+M	.gitignore
+D	.zenflow/tasks/finalisation-6976/plan.md
+D	.zenflow/tasks/finalisation-6976/proofs/backend_check.txt
+D	.zenflow/tasks/finalisation-6976/proofs/backend_tests.txt
+D	.zenflow/tasks/finalisation-6976/proofs/ci_runs.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_build.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_lint.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_typecheck.txt
+D	.zenflow/tasks/finalisation-6976/proofs/manual_testing_checklist.md
+D	.zenflow/tasks/finalisation-6976/report.md
+D	.zenflow/tasks/finalisation-6976/spec.md
+D	.zenflow/tasks/finalisation-6976/step-email-login-reset-summary.md
+D	.zenflow/tasks/finalisation-6976/testing-summary.md
+D	DELIVERABLES_v1.0.0-rc1.md
+D	PRODUCTION_CHECKLIST.md
+D	PRODUCTION_READINESS_FINAL.md
+D	PRODUCTION_READY_REPORT.md
+D	README.prod.md
+D	RELEASE_GATE_REPORT_2026-01-28.md
+D	RELEASE_GATE_REPORT_v1.0.0-rc1.md
+D	RELEASE_NOTES_v1.0.0.md
+D	RUNBOOK_STAGING.md
+D	backend/.bandit
+M	backend/Dockerfile
+D	backend/SECURITY_SCANNING.md
+M	backend/conftest.py
+D	backend/core/logging.py
+M	backend/core/management/commands/backup_restore.py
+D	backend/core/management/commands/cleanup_orphaned_files.py
+D	backend/core/management/commands/ensure_admin.py
+M	backend/core/management/commands/init_pmf.py
+M	backend/core/middleware/metrics.py
+D	backend/core/middleware/request_id.py
+D	backend/core/migrations/0003_userprofile.py
+M	backend/core/models.py
+D	backend/core/prometheus.py
+M	backend/core/settings.py
+D	backend/core/settings_prod.py
+M	backend/core/settings_test.py
+D	backend/core/tests/test_email_login_reset.py
+D	backend/core/tests/test_ensure_admin_command.py
+D	backend/core/tests/test_logging.py
+D	backend/core/tests/test_metrics_middleware.py
+D	backend/core/tests/test_prometheus.py
+M	backend/core/tests/test_rate_limiting.py
+D	backend/core/tests/test_user_profile.py
+M	backend/core/urls.py
+M	backend/core/utils/audit.py
+M	backend/core/views.py
+M	backend/core/views_metrics.py
+D	backend/core/views_prometheus.py
+D	backend/exams/migrations/0012_alter_booklet_exam_alter_copy_exam.py
+D	backend/exams/migrations/0015_copy_dispatch_fields.py
+D	backend/exams/migrations/0016_remove_copy_exams_copy_status_idx_and_more.py
+M	backend/exams/models.py
+M	backend/exams/serializers.py
+M	backend/exams/tests.py
+M	backend/exams/urls.py
+M	backend/exams/views.py
+R087	backend/grading/migrations/0007_annotation_optimistic_locking.py	backend/grading/migrations/0004_annotation_optimistic_locking.py
+D	backend/grading/migrations/0006_copylock_idx_copylock_expires_at_and_more.py
+D	backend/grading/migrations/0008_questionremark.py
+M	backend/grading/models.py
+D	backend/grading/pdf_processor.py
+M	backend/grading/permissions.py
+M	backend/grading/serializers.py
+M	backend/grading/services.py
+M	backend/grading/tasks.py
+M	backend/grading/tests/test_anti_loss.py
+D	backend/grading/tests/test_api_error_contract_runtime.py
+D	backend/grading/tests/test_api_error_contract_scanner.py
+D	backend/grading/tests/test_async_views.py
+M	backend/grading/tests/test_concurrency.py
+D	backend/grading/tests/test_concurrency_postgres.py
+M	backend/grading/tests/test_error_handling.py
+D	backend/grading/tests/test_lock_endpoints.py
+D	backend/grading/tests/test_optimistic_locking.py
+D	backend/grading/tests/test_remarks.py
+D	backend/grading/tests/test_tasks.py
+M	backend/grading/tests/test_validation.py
+M	backend/grading/tests/test_workflow.py
+M	backend/grading/tests/test_workflow_complete.py
+M	backend/grading/urls.py
+M	backend/grading/views.py
+M	backend/grading/views_async.py
+M	backend/grading/views_draft.py
+M	backend/grading/views_lock.py
+D	backend/logs/.gitignore
+D	backend/logs/.gitkeep
+M	backend/processing/services/pdf_flattener.py
+M	backend/processing/services/splitter.py
+M	backend/processing/services/vision.py
+M	backend/pytest.ini
+M	backend/requirements.txt
+M	backend/scripts/seed_e2e.py
+D	backend/seed_prod.py
+M	backend/tests/test_api_bac_blanc.py
+D	backend/tests/test_smoke.py
+D	backups/.gitignore
+D	backups/.gitkeep
+D	docker-compose.prod.yml.obsolete
+D	docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md
+M	frontend/package-lock.json
+M	frontend/playwright.config.ts
+M	frontend/src/App.vue
+D	frontend/src/components/ChangePasswordModal.vue
+M	frontend/src/services/gradingApi.js
+M	frontend/src/stores/auth.js
+M	frontend/src/views/AdminDashboard.vue
+M	frontend/src/views/Login.vue
+M	frontend/src/views/StagingArea.vue
+M	frontend/src/views/admin/CorrectorDesk.vue
+M	frontend/src/views/admin/ImportCopies.vue
+M	frontend/src/views/admin/StapleView.vue
+M	frontend/src/views/admin/UserManagement.vue
+D	frontend/tests/e2e/dispatch_flow.spec.ts
+M	frontend/tests/e2e/global-setup.ts
+M	frontend/tests/e2e/student_flow.spec.ts
+M	infra/docker/docker-compose.local-prod.yml
+M	infra/docker/docker-compose.prod.yml
+D	infra/docker/docker-compose.staging.yml
+D	scripts/RELEASE_GATE_ONESHOT.md
+D	scripts/STAGING_README.md
+D	scripts/audit_prod.sh
+D	scripts/backup_db.sh
+D	scripts/deploy_staging_safe.sh
+D	scripts/migrate_with_backup.sh
+D	scripts/prod_down.sh
+D	scripts/prod_up.sh
+D	scripts/proof_all.sh
+D	scripts/proof_imports.sh
+D	scripts/release_gate_oneshot.sh
+D	scripts/run_staging_validation.sh
+D	scripts/smoke_staging.sh
+D	scripts/validate-prod-env.sh
+
+## UNTRACKED FILES
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/.zenflow/worktrees/configuration-dc30
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/.zenflow/worktrees/configuration-dc30
+
+## GIT TOPLEVEL
+/home/alaeddine/.zenflow/worktrees/configuration-dc30
+
+## CURRENT BRANCH
+configuration-dc30
+
+## HEAD SHA
+b71c3310b5aaa3b15717cbd799e10c11a37483c3
+
+## STATUS
+
+## RECENT COMMITS (last 10)
+b71c331 Task 4: Migrate Checklists from `.antigravity/checklists/` to `.zenflow/checklists/`
+2ffe802 Task 3: Migrate Workflows from `.antigravity/workflows/` to `.zenflow/workflows/`
+dbb2cf9 Task 2: Migrate Rules from `.antigravity/rules/` to `.zenflow/rules/`
+6639af1 Task 1: Create `.zenflow/` Directory Structure
+4a57b1c Planning
+f628543 Technical Specification
+244485f Initialize task: configuration
+25ec6f1 P0/P1 compliance: settings guards, csv import service, deterministic seed, E2E hardening, gate4 security tests
+279d4eb ci(deploy): harden SSH deploy workflow
+e7390cc chore(frontend): fix lint warnings
+
+## DIFF origin/main..HEAD (stat)
+ .antigravity/README_DEPRECATED.md                  |   89 ++
+ .antigravity/rules/api_error_contract.md           |   28 -
+ .env.example                                       |   37 +-
+ .env.prod.example                                  |   50 -
+ .github/RELEASE_GATE_CI_SETUP.md                   |  158 ---
+ .github/RELEASE_GATE_INTEGRITY.md                  |  295 -----
+ .github/workflows/deploy.yml                       |  189 +--
+ .github/workflows/korrigo-ci.yml                   |   56 +-
+ .github/workflows/release-gate.yml                 |  297 -----
+ .gitignore                                         |    2 -
+ .zenflow/checklists/korrigo_audit_checklist.yaml   |  184 +++
+ .zenflow/checklists/pr_checklist.md                |  251 ++++
+ .../checklists/production_readiness_checklist.md   |  470 +++++++
+ .zenflow/checklists/security_checklist.md          |  681 ++++++++++
+ .zenflow/config/project.yaml                       |  161 +++
+ .zenflow/migration/antigravity_mapping.md          |  416 ++++++
+ .zenflow/reports/handover.md                       |  297 +++++
+ .zenflow/reports/migration_report.md               |  416 ++++++
+ .zenflow/rules/00_global_rules.md                  |  392 ++++++
+ .zenflow/rules/01_security_rules.md                |  806 ++++++++++++
+ .zenflow/rules/02_backend_rules.md                 |  682 ++++++++++
+ .zenflow/rules/03_frontend_rules.md                |  755 +++++++++++
+ .zenflow/rules/04_database_rules.md                |  646 +++++++++
+ .zenflow/rules/05_pdf_processing_rules.md          |  710 ++++++++++
+ .zenflow/rules/06_deployment_rules.md              |  726 ++++++++++
+ .zenflow/rules/coding-guidelines.md                |   20 +
+ .zenflow/rules/project-architecture.md             |   24 +
+ .../audit-993a/AUDIT_P2_QUALITY_TECHNICAL_DEBT.md  |  736 -----------
+ .zenflow/tasks/audit-993a/AUDIT_REPORT.md          |  963 --------------
+ .../audit-993a/BACKEND_TEST_EXECUTION_REPORT.md    |  329 -----
+ .../audit-993a/DATABASE_MIGRATION_CHECK_REPORT.md  |  424 ------
+ .../tasks/audit-993a/DOCKER_PRODUCTION_AUDIT.md    |  948 --------------
+ .../tasks/audit-993a/E2E_TEST_EXECUTION_REPORT.md  |  487 -------
+ .../tasks/audit-993a/INVENTORY_ARCHITECTURE.md     | 1053 ---------------
+ .../tasks/audit-993a/INVENTORY_DATA_INTEGRITY.md   |  617 ---------
+ .../audit-993a/INVENTORY_PRODUCTION_CONFIG.md      |  868 ------------
+ .zenflow/tasks/audit-993a/INVENTORY_TESTING_QA.md  |  810 ------------
+ .../audit-993a/P0_CRITICAL_OPERATIONAL_ISSUES.md   |  828 ------------
+ .../tasks/audit-993a/P0_DATA_INTEGRITY_FINDINGS.md |  894 -------------
+ .zenflow/tasks/audit-993a/P0_SECURITY_AUDIT.md     |  957 --------------
+ .../tasks/audit-993a/P0_SECURITY_FIXES_SUMMARY.md  |  139 --
+ .zenflow/tasks/audit-993a/P1_RELIABILITY_ISSUES.md |  942 -------------
+ .zenflow/tasks/audit-993a/P1_SECURITY_FINDINGS.md  |  986 --------------
+ .../tasks/audit-993a/PRODUCTION_READINESS_GATE.md  |  731 -----------
+ .../audit-993a/PRODUCTION_SETTINGS_SUMMARY.txt     |  202 ---
+ .../PRODUCTION_SETTINGS_VALIDATION_REPORT.md       |  856 ------------
+ .zenflow/tasks/audit-993a/REMEDIATION_PLAN.md      | 1382 --------------------
+ .zenflow/tasks/audit-993a/SMOKE_TEST_REPORT.md     |  511 --------
+ .zenflow/tasks/audit-993a/WORKFLOW_MAPPING.md      | 1090 ---------------
+ .zenflow/tasks/audit-993a/plan.md                  |  829 ------------
+ .zenflow/tasks/audit-993a/requirements.md          |  581 --------
+ .zenflow/tasks/audit-993a/test_settings_guards.py  |  224 ----
+ .../audit-993a/validate_production_settings.py     |  338 -----
+ .zenflow/tasks/configuration-dc30/plan.md          |  492 +++++++
+ .zenflow/tasks/configuration-dc30/requirements.md  |  654 +++++++++
+ .zenflow/tasks/configuration-dc30/spec.md          |  929 +++++++++++++
+ .zenflow/tasks/finalisation-6976/plan.md           |  400 ------
+ .../finalisation-6976/proofs/backend_check.txt     |    1 -
+ .../finalisation-6976/proofs/backend_tests.txt     |  246 ----
+ .../tasks/finalisation-6976/proofs/ci_runs.txt     |   51 -
+ .../finalisation-6976/proofs/frontend_build.txt    |   26 -
+ .../finalisation-6976/proofs/frontend_lint.txt     |    4 -
+ .../proofs/frontend_typecheck.txt                  |    4 -
+ .../proofs/manual_testing_checklist.md             |   70 -
+ .zenflow/tasks/finalisation-6976/report.md         |  896 -------------
+ .zenflow/tasks/finalisation-6976/spec.md           |  567 --------
+ .../step-email-login-reset-summary.md              |   51 -
+ .../tasks/finalisation-6976/testing-summary.md     |  336 -----
+ .zenflow/workflows/authentication_flow.md          |  349 +++++
+ .zenflow/workflows/compliance.md                   |  190 +++
+ .zenflow/workflows/correction_flow.md              |  362 +++++
+ .zenflow/workflows/deploy-update.md                |    8 +
+ .zenflow/workflows/deployment_flow.md              |  325 +++++
+ .zenflow/workflows/implement-module.md             |   10 +
+ .zenflow/workflows/pdf_annotation_export_flow.md   |  273 ++++
+ .zenflow/workflows/pdf_ingestion_flow.md           |  207 +++
+ .zenflow/workflows/student_access_flow.md          |  126 ++
+ DELIVERABLES_v1.0.0-rc1.md                         |  284 ----
+ PRODUCTION_CHECKLIST.md                            |  507 -------
+ PRODUCTION_READINESS_FINAL.md                      |  372 ------
+ PRODUCTION_READINESS_STATUS.md                     |  458 -------
+ PRODUCTION_READY_REPORT.md                         |  317 -----
+ README.prod.md                                     |  712 ----------
+ RELEASE_GATE_REPORT_2026-01-28.md                  |  234 ----
+ RELEASE_GATE_REPORT_v1.0.0-rc1.md                  |  289 ----
+ RELEASE_NOTES_v1.0.0.md                            |  229 ----
+ RUNBOOK_STAGING.md                                 |  800 -----------
+ SECURITY_PERMISSIONS_INVENTORY.md                  |  708 ----------
+ backend/.bandit                                    |   31 -
+ backend/Dockerfile                                 |    6 +-
+ backend/SECURITY_SCANNING.md                       |  104 --
+ backend/conftest.py                                |    6 +-
+ backend/core/logging.py                            |   87 --
+ backend/core/management/commands/backup_restore.py |   10 +-
+ .../management/commands/cleanup_orphaned_files.py  |  137 --
+ backend/core/management/commands/ensure_admin.py   |   46 -
+ backend/core/management/commands/init_pmf.py       |   19 +-
+ backend/core/middleware/__init__.py                |    1 -
+ backend/core/middleware/metrics.py                 |  164 ---
+ backend/core/middleware/request_id.py              |  188 ---
+ backend/core/migrations/0003_userprofile.py        |   27 -
+ backend/core/models.py                             |   28 -
+ backend/core/prometheus.py                         |  141 --
+ backend/core/settings.py                           |  192 +--
+ backend/core/settings_prod.py                      |   68 -
+ backend/core/settings_test.py                      |   14 -
+ backend/core/tests/test_email_login_reset.py       |  142 --
+ backend/core/tests/test_ensure_admin_command.py    |   61 -
+ backend/core/tests/test_logging.py                 |  250 ----
+ backend/core/tests/test_metrics_middleware.py      |  164 ---
+ backend/core/tests/test_prometheus.py              |  243 ----
+ backend/core/tests/test_rate_limiting.py           |  114 +-
+ backend/core/tests/test_user_profile.py            |  116 --
+ backend/core/urls.py                               |   19 +-
+ backend/core/utils/audit.py                        |    2 +-
+ backend/core/utils/errors.py                       |   32 -
+ backend/core/views.py                              |  106 +-
+ backend/core/views_health.py                       |   68 +-
+ backend/core/views_metrics.py                      |   65 -
+ backend/core/views_prometheus.py                   |  117 --
+ .../0012_alter_booklet_exam_alter_copy_exam.py     |   24 -
+ .../migrations/0013_copy_grading_error_tracking.py |   49 -
+ .../migrations/0014_copy_performance_indexes.py    |   19 -
+ .../exams/migrations/0015_copy_dispatch_fields.py  |   54 -
+ ...6_remove_copy_exams_copy_status_idx_and_more.py |   34 -
+ backend/exams/models.py                            |   61 +-
+ backend/exams/serializers.py                       |   13 +-
+ backend/exams/tests.py                             |  114 +-
+ backend/exams/urls.py                              |    6 +-
+ backend/exams/views.py                             |  142 +-
+ backend/grading/management/__init__.py             |    0
+ backend/grading/management/commands/__init__.py    |    0
+ .../management/commands/recover_stuck_copies.py    |  119 --
+ ...06_copylock_idx_copylock_expires_at_and_more.py |   29 -
+ .../0007_annotation_optimistic_locking.py          |   22 -
+ backend/grading/migrations/0008_questionremark.py  |   36 -
+ backend/grading/models.py                          |   70 -
+ backend/grading/pdf_processor.py                   |   35 -
+ backend/grading/permissions.py                     |   11 +-
+ backend/grading/serializers.py                     |   15 +-
+ backend/grading/services.py                        |  399 +-----
+ backend/grading/tasks.py                           |  187 ---
+ backend/grading/tests/test_anti_loss.py            |   46 +-
+ .../tests/test_api_error_contract_runtime.py       |  152 ---
+ .../tests/test_api_error_contract_scanner.py       |   30 -
+ backend/grading/tests/test_async_views.py          |  121 --
+ backend/grading/tests/test_concurrency.py          |   56 +-
+ backend/grading/tests/test_concurrency_postgres.py |   94 --
+ backend/grading/tests/test_error_handling.py       |   67 +-
+ backend/grading/tests/test_lock_endpoints.py       |  109 --
+ backend/grading/tests/test_optimistic_locking.py   |  165 ---
+ backend/grading/tests/test_remarks.py              |  248 ----
+ backend/grading/tests/test_tasks.py                |  155 ---
+ backend/grading/tests/test_validation.py           |   37 +-
+ backend/grading/tests/test_workflow.py             |   16 +-
+ backend/grading/tests/test_workflow_complete.py    |   48 +-
+ backend/grading/urls.py                            |   17 +-
+ backend/grading/views.py                           |  166 +--
+ backend/grading/views_async.py                     |  135 --
+ backend/grading/views_draft.py                     |  163 +--
+ backend/grading/views_lock.py                      |  189 ++-
+ backend/identification/services.py                 |   62 +-
+ backend/identification/views.py                    |    8 +-
+ backend/logs/.gitignore                            |    1 -
+ backend/logs/.gitkeep                              |    0
+ backend/processing/services/pdf_flattener.py       |    9 +-
+ backend/processing/services/splitter.py            |    2 +-
+ backend/processing/services/vision.py              |    6 +-
+ backend/pytest.ini                                 |    2 -
+ backend/requirements.txt                           |    4 +-
+ backend/scripts/seed_e2e.py                        |   31 +-
+ backend/seed_prod.py                               |  312 -----
+ backend/students/views.py                          |    7 +-
+ backend/tests/test_api_bac_blanc.py                |    3 +-
+ backend/tests/test_smoke.py                        |  135 --
+ backups/.gitignore                                 |    2 -
+ backups/.gitkeep                                   |    0
+ docker-compose.prod.yml.obsolete                   |   59 -
+ docs/DEPLOYMENT_GUIDE.md                           |  166 ---
+ docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md     |  262 ----
+ docs/walkthrough.md                                |   24 +
+ frontend/package-lock.json                         |    4 +-
+ frontend/playwright.config.ts                      |    2 +-
+ frontend/src/App.vue                               |   19 -
+ frontend/src/components/ChangePasswordModal.vue    |  441 -------
+ frontend/src/services/gradingApi.js                |   34 -
+ frontend/src/stores/auth.js                        |   19 +-
+ frontend/src/views/AdminDashboard.vue              |  249 +---
+ frontend/src/views/Login.vue                       |   95 +-
+ frontend/src/views/StagingArea.vue                 |   91 +-
+ frontend/src/views/admin/CorrectorDesk.vue         |  198 +--
+ frontend/src/views/admin/ImportCopies.vue          |    5 +-
+ frontend/src/views/admin/StapleView.vue            |    7 +-
+ frontend/src/views/admin/UserManagement.vue        |  515 +++-----
+ frontend/tests/e2e/dispatch_flow.spec.ts           |  144 --
+ frontend/tests/e2e/global-setup.ts                 |    2 +-
+ frontend/tests/e2e/student_flow.spec.ts            |    8 +-
+ infra/docker/docker-compose.local-prod.yml         |    6 -
+ infra/docker/docker-compose.prod.yml               |   31 +-
+ infra/docker/docker-compose.staging.yml            |  111 --
+ scripts/RELEASE_GATE_ONESHOT.md                    |  300 -----
+ scripts/STAGING_README.md                          |  393 ------
+ scripts/audit_prod.sh                              |  213 ---
+ scripts/backup_db.sh                               |   25 -
+ scripts/deploy_staging_safe.sh                     |   73 --
+ scripts/migrate_with_backup.sh                     |   38 -
+ scripts/prod_down.sh                               |    5 -
+ scripts/prod_up.sh                                 |    4 -
+ scripts/proof_all.sh                               |   23 -
+ scripts/proof_imports.sh                           |   23 -
+ scripts/release_gate_oneshot.sh                    |  392 ------
+ scripts/run_staging_validation.sh                  |  177 ---
+ scripts/smoke_staging.sh                           |  210 ---
+ scripts/validate-prod-env.sh                       |  117 --
+ verification_report.md                             |    7 +-
+ 215 files changed, 12465 insertions(+), 37882 deletions(-)
+
+## DIFF origin/main..HEAD (name-status)
+A	.antigravity/README_DEPRECATED.md
+D	.antigravity/rules/api_error_contract.md
+M	.env.example
+D	.env.prod.example
+D	.github/RELEASE_GATE_CI_SETUP.md
+D	.github/RELEASE_GATE_INTEGRITY.md
+M	.github/workflows/deploy.yml
+M	.github/workflows/korrigo-ci.yml
+D	.github/workflows/release-gate.yml
+M	.gitignore
+A	.zenflow/checklists/korrigo_audit_checklist.yaml
+A	.zenflow/checklists/pr_checklist.md
+A	.zenflow/checklists/production_readiness_checklist.md
+A	.zenflow/checklists/security_checklist.md
+A	.zenflow/config/project.yaml
+A	.zenflow/migration/antigravity_mapping.md
+A	.zenflow/reports/handover.md
+A	.zenflow/reports/migration_report.md
+A	.zenflow/rules/00_global_rules.md
+A	.zenflow/rules/01_security_rules.md
+A	.zenflow/rules/02_backend_rules.md
+A	.zenflow/rules/03_frontend_rules.md
+A	.zenflow/rules/04_database_rules.md
+A	.zenflow/rules/05_pdf_processing_rules.md
+A	.zenflow/rules/06_deployment_rules.md
+A	.zenflow/rules/coding-guidelines.md
+A	.zenflow/rules/project-architecture.md
+D	.zenflow/tasks/audit-993a/AUDIT_P2_QUALITY_TECHNICAL_DEBT.md
+D	.zenflow/tasks/audit-993a/AUDIT_REPORT.md
+D	.zenflow/tasks/audit-993a/BACKEND_TEST_EXECUTION_REPORT.md
+D	.zenflow/tasks/audit-993a/DATABASE_MIGRATION_CHECK_REPORT.md
+D	.zenflow/tasks/audit-993a/DOCKER_PRODUCTION_AUDIT.md
+D	.zenflow/tasks/audit-993a/E2E_TEST_EXECUTION_REPORT.md
+D	.zenflow/tasks/audit-993a/INVENTORY_ARCHITECTURE.md
+D	.zenflow/tasks/audit-993a/INVENTORY_DATA_INTEGRITY.md
+D	.zenflow/tasks/audit-993a/INVENTORY_PRODUCTION_CONFIG.md
+D	.zenflow/tasks/audit-993a/INVENTORY_TESTING_QA.md
+D	.zenflow/tasks/audit-993a/P0_CRITICAL_OPERATIONAL_ISSUES.md
+D	.zenflow/tasks/audit-993a/P0_DATA_INTEGRITY_FINDINGS.md
+D	.zenflow/tasks/audit-993a/P0_SECURITY_AUDIT.md
+D	.zenflow/tasks/audit-993a/P0_SECURITY_FIXES_SUMMARY.md
+D	.zenflow/tasks/audit-993a/P1_RELIABILITY_ISSUES.md
+D	.zenflow/tasks/audit-993a/P1_SECURITY_FINDINGS.md
+D	.zenflow/tasks/audit-993a/PRODUCTION_READINESS_GATE.md
+D	.zenflow/tasks/audit-993a/PRODUCTION_SETTINGS_SUMMARY.txt
+D	.zenflow/tasks/audit-993a/PRODUCTION_SETTINGS_VALIDATION_REPORT.md
+D	.zenflow/tasks/audit-993a/REMEDIATION_PLAN.md
+D	.zenflow/tasks/audit-993a/SMOKE_TEST_REPORT.md
+D	.zenflow/tasks/audit-993a/WORKFLOW_MAPPING.md
+D	.zenflow/tasks/audit-993a/plan.md
+D	.zenflow/tasks/audit-993a/requirements.md
+D	.zenflow/tasks/audit-993a/test_settings_guards.py
+D	.zenflow/tasks/audit-993a/validate_production_settings.py
+A	.zenflow/tasks/configuration-dc30/plan.md
+A	.zenflow/tasks/configuration-dc30/requirements.md
+A	.zenflow/tasks/configuration-dc30/spec.md
+D	.zenflow/tasks/finalisation-6976/plan.md
+D	.zenflow/tasks/finalisation-6976/proofs/backend_check.txt
+D	.zenflow/tasks/finalisation-6976/proofs/backend_tests.txt
+D	.zenflow/tasks/finalisation-6976/proofs/ci_runs.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_build.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_lint.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_typecheck.txt
+D	.zenflow/tasks/finalisation-6976/proofs/manual_testing_checklist.md
+D	.zenflow/tasks/finalisation-6976/report.md
+D	.zenflow/tasks/finalisation-6976/spec.md
+D	.zenflow/tasks/finalisation-6976/step-email-login-reset-summary.md
+D	.zenflow/tasks/finalisation-6976/testing-summary.md
+A	.zenflow/workflows/authentication_flow.md
+A	.zenflow/workflows/compliance.md
+A	.zenflow/workflows/correction_flow.md
+A	.zenflow/workflows/deploy-update.md
+A	.zenflow/workflows/deployment_flow.md
+A	.zenflow/workflows/implement-module.md
+A	.zenflow/workflows/pdf_annotation_export_flow.md
+A	.zenflow/workflows/pdf_ingestion_flow.md
+A	.zenflow/workflows/student_access_flow.md
+D	DELIVERABLES_v1.0.0-rc1.md
+D	PRODUCTION_CHECKLIST.md
+D	PRODUCTION_READINESS_FINAL.md
+D	PRODUCTION_READINESS_STATUS.md
+D	PRODUCTION_READY_REPORT.md
+D	README.prod.md
+D	RELEASE_GATE_REPORT_2026-01-28.md
+D	RELEASE_GATE_REPORT_v1.0.0-rc1.md
+D	RELEASE_NOTES_v1.0.0.md
+D	RUNBOOK_STAGING.md
+D	SECURITY_PERMISSIONS_INVENTORY.md
+D	backend/.bandit
+M	backend/Dockerfile
+D	backend/SECURITY_SCANNING.md
+M	backend/conftest.py
+D	backend/core/logging.py
+M	backend/core/management/commands/backup_restore.py
+D	backend/core/management/commands/cleanup_orphaned_files.py
+D	backend/core/management/commands/ensure_admin.py
+M	backend/core/management/commands/init_pmf.py
+D	backend/core/middleware/__init__.py
+D	backend/core/middleware/metrics.py
+D	backend/core/middleware/request_id.py
+D	backend/core/migrations/0003_userprofile.py
+M	backend/core/models.py
+D	backend/core/prometheus.py
+M	backend/core/settings.py
+D	backend/core/settings_prod.py
+M	backend/core/settings_test.py
+D	backend/core/tests/test_email_login_reset.py
+D	backend/core/tests/test_ensure_admin_command.py
+D	backend/core/tests/test_logging.py
+D	backend/core/tests/test_metrics_middleware.py
+D	backend/core/tests/test_prometheus.py
+M	backend/core/tests/test_rate_limiting.py
+D	backend/core/tests/test_user_profile.py
+M	backend/core/urls.py
+M	backend/core/utils/audit.py
+D	backend/core/utils/errors.py
+M	backend/core/views.py
+M	backend/core/views_health.py
+D	backend/core/views_metrics.py
+D	backend/core/views_prometheus.py
+D	backend/exams/migrations/0012_alter_booklet_exam_alter_copy_exam.py
+D	backend/exams/migrations/0013_copy_grading_error_tracking.py
+D	backend/exams/migrations/0014_copy_performance_indexes.py
+D	backend/exams/migrations/0015_copy_dispatch_fields.py
+D	backend/exams/migrations/0016_remove_copy_exams_copy_status_idx_and_more.py
+M	backend/exams/models.py
+M	backend/exams/serializers.py
+M	backend/exams/tests.py
+M	backend/exams/urls.py
+M	backend/exams/views.py
+D	backend/grading/management/__init__.py
+D	backend/grading/management/commands/__init__.py
+D	backend/grading/management/commands/recover_stuck_copies.py
+D	backend/grading/migrations/0006_copylock_idx_copylock_expires_at_and_more.py
+D	backend/grading/migrations/0007_annotation_optimistic_locking.py
+D	backend/grading/migrations/0008_questionremark.py
+M	backend/grading/models.py
+D	backend/grading/pdf_processor.py
+M	backend/grading/permissions.py
+M	backend/grading/serializers.py
+M	backend/grading/services.py
+D	backend/grading/tasks.py
+M	backend/grading/tests/test_anti_loss.py
+D	backend/grading/tests/test_api_error_contract_runtime.py
+D	backend/grading/tests/test_api_error_contract_scanner.py
+D	backend/grading/tests/test_async_views.py
+M	backend/grading/tests/test_concurrency.py
+D	backend/grading/tests/test_concurrency_postgres.py
+M	backend/grading/tests/test_error_handling.py
+D	backend/grading/tests/test_lock_endpoints.py
+D	backend/grading/tests/test_optimistic_locking.py
+D	backend/grading/tests/test_remarks.py
+D	backend/grading/tests/test_tasks.py
+M	backend/grading/tests/test_validation.py
+M	backend/grading/tests/test_workflow.py
+M	backend/grading/tests/test_workflow_complete.py
+M	backend/grading/urls.py
+M	backend/grading/views.py
+D	backend/grading/views_async.py
+M	backend/grading/views_draft.py
+M	backend/grading/views_lock.py
+M	backend/identification/services.py
+M	backend/identification/views.py
+D	backend/logs/.gitignore
+D	backend/logs/.gitkeep
+M	backend/processing/services/pdf_flattener.py
+M	backend/processing/services/splitter.py
+M	backend/processing/services/vision.py
+M	backend/pytest.ini
+M	backend/requirements.txt
+M	backend/scripts/seed_e2e.py
+D	backend/seed_prod.py
+M	backend/students/views.py
+M	backend/tests/test_api_bac_blanc.py
+D	backend/tests/test_smoke.py
+D	backups/.gitignore
+D	backups/.gitkeep
+D	docker-compose.prod.yml.obsolete
+M	docs/DEPLOYMENT_GUIDE.md
+D	docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md
+M	docs/walkthrough.md
+M	frontend/package-lock.json
+M	frontend/playwright.config.ts
+M	frontend/src/App.vue
+D	frontend/src/components/ChangePasswordModal.vue
+M	frontend/src/services/gradingApi.js
+M	frontend/src/stores/auth.js
+M	frontend/src/views/AdminDashboard.vue
+M	frontend/src/views/Login.vue
+M	frontend/src/views/StagingArea.vue
+M	frontend/src/views/admin/CorrectorDesk.vue
+M	frontend/src/views/admin/ImportCopies.vue
+M	frontend/src/views/admin/StapleView.vue
+M	frontend/src/views/admin/UserManagement.vue
+D	frontend/tests/e2e/dispatch_flow.spec.ts
+M	frontend/tests/e2e/global-setup.ts
+M	frontend/tests/e2e/student_flow.spec.ts
+M	infra/docker/docker-compose.local-prod.yml
+M	infra/docker/docker-compose.prod.yml
+D	infra/docker/docker-compose.staging.yml
+D	scripts/RELEASE_GATE_ONESHOT.md
+D	scripts/STAGING_README.md
+D	scripts/audit_prod.sh
+D	scripts/backup_db.sh
+D	scripts/deploy_staging_safe.sh
+D	scripts/migrate_with_backup.sh
+D	scripts/prod_down.sh
+D	scripts/prod_up.sh
+D	scripts/proof_all.sh
+D	scripts/proof_imports.sh
+D	scripts/release_gate_oneshot.sh
+D	scripts/run_staging_validation.sh
+D	scripts/smoke_staging.sh
+D	scripts/validate-prod-env.sh
+M	verification_report.md
+
+## UNTRACKED FILES
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/.zenflow/worktrees/documentations-1591
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/.zenflow/worktrees/documentations-1591
+
+## GIT TOPLEVEL
+/home/alaeddine/.zenflow/worktrees/documentations-1591
+
+## CURRENT BRANCH
+documentations-1591
+
+## HEAD SHA
+6460f3df89e7575dbb82111905079b71954bff65
+
+## STATUS
+ M docs/security/GESTION_DONNEES.md
+
+## RECENT COMMITS (last 10)
+6460f3d Phase 3 - Security & Compliance Documentation
+4df6101 Quality Review & Final Validation
+467140d Documentation Integration & Index
+ed0371a Phase 5 - Support & Troubleshooting Documentation
+589f08b Phase 3 - Security & Compliance Documentation
+d38add2 Phase 1 - School Administrator Documentation
+61c3f37 Phase 2 - User Role Documentation
+5b7758a Phase 4 - Legal Documentation
+181434d Phase 5 - Support & Troubleshooting Documentation
+0347d85 Documentation Integration & Index
+
+## DIFF origin/main..HEAD (stat)
+ .zenflow/tasks/documentations-1591/plan.md         |  289 ++++
+ .zenflow/tasks/documentations-1591/report.md       |  876 ++++++++++++
+ .zenflow/tasks/documentations-1591/spec.md         | 1110 +++++++++++++++
+ .zenflow/tasks/finalisation-6976/plan.md           |    3 +-
+ .../finalisation-6976/proofs/backend_check.txt     |    1 -
+ .../finalisation-6976/proofs/backend_tests.txt     |  246 ----
+ .../tasks/finalisation-6976/proofs/ci_runs.txt     |   51 -
+ .../finalisation-6976/proofs/frontend_build.txt    |   26 -
+ .../finalisation-6976/proofs/frontend_lint.txt     |    4 -
+ .../proofs/frontend_typecheck.txt                  |    4 -
+ .../proofs/manual_testing_checklist.md             |   70 -
+ .zenflow/tasks/finalisation-6976/report.md         | 1157 ++++++---------
+ README.md                                          |   53 +
+ backend/scripts/seed_e2e.py                        |   31 +-
+ docs/INDEX.md                                      |  327 +++++
+ docs/admin/GESTION_UTILISATEURS.md                 |  881 ++++++++++++
+ docs/admin/GUIDE_ADMINISTRATEUR_LYCEE.md           | 1087 +++++++++++++++
+ docs/admin/GUIDE_UTILISATEUR_ADMIN.md              | 1215 ++++++++++++++++
+ docs/admin/PROCEDURES_OPERATIONNELLES.md           | 1083 ++++++++++++++
+ docs/admin/README.md                               |  259 ++++
+ docs/legal/ACCORD_TRAITEMENT_DONNEES.md            |  851 +++++++++++
+ docs/legal/CONDITIONS_UTILISATION.md               |  520 +++++++
+ docs/legal/FORMULAIRES_CONSENTEMENT.md             |  663 +++++++++
+ docs/legal/POLITIQUE_CONFIDENTIALITE.md            |  412 ++++++
+ docs/legal/README.md                               |  408 ++++++
+ docs/security/AUDIT_CONFORMITE.md                  |  887 ++++++++++++
+ docs/security/GESTION_DONNEES.md                   | 1248 +++++++++++++++++
+ docs/security/MANUEL_SECURITE.md                   | 1421 +++++++++++++++++++
+ docs/security/POLITIQUE_RGPD.md                    |  849 +++++++++++
+ docs/security/README.md                            |  491 +++++++
+ docs/support/DEPANNAGE.md                          | 1471 ++++++++++++++++++++
+ docs/support/FAQ.md                                | 1070 ++++++++++++++
+ docs/support/README.md                             |  409 ++++++
+ docs/support/SUPPORT.md                            |  984 +++++++++++++
+ docs/users/GUIDE_ENSEIGNANT.md                     |  883 ++++++++++++
+ docs/users/GUIDE_ETUDIANT.md                       |  632 +++++++++
+ docs/users/GUIDE_SECRETARIAT.md                    |  889 ++++++++++++
+ docs/users/NAVIGATION_UI.md                        | 1312 +++++++++++++++++
+ docs/users/README.md                               |  378 +++++
+ frontend/playwright.config.ts                      |    2 +-
+ frontend/src/services/gradingApi.js                |    6 +-
+ frontend/src/views/AdminDashboard.vue              |    1 -
+ frontend/tests/e2e/dispatch_flow.spec.ts           |   77 +-
+ frontend/tests/e2e/global-setup.ts                 |    2 +-
+ frontend/tests/e2e/student_flow.spec.ts            |    8 +-
+ infra/docker/docker-compose.local-prod.yml         |    4 +-
+ 46 files changed, 23404 insertions(+), 1247 deletions(-)
+
+## DIFF origin/main..HEAD (name-status)
+A	.zenflow/tasks/documentations-1591/plan.md
+A	.zenflow/tasks/documentations-1591/report.md
+A	.zenflow/tasks/documentations-1591/spec.md
+M	.zenflow/tasks/finalisation-6976/plan.md
+D	.zenflow/tasks/finalisation-6976/proofs/backend_check.txt
+D	.zenflow/tasks/finalisation-6976/proofs/backend_tests.txt
+D	.zenflow/tasks/finalisation-6976/proofs/ci_runs.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_build.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_lint.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_typecheck.txt
+D	.zenflow/tasks/finalisation-6976/proofs/manual_testing_checklist.md
+M	.zenflow/tasks/finalisation-6976/report.md
+M	README.md
+M	backend/scripts/seed_e2e.py
+A	docs/INDEX.md
+A	docs/admin/GESTION_UTILISATEURS.md
+A	docs/admin/GUIDE_ADMINISTRATEUR_LYCEE.md
+A	docs/admin/GUIDE_UTILISATEUR_ADMIN.md
+A	docs/admin/PROCEDURES_OPERATIONNELLES.md
+A	docs/admin/README.md
+A	docs/legal/ACCORD_TRAITEMENT_DONNEES.md
+A	docs/legal/CONDITIONS_UTILISATION.md
+A	docs/legal/FORMULAIRES_CONSENTEMENT.md
+A	docs/legal/POLITIQUE_CONFIDENTIALITE.md
+A	docs/legal/README.md
+A	docs/security/AUDIT_CONFORMITE.md
+A	docs/security/GESTION_DONNEES.md
+A	docs/security/MANUEL_SECURITE.md
+A	docs/security/POLITIQUE_RGPD.md
+A	docs/security/README.md
+A	docs/support/DEPANNAGE.md
+A	docs/support/FAQ.md
+A	docs/support/README.md
+A	docs/support/SUPPORT.md
+A	docs/users/GUIDE_ENSEIGNANT.md
+A	docs/users/GUIDE_ETUDIANT.md
+A	docs/users/GUIDE_SECRETARIAT.md
+A	docs/users/NAVIGATION_UI.md
+A	docs/users/README.md
+M	frontend/playwright.config.ts
+M	frontend/src/services/gradingApi.js
+M	frontend/src/views/AdminDashboard.vue
+M	frontend/tests/e2e/dispatch_flow.spec.ts
+M	frontend/tests/e2e/global-setup.ts
+M	frontend/tests/e2e/student_flow.spec.ts
+M	infra/docker/docker-compose.local-prod.yml
+
+## UNTRACKED FILES
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/.zenflow/worktrees/finalisation-6976
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/.zenflow/worktrees/finalisation-6976
+
+## GIT TOPLEVEL
+/home/alaeddine/.zenflow/worktrees/finalisation-6976
+
+## CURRENT BRANCH
+finalisation-6976
+
+## HEAD SHA
+67f3101d5c14c4a0d5b92f11f6c0a855cfa3b963
+
+## STATUS
+
+## RECENT COMMITS (last 10)
+67f3101 Final Report & Proofs
+8f77f6f Testing & Quality Assurance
+3ffb918 fix: update test_list_remarks to handle paginated response
+f2cc37b Testing & Quality Assurance
+c81f1f2 fix: add ordering to QuestionRemark queryset for pagination
+e7c07d2 fix: add teacher group membership to remark test fixture
+1514651 feat: implement dispatch and grading enhancements
+3281e78 feat: add admin seed command and password change UI
+518fbe0 feat: add password reset UI in admin user management
+b06e579 feat: add UserProfile model with must_change_password field
+
+## DIFF origin/main..HEAD (stat)
+ .../finalisation-6976/proofs/backend_check.txt     |    1 -
+ .../finalisation-6976/proofs/backend_tests.txt     |  246 -----
+ .../tasks/finalisation-6976/proofs/ci_runs.txt     |   51 -
+ .../finalisation-6976/proofs/frontend_build.txt    |   26 -
+ .../finalisation-6976/proofs/frontend_lint.txt     |    4 -
+ .../proofs/frontend_typecheck.txt                  |    4 -
+ .../proofs/manual_testing_checklist.md             |   70 --
+ .zenflow/tasks/finalisation-6976/report.md         | 1157 +++++++-------------
+ backend/scripts/seed_e2e.py                        |   31 +-
+ frontend/playwright.config.ts                      |    2 +-
+ frontend/src/services/gradingApi.js                |    6 +-
+ frontend/src/views/AdminDashboard.vue              |    1 -
+ frontend/tests/e2e/dispatch_flow.spec.ts           |   77 +-
+ frontend/tests/e2e/global-setup.ts                 |    2 +-
+ frontend/tests/e2e/student_flow.spec.ts            |    8 +-
+ infra/docker/docker-compose.local-prod.yml         |    4 +-
+ 16 files changed, 445 insertions(+), 1245 deletions(-)
+
+## DIFF origin/main..HEAD (name-status)
+D	.zenflow/tasks/finalisation-6976/proofs/backend_check.txt
+D	.zenflow/tasks/finalisation-6976/proofs/backend_tests.txt
+D	.zenflow/tasks/finalisation-6976/proofs/ci_runs.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_build.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_lint.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_typecheck.txt
+D	.zenflow/tasks/finalisation-6976/proofs/manual_testing_checklist.md
+M	.zenflow/tasks/finalisation-6976/report.md
+M	backend/scripts/seed_e2e.py
+M	frontend/playwright.config.ts
+M	frontend/src/services/gradingApi.js
+M	frontend/src/views/AdminDashboard.vue
+M	frontend/tests/e2e/dispatch_flow.spec.ts
+M	frontend/tests/e2e/global-setup.ts
+M	frontend/tests/e2e/student_flow.spec.ts
+M	infra/docker/docker-compose.local-prod.yml
+
+## UNTRACKED FILES
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/.zenflow/worktrees/new-task-2b05
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/.zenflow/worktrees/new-task-2b05
+
+## GIT TOPLEVEL
+/home/alaeddine/.zenflow/worktrees/new-task-2b05
+
+## CURRENT BRANCH
+new-task-2b05
+
+## HEAD SHA
+3c3f759b2591b5919f1de7ca6baa54a18597c85a
+
+## STATUS
+
+## RECENT COMMITS (last 10)
+3c3f759 correction
+7b5299a PHASE H - Create Final Report and Proof Pack
+9f40d67 PHASE G - VPS Post-Deployment Verification (Optional)
+080e5b1 PHASE F4 - Analyze Results and Iterate if Needed
+b0c4003 docs: mark PHASE F4 complete - deployment succeeded
+7ff0552 ci: fix SSH heredoc to pass environment variables to remote session
+3d253b4 PHASE F3 - Trigger Validation Run
+95b6495 PHASE F1 - Monitor Initial GitHub Actions Run
+4b8f1b3 PHASE D - Create Operator Action Card
+9c2d4b6 PHASE C5 - Push Changes to Main
+
+## DIFF origin/main..HEAD (stat)
+ .github/workflows/release-gate.yml                 |   31 +-
+ .zenflow/tasks/finalisation-6976/plan.md           |  400 --
+ .../finalisation-6976/proofs/backend_check.txt     |    1 -
+ .../finalisation-6976/proofs/backend_tests.txt     |  246 --
+ .../tasks/finalisation-6976/proofs/ci_runs.txt     |   51 -
+ .../finalisation-6976/proofs/frontend_build.txt    |   26 -
+ .../finalisation-6976/proofs/frontend_lint.txt     |    4 -
+ .../proofs/frontend_typecheck.txt                  |    4 -
+ .../proofs/manual_testing_checklist.md             |   70 -
+ .zenflow/tasks/finalisation-6976/report.md         |  896 ----
+ .zenflow/tasks/finalisation-6976/spec.md           |  567 ---
+ .../step-email-login-reset-summary.md              |   51 -
+ .../tasks/finalisation-6976/testing-summary.md     |  336 --
+ .zenflow/tasks/new-task-2b05/ACTION_CARD.md        |  367 ++
+ .zenflow/tasks/new-task-2b05/FINAL_REPORT.md       |  697 ++++
+ .zenflow/tasks/new-task-2b05/PHASE_F4_SUMMARY.md   |  321 ++
+ .zenflow/tasks/new-task-2b05/PHASE_G_SUMMARY.txt   |   79 +
+ .../new-task-2b05/PHASE_G_VPS_VERIFICATION.md      |  398 ++
+ .zenflow/tasks/new-task-2b05/plan.md               |  646 +++
+ .zenflow/tasks/new-task-2b05/requirements.md       |  435 ++
+ .../tasks/new-task-2b05/run_21494746620_logs.txt   |  746 ++++
+ .../new-task-2b05/run_21495009038_success_logs.txt | 4351 ++++++++++++++++++++
+ .zenflow/tasks/new-task-2b05/spec.md               |  811 ++++
+ .../new-task-2b05/workflow_complete_diff.patch     |  213 +
+ backend/core/management/commands/ensure_admin.py   |   46 -
+ backend/core/migrations/0003_userprofile.py        |   27 -
+ backend/core/models.py                             |   28 -
+ backend/core/tests/test_email_login_reset.py       |  142 -
+ backend/core/tests/test_ensure_admin_command.py    |   61 -
+ backend/core/tests/test_user_profile.py            |  116 -
+ backend/core/urls.py                               |    1 -
+ backend/core/views.py                              |   93 +-
+ .../exams/migrations/0015_copy_dispatch_fields.py  |   54 -
+ ...6_remove_copy_exams_copy_status_idx_and_more.py |   34 -
+ backend/exams/models.py                            |   30 -
+ backend/exams/serializers.py                       |   13 +-
+ backend/exams/tests.py                             |  114 +-
+ backend/exams/urls.py                              |    6 +-
+ backend/exams/views.py                             |   91 -
+ backend/grading/migrations/0008_questionremark.py  |   36 -
+ backend/grading/models.py                          |   41 -
+ backend/grading/serializers.py                     |   15 +-
+ backend/grading/tests/test_remarks.py              |  248 --
+ backend/grading/urls.py                            |   12 +-
+ backend/grading/views.py                           |  122 +-
+ backend/scripts/seed_e2e.py                        |   31 +-
+ frontend/package-lock.json                         |    4 +-
+ frontend/playwright.config.ts                      |    2 +-
+ frontend/src/App.vue                               |   19 -
+ frontend/src/components/ChangePasswordModal.vue    |  441 --
+ frontend/src/services/gradingApi.js                |   34 -
+ frontend/src/stores/auth.js                        |   19 +-
+ frontend/src/views/AdminDashboard.vue              |  249 +-
+ frontend/src/views/Login.vue                       |   95 +-
+ frontend/src/views/admin/CorrectorDesk.vue         |  198 +-
+ frontend/src/views/admin/UserManagement.vue        |  129 -
+ frontend/tests/e2e/dispatch_flow.spec.ts           |  144 -
+ frontend/tests/e2e/global-setup.ts                 |    2 +-
+ frontend/tests/e2e/student_flow.spec.ts            |    8 +-
+ infra/docker/docker-compose.local-prod.yml         |    4 +-
+ 60 files changed, 9098 insertions(+), 5358 deletions(-)
+
+## DIFF origin/main..HEAD (name-status)
+M	.github/workflows/release-gate.yml
+D	.zenflow/tasks/finalisation-6976/plan.md
+D	.zenflow/tasks/finalisation-6976/proofs/backend_check.txt
+D	.zenflow/tasks/finalisation-6976/proofs/backend_tests.txt
+D	.zenflow/tasks/finalisation-6976/proofs/ci_runs.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_build.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_lint.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_typecheck.txt
+D	.zenflow/tasks/finalisation-6976/proofs/manual_testing_checklist.md
+D	.zenflow/tasks/finalisation-6976/report.md
+D	.zenflow/tasks/finalisation-6976/spec.md
+D	.zenflow/tasks/finalisation-6976/step-email-login-reset-summary.md
+D	.zenflow/tasks/finalisation-6976/testing-summary.md
+A	.zenflow/tasks/new-task-2b05/ACTION_CARD.md
+A	.zenflow/tasks/new-task-2b05/FINAL_REPORT.md
+A	.zenflow/tasks/new-task-2b05/PHASE_F4_SUMMARY.md
+A	.zenflow/tasks/new-task-2b05/PHASE_G_SUMMARY.txt
+A	.zenflow/tasks/new-task-2b05/PHASE_G_VPS_VERIFICATION.md
+A	.zenflow/tasks/new-task-2b05/plan.md
+A	.zenflow/tasks/new-task-2b05/requirements.md
+A	.zenflow/tasks/new-task-2b05/run_21494746620_logs.txt
+A	.zenflow/tasks/new-task-2b05/run_21495009038_success_logs.txt
+A	.zenflow/tasks/new-task-2b05/spec.md
+A	.zenflow/tasks/new-task-2b05/workflow_complete_diff.patch
+D	backend/core/management/commands/ensure_admin.py
+D	backend/core/migrations/0003_userprofile.py
+M	backend/core/models.py
+D	backend/core/tests/test_email_login_reset.py
+D	backend/core/tests/test_ensure_admin_command.py
+D	backend/core/tests/test_user_profile.py
+M	backend/core/urls.py
+M	backend/core/views.py
+D	backend/exams/migrations/0015_copy_dispatch_fields.py
+D	backend/exams/migrations/0016_remove_copy_exams_copy_status_idx_and_more.py
+M	backend/exams/models.py
+M	backend/exams/serializers.py
+M	backend/exams/tests.py
+M	backend/exams/urls.py
+M	backend/exams/views.py
+D	backend/grading/migrations/0008_questionremark.py
+M	backend/grading/models.py
+M	backend/grading/serializers.py
+D	backend/grading/tests/test_remarks.py
+M	backend/grading/urls.py
+M	backend/grading/views.py
+M	backend/scripts/seed_e2e.py
+M	frontend/package-lock.json
+M	frontend/playwright.config.ts
+M	frontend/src/App.vue
+D	frontend/src/components/ChangePasswordModal.vue
+M	frontend/src/services/gradingApi.js
+M	frontend/src/stores/auth.js
+M	frontend/src/views/AdminDashboard.vue
+M	frontend/src/views/Login.vue
+M	frontend/src/views/admin/CorrectorDesk.vue
+M	frontend/src/views/admin/UserManagement.vue
+D	frontend/tests/e2e/dispatch_flow.spec.ts
+M	frontend/tests/e2e/global-setup.ts
+M	frontend/tests/e2e/student_flow.spec.ts
+M	infra/docker/docker-compose.local-prod.yml
+
+## UNTRACKED FILES
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/.zenflow/worktrees/new-tasktask-a3-60ed
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/.zenflow/worktrees/new-tasktask-a3-60ed
+
+## GIT TOPLEVEL
+/home/alaeddine/.zenflow/worktrees/new-tasktask-a3-60ed
+
+## CURRENT BRANCH
+new-tasktask-a3-60ed
+
+## HEAD SHA
+15edf8f04edc5bd0c46797d5fa7e3a22ab276d1f
+
+## STATUS
+
+## RECENT COMMITS (last 10)
+15edf8f CI Verification
+7b1ceaa Update plan.md: mark commit and push step as complete
+a488160 Update plan.md: mark test steps as complete
+c5d60dd Fix Lock Token Validation in finalize_copy
+da42914 Fix Lock Token Validation in _require_active_lock
+26db6ff Pre-flight Branch Setup
+8e53bd2 Technical Specification
+5da4484 Planning
+86ddb63 Requirements
+8e816d7 Initialize task: New taskTask A3
+
+## DIFF origin/main..HEAD (stat)
+ .github/RELEASE_GATE_CI_SETUP.md                   | 158 ----
+ .github/RELEASE_GATE_INTEGRITY.md                  | 295 -------
+ .github/workflows/deploy.yml                       | 189 +----
+ .github/workflows/korrigo-ci.yml                   |  10 +-
+ .github/workflows/release-gate.yml                 | 297 -------
+ .gitignore                                         |   1 -
+ .zenflow/tasks/finalisation-6976/plan.md           | 400 ---------
+ .../finalisation-6976/proofs/backend_check.txt     |   1 -
+ .../finalisation-6976/proofs/backend_tests.txt     | 246 ------
+ .../tasks/finalisation-6976/proofs/ci_runs.txt     |  51 --
+ .../finalisation-6976/proofs/frontend_build.txt    |  26 -
+ .../finalisation-6976/proofs/frontend_lint.txt     |   4 -
+ .../proofs/frontend_typecheck.txt                  |   4 -
+ .../proofs/manual_testing_checklist.md             |  70 --
+ .zenflow/tasks/finalisation-6976/report.md         | 896 ---------------------
+ .zenflow/tasks/finalisation-6976/spec.md           | 567 -------------
+ .../step-email-login-reset-summary.md              |  51 --
+ .../tasks/finalisation-6976/testing-summary.md     | 336 --------
+ .zenflow/tasks/new-tasktask-a3-60ed/plan.md        | 254 ++++++
+ .../tasks/new-tasktask-a3-60ed/requirements.md     | 220 +++++
+ .zenflow/tasks/new-tasktask-a3-60ed/spec.md        | 202 +++++
+ DELIVERABLES_v1.0.0-rc1.md                         | 284 -------
+ PRODUCTION_CHECKLIST.md                            | 507 ------------
+ README.prod.md                                     | 712 ----------------
+ RELEASE_GATE_REPORT_2026-01-28.md                  | 234 ------
+ RELEASE_GATE_REPORT_v1.0.0-rc1.md                  | 289 -------
+ RELEASE_NOTES_v1.0.0.md                            | 229 ------
+ RUNBOOK_STAGING.md                                 | 800 ------------------
+ backend/.bandit                                    |  31 -
+ backend/SECURITY_SCANNING.md                       | 104 ---
+ backend/conftest.py                                |   6 +-
+ backend/core/logging.py                            |  87 --
+ backend/core/management/commands/backup_restore.py |  10 +-
+ backend/core/management/commands/ensure_admin.py   |  46 --
+ backend/core/management/commands/init_pmf.py       |  19 +-
+ backend/core/middleware/metrics.py                 |  58 +-
+ backend/core/middleware/request_id.py              | 188 -----
+ backend/core/migrations/0003_userprofile.py        |  27 -
+ backend/core/models.py                             |  28 -
+ backend/core/prometheus.py                         | 141 ----
+ backend/core/settings.py                           |  50 +-
+ backend/core/tests/test_email_login_reset.py       | 142 ----
+ backend/core/tests/test_ensure_admin_command.py    |  61 --
+ backend/core/tests/test_logging.py                 | 250 ------
+ backend/core/tests/test_prometheus.py              | 243 ------
+ backend/core/tests/test_rate_limiting.py           | 114 ++-
+ backend/core/tests/test_user_profile.py            | 116 ---
+ backend/core/urls.py                               |   7 -
+ backend/core/utils/audit.py                        |   2 +-
+ backend/core/views.py                              |  93 +--
+ backend/core/views_prometheus.py                   | 117 ---
+ .../exams/migrations/0015_copy_dispatch_fields.py  |  54 --
+ ...6_remove_copy_exams_copy_status_idx_and_more.py |  34 -
+ backend/exams/models.py                            |  35 +-
+ backend/exams/serializers.py                       |  13 +-
+ backend/exams/tests.py                             | 114 +--
+ backend/exams/urls.py                              |   6 +-
+ backend/exams/views.py                             |  91 ---
+ backend/grading/migrations/0008_questionremark.py  |  36 -
+ backend/grading/models.py                          |  41 -
+ backend/grading/pdf_processor.py                   |  35 -
+ backend/grading/serializers.py                     |  15 +-
+ backend/grading/services.py                        |  10 +-
+ backend/grading/tasks.py                           |  97 ++-
+ backend/grading/tests/test_concurrency_postgres.py |   6 +-
+ backend/grading/tests/test_error_handling.py       |  40 +-
+ backend/grading/tests/test_remarks.py              | 248 ------
+ backend/grading/tests/test_tasks.py                |  38 +-
+ backend/grading/tests/test_validation.py           |  30 +-
+ backend/grading/urls.py                            |  12 +-
+ backend/grading/views.py                           | 122 +--
+ backend/pytest.ini                                 |   1 -
+ backend/requirements.txt                           |   4 +-
+ backend/scripts/seed_e2e.py                        |  31 +-
+ backend/seed_prod.py                               | 312 -------
+ backend/tests/test_smoke.py                        | 135 ----
+ backups/.gitignore                                 |   2 -
+ backups/.gitkeep                                   |   0
+ ...se.prod.yml.obsolete => docker-compose.prod.yml |   0
+ docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md     | 262 ------
+ frontend/package-lock.json                         |   4 +-
+ frontend/playwright.config.ts                      |   2 +-
+ frontend/src/App.vue                               |  19 -
+ frontend/src/components/ChangePasswordModal.vue    | 441 ----------
+ frontend/src/services/gradingApi.js                |  34 -
+ frontend/src/stores/auth.js                        |  19 +-
+ frontend/src/views/AdminDashboard.vue              | 249 +-----
+ frontend/src/views/Login.vue                       |  95 +--
+ frontend/src/views/admin/CorrectorDesk.vue         | 198 +----
+ frontend/src/views/admin/UserManagement.vue        | 129 ---
+ frontend/tests/e2e/dispatch_flow.spec.ts           | 144 ----
+ frontend/tests/e2e/global-setup.ts                 |   2 +-
+ frontend/tests/e2e/student_flow.spec.ts            |   8 +-
+ infra/docker/docker-compose.local-prod.yml         |   6 -
+ infra/docker/docker-compose.staging.yml            | 111 ---
+ scripts/RELEASE_GATE_ONESHOT.md                    | 300 -------
+ scripts/STAGING_README.md                          | 393 ---------
+ scripts/backup_db.sh                               |  25 -
+ scripts/deploy_staging_safe.sh                     |  73 --
+ scripts/migrate_with_backup.sh                     |  38 -
+ scripts/prod_down.sh                               |   2 +-
+ scripts/prod_up.sh                                 |   2 +-
+ scripts/release_gate_oneshot.sh                    | 392 ---------
+ scripts/run_staging_validation.sh                  | 177 ----
+ scripts/smoke_staging.sh                           | 210 -----
+ 105 files changed, 913 insertions(+), 13257 deletions(-)
+
+## DIFF origin/main..HEAD (name-status)
+D	.github/RELEASE_GATE_CI_SETUP.md
+D	.github/RELEASE_GATE_INTEGRITY.md
+M	.github/workflows/deploy.yml
+M	.github/workflows/korrigo-ci.yml
+D	.github/workflows/release-gate.yml
+M	.gitignore
+D	.zenflow/tasks/finalisation-6976/plan.md
+D	.zenflow/tasks/finalisation-6976/proofs/backend_check.txt
+D	.zenflow/tasks/finalisation-6976/proofs/backend_tests.txt
+D	.zenflow/tasks/finalisation-6976/proofs/ci_runs.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_build.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_lint.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_typecheck.txt
+D	.zenflow/tasks/finalisation-6976/proofs/manual_testing_checklist.md
+D	.zenflow/tasks/finalisation-6976/report.md
+D	.zenflow/tasks/finalisation-6976/spec.md
+D	.zenflow/tasks/finalisation-6976/step-email-login-reset-summary.md
+D	.zenflow/tasks/finalisation-6976/testing-summary.md
+A	.zenflow/tasks/new-tasktask-a3-60ed/plan.md
+A	.zenflow/tasks/new-tasktask-a3-60ed/requirements.md
+A	.zenflow/tasks/new-tasktask-a3-60ed/spec.md
+D	DELIVERABLES_v1.0.0-rc1.md
+D	PRODUCTION_CHECKLIST.md
+D	README.prod.md
+D	RELEASE_GATE_REPORT_2026-01-28.md
+D	RELEASE_GATE_REPORT_v1.0.0-rc1.md
+D	RELEASE_NOTES_v1.0.0.md
+D	RUNBOOK_STAGING.md
+D	backend/.bandit
+D	backend/SECURITY_SCANNING.md
+M	backend/conftest.py
+D	backend/core/logging.py
+M	backend/core/management/commands/backup_restore.py
+D	backend/core/management/commands/ensure_admin.py
+M	backend/core/management/commands/init_pmf.py
+M	backend/core/middleware/metrics.py
+D	backend/core/middleware/request_id.py
+D	backend/core/migrations/0003_userprofile.py
+M	backend/core/models.py
+D	backend/core/prometheus.py
+M	backend/core/settings.py
+D	backend/core/tests/test_email_login_reset.py
+D	backend/core/tests/test_ensure_admin_command.py
+D	backend/core/tests/test_logging.py
+D	backend/core/tests/test_prometheus.py
+M	backend/core/tests/test_rate_limiting.py
+D	backend/core/tests/test_user_profile.py
+M	backend/core/urls.py
+M	backend/core/utils/audit.py
+M	backend/core/views.py
+D	backend/core/views_prometheus.py
+D	backend/exams/migrations/0015_copy_dispatch_fields.py
+D	backend/exams/migrations/0016_remove_copy_exams_copy_status_idx_and_more.py
+M	backend/exams/models.py
+M	backend/exams/serializers.py
+M	backend/exams/tests.py
+M	backend/exams/urls.py
+M	backend/exams/views.py
+D	backend/grading/migrations/0008_questionremark.py
+M	backend/grading/models.py
+D	backend/grading/pdf_processor.py
+M	backend/grading/serializers.py
+M	backend/grading/services.py
+M	backend/grading/tasks.py
+M	backend/grading/tests/test_concurrency_postgres.py
+M	backend/grading/tests/test_error_handling.py
+D	backend/grading/tests/test_remarks.py
+M	backend/grading/tests/test_tasks.py
+M	backend/grading/tests/test_validation.py
+M	backend/grading/urls.py
+M	backend/grading/views.py
+M	backend/pytest.ini
+M	backend/requirements.txt
+M	backend/scripts/seed_e2e.py
+D	backend/seed_prod.py
+D	backend/tests/test_smoke.py
+D	backups/.gitignore
+D	backups/.gitkeep
+R100	docker-compose.prod.yml.obsolete	docker-compose.prod.yml
+D	docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md
+M	frontend/package-lock.json
+M	frontend/playwright.config.ts
+M	frontend/src/App.vue
+D	frontend/src/components/ChangePasswordModal.vue
+M	frontend/src/services/gradingApi.js
+M	frontend/src/stores/auth.js
+M	frontend/src/views/AdminDashboard.vue
+M	frontend/src/views/Login.vue
+M	frontend/src/views/admin/CorrectorDesk.vue
+M	frontend/src/views/admin/UserManagement.vue
+D	frontend/tests/e2e/dispatch_flow.spec.ts
+M	frontend/tests/e2e/global-setup.ts
+M	frontend/tests/e2e/student_flow.spec.ts
+M	infra/docker/docker-compose.local-prod.yml
+D	infra/docker/docker-compose.staging.yml
+D	scripts/RELEASE_GATE_ONESHOT.md
+D	scripts/STAGING_README.md
+D	scripts/backup_db.sh
+D	scripts/deploy_staging_safe.sh
+D	scripts/migrate_with_backup.sh
+M	scripts/prod_down.sh
+M	scripts/prod_up.sh
+D	scripts/release_gate_oneshot.sh
+D	scripts/run_staging_validation.sh
+D	scripts/smoke_staging.sh
+
+## UNTRACKED FILES
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/.zenflow/worktrees/task-a1-3221
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/.zenflow/worktrees/task-a1-3221
+
+## GIT TOPLEVEL
+/home/alaeddine/.zenflow/worktrees/task-a1-3221
+
+## CURRENT BRANCH
+task-a1-3221
+
+## HEAD SHA
+d828bd4a106577e66aba961c7c3dde1c33184401
+
+## STATUS
+
+## RECENT COMMITS (last 10)
+d828bd4 Audit & Investigation
+2bf2fa3 Task A1
+8ad135e Pre-Flight & Git Setup
+da7df3b Task A1
+4e6a0d5 Task A1
+180eea6 Technical Specification
+4baee87 Planning
+aae6e16 Requirements
+8c71c68 Initialize task: Task A1
+bf86716 Fix: finalize lock handling + pdf fallback (CI)
+
+## DIFF origin/main..HEAD (stat)
+ .github/RELEASE_GATE_CI_SETUP.md                   | 158 ----
+ .github/RELEASE_GATE_INTEGRITY.md                  | 295 -------
+ .github/workflows/deploy.yml                       | 189 +----
+ .github/workflows/korrigo-ci.yml                   |  10 +-
+ .github/workflows/release-gate.yml                 | 297 -------
+ .gitignore                                         |   1 -
+ .zenflow/tasks/finalisation-6976/plan.md           | 400 ---------
+ .../finalisation-6976/proofs/backend_check.txt     |   1 -
+ .../finalisation-6976/proofs/backend_tests.txt     | 246 ------
+ .../tasks/finalisation-6976/proofs/ci_runs.txt     |  51 --
+ .../finalisation-6976/proofs/frontend_build.txt    |  26 -
+ .../finalisation-6976/proofs/frontend_lint.txt     |   4 -
+ .../proofs/frontend_typecheck.txt                  |   4 -
+ .../proofs/manual_testing_checklist.md             |  70 --
+ .zenflow/tasks/finalisation-6976/report.md         | 896 ---------------------
+ .zenflow/tasks/finalisation-6976/spec.md           | 567 -------------
+ .../step-email-login-reset-summary.md              |  51 --
+ .../tasks/finalisation-6976/testing-summary.md     | 336 --------
+ .zenflow/tasks/task-a1-3221/plan.md                | 285 +++++++
+ .zenflow/tasks/task-a1-3221/requirements.md        | 174 ++++
+ .zenflow/tasks/task-a1-3221/spec.md                | 362 +++++++++
+ DELIVERABLES_v1.0.0-rc1.md                         | 284 -------
+ PRODUCTION_CHECKLIST.md                            | 507 ------------
+ README.prod.md                                     | 712 ----------------
+ RELEASE_GATE_REPORT_2026-01-28.md                  | 234 ------
+ RELEASE_GATE_REPORT_v1.0.0-rc1.md                  | 289 -------
+ RELEASE_NOTES_v1.0.0.md                            | 229 ------
+ RUNBOOK_STAGING.md                                 | 800 ------------------
+ backend/.bandit                                    |  31 -
+ backend/SECURITY_SCANNING.md                       | 104 ---
+ backend/conftest.py                                |   6 +-
+ backend/core/logging.py                            |  87 --
+ backend/core/management/commands/backup_restore.py |  10 +-
+ backend/core/management/commands/ensure_admin.py   |  46 --
+ backend/core/management/commands/init_pmf.py       |  19 +-
+ backend/core/middleware/metrics.py                 |  58 +-
+ backend/core/middleware/request_id.py              | 188 -----
+ backend/core/migrations/0003_userprofile.py        |  27 -
+ backend/core/models.py                             |  28 -
+ backend/core/prometheus.py                         | 141 ----
+ backend/core/settings.py                           |  50 +-
+ backend/core/tests/test_email_login_reset.py       | 142 ----
+ backend/core/tests/test_ensure_admin_command.py    |  61 --
+ backend/core/tests/test_logging.py                 | 250 ------
+ backend/core/tests/test_prometheus.py              | 243 ------
+ backend/core/tests/test_rate_limiting.py           | 114 ++-
+ backend/core/tests/test_user_profile.py            | 116 ---
+ backend/core/urls.py                               |   7 -
+ backend/core/utils/audit.py                        |   2 +-
+ backend/core/views.py                              |  93 +--
+ backend/core/views_prometheus.py                   | 117 ---
+ .../exams/migrations/0015_copy_dispatch_fields.py  |  54 --
+ ...6_remove_copy_exams_copy_status_idx_and_more.py |  34 -
+ backend/exams/models.py                            |  35 +-
+ backend/exams/serializers.py                       |  13 +-
+ backend/exams/tests.py                             | 114 +--
+ backend/exams/urls.py                              |   6 +-
+ backend/exams/views.py                             |  91 ---
+ backend/grading/migrations/0008_questionremark.py  |  36 -
+ backend/grading/models.py                          |  41 -
+ backend/grading/pdf_processor.py                   |  35 -
+ backend/grading/serializers.py                     |  15 +-
+ backend/grading/services.py                        |  15 +-
+ backend/grading/tasks.py                           |  97 ++-
+ backend/grading/tests/test_concurrency_postgres.py |   6 +-
+ backend/grading/tests/test_error_handling.py       |  33 +-
+ backend/grading/tests/test_remarks.py              | 248 ------
+ backend/grading/tests/test_tasks.py                |  38 +-
+ backend/grading/tests/test_validation.py           |  30 +-
+ backend/grading/urls.py                            |  12 +-
+ backend/grading/views.py                           | 122 +--
+ backend/pytest.ini                                 |   1 -
+ backend/requirements.txt                           |   4 +-
+ backend/scripts/seed_e2e.py                        |  31 +-
+ backend/seed_prod.py                               | 312 -------
+ backend/tests/test_smoke.py                        | 135 ----
+ backups/.gitignore                                 |   2 -
+ backups/.gitkeep                                   |   0
+ ...se.prod.yml.obsolete => docker-compose.prod.yml |   0
+ docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md     | 262 ------
+ frontend/package-lock.json                         |   4 +-
+ frontend/playwright.config.ts                      |   2 +-
+ frontend/src/App.vue                               |  19 -
+ frontend/src/components/ChangePasswordModal.vue    | 441 ----------
+ frontend/src/services/gradingApi.js                |  34 -
+ frontend/src/stores/auth.js                        |  19 +-
+ frontend/src/views/AdminDashboard.vue              | 249 +-----
+ frontend/src/views/Login.vue                       |  95 +--
+ frontend/src/views/admin/CorrectorDesk.vue         | 198 +----
+ frontend/src/views/admin/UserManagement.vue        | 129 ---
+ frontend/tests/e2e/dispatch_flow.spec.ts           | 144 ----
+ frontend/tests/e2e/global-setup.ts                 |   2 +-
+ frontend/tests/e2e/student_flow.spec.ts            |   8 +-
+ infra/docker/docker-compose.local-prod.yml         |   6 -
+ infra/docker/docker-compose.staging.yml            | 111 ---
+ scripts/RELEASE_GATE_ONESHOT.md                    | 300 -------
+ scripts/STAGING_README.md                          | 393 ---------
+ scripts/backup_db.sh                               |  25 -
+ scripts/deploy_staging_safe.sh                     |  73 --
+ scripts/migrate_with_backup.sh                     |  38 -
+ scripts/prod_down.sh                               |   2 +-
+ scripts/prod_up.sh                                 |   2 +-
+ scripts/release_gate_oneshot.sh                    | 392 ---------
+ scripts/run_staging_validation.sh                  | 177 ----
+ scripts/smoke_staging.sh                           | 210 -----
+ 105 files changed, 1054 insertions(+), 13259 deletions(-)
+
+## DIFF origin/main..HEAD (name-status)
+D	.github/RELEASE_GATE_CI_SETUP.md
+D	.github/RELEASE_GATE_INTEGRITY.md
+M	.github/workflows/deploy.yml
+M	.github/workflows/korrigo-ci.yml
+D	.github/workflows/release-gate.yml
+M	.gitignore
+D	.zenflow/tasks/finalisation-6976/plan.md
+D	.zenflow/tasks/finalisation-6976/proofs/backend_check.txt
+D	.zenflow/tasks/finalisation-6976/proofs/backend_tests.txt
+D	.zenflow/tasks/finalisation-6976/proofs/ci_runs.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_build.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_lint.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_typecheck.txt
+D	.zenflow/tasks/finalisation-6976/proofs/manual_testing_checklist.md
+D	.zenflow/tasks/finalisation-6976/report.md
+D	.zenflow/tasks/finalisation-6976/spec.md
+D	.zenflow/tasks/finalisation-6976/step-email-login-reset-summary.md
+D	.zenflow/tasks/finalisation-6976/testing-summary.md
+A	.zenflow/tasks/task-a1-3221/plan.md
+A	.zenflow/tasks/task-a1-3221/requirements.md
+A	.zenflow/tasks/task-a1-3221/spec.md
+D	DELIVERABLES_v1.0.0-rc1.md
+D	PRODUCTION_CHECKLIST.md
+D	README.prod.md
+D	RELEASE_GATE_REPORT_2026-01-28.md
+D	RELEASE_GATE_REPORT_v1.0.0-rc1.md
+D	RELEASE_NOTES_v1.0.0.md
+D	RUNBOOK_STAGING.md
+D	backend/.bandit
+D	backend/SECURITY_SCANNING.md
+M	backend/conftest.py
+D	backend/core/logging.py
+M	backend/core/management/commands/backup_restore.py
+D	backend/core/management/commands/ensure_admin.py
+M	backend/core/management/commands/init_pmf.py
+M	backend/core/middleware/metrics.py
+D	backend/core/middleware/request_id.py
+D	backend/core/migrations/0003_userprofile.py
+M	backend/core/models.py
+D	backend/core/prometheus.py
+M	backend/core/settings.py
+D	backend/core/tests/test_email_login_reset.py
+D	backend/core/tests/test_ensure_admin_command.py
+D	backend/core/tests/test_logging.py
+D	backend/core/tests/test_prometheus.py
+M	backend/core/tests/test_rate_limiting.py
+D	backend/core/tests/test_user_profile.py
+M	backend/core/urls.py
+M	backend/core/utils/audit.py
+M	backend/core/views.py
+D	backend/core/views_prometheus.py
+D	backend/exams/migrations/0015_copy_dispatch_fields.py
+D	backend/exams/migrations/0016_remove_copy_exams_copy_status_idx_and_more.py
+M	backend/exams/models.py
+M	backend/exams/serializers.py
+M	backend/exams/tests.py
+M	backend/exams/urls.py
+M	backend/exams/views.py
+D	backend/grading/migrations/0008_questionremark.py
+M	backend/grading/models.py
+D	backend/grading/pdf_processor.py
+M	backend/grading/serializers.py
+M	backend/grading/services.py
+M	backend/grading/tasks.py
+M	backend/grading/tests/test_concurrency_postgres.py
+M	backend/grading/tests/test_error_handling.py
+D	backend/grading/tests/test_remarks.py
+M	backend/grading/tests/test_tasks.py
+M	backend/grading/tests/test_validation.py
+M	backend/grading/urls.py
+M	backend/grading/views.py
+M	backend/pytest.ini
+M	backend/requirements.txt
+M	backend/scripts/seed_e2e.py
+D	backend/seed_prod.py
+D	backend/tests/test_smoke.py
+D	backups/.gitignore
+D	backups/.gitkeep
+R100	docker-compose.prod.yml.obsolete	docker-compose.prod.yml
+D	docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md
+M	frontend/package-lock.json
+M	frontend/playwright.config.ts
+M	frontend/src/App.vue
+D	frontend/src/components/ChangePasswordModal.vue
+M	frontend/src/services/gradingApi.js
+M	frontend/src/stores/auth.js
+M	frontend/src/views/AdminDashboard.vue
+M	frontend/src/views/Login.vue
+M	frontend/src/views/admin/CorrectorDesk.vue
+M	frontend/src/views/admin/UserManagement.vue
+D	frontend/tests/e2e/dispatch_flow.spec.ts
+M	frontend/tests/e2e/global-setup.ts
+M	frontend/tests/e2e/student_flow.spec.ts
+M	infra/docker/docker-compose.local-prod.yml
+D	infra/docker/docker-compose.staging.yml
+D	scripts/RELEASE_GATE_ONESHOT.md
+D	scripts/STAGING_README.md
+D	scripts/backup_db.sh
+D	scripts/deploy_staging_safe.sh
+D	scripts/migrate_with_backup.sh
+M	scripts/prod_down.sh
+M	scripts/prod_up.sh
+D	scripts/release_gate_oneshot.sh
+D	scripts/run_staging_validation.sh
+D	scripts/smoke_staging.sh
+
+## UNTRACKED FILES
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/.zenflow/worktrees/task-a2-2794
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/.zenflow/worktrees/task-a2-2794
+
+## GIT TOPLEVEL
+/home/alaeddine/.zenflow/worktrees/task-a2-2794
+
+## CURRENT BRANCH
+task-a2-2794
+
+## HEAD SHA
+0d6389a15323ddf81fbed7a5d10f8c4071f81d75
+
+## STATUS
+
+## RECENT COMMITS (last 10)
+0d6389a fix(grading): use 'detail' instead of 'error' for API contract compliance
+73fcce9 Push and verify CI
+0d37efd docs: mark all implementation steps complete in plan.md
+946acca Update plan.md: mark implementation steps complete
+e060dea Create PDFProcessor class
+df4da83 Audit test expectations
+5b25e3b Fix Copy.DoesNotExist error handling
+f60c0e2 Commit changes atomically
+7fbdfbc Run targeted tests locally
+0fff8a7 Planning
+
+## DIFF origin/main..HEAD (stat)
+ .github/RELEASE_GATE_CI_SETUP.md                   | 158 ----
+ .github/RELEASE_GATE_INTEGRITY.md                  | 295 -------
+ .github/workflows/deploy.yml                       | 189 +----
+ .github/workflows/korrigo-ci.yml                   |  10 +-
+ .github/workflows/release-gate.yml                 | 297 -------
+ .gitignore                                         |   1 -
+ .zenflow/tasks/finalisation-6976/plan.md           | 400 ---------
+ .../finalisation-6976/proofs/backend_check.txt     |   1 -
+ .../finalisation-6976/proofs/backend_tests.txt     | 246 ------
+ .../tasks/finalisation-6976/proofs/ci_runs.txt     |  51 --
+ .../finalisation-6976/proofs/frontend_build.txt    |  26 -
+ .../finalisation-6976/proofs/frontend_lint.txt     |   4 -
+ .../proofs/frontend_typecheck.txt                  |   4 -
+ .../proofs/manual_testing_checklist.md             |  70 --
+ .zenflow/tasks/finalisation-6976/report.md         | 896 ---------------------
+ .zenflow/tasks/finalisation-6976/spec.md           | 567 -------------
+ .../step-email-login-reset-summary.md              |  51 --
+ .../tasks/finalisation-6976/testing-summary.md     | 336 --------
+ .zenflow/tasks/task-a2-2794/plan.md                | 265 ++++++
+ .zenflow/tasks/task-a2-2794/requirements.md        |  78 ++
+ .zenflow/tasks/task-a2-2794/spec.md                | 213 +++++
+ DELIVERABLES_v1.0.0-rc1.md                         | 284 -------
+ PRODUCTION_CHECKLIST.md                            | 507 ------------
+ README.prod.md                                     | 712 ----------------
+ RELEASE_GATE_REPORT_2026-01-28.md                  | 234 ------
+ RELEASE_GATE_REPORT_v1.0.0-rc1.md                  | 289 -------
+ RELEASE_NOTES_v1.0.0.md                            | 229 ------
+ RUNBOOK_STAGING.md                                 | 800 ------------------
+ backend/.bandit                                    |  31 -
+ backend/SECURITY_SCANNING.md                       | 104 ---
+ backend/conftest.py                                |   6 +-
+ backend/core/logging.py                            |  87 --
+ backend/core/management/commands/backup_restore.py |  10 +-
+ backend/core/management/commands/ensure_admin.py   |  46 --
+ backend/core/management/commands/init_pmf.py       |  19 +-
+ backend/core/middleware/metrics.py                 |  58 +-
+ backend/core/middleware/request_id.py              | 188 -----
+ backend/core/migrations/0003_userprofile.py        |  27 -
+ backend/core/models.py                             |  28 -
+ backend/core/prometheus.py                         | 141 ----
+ backend/core/settings.py                           |  50 +-
+ backend/core/tests/test_email_login_reset.py       | 142 ----
+ backend/core/tests/test_ensure_admin_command.py    |  61 --
+ backend/core/tests/test_logging.py                 | 250 ------
+ backend/core/tests/test_prometheus.py              | 243 ------
+ backend/core/tests/test_rate_limiting.py           | 114 ++-
+ backend/core/tests/test_user_profile.py            | 116 ---
+ backend/core/urls.py                               |   7 -
+ backend/core/utils/audit.py                        |   2 +-
+ backend/core/views.py                              |  93 +--
+ backend/core/views_prometheus.py                   | 117 ---
+ .../exams/migrations/0015_copy_dispatch_fields.py  |  54 --
+ ...6_remove_copy_exams_copy_status_idx_and_more.py |  34 -
+ backend/exams/models.py                            |  33 -
+ backend/exams/serializers.py                       |  13 +-
+ backend/exams/tests.py                             | 114 +--
+ backend/exams/urls.py                              |   6 +-
+ backend/exams/views.py                             |  91 ---
+ backend/grading/migrations/0008_questionremark.py  |  36 -
+ backend/grading/models.py                          |  41 -
+ backend/grading/pdf_processor.py                   |  35 -
+ backend/grading/serializers.py                     |  15 +-
+ backend/grading/services.py                        |  38 +-
+ backend/grading/tasks.py                           |  99 +--
+ backend/grading/tests/test_concurrency_postgres.py |   6 +-
+ backend/grading/tests/test_error_handling.py       |  33 +-
+ backend/grading/tests/test_remarks.py              | 248 ------
+ backend/grading/tests/test_tasks.py                |  32 +-
+ backend/grading/tests/test_validation.py           |  30 +-
+ backend/grading/urls.py                            |  12 +-
+ backend/grading/views.py                           | 122 +--
+ backend/pytest.ini                                 |   1 -
+ backend/requirements.txt                           |   4 +-
+ backend/scripts/seed_e2e.py                        |  31 +-
+ backend/seed_prod.py                               | 312 -------
+ backend/tests/test_smoke.py                        | 135 ----
+ backups/.gitignore                                 |   2 -
+ backups/.gitkeep                                   |   0
+ ...se.prod.yml.obsolete => docker-compose.prod.yml |   0
+ docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md     | 262 ------
+ frontend/package-lock.json                         |   4 +-
+ frontend/playwright.config.ts                      |   2 +-
+ frontend/src/App.vue                               |  19 -
+ frontend/src/components/ChangePasswordModal.vue    | 441 ----------
+ frontend/src/services/gradingApi.js                |  34 -
+ frontend/src/stores/auth.js                        |  19 +-
+ frontend/src/views/AdminDashboard.vue              | 249 +-----
+ frontend/src/views/Login.vue                       |  95 +--
+ frontend/src/views/admin/CorrectorDesk.vue         | 198 +----
+ frontend/src/views/admin/UserManagement.vue        | 129 ---
+ frontend/tests/e2e/dispatch_flow.spec.ts           | 144 ----
+ frontend/tests/e2e/global-setup.ts                 |   2 +-
+ frontend/tests/e2e/student_flow.spec.ts            |   8 +-
+ infra/docker/docker-compose.local-prod.yml         |   6 -
+ infra/docker/docker-compose.staging.yml            | 111 ---
+ scripts/RELEASE_GATE_ONESHOT.md                    | 300 -------
+ scripts/STAGING_README.md                          | 393 ---------
+ scripts/backup_db.sh                               |  25 -
+ scripts/deploy_staging_safe.sh                     |  73 --
+ scripts/migrate_with_backup.sh                     |  38 -
+ scripts/prod_down.sh                               |   2 +-
+ scripts/prod_up.sh                                 |   2 +-
+ scripts/release_gate_oneshot.sh                    | 392 ---------
+ scripts/run_staging_validation.sh                  | 177 ----
+ scripts/smoke_staging.sh                           | 210 -----
+ 105 files changed, 815 insertions(+), 13250 deletions(-)
+
+## DIFF origin/main..HEAD (name-status)
+D	.github/RELEASE_GATE_CI_SETUP.md
+D	.github/RELEASE_GATE_INTEGRITY.md
+M	.github/workflows/deploy.yml
+M	.github/workflows/korrigo-ci.yml
+D	.github/workflows/release-gate.yml
+M	.gitignore
+D	.zenflow/tasks/finalisation-6976/plan.md
+D	.zenflow/tasks/finalisation-6976/proofs/backend_check.txt
+D	.zenflow/tasks/finalisation-6976/proofs/backend_tests.txt
+D	.zenflow/tasks/finalisation-6976/proofs/ci_runs.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_build.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_lint.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_typecheck.txt
+D	.zenflow/tasks/finalisation-6976/proofs/manual_testing_checklist.md
+D	.zenflow/tasks/finalisation-6976/report.md
+D	.zenflow/tasks/finalisation-6976/spec.md
+D	.zenflow/tasks/finalisation-6976/step-email-login-reset-summary.md
+D	.zenflow/tasks/finalisation-6976/testing-summary.md
+A	.zenflow/tasks/task-a2-2794/plan.md
+A	.zenflow/tasks/task-a2-2794/requirements.md
+A	.zenflow/tasks/task-a2-2794/spec.md
+D	DELIVERABLES_v1.0.0-rc1.md
+D	PRODUCTION_CHECKLIST.md
+D	README.prod.md
+D	RELEASE_GATE_REPORT_2026-01-28.md
+D	RELEASE_GATE_REPORT_v1.0.0-rc1.md
+D	RELEASE_NOTES_v1.0.0.md
+D	RUNBOOK_STAGING.md
+D	backend/.bandit
+D	backend/SECURITY_SCANNING.md
+M	backend/conftest.py
+D	backend/core/logging.py
+M	backend/core/management/commands/backup_restore.py
+D	backend/core/management/commands/ensure_admin.py
+M	backend/core/management/commands/init_pmf.py
+M	backend/core/middleware/metrics.py
+D	backend/core/middleware/request_id.py
+D	backend/core/migrations/0003_userprofile.py
+M	backend/core/models.py
+D	backend/core/prometheus.py
+M	backend/core/settings.py
+D	backend/core/tests/test_email_login_reset.py
+D	backend/core/tests/test_ensure_admin_command.py
+D	backend/core/tests/test_logging.py
+D	backend/core/tests/test_prometheus.py
+M	backend/core/tests/test_rate_limiting.py
+D	backend/core/tests/test_user_profile.py
+M	backend/core/urls.py
+M	backend/core/utils/audit.py
+M	backend/core/views.py
+D	backend/core/views_prometheus.py
+D	backend/exams/migrations/0015_copy_dispatch_fields.py
+D	backend/exams/migrations/0016_remove_copy_exams_copy_status_idx_and_more.py
+M	backend/exams/models.py
+M	backend/exams/serializers.py
+M	backend/exams/tests.py
+M	backend/exams/urls.py
+M	backend/exams/views.py
+D	backend/grading/migrations/0008_questionremark.py
+M	backend/grading/models.py
+D	backend/grading/pdf_processor.py
+M	backend/grading/serializers.py
+M	backend/grading/services.py
+M	backend/grading/tasks.py
+M	backend/grading/tests/test_concurrency_postgres.py
+M	backend/grading/tests/test_error_handling.py
+D	backend/grading/tests/test_remarks.py
+M	backend/grading/tests/test_tasks.py
+M	backend/grading/tests/test_validation.py
+M	backend/grading/urls.py
+M	backend/grading/views.py
+M	backend/pytest.ini
+M	backend/requirements.txt
+M	backend/scripts/seed_e2e.py
+D	backend/seed_prod.py
+D	backend/tests/test_smoke.py
+D	backups/.gitignore
+D	backups/.gitkeep
+R100	docker-compose.prod.yml.obsolete	docker-compose.prod.yml
+D	docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md
+M	frontend/package-lock.json
+M	frontend/playwright.config.ts
+M	frontend/src/App.vue
+D	frontend/src/components/ChangePasswordModal.vue
+M	frontend/src/services/gradingApi.js
+M	frontend/src/stores/auth.js
+M	frontend/src/views/AdminDashboard.vue
+M	frontend/src/views/Login.vue
+M	frontend/src/views/admin/CorrectorDesk.vue
+M	frontend/src/views/admin/UserManagement.vue
+D	frontend/tests/e2e/dispatch_flow.spec.ts
+M	frontend/tests/e2e/global-setup.ts
+M	frontend/tests/e2e/student_flow.spec.ts
+M	infra/docker/docker-compose.local-prod.yml
+D	infra/docker/docker-compose.staging.yml
+D	scripts/RELEASE_GATE_ONESHOT.md
+D	scripts/STAGING_README.md
+D	scripts/backup_db.sh
+D	scripts/deploy_staging_safe.sh
+D	scripts/migrate_with_backup.sh
+M	scripts/prod_down.sh
+M	scripts/prod_up.sh
+D	scripts/release_gate_oneshot.sh
+D	scripts/run_staging_validation.sh
+D	scripts/smoke_staging.sh
+
+## UNTRACKED FILES
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/.zenflow/worktrees/task-a4-72cb
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/.zenflow/worktrees/task-a4-72cb
+
+## GIT TOPLEVEL
+/home/alaeddine/.zenflow/worktrees/task-a4-72cb
+
+## CURRENT BRANCH
+task-a4-72cb
+
+## HEAD SHA
+285e8bb192b9fa49c5eac7007dcb84c377edc556
+
+## STATUS
+
+## RECENT COMMITS (last 10)
+285e8bb Task A4
+79855ef Full Regression Testing
+6664831 Documentation and Reporting
+d7881c8 Verify Exam.__init__ Fix
+dad56e9 Technical Specification
+3f2b34c Implementation
+cebc003 Technical Specification
+79aa4c7 Initialize task: Task A4
+bf86716 Fix: finalize lock handling + pdf fallback (CI)
+ac33f80 Fix: cleanup_orphaned_files return contract (CI)
+
+## DIFF origin/main..HEAD (stat)
+ .github/RELEASE_GATE_CI_SETUP.md                   | 158 ----
+ .github/RELEASE_GATE_INTEGRITY.md                  | 295 -------
+ .github/workflows/deploy.yml                       | 189 +----
+ .github/workflows/korrigo-ci.yml                   |  10 +-
+ .github/workflows/release-gate.yml                 | 297 -------
+ .gitignore                                         |   1 -
+ .zenflow/tasks/finalisation-6976/plan.md           | 400 ---------
+ .../finalisation-6976/proofs/backend_check.txt     |   1 -
+ .../finalisation-6976/proofs/backend_tests.txt     | 246 ------
+ .../tasks/finalisation-6976/proofs/ci_runs.txt     |  51 --
+ .../finalisation-6976/proofs/frontend_build.txt    |  26 -
+ .../finalisation-6976/proofs/frontend_lint.txt     |   4 -
+ .../proofs/frontend_typecheck.txt                  |   4 -
+ .../proofs/manual_testing_checklist.md             |  70 --
+ .zenflow/tasks/finalisation-6976/report.md         | 896 ---------------------
+ .zenflow/tasks/finalisation-6976/spec.md           | 567 -------------
+ .../step-email-login-reset-summary.md              |  51 --
+ .../tasks/finalisation-6976/testing-summary.md     | 336 --------
+ .zenflow/tasks/task-a4-72cb/plan.md                | 200 +++++
+ .zenflow/tasks/task-a4-72cb/report.md              | 405 ++++++++++
+ .zenflow/tasks/task-a4-72cb/spec.md                | 488 +++++++++++
+ DELIVERABLES_v1.0.0-rc1.md                         | 284 -------
+ PRODUCTION_CHECKLIST.md                            | 507 ------------
+ README.prod.md                                     | 712 ----------------
+ RELEASE_GATE_REPORT_2026-01-28.md                  | 234 ------
+ RELEASE_GATE_REPORT_v1.0.0-rc1.md                  | 289 -------
+ RELEASE_NOTES_v1.0.0.md                            | 229 ------
+ RUNBOOK_STAGING.md                                 | 800 ------------------
+ backend/.bandit                                    |  31 -
+ backend/SECURITY_SCANNING.md                       | 104 ---
+ backend/conftest.py                                |   6 +-
+ backend/core/logging.py                            |  87 --
+ backend/core/management/commands/backup_restore.py |  10 +-
+ backend/core/management/commands/ensure_admin.py   |  46 --
+ backend/core/management/commands/init_pmf.py       |  19 +-
+ backend/core/middleware/metrics.py                 |  58 +-
+ backend/core/middleware/request_id.py              | 188 -----
+ backend/core/migrations/0003_userprofile.py        |  27 -
+ backend/core/models.py                             |  28 -
+ backend/core/prometheus.py                         | 141 ----
+ backend/core/settings.py                           |  50 +-
+ backend/core/settings_test.py                      |   7 +-
+ backend/core/tests/test_email_login_reset.py       | 142 ----
+ backend/core/tests/test_ensure_admin_command.py    |  61 --
+ backend/core/tests/test_logging.py                 | 250 ------
+ backend/core/tests/test_prometheus.py              | 243 ------
+ backend/core/tests/test_rate_limiting.py           | 114 ++-
+ backend/core/tests/test_user_profile.py            | 116 ---
+ backend/core/urls.py                               |   7 -
+ backend/core/utils/audit.py                        |   2 +-
+ backend/core/views.py                              |  93 +--
+ backend/core/views_prometheus.py                   | 117 ---
+ .../exams/migrations/0015_copy_dispatch_fields.py  |  54 --
+ ...6_remove_copy_exams_copy_status_idx_and_more.py |  34 -
+ backend/exams/models.py                            |  33 -
+ backend/exams/serializers.py                       |  13 +-
+ backend/exams/tests.py                             | 114 +--
+ backend/exams/urls.py                              |   6 +-
+ backend/exams/views.py                             |  91 ---
+ backend/grading/migrations/0008_questionremark.py  |  36 -
+ backend/grading/models.py                          |  41 -
+ backend/grading/pdf_processor.py                   |  35 -
+ backend/grading/serializers.py                     |  15 +-
+ backend/grading/services.py                        |  27 +-
+ backend/grading/tasks.py                           |  97 ++-
+ backend/grading/tests/test_concurrency_postgres.py |   6 +-
+ backend/grading/tests/test_error_handling.py       |  33 +-
+ backend/grading/tests/test_remarks.py              | 248 ------
+ backend/grading/tests/test_tasks.py                |  38 +-
+ backend/grading/tests/test_validation.py           |  30 +-
+ backend/grading/urls.py                            |  12 +-
+ backend/grading/views.py                           | 122 +--
+ backend/pytest.ini                                 |   3 +-
+ backend/requirements.txt                           |   4 +-
+ backend/scripts/seed_e2e.py                        |  31 +-
+ backend/seed_prod.py                               | 312 -------
+ backend/tests/test_smoke.py                        | 135 ----
+ backups/.gitignore                                 |   2 -
+ backups/.gitkeep                                   |   0
+ ...se.prod.yml.obsolete => docker-compose.prod.yml |   0
+ docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md     | 262 ------
+ frontend/package-lock.json                         |   4 +-
+ frontend/playwright.config.ts                      |   2 +-
+ frontend/src/App.vue                               |  19 -
+ frontend/src/components/ChangePasswordModal.vue    | 441 ----------
+ frontend/src/services/gradingApi.js                |  34 -
+ frontend/src/stores/auth.js                        |  19 +-
+ frontend/src/views/AdminDashboard.vue              | 249 +-----
+ frontend/src/views/Login.vue                       |  95 +--
+ frontend/src/views/admin/CorrectorDesk.vue         | 198 +----
+ frontend/src/views/admin/UserManagement.vue        | 129 ---
+ frontend/tests/e2e/dispatch_flow.spec.ts           | 144 ----
+ frontend/tests/e2e/global-setup.ts                 |   2 +-
+ frontend/tests/e2e/student_flow.spec.ts            |   8 +-
+ infra/docker/docker-compose.local-prod.yml         |   6 -
+ infra/docker/docker-compose.staging.yml            | 111 ---
+ scripts/RELEASE_GATE_ONESHOT.md                    | 300 -------
+ scripts/STAGING_README.md                          | 393 ---------
+ scripts/backup_db.sh                               |  25 -
+ scripts/deploy_staging_safe.sh                     |  73 --
+ scripts/migrate_with_backup.sh                     |  38 -
+ scripts/prod_down.sh                               |   2 +-
+ scripts/prod_up.sh                                 |   2 +-
+ scripts/release_gate_oneshot.sh                    | 392 ---------
+ scripts/run_staging_validation.sh                  | 177 ----
+ scripts/smoke_staging.sh                           | 210 -----
+ 106 files changed, 1338 insertions(+), 13266 deletions(-)
+
+## DIFF origin/main..HEAD (name-status)
+D	.github/RELEASE_GATE_CI_SETUP.md
+D	.github/RELEASE_GATE_INTEGRITY.md
+M	.github/workflows/deploy.yml
+M	.github/workflows/korrigo-ci.yml
+D	.github/workflows/release-gate.yml
+M	.gitignore
+D	.zenflow/tasks/finalisation-6976/plan.md
+D	.zenflow/tasks/finalisation-6976/proofs/backend_check.txt
+D	.zenflow/tasks/finalisation-6976/proofs/backend_tests.txt
+D	.zenflow/tasks/finalisation-6976/proofs/ci_runs.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_build.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_lint.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_typecheck.txt
+D	.zenflow/tasks/finalisation-6976/proofs/manual_testing_checklist.md
+D	.zenflow/tasks/finalisation-6976/report.md
+D	.zenflow/tasks/finalisation-6976/spec.md
+D	.zenflow/tasks/finalisation-6976/step-email-login-reset-summary.md
+D	.zenflow/tasks/finalisation-6976/testing-summary.md
+A	.zenflow/tasks/task-a4-72cb/plan.md
+A	.zenflow/tasks/task-a4-72cb/report.md
+A	.zenflow/tasks/task-a4-72cb/spec.md
+D	DELIVERABLES_v1.0.0-rc1.md
+D	PRODUCTION_CHECKLIST.md
+D	README.prod.md
+D	RELEASE_GATE_REPORT_2026-01-28.md
+D	RELEASE_GATE_REPORT_v1.0.0-rc1.md
+D	RELEASE_NOTES_v1.0.0.md
+D	RUNBOOK_STAGING.md
+D	backend/.bandit
+D	backend/SECURITY_SCANNING.md
+M	backend/conftest.py
+D	backend/core/logging.py
+M	backend/core/management/commands/backup_restore.py
+D	backend/core/management/commands/ensure_admin.py
+M	backend/core/management/commands/init_pmf.py
+M	backend/core/middleware/metrics.py
+D	backend/core/middleware/request_id.py
+D	backend/core/migrations/0003_userprofile.py
+M	backend/core/models.py
+D	backend/core/prometheus.py
+M	backend/core/settings.py
+M	backend/core/settings_test.py
+D	backend/core/tests/test_email_login_reset.py
+D	backend/core/tests/test_ensure_admin_command.py
+D	backend/core/tests/test_logging.py
+D	backend/core/tests/test_prometheus.py
+M	backend/core/tests/test_rate_limiting.py
+D	backend/core/tests/test_user_profile.py
+M	backend/core/urls.py
+M	backend/core/utils/audit.py
+M	backend/core/views.py
+D	backend/core/views_prometheus.py
+D	backend/exams/migrations/0015_copy_dispatch_fields.py
+D	backend/exams/migrations/0016_remove_copy_exams_copy_status_idx_and_more.py
+M	backend/exams/models.py
+M	backend/exams/serializers.py
+M	backend/exams/tests.py
+M	backend/exams/urls.py
+M	backend/exams/views.py
+D	backend/grading/migrations/0008_questionremark.py
+M	backend/grading/models.py
+D	backend/grading/pdf_processor.py
+M	backend/grading/serializers.py
+M	backend/grading/services.py
+M	backend/grading/tasks.py
+M	backend/grading/tests/test_concurrency_postgres.py
+M	backend/grading/tests/test_error_handling.py
+D	backend/grading/tests/test_remarks.py
+M	backend/grading/tests/test_tasks.py
+M	backend/grading/tests/test_validation.py
+M	backend/grading/urls.py
+M	backend/grading/views.py
+M	backend/pytest.ini
+M	backend/requirements.txt
+M	backend/scripts/seed_e2e.py
+D	backend/seed_prod.py
+D	backend/tests/test_smoke.py
+D	backups/.gitignore
+D	backups/.gitkeep
+R100	docker-compose.prod.yml.obsolete	docker-compose.prod.yml
+D	docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md
+M	frontend/package-lock.json
+M	frontend/playwright.config.ts
+M	frontend/src/App.vue
+D	frontend/src/components/ChangePasswordModal.vue
+M	frontend/src/services/gradingApi.js
+M	frontend/src/stores/auth.js
+M	frontend/src/views/AdminDashboard.vue
+M	frontend/src/views/Login.vue
+M	frontend/src/views/admin/CorrectorDesk.vue
+M	frontend/src/views/admin/UserManagement.vue
+D	frontend/tests/e2e/dispatch_flow.spec.ts
+M	frontend/tests/e2e/global-setup.ts
+M	frontend/tests/e2e/student_flow.spec.ts
+M	infra/docker/docker-compose.local-prod.yml
+D	infra/docker/docker-compose.staging.yml
+D	scripts/RELEASE_GATE_ONESHOT.md
+D	scripts/STAGING_README.md
+D	scripts/backup_db.sh
+D	scripts/deploy_staging_safe.sh
+D	scripts/migrate_with_backup.sh
+M	scripts/prod_down.sh
+M	scripts/prod_up.sh
+D	scripts/release_gate_oneshot.sh
+D	scripts/run_staging_validation.sh
+D	scripts/smoke_staging.sh
+
+## UNTRACKED FILES
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/.zenflow/worktrees/task-b1-e227
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/.zenflow/worktrees/task-b1-e227
+
+## GIT TOPLEVEL
+/home/alaeddine/.zenflow/worktrees/task-b1-e227
+
+## CURRENT BRANCH
+task-b1-e227
+
+## HEAD SHA
+76fe9acef51947023c7a0a5a6d37e07df587e049
+
+## STATUS
+
+## RECENT COMMITS (last 10)
+76fe9ac Planning
+c1694c3 Initialize task: Task B1
+bf86716 Fix: finalize lock handling + pdf fallback (CI)
+ac33f80 Fix: cleanup_orphaned_files return contract (CI)
+3be7758 Fix: cleanup_orphaned_files return contract (CI)
+f7114e1 Fix: align exam/annotation legacy kwargs + optimistic locking (CI)
+b11a4c7 Fix: async task endpoints auth + error contract (CI)
+4393303 Fix: guard invalid UUID-like copy ids in locking path (CI)
+4660173 Fix: TaskStatusView include 'error' key for CI contract
+c16b772 Fix: replace invalid User.Role usage (CI)
+
+## DIFF origin/main..HEAD (stat)
+ .github/RELEASE_GATE_CI_SETUP.md                   | 158 ----
+ .github/RELEASE_GATE_INTEGRITY.md                  | 295 -------
+ .github/workflows/deploy.yml                       | 189 +----
+ .github/workflows/korrigo-ci.yml                   |  10 +-
+ .github/workflows/release-gate.yml                 | 297 -------
+ .gitignore                                         |   1 -
+ .zenflow/tasks/finalisation-6976/plan.md           | 400 ---------
+ .../finalisation-6976/proofs/backend_check.txt     |   1 -
+ .../finalisation-6976/proofs/backend_tests.txt     | 246 ------
+ .../tasks/finalisation-6976/proofs/ci_runs.txt     |  51 --
+ .../finalisation-6976/proofs/frontend_build.txt    |  26 -
+ .../finalisation-6976/proofs/frontend_lint.txt     |   4 -
+ .../proofs/frontend_typecheck.txt                  |   4 -
+ .../proofs/manual_testing_checklist.md             |  70 --
+ .zenflow/tasks/finalisation-6976/report.md         | 896 ---------------------
+ .zenflow/tasks/finalisation-6976/spec.md           | 567 -------------
+ .../step-email-login-reset-summary.md              |  51 --
+ .../tasks/finalisation-6976/testing-summary.md     | 336 --------
+ .zenflow/tasks/task-b1-e227/plan.md                |  59 ++
+ DELIVERABLES_v1.0.0-rc1.md                         | 284 -------
+ PRODUCTION_CHECKLIST.md                            | 507 ------------
+ README.prod.md                                     | 712 ----------------
+ RELEASE_GATE_REPORT_2026-01-28.md                  | 234 ------
+ RELEASE_GATE_REPORT_v1.0.0-rc1.md                  | 289 -------
+ RELEASE_NOTES_v1.0.0.md                            | 229 ------
+ RUNBOOK_STAGING.md                                 | 800 ------------------
+ backend/.bandit                                    |  31 -
+ backend/SECURITY_SCANNING.md                       | 104 ---
+ backend/conftest.py                                |   6 +-
+ backend/core/logging.py                            |  87 --
+ backend/core/management/commands/backup_restore.py |  10 +-
+ backend/core/management/commands/ensure_admin.py   |  46 --
+ backend/core/management/commands/init_pmf.py       |  19 +-
+ backend/core/middleware/metrics.py                 |  58 +-
+ backend/core/middleware/request_id.py              | 188 -----
+ backend/core/migrations/0003_userprofile.py        |  27 -
+ backend/core/models.py                             |  28 -
+ backend/core/prometheus.py                         | 141 ----
+ backend/core/settings.py                           |  50 +-
+ backend/core/tests/test_email_login_reset.py       | 142 ----
+ backend/core/tests/test_ensure_admin_command.py    |  61 --
+ backend/core/tests/test_logging.py                 | 250 ------
+ backend/core/tests/test_prometheus.py              | 243 ------
+ backend/core/tests/test_rate_limiting.py           | 114 ++-
+ backend/core/tests/test_user_profile.py            | 116 ---
+ backend/core/urls.py                               |   7 -
+ backend/core/utils/audit.py                        |   2 +-
+ backend/core/views.py                              |  93 +--
+ backend/core/views_prometheus.py                   | 117 ---
+ .../exams/migrations/0015_copy_dispatch_fields.py  |  54 --
+ ...6_remove_copy_exams_copy_status_idx_and_more.py |  34 -
+ backend/exams/models.py                            |  35 +-
+ backend/exams/serializers.py                       |  13 +-
+ backend/exams/tests.py                             | 114 +--
+ backend/exams/urls.py                              |   6 +-
+ backend/exams/views.py                             |  91 ---
+ backend/grading/migrations/0008_questionremark.py  |  36 -
+ backend/grading/models.py                          |  41 -
+ backend/grading/pdf_processor.py                   |  35 -
+ backend/grading/serializers.py                     |  15 +-
+ backend/grading/services.py                        |  15 +-
+ backend/grading/tasks.py                           |  97 ++-
+ backend/grading/tests/test_concurrency_postgres.py |   6 +-
+ backend/grading/tests/test_error_handling.py       |  33 +-
+ backend/grading/tests/test_remarks.py              | 248 ------
+ backend/grading/tests/test_tasks.py                |  38 +-
+ backend/grading/tests/test_validation.py           |  30 +-
+ backend/grading/urls.py                            |  12 +-
+ backend/grading/views.py                           | 122 +--
+ backend/pytest.ini                                 |   1 -
+ backend/requirements.txt                           |   4 +-
+ backend/scripts/seed_e2e.py                        |  31 +-
+ backend/seed_prod.py                               | 312 -------
+ backend/tests/test_smoke.py                        | 135 ----
+ backups/.gitignore                                 |   2 -
+ backups/.gitkeep                                   |   0
+ ...se.prod.yml.obsolete => docker-compose.prod.yml |   0
+ docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md     | 262 ------
+ frontend/package-lock.json                         |   4 +-
+ frontend/playwright.config.ts                      |   2 +-
+ frontend/src/App.vue                               |  19 -
+ frontend/src/components/ChangePasswordModal.vue    | 441 ----------
+ frontend/src/services/gradingApi.js                |  34 -
+ frontend/src/stores/auth.js                        |  19 +-
+ frontend/src/views/AdminDashboard.vue              | 249 +-----
+ frontend/src/views/Login.vue                       |  95 +--
+ frontend/src/views/admin/CorrectorDesk.vue         | 198 +----
+ frontend/src/views/admin/UserManagement.vue        | 129 ---
+ frontend/tests/e2e/dispatch_flow.spec.ts           | 144 ----
+ frontend/tests/e2e/global-setup.ts                 |   2 +-
+ frontend/tests/e2e/student_flow.spec.ts            |   8 +-
+ infra/docker/docker-compose.local-prod.yml         |   6 -
+ infra/docker/docker-compose.staging.yml            | 111 ---
+ scripts/RELEASE_GATE_ONESHOT.md                    | 300 -------
+ scripts/STAGING_README.md                          | 393 ---------
+ scripts/backup_db.sh                               |  25 -
+ scripts/deploy_staging_safe.sh                     |  73 --
+ scripts/migrate_with_backup.sh                     |  38 -
+ scripts/prod_down.sh                               |   2 +-
+ scripts/prod_up.sh                                 |   2 +-
+ scripts/release_gate_oneshot.sh                    | 392 ---------
+ scripts/run_staging_validation.sh                  | 177 ----
+ scripts/smoke_staging.sh                           | 210 -----
+ 103 files changed, 291 insertions(+), 13260 deletions(-)
+
+## DIFF origin/main..HEAD (name-status)
+D	.github/RELEASE_GATE_CI_SETUP.md
+D	.github/RELEASE_GATE_INTEGRITY.md
+M	.github/workflows/deploy.yml
+M	.github/workflows/korrigo-ci.yml
+D	.github/workflows/release-gate.yml
+M	.gitignore
+D	.zenflow/tasks/finalisation-6976/plan.md
+D	.zenflow/tasks/finalisation-6976/proofs/backend_check.txt
+D	.zenflow/tasks/finalisation-6976/proofs/backend_tests.txt
+D	.zenflow/tasks/finalisation-6976/proofs/ci_runs.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_build.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_lint.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_typecheck.txt
+D	.zenflow/tasks/finalisation-6976/proofs/manual_testing_checklist.md
+D	.zenflow/tasks/finalisation-6976/report.md
+D	.zenflow/tasks/finalisation-6976/spec.md
+D	.zenflow/tasks/finalisation-6976/step-email-login-reset-summary.md
+D	.zenflow/tasks/finalisation-6976/testing-summary.md
+A	.zenflow/tasks/task-b1-e227/plan.md
+D	DELIVERABLES_v1.0.0-rc1.md
+D	PRODUCTION_CHECKLIST.md
+D	README.prod.md
+D	RELEASE_GATE_REPORT_2026-01-28.md
+D	RELEASE_GATE_REPORT_v1.0.0-rc1.md
+D	RELEASE_NOTES_v1.0.0.md
+D	RUNBOOK_STAGING.md
+D	backend/.bandit
+D	backend/SECURITY_SCANNING.md
+M	backend/conftest.py
+D	backend/core/logging.py
+M	backend/core/management/commands/backup_restore.py
+D	backend/core/management/commands/ensure_admin.py
+M	backend/core/management/commands/init_pmf.py
+M	backend/core/middleware/metrics.py
+D	backend/core/middleware/request_id.py
+D	backend/core/migrations/0003_userprofile.py
+M	backend/core/models.py
+D	backend/core/prometheus.py
+M	backend/core/settings.py
+D	backend/core/tests/test_email_login_reset.py
+D	backend/core/tests/test_ensure_admin_command.py
+D	backend/core/tests/test_logging.py
+D	backend/core/tests/test_prometheus.py
+M	backend/core/tests/test_rate_limiting.py
+D	backend/core/tests/test_user_profile.py
+M	backend/core/urls.py
+M	backend/core/utils/audit.py
+M	backend/core/views.py
+D	backend/core/views_prometheus.py
+D	backend/exams/migrations/0015_copy_dispatch_fields.py
+D	backend/exams/migrations/0016_remove_copy_exams_copy_status_idx_and_more.py
+M	backend/exams/models.py
+M	backend/exams/serializers.py
+M	backend/exams/tests.py
+M	backend/exams/urls.py
+M	backend/exams/views.py
+D	backend/grading/migrations/0008_questionremark.py
+M	backend/grading/models.py
+D	backend/grading/pdf_processor.py
+M	backend/grading/serializers.py
+M	backend/grading/services.py
+M	backend/grading/tasks.py
+M	backend/grading/tests/test_concurrency_postgres.py
+M	backend/grading/tests/test_error_handling.py
+D	backend/grading/tests/test_remarks.py
+M	backend/grading/tests/test_tasks.py
+M	backend/grading/tests/test_validation.py
+M	backend/grading/urls.py
+M	backend/grading/views.py
+M	backend/pytest.ini
+M	backend/requirements.txt
+M	backend/scripts/seed_e2e.py
+D	backend/seed_prod.py
+D	backend/tests/test_smoke.py
+D	backups/.gitignore
+D	backups/.gitkeep
+R100	docker-compose.prod.yml.obsolete	docker-compose.prod.yml
+D	docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md
+M	frontend/package-lock.json
+M	frontend/playwright.config.ts
+M	frontend/src/App.vue
+D	frontend/src/components/ChangePasswordModal.vue
+M	frontend/src/services/gradingApi.js
+M	frontend/src/stores/auth.js
+M	frontend/src/views/AdminDashboard.vue
+M	frontend/src/views/Login.vue
+M	frontend/src/views/admin/CorrectorDesk.vue
+M	frontend/src/views/admin/UserManagement.vue
+D	frontend/tests/e2e/dispatch_flow.spec.ts
+M	frontend/tests/e2e/global-setup.ts
+M	frontend/tests/e2e/student_flow.spec.ts
+M	infra/docker/docker-compose.local-prod.yml
+D	infra/docker/docker-compose.staging.yml
+D	scripts/RELEASE_GATE_ONESHOT.md
+D	scripts/STAGING_README.md
+D	scripts/backup_db.sh
+D	scripts/deploy_staging_safe.sh
+D	scripts/migrate_with_backup.sh
+M	scripts/prod_down.sh
+M	scripts/prod_up.sh
+D	scripts/release_gate_oneshot.sh
+D	scripts/run_staging_validation.sh
+D	scripts/smoke_staging.sh
+
+## UNTRACKED FILES
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/.zenflow/worktrees/task-b2-8aff
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/.zenflow/worktrees/task-b2-8aff
+
+## GIT TOPLEVEL
+/home/alaeddine/.zenflow/worktrees/task-b2-8aff
+
+## CURRENT BRANCH
+task-b2-8aff
+
+## HEAD SHA
+36898bb07f4d8b040ef0183a3b8002da051d9496
+
+## STATUS
+
+## RECENT COMMITS (last 10)
+36898bb Implementation
+57ae1aa Initialize task: Task B2
+bf86716 Fix: finalize lock handling + pdf fallback (CI)
+ac33f80 Fix: cleanup_orphaned_files return contract (CI)
+3be7758 Fix: cleanup_orphaned_files return contract (CI)
+f7114e1 Fix: align exam/annotation legacy kwargs + optimistic locking (CI)
+b11a4c7 Fix: async task endpoints auth + error contract (CI)
+4393303 Fix: guard invalid UUID-like copy ids in locking path (CI)
+4660173 Fix: TaskStatusView include 'error' key for CI contract
+c16b772 Fix: replace invalid User.Role usage (CI)
+
+## DIFF origin/main..HEAD (stat)
+ .github/RELEASE_GATE_CI_SETUP.md                   | 158 ----
+ .github/RELEASE_GATE_INTEGRITY.md                  | 295 -------
+ .github/workflows/deploy.yml                       | 189 +----
+ .github/workflows/korrigo-ci.yml                   |  10 +-
+ .github/workflows/release-gate.yml                 | 297 -------
+ .gitignore                                         |   1 -
+ .zenflow/tasks/finalisation-6976/plan.md           | 400 ---------
+ .../finalisation-6976/proofs/backend_check.txt     |   1 -
+ .../finalisation-6976/proofs/backend_tests.txt     | 246 ------
+ .../tasks/finalisation-6976/proofs/ci_runs.txt     |  51 --
+ .../finalisation-6976/proofs/frontend_build.txt    |  26 -
+ .../finalisation-6976/proofs/frontend_lint.txt     |   4 -
+ .../proofs/frontend_typecheck.txt                  |   4 -
+ .../proofs/manual_testing_checklist.md             |  70 --
+ .zenflow/tasks/finalisation-6976/report.md         | 896 ---------------------
+ .zenflow/tasks/finalisation-6976/spec.md           | 567 -------------
+ .../step-email-login-reset-summary.md              |  51 --
+ .../tasks/finalisation-6976/testing-summary.md     | 336 --------
+ .zenflow/tasks/task-b2-8aff/plan.md                |  59 ++
+ DELIVERABLES_v1.0.0-rc1.md                         | 284 -------
+ PRODUCTION_CHECKLIST.md                            | 507 ------------
+ README.prod.md                                     | 712 ----------------
+ RELEASE_GATE_REPORT_2026-01-28.md                  | 234 ------
+ RELEASE_GATE_REPORT_v1.0.0-rc1.md                  | 289 -------
+ RELEASE_NOTES_v1.0.0.md                            | 229 ------
+ RUNBOOK_STAGING.md                                 | 800 ------------------
+ backend/.bandit                                    |  31 -
+ backend/SECURITY_SCANNING.md                       | 104 ---
+ backend/conftest.py                                |   6 +-
+ backend/core/logging.py                            |  87 --
+ backend/core/management/commands/backup_restore.py |  10 +-
+ backend/core/management/commands/ensure_admin.py   |  46 --
+ backend/core/management/commands/init_pmf.py       |  19 +-
+ backend/core/middleware/metrics.py                 |  58 +-
+ backend/core/middleware/request_id.py              | 188 -----
+ backend/core/migrations/0003_userprofile.py        |  27 -
+ backend/core/models.py                             |  28 -
+ backend/core/prometheus.py                         | 141 ----
+ backend/core/settings.py                           |  50 +-
+ backend/core/tests/test_email_login_reset.py       | 142 ----
+ backend/core/tests/test_ensure_admin_command.py    |  61 --
+ backend/core/tests/test_logging.py                 | 250 ------
+ backend/core/tests/test_prometheus.py              | 243 ------
+ backend/core/tests/test_rate_limiting.py           | 114 ++-
+ backend/core/tests/test_user_profile.py            | 116 ---
+ backend/core/urls.py                               |   7 -
+ backend/core/utils/audit.py                        |   2 +-
+ backend/core/views.py                              |  93 +--
+ backend/core/views_prometheus.py                   | 117 ---
+ .../exams/migrations/0015_copy_dispatch_fields.py  |  54 --
+ ...6_remove_copy_exams_copy_status_idx_and_more.py |  34 -
+ backend/exams/models.py                            |  35 +-
+ backend/exams/serializers.py                       |  13 +-
+ backend/exams/tests.py                             | 114 +--
+ backend/exams/urls.py                              |   6 +-
+ backend/exams/views.py                             |  91 ---
+ backend/grading/migrations/0008_questionremark.py  |  36 -
+ backend/grading/models.py                          |  41 -
+ backend/grading/pdf_processor.py                   |  35 -
+ backend/grading/serializers.py                     |  15 +-
+ backend/grading/services.py                        |  15 +-
+ backend/grading/tasks.py                           |  97 ++-
+ backend/grading/tests/test_concurrency_postgres.py |   6 +-
+ backend/grading/tests/test_error_handling.py       |  33 +-
+ backend/grading/tests/test_remarks.py              | 248 ------
+ backend/grading/tests/test_tasks.py                |  38 +-
+ backend/grading/tests/test_validation.py           |  30 +-
+ backend/grading/urls.py                            |  12 +-
+ backend/grading/views.py                           | 122 +--
+ backend/pytest.ini                                 |   1 -
+ backend/requirements.txt                           |   4 +-
+ backend/scripts/seed_e2e.py                        |  31 +-
+ backend/seed_prod.py                               | 312 -------
+ backend/tests/test_smoke.py                        | 135 ----
+ backups/.gitignore                                 |   2 -
+ backups/.gitkeep                                   |   0
+ ...se.prod.yml.obsolete => docker-compose.prod.yml |   0
+ docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md     | 262 ------
+ frontend/package-lock.json                         |   4 +-
+ frontend/playwright.config.ts                      |   2 +-
+ frontend/src/App.vue                               |  19 -
+ frontend/src/components/ChangePasswordModal.vue    | 441 ----------
+ frontend/src/services/gradingApi.js                |  34 -
+ frontend/src/stores/auth.js                        |  19 +-
+ frontend/src/views/AdminDashboard.vue              | 249 +-----
+ frontend/src/views/Login.vue                       |  95 +--
+ frontend/src/views/admin/CorrectorDesk.vue         | 198 +----
+ frontend/src/views/admin/UserManagement.vue        | 129 ---
+ frontend/tests/e2e/dispatch_flow.spec.ts           | 144 ----
+ frontend/tests/e2e/global-setup.ts                 |   2 +-
+ frontend/tests/e2e/student_flow.spec.ts            |   8 +-
+ infra/docker/docker-compose.local-prod.yml         |   6 -
+ infra/docker/docker-compose.staging.yml            | 111 ---
+ scripts/RELEASE_GATE_ONESHOT.md                    | 300 -------
+ scripts/STAGING_README.md                          | 393 ---------
+ scripts/backup_db.sh                               |  25 -
+ scripts/deploy_staging_safe.sh                     |  73 --
+ scripts/migrate_with_backup.sh                     |  38 -
+ scripts/prod_down.sh                               |   2 +-
+ scripts/prod_up.sh                                 |   2 +-
+ scripts/release_gate_oneshot.sh                    | 392 ---------
+ scripts/run_staging_validation.sh                  | 177 ----
+ scripts/smoke_staging.sh                           | 210 -----
+ 103 files changed, 291 insertions(+), 13260 deletions(-)
+
+## DIFF origin/main..HEAD (name-status)
+D	.github/RELEASE_GATE_CI_SETUP.md
+D	.github/RELEASE_GATE_INTEGRITY.md
+M	.github/workflows/deploy.yml
+M	.github/workflows/korrigo-ci.yml
+D	.github/workflows/release-gate.yml
+M	.gitignore
+D	.zenflow/tasks/finalisation-6976/plan.md
+D	.zenflow/tasks/finalisation-6976/proofs/backend_check.txt
+D	.zenflow/tasks/finalisation-6976/proofs/backend_tests.txt
+D	.zenflow/tasks/finalisation-6976/proofs/ci_runs.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_build.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_lint.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_typecheck.txt
+D	.zenflow/tasks/finalisation-6976/proofs/manual_testing_checklist.md
+D	.zenflow/tasks/finalisation-6976/report.md
+D	.zenflow/tasks/finalisation-6976/spec.md
+D	.zenflow/tasks/finalisation-6976/step-email-login-reset-summary.md
+D	.zenflow/tasks/finalisation-6976/testing-summary.md
+A	.zenflow/tasks/task-b2-8aff/plan.md
+D	DELIVERABLES_v1.0.0-rc1.md
+D	PRODUCTION_CHECKLIST.md
+D	README.prod.md
+D	RELEASE_GATE_REPORT_2026-01-28.md
+D	RELEASE_GATE_REPORT_v1.0.0-rc1.md
+D	RELEASE_NOTES_v1.0.0.md
+D	RUNBOOK_STAGING.md
+D	backend/.bandit
+D	backend/SECURITY_SCANNING.md
+M	backend/conftest.py
+D	backend/core/logging.py
+M	backend/core/management/commands/backup_restore.py
+D	backend/core/management/commands/ensure_admin.py
+M	backend/core/management/commands/init_pmf.py
+M	backend/core/middleware/metrics.py
+D	backend/core/middleware/request_id.py
+D	backend/core/migrations/0003_userprofile.py
+M	backend/core/models.py
+D	backend/core/prometheus.py
+M	backend/core/settings.py
+D	backend/core/tests/test_email_login_reset.py
+D	backend/core/tests/test_ensure_admin_command.py
+D	backend/core/tests/test_logging.py
+D	backend/core/tests/test_prometheus.py
+M	backend/core/tests/test_rate_limiting.py
+D	backend/core/tests/test_user_profile.py
+M	backend/core/urls.py
+M	backend/core/utils/audit.py
+M	backend/core/views.py
+D	backend/core/views_prometheus.py
+D	backend/exams/migrations/0015_copy_dispatch_fields.py
+D	backend/exams/migrations/0016_remove_copy_exams_copy_status_idx_and_more.py
+M	backend/exams/models.py
+M	backend/exams/serializers.py
+M	backend/exams/tests.py
+M	backend/exams/urls.py
+M	backend/exams/views.py
+D	backend/grading/migrations/0008_questionremark.py
+M	backend/grading/models.py
+D	backend/grading/pdf_processor.py
+M	backend/grading/serializers.py
+M	backend/grading/services.py
+M	backend/grading/tasks.py
+M	backend/grading/tests/test_concurrency_postgres.py
+M	backend/grading/tests/test_error_handling.py
+D	backend/grading/tests/test_remarks.py
+M	backend/grading/tests/test_tasks.py
+M	backend/grading/tests/test_validation.py
+M	backend/grading/urls.py
+M	backend/grading/views.py
+M	backend/pytest.ini
+M	backend/requirements.txt
+M	backend/scripts/seed_e2e.py
+D	backend/seed_prod.py
+D	backend/tests/test_smoke.py
+D	backups/.gitignore
+D	backups/.gitkeep
+R100	docker-compose.prod.yml.obsolete	docker-compose.prod.yml
+D	docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md
+M	frontend/package-lock.json
+M	frontend/playwright.config.ts
+M	frontend/src/App.vue
+D	frontend/src/components/ChangePasswordModal.vue
+M	frontend/src/services/gradingApi.js
+M	frontend/src/stores/auth.js
+M	frontend/src/views/AdminDashboard.vue
+M	frontend/src/views/Login.vue
+M	frontend/src/views/admin/CorrectorDesk.vue
+M	frontend/src/views/admin/UserManagement.vue
+D	frontend/tests/e2e/dispatch_flow.spec.ts
+M	frontend/tests/e2e/global-setup.ts
+M	frontend/tests/e2e/student_flow.spec.ts
+M	infra/docker/docker-compose.local-prod.yml
+D	infra/docker/docker-compose.staging.yml
+D	scripts/RELEASE_GATE_ONESHOT.md
+D	scripts/STAGING_README.md
+D	scripts/backup_db.sh
+D	scripts/deploy_staging_safe.sh
+D	scripts/migrate_with_backup.sh
+M	scripts/prod_down.sh
+M	scripts/prod_up.sh
+D	scripts/release_gate_oneshot.sh
+D	scripts/run_staging_validation.sh
+D	scripts/smoke_staging.sh
+
+## UNTRACKED FILES
+
+
+────────────────────────────────────────────────────────────────────────────────
+WORKTREE: /home/alaeddine/.zenflow/worktrees/task-b3-eac6
+────────────────────────────────────────────────────────────────────────────────
+## PWD
+/home/alaeddine/.zenflow/worktrees/task-b3-eac6
+
+## GIT TOPLEVEL
+/home/alaeddine/.zenflow/worktrees/task-b3-eac6
+
+## CURRENT BRANCH
+task-b3-eac6
+
+## HEAD SHA
+b834dfd43ee8c3c30f077f71bbeaa9d26792a3de
+
+## STATUS
+
+## RECENT COMMITS (last 10)
+b834dfd Makefile Production Targets
+e938b69 JSON Logging Configuration
+d2fecc3 Pytest Smoke Test Suite - Infrastructure Tests
+6110cd1 Environment Variable Validation Script
+ded0676 Planning
+6d4da7d Technical Specification
+4128c1f Requirements
+e138a28 Initialize task: Task B3
+bf86716 Fix: finalize lock handling + pdf fallback (CI)
+ac33f80 Fix: cleanup_orphaned_files return contract (CI)
+
+## DIFF origin/main..HEAD (stat)
+ .github/RELEASE_GATE_CI_SETUP.md                   | 158 ----
+ .github/RELEASE_GATE_INTEGRITY.md                  | 295 -------
+ .github/workflows/deploy.yml                       | 189 +----
+ .github/workflows/korrigo-ci.yml                   |  10 +-
+ .github/workflows/release-gate.yml                 | 297 -------
+ .gitignore                                         |   1 -
+ .zenflow/tasks/finalisation-6976/plan.md           | 400 ---------
+ .../finalisation-6976/proofs/backend_check.txt     |   1 -
+ .../finalisation-6976/proofs/backend_tests.txt     | 246 ------
+ .../tasks/finalisation-6976/proofs/ci_runs.txt     |  51 --
+ .../finalisation-6976/proofs/frontend_build.txt    |  26 -
+ .../finalisation-6976/proofs/frontend_lint.txt     |   4 -
+ .../proofs/frontend_typecheck.txt                  |   4 -
+ .../proofs/manual_testing_checklist.md             |  70 --
+ .zenflow/tasks/finalisation-6976/report.md         | 896 ---------------------
+ .zenflow/tasks/finalisation-6976/spec.md           | 567 -------------
+ .../step-email-login-reset-summary.md              |  51 --
+ .../tasks/finalisation-6976/testing-summary.md     | 336 --------
+ .zenflow/tasks/task-b3-eac6/plan.md                | 431 ++++++++++
+ .zenflow/tasks/task-b3-eac6/requirements.md        | 474 +++++++++++
+ .zenflow/tasks/task-b3-eac6/spec.md                | 876 ++++++++++++++++++++
+ DELIVERABLES_v1.0.0-rc1.md                         | 284 -------
+ PRODUCTION_CHECKLIST.md                            | 507 ------------
+ README.prod.md                                     | 712 ----------------
+ RELEASE_GATE_REPORT_2026-01-28.md                  | 234 ------
+ RELEASE_GATE_REPORT_v1.0.0-rc1.md                  | 289 -------
+ RELEASE_NOTES_v1.0.0.md                            | 229 ------
+ RUNBOOK_STAGING.md                                 | 800 ------------------
+ backend/.bandit                                    |  31 -
+ backend/SECURITY_SCANNING.md                       | 104 ---
+ backend/conftest.py                                |   6 +-
+ backend/core/logging.py                            |  87 --
+ backend/core/management/commands/backup_restore.py |  10 +-
+ backend/core/management/commands/ensure_admin.py   |  46 --
+ backend/core/management/commands/init_pmf.py       |  19 +-
+ .../core/management/commands/validate_prod_env.py  | 264 ++++++
+ backend/core/middleware/metrics.py                 |  58 +-
+ backend/core/middleware/request_id.py              | 188 -----
+ backend/core/migrations/0003_userprofile.py        |  27 -
+ backend/core/models.py                             |  28 -
+ backend/core/prometheus.py                         | 141 ----
+ backend/core/settings.py                           |  50 +-
+ backend/core/settings_prod.py                      |  12 +-
+ backend/core/tests/test_email_login_reset.py       | 142 ----
+ backend/core/tests/test_ensure_admin_command.py    |  61 --
+ backend/core/tests/test_logging.py                 | 250 ------
+ backend/core/tests/test_prometheus.py              | 243 ------
+ backend/core/tests/test_rate_limiting.py           | 114 ++-
+ backend/core/tests/test_user_profile.py            | 116 ---
+ backend/core/urls.py                               |   7 -
+ backend/core/utils/audit.py                        |   2 +-
+ backend/core/views.py                              |  93 +--
+ backend/core/views_prometheus.py                   | 117 ---
+ .../exams/migrations/0015_copy_dispatch_fields.py  |  54 --
+ ...6_remove_copy_exams_copy_status_idx_and_more.py |  34 -
+ backend/exams/models.py                            |  35 +-
+ backend/exams/serializers.py                       |  13 +-
+ backend/exams/tests.py                             | 114 +--
+ backend/exams/urls.py                              |   6 +-
+ backend/exams/views.py                             |  91 ---
+ backend/grading/migrations/0008_questionremark.py  |  36 -
+ backend/grading/models.py                          |  41 -
+ backend/grading/pdf_processor.py                   |  35 -
+ backend/grading/serializers.py                     |  15 +-
+ backend/grading/services.py                        |  15 +-
+ backend/grading/tasks.py                           |  97 ++-
+ backend/grading/tests/test_concurrency_postgres.py |   6 +-
+ backend/grading/tests/test_error_handling.py       |  33 +-
+ backend/grading/tests/test_remarks.py              | 248 ------
+ backend/grading/tests/test_tasks.py                |  38 +-
+ backend/grading/tests/test_validation.py           |  30 +-
+ backend/grading/urls.py                            |  12 +-
+ backend/grading/views.py                           | 122 +--
+ backend/pytest.ini                                 |   1 -
+ backend/requirements.txt                           |   5 +-
+ backend/scripts/seed_e2e.py                        |  31 +-
+ backend/seed_prod.py                               | 312 -------
+ backend/tests/test_smoke.py                        | 135 ----
+ backups/.gitignore                                 |   2 -
+ backups/.gitkeep                                   |   0
+ ...se.prod.yml.obsolete => docker-compose.prod.yml |   0
+ docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md     | 262 ------
+ frontend/package-lock.json                         |   4 +-
+ frontend/playwright.config.ts                      |   2 +-
+ frontend/src/App.vue                               |  19 -
+ frontend/src/components/ChangePasswordModal.vue    | 441 ----------
+ frontend/src/services/gradingApi.js                |  34 -
+ frontend/src/stores/auth.js                        |  19 +-
+ frontend/src/views/AdminDashboard.vue              | 249 +-----
+ frontend/src/views/Login.vue                       |  95 +--
+ frontend/src/views/admin/CorrectorDesk.vue         | 198 +----
+ frontend/src/views/admin/UserManagement.vue        | 129 ---
+ frontend/tests/e2e/dispatch_flow.spec.ts           | 144 ----
+ frontend/tests/e2e/global-setup.ts                 |   2 +-
+ frontend/tests/e2e/student_flow.spec.ts            |   8 +-
+ infra/docker/docker-compose.local-prod.yml         |   6 -
+ infra/docker/docker-compose.staging.yml            | 111 ---
+ scripts/RELEASE_GATE_ONESHOT.md                    | 300 -------
+ scripts/STAGING_README.md                          | 393 ---------
+ scripts/backup_db.sh                               |  25 -
+ scripts/deploy_staging_safe.sh                     |  73 --
+ scripts/migrate_with_backup.sh                     |  38 -
+ scripts/prod_down.sh                               |   2 +-
+ scripts/prod_up.sh                                 |   2 +-
+ scripts/release_gate_oneshot.sh                    | 392 ---------
+ scripts/run_staging_validation.sh                  | 177 ----
+ scripts/smoke_staging.sh                           | 210 -----
+ scripts/validate-prod-env.sh                       | 129 +--
+ 108 files changed, 2318 insertions(+), 13361 deletions(-)
+
+## DIFF origin/main..HEAD (name-status)
+D	.github/RELEASE_GATE_CI_SETUP.md
+D	.github/RELEASE_GATE_INTEGRITY.md
+M	.github/workflows/deploy.yml
+M	.github/workflows/korrigo-ci.yml
+D	.github/workflows/release-gate.yml
+M	.gitignore
+D	.zenflow/tasks/finalisation-6976/plan.md
+D	.zenflow/tasks/finalisation-6976/proofs/backend_check.txt
+D	.zenflow/tasks/finalisation-6976/proofs/backend_tests.txt
+D	.zenflow/tasks/finalisation-6976/proofs/ci_runs.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_build.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_lint.txt
+D	.zenflow/tasks/finalisation-6976/proofs/frontend_typecheck.txt
+D	.zenflow/tasks/finalisation-6976/proofs/manual_testing_checklist.md
+D	.zenflow/tasks/finalisation-6976/report.md
+D	.zenflow/tasks/finalisation-6976/spec.md
+D	.zenflow/tasks/finalisation-6976/step-email-login-reset-summary.md
+D	.zenflow/tasks/finalisation-6976/testing-summary.md
+A	.zenflow/tasks/task-b3-eac6/plan.md
+A	.zenflow/tasks/task-b3-eac6/requirements.md
+A	.zenflow/tasks/task-b3-eac6/spec.md
+D	DELIVERABLES_v1.0.0-rc1.md
+D	PRODUCTION_CHECKLIST.md
+D	README.prod.md
+D	RELEASE_GATE_REPORT_2026-01-28.md
+D	RELEASE_GATE_REPORT_v1.0.0-rc1.md
+D	RELEASE_NOTES_v1.0.0.md
+D	RUNBOOK_STAGING.md
+D	backend/.bandit
+D	backend/SECURITY_SCANNING.md
+M	backend/conftest.py
+D	backend/core/logging.py
+M	backend/core/management/commands/backup_restore.py
+D	backend/core/management/commands/ensure_admin.py
+M	backend/core/management/commands/init_pmf.py
+A	backend/core/management/commands/validate_prod_env.py
+M	backend/core/middleware/metrics.py
+D	backend/core/middleware/request_id.py
+D	backend/core/migrations/0003_userprofile.py
+M	backend/core/models.py
+D	backend/core/prometheus.py
+M	backend/core/settings.py
+M	backend/core/settings_prod.py
+D	backend/core/tests/test_email_login_reset.py
+D	backend/core/tests/test_ensure_admin_command.py
+D	backend/core/tests/test_logging.py
+D	backend/core/tests/test_prometheus.py
+M	backend/core/tests/test_rate_limiting.py
+D	backend/core/tests/test_user_profile.py
+M	backend/core/urls.py
+M	backend/core/utils/audit.py
+M	backend/core/views.py
+D	backend/core/views_prometheus.py
+D	backend/exams/migrations/0015_copy_dispatch_fields.py
+D	backend/exams/migrations/0016_remove_copy_exams_copy_status_idx_and_more.py
+M	backend/exams/models.py
+M	backend/exams/serializers.py
+M	backend/exams/tests.py
+M	backend/exams/urls.py
+M	backend/exams/views.py
+D	backend/grading/migrations/0008_questionremark.py
+M	backend/grading/models.py
+D	backend/grading/pdf_processor.py
+M	backend/grading/serializers.py
+M	backend/grading/services.py
+M	backend/grading/tasks.py
+M	backend/grading/tests/test_concurrency_postgres.py
+M	backend/grading/tests/test_error_handling.py
+D	backend/grading/tests/test_remarks.py
+M	backend/grading/tests/test_tasks.py
+M	backend/grading/tests/test_validation.py
+M	backend/grading/urls.py
+M	backend/grading/views.py
+M	backend/pytest.ini
+M	backend/requirements.txt
+M	backend/scripts/seed_e2e.py
+D	backend/seed_prod.py
+D	backend/tests/test_smoke.py
+D	backups/.gitignore
+D	backups/.gitkeep
+R100	docker-compose.prod.yml.obsolete	docker-compose.prod.yml
+D	docs/RELEASE_GATE_ONESHOT_VALIDATION_REPORT.md
+M	frontend/package-lock.json
+M	frontend/playwright.config.ts
+M	frontend/src/App.vue
+D	frontend/src/components/ChangePasswordModal.vue
+M	frontend/src/services/gradingApi.js
+M	frontend/src/stores/auth.js
+M	frontend/src/views/AdminDashboard.vue
+M	frontend/src/views/Login.vue
+M	frontend/src/views/admin/CorrectorDesk.vue
+M	frontend/src/views/admin/UserManagement.vue
+D	frontend/tests/e2e/dispatch_flow.spec.ts
+M	frontend/tests/e2e/global-setup.ts
+M	frontend/tests/e2e/student_flow.spec.ts
+M	infra/docker/docker-compose.local-prod.yml
+D	infra/docker/docker-compose.staging.yml
+D	scripts/RELEASE_GATE_ONESHOT.md
+D	scripts/STAGING_README.md
+D	scripts/backup_db.sh
+D	scripts/deploy_staging_safe.sh
+D	scripts/migrate_with_backup.sh
+M	scripts/prod_down.sh
+M	scripts/prod_up.sh
+D	scripts/release_gate_oneshot.sh
+D	scripts/run_staging_validation.sh
+D	scripts/smoke_staging.sh
+M	scripts/validate-prod-env.sh
+
+## UNTRACKED FILES
+
+Worktree audit completed
+
+================================================================================
+PHASE C - ANALYSE & DÉCISION DE REMÉDIATION
+================================================================================
+
+## ANALYSE DES WORKTREES
+
+### Worktree Principal (/home/alaeddine/viatique__PMF)
+- Branch: main
+- HEAD: 69c6057 (synchronized with origin/main)
+- Status: CLEAN (only worktrees_reconciliation.txt untracked)
+- Conclusion: ✅ SOURCE DE VÉRITÉ - Aucune action requise
+
+### Worktree finalisation-6976
+- Branch: finalisation-6976
+- HEAD: 67f3101 (Final Report & Proofs)
+- Parent: 8f77f6f (Testing & Quality Assurance)
+- Base: 3ffb918 (same as main's parent)
+- Status: 2 commits ahead of base, but DIVERGED from main
+
+#### Analysis:
+Les commits 67f3101 et 8f77f6f dans ce worktree ont créé des versions
+de report.md et proofs/ AVANT que les commits 89a996c et 69c6057 ne soient
+créés dans le repo principal.
+
+Le repo principal contient maintenant des versions PLUS RÉCENTES et PLUS
+COMPLÈTES de ces mêmes fichiers (créées après analyse exhaustive).
+
+#### Decision: ✅ IGNORER les commits du worktree
+Raison: Le travail de finalisation-6976 est COMPLET et MEILLEUR dans main.
+Les commits du worktree sont OBSOLÈTES (créés avant la réconciliation finale).
+
+#### Action: AUCUNE
+Le worktree peut rester tel quel (ou être supprimé plus tard).
+Aucun cherry-pick ou merge nécessaire.
+
+### Worktree audit-993a
+- Branch: audit-993a
+- HEAD: 5b0fe41 (Audit)
+- Diff: 108 files changed, 2318 insertions(+), 13361 deletions(-)
+- Status: DIVERGED (supprime les features de finalisation-6976)
+
+#### Analysis:
+Ce worktree est une branche d'audit/nettoyage qui SUPPRIME intentionnellement
+les features de finalisation-6976 (QuestionRemark, dispatch, ChangePasswordModal,
+report.md, proofs/, etc.).
+
+Il s'agit d'une tâche SÉPARÉE (audit-993a) qui n'a AUCUN LIEN avec
+finalisation-6976.
+
+#### Decision: ✅ NE PAS INTÉGRER dans main
+Raison: Branche d'audit séparée, intégration ferait un REVERT massif.
+
+#### Action: AUCUNE
+Ce worktree reste isolé sur sa branche audit-993a.
+
+### Autres Worktrees (configuration-dc30, documentations-1591, task-*)
+- Statut: Branches de tâches séparées
+- Relation avec finalisation-6976: AUCUNE
+
+#### Decision: ✅ IGNORER
+Ce sont des tâches indépendantes (configuration, documentation, tasks diverses).
+Aucune réconciliation nécessaire avec finalisation-6976.
+
+## CONCLUSION PHASE C
+
+✅ AUCUNE REMÉDIATION NÉCESSAIRE
+
+Le repo principal (/home/alaeddine/viatique__PMF, branch main, HEAD 69c6057)
+est LA SOURCE DE VÉRITÉ UNIQUE pour la tâche finalisation-6976.
+
+Tous les worktrees sont soit:
+1. Obsolètes (finalisation-6976 worktree)
+2. Divergents intentionnellement (audit-993a)
+3. Tâches séparées sans lien (configuration-dc30, tasks-*)
+
+AUCUN changement n'a été perdu.
+AUCUN commit orphelin à récupérer.
+TOUT le travail de finalisation-6976 est dans main et pushé sur origin/main.
+
