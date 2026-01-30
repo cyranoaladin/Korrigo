@@ -34,8 +34,7 @@ services:
     restart: unless-stopped
     command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
     env_file:
-      - path: ../../.env
-        required: false  # Optional: for CI compatibility (env vars passed directly)
+      - ../../.env
     expose:
       - "8000"
     volumes:
@@ -63,6 +62,7 @@ services:
       #   - If set: requires X-Metrics-Token header or ?token= query param
       #   - Production: MUST set a strong secret (64+ chars)
       METRICS_TOKEN: "${METRICS_TOKEN:-}"
+      RATELIMIT_ENABLE: "false"
       E2E_SEED_TOKEN: "${E2E_SEED_TOKEN:-}"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health/" ]

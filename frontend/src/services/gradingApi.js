@@ -133,7 +133,11 @@ export default {
 
     async fetchRemarks(copyId) {
         const response = await api.get(`/grading/copies/${copyId}/remarks/`);
-        return response.data;
+        const data = response.data;
+        if (data && typeof data === 'object' && Array.isArray(data.results)) {
+            return data.results;
+        }
+        return data;
     },
 
     async saveRemark(copyId, questionId, remark, token = null) {
