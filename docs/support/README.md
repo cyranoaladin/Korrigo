@@ -259,6 +259,8 @@ Cette section contient toutes les ressources de support et d'assistance pour les
 ### Documentation Sécurité et Légale
 - [Politique RGPD](../security/POLITIQUE_RGPD.md)
 - [Manuel de Sécurité](../security/MANUEL_SECURITE.md)
+- [Gestion des Données](../security/GESTION_DONNEES.md)
+- [Audit et Conformité](../security/AUDIT_CONFORMITE.md)
 - [Politique de Confidentialité](../legal/POLITIQUE_CONFIDENTIALITE.md)
 
 ### Documentation Technique
