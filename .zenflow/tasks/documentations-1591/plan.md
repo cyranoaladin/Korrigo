@@ -52,6 +52,7 @@ Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warra
 ---
 
 ### [ ] Step: Phase 1 - School Administrator Documentation
+<!-- chat-id: fe22a2b2-442b-47f6-995c-a78c8bb26f57 -->
 
 Create comprehensive documentation for school administrators and leadership.
 
@@ -81,6 +82,7 @@ Create comprehensive documentation for school administrators and leadership.
 ---
 
 ### [ ] Step: Phase 2 - User Role Documentation
+<!-- chat-id: e18dbbae-1cd9-469a-8208-6801b97a1db4 -->
 
 Create role-specific user guides for all platform users.
 
@@ -111,6 +113,7 @@ Create role-specific user guides for all platform users.
 ---
 
 ### [ ] Step: Phase 3 - Security & Compliance Documentation
+<!-- chat-id: fef72ba2-92f5-46fa-8b15-49dc425c2ff4 -->
 
 Create comprehensive security and RGPD compliance documentation.
 
@@ -142,6 +145,7 @@ Create comprehensive security and RGPD compliance documentation.
 ---
 
 ### [ ] Step: Phase 4 - Legal Documentation
+<!-- chat-id: 3c1ff13f-e390-43fa-97e1-01a08888fbda -->
 
 Create legal and compliance documents for users and school.
 
@@ -172,6 +176,7 @@ Create legal and compliance documents for users and school.
 ---
 
 ### [ ] Step: Phase 5 - Support & Troubleshooting Documentation
+<!-- chat-id: 51a38824-8475-47f9-9325-a20b3833950a -->
 
 Create comprehensive support and troubleshooting resources.
 
@@ -198,6 +203,7 @@ Create comprehensive support and troubleshooting resources.
 ---
 
 ### [ ] Step: Documentation Integration & Index
+<!-- chat-id: da0a3750-1862-4ebf-bac6-53b26da9f698 -->
 
 Create master documentation index and validate all cross-references.
 
