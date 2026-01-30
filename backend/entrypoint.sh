@@ -1,8 +1,13 @@
 #!/bin/bash
 set -e
 
-echo "--> Applied database migrations..."
-python manage.py migrate
+# Only run migrations if DJANGO_AUTO_MIGRATE is not explicitly set to false
+if [ "${DJANGO_AUTO_MIGRATE:-true}" != "false" ]; then
+    echo "--> Applied database migrations..."
+    python manage.py migrate
+else
+    echo "--> Skipping automatic migrations (DJANGO_AUTO_MIGRATE=false)"
+fi
 
 echo "--> Collecting static files..."
 python manage.py collectstatic --noinput

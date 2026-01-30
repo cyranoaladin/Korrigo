@@ -69,18 +69,18 @@ run_logged "02_up" docker compose -f "$COMPOSE_FILE" up -d
 run_logged "03_ps_initial" docker compose -f "$COMPOSE_FILE" ps
 
 # Wait for health endpoints (max 120s)
-log "Waiting for /api/health/ (max 120s)…"
+log "Waiting for /api/health/live/ (max 120s)…"
 run_logged "04_wait_health" bash -c "
   set -euo pipefail
   for i in {1..120}; do
-    code=\$(curl -s -o /dev/null -w '%{http_code}' '${NGINX_BASE_URL}/api/health/' || true)
+    code=\$(curl -s -o /dev/null -w '%{http_code}' '${NGINX_BASE_URL}/api/health/live/' || true)
     if [ \"\$code\" = \"200\" ]; then
-      echo 'health: 200 OK'
+      echo 'health/live: 200 OK'
       exit 0
     fi
     sleep 1
   done
-  echo 'health: timeout'
+  echo 'health/live: timeout'
   exit 1
 "
 
