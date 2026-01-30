@@ -42,8 +42,8 @@ test.describe('Student Flow (Mission 17)', () => {
             sessionStorage.clear();
         });
 
-        // 1) LOGIN with minimal absolute URL to avoid router relative ambiguity
-        await page.goto('http://localhost:5173/student/login');
+        // 1) LOGIN with relative URL (uses baseURL from config)
+        await page.goto('/student/login');
         await expect(page).toHaveURL(/student\/login/, { timeout: 15000 });
 
         await page.fill('input[placeholder="ex: 123456789A"]', '123456789');
@@ -90,8 +90,8 @@ test.describe('Student Flow (Mission 17)', () => {
     test('Security: Student cannot access another student\'s PDF (403)', async ({ browser }) => {
         // HELPER: Robust login function
         async function loginAs(contextPage: any, ine: string, name: string) {
-            // Absolute URL to bypass any relative routing ambiguity
-            await contextPage.goto('http://localhost:5173/student/login', { waitUntil: 'domcontentloaded' });
+            // Relative URL to bypass any relative routing ambiguity
+            await contextPage.goto('/student/login', { waitUntil: 'domcontentloaded' });
             await expect(contextPage).toHaveURL(/\/student\/login/, { timeout: 15000 });
 
             await contextPage.fill('input[placeholder="ex: 123456789A"]', ine);
