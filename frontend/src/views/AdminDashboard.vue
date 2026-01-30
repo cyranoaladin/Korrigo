@@ -165,6 +165,7 @@ const confirmDispatch = async () => {
 }
 
 const canDispatch = (exam) => {
+    console.log(`Exam ${exam.name}: Correctors=`, exam.correctors);
     return exam.correctors && exam.correctors.length > 0
 }
 

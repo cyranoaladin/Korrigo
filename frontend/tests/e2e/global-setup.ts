@@ -5,7 +5,7 @@ export default async () => {
     console.log("Seeding E2E Data...");
     try {
         execSync(
-            'cd ../backend && export PYTHONPATH=. && venv/bin/python scripts/seed_e2e.py',
+            'docker compose -f ../infra/docker/docker-compose.local-prod.yml exec backend sh -c "export PYTHONPATH=/app && python scripts/seed_e2e.py"',
             { stdio: 'inherit' }
         );
     } catch (e) {

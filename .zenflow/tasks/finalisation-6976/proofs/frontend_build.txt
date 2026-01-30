@@ -1,0 +1,26 @@
+
+> korrigo@0.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 115 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                               0.62 kB │ gzip:  0.37 kB
+dist/assets/Settings-B5WggJXX.css             0.93 kB │ gzip:  0.42 kB
+dist/assets/StapleView-yEYTX65m.css           1.76 kB │ gzip:  0.70 kB
+dist/assets/ResultView-BIU0ZJVO.css           2.96 kB │ gzip:  0.95 kB
+dist/assets/MarkingSchemeView-DZ91iLNX.css    3.15 kB │ gzip:  0.98 kB
+dist/assets/UserManagement-CnzdGFQN.css       3.30 kB │ gzip:  1.05 kB
+dist/assets/CorrectorDesk-BzXcgzk3.css        6.75 kB │ gzip:  1.61 kB
+dist/assets/index-CxA8GY4v.css               17.25 kB │ gzip:  3.62 kB
+dist/assets/StapleView-RHORsr9b.js            2.23 kB │ gzip:  1.22 kB
+dist/assets/Settings-Mq6KYmsH.js              2.24 kB │ gzip:  1.06 kB
+dist/assets/ResultView-Bs0koYw9.js            2.68 kB │ gzip:  1.36 kB
+dist/assets/MarkingSchemeView-Cc1bwawf.js     4.95 kB │ gzip:  2.20 kB
+dist/assets/IdentificationDesk-D3RuuoWX.js    6.24 kB │ gzip:  2.55 kB
+dist/assets/UserManagement-Dzbh3sPj.js        9.26 kB │ gzip:  3.31 kB
+dist/assets/CorrectorDesk-BtXUDWkM.js        18.36 kB │ gzip:  6.50 kB
+dist/assets/index-CAyGvzwh.js               167.17 kB │ gzip: 62.46 kB
+✓ built in 1.54s
