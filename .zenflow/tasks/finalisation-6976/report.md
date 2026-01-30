@@ -25,6 +25,68 @@ Successfully implemented and delivered all required production features for the 
 
 ---
 
+## Contexte du Projet
+
+### Établissement et Infrastructure
+
+**Korrigo** est déployé pour un lycée disposant d'une infrastructure spécifique:
+
+**Messagerie institutionnelle:**
+- Domaine: `@ert.tn` (Email Réseau Tunisien)
+- Tous les enseignants et élèves disposent d'une adresse email `@ert.tn`
+- Pas d'ENT (Environnement Numérique de Travail) ni d'adresse académique distincte
+
+**Accessibilité:**
+- **Korrigo est accessible depuis l'extérieur de l'établissement** pour tous les profils
+- Pas de restriction au réseau interne du lycée
+- Enseignants et élèves peuvent se connecter depuis leur domicile ou tout autre lieu
+
+### Profils Utilisateurs et Authentification
+
+Le système distingue **3 types d'utilisateurs** avec des méthodes d'authentification adaptées:
+
+**1. Administrateurs (Admin)**
+- **Connexion:** Nom d'utilisateur = `admin`
+- **Mot de passe par défaut:** `admin` (doit être changé au premier login)
+- **Accès:** Gestion complète du système, réinitialisation de mots de passe
+
+**2. Secrétariat**
+- **Connexion:** Nom d'utilisateur = `secretariat`
+- **Mot de passe:** Défini par l'administrateur
+- **Accès:** Gestion administrative, imports d'élèves, création d'examens
+
+**3. Enseignants/Correcteurs**
+- **Connexion:** Adresse email `@ert.tn` (ex: `jean.dupont@ert.tn`)
+- **Mot de passe:** Défini lors de la création du compte ou réinitialisé par l'admin
+- **Accès:** Correction de copies, gestion de barèmes, dispatch
+
+**4. Élèves**
+- **Connexion:** Adresse email `@ert.tn` (ex: `marie.martin@ert.tn`)
+- **Mot de passe:** Défini lors de la création du compte ou réinitialisé par l'admin
+- **Accès:** Consultation de leurs copies corrigées, notes, appréciations
+
+### Architecture d'Authentification Implémentée
+
+**Backend (Django):**
+- Email utilisé comme identifiant unique pour enseignants et élèves
+- Username utilisé pour admin et secrétariat
+- Fallback email→username dans `LoginView` pour rétrocompatibilité
+- Contrainte d'unicité sur le champ email (niveau base de données)
+
+**Frontend (Vue.js):**
+- Routes distinctes: `/admin/login`, `/teacher/login`, `/élève/login`
+- Formulaire unifié acceptant email OU username
+- Bouton toggle pour afficher/masquer le mot de passe
+- Modal de changement forcé si `must_change_password=True`
+
+**Sécurité:**
+- Mots de passe hashés avec PBKDF2 (Django default)
+- Pas d'affichage de secrets dans les logs
+- Audit trail pour réinitialisations de mots de passe
+- Rate limiting sur endpoints sensibles
+
+---
+
 ## 1. Summary of Implementation
 
 ### A) Page d'accueil - 3 types de connexion ✅
@@ -32,7 +94,7 @@ Successfully implemented and delivered all required production features for the 
 **Status:** Already implemented in base codebase (pre-existing feature)
 
 **Evidence:**
-- Frontend route structure: `/admin/login`, `/teacher/login`, `/student/login`
+- Frontend route structure: `/admin/login`, `/teacher/login`, `/élève/login`
 - Home page component displays 3 distinct access cards
 - Visual distinction between Admin, Correcteurs, and Élèves roles
 
@@ -82,7 +144,7 @@ Successfully implemented and delivered all required production features for the 
 **Status:** IMPLEMENTED (Commit: d8ff335)
 
 **Implementation Details:**
-- Email-based authentication added for teacher and student roles
+- Email-based authentication added for teacher and élève roles
 - Email field added to User model (unique constraint)
 - Login form accepts both username/email (backward compatible)
 - Authentication backend updated to support email lookup
@@ -111,7 +173,7 @@ Successfully implemented and delivered all required production features for the 
 **Status:** IMPLEMENTED (Commits: d8ff335, 518fbe0)
 
 **Implementation Details:**
-- Admin can reset password for any teacher or student account
+- Admin can reset password for any teacher or élève account
 - Temporary password generated (8-character random string)
 - User flagged with `must_change_password=True` after reset
 - Email notification sent to user (optional, configurable)
@@ -254,7 +316,7 @@ Successfully implemented and delivered all required production features for the 
 - Global appreciation field on Copy model (TextField, nullable)
 - Positioned at bottom of correction interface
 - Auto-save on blur or after 2 seconds of inactivity
-- Visible to students when copy is in GRADED state
+- Visible to élèves when copy is in GRADED state
 - Character limit: 2000 characters (soft limit, expandable textarea)
 
 **Files Created/Modified:**
@@ -283,7 +345,7 @@ Successfully implemented and delivered all required production features for the 
 ## 2. Key Technical Decisions
 
 ### Authentication Architecture
-- **Decision:** Email-based login for teachers/students, username for admin
+- **Decision:** Email-based login for teachers/élèves, username for admin
 - **Rationale:** Email is more user-friendly and reduces cognitive load (no need to remember usernames)
 - **Backward Compatibility:** Username login still supported for existing accounts
 - **Security:** Email uniqueness constraint enforced at database level
@@ -420,7 +482,7 @@ cd backend && source venv/bin/activate && pytest -v --tb=short
 - Exams (models, validators, dispatch): 38 tests
 - Grading (workflow, remarks, concurrency): 87 tests
 - Identification (OCR, workflow): 19 tests
-- Students (CSV import, access): 14 tests
+- Élèves (CSV import, access): 14 tests
 - Processing (PDF splitter): 6 tests
 - Integration (E2E, smoke): 28 tests
 
@@ -478,7 +540,7 @@ cd frontend && npm run build
 **Note:** E2E tests are environment-dependent. Local runner may be flaky. CI/container is the reference environment (retries=2, trace=on-first-retry).
 
 **Previous E2E Results (commit 3ffb918):**
-- Student flow: ✅ PASS (3/3 tests)
+- Élève flow: ✅ PASS (3/3 tests)
 - Dispatch flow: ✅ PASS (4/4 tests) - *with improved setup in 89a996c*
 - Security flow: ✅ PASS (2/2 tests)
 
@@ -638,7 +700,7 @@ gh run view --repo cyranoaladin/Korrigo 21509383387 --log-failed
 - **Evidence:** seed_prod.py (line 95), ChangePasswordModal.vue, backend tests
 - **Status:** PASS
 
-### Requirement C: Email login for teachers/students ✅
+### Requirement C: Email login for teachers/élèves ✅
 - **Criterion:** Login form accepts email, authentication works
 - **Evidence:** Email field migration, login endpoint, backend tests
 - **Status:** PASS
@@ -716,12 +778,12 @@ gh run view --repo cyranoaladin/Korrigo 21509383387 --log-failed
 
 4. **Bulk Password Reset**
    - Currently: One user at a time
-   - Future: Bulk reset for multiple users (e.g., all students)
+   - Future: Bulk reset for multiple users (e.g., all élèves)
    - Benefit: Operational efficiency
    - Effort: 1 day (backend endpoint + UI)
 
 5. **E2E Test Coverage Expansion**
-   - Currently: 3 flows (student, dispatch, security)
+   - Currently: 3 flows (élève, dispatch, security)
    - Future: Correction flow, remarks flow, appreciation flow
    - Benefit: Higher confidence in deployment
    - Effort: 3-5 days (test writing + fixtures)
@@ -767,8 +829,8 @@ gh run view --repo cyranoaladin/Korrigo 21509383387 --log-failed
 5. **Smoke Tests**
    - Create test teacher account with email
    - Login as teacher with email
-   - Create test student account with email
-   - Login as student with email
+   - Create test élève account with email
+   - Login as élève with email
    - Reset password for test user (as admin)
    - Verify forced password change
 
