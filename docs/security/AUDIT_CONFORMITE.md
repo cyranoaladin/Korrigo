@@ -1,25 +1,28 @@
-# Procédures d'Audit et Conformité
+# Audit et Conformité RGPD/Sécurité
 # Plateforme Korrigo PMF
 
 > **Version**: 1.0.0  
 > **Date**: 30 Janvier 2026  
-> **Public**: DPO, RSSI, Auditeurs, Direction  
-> **Fréquence révision**: Annuelle
+> **Public**: DPO, Auditeurs internes, Direction, RSSI  
+> **Classification**: Usage interne - Sensible  
+> **Conformité**: RGPD (UE) 2016/679, CNIL
 
 ---
 
 ## 📋 Table des Matières
 
 1. [Introduction](#introduction)
-2. [Programme d'Audit](#programme-daudit)
-3. [Audit RGPD](#audit-rgpd)
-4. [Audit Sécurité Technique](#audit-sécurité-technique)
-5. [Audit Accès et Permissions](#audit-accès-et-permissions)
-6. [Audit Intégrité Données](#audit-intégrité-données)
-7. [Audit Conformité Opérationnelle](#audit-conformité-opérationnelle)
-8. [Rapports et Suivi](#rapports-et-suivi)
-9. [Actions Correctives](#actions-correctives)
-10. [Annexes](#annexes)
+2. [Méthodologie d'Audit](#méthodologie-daudit)
+3. [Calendrier et Fréquence](#calendrier-et-fréquence)
+4. [Checklist d'Audit RGPD](#checklist-daudit-rgpd)
+5. [Checklist d'Audit Sécurité](#checklist-daudit-sécurité)
+6. [Procédure d'Auto-Évaluation](#procédure-dauto-évaluation)
+7. [Audits Techniques](#audits-techniques)
+8. [Audits Organisationnels](#audits-organisationnels)
+9. [Reporting et Documentation](#reporting-et-documentation)
+10. [Gestion des Non-Conformités](#gestion-des-non-conformités)
+11. [Préparation aux Audits CNIL](#préparation-aux-audits-cnil)
+12. [Suivi des Recommandations](#suivi-des-recommandations)
 
 ---
 
@@ -27,861 +30,893 @@
 
 ### 1.1 Objet
 
-Ce document définit les procédures d'audit et de contrôle de conformité pour la plateforme Korrigo PMF, couvrant :
-- **Conformité RGPD** : Respect protection données personnelles
-- **Sécurité technique** : Contrôles systèmes et applicatifs
-- **Intégrité données** : Fiabilité notes et annotations
-- **Conformité opérationnelle** : Respect procédures établissement
+Ce document définit les procédures d'audit de conformité RGPD et de sécurité pour la plateforme Korrigo PMF, permettant de vérifier le respect des obligations légales et des mesures de protection des données personnelles des élèves.
 
-### 1.2 Objectifs
+### 1.2 Objectifs des Audits
 
-- ✅ **Prévention** : Détecter vulnérabilités avant exploitation
-- ✅ **Conformité** : Vérifier respect réglementations (RGPD, CNIL)
-- ✅ **Amélioration continue** : Identifier axes optimisation
-- ✅ **Responsabilité** : Démontrer accountability RGPD
+- **Conformité RGPD** : Vérifier le respect du Règlement européen 2016/679
+- **Conformité CNIL** : Respecter les recommandations de la CNIL pour le secteur éducatif
+- **Sécurité** : Valider l'efficacité des mesures techniques et organisationnelles
+- **Amélioration continue** : Identifier les risques et opportunités d'amélioration
+- **Accountability** : Démontrer la conformité en cas de contrôle
 
-### 1.3 Périmètre
+### 1.3 Périmètre d'Audit
 
-**Systèmes audités** :
-- Application Korrigo PMF (backend + frontend)
-- Base de données PostgreSQL
-- Infrastructure serveur (Nginx, Docker, OS)
-- Procédures organisationnelles (chartes, formations)
-- Documentation (registres, politiques)
+**Aspects couverts** :
+- ✅ Conformité RGPD (finalités, bases légales, droits des personnes)
+- ✅ Sécurité technique (accès, chiffrement, journalisation)
+- ✅ Gestion des données (conservation, archivage, suppression)
+- ✅ Documentation (registre, DPA, politiques)
+- ✅ Formation et sensibilisation des utilisateurs
+- ✅ Gestion des incidents et violations de données
 
-**Hors périmètre** :
-- Sécurité physique locaux (audit établissement)
-- Sécurité postes utilisateurs (responsabilité DSI)
-
----
-
-## 2. Programme d'Audit
-
-### 2.1 Calendrier Annuel
-
-| Audit | Fréquence | Période | Responsable | Durée |
-|-------|-----------|---------|-------------|-------|
-| **Audit RGPD complet** | Annuel | Septembre | DPO + Auditeur externe | 5 jours |
-| **Audit sécurité technique** | Trimestriel | Janv, Avril, Juil, Oct | RSSI/Admin NSI | 2 jours |
-| **Audit permissions** | Trimestriel | Mars, Juin, Sept, Déc | Admin NSI | 1 jour |
-| **Revue logs sécurité** | Mensuel | 1er de chaque mois | Admin NSI | 2h |
-| **Test restauration sauvegarde** | Trimestriel | Fév, Mai, Août, Nov | Admin NSI | 4h |
-| **Scan vulnérabilités** | Trimestriel | Janv, Avril, Juil, Oct | RSSI | 1 jour |
-| **Audit intégrité données** | Semestriel | Janvier, Juillet | DPO + Admin NSI | 1 jour |
+**Références documentaires** :
+- [POLITIQUE_RGPD.md](POLITIQUE_RGPD.md) : Politique de protection des données
+- [MANUEL_SECURITE.md](MANUEL_SECURITE.md) : Mesures de sécurité techniques
+- [GESTION_DONNEES.md](GESTION_DONNEES.md) : Cycle de vie des données
+- [ACCORD_TRAITEMENT_DONNEES.md](../legal/ACCORD_TRAITEMENT_DONNEES.md) : DPA
 
 ---
 
-### 2.2 Ressources Requises
+## 2. Méthodologie d'Audit
 
-**Équipe audit interne** :
-- **DPO** : Conformité RGPD, droits personnes concernées
-- **RSSI/Admin NSI** : Sécurité technique, logs, permissions
-- **Proviseur** : Validation résultats, approbation actions correctives
+### 2.1 Types d'Audits
 
-**Outils** :
-- Scripts audit automatisés (`audit_permissions.py`, `check_data_retention.py`)
-- OWASP ZAP (scan vulnérabilités web)
-- PostgreSQL audit queries
-- Checklist papier (conformité organisationnelle)
+| Type | Fréquence | Responsable | Durée | Objectif |
+|------|-----------|-------------|-------|----------|
+| **Auto-évaluation rapide** | Trimestrielle | Administrateur NSI | 2h | Contrôle de routine |
+| **Audit interne complet** | Annuel | DPO + RSSI | 2 jours | Conformité globale |
+| **Audit technique** | Semestriel | Admin système | 4h | Sécurité infrastructure |
+| **Revue des logs** | Mensuelle | Admin NSI | 1h | Détection incidents |
+| **Audit externe** | Si requis | Auditeur CNIL | Variable | Validation officielle |
 
-**Audit externe** (optionnel, annuel) :
-- Prestataire PASSI (Prestataire d'Audit de la Sécurité des SI)
-- Pentest (test intrusion)
-- Revue code sécurité
+### 2.2 Phases d'un Audit Complet
 
----
+```
+┌─────────────┐
+│ PRÉPARATION │  - Collecte documentation
+│  (J-15)     │  - Définition périmètre
+└──────┬──────┘  - Planification interviews
+       │
+       v
+┌─────────────┐
+│  EXÉCUTION  │  - Vérification checklists
+│  (J0 → J+2) │  - Tests techniques
+└──────┬──────┘  - Interviews utilisateurs
+       │
+       v
+┌─────────────┐
+│  ANALYSE    │  - Synthèse des écarts
+│  (J+3 → J+5)│  - Évaluation risques
+└──────┬──────┘  - Recommandations
+       │
+       v
+┌─────────────┐
+│  REPORTING  │  - Rapport d'audit
+│  (J+7)      │  - Plan d'actions
+└──────┬──────┘  - Présentation direction
+       │
+       v
+┌─────────────┐
+│    SUIVI    │  - Mise en œuvre actions
+│ (J+30/60)   │  - Contrôle effectivité
+└─────────────┘
+```
 
-## 3. Audit RGPD
+### 2.3 Outils d'Audit
 
-### 3.1 Objectifs
+**Documentation** :
+- Registre des activités de traitement (Excel/Google Sheets)
+- Cartographie des flux de données
+- Inventaire des permissions ([SECURITY_PERMISSIONS_INVENTORY.md](../../SECURITY_PERMISSIONS_INVENTORY.md))
 
-- Vérifier conformité aux 6 principes RGPD (Art. 5)
-- Valider exercice droits personnes concernées
-- Contrôler durées de conservation
-- Vérifier registre des traitements à jour
-
-### 3.2 Checklist Audit RGPD
-
-**A. Registre des Traitements (Art. 30 RGPD)**
-
-| Critère | Conforme | Non-Conforme | Observations |
-|---------|----------|--------------|--------------|
-| Registre existe et accessible | ☐ | ☐ | |
-| Tous traitements documentés | ☐ | ☐ | |
-| Finalités clairement définies | ☐ | ☐ | |
-| Base légale identifiée | ☐ | ☐ | |
-| Destinataires listés | ☐ | ☐ | |
-| Durées conservation spécifiées | ☐ | ☐ | |
-| Mesures sécurité décrites | ☐ | ☐ | |
-| Mise à jour < 12 mois | ☐ | ☐ | Date dernière MAJ : ______ |
-
-**Emplacement registre** : `docs/security/REGISTRE_TRAITEMENTS_RGPD.xlsx`
-
----
-
-**B. Droits des Personnes Concernées (Art. 15-22 RGPD)**
-
-| Droit | Procédure Existe | Délai Respecté | Testée |
-|-------|-----------------|----------------|--------|
-| Droit d'accès (Art. 15) | ☐ | ☐ | ☐ |
-| Droit de rectification (Art. 16) | ☐ | ☐ | ☐ |
-| Droit à l'effacement (Art. 17) | ☐ | ☐ | ☐ |
-| Droit à la portabilité (Art. 20) | ☐ | ☐ | ☐ |
-| Droit d'opposition (Art. 21) | ☐ | ☐ | ☐ |
-
-**Test** :
+**Outils techniques** :
 ```bash
-# Simuler demande d'accès
-python manage.py export_student_data --ine TEST_INE --format json
+# Audit des accès utilisateurs
+python manage.py audit_permissions
 
-# Vérifier délai < 1 mois
-# Vérifier exhaustivité données fournies
+# Vérification des logs de sécurité (6 derniers mois)
+python manage.py check_audit_logs --days=180
+
+# Export registre RGPD
+python manage.py export_rgpd_register
 ```
 
 ---
 
-**C. Durées de Conservation (Art. 5.1.e RGPD)**
+## 3. Calendrier et Fréquence
 
-| Type de données | Durée légale | Durée appliquée | Conforme |
-|----------------|--------------|-----------------|----------|
-| Données élèves | 1 an après fin scolarité | ______ | ☐ |
-| Copies PDF | 1 an après examen | ______ | ☐ |
-| Notes/annotations | 1 an après examen | ______ | ☐ |
-| Logs audit | 6 mois | ______ | ☐ |
-| Sauvegardes | 30j quotidiennes + 6m hebdo | ______ | ☐ |
+### 3.1 Planning Annuel Type
 
-**Vérification automatisée** :
+| Mois | Action | Responsable | Livrables |
+|------|--------|-------------|-----------|
+| **Janvier** | Audit interne complet | DPO + RSSI | Rapport annuel N-1 |
+| **Février** | Plan d'actions correctives | Direction | Roadmap sécurité |
+| **Avril** | Auto-évaluation T1 | Admin NSI | Checklist Q1 |
+| **Juin** | Audit technique infrastructure | Admin système | Rapport pentest |
+| **Juillet** | Auto-évaluation T2 | Admin NSI | Checklist Q2 |
+| **Septembre** | Revue registre traitements | DPO | Registre mis à jour |
+| **Octobre** | Auto-évaluation T3 | Admin NSI | Checklist Q3 |
+| **Novembre** | Audit organisationnel | DPO | Rapport formation |
+| **Décembre** | Auto-évaluation T4 | Admin NSI | Checklist Q4 |
+| **Mensuel** | Revue logs sécurité | Admin NSI | Rapport incidents |
+
+### 3.2 Déclencheurs d'Audit Exceptionnel
+
+**Audits hors calendrier déclenchés si** :
+- ❗ Violation de données personnelles (data breach)
+- ❗ Mise à jour majeure de la plateforme (nouvelle version)
+- ❗ Changement de sous-traitant (hébergement, maintenance)
+- ❗ Demande CNIL (contrôle sur pièces ou sur place)
+- ❗ Incident de sécurité majeur
+- ❗ Modification législative (nouveau décret CNIL)
+
+---
+
+## 4. Checklist d'Audit RGPD
+
+### 4.1 Conformité Générale
+
+**A - Base Légale et Finalités**
+
+| Critère | Conforme | Observations | Preuve |
+|---------|----------|--------------|--------|
+| Les finalités du traitement sont clairement définies | ☐ Oui ☐ Non | | POLITIQUE_RGPD.md § 4.2 |
+| Base légale identifiée (Art. 6.1.e - mission publique) | ☐ Oui ☐ Non | | Code de l'éducation |
+| Absence de détournement de finalité | ☐ Oui ☐ Non | | Audit logs |
+| Information des personnes concernées (élèves/parents) | ☐ Oui ☐ Non | | POLITIQUE_CONFIDENTIALITE.md |
+
+**B - Droits des Personnes**
+
+| Critère | Conforme | Délai Réponse | Procédure |
+|---------|----------|---------------|-----------|
+| Droit d'accès (Art. 15) : procédure opérationnelle | ☐ Oui ☐ Non | < 1 mois | `export_student_data.sh` |
+| Droit de rectification (Art. 16) : formulaire disponible | ☐ Oui ☐ Non | < 1 mois | Interface admin |
+| Droit à l'effacement (Art. 17) : script anonymisation | ☐ Oui ☐ Non | < 1 mois | `anonymize_student.py` |
+| Droit d'opposition (Art. 21) : possibilité de refus portail | ☐ Oui ☐ Non | Immédiat | Formulaire consentement |
+| Droit à la portabilité (Art. 20) : export JSON | ☐ Oui ☐ Non | < 1 mois | `manage.py export_data` |
+
+**C - Conservation et Suppression**
+
+| Critère | Conforme | Durée | Automatisation |
+|---------|----------|-------|----------------|
+| Durée de conservation définie (examen) | ☐ Oui ☐ Non | 1 an | GESTION_DONNEES.md § 6 |
+| Durée de conservation logs d'audit | ☐ Oui ☐ Non | 6 mois | Celery purge task |
+| Archivage fin d'année académique | ☐ Oui ☐ Non | Juillet | Script manuel |
+| Suppression automatique données expirées | ☐ Oui ☐ Non | Daily | `purge_expired_data` |
+
+### 4.2 Sécurité Technique (Art. 32 RGPD)
+
+| Mesure | Implémentée | Niveau | Validation |
+|--------|-------------|--------|------------|
+| Chiffrement des données en transit (HTTPS) | ☐ Oui ☐ Non | TLS 1.3 | `openssl s_client` |
+| Chiffrement au repos (PostgreSQL) | ☐ Oui ☐ Non | AES-256 | Config DB |
+| Hachage des mots de passe | ☐ Oui ☐ Non | Argon2 | `PASSWORD_HASHERS` |
+| Pseudonymisation des logs | ☐ Oui ☐ Non | IP masquées | Audit GradingEvent |
+| Contrôle d'accès RBAC | ☐ Oui ☐ Non | 6 rôles | SECURITY_PERMISSIONS |
+| Journalisation des accès | ☐ Oui ☐ Non | 100% actions | `GradingEvent` |
+| Sauvegarde chiffrée | ☐ Oui ☐ Non | GPG | `/backups/*.gpg` |
+| Politique de mots de passe | ☐ Oui ☐ Non | 12 car. min | Django validators |
+
+### 4.3 Documentation et Traçabilité
+
+| Document | Existant | Mis à jour | Responsable |
+|----------|----------|------------|-------------|
+| Registre des activités de traitement | ☐ Oui ☐ Non | Date: ______ | DPO |
+| Analyse d'impact (AIPD) | ☐ Oui ☐ Non | Date: ______ | DPO |
+| Politique de protection des données | ☐ Oui ☐ Non | Date: ______ | DPO |
+| DPA avec sous-traitants | ☐ Oui ☐ Non | Date: ______ | Direction |
+| Procédure violation de données | ☐ Oui ☐ Non | Date: ______ | DPO |
+| Formulaires de consentement | ☐ Oui ☐ Non | Date: ______ | Secrétariat |
+
+---
+
+## 5. Checklist d'Audit Sécurité
+
+### 5.1 Authentification et Accès
+
+**Vérifications à effectuer** :
+
+```bash
+# 1. Liste des comptes actifs
+python manage.py list_users --active
+
+# 2. Comptes administrateurs (doit être minimal)
+python manage.py list_users --role=admin
+
+# 3. Comptes inactifs depuis 6 mois (à désactiver)
+python manage.py list_inactive_users --days=180
+
+# 4. Vérification force mots de passe
+python manage.py check_password_strength
+
+# 5. Sessions actives (détecter anomalies)
+python manage.py list_sessions
+```
+
+**Checklist** :
+
+| Critère | Conforme | Action |
+|---------|----------|--------|
+| Aucun compte avec mot de passe par défaut | ☐ Oui ☐ Non | Forcer changement |
+| Comptes admin limités (≤ 2) | ☐ Oui ☐ Non | Révoquer excès |
+| Comptes inactifs désactivés | ☐ Oui ☐ Non | `user.is_active = False` |
+| Sessions expirées après 24h inactivité | ☐ Oui ☐ Non | Vérifier `SESSION_COOKIE_AGE` |
+| 2FA activé pour admin (si disponible) | ☐ Oui ☐ Non | Activer django-otp |
+
+### 5.2 Permissions et Autorisations
+
+**Test de matrice de permissions** :
+
+| Rôle | Créer examen | Voir copie | Annoter | Valider note | Admin |
+|------|--------------|------------|---------|--------------|-------|
+| Élève | ❌ | ✅ (sienne) | ❌ | ❌ | ❌ |
+| Enseignant | ❌ | ✅ (sa matière) | ✅ | ❌ | ❌ |
+| Secrétariat | ✅ | ✅ (toutes) | ❌ | ❌ | ❌ |
+| Admin Matière | ❌ | ✅ (sa matière) | ✅ | ✅ | ❌ |
+| Admin NSI | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Proviseur | ❌ | ✅ (vue seule) | ❌ | ❌ | ❌ |
+
+**Tests à exécuter** :
+
 ```python
-# Script audit rétention
-from datetime import datetime, timedelta
+# Script de test automatique (tests/test_permissions.py)
+from django.test import TestCase
+from korrigo.models import User, Exam, ExamCopy
 
-# Vérifier copies > 1 an non supprimées
-threshold = datetime.now() - timedelta(days=365)
-old_exams = Exam.objects.filter(date__lt=threshold)
-old_copies = Copy.objects.filter(exam__in=old_exams)
-
-if old_copies.exists():
-    print(f"⚠️ ALERTE: {old_copies.count()} copies dépassent durée conservation")
-    for copy in old_copies[:10]:
-        print(f"  - Copie {copy.anonymous_id}, examen {copy.exam.date}")
-else:
-    print("✅ Conformité conservation : Aucune copie expirée")
+class PermissionsAuditTestCase(TestCase):
+    def test_student_cannot_view_other_copies(self):
+        # Test isolation des copies élèves
+        pass
+    
+    def test_teacher_cannot_access_other_subject(self):
+        # Test cloisonnement par matière
+        pass
+    
+    def test_secretary_cannot_annotate(self):
+        # Test lecture seule secrétariat
+        pass
 ```
 
----
+### 5.3 Audit des Logs de Sécurité
 
-**D. Mesures Sécurité (Art. 32 RGPD)**
-
-| Mesure | Implémentée | Testée | Notes |
-|--------|-------------|--------|-------|
-| Chiffrement en transit (HTTPS) | ☐ | ☐ | Vérifier certificat SSL valide |
-| Chiffrement au repos (DB) | ☐ | ☐ | PostgreSQL SSL mode |
-| Authentification forte | ☐ | ☐ | Rate limiting actif |
-| Contrôle d'accès RBAC | ☐ | ☐ | Permissions testées |
-| Audit trail complet | ☐ | ☐ | Logs GradingEvent |
-| Sauvegardes chiffrées | ☐ | ☐ | GPG encryption |
-| Anonymisation copies | ☐ | ☐ | Numéro anonymat unique |
-
-**Test SSL** :
-```bash
-# Vérifier HTTPS et HSTS
-curl -I https://korrigo.lycee-exemple.fr | grep -i "strict-transport-security"
-# Attendu: Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-```
-
----
-
-**E. Violations de Données (Art. 33-34 RGPD)**
-
-| Critère | Conforme | Notes |
-|---------|----------|-------|
-| Procédure notification CNIL existe | ☐ | Délai 72h |
-| Registre violations tenu à jour | ☐ | Emplacement : ______ |
-| Contact CNIL/DPO accessible 24/7 | ☐ | |
-| Procédure testée (exercice) | ☐ | Date dernier test : ______ |
-
----
-
-### 3.3 Analyse d'Impact (AIPD)
-
-**Vérifications** :
-
-| Critère | Statut | Date Réalisation |
-|---------|--------|------------------|
-| AIPD réalisée | ☐ Oui / ☐ Non | ____________ |
-| Risques identifiés documentés | ☐ | |
-| Mesures atténuation implémentées | ☐ | |
-| Niveau risque résiduel acceptable | ☐ | |
-| Consultation DPO effectuée | ☐ | |
-| Révision annuelle planifiée | ☐ | Prochaine : ______ |
-
-**Référence** : `docs/security/POLITIQUE_RGPD.md § 11`
-
----
-
-### 3.4 Score Conformité RGPD
-
-**Calcul** :
-```
-Score = (Critères conformes / Total critères) × 100
-
-Niveaux :
-- 90-100% : Excellent (conformité complète)
-- 75-89%  : Satisfaisant (améliorations mineures)
-- 50-74%  : Insuffisant (actions correctives requises)
-- < 50%   : Critique (mise en conformité urgente)
-```
-
-**Résultat audit** : _______ % (Date : __________)
-
----
-
-## 4. Audit Sécurité Technique
-
-### 4.1 Checklist Infrastructure
-
-**A. Serveur et OS**
-
-| Critère | Conforme | Observations |
-|---------|----------|--------------|
-| OS à jour (patches sécurité) | ☐ | Version : ______ |
-| Firewall actif et configuré | ☐ | Règles iptables vérifiées |
-| SSH désactivé ou sécurisé (clé, pas mdp) | ☐ | |
-| Services inutiles désactivés | ☐ | Liste services actifs : ______ |
-| Logs système activés | ☐ | rsyslog/journald |
-| Antivirus/EDR installé | ☐ | Nom produit : ______ |
-
-**Commandes vérification** :
-```bash
-# Version OS et patches
-cat /etc/os-release
-apt list --upgradable
-
-# Firewall
-iptables -L -n
-
-# Services actifs
-systemctl list-units --type=service --state=running
-
-# Logs système
-journalctl -xe --since "1 hour ago"
-```
-
----
-
-**B. Application Django**
-
-| Critère | Conforme | Observations |
-|---------|----------|--------------|
-| Django version stable et supportée | ☐ | Version : ______ |
-| `DEBUG=False` en production | ☐ | Vérifier .env |
-| `SECRET_KEY` unique et sécurisée | ☐ | Pas de valeur par défaut |
-| `ALLOWED_HOSTS` configuré (pas *) | ☐ | Valeur : ______ |
-| HTTPS obligatoire (`SSL_ENABLED=True`) | ☐ | |
-| HSTS activé | ☐ | max-age=31536000 |
-| CSRF protection activée | ☐ | |
-| CSP configuré | ☐ | Vérifier unsafe-inline |
-| Rate limiting activé | ☐ | RATELIMIT_ENABLE=true |
-
-**Commande vérification** :
-```bash
-# Check déploiement Django
-python manage.py check --deploy
-
-# Attendu: System check identified no issues (0 silenced).
-```
-
----
-
-**C. Base de Données PostgreSQL**
-
-| Critère | Conforme | Observations |
-|---------|----------|--------------|
-| PostgreSQL version supportée | ☐ | Version : ______ |
-| Connexions SSL obligatoires | ☐ | sslmode=require |
-| Mot de passe fort | ☐ | Rotation 6 mois |
-| Accès réseau restreint | ☐ | Firewall + pg_hba.conf |
-| Logs activés | ☐ | log_connections, log_statement |
-| Sauvegardes quotidiennes | ☐ | Dernière sauvegarde : ______ |
-
-**Vérification SSL** :
-```bash
-psql "host=localhost dbname=korrigo_db user=korrigo sslmode=require"
-# Doit réussir uniquement si SSL configuré
-```
-
----
-
-**D. Nginx (Reverse Proxy)**
-
-| Critère | Conforme | Observations |
-|---------|----------|--------------|
-| Nginx version stable | ☐ | Version : ______ |
-| Certificat SSL valide | ☐ | Expiration : ______ |
-| TLS 1.2+ uniquement | ☐ | Pas SSLv3, TLS 1.0/1.1 |
-| Ciphers sécurisés | ☐ | ECDHE prioritaire |
-| Headers sécurité configurés | ☐ | HSTS, X-Frame-Options, CSP |
-| Logs accès/erreur actifs | ☐ | Rotation configurée |
-
-**Test SSL Labs** :
-```
-URL : https://www.ssllabs.com/ssltest/analyze.html?d=korrigo.lycee-exemple.fr
-Objectif : Grade A ou A+
-```
-
----
-
-### 4.2 Scan Vulnérabilités
-
-**A. OWASP ZAP (Web Application Scan)**
-
-**Procédure** :
-```bash
-# Scan baseline (rapide, 10 min)
-docker run -t owasp/zap2docker-stable zap-baseline.py \
-  -t https://korrigo.lycee-exemple.fr \
-  -r zap_baseline_report.html
-
-# Analyser rapport
-# Critères : 0 vulnérabilités High/Critical
-```
-
-**Vulnérabilités OWASP Top 10 à vérifier** :
-- [ ] A01 - Broken Access Control
-- [ ] A02 - Cryptographic Failures
-- [ ] A03 - Injection (SQL, XSS, CSRF)
-- [ ] A04 - Insecure Design
-- [ ] A05 - Security Misconfiguration
-- [ ] A06 - Vulnerable Components
-- [ ] A07 - Authentication Failures
-- [ ] A08 - Software/Data Integrity
-- [ ] A09 - Logging Failures
-- [ ] A10 - Server-Side Request Forgery
-
----
-
-**B. Scan Dépendances (Python)**
-
-```bash
-# Safety (CVE Python packages)
-pip install safety
-safety check --json > safety_report.json
-
-# Vérifier 0 vulnérabilités critiques/élevées
-cat safety_report.json | jq '.vulnerabilities[] | select(.severity == "high" or .severity == "critical")'
-```
-
-**Résultat attendu** : `[]` (aucune vulnérabilité)
-
----
-
-**C. Scan Dépendances (JavaScript/npm)**
-
-```bash
-cd frontend
-npm audit --json > npm_audit.json
-
-# Vérifier résumé
-npm audit
-# Attendu: found 0 vulnerabilities
-```
-
----
-
-### 4.3 Test Intrusion (Pentest)
-
-**Fréquence** : Annuel (ou avant mise en production majeure)
-
-**Prestataire** : Certification PASSI (liste ANSSI)
-
-**Scope** :
-- [ ] Authentification (brute force, session hijacking)
-- [ ] Autorisation (escalade privilèges, IDOR)
-- [ ] Injection (SQL, XSS, CSRF)
-- [ ] Configuration (headers, SSL, cookies)
-- [ ] Logique métier (bypass verrou copies, modification notes)
-
-**Livrables** :
-- Rapport exécutif (synthèse direction)
-- Rapport technique (détail vulnérabilités)
-- Plan actions correctives
-
-**Suivi** :
-- Correction vulnérabilités P0/P1 sous 30 jours
-- Retest après corrections
-
----
-
-## 5. Audit Accès et Permissions
-
-### 5.1 Revue Comptes Utilisateurs
-
-**Procédure trimestrielle** :
-
-```bash
-# Exécuter script audit
-python manage.py audit_permissions > audit_Q1_2026.txt
-```
-
-**Critères vérifiés** :
-
-| Critère | Conforme | Actions |
-|---------|----------|---------|
-| Aucun compte inactif > 90 jours | ☐ | Désactiver : ______ |
-| Nombre superusers ≤ 3 | ☐ | Justifier excédents : ______ |
-| Tous comptes ont email valide | ☐ | Mettre à jour : ______ |
-| Pas de comptes test/demo actifs | ☐ | Supprimer : ______ |
-| Groupes Django cohérents | ☐ | Corriger : ______ |
-
----
-
-### 5.2 Test Permissions
-
-**Scénarios de test** :
-
-**Test 1 : Enseignant ne peut pas accéder admin**
-```bash
-# Se connecter comme teacher1
-curl -X POST https://korrigo.lycee-exemple.fr/api/login/ \
-  -d '{"username": "teacher1", "password": "..."}' \
-  -c cookies.txt
-
-# Tenter accès admin
-curl -b cookies.txt https://korrigo.lycee-exemple.fr/api/users/
-# Attendu: 403 Forbidden
-```
-
-**Test 2 : Élève ne peut voir que ses copies**
-```python
-# Se connecter comme student
-response = client.post('/api/students/login/', {
-    'ine': '1234567890A',
-    'last_name': 'DUPONT'
-})
-
-# Lister copies
-response = client.get('/api/students/copies/')
-copies = response.json()
-
-# Vérifier : toutes copies ont student_id = élève connecté
-for copy in copies:
-    assert copy['student']['ine'] == '1234567890A'
-```
-
-**Test 3 : Annotations modifiables uniquement par créateur**
-```python
-# Teacher1 crée annotation
-teacher1_client.post('/api/grading/annotations/', {...})
-
-# Teacher2 tente modifier
-response = teacher2_client.patch('/api/grading/annotations/{id}/', {...})
-# Attendu: 403 Forbidden
-```
-
----
-
-### 5.3 Revue Logs d'Accès
-
-**Procédure mensuelle** :
-
-```bash
-# Analyser logs Nginx (accès suspects)
-cat /var/log/nginx/korrigo_access.log | awk '{print $1}' | sort | uniq -c | sort -nr | head -20
-# Vérifier IPs anormalement actives
-
-# Analyser logs Django (erreurs 403/401)
-grep "403\|401" /var/log/korrigo/django.log | tail -100
-
-# GradingEvent : Téléchargements PDF
-psql -U korrigo -d korrigo_db -c "
-  SELECT action, COUNT(*) 
-  FROM grading_gradingevent 
-  WHERE action = 'EXPORT' AND timestamp > NOW() - INTERVAL '30 days'
-  GROUP BY action;
-"
-```
-
-**Critères alerte** :
-- ⚠️ Même IP > 100 requêtes/min (potentiel DoS)
-- ⚠️ Nombreux 403 d'un utilisateur (tentative accès non autorisé)
-- ⚠️ Téléchargements PDF anormaux (exfiltration ?)
-
----
-
-## 6. Audit Intégrité Données
-
-### 6.1 Cohérence Base de Données
-
-**Vérifications** :
+**Événements critiques à vérifier** :
 
 ```sql
--- 1. Copies sans examen (orphelins)
-SELECT COUNT(*) FROM exams_copy WHERE exam_id NOT IN (SELECT id FROM exams_exam);
--- Attendu: 0
+-- Connexions échouées (attaques brute-force?)
+SELECT username, COUNT(*), MAX(timestamp)
+FROM auth_failed_login
+WHERE timestamp > NOW() - INTERVAL '30 days'
+GROUP BY username
+HAVING COUNT(*) > 10;
 
--- 2. Annotations sans copie (cascade non respecté)
-SELECT COUNT(*) FROM grading_annotation WHERE copy_id NOT IN (SELECT id FROM exams_copy);
--- Attendu: 0
+-- Accès admin en dehors heures bureau (8h-18h)
+SELECT user, action, timestamp
+FROM grading_event
+WHERE user_role = 'admin'
+  AND (EXTRACT(HOUR FROM timestamp) < 8 OR EXTRACT(HOUR FROM timestamp) > 18)
+  AND timestamp > NOW() - INTERVAL '7 days';
 
--- 3. Élèves sans INE (contrainte unique)
-SELECT COUNT(*) FROM students_student WHERE ine IS NULL OR ine = '';
--- Attendu: 0
+-- Téléchargements massifs de copies (exfiltration?)
+SELECT user_id, COUNT(*) as download_count, DATE(timestamp)
+FROM grading_event
+WHERE action_type = 'copy_download'
+  AND timestamp > NOW() - INTERVAL '1 day'
+GROUP BY user_id, DATE(timestamp)
+HAVING COUNT(*) > 50;
 
--- 4. Copies identifiées sans élève (incohérence)
-SELECT COUNT(*) FROM exams_copy WHERE is_identified = TRUE AND student_id IS NULL;
--- Attendu: 0
+-- Modifications de permissions
+SELECT actor, target_user, old_permissions, new_permissions, timestamp
+FROM permission_change_log
+WHERE timestamp > NOW() - INTERVAL '30 days'
+ORDER BY timestamp DESC;
+```
 
--- 5. Verrous expirés non supprimés
-SELECT COUNT(*) FROM grading_copylock WHERE expires_at < NOW();
--- Attendu: 0 (nettoyage automatique)
+### 5.4 Vulnérabilités et Correctifs
+
+**Commandes de vérification** :
+
+```bash
+# Scan dépendances Python (CVE)
+pip install safety
+safety check --json > security_report.json
+
+# Vérification Django (XSS, CSRF, SQL injection)
+python manage.py check --deploy
+
+# Scan fichiers sensibles exposés
+curl -I https://korrigo.lycee.fr/settings.py  # Doit retourner 404
+curl -I https://korrigo.lycee.fr/.env         # Doit retourner 404
+
+# Headers de sécurité HTTP
+curl -I https://korrigo.lycee.fr/ | grep -E "Strict-Transport-Security|X-Frame-Options|Content-Security-Policy"
+```
+
+**Checklist** :
+
+| Critère | Conforme | Action |
+|---------|----------|--------|
+| Aucune CVE critique non patchée | ☐ Oui ☐ Non | `pip install -U` |
+| Django settings en mode production | ☐ Oui ☐ Non | `DEBUG=False` |
+| Fichiers sensibles non exposés | ☐ Oui ☐ Non | Vérifier `.gitignore` |
+| Headers sécurité présents (HSTS, CSP) | ☐ Oui ☐ Non | Config Nginx |
+| Certificat SSL valide (> 30j restants) | ☐ Oui ☐ Non | `certbot renew` |
+
+---
+
+## 6. Procédure d'Auto-Évaluation
+
+### 6.1 Auto-Évaluation Trimestrielle (2h)
+
+**Responsable** : Administrateur NSI  
+**Fréquence** : Tous les 3 mois (avril, juillet, octobre, décembre)
+
+**Étapes** :
+
+1. **Préparation (15 min)**
+   ```bash
+   cd /srv/korrigo
+   python manage.py audit_prepare --quarter=Q1
+   ```
+
+2. **Vérification conformité RGPD (30 min)**
+   - ✅ Consulter [Checklist RGPD](#41-conformité-générale) (sections A, B, C)
+   - ✅ Vérifier délais de réponse demandes RGPD (< 1 mois)
+   - ✅ Contrôler registre mis à jour
+
+3. **Vérification sécurité (45 min)**
+   - ✅ Exécuter [tests permissions](#52-permissions-et-autorisations)
+   - ✅ Analyser [logs sécurité](#53-audit-des-logs-de-sécurité) (30 derniers jours)
+   - ✅ Vérifier mises à jour système (`apt update`, `pip list --outdated`)
+
+4. **Documentation (20 min)**
+   - ✅ Remplir grille d'auto-évaluation (`audit_QX_YYYY.xlsx`)
+   - ✅ Capturer les écarts identifiés
+   - ✅ Proposer actions correctives
+
+5. **Reporting (10 min)**
+   - ✅ Envoyer rapport au DPO et direction
+   - ✅ Planifier actions urgentes (si criticité haute)
+
+**Modèle de rapport** :
+
+```markdown
+# Auto-Évaluation Q[X] [ANNÉE]
+
+**Date** : __________
+**Auditeur** : Administrateur NSI
+**Durée** : 2h
+
+## Résumé
+- Conformité RGPD : ☐ Conforme ☐ Écarts mineurs ☐ Écarts majeurs
+- Sécurité technique : ☐ Conforme ☐ Écarts mineurs ☐ Écarts majeurs
+
+## Écarts identifiés
+1. [Description écart] - Criticité: ☐ Faible ☐ Moyenne ☐ Haute
+   - Action corrective : __________
+   - Échéance : __________
+
+## Statistiques
+- Utilisateurs actifs : ___
+- Examens en cours : ___
+- Copies traitées (trimestre) : ___
+- Incidents sécurité : ___
+
+## Prochaines actions
+- [ ] Action 1
+- [ ] Action 2
 ```
 
 ---
 
-### 6.2 Intégrité Fichiers
+## 7. Audits Techniques
 
-**Vérification fichiers référencés existent** :
+### 7.1 Audit Infrastructure (Semestriel)
 
-```python
-# Script vérification
-missing_files = []
+**Périmètre** :
+- Configuration serveur (Nginx, PostgreSQL, Redis)
+- Permissions système (`/srv/korrigo/media/`, `/var/log/`)
+- Sauvegardes (test de restauration)
+- Monitoring et alertes
 
-for copy in Copy.objects.all():
-    if copy.pdf_source and not os.path.exists(copy.pdf_source.path):
-        missing_files.append(f"Copy {copy.id}: pdf_source manquant")
-    
-    if copy.final_pdf and not os.path.exists(copy.final_pdf.path):
-        missing_files.append(f"Copy {copy.id}: final_pdf manquant")
+**Commandes de vérification** :
 
-if missing_files:
-    print(f"⚠️ ALERTE: {len(missing_files)} fichiers manquants")
-    for msg in missing_files[:10]:
-        print(f"  - {msg}")
-else:
-    print("✅ Intégrité fichiers : Tous fichiers présents")
+```bash
+# 1. Permissions fichiers
+find /srv/korrigo/media -type f ! -perm 0640 -ls
+find /srv/korrigo/media -type d ! -perm 0750 -ls
+
+# 2. Propriétaires corrects
+ls -la /srv/korrigo/ | grep -v "korrigo:korrigo"
+
+# 3. Test restauration backup
+cd /backups
+tar -tzf backup_latest.tar.gz  # Lister contenu
+# Restauration test en environnement isolé
+
+# 4. Vérification espace disque (alerte si > 80%)
+df -h | grep -E "/srv|/var"
+
+# 5. Vérification certificat SSL
+echo | openssl s_client -connect korrigo.lycee.fr:443 2>/dev/null | openssl x509 -noout -dates
+
+# 6. Test connectivité base de données
+psql -U korrigo -d korrigo_db -c "SELECT version();"
+```
+
+### 7.2 Audit Base de Données (Semestriel)
+
+**Objectifs** :
+- Vérifier l'intégrité des données
+- Détecter anomalies (doublons, orphelins)
+- Optimiser performances
+
+**Requêtes SQL d'audit** :
+
+```sql
+-- 1. Doublons INE (ne doit rien retourner)
+SELECT ine, COUNT(*)
+FROM students_student
+GROUP BY ine
+HAVING COUNT(*) > 1;
+
+-- 2. Copies sans examen (données orphelines)
+SELECT COUNT(*)
+FROM exams_examcopy
+WHERE exam_id NOT IN (SELECT id FROM exams_exam);
+
+-- 3. Notes hors plage valide (0-20)
+SELECT id, score, exam_id
+FROM exams_examcopy
+WHERE score < 0 OR score > 20;
+
+-- 4. Élèves sans classe (données incomplètes)
+SELECT id, first_name, last_name
+FROM students_student
+WHERE class_name IS NULL OR class_name = '';
+
+-- 5. Taille base de données
+SELECT 
+    pg_size_pretty(pg_database_size('korrigo_db')) as db_size,
+    pg_size_pretty(pg_total_relation_size('exams_examcopy')) as copies_size;
 ```
 
 ---
 
-### 6.3 Calcul Scores (Validation)
+## 8. Audits Organisationnels
 
-**Test échantillon** :
+### 8.1 Formation et Sensibilisation
 
-```python
-# Vérifier cohérence annotations ↔ score final
-import random
+**Vérifications annuelles** :
 
-copies_sample = random.sample(list(Copy.objects.filter(status='GRADED')), 10)
+| Critère | Preuve | Conforme |
+|---------|--------|----------|
+| Formation RGPD dispensée aux enseignants | Attestations de formation | ☐ Oui ☐ Non |
+| Sensibilisation sécurité (phishing, mots de passe) | Support de présentation | ☐ Oui ☐ Non |
+| Charte d'utilisation signée par utilisateurs | Formulaires signés | ☐ Oui ☐ Non |
+| Procédures de sécurité accessibles | Intranet/wiki | ☐ Oui ☐ Non |
 
-for copy in copies_sample:
-    # Recalculer score depuis annotations
-    annotations = Annotation.objects.filter(copy=copy)
-    calculated_score = sum(a.score_delta for a in annotations if a.score_delta)
-    
-    # Comparer avec score enregistré
-    if abs(calculated_score - copy.score) > 0.01:
-        print(f"⚠️ Incohérence copie {copy.anonymous_id}: "
-              f"Score DB={copy.score}, Calculé={calculated_score}")
+**Thèmes de formation obligatoires** :
+- ✅ Droits des élèves (RGPD)
+- ✅ Gestion des mots de passe
+- ✅ Détection tentatives de phishing
+- ✅ Signalement incidents sécurité
+- ✅ Procédure de sauvegarde manuelle
+
+### 8.2 Procédures et Gouvernance
+
+**Audit des procédures** :
+
+| Procédure | Existante | Testée | Dernière MAJ |
+|-----------|-----------|--------|--------------|
+| Violation de données (data breach) | ☐ Oui ☐ Non | ☐ Oui ☐ Non | __________ |
+| Demande d'accès RGPD | ☐ Oui ☐ Non | ☐ Oui ☐ Non | __________ |
+| Gestion incident sécurité | ☐ Oui ☐ Non | ☐ Oui ☐ Non | __________ |
+| Onboarding nouvel enseignant | ☐ Oui ☐ Non | ☐ Oui ☐ Non | __________ |
+| Offboarding utilisateur | ☐ Oui ☐ Non | ☐ Oui ☐ Non | __________ |
+| Sauvegarde et restauration | ☐ Oui ☐ Non | ☐ Oui ☐ Non | __________ |
+
+**Test annuel de procédures** :
+- 🧪 Simuler data breach (exercice tabletop)
+- 🧪 Tester restauration backup (en environnement de test)
+- 🧪 Chronométrer réponse à demande RGPD
+
+---
+
+## 9. Reporting et Documentation
+
+### 9.1 Structure du Rapport d'Audit
+
+**Rapport standard** (modèle : `audit_report_template.md`) :
+
+```markdown
+# Rapport d'Audit RGPD/Sécurité - Korrigo PMF
+
+**Établissement** : Lycée [NOM]
+**Date d'audit** : [DATE]
+**Auditeur(s)** : [NOM(S)]
+**Type d'audit** : ☐ Interne ☐ Externe ☐ Auto-évaluation
+**Périmètre** : ☐ RGPD ☐ Sécurité ☐ Complet
+
+---
+
+## 1. Synthèse Exécutive
+
+**Statut global** : ☐ Conforme ☐ Partiellement conforme ☐ Non conforme
+
+**Résumé en 3 points** :
+- [Point clé 1]
+- [Point clé 2]
+- [Point clé 3]
+
+**Score de conformité** : [X]% (calculé sur checklists)
+
+---
+
+## 2. Résultats Détaillés
+
+### 2.1 Conformité RGPD
+
+| Critère | Résultat | Observations |
+|---------|----------|--------------|
+| Bases légales | ☐ ✅ ☐ ⚠️ ☐ ❌ | |
+| Droits des personnes | ☐ ✅ ☐ ⚠️ ☐ ❌ | |
+| Conservation données | ☐ ✅ ☐ ⚠️ ☐ ❌ | |
+| Sécurité (Art. 32) | ☐ ✅ ☐ ⚠️ ☐ ❌ | |
+
+### 2.2 Sécurité Technique
+
+| Critère | Résultat | Observations |
+|---------|----------|--------------|
+| Authentification | ☐ ✅ ☐ ⚠️ ☐ ❌ | |
+| Permissions | ☐ ✅ ☐ ⚠️ ☐ ❌ | |
+| Journalisation | ☐ ✅ ☐ ⚠️ ☐ ❌ | |
+| Vulnérabilités | ☐ ✅ ☐ ⚠️ ☐ ❌ | |
+
+---
+
+## 3. Écarts et Non-Conformités
+
+| ID | Description | Criticité | Risque | Recommandation |
+|----|-------------|-----------|--------|----------------|
+| NC-01 | [Description] | ☐ Faible ☐ Moyenne ☐ Haute | [Impact] | [Action] |
+
+---
+
+## 4. Plan d'Actions Correctives
+
+| Action | Responsable | Échéance | Statut |
+|--------|-------------|----------|--------|
+| [Action 1] | [Nom] | [Date] | ☐ À faire ☐ En cours ☐ Fait |
+
+---
+
+## 5. Recommandations
+
+### Court terme (< 1 mois)
+- [Recommandation 1]
+
+### Moyen terme (1-6 mois)
+- [Recommandation 2]
+
+### Long terme (> 6 mois)
+- [Recommandation 3]
+
+---
+
+## 6. Annexes
+
+- [ ] Checklist RGPD complétée
+- [ ] Checklist sécurité complétée
+- [ ] Logs d'audit analysés
+- [ ] Captures d'écran tests
 ```
 
----
+### 9.2 Archivage des Rapports
 
-## 7. Audit Conformité Opérationnelle
-
-### 7.1 Procédures Documentées
-
-| Procédure | Document Existe | À Jour (<12 mois) | Testée |
-|-----------|----------------|-------------------|--------|
-| Import élèves Pronote | ☐ | ☐ | ☐ |
-| Upload et traitement copies | ☐ | ☐ | ☐ |
-| Identification copies (Video-Coding) | ☐ | ☐ | ☐ |
-| Correction numérique | ☐ | ☐ | ☐ |
-| Export notes Pronote | ☐ | ☐ | ☐ |
-| Gestion utilisateurs | ☐ | ☐ | ☐ |
-| Sauvegardes et restauration | ☐ | ☐ | ☐ |
-| Réponse incident sécurité | ☐ | ☐ | ☐ |
-
-**Référence** : `docs/admin/PROCEDURES_OPERATIONNELLES.md`
-
----
-
-### 7.2 Formations Utilisateurs
-
-| Formation | Public | Fréquence | Dernière Session | Taux Participation |
-|-----------|--------|-----------|-----------------|-------------------|
-| RGPD et confidentialité | Tous | Annuelle | __________ | ______% |
-| Utilisation Korrigo (enseignants) | Teachers | Rentrée | __________ | ______% |
-| Administration technique | Admin NSI | Annuelle | __________ | ______% |
-| Sécurité et bonnes pratiques | Tous | Annuelle | __________ | ______% |
-
-**Objectif** : Taux participation > 90%
-
----
-
-### 7.3 Chartes et Consentements
-
-| Document | Signataires | Taux Signature |
-|----------|------------|----------------|
-| Charte utilisation enseignants | ______ / ______ | ______% |
-| Charte utilisation admin | ______ / ______ | ______% |
-| Consentement portail élève (parents) | ______ / ______ | ______% |
-
-**Stockage** : Armoire sécurisée secrétariat (version papier) + scan chiffré
-
----
-
-## 8. Rapports et Suivi
-
-### 8.1 Rapport d'Audit Type
-
-**Structure** :
+**Organisation des fichiers** :
 
 ```
-1. RÉSUMÉ EXÉCUTIF
-   - Périmètre audit
-   - Date et auditeurs
-   - Synthèse résultats (score global)
-   - Recommandations principales
-
-2. MÉTHODOLOGIE
-   - Référentiels utilisés (RGPD, OWASP, ANSSI)
-   - Outils (scripts, scans, tests manuels)
-   - Échantillons testés
-
-3. RÉSULTATS DÉTAILLÉS
-   - Conformité RGPD : ____%
-   - Sécurité technique : ____%
-   - Permissions : ____%
-   - Intégrité données : ____%
-   - Conformité opérationnelle : ____%
-
-4. CONSTATS ET ÉCARTS
-   - Liste non-conformités (criticité P0-P3)
-   - Preuves (captures écran, logs)
-
-5. RECOMMANDATIONS
-   - Actions correctives prioritaires
-   - Délais proposés
-   - Responsables désignés
-
-6. ANNEXES
-   - Checklist complète
-   - Résultats scans (ZAP, safety)
-   - Logs pertinents
+/srv/korrigo/audits/
+├── 2026/
+│   ├── Q1_auto-evaluation_2026-04-15.pdf
+│   ├── Q2_auto-evaluation_2026-07-10.pdf
+│   ├── audit_interne_2026-01-20.pdf
+│   └── annexes/
+│       ├── checklist_rgpd_2026-01-20.xlsx
+│       └── logs_export_2026-01-20.csv
+├── 2025/
+│   └── [archives année précédente]
+└── templates/
+    ├── audit_report_template.md
+    └── checklist_rgpd.xlsx
 ```
+
+**Durée de conservation** : 5 ans (conformité CNIL)
 
 ---
 
-### 8.2 Score Global de Conformité
+## 10. Gestion des Non-Conformités
 
-**Calcul** :
+### 10.1 Classification des Écarts
+
+| Criticité | Définition | Délai Correction | Escalade |
+|-----------|------------|------------------|----------|
+| **🔴 Haute** | Violation RGPD, faille sécurité critique | < 7 jours | Direction + DPO |
+| **🟠 Moyenne** | Non-conformité partielle, risque modéré | < 30 jours | DPO |
+| **🟡 Faible** | Amélioration souhaitable, risque faible | < 90 jours | Admin NSI |
+
+### 10.2 Processus de Traitement
 
 ```
-Score Global = Moyenne pondérée :
-- Conformité RGPD : 40%
-- Sécurité technique : 30%
-- Permissions : 15%
-- Intégrité données : 10%
-- Conformité opérationnelle : 5%
-
-Exemple :
-RGPD = 95% → 95 × 0.40 = 38
-Sécurité = 85% → 85 × 0.30 = 25.5
-Permissions = 90% → 90 × 0.15 = 13.5
-Intégrité = 100% → 100 × 0.10 = 10
-Opérationnel = 80% → 80 × 0.05 = 4
-------------------------------------------
-Score Global = 91%
+┌──────────────────┐
+│ Détection écart  │
+│  (lors audit)    │
+└────────┬─────────┘
+         │
+         v
+┌──────────────────┐
+│ Évaluation       │  - Criticité
+│  risque          │  - Impact potentiel
+└────────┬─────────┘  - Urgence
+         │
+         v
+    ┌────┴────┐
+    │ Haute ? │
+    └─┬────┬──┘
+      │OUI │NON
+      v    v
+ ┌─────┐ ┌────────────┐
+ │Alert│ │Plan action │
+ │Dir. │ │ standard   │
+ └──┬──┘ └─────┬──────┘
+    │          │
+    └────┬─────┘
+         v
+┌──────────────────┐
+│ Mise en œuvre    │  - Assignation responsable
+│  action          │  - Échéance définie
+└────────┬─────────┘  - Suivi régulier
+         │
+         v
+┌──────────────────┐
+│ Vérification     │  - Test effectivité
+│  effectivité     │  - Contrôle résultat
+└────────┬─────────┘
+         │
+         v
+┌──────────────────┐
+│ Clôture écart    │  - Documentation
+│                  │  - Archivage
+└──────────────────┘
 ```
 
-**Interprétation** :
-- **90-100%** : ✅ Excellent (conformité complète)
-- **75-89%** : ⚠️ Satisfaisant (améliorations mineures)
-- **50-74%** : ⚠️ Insuffisant (actions correctives)
-- **< 50%** : ❌ Critique (mise en conformité urgente)
+### 10.3 Registre des Non-Conformités
+
+**Modèle de suivi** (`non_conformites.xlsx`) :
+
+| ID | Date Détection | Description | Criticité | Responsable | Action | Échéance | Statut | Date Clôture |
+|----|---------------|-------------|-----------|-------------|--------|----------|--------|--------------|
+| NC-2026-01 | 2026-01-15 | Comptes inactifs non désactivés | Moyenne | Admin NSI | Script désactivation | 2026-02-15 | En cours | - |
+| NC-2026-02 | 2026-01-18 | Certificat SSL expire dans 20j | Haute | Admin NSI | Renouvellement Certbot | 2026-01-25 | À faire | - |
 
 ---
 
-### 8.3 Tableau de Bord
+## 11. Préparation aux Audits CNIL
+
+### 11.1 Types de Contrôles CNIL
+
+| Type | Déclencheur | Format | Délai Notification |
+|------|-------------|--------|-------------------|
+| **Contrôle sur pièces** | Plainte, signalement, programme annuel | Demande documentaire | 15 jours |
+| **Contrôle sur place** | Suspicion violation grave | Visite physique (inopinée ou annoncée) | 0-15 jours |
+| **Contrôle en ligne** | Site web public | Inspection à distance | Non applicable |
+
+### 11.2 Documents à Préparer
+
+**Checklist pré-audit CNIL** :
+
+✅ **Documentation RGPD obligatoire** :
+- [ ] Registre des activités de traitement (à jour)
+- [ ] Analyse d'Impact (AIPD) si traitement à risque élevé
+- [ ] Politique de protection des données ([POLITIQUE_RGPD.md](POLITIQUE_RGPD.md))
+- [ ] DPA avec sous-traitants ([ACCORD_TRAITEMENT_DONNEES.md](../legal/ACCORD_TRAITEMENT_DONNEES.md))
+- [ ] Procédures droits des personnes (accès, rectification, effacement)
+- [ ] Procédure violation de données
+
+✅ **Preuves techniques** :
+- [ ] Inventaire des permissions ([SECURITY_PERMISSIONS_INVENTORY.md](../../SECURITY_PERMISSIONS_INVENTORY.md))
+- [ ] Configuration chiffrement (TLS, base de données)
+- [ ] Logs d'audit des 6 derniers mois (anonymisés si nécessaire)
+- [ ] Attestations de formation utilisateurs
+- [ ] Résultats tests de sécurité (pentest, scan vulnérabilités)
+
+✅ **Procédures opérationnelles** :
+- [ ] Gestion du cycle de vie des données ([GESTION_DONNEES.md](GESTION_DONNEES.md))
+- [ ] Procédure de sauvegarde/restauration
+- [ ] Politique de gestion des incidents
+- [ ] Charte d'utilisation signée par utilisateurs
+
+### 11.3 Scénarios de Questions CNIL
+
+**Questions fréquentes et réponses préparées** :
+
+| Question CNIL | Document de référence | Réponse type |
+|---------------|----------------------|--------------|
+| **Quelle est la base légale du traitement ?** | POLITIQUE_RGPD.md § 2.2 | Mission d'intérêt public (Art. 6.1.e) : évaluation pédagogique |
+| **Combien de temps conservez-vous les copies ?** | GESTION_DONNEES.md § 6 | 1 an après examen, puis archivage anonymisé |
+| **Comment gérez-vous les demandes d'accès ?** | GESTION_DONNEES.md § 9 | Script `export_student_data.py` - délai < 1 mois |
+| **Quelles mesures de sécurité pour les mineurs ?** | MANUEL_SECURITE.md § 5 | RBAC strict, logs audit, chiffrement AES-256 |
+| **Avez-vous désigné un DPO ?** | POLITIQUE_RGPD.md § 3.1 | Oui (si applicable) - Contact: [email] |
+| **Y a-t-il eu des violations de données ?** | Registre incidents | Non / Oui [détails incident + mesures prises] |
+
+### 11.4 Simulation d'Audit Blanc
+
+**Exercice annuel recommandé (décembre)** :
+
+1. **Préparation** : Désigner un auditeur externe (autre lycée, DSI académique)
+2. **Exécution** : Audit complet sur 1 journée (checklists RGPD + sécurité)
+3. **Débriefing** : Identifier écarts avant audit réel
+4. **Actions** : Corriger faiblesses avant fin d'année
+
+**Bénéfices** :
+- ✅ Réduire stress équipe
+- ✅ Identifier angles morts
+- ✅ Tester procédures de réponse
+- ✅ Améliorer documentation
+
+---
+
+## 12. Suivi des Recommandations
+
+### 12.1 Tableau de Bord Conformité
 
 **Indicateurs clés (KPI)** :
 
 | Indicateur | Cible | Actuel | Tendance |
 |------------|-------|--------|----------|
-| Score conformité RGPD | > 90% | ______% | ↗ / → / ↘ |
-| Vulnérabilités critiques | 0 | ______ | ↗ / → / ↘ |
-| Comptes inactifs > 90j | 0 | ______ | ↗ / → / ↘ |
-| Temps restauration sauvegarde | < 4h | ______ | ↗ / → / ↘ |
-| Formations utilisateurs (taux) | > 90% | ______% | ↗ / → / ↘ |
-| Incidents sécurité (nb/an) | 0 | ______ | ↗ / → / ↘ |
+| **Score conformité RGPD** | ≥ 95% | __% | ☐ ↗️ ☐ → ☐ ↘️ |
+| **Délai réponse demande RGPD** | < 1 mois | __ jours | ☐ ↗️ ☐ → ☐ ↘️ |
+| **Taux de formation utilisateurs** | 100% | __% | ☐ ↗️ ☐ → ☐ ↘️ |
+| **Vulnérabilités critiques non patchées** | 0 | __ | ☐ ↗️ ☐ → ☐ ↘️ |
+| **Incidents sécurité (trimestre)** | 0 | __ | ☐ ↗️ ☐ → ☐ ↘️ |
+| **Taux de complétion plan d'actions** | 100% | __% | ☐ ↗️ ☐ → ☐ ↘️ |
 
-**Mise à jour** : Trimestrielle
+### 12.2 Revue Trimestrielle Direction
 
----
+**Ordre du jour type** (1h) :
 
-## 9. Actions Correctives
+1. **Résultats audit trimestre écoulé** (15 min)
+   - Score conformité
+   - Écarts identifiés
+   - Incidents sécurité
 
-### 9.1 Classification Priorités
+2. **Avancement plan d'actions** (20 min)
+   - Actions clôturées
+   - Actions en retard (justification)
+   - Nouvelles actions
 
-| Niveau | Criticité | Délai Correction | Validation |
-|--------|-----------|------------------|------------|
-| **P0** | Critique (violation RGPD, faille sécurité majeure) | 7 jours | DPO + RSSI |
-| **P1** | Élevée (non-conformité RGPD, vulnérabilité haute) | 30 jours | DPO |
-| **P2** | Moyenne (amélioration sécurité, procédure manquante) | 90 jours | Admin NSI |
-| **P3** | Faible (optimisation, documentation) | 180 jours | Admin NSI |
+3. **Indicateurs de risque** (15 min)
+   - Évolution menaces (phishing, ransomware)
+   - Changements réglementaires (CNIL, RGPD)
+   - Ressources nécessaires
 
----
+4. **Décisions et budget** (10 min)
+   - Validation actions correctives
+   - Allocation budget sécurité
+   - Planification audits
 
-### 9.2 Plan d'Action Type
+**Participants** : Proviseur, DPO, RSSI, Admin NSI
 
-**Exemple : Non-conformité détectée**
+### 12.3 Amélioration Continue
+
+**Cycle PDCA appliqué aux audits** :
 
 ```
-NON-CONFORMITÉ N°2026-001
---------------------------
-Catégorie : RGPD - Durée conservation
-Criticité : P1 (Élevée)
-Description : 245 copies d'examens datant de > 1 an non supprimées
-
-ANALYSE CAUSE RACINE :
-- Tâche Celery purge_old_copies désactivée depuis 3 mois
-- Absence de monitoring purge automatique
-
-ACTIONS CORRECTIVES :
-1. Réactiver tâche Celery immédiatement
-   Responsable : Admin NSI
-   Délai : J+1
-
-2. Exécuter purge manuelle des 245 copies
-   Responsable : Admin NSI
-   Délai : J+7
-
-3. Mettre en place alerte si tâche échoue
-   Responsable : Admin NSI
-   Délai : J+15
-
-4. Documenter procédure surveillance purge
-   Responsable : DPO
-   Délai : J+30
-
-SUIVI :
-- 10/02/2026 : Tâche réactivée ✅
-- 17/02/2026 : Purge manuelle effectuée ✅
-- 25/02/2026 : Alerte configurée ✅
-- 12/03/2026 : Documentation mise à jour ✅
-
-CLÔTURE : 12/03/2026
-Validé par : DPO
+┌──────────────────────────────────────────────────────────┐
+│                    PLAN (Planifier)                      │
+│  - Définir périmètre audit                               │
+│  - Préparer checklists                                   │
+│  - Planifier calendrier                                  │
+└───────────────────────┬──────────────────────────────────┘
+                        │
+                        v
+┌──────────────────────────────────────────────────────────┐
+│                     DO (Faire)                           │
+│  - Exécuter audits                                       │
+│  - Collecter preuves                                     │
+│  - Documenter écarts                                     │
+└───────────────────────┬──────────────────────────────────┘
+                        │
+                        v
+┌──────────────────────────────────────────────────────────┐
+│                   CHECK (Vérifier)                       │
+│  - Analyser résultats                                    │
+│  - Mesurer KPI conformité                                │
+│  - Comparer avec audits précédents                       │
+└───────────────────────┬──────────────────────────────────┘
+                        │
+                        v
+┌──────────────────────────────────────────────────────────┐
+│                    ACT (Agir)                            │
+│  - Implémenter actions correctives                       │
+│  - Améliorer procédures d'audit                          │
+│  - Former équipe sur lacunes identifiées                 │
+└───────────────────────┬──────────────────────────────────┘
+                        │
+                        └──────────> PLAN (cycle suivant)
 ```
 
 ---
 
-### 9.3 Registre Actions Correctives
+## 📌 Annexes
 
-**Format** (feuille de calcul) :
+### Annexe A : Modèle de Rapport d'Auto-Évaluation
 
-| ID | Date Détection | Catégorie | Criticité | Description | Responsable | Délai | Statut | Date Clôture |
-|----|---------------|-----------|-----------|-------------|-------------|-------|--------|--------------|
-| 2026-001 | 10/02/2026 | RGPD | P1 | Copies > 1 an | Admin NSI | 12/03/2026 | Fermé | 12/03/2026 |
-| 2026-002 | 15/03/2026 | Sécurité | P2 | Mot de passe faible | RSSI | 14/06/2026 | En cours | - |
+Voir section [6.1](#61-auto-évaluation-trimestrielle-2h)
 
----
+### Annexe B : Scripts d'Audit Automatisés
 
-## 10. Annexes
-
-### Annexe A : Outils Audit
-
-**Scripts Django** :
 ```bash
-# Audit permissions
-python manage.py audit_permissions
+# Script complet d'audit trimestriel
+# Fichier: /srv/korrigo/scripts/audit_quarterly.sh
 
-# Vérification conservation
-python manage.py check_data_retention
+#!/bin/bash
+REPORT_DIR="/srv/korrigo/audits/$(date +%Y)"
+REPORT_FILE="$REPORT_DIR/Q${1}_auto-evaluation_$(date +%Y-%m-%d).txt"
 
-# Export données RGPD
-python manage.py export_student_data --ine <INE>
+mkdir -p "$REPORT_DIR"
 
-# Vérification déploiement
-python manage.py check --deploy
+echo "=== Audit Trimestriel Korrigo PMF ===" > "$REPORT_FILE"
+echo "Date: $(date)" >> "$REPORT_FILE"
+echo "" >> "$REPORT_FILE"
+
+# 1. Utilisateurs actifs
+echo "### UTILISATEURS ACTIFS ###" >> "$REPORT_FILE"
+python manage.py list_users --active >> "$REPORT_FILE"
+
+# 2. Vérification permissions
+echo "### COMPTES ADMIN ###" >> "$REPORT_FILE"
+python manage.py list_users --role=admin >> "$REPORT_FILE"
+
+# 3. Logs incidents
+echo "### INCIDENTS SÉCURITÉ (30j) ###" >> "$REPORT_FILE"
+python manage.py list_security_incidents --days=30 >> "$REPORT_FILE"
+
+# 4. Espace disque
+echo "### ESPACE DISQUE ###" >> "$REPORT_FILE"
+df -h | grep -E "/srv|/var" >> "$REPORT_FILE"
+
+# 5. Certificat SSL
+echo "### CERTIFICAT SSL ###" >> "$REPORT_FILE"
+echo | openssl s_client -connect korrigo.lycee.fr:443 2>/dev/null | openssl x509 -noout -dates >> "$REPORT_FILE"
+
+echo "" >> "$REPORT_FILE"
+echo "Rapport sauvegardé: $REPORT_FILE"
 ```
 
-**Outils externes** :
-- **OWASP ZAP** : https://www.zaproxy.org/
-- **Safety** : https://pyup.io/safety/
-- **SSL Labs** : https://www.ssllabs.com/ssltest/
-- **Mozilla Observatory** : https://observatory.mozilla.org/
+### Annexe C : Contacts Utiles
+
+| Organisme | Contact | Usage |
+|-----------|---------|-------|
+| **CNIL** | servicedelaprotectiondesdonnees@cnil.fr<br>01 53 73 22 22 | Conseil RGPD, signalement violation |
+| **ANSSI** | https://www.ssi.gouv.fr/signalement | Incident sécurité majeur |
+| **DPO Académie** | [email académique] | Support conformité |
+| **Éditeur Korrigo** | support@korrigo.fr | Incident technique |
 
 ---
 
-### Annexe B : Checklist Audit Rapide (Mensuel)
+## 🔄 Historique des Révisions
 
-**15 minutes, 1er de chaque mois** :
-
-```
-☐ Vérifier logs sécurité (403, 401, erreurs)
-☐ Scanner vulnérabilités (safety check)
-☐ Vérifier espace disque (> 20% libre)
-☐ Vérifier dernière sauvegarde (< 24h)
-☐ Tester restauration (échantillon)
-☐ Comptes inactifs > 90j (désactiver)
-☐ Certificat SSL (expiration > 30j)
-☐ Mise à jour OS/Django disponibles ?
-☐ Logs purge automatique (vérifier exécution)
-☐ Incidents mois précédent (suivi actions)
-```
+| Version | Date | Auteur | Modifications |
+|---------|------|--------|---------------|
+| 1.0.0 | 30/01/2026 | DPO Établissement | Création initiale |
 
 ---
 
-### Annexe C : Modèle Rapport Audit
-
-**Télécharger** : `docs/security/templates/RAPPORT_AUDIT_TEMPLATE.docx`
-
-**Sections** :
-1. Page de garde (date, auditeur, périmètre)
-2. Résumé exécutif (1 page)
-3. Méthodologie (1 page)
-4. Résultats (5-10 pages)
-5. Recommandations (2-5 pages)
-6. Annexes (preuves, logs)
-
----
-
-### Annexe D : Contacts
-
-| Rôle | Contact | Email |
-|------|---------|-------|
-| **DPO** | M./Mme DPO | dpo@lycee-exemple.fr |
-| **RSSI Académie** | M./Mme RSSI | rssi@ac-exemple.fr |
-| **Admin NSI** | M./Mme Admin | admin.nsi@lycee-exemple.fr |
-| **CNIL** | Commission | https://www.cnil.fr/plainte |
-| **CERT-FR** | ANSSI | cert-fr.cossi@ssi.gouv.fr |
-
----
-
-### Annexe E : Calendrier Audits 2026
-
-| Mois | Audit | Responsable | Statut |
-|------|-------|-------------|--------|
-| Janvier | Scan vulnérabilités | RSSI | ☐ |
-| Février | Test restauration | Admin NSI | ☐ |
-| Mars | Audit permissions | Admin NSI | ☐ |
-| Avril | Scan vulnérabilités | RSSI | ☐ |
-| Mai | Test restauration | Admin NSI | ☐ |
-| Juin | Audit permissions | Admin NSI | ☐ |
-| Juillet | Scan vulnérabilités + Intégrité données | RSSI + DPO | ☐ |
-| Août | Test restauration | Admin NSI | ☐ |
-| Septembre | **AUDIT RGPD COMPLET** | DPO + Externe | ☐ |
-| Octobre | Scan vulnérabilités | RSSI | ☐ |
-| Novembre | Test restauration | Admin NSI | ☐ |
-| Décembre | Audit permissions + Bilan annuel | Admin NSI + DPO | ☐ |
-
----
-
-**Document approuvé par** :
-- DPO : _______________
-- RSSI : _______________
-- Proviseur : _______________
-- Date : 30 Janvier 2026
+**Document validé par** :  
+☐ DPO Établissement  
+☐ Proviseur  
+☐ RSSI (si applicable)
 
 **Prochaine révision** : Janvier 2027
