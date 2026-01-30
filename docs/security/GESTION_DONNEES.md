@@ -1,10 +1,11 @@
-# Guide de Gestion des Données
+# Guide de Gestion du Cycle de Vie des Données
 # Plateforme Korrigo PMF
 
 > **Version**: 1.0.0  
 > **Date**: 30 Janvier 2026  
-> **Public**: Administrateurs, DPO, Responsables traitement  
-> **Conformité**: RGPD Art. 5, 17, 25, 32
+> **Public**: Administrateurs techniques, DPO, Responsables données  
+> **Classification**: Usage interne - Sensible  
+> **Conformité**: RGPD (UE) 2016/679, CNIL
 
 ---
 
@@ -12,16 +13,17 @@
 
 1. [Introduction](#introduction)
 2. [Cycle de Vie des Données](#cycle-de-vie-des-données)
-3. [Collecte et Création](#collecte-et-création)
+3. [Catégories de Données Personnelles](#catégories-de-données-personnelles)
 4. [Stockage et Organisation](#stockage-et-organisation)
-5. [Conservation et Archivage](#conservation-et-archivage)
-6. [Accès et Partage](#accès-et-partage)
-7. [Modification et Mise à Jour](#modification-et-mise-à-jour)
-8. [Suppression et Purge](#suppression-et-purge)
-9. [Sauvegardes](#sauvegardes)
-10. [Export et Portabilité](#export-et-portabilité)
-11. [Procédures Opérationnelles](#procédures-opérationnelles)
-12. [Conformité RGPD](#conformité-rgpd)
+5. [Sauvegarde et Restauration](#sauvegarde-et-restauration)
+6. [Politiques de Rétention](#politiques-de-rétention)
+7. [Archivage des Données](#archivage-des-données)
+8. [Suppression et Anonymisation](#suppression-et-anonymisation)
+9. [Export des Données Personnelles](#export-des-données-personnelles)
+10. [Procédures de Purge Automatique](#procédures-de-purge-automatique)
+11. [Gestion des Données Sensibles](#gestion-des-données-sensibles)
+12. [Minimisation des Données](#minimisation-des-données)
+13. [Procédures de Migration](#procédures-de-migration)
 
 ---
 
@@ -29,33 +31,30 @@
 
 ### 1.1 Objet
 
-Ce guide décrit les procédures de gestion des données dans Korrigo PMF, de la collecte à la suppression, en conformité avec le RGPD et les bonnes pratiques de sécurité.
+Ce guide définit les procédures opérationnelles pour la gestion du cycle de vie complet des données personnelles dans Korrigo PMF, de la collecte initiale à la suppression définitive.
 
-### 1.2 Périmètre des Données
+### 1.2 Objectifs
 
-**Types de données traitées** :
+- **Conformité RGPD** : Respecter les obligations de conservation et suppression
+- **Sécurité** : Protéger les données tout au long de leur cycle de vie
+- **Traçabilité** : Documenter toutes les opérations de gestion des données
+- **Efficacité** : Optimiser le stockage et les performances
+- **Minimisation** : Ne conserver que les données strictement nécessaires
 
-| Catégorie | Exemples | Sensibilité | Volume Annuel Estimé |
-|-----------|----------|-------------|---------------------|
-| **Données élèves** | INE, nom, prénom, classe, email | Élevée (mineurs) | ~500 élèves/lycée |
-| **Copies numérisées** | PDF scans, images pages | Moyenne | ~5 000 copies/an |
-| **Annotations enseignants** | Commentaires, notes, corrections | Moyenne | ~50 000 annotations/an |
-| **Notes et résultats** | Scores, barèmes, totaux | Élevée | ~5 000 notes/an |
-| **Logs d'audit** | GradingEvent, accès, modifications | Faible | ~100 000 événements/an |
-| **Données utilisateurs** | Comptes Admin/Teacher, emails | Moyenne | ~50 utilisateurs |
+### 1.3 Périmètre
 
-**Volume total estimé** : 50-100 GB/an (principalement PDFs)
+**Données couvertes** :
+- Données élèves (INE, nom, prénom, classe, email)
+- Copies numérisées (PDF, images)
+- Notes et annotations des enseignants
+- Logs d'audit et d'accès
+- Données utilisateurs (enseignants, admin)
+- Métadonnées système
 
----
-
-### 1.3 Responsabilités
-
-| Rôle | Responsabilité Gestion Données |
-|------|-------------------------------|
-| **DPO** | - Validation politique conservation<br>- Contrôle conformité RGPD<br>- Gestion demandes exercice droits |
-| **Admin NSI** | - Exécution procédures techniques<br>- Sauvegardes et restauration<br>- Purges automatisées<br>- Exports données |
-| **Proviseur** | - Approbation politique conservation<br>- Décisions cas exceptionnels (ex: contentieux) |
-| **Enseignants** | - Qualité annotations<br>- Signalement erreurs données élèves |
+**Références techniques** :
+- [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md) : Schéma base de données
+- [POLITIQUE_RGPD.md](POLITIQUE_RGPD.md) : Politique de protection données
+- [MANUEL_SECURITE.md](MANUEL_SECURITE.md) : Mesures de sécurité
 
 ---
 
@@ -64,1185 +63,1229 @@ Ce guide décrit les procédures de gestion des données dans Korrigo PMF, de la
 ### 2.1 Vue d'Ensemble
 
 ```mermaid
-flowchart LR
+graph LR
     A[Collecte] --> B[Stockage]
     B --> C[Utilisation]
-    C --> D{Fin traitement?}
+    C --> D{Fin utilité?}
     D -->|Non| C
     D -->|Oui| E[Archivage]
-    E --> F{Durée conservation écoulée?}
-    F -->|Non| E
-    F -->|Oui| G[Suppression]
-    
-    style A fill:#e1f5ff
-    style G fill:#ffe1e1
+    E --> F{Délai conservation?}
+    F -->|Non échu| E
+    F -->|Échu| G[Suppression/Anonymisation]
+    G --> H[Purge définitive]
 ```
 
-**Phases** :
-1. **Collecte** : Import Pronote, upload PDFs, création annotations
-2. **Stockage** : Base de données PostgreSQL, filesystem `/media/`
-3. **Utilisation active** : Correction, consultation, export
-4. **Archivage** : Export Pronote (notes), conservation copies (1 an)
-5. **Suppression** : Purge automatique ou manuelle
-
 ---
 
-### 2.2 Durées de Conservation (Synthèse)
+### 2.2 Phase 1 : Collecte
 
-| Type de données | Durée active | Archivage | Suppression | Base légale |
-|----------------|--------------|-----------|-------------|-------------|
-| **Données élèves** | Année scolaire | 1 an après fin scolarité | Auto | Code éducation |
-| **Copies PDF** | Jusqu'à export final | 1 an après examen | Auto | Archivage pédagogique |
-| **Notes/annotations** | 1 an après examen | Pronote (externe) | Auto | Code éducation |
-| **Logs audit** | 6 mois | - | Auto | CNIL recommandation |
-| **Comptes utilisateurs** | Durée fonction | 1 an après départ | Manuel | Gestion RH |
-| **Sauvegardes** | 30 jours (quotidiennes) | 6 mois (hebdo) | Auto | Continuité activité |
+**Sources de données** :
 
-**Référence complète** : `docs/security/POLITIQUE_RGPD.md § 8`
+| Source | Type de données | Mode de collecte | Fréquence |
+|--------|----------------|------------------|-----------|
+| **Import Pronote** | Élèves (INE, nom, classe) | CSV manuel | Début année + mise à jour trimestrielle |
+| **Upload PDF** | Copies numérisées | Interface admin | Par examen |
+| **Saisie manuelle** | Identification copies | Interface secrétariat | Après numérisation |
+| **Correction** | Annotations, notes | Interface enseignant | Durant correction |
+| **Connexion portail** | Logs d'accès élèves | Automatique | Temps réel |
+| **Actions utilisateurs** | Logs d'audit (GradingEvent) | Automatique | Temps réel |
 
----
+**Validation à la collecte** :
+- ✅ Vérification format (CSV, PDF)
+- ✅ Validation contraintes (INE unique, PDF valide)
+- ✅ Journalisation de l'import (timestamp, acteur)
 
-## 3. Collecte et Création
-
-### 3.1 Import Données Élèves (Pronote)
-
-**Source** : Export CSV Pronote (système officiel Éducation Nationale)
-
-**Procédure** :
+**Commande import élèves** :
 ```bash
-# 1. Export Pronote
-# Menu Pronote : Fichier > Exporter > Élèves > CSV
+python manage.py import_students students.csv
 
-# 2. Vérifier format CSV
-head eleves_2026.csv
-# Attendu : INE;Nom;Prénom;Classe;Email
-
-# 3. Import Korrigo
-python manage.py import_students eleves_2026.csv --class TG
-
-# 4. Vérification
-python manage.py shell
->>> from students.models import Student
->>> Student.objects.filter(class_name='TG').count()
-120  # Attendu
-```
-
-**Format CSV requis** :
-```csv
-INE;Nom;Prénom;Classe;Email
-1234567890A;DUPONT;Jean;TG2;jean.dupont@eleve.fr
-0987654321B;MARTIN;Marie;TG4;marie.martin@eleve.fr
-```
-
-**Validations** :
-- ✅ INE unique (clé primaire)
-- ✅ Nom/Prénom non vides
-- ✅ Classe valide (format : `[A-Z]{1,3}[0-9]{1,2}`)
-- ⚠️ Email optionnel (validation format si présent)
-
-**Traçabilité** :
-```python
-# Créer événement audit
-AuditEvent.objects.create(
-    action='IMPORT_STUDENTS',
-    actor=request.user,
-    metadata={'count': students_imported, 'source': 'pronote_2026.csv'}
-)
+# Format CSV attendu
+# ine,last_name,first_name,class_name,email
+# 1234567890A,DUPONT,Jean,TG2,jean.dupont@lycee.fr
 ```
 
 ---
 
-### 3.2 Upload Copies (Examens)
+### 2.3 Phase 2 : Stockage Actif
 
-**Workflow** :
-1. **Scan physique** : Scanner A3 recto-verso → PDF massif
-2. **Upload** : `POST /api/exams/upload/`
-3. **Traitement asynchrone** (Celery) :
-   - Split A3 → A4
-   - Détection en-têtes
-   - Création Booklets
-   - OCR noms (optionnel)
+**Durée** : Année scolaire en cours + période de correction
 
-**Contraintes techniques** :
-```python
-# backend/exams/validators.py
-def validate_pdf_file(file):
-    # Taille max : 50 MB
-    if file.size > 50 * 1024 * 1024:
-        raise ValidationError("PDF must be < 50 MB")
-    
-    # Extension
-    if not file.name.endswith('.pdf'):
-        raise ValidationError("File must be PDF")
-    
-    # MIME type
-    if file.content_type != 'application/pdf':
-        raise ValidationError("Invalid MIME type")
-```
+**Utilisation** :
+- Correction des copies par les enseignants
+- Consultation par les élèves (portail)
+- Export notes vers Pronote
+- Audit et traçabilité
 
-**Stockage** :
-```python
-# backend/exams/models.py
-class Exam(models.Model):
-    pdf_source = models.FileField(
-        upload_to='exams/source/%Y/%m/',  # /media/exams/source/2026/01/exam.pdf
-        validators=[validate_pdf_file]
-    )
-```
+**Mesures de sécurité** :
+- Chiffrement base de données PostgreSQL au repos
+- HTTPS/TLS pour transit
+- Contrôle d'accès RBAC (Admin/Teacher/Student)
+- Audit trail complet (GradingEvent)
 
-**Volumétrie** :
-- Taille moyenne copie : 2-5 MB (4 pages A4 scannées)
-- 100 copies/examen × 10 examens/an = 2-5 GB/an
+**Référence** : [MANUEL_SECURITE.md](MANUEL_SECURITE.md) § "Sécurité des Données"
 
 ---
 
-### 3.3 Création Annotations
+### 2.4 Phase 3 : Archivage
 
-**Sources** :
-- **Enseignants** : Correction manuelle via interface
-- **Système** : Calcul automatique scores (somme `score_delta`)
+**Déclenchement** : Fin année scolaire ou 3 mois après dernier examen
 
-**Données collectées** :
-```python
-# backend/grading/models.py
-class Annotation(models.Model):
-    copy = ForeignKey(Copy)
-    page_index = IntegerField()  # 0-based
-    x, y, w, h = FloatField()  # Coordonnées normalisées [0, 1]
-    content = TextField(blank=True)  # Texte annotation
-    type = CharField(choices=Type.choices)  # COMMENT, HIGHLIGHT, ERROR, BONUS
-    score_delta = IntegerField(null=True)  # Points ajoutés/retirés
-    created_by = ForeignKey(User)
-    created_at = DateTimeField(auto_now_add=True)
-```
+**Objectif** : Conservation pour obligations légales (1 an) tout en réduisant l'accès
 
-**Minimisation des données** :
-- ✅ Pas de données personnelles dans `content` (seulement feedback pédagogique)
-- ✅ Coordonnées normalisées (indépendantes résolution PDF)
-- ✅ Pas de stockage IP enseignant (seulement User ID)
+**Actions** :
+1. Anonymisation des copies (masquage nom élève si non déjà fait)
+2. Export PDF finaux vers stockage d'archivage
+3. Restriction d'accès (Admin uniquement)
+4. Marquage statut `ARCHIVED` en base de données
+5. Journalisation de l'archivage
+
+**Référence** : Section 7 (Archivage des Données)
+
+---
+
+### 2.5 Phase 4 : Suppression/Purge
+
+**Déclenchement** : Fin délai de conservation légal (généralement 1 an)
+
+**Méthodes** :
+- **Suppression logique** : Marquage `deleted=true` (traçabilité)
+- **Anonymisation** : Remplacement données par valeurs génériques
+- **Suppression physique** : Suppression définitive de la base de données
+
+**Protection** :
+- ⚠️ **Vérification pré-suppression** : Confirmation des délais légaux
+- ✅ **Audit** : Journalisation de toutes les suppressions
+- ✅ **Sauvegarde** : Backup avant purge massive
+
+**Référence** : Section 8 (Suppression et Anonymisation)
+
+---
+
+## 3. Catégories de Données Personnelles
+
+### 3.1 Inventaire par Catégorie
+
+| Catégorie | Tables DB | Sensibilité | Délai Rétention | Base Légale |
+|-----------|-----------|-------------|-----------------|-------------|
+| **Identité élève** | `students_student` | ⚠️ Moyenne | 1 an après départ | Mission intérêt public |
+| **Copies examens** | `exams_copy`, `exams_booklet` | ⚠️ Moyenne | 1 an après examen | Mission intérêt public |
+| **Fichiers PDF** | Stockage fichiers (`media/`) | ⚠️ Moyenne | 1 an après examen | Archivage pédagogique |
+| **Notes et annotations** | `grading_annotation` | ⚠️ Moyenne | 1 an après examen | Évaluation pédagogique |
+| **Logs d'audit** | `grading_gradingevent` | 🔒 Faible | 6 mois | Intérêt légitime (sécurité) |
+| **Logs d'accès** | Logs serveur Nginx | 🔒 Faible | 3 mois | Intérêt légitime (sécurité) |
+| **Sessions utilisateurs** | `django_session` | 🔒 Faible | 2 semaines | Nécessité technique |
+| **Comptes enseignants** | `auth_user` | ⚠️ Moyenne | Actif + 1 an | Mission intérêt public |
+
+---
+
+### 3.2 Données Sensibles (Article 9 RGPD)
+
+**Korrigo PMF ne collecte PAS de données sensibles** :
+- ❌ Origine raciale ou ethnique
+- ❌ Opinions politiques, convictions religieuses
+- ❌ Données de santé
+- ❌ Données biométriques
+- ❌ Données génétiques
+- ❌ Orientation sexuelle
+
+**⚠️ Attention** : Si des copies d'élèves contiennent par erreur des mentions de santé (ex: aménagement d'épreuves), ces copies doivent être traitées avec précautions supplémentaires :
+- Accès restreint Admin uniquement
+- Suppression prioritaire après délai légal
+- Pas d'archivage long terme
+
+---
+
+### 3.3 Métadonnées Système
+
+| Type | Description | Rétention | Localisation |
+|------|-------------|-----------|--------------|
+| **Logs applicatifs** | Erreurs Django | 30 jours | `/var/log/korrigo/app.log` |
+| **Logs Nginx** | Requêtes HTTP, IP | 3 mois | `/var/log/nginx/access.log` |
+| **Logs PostgreSQL** | Requêtes SQL lentes | 7 jours | `/var/log/postgresql/` |
+| **Logs Celery** | Tâches asynchrones | 30 jours | `/var/log/korrigo/celery.log` |
+| **Sauvegardes DB** | Dumps PostgreSQL | 90 jours | `/backups/db/` |
+| **Sauvegardes fichiers** | Media files | 90 jours | `/backups/media/` |
 
 ---
 
 ## 4. Stockage et Organisation
 
-### 4.1 Base de Données PostgreSQL
+### 4.1 Architecture de Stockage
 
-**Configuration** :
-```yaml
-# docker-compose.yml (production)
-services:
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: korrigo_db
-      POSTGRES_USER: korrigo
-      POSTGRES_PASSWORD: ${DB_PASSWORD}  # Depuis .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - backend_network  # Réseau isolé
+```
+/opt/korrigo/
+├── backend/                # Code application Django
+├── frontend/               # Code application Vue.js
+├── media/                  # Fichiers uploadés (RGPD sensible)
+│   ├── exams/              # PDF source examens
+│   ├── booklets/           # Images booklets (staging)
+│   ├── copies/             # PDF copies individuelles
+│   ├── final_pdfs/         # PDF finaux avec annotations
+│   └── headers/            # Images en-têtes pour OCR
+├── static/                 # Fichiers statiques (public)
+└── backups/                # Sauvegardes (accès restreint)
+    ├── db/                 # Dumps PostgreSQL
+    └── media/              # Archives fichiers
 ```
 
-**Sécurité** :
-- ✅ Chiffrement connexions (SSL)
-- ✅ Authentification par mot de passe fort
-- ✅ Pas d'exposition publique (firewall)
-- ✅ Sauvegardes quotidiennes chiffrées
-
-**Organisation tables** :
-```
-korrigo_db
-├── auth_user (Django users)
-├── students_student (Élèves)
-├── exams_exam (Examens)
-├── exams_booklet (Fascicules)
-├── exams_copy (Copies)
-├── grading_annotation (Annotations)
-├── grading_gradingevent (Audit trail)
-├── grading_copylock (Verrous)
-└── grading_draftstate (Brouillons)
-```
-
-**Volumétrie** :
-- **Données structurées** : ~500 MB/an (tables métier)
-- **Sessions Django** : ~10 MB (nettoyage quotidien)
-
----
-
-### 4.2 Stockage Fichiers (Filesystem)
-
-**Arborescence** :
-```
-/opt/korrigo/media/
-├── exams/
-│   └── source/
-│       └── 2026/
-│           ├── 01/  # Janvier
-│           │   ├── bac_blanc_maths.pdf
-│           │   └── ds_physique.pdf
-│           └── 02/  # Février
-├── copies/
-│   └── source/
-│       └── 2026/
-│           └── 01/
-│               ├── copy_uuid1.pdf
-│               ├── copy_uuid2.pdf
-│               └── ...
-├── copies/
-│   └── final/
-│       └── 2026/
-│           └── 01/
-│               ├── copy_uuid1_final.pdf
-│               └── copy_uuid2_final.pdf
-└── booklets/
-    ├── headers/
-    │   └── header_uuid1.png
-    └── pages/
-        └── page_uuid1_p1.png
-```
-
-**Permissions** :
+**Permissions filesystem** :
 ```bash
-chown -R korrigo:korrigo /opt/korrigo/media
-chmod -R 750 /opt/korrigo/media  # rwx r-x ---
-```
+# Media files (données personnelles)
+chown -R www-data:www-data /opt/korrigo/media
+chmod 750 /opt/korrigo/media          # rwxr-x---
+chmod 640 /opt/korrigo/media/**/*     # rw-r-----
 
-**Volumétrie** :
-- **Copies source** : 2-5 GB/an
-- **Copies finales** : 2-5 GB/an (avec annotations aplaties)
-- **Booklets (images)** : 5-10 GB/an (temporaire, supprimé après merge)
-- **Total** : 10-20 GB/an
-
----
-
-### 4.3 Cache Redis
-
-**Usage** :
-- Cache requêtes fréquentes (listes élèves, examens)
-- Session storage (optionnel, par défaut DB)
-- File d'attente Celery (tasks asynchrones)
-
-**Configuration** :
-```python
-# backend/core/settings.py
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'PASSWORD': os.environ.get('REDIS_PASSWORD'),
-        },
-        'TIMEOUT': 300,  # 5 minutes par défaut
-    }
-}
-```
-
-**Expiration automatique** :
-- Clés cache : 5 min (configurable par vue)
-- Tasks Celery : Suppression après traitement
-
-**Pas de données personnelles en cache** :
-- ❌ Pas de copies PDF en Redis
-- ✅ Uniquement métadonnées (IDs, counts)
-
----
-
-## 5. Conservation et Archivage
-
-### 5.1 Données Élèves
-
-**Durée active** : Année scolaire en cours
-
-**Archivage** : 1 an après fin scolarité dans l'établissement
-
-**Justification** :
-- Code de l'éducation (archivage dossiers scolaires)
-- Gestion contentieux (recours notes)
-- Export Pronote (archivage externe illimité)
-
-**Procédure archivage** :
-```python
-# backend/students/management/commands/archive_students.py
-from datetime import datetime, timedelta
-
-# Élèves ayant quitté établissement > 1 an
-threshold = datetime.now() - timedelta(days=365)
-students_to_archive = Student.objects.filter(
-    graduation_date__lt=threshold  # Champ à ajouter si nécessaire
-)
-
-# Export JSON avant suppression
-archive_data = []
-for student in students_to_archive:
-    archive_data.append({
-        'ine': student.ine,
-        'name': f"{student.first_name} {student.last_name}",
-        'class': student.class_name,
-        'copies_count': student.copies.count(),
-        'archived_at': datetime.now().isoformat()
-    })
-
-# Sauvegarder archive
-with open(f'/archive/students_{datetime.now().year}.json', 'w') as f:
-    json.dump(archive_data, f)
-
-# Suppression (cf. section 8)
+# Backups (admin uniquement)
+chown -R root:root /opt/korrigo/backups
+chmod 700 /opt/korrigo/backups        # rwx------
+chmod 600 /opt/korrigo/backups/**/*   # rw-------
 ```
 
 ---
 
-### 5.2 Copies et Annotations
+### 4.2 Base de Données PostgreSQL
 
-**Durée conservation** : 1 an après date examen
-
-**Justification** :
-- Consultation élèves (année scolaire + été)
-- Recours notes (délai légal 1 an)
-- Archivage pédagogique (analyse progression)
-
-**Suppression automatique** :
-```python
-# backend/core/tasks.py (Celery periodic task)
-from celery import shared_task
-from datetime import datetime, timedelta
-from exams.models import Copy, Exam
-
-@shared_task
-def purge_old_copies():
-    threshold = datetime.now() - timedelta(days=365)
-    
-    # Copies d'examens > 1 an
-    old_exams = Exam.objects.filter(date__lt=threshold)
-    
-    for exam in old_exams:
-        copies = Copy.objects.filter(exam=exam)
-        
-        for copy in copies:
-            # Supprimer fichiers physiques
-            if copy.pdf_source:
-                copy.pdf_source.delete(save=False)
-            if copy.final_pdf:
-                copy.final_pdf.delete(save=False)
-            
-            # Supprimer annotations (cascade automatique)
-            # Supprimer événements audit (cascade automatique)
-            copy.delete()
-        
-        # Supprimer examen
-        if exam.pdf_source:
-            exam.pdf_source.delete(save=False)
-        exam.delete()
-    
-    # Logger action
-    logger.info(f"Purged {old_exams.count()} exams older than 1 year")
-```
-
-**Planification** :
-```python
-# backend/core/celerybeat_schedule.py
-CELERYBEAT_SCHEDULE = {
-    'purge-old-copies': {
-        'task': 'core.tasks.purge_old_copies',
-        'schedule': crontab(hour=2, minute=0, day_of_week=1),  # Lundi 2h
-    },
-}
-```
-
----
-
-### 5.3 Logs d'Audit
-
-**Durée conservation** : 6 mois (CNIL recommandation)
-
-**Table** : `grading_gradingevent`
-
-**Suppression automatique** :
-```python
-@shared_task
-def purge_old_audit_logs():
-    threshold = datetime.now() - timedelta(days=180)  # 6 mois
-    
-    deleted_count, _ = GradingEvent.objects.filter(
-        timestamp__lt=threshold
-    ).delete()
-    
-    logger.info(f"Purged {deleted_count} audit events older than 6 months")
-```
-
-**Exception** : Conservation prolongée si contentieux en cours (gel légal)
-
----
-
-## 6. Accès et Partage
-
-### 6.1 Matrice d'Accès
-
-| Données | Admin | Teacher | Student | Secrétariat |
-|---------|-------|---------|---------|-------------|
-| **Données élèves (tous)** | ✅ Lecture/Écriture | ✅ Lecture | ❌ | ✅ Lecture/Écriture |
-| **Copies (toutes)** | ✅ R/W | ✅ R/W | ❌ | ✅ Lecture |
-| **Copies (élève spécifique)** | ✅ R/W | ✅ R/W | ✅ Lecture (si GRADED) | ✅ Lecture |
-| **Annotations** | ✅ R/W | ✅ R/W (si owner) | ❌ | ❌ |
-| **Logs audit** | ✅ Lecture | ❌ | ❌ | ❌ |
-| **Comptes utilisateurs** | ✅ R/W | ❌ | ❌ | ❌ |
-
-**Référence** : `SECURITY_PERMISSIONS_INVENTORY.md`
-
----
-
-### 6.2 Partage Interne (Enseignants)
-
-**Autorisé** :
-- ✅ Consultation copies via plateforme (logs tracés)
-- ✅ Export CSV notes pour commission harmonisation
-- ✅ Partage barème examen (pas de données élèves)
-
-**Interdit** :
-- ❌ Copie PDF copies sur clés USB personnelles
-- ❌ Envoi copies par email non chiffré
-- ❌ Impression copies papier (sauf autorisation Proviseur)
-
-**Charte d'utilisation** (à signer) :
-```
-Je m'engage à :
-- Accéder uniquement aux copies qui me sont attribuées
-- Ne pas diffuser copies ou notes hors plateforme
-- Signaler toute anomalie au DPO
-- Respecter confidentialité données élèves
-```
-
----
-
-### 6.3 Export Externe (Pronote)
-
-**Finalité** : Intégration notes dans logiciel de gestion scolaire
-
-**Format** : CSV anonymisé (pas de noms, uniquement INE)
-```csv
-INE,Matiere,Note,Coefficient
-1234567890A,Mathématiques,15.5,5
-0987654321B,Mathématiques,12.0,5
-```
-
-**Procédure** :
+**Configuration sécurisée** :
 ```bash
-# 1. Export CSV
-GET /api/exams/{exam_id}/export_csv/
-# Téléchargement : bac_blanc_maths_notes.csv
+# /etc/postgresql/15/main/postgresql.conf
 
-# 2. Import Pronote
-# Menu Pronote : Notes > Importer > CSV
+# Connexions locales uniquement (pas d'exposition réseau)
+listen_addresses = 'localhost'
 
-# 3. Vérification
-# Contrôler que toutes notes sont importées correctement
+# Chiffrement SSL activé
+ssl = on
+ssl_cert_file = '/etc/ssl/certs/server.crt'
+ssl_key_file = '/etc/ssl/private/server.key'
 
-# 4. Archive export
-cp bac_blanc_maths_notes.csv /archive/exports/2026/
+# Logs des connexions et erreurs
+log_connections = on
+log_disconnections = on
+log_duration = on
+log_statement = 'mod'  # Log toutes modif données
+
+# Durée rétention WAL (Write-Ahead Logging)
+wal_keep_size = 1GB
 ```
 
-**Traçabilité** :
+**Utilisateurs et permissions** :
+```sql
+-- Utilisateur applicatif (restreint)
+CREATE USER korrigo_app WITH PASSWORD 'secure_password';
+GRANT CONNECT ON DATABASE korrigo TO korrigo_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO korrigo_app;
+
+-- Utilisateur backup (lecture seule + dump)
+CREATE USER korrigo_backup WITH PASSWORD 'backup_password';
+GRANT CONNECT ON DATABASE korrigo TO korrigo_backup;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO korrigo_backup;
+```
+
+---
+
+### 4.3 Stockage Fichiers (Media)
+
+**Types de fichiers** :
+
+| Type | Extension | Taille Max | Validation | Localisation |
+|------|-----------|------------|------------|--------------|
+| **PDF examens** | `.pdf` | 50 MB | MIME type | `media/exams/` |
+| **PDF copies** | `.pdf` | 10 MB | MIME type | `media/copies/` |
+| **PDF finaux** | `.pdf` | 10 MB | MIME type | `media/final_pdfs/` |
+| **Images booklets** | `.png`, `.jpg` | 5 MB | Image valide | `media/booklets/` |
+| **Images en-têtes** | `.png`, `.jpg` | 1 MB | Image valide | `media/headers/` |
+
+**Nommage des fichiers** :
 ```python
-# Créer événement audit
-GradingEvent.objects.create(
-    copy=None,  # Export global
-    action='EXPORT_CSV',
-    actor=request.user,
-    metadata={'exam_id': exam.id, 'format': 'CSV', 'destination': 'Pronote'}
-)
+# Pattern : {type}/{exam_id}/{random_filename}.{ext}
+# Exemple
+media/exams/a3f7b2c1-4567-89ab-cdef-0123456789ab/exam_source_8a7f6e5d.pdf
+media/copies/a3f7b2c1-4567-89ab-cdef-0123456789ab/copy_1a2b3c4d.pdf
+media/final_pdfs/a3f7b2c1-4567-89ab-cdef-0123456789ab/final_5e6f7g8h.pdf
 ```
+
+**Avantages** :
+- ✅ Pas de conflit de noms (UUID + random)
+- ✅ Organisation par examen
+- ✅ Traçabilité via base de données
 
 ---
 
-## 7. Modification et Mise à Jour
+## 5. Sauvegarde et Restauration
 
-### 7.1 Modification Données Élèves
+### 5.1 Stratégie de Sauvegarde (3-2-1)
 
-**Cas d'usage** :
-- Correction erreur saisie (nom mal orthographié)
-- Changement classe (redoublement, réorientation)
-- Mise à jour email
-
-**Procédure** :
-```python
-# Via interface Admin Django
-# URL : /admin/students/student/{id}/change/
-
-# Ou commande
-python manage.py shell
->>> student = Student.objects.get(ine='1234567890A')
->>> student.last_name = 'DUPONT'  # Correction
->>> student.save()
-```
-
-**Traçabilité** :
-- Django Admin log (automatique)
-- Notification DPO si modification sensible (INE)
+**Principe 3-2-1** :
+- **3** copies des données (production + 2 sauvegardes)
+- **2** supports différents (disque local + NAS réseau)
+- **1** copie hors site (cloud ou site distant)
 
 ---
 
-### 7.2 Modification Annotations
-
-**Règle** : Seul le créateur peut modifier (object-level permission)
-
-**Vérification** :
-```python
-# backend/grading/permissions.py
-def has_object_permission(self, request, view, obj):
-    if request.method in ['PUT', 'PATCH', 'DELETE']:
-        # Vérifier créateur
-        if obj.created_by != request.user:
-            return False
-        
-        # Vérifier verrou actif
-        lock = CopyLock.objects.filter(copy=obj.copy).first()
-        if not lock or lock.owner != request.user:
-            return False
-        
-        return True
-    return True  # Lecture autorisée
-```
-
-**Audit** :
-```python
-# Signal Django (auto-triggered)
-@receiver(post_save, sender=Annotation)
-def log_annotation_change(sender, instance, created, **kwargs):
-    GradingEvent.objects.create(
-        copy=instance.copy,
-        action='CREATE_ANN' if created else 'UPDATE_ANN',
-        actor=instance.created_by,
-        metadata={'annotation_id': str(instance.id), 'type': instance.type}
-    )
-```
-
----
-
-### 7.3 Modification Notes (Recours)
-
-**Procédure académique** (hors Korrigo) :
-1. Élève dépose recours (formulaire académie)
-2. Commission examine copie
-3. Si modification validée → Admin Korrigo corrige manuellement
-4. Export nouveau CSV vers Pronote
-
-**Traçabilité renforcée** :
-```python
-# Modification note nécessite justification
-GradingEvent.objects.create(
-    copy=copy,
-    action='SCORE_CORRECTION',
-    actor=admin_user,
-    metadata={
-        'old_score': 12.0,
-        'new_score': 14.5,
-        'reason': 'Recours commission - Erreur comptage points Q3',
-        'approval_doc': 'recours_2026_001.pdf'
-    }
-)
-```
-
----
-
-## 8. Suppression et Purge
-
-### 8.1 Suppression Logique vs Physique
-
-**Suppression logique** (soft delete) :
-- Marquage `is_deleted=True` ou `deleted_at=timestamp`
-- Données masquées mais récupérables
-- **Usage** : Comptes utilisateurs (audit trail)
-
-**Suppression physique** (hard delete) :
-- Suppression définitive base de données
-- Écrasement fichiers (cf. `MANUEL_SECURITE.md § 5.5`)
-- **Usage** : Données expirées, exercice droit à l'effacement
-
----
-
-### 8.2 Purge Automatisée
-
-**Tâches Celery** (récapitulatif) :
-
-| Tâche | Fréquence | Données ciblées | Méthode |
-|-------|-----------|-----------------|---------|
-| `purge_old_copies` | Hebdomadaire | Copies > 1 an | Hard delete + fichiers |
-| `purge_old_audit_logs` | Hebdomadaire | Logs > 6 mois | Hard delete |
-| `clean_expired_sessions` | Quotidien | Sessions expirées | Django `clearsessions` |
-| `clean_orphaned_files` | Mensuel | Fichiers sans DB entry | Suppression filesystem |
-
-**Configuration** :
-```python
-# backend/core/celerybeat_schedule.py
-from celery.schedules import crontab
-
-CELERYBEAT_SCHEDULE = {
-    'purge-old-copies': {
-        'task': 'core.tasks.purge_old_copies',
-        'schedule': crontab(hour=2, minute=0, day_of_week=1),  # Lundi 2h
-    },
-    'purge-old-audit-logs': {
-        'task': 'core.tasks.purge_old_audit_logs',
-        'schedule': crontab(hour=3, minute=0, day_of_week=1),
-    },
-    'clean-expired-sessions': {
-        'task': 'core.tasks.clean_sessions',
-        'schedule': crontab(hour=4, minute=0),  # Quotidien 4h
-    },
-    'clean-orphaned-files': {
-        'task': 'core.tasks.clean_orphaned_files',
-        'schedule': crontab(hour=5, minute=0, day_of_month=1),  # 1er du mois
-    },
-}
-```
-
-**Logs purge** :
-```bash
-# Vérifier exécution
-tail -f /var/log/korrigo/celery.log | grep purge
-
-# Exemple sortie
-[2026-01-27 02:00:15] INFO: Purged 15 exams older than 1 year
-[2026-01-27 03:00:10] INFO: Purged 23456 audit events older than 6 months
-```
-
----
-
-### 8.3 Suppression sur Demande (RGPD)
-
-**Cas d'usage** :
-- Droit à l'effacement (Art. 17 RGPD)
-- Élève quittant établissement
-- Retrait consentement portail élève
-
-**Procédure** :
-```bash
-# 1. Vérifier éligibilité (DPO valide)
-# - Pas d'obligation légale conservation
-# - Pas de contentieux en cours
-
-# 2. Export archive (traçabilité)
-python manage.py export_student_data --ine 1234567890A > archive_student.json
-
-# 3. Suppression
-python manage.py delete_student_data --ine 1234567890A --confirm
-
-# 4. Vérification
-python manage.py shell
->>> Student.objects.filter(ine='1234567890A').exists()
-False
-```
-
-**Commande `delete_student_data`** :
-```python
-# backend/students/management/commands/delete_student_data.py
-class Command(BaseCommand):
-    def handle(self, *args, **options):
-        ine = options['ine']
-        confirm = options.get('confirm', False)
-        
-        if not confirm:
-            self.stdout.write("Dry run mode. Use --confirm to delete.")
-            return
-        
-        student = Student.objects.get(ine=ine)
-        
-        # Supprimer copies liées
-        copies = Copy.objects.filter(student=student)
-        for copy in copies:
-            # Fichiers
-            if copy.pdf_source:
-                secure_delete_file(copy.pdf_source.path)
-            if copy.final_pdf:
-                secure_delete_file(copy.final_pdf.path)
-            
-            # Annotations (cascade automatique)
-            copy.delete()
-        
-        # Supprimer élève
-        student.delete()
-        
-        # Logger
-        logger.info(f"Deleted student {ine} and {copies.count()} copies (RGPD request)")
-        self.stdout.write(self.style.SUCCESS(f"Student {ine} deleted successfully"))
-```
-
----
-
-### 8.4 Nettoyage Fichiers Orphelins
-
-**Problème** : Fichiers sur disque sans entrée DB (upload échoué, bug)
-
-**Détection** :
-```python
-@shared_task
-def clean_orphaned_files():
-    media_root = settings.MEDIA_ROOT
-    
-    # Scanner filesystem
-    all_files = set()
-    for root, dirs, files in os.walk(media_root):
-        for file in files:
-            all_files.add(os.path.join(root, file))
-    
-    # Fichiers référencés en DB
-    referenced_files = set()
-    for exam in Exam.objects.all():
-        if exam.pdf_source:
-            referenced_files.add(exam.pdf_source.path)
-    
-    for copy in Copy.objects.all():
-        if copy.pdf_source:
-            referenced_files.add(copy.pdf_source.path)
-        if copy.final_pdf:
-            referenced_files.add(copy.final_pdf.path)
-    
-    # Orphelins = Tous - Référencés
-    orphaned = all_files - referenced_files
-    
-    # Supprimer (avec confirmation)
-    for file_path in orphaned:
-        os.remove(file_path)
-        logger.info(f"Deleted orphaned file: {file_path}")
-    
-    return len(orphaned)
-```
-
----
-
-## 9. Sauvegardes
-
-### 9.1 Stratégie 3-2-1
-
-**Principe** :
-- **3 copies** : Production + Sauvegarde locale + Sauvegarde distante
-- **2 supports** : Disque dur + NAS/Cloud
-- **1 hors site** : Datacenter secondaire ou cloud sécurisé
-
----
-
-### 9.2 Sauvegardes Base de Données
+### 5.2 Sauvegarde Base de Données
 
 **Fréquence** :
-- **Quotidiennes** : Complètes (full backup)
-- **Hebdomadaires** : Archivage long terme (6 mois)
+- **Quotidienne** : Dump complet PostgreSQL
+- **Hebdomadaire** : Sauvegarde complète avec vérification
+- **Mensuelle** : Archive long terme (90 jours)
 
-**Script** :
+**Script de sauvegarde** :
 ```bash
 #!/bin/bash
-# /opt/korrigo/scripts/backup_db.sh
+# /opt/korrigo/scripts/backup_database.sh
 
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/backup/korrigo/db"
-DB_NAME="korrigo_db"
-DB_USER="korrigo"
+BACKUP_DIR="/opt/korrigo/backups/db"
+BACKUP_FILE="$BACKUP_DIR/korrigo_db_$DATE.sql.gz"
+LOG_FILE="/var/log/korrigo/backup.log"
 
-# Backup PostgreSQL (format custom, compressé)
-pg_dump -U $DB_USER -Fc -f "$BACKUP_DIR/db_$DATE.dump" $DB_NAME
+echo "[$(date)] Starting database backup..." >> "$LOG_FILE"
 
-# Chiffrement GPG
-gpg --encrypt --recipient backup@lycee-exemple.fr "$BACKUP_DIR/db_$DATE.dump"
+# Dump PostgreSQL avec compression
+pg_dump -U korrigo_backup -h localhost korrigo | gzip > "$BACKUP_FILE"
 
-# Suppression fichier non chiffré
-rm "$BACKUP_DIR/db_$DATE.dump"
-
-# Vérification intégrité
-gpg --verify "$BACKUP_DIR/db_$DATE.dump.gpg"
-
-# Copie distante (optionnel)
-rsync -avz "$BACKUP_DIR/db_$DATE.dump.gpg" backup-server:/backups/korrigo/
-
-# Rétention : 30 jours quotidiennes
-find $BACKUP_DIR -name "db_*.dump.gpg" -mtime +30 -delete
-
-echo "[$(date)] Backup completed: db_$DATE.dump.gpg"
+if [ $? -eq 0 ]; then
+    echo "[$(date)] Backup successful: $BACKUP_FILE" >> "$LOG_FILE"
+    
+    # Vérification intégrité
+    gunzip -t "$BACKUP_FILE" && echo "[$(date)] Integrity check: OK" >> "$LOG_FILE"
+    
+    # Suppression sauvegardes > 90 jours
+    find "$BACKUP_DIR" -name "korrigo_db_*.sql.gz" -mtime +90 -delete
+    
+    echo "[$(date)] Backup retention applied (90 days)" >> "$LOG_FILE"
+else
+    echo "[$(date)] ERROR: Backup failed!" >> "$LOG_FILE"
+    # Alerte email admin
+    echo "Database backup failed" | mail -s "KORRIGO BACKUP ALERT" admin@lycee.fr
+fi
 ```
 
-**Cron** :
+**Configuration cron** :
 ```cron
-0 1 * * * /opt/korrigo/scripts/backup_db.sh >> /var/log/korrigo/backup.log 2>&1
+# Sauvegarde quotidienne à 2h du matin
+0 2 * * * /opt/korrigo/scripts/backup_database.sh
 ```
 
 ---
 
-### 9.3 Sauvegardes Fichiers Média
+### 5.3 Sauvegarde Fichiers (Media)
 
-**Script** :
+**Fréquence** :
+- **Quotidienne** : Synchronisation incrémentale (rsync)
+- **Hebdomadaire** : Snapshot complet
+
+**Script rsync** :
 ```bash
 #!/bin/bash
 # /opt/korrigo/scripts/backup_media.sh
 
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/backup/korrigo/media"
-MEDIA_ROOT="/opt/korrigo/media"
+DATE=$(date +%Y%m%d)
+SOURCE="/opt/korrigo/media"
+BACKUP_DIR="/opt/korrigo/backups/media"
+SNAPSHOT_DIR="$BACKUP_DIR/snapshot_$DATE"
+LOG_FILE="/var/log/korrigo/backup_media.log"
 
-# Archive tar compressée
-tar -czf "$BACKUP_DIR/media_$DATE.tar.gz" $MEDIA_ROOT
+echo "[$(date)] Starting media backup..." >> "$LOG_FILE"
 
-# Chiffrement
-gpg --encrypt --recipient backup@lycee-exemple.fr "$BACKUP_DIR/media_$DATE.tar.gz"
-rm "$BACKUP_DIR/media_$DATE.tar.gz"
+# Rsync incrémental avec hard links (économie espace)
+rsync -av --delete --link-dest="$BACKUP_DIR/latest" \
+    "$SOURCE/" "$SNAPSHOT_DIR/" >> "$LOG_FILE" 2>&1
 
-# Copie distante
-rsync -avz "$BACKUP_DIR/media_$DATE.tar.gz.gpg" backup-server:/backups/korrigo/
-
-# Rétention : 30 jours quotidiennes, 6 mois hebdomadaires
-find $BACKUP_DIR -name "media_*.tar.gz.gpg" -mtime +30 -delete
-
-echo "[$(date)] Media backup completed"
+if [ $? -eq 0 ]; then
+    # Mise à jour lien symbolique 'latest'
+    rm -f "$BACKUP_DIR/latest"
+    ln -s "$SNAPSHOT_DIR" "$BACKUP_DIR/latest"
+    
+    echo "[$(date)] Media backup successful: $SNAPSHOT_DIR" >> "$LOG_FILE"
+    
+    # Suppression snapshots > 90 jours
+    find "$BACKUP_DIR" -maxdepth 1 -name "snapshot_*" -mtime +90 -exec rm -rf {} \;
+    
+else
+    echo "[$(date)] ERROR: Media backup failed!" >> "$LOG_FILE"
+fi
 ```
-
-**Fréquence** : Hebdomadaire (dimanche 1h)
 
 ---
 
-### 9.4 Restauration
+### 5.4 Test de Restauration
 
-**Restauration base de données** :
+**Fréquence** : Trimestrielle (minimum)
+
+**Procédure de test** :
 ```bash
-# 1. Déchiffrer
-gpg --decrypt /backup/korrigo/db/db_20260130_010000.dump.gpg > db.dump
+# 1. Restauration DB sur environnement de test
+gunzip -c /opt/korrigo/backups/db/korrigo_db_latest.sql.gz | \
+    psql -U postgres -h localhost korrigo_test
 
-# 2. Arrêter application
-systemctl stop korrigo-backend korrigo-celery
+# 2. Vérification intégrité données
+python manage.py check --database=korrigo_test
 
-# 3. Restaurer
-pg_restore -U korrigo -d korrigo_db --clean --if-exists db.dump
+# 3. Vérification comptage records
+psql -U postgres korrigo_test -c "SELECT COUNT(*) FROM exams_exam;"
+psql -U postgres korrigo_test -c "SELECT COUNT(*) FROM students_student;"
 
-# 4. Redémarrer
-systemctl start korrigo-backend korrigo-celery
+# 4. Test requête fonctionnelle
+python manage.py shell --database=korrigo_test
+>>> from exams.models import Exam
+>>> Exam.objects.count()
 
-# 5. Vérifier
-python manage.py check
-curl https://korrigo.lycee-exemple.fr/api/exams/
+# 5. Restauration fichiers media (échantillon)
+rsync -av /opt/korrigo/backups/media/latest/copies/ /tmp/test_restore/
 ```
 
-**Restauration fichiers média** :
+**Documentation** :
+- ✅ Horodatage du test
+- ✅ Résultat (succès/échec)
+- ✅ Temps de restauration
+- ✅ Problèmes rencontrés
+- ✅ Actions correctives
+
+---
+
+### 5.5 Plan de Reprise d'Activité (PRA)
+
+**RTO (Recovery Time Objective)** : 4 heures
+**RPO (Recovery Point Objective)** : 24 heures max
+
+**Scénario 1 : Corruption base de données** :
+```
+1. Arrêt application (Django + Celery)       [5 min]
+2. Identification sauvegarde à restaurer     [10 min]
+3. Restauration dump PostgreSQL              [30 min]
+4. Vérification intégrité                    [15 min]
+5. Redémarrage application                   [5 min]
+6. Tests fonctionnels                        [30 min]
+Total estimé: 1h35
+```
+
+**Scénario 2 : Perte fichiers media** :
+```
+1. Identification périmètre perdu            [15 min]
+2. Restauration rsync depuis backup          [1-2h selon volume]
+3. Vérification permissions filesystem       [10 min]
+4. Tests téléchargement PDF                  [15 min]
+Total estimé: 2-3h
+```
+
+**Scénario 3 : Défaillance serveur complète** :
+```
+1. Provisionnement nouveau serveur           [1h]
+2. Installation dépendances                  [30 min]
+3. Restauration DB + fichiers                [1-2h]
+4. Configuration réseau/SSL                  [30 min]
+5. Tests complets                            [1h]
+Total estimé: 4-5h
+```
+
+**Référence** : [PROCEDURES_OPERATIONNELLES.md](../admin/PROCEDURES_OPERATIONNELLES.md) § "Plan de Continuité d'Activité"
+
+---
+
+## 6. Politiques de Rétention
+
+### 6.1 Table de Rétention Complète
+
+| Donnée | Durée Conservation Active | Durée Archive | Suppression | Base Légale | Méthode Purge |
+|--------|--------------------------|---------------|-------------|-------------|---------------|
+| **Élèves actifs** | Pendant scolarité | - | 1 an après départ | Code éducation | Suppression logique |
+| **Élèves partis** | 1 an | - | Fin délai | Archivage admin | Anonymisation |
+| **Copies examens (PDF)** | 1 an après examen | - | Fin délai | Archivage pédagogique | Suppression physique |
+| **Annotations** | 1 an après examen | - | Fin délai | Lien copies | Suppression cascade |
+| **Notes finales** | Exportées Pronote | Archivées Pronote | N/A | Système externe | - |
+| **Logs audit (GradingEvent)** | 6 mois | - | Fin délai | CNIL recommandation | Suppression automatique |
+| **Logs serveur (Nginx)** | 3 mois | - | Fin délai | Sécurité | Rotation logs |
+| **Sessions Django** | 2 semaines | - | Expiration | Nécessité technique | `clearsessions` |
+| **Booklets (staging)** | Jusqu'à validation | - | Après création Copy | Traçabilité | Suppression manuelle |
+| **Sauvegardes DB** | 90 jours | - | Fin délai | Continuité activité | Suppression automatique |
+| **Comptes enseignants** | Pendant activité | 1 an | Après 1 an inactivité | RH établissement | Désactivation puis suppression |
+
+---
+
+### 6.2 Conformité Légale
+
+**Code de l'éducation** :
+- **Article L. 131-1** : Obligation d'évaluation pédagogique
+- **Archivage notes** : 1 an minimum (recommandation académie)
+
+**CNIL Recommandations Éducation** :
+- **Logs d'accès/audit** : 6 mois maximum (sauf incident)
+- **Données élèves** : Suppression année N+1 après départ
+
+**RGPD Article 5.1.e** : Limitation de la conservation
+- Pas de conservation "au cas où"
+- Justification écrite de toute prolongation
+
+---
+
+### 6.3 Calcul des Délais
+
+**Élève quittant l'établissement** :
+```python
+# Date départ : 30 juin 2026
+# Date suppression : 30 juin 2027 (1 an)
+
+from datetime import datetime, timedelta
+
+departure_date = datetime(2026, 6, 30)
+retention_period = timedelta(days=365)
+deletion_date = departure_date + retention_period
+# deletion_date = 2027-06-30
+```
+
+**Examen archivé** :
+```python
+# Examen : "Bac Blanc Maths - 15 janvier 2026"
+# Date examen : 15 janvier 2026
+# Date suppression : 15 janvier 2027 (1 an)
+
+exam_date = datetime(2026, 1, 15)
+retention_period = timedelta(days=365)
+deletion_date = exam_date + retention_period
+# deletion_date = 2027-01-15
+```
+
+---
+
+## 7. Archivage des Données
+
+### 7.1 Procédure d'Archivage Fin d'Année
+
+**Déclenchement** : 30 juin (fin année scolaire)
+
+**Étapes** :
+
 ```bash
-# 1. Déchiffrer
-gpg --decrypt /backup/korrigo/media/media_20260126_010000.tar.gz.gpg > media.tar.gz
+# 1. Export complet base de données (archive légale)
+python manage.py dumpdata --indent=2 > archives/korrigo_2025-2026_$(date +%Y%m%d).json
 
-# 2. Extraire
-tar -xzf media.tar.gz -C /opt/korrigo/
+# 2. Génération rapport activité
+python manage.py generate_yearly_report --year=2025-2026 > archives/rapport_2025-2026.txt
 
-# 3. Permissions
-chown -R korrigo:korrigo /opt/korrigo/media
-chmod -R 750 /opt/korrigo/media
+# 3. Export PDF finaux (copie sécurité)
+rsync -av /opt/korrigo/media/final_pdfs/ /archives/pdfs_2025-2026/
+
+# 4. Anonymisation copies archivées (optionnel)
+python manage.py anonymize_archived_copies --year=2025-2026
+
+# 5. Compression archives
+tar -czf archives/korrigo_archive_2025-2026.tar.gz archives/*2025-2026*
+
+# 6. Vérification intégrité
+sha256sum archives/korrigo_archive_2025-2026.tar.gz > archives/korrigo_archive_2025-2026.sha256
+
+# 7. Stockage hors site (optionnel)
+# rsync archives/korrigo_archive_2025-2026.tar.gz user@backup-server:/archives/
 ```
 
 ---
 
-### 9.5 Test de Restauration
+### 7.2 Commande Django d'Anonymisation
 
-**Fréquence** : Trimestriel
+**Implémentation** :
+```python
+# backend/exams/management/commands/anonymize_archived_copies.py
 
-**Procédure** :
-1. Créer environnement staging (VM ou Docker)
-2. Restaurer dernière sauvegarde
-3. Vérifier intégrité données
-4. Tester fonctionnalités critiques
-5. Documenter résultats
+from django.core.management.base import BaseCommand
+from exams.models import Copy
+from datetime import datetime, timedelta
 
-**Checklist** :
-- [ ] Base de données restaurée sans erreur
-- [ ] Toutes tables présentes et cohérentes
-- [ ] Fichiers média accessibles
-- [ ] Connexion utilisateur fonctionnelle
-- [ ] Consultation copies OK
-- [ ] Temps de restauration < RTO (4h)
+class Command(BaseCommand):
+    help = "Anonymise les copies archivées de plus de 1 an"
+    
+    def add_arguments(self, parser):
+        parser.add_argument('--year', type=str, help='Année scolaire (ex: 2025-2026)')
+        parser.add_argument('--dry-run', action='store_true', help='Simulation sans modification')
+    
+    def handle(self, *args, **options):
+        cutoff_date = datetime.now() - timedelta(days=365)
+        
+        copies = Copy.objects.filter(
+            exam__date__lt=cutoff_date,
+            status='GRADED'
+        ).select_related('student', 'exam')
+        
+        self.stdout.write(f"Copies à anonymiser: {copies.count()}")
+        
+        if not options['dry_run']:
+            for copy in copies:
+                # Anonymisation
+                copy.student = None
+                copy.is_identified = False
+                copy.save(update_fields=['student', 'is_identified'])
+                
+                # Log événement
+                GradingEvent.objects.create(
+                    copy=copy,
+                    action='ANONYMIZE',
+                    actor=None,
+                    metadata={'reason': 'archivage_1an'}
+                )
+            
+            self.stdout.write(self.style.SUCCESS(f"Anonymisation terminée: {copies.count()} copies"))
+        else:
+            self.stdout.write(self.style.WARNING("Mode DRY-RUN - Aucune modification"))
+```
+
+**Exécution** :
+```bash
+# Simulation
+python manage.py anonymize_archived_copies --dry-run
+
+# Exécution réelle
+python manage.py anonymize_archived_copies --year=2025-2026
+```
 
 ---
 
-## 10. Export et Portabilité
+## 8. Suppression et Anonymisation
 
-### 10.1 Export Données Élève (RGPD Art. 20)
+### 8.1 Méthodes de Suppression
 
-**Commande** :
+#### 8.1.1 Suppression Logique (Soft Delete)
+
+**Principe** : Marquage `deleted=true` sans suppression physique
+
+**Avantages** :
+- ✅ Traçabilité conservée
+- ✅ Récupération possible (erreur humaine)
+- ✅ Conformité audit
+
+**Inconvénients** :
+- ⚠️ Espace disque non libéré
+- ⚠️ Complexité requêtes (filtrage `deleted=false`)
+
+**Implémentation Django** :
+```python
+# backend/core/models.py
+
+class SoftDeleteManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+class SoftDeleteModel(models.Model):
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    
+    objects = SoftDeleteManager()  # Queryset par défaut (exclus deleted)
+    all_objects = models.Manager()  # Queryset incluant deleted
+    
+    def delete(self, **kwargs):
+        self.deleted_at = timezone.now()
+        self.save(update_fields=['deleted_at'])
+    
+    def hard_delete(self):
+        super().delete()
+    
+    class Meta:
+        abstract = True
+```
+
+---
+
+#### 8.1.2 Anonymisation
+
+**Principe** : Remplacement données personnelles par valeurs génériques
+
+**Cas d'usage** :
+- Conservation copies pour statistiques pédagogiques
+- Archivage obligatoire mais RGPD respecté
+
+**Données à anonymiser** :
+| Champ | Valeur originale | Valeur anonymisée |
+|-------|-----------------|-------------------|
+| `Student.ine` | `1234567890A` | `ANON_{timestamp}` |
+| `Student.first_name` | `Jean` | `Élève` |
+| `Student.last_name` | `DUPONT` | `Anonyme` |
+| `Student.email` | `jean.dupont@lycee.fr` | NULL |
+| `Copy.student_id` | UUID référence | NULL |
+
+**Script anonymisation** :
+```python
+# backend/students/anonymize.py
+
+def anonymize_student(student):
+    """Anonymise un élève (irréversible)"""
+    student.ine = f"ANON_{timezone.now().strftime('%Y%m%d%H%M%S')}"
+    student.first_name = "Élève"
+    student.last_name = "Anonyme"
+    student.email = None
+    student.save()
+    
+    # Dissocier toutes les copies
+    student.copy_set.update(student=None, is_identified=False)
+    
+    # Log anonymisation
+    logger.info(f"Élève anonymisé: ancien INE={student.ine} (avant anonymisation)")
+```
+
+---
+
+#### 8.1.3 Suppression Physique (Hard Delete)
+
+**Principe** : Suppression définitive en base de données
+
+**⚠️ IRRÉVERSIBLE** : Données non récupérables
+
+**Procédure sécurisée** :
+```python
+# backend/exams/management/commands/purge_expired_data.py
+
+def purge_old_copies(dry_run=False):
+    """Supprime physiquement les copies expirées"""
+    cutoff_date = timezone.now() - timedelta(days=365)
+    
+    copies = Copy.objects.filter(
+        exam__date__lt=cutoff_date,
+        status='GRADED'
+    )
+    
+    if dry_run:
+        print(f"[DRY-RUN] Copies à supprimer: {copies.count()}")
+        for copy in copies[:10]:  # Échantillon
+            print(f"  - Copy {copy.id}, Exam: {copy.exam.name}, Date: {copy.exam.date}")
+        return
+    
+    # Confirmation manuelle requise
+    confirmation = input(f"ATTENTION: Suppression définitive de {copies.count()} copies. Confirmer (yes/no): ")
+    if confirmation != 'yes':
+        print("Annulation.")
+        return
+    
+    # Sauvegarde avant suppression
+    print("Création sauvegarde de sécurité...")
+    backup_file = f"/backups/pre_purge_{timezone.now().strftime('%Y%m%d_%H%M%S')}.json"
+    call_command('dumpdata', 'exams.Copy', output=backup_file, indent=2)
+    
+    # Suppression physique
+    count_deleted = 0
+    for copy in copies:
+        # Suppression fichiers associés
+        if copy.pdf_source:
+            copy.pdf_source.delete(save=False)
+        if copy.final_pdf:
+            copy.final_pdf.delete(save=False)
+        
+        # Suppression cascade (annotations, events)
+        copy.delete()  # Hard delete
+        count_deleted += 1
+    
+    print(f"Suppression terminée: {count_deleted} copies purgées.")
+    print(f"Sauvegarde sécurité: {backup_file}")
+```
+
+---
+
+### 8.2 Suppression Sécurisée Fichiers
+
+**Principe** : Écrasement données avant suppression (évite récupération forensique)
+
+**Outil** : `shred` (Linux)
+
+```bash
+# Suppression sécurisée d'un fichier PDF
+shred -vfz -n 3 /opt/korrigo/media/copies/copy_expired.pdf
+
+# Options:
+# -v: verbose
+# -f: force permissions
+# -z: écrasement final avec zéros
+# -n 3: 3 passes d'écrasement (DoD 5220.22-M)
+```
+
+**Intégration Django** :
+```python
+import subprocess
+
+def secure_delete_file(file_path):
+    """Supprime de manière sécurisée un fichier"""
+    if not os.path.exists(file_path):
+        return
+    
+    # Écrasement sécurisé
+    subprocess.run(['shred', '-vfz', '-n', '3', file_path], check=True)
+    
+    logger.info(f"Fichier supprimé de manière sécurisée: {file_path}")
+```
+
+---
+
+## 9. Export des Données Personnelles
+
+### 9.1 Droit à la Portabilité (Art. 20 RGPD)
+
+**Commande Django** :
+```python
+# backend/students/management/commands/export_student_data.py
+
+class Command(BaseCommand):
+    help = "Exporte les données personnelles d'un élève (RGPD Art. 20)"
+    
+    def add_arguments(self, parser):
+        parser.add_argument('--ine', type=str, required=True, help='INE de l\'élève')
+        parser.add_argument('--format', choices=['json', 'pdf'], default='json')
+    
+    def handle(self, *args, **options):
+        ine = options['ine']
+        student = Student.objects.get(ine=ine)
+        
+        # Export données structurées
+        data = {
+            'student': {
+                'ine': student.ine,
+                'first_name': student.first_name,
+                'last_name': student.last_name,
+                'class_name': student.class_name,
+                'email': student.email
+            },
+            'exams': []
+        }
+        
+        # Export copies et notes
+        for copy in student.copy_set.filter(status='GRADED'):
+            exam_data = {
+                'exam_name': copy.exam.name,
+                'date': copy.exam.date.isoformat(),
+                'anonymous_id': copy.anonymous_id,
+                'score': copy.calculate_score(),
+                'max_score': copy.exam.total_points,
+                'annotations': [
+                    {
+                        'content': ann.content,
+                        'score_delta': ann.score_delta,
+                        'created_at': ann.created_at.isoformat()
+                    }
+                    for ann in copy.annotation_set.all()
+                ],
+                'final_pdf_url': copy.final_pdf.url if copy.final_pdf else None
+            }
+            data['exams'].append(exam_data)
+        
+        # Écriture fichier
+        output_file = f'/tmp/student_data_{ine}_{timezone.now().strftime("%Y%m%d")}.json'
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        self.stdout.write(self.style.SUCCESS(f"Export terminé: {output_file}"))
+```
+
+**Exécution** :
 ```bash
 python manage.py export_student_data --ine 1234567890A --format json
+
+# Résultat: /tmp/student_data_1234567890A_20260130.json
 ```
 
-**Format JSON** :
+---
+
+### 9.2 Format Export JSON
+
+**Structure complète** :
 ```json
 {
+  "export_date": "2026-01-30T10:30:00Z",
   "student": {
     "ine": "1234567890A",
     "first_name": "Jean",
     "last_name": "DUPONT",
     "class_name": "TG2",
-    "email": "jean.dupont@eleve.fr"
+    "email": "jean.dupont@lycee.fr"
   },
   "exams": [
     {
       "exam_name": "Bac Blanc Maths TG - Janvier 2026",
-      "exam_date": "2026-01-15",
-      "anonymous_id": "A3F7B2E1",
-      "status": "GRADED",
+      "date": "2026-01-15",
+      "anonymous_id": "COPY-A3F7B2C1",
       "score": 15.5,
       "max_score": 20,
-      "graded_at": "2026-01-20T14:32:15Z",
       "annotations": [
         {
-          "page": 1,
-          "type": "COMMENT",
-          "content": "Bonne réponse, démarche claire",
-          "score_delta": 3
-        },
-        {
-          "page": 2,
-          "type": "ERROR",
-          "content": "Erreur de calcul",
-          "score_delta": -2
+          "content": "Excellente démonstration",
+          "score_delta": 2,
+          "created_at": "2026-01-20T14:30:00Z"
         }
-      ]
+      ],
+      "final_pdf_url": "/media/final_pdfs/.../final_xyz.pdf"
     }
   ],
   "access_logs": [
     {
-      "action": "LOGIN_PORTAL",
-      "timestamp": "2026-01-25T10:15:00Z",
-      "ip_hash": "a3f7b2e1c4d5..."
+      "timestamp": "2026-01-22T09:15:00Z",
+      "action": "LOGIN",
+      "ip_address": "192.168.1.100"
     },
     {
+      "timestamp": "2026-01-22T09:16:23Z",
       "action": "DOWNLOAD_PDF",
-      "copy_id": "copy_uuid1",
-      "timestamp": "2026-01-25T10:17:32Z"
+      "copy_id": "a3f7b2c1-4567-89ab-cdef-0123456789ab"
     }
-  ],
-  "export_metadata": {
-    "export_date": "2026-01-30T08:00:00Z",
-    "format": "JSON",
-    "version": "1.0"
-  }
+  ]
 }
 ```
 
-**Format PDF** (copies finales) :
+---
+
+## 10. Procédures de Purge Automatique
+
+### 10.1 Tâche Celery de Purge Quotidienne
+
+**Configuration** :
+```python
+# backend/core/celery.py
+
+@app.task(name='purge_expired_sessions')
+def purge_expired_sessions():
+    """Nettoie les sessions Django expirées"""
+    call_command('clearsessions')
+    logger.info("Sessions expirées purgées")
+
+@app.task(name='purge_old_audit_logs')
+def purge_old_audit_logs():
+    """Supprime logs d'audit > 6 mois"""
+    cutoff = timezone.now() - timedelta(days=180)  # 6 mois
+    deleted_count = GradingEvent.objects.filter(timestamp__lt=cutoff).delete()[0]
+    logger.info(f"Logs d'audit purgés: {deleted_count} événements")
+
+@app.task(name='purge_expired_copy_locks')
+def purge_expired_copy_locks():
+    """Supprime verrous de copies expirés"""
+    cutoff = timezone.now()
+    deleted_count = CopyLock.objects.filter(expires_at__lt=cutoff).delete()[0]
+    logger.info(f"Verrous expirés purgés: {deleted_count} locks")
+
+# Planification (Celery Beat)
+app.conf.beat_schedule = {
+    'purge-sessions-daily': {
+        'task': 'purge_expired_sessions',
+        'schedule': crontab(hour=3, minute=0),  # 3h du matin
+    },
+    'purge-audit-logs-daily': {
+        'task': 'purge_old_audit_logs',
+        'schedule': crontab(hour=3, minute=30),
+    },
+    'purge-locks-hourly': {
+        'task': 'purge_expired_copy_locks',
+        'schedule': crontab(minute=0),  # Toutes les heures
+    },
+}
+```
+
+---
+
+### 10.2 Cron de Purge Fichiers Logs
+
+```cron
+# /etc/cron.d/korrigo-logrotate
+
+# Rotation logs Nginx (conservation 90 jours)
+0 0 * * * root /usr/sbin/logrotate /etc/logrotate.d/nginx
+
+# Purge logs applicatifs > 30 jours
+0 4 * * * root find /var/log/korrigo/ -name "*.log" -mtime +30 -delete
+
+# Purge sauvegardes > 90 jours
+0 5 * * * root find /opt/korrigo/backups/ -mtime +90 -type f -delete
+```
+
+---
+
+### 10.3 Notification Purge Critique
+
+**Alerte avant suppression massive** :
+```python
+@app.task(name='check_purge_candidates')
+def check_purge_candidates():
+    """Alerte admin si beaucoup de données à purger"""
+    cutoff = timezone.now() - timedelta(days=365)
+    
+    copies_to_purge = Copy.objects.filter(
+        exam__date__lt=cutoff,
+        status='GRADED'
+    ).count()
+    
+    if copies_to_purge > 100:
+        # Alerte email admin
+        send_mail(
+            subject='[KORRIGO] Purge automatique en attente',
+            message=f'{copies_to_purge} copies dépassent le délai de rétention (1 an).\n'
+                    f'Vérifier conformité avant purge automatique.',
+            from_email='noreply@korrigo.lycee.fr',
+            recipient_list=['admin@lycee.fr', 'dpo@lycee.fr'],
+        )
+        
+        logger.warning(f"Purge critique: {copies_to_purge} copies candidates")
+```
+
+---
+
+## 11. Gestion des Données Sensibles
+
+### 11.1 Classification des Données
+
+| Niveau | Exemples | Mesures Spécifiques |
+|--------|----------|---------------------|
+| **PUBLIC** | - Nom établissement<br>- Dates examens | Aucune restriction |
+| **INTERNE** | - Liste classes<br>- Calendrier examens | Authentification requise |
+| **CONFIDENTIEL** | - INE élèves<br>- Notes<br>- Annotations | RBAC + Chiffrement + Logs |
+| **SENSIBLE (Art. 9)** | - Santé<br>- Origine<br>- Religion | ❌ Non collectées par Korrigo |
+
+---
+
+### 11.2 Traitement Aménagements d'Épreuves
+
+**Problématique** : Les copies d'élèves en situation de handicap peuvent mentionner des données de santé
+
+**Mesures spécifiques** :
+1. **Anonymisation renforcée** : Masquage systématique mentions santé
+2. **Accès restreint** : Admin NSI uniquement (pas Teacher)
+3. **Suppression prioritaire** : Purge immédiate après délai légal (1 an)
+4. **Pas d'archivage long terme**
+
+**Détection automatique** :
+```python
+# backend/exams/validators.py
+
+HEALTH_KEYWORDS = [
+    'handicap', 'médical', 'santé', 'thérapeutique',
+    'dyslexie', 'dyspraxie', 'TDAH', 'allergie'
+]
+
+def check_sensitive_content(pdf_text):
+    """Détecte mentions potentielles de santé dans les copies"""
+    text_lower = pdf_text.lower()
+    for keyword in HEALTH_KEYWORDS:
+        if keyword in text_lower:
+            logger.warning(f"Mention sensible détectée: {keyword}")
+            return True
+    return False
+```
+
+---
+
+### 11.3 Pseudonymisation des Logs
+
+**Principe** : Remplacement IP complète par préfixe
+
+**Implémentation** :
+```python
+# backend/core/middleware.py
+
+def pseudonymize_ip(ip_address):
+    """Pseudonymise une adresse IP (conservation préfixe réseau)"""
+    if ':' in ip_address:  # IPv6
+        return ip_address.split(':')[0] + ':xxxx:xxxx:xxxx:xxxx'
+    else:  # IPv4
+        parts = ip_address.split('.')
+        return f"{parts[0]}.{parts[1]}.xxx.xxx"
+
+# Exemple: 192.168.1.100 → 192.168.xxx.xxx
+```
+
+**Application Nginx** :
+```nginx
+# /etc/nginx/sites-available/korrigo
+
+log_format pseudonymized '$remote_addr_pseudonymized $remote_user [$time_local] '
+                         '"$request" $status $body_bytes_sent '
+                         '"$http_referer" "$http_user_agent"';
+
+# Remplacer dernier octet IP
+map $remote_addr $remote_addr_pseudonymized {
+    ~(?P<ip>\d+\.\d+\.\d+)\.\d+ $ip.xxx;
+}
+
+access_log /var/log/nginx/access.log pseudonymized;
+```
+
+---
+
+## 12. Minimisation des Données
+
+### 12.1 Principe Privacy by Design
+
+**Collecter uniquement le strict nécessaire** :
+
+| Donnée | Nécessaire ? | Justification | Décision |
+|--------|-------------|---------------|----------|
+| INE | ✅ Oui | Identifiant unique élève (EN obligatoire) | Collectée |
+| Nom, Prénom | ✅ Oui | Identification copies | Collectée |
+| Classe | ✅ Oui | Organisation pédagogique | Collectée |
+| Email | ⚠️ Optionnel | Notifications (désactivable) | Collectée si fournie |
+| Photo élève | ❌ Non | Pas nécessaire correction | ❌ Non collectée |
+| Adresse postale | ❌ Non | Pas pertinente | ❌ Non collectée |
+| Téléphone | ❌ Non | Pas nécessaire | ❌ Non collectée |
+| Date de naissance | ❌ Non | Pas utilisée | ❌ Non collectée |
+
+---
+
+### 12.2 Vérification Minimisation
+
+**Commande audit** :
 ```bash
-# Télécharger toutes copies élève
-python manage.py export_student_data --ine 1234567890A --format pdf --output /tmp/student_copies/
-# Génère : /tmp/student_copies/copy1.pdf, copy2.pdf, ...
+python manage.py check_data_minimization
+
+# Résultat exemple:
+# ✅ Student model: 5 champs collectés / 5 nécessaires (100%)
+# ⚠️ User model: 12 champs Django / 8 utilisés (67%)
+# Recommandation: Masquer champs inutilisés (phone_number, address)
 ```
 
 ---
 
-### 10.2 Export Global (Administration)
+## 13. Procédures de Migration
 
-**Cas d'usage** :
-- Migration vers nouveau système
-- Audit externe
-- Backup archive
+### 13.1 Migration Vers Nouveau Serveur
 
-**Commandes** :
+**Étapes** :
 ```bash
-# Export base complète (SQL)
-pg_dump -U korrigo korrigo_db > korrigo_full_export.sql
+# 1. Dump base de données (serveur source)
+pg_dump -U korrigo -h localhost korrigo > korrigo_migration_$(date +%Y%m%d).sql
 
-# Export données structurées (JSON)
-python manage.py dumpdata --indent 2 > korrigo_data.json
+# 2. Archive fichiers media
+tar -czf media_migration.tar.gz /opt/korrigo/media/
 
-# Export sélectif (élèves uniquement)
-python manage.py dumpdata students --indent 2 > students_export.json
+# 3. Transfert sécurisé (SSH)
+scp korrigo_migration_*.sql admin@nouveau-serveur:/tmp/
+scp media_migration.tar.gz admin@nouveau-serveur:/tmp/
 
-# Export avec fixtures (pour tests)
-python manage.py dumpdata students exams grading --indent 2 > fixtures.json
+# 4. Restauration (serveur destination)
+psql -U korrigo -h localhost korrigo < /tmp/korrigo_migration_*.sql
+tar -xzf /tmp/media_migration.tar.gz -C /opt/korrigo/
+
+# 5. Vérification intégrité
+python manage.py check --database=default
+python manage.py migrate --fake-initial
+
+# 6. Test fonctionnel
+python manage.py test exams.tests
 ```
 
 ---
 
-## 11. Procédures Opérationnelles
+### 13.2 Migration Django (Évolution Modèles)
 
-### 11.1 Fin d'Année Scolaire
+**Ajout champ RGPD-compliant** :
+```python
+# backend/students/models.py
 
-**Checklist** (Juin-Juillet) :
-
-```
-[ ] 1. Vérifier tous examens exportés vers Pronote
-[ ] 2. Sauvegarder complète avant purge
-[ ] 3. Archiver données année N-2 (si > 1 an)
-[ ] 4. Purger copies > 1 an (automatique)
-[ ] 5. Désactiver comptes élèves diplômés/partis
-[ ] 6. Nettoyer comptes enseignants partis
-[ ] 7. Audit permissions utilisateurs
-[ ] 8. Test restauration sauvegarde
-[ ] 9. Rapport volumétrie (espace disque restant)
-[ ] 10. Validation DPO conformité RGPD
-```
-
----
-
-### 11.2 Rentrée Scolaire
-
-**Checklist** (Août-Septembre) :
-
-```
-[ ] 1. Import nouveaux élèves (Pronote)
-[ ] 2. Création comptes enseignants nouveaux arrivants
-[ ] 3. Mise à jour classes (TG → Diplômés, 1G → TG)
-[ ] 4. Vérification espace disque (> 20% libre)
-[ ] 5. Test connexions authentification
-[ ] 6. Formation nouveaux enseignants (2h)
-[ ] 7. Distribution chartes utilisation
-[ ] 8. Test upload/traitement PDF (examen blanc)
+class Student(models.Model):
+    # ...champs existants
+    
+    # RGPD : Date de consentement portail élève
+    consent_date = models.DateTimeField(null=True, blank=True,
+        help_text="Date consentement accès portail (RGPD Art. 6.1.a)")
+    
+    # RGPD : Date de suppression programmée
+    scheduled_deletion = models.DateField(null=True, blank=True,
+        help_text="Date suppression automatique (si élève parti)")
 ```
 
----
-
-### 11.3 Incident Données
-
-**Procédure d'urgence** :
-
-```
-1. DÉTECTION
-   - Anomalie détectée (logs, alerte, signalement)
-   - Notification Admin NSI + DPO (< 1h)
-
-2. ÉVALUATION
-   - Type incident (accès non autorisé, perte, corruption)
-   - Volume données affectées
-   - Classification criticité (P0-P3)
-
-3. CONFINEMENT
-   - Isoler système si nécessaire
-   - Bloquer comptes compromis
-   - Préserver logs et preuves
-
-4. NOTIFICATION CNIL (si violation RGPD)
-   - Délai : < 72h après prise de connaissance
-   - Formulaire : https://www.cnil.fr/notifications
-   - Informations : nature, volume, mesures prises
-
-5. RÉCUPÉRATION
-   - Restaurer depuis sauvegarde saine
-   - Vérifier intégrité
-   - Surveillance accrue (72h)
-
-6. POST-MORTEM
-   - Rapport incident (causes, impact, leçons)
-   - Amélioration procédures
-   - Formation équipe
-```
-
-**Référence** : `docs/security/MANUEL_SECURITE.md § 9`
-
----
-
-## 12. Conformité RGPD
-
-### 12.1 Principes Appliqués
-
-| Principe RGPD | Application Korrigo |
-|---------------|---------------------|
-| **Minimisation** | Collecte uniquement INE, nom, classe (pas adresse, téléphone) |
-| **Limitation finalités** | Correction examens uniquement (pas marketing, profilage) |
-| **Exactitude** | Import Pronote (source référence), procédure correction |
-| **Limitation conservation** | Suppression auto 1 an après examen |
-| **Intégrité/confidentialité** | HTTPS, RBAC, chiffrement, audit trail |
-| **Accountability** | Registre traitements, AIPD, documentation complète |
-
----
-
-### 12.2 Droits Personnes Concernées
-
-**Exercice simplifié** :
-
-| Droit | Procédure | Délai | Outil |
-|-------|-----------|-------|-------|
-| **Accès** | Email DPO + pièce identité | 1 mois | `export_student_data` |
-| **Rectification** | Demande + justification | 7 jours | Interface Admin |
-| **Effacement** | Demande + validation DPO | 1 mois | `delete_student_data` |
-| **Portabilité** | Email DPO | 1 mois | `export_student_data --format json` |
-| **Opposition** | Retrait consentement portail | Immédiat | Désactivation accès |
-
-**Référence** : `docs/security/POLITIQUE_RGPD.md § 6`
-
----
-
-### 12.3 Registre des Traitements
-
-**Mise à jour** : Annuelle ou si modification traitement
-
-**Contenu** (extrait pour Korrigo) :
-```
-Traitement : Correction Numérique Examens
-- Responsable : Proviseur Lycée [NOM]
-- Finalité : Numérisation copies, correction, calcul notes
-- Base légale : Mission d'intérêt public (Code éducation)
-- Données : Copies PDF, annotations, notes, INE, noms
-- Destinataires : Enseignants, élèves (portail), Pronote
-- Transferts hors UE : Non
-- Durée conservation : 1 an après examen
-- Mesures sécurité : HTTPS, RBAC, audit trail, anonymisation
-- Sous-traitant : [Si hébergement externe]
-```
-
-**Document** : `docs/security/REGISTRE_TRAITEMENTS_RGPD.xlsx`
-
----
-
-## Annexes
-
-### Annexe A : Commandes Gestion Données
-
+**Migration** :
 ```bash
-# Import élèves
-python manage.py import_students eleves.csv --class TG
+python manage.py makemigrations students
+python manage.py migrate students
+```
 
-# Export données élève (RGPD)
-python manage.py export_student_data --ine 1234567890A --format json
+---
 
-# Suppression élève (RGPD)
-python manage.py delete_student_data --ine 1234567890A --confirm
+## 14. Annexes
 
-# Purge données expirées
-python manage.py purge_old_copies --dry-run  # Simulation
-python manage.py purge_old_copies --confirm  # Exécution
+### Annexe A : Checklist Gestion Données
 
-# Nettoyage sessions
-python manage.py clearsessions
+**Quotidien** :
+- [ ] Vérifier logs sauvegarde (`/var/log/korrigo/backup.log`)
+- [ ] Vérifier espace disque (DB + media) : `df -h`
+- [ ] Vérifier tâches Celery Beat : `celery -A core inspect active`
 
-# Audit permissions
-python manage.py audit_permissions
+**Hebdomadaire** :
+- [ ] Vérifier intégrité sauvegarde (test restauration échantillon)
+- [ ] Revue logs d'erreur application : `tail -100 /var/log/korrigo/app.log | grep ERROR`
+- [ ] Vérification purges automatiques (sessions, logs)
 
-# Statistiques stockage
+**Mensuel** :
+- [ ] Test restauration complète (base de données)
+- [ ] Audit espace disque (croissance anormale ?)
+- [ ] Vérification conformité rétention (élèves partis)
+
+**Trimestriel** :
+- [ ] Test PRA complet (restauration serveur)
+- [ ] Audit données (minimisation, exactitude)
+- [ ] Revue calendrier purges
+
+**Annuel** :
+- [ ] Archivage fin d'année scolaire
+- [ ] Purge données expirées (copies > 1 an)
+- [ ] Audit conformité RGPD complet
+
+---
+
+### Annexe B : Contacts et Responsabilités
+
+| Rôle | Responsable | Email | Téléphone | Responsabilité Données |
+|------|------------|-------|-----------|------------------------|
+| **DPO** | [Nom DPO] | dpo@lycee.fr | XX XX XX XX XX | - Conformité RGPD<br>- Validation purges<br>- Réponse demandes RGPD |
+| **Admin NSI** | [Nom Admin] | admin.nsi@lycee.fr | XX XX XX XX XX | - Sauvegardes quotidiennes<br>- Restaurations<br>- Purges techniques |
+| **DSI/RSSI** | [Nom DSI] | dsi@lycee.fr | XX XX XX XX XX | - Validation architecture stockage<br>- Audits sécurité données |
+| **Proviseur** | [Nom Proviseur] | proviseur@lycee.fr | XX XX XX XX XX | - Validation décisions critiques<br>- Approbation purges massives |
+
+---
+
+### Annexe C : Outils et Commandes Utiles
+
+**Vérification espace disque** :
+```bash
+# Espace global
+df -h /opt/korrigo
+
+# Taille base de données
+sudo -u postgres psql -c "SELECT pg_size_pretty(pg_database_size('korrigo'));"
+
+# Taille media files par type
 du -sh /opt/korrigo/media/*
-psql -U korrigo -c "SELECT pg_size_pretty(pg_database_size('korrigo_db'));"
+
+# Top 10 fichiers les plus volumineux
+find /opt/korrigo/media -type f -exec du -h {} + | sort -rh | head -10
+```
+
+**Comptage records** :
+```bash
+# Élèves actifs
+psql korrigo -c "SELECT COUNT(*) FROM students_student WHERE deleted_at IS NULL;"
+
+# Copies par statut
+psql korrigo -c "SELECT status, COUNT(*) FROM exams_copy GROUP BY status;"
+
+# Logs d'audit (6 derniers mois)
+psql korrigo -c "SELECT COUNT(*) FROM grading_gradingevent WHERE timestamp > NOW() - INTERVAL '6 months';"
 ```
 
 ---
 
-### Annexe B : Volumétrie Prévisionnelle
+## Conclusion
 
-**Hypothèses** :
-- 500 élèves
-- 10 examens/an
-- 5 000 copies/an
-- 5 ans conservation
+Ce guide fournit un cadre complet pour la gestion responsable et conforme du cycle de vie des données dans Korrigo PMF. Le respect rigoureux de ces procédures garantit :
 
-| Année | DB (GB) | Fichiers (GB) | Total (GB) | Cumul (GB) |
-|-------|---------|---------------|-----------|-----------|
-| An 1  | 0.5 | 15 | 15.5 | 15.5 |
-| An 2  | 0.5 | 15 | 15.5 | 31 |
-| An 3  | 0.5 | 15 | 15.5 | 46.5 |
-| An 4  | 0.5 | 15 | 15.5 | 62 |
-| An 5  | 0.5 | 15 | 15.5 | 77.5 |
+1. **Conformité RGPD et CNIL** : Respect des délais de conservation et des droits des personnes
+2. **Sécurité des données** : Protection tout au long du cycle de vie
+3. **Continuité d'activité** : Sauvegardes régulières et procédures de restauration testées
+4. **Traçabilité** : Documentation complète de toutes les opérations
+5. **Efficacité opérationnelle** : Automatisation des tâches répétitives (purges, sauvegardes)
 
-**Avec purge annuelle** : ~15-20 GB stable
+**Prochaines étapes** :
+- Personnalisation des délais de rétention selon contexte établissement
+- Configuration alertes automatiques (espace disque, échecs sauvegarde)
+- Formation équipe aux procédures de gestion données
 
----
-
-### Annexe C : Contacts
-
-| Rôle | Contact |
-|------|---------|
-| **DPO Établissement** | dpo@lycee-exemple.fr |
-| **Admin NSI** | admin.nsi@lycee-exemple.fr |
-| **CNIL** | https://www.cnil.fr/plainte |
+**Références** :
+- [POLITIQUE_RGPD.md](POLITIQUE_RGPD.md) - Politique protection données
+- [MANUEL_SECURITE.md](MANUEL_SECURITE.md) - Manuel sécurité technique
+- [AUDIT_CONFORMITE.md](AUDIT_CONFORMITE.md) - Procédures audit
+- [GUIDE_UTILISATEUR_ADMIN.md](../admin/GUIDE_UTILISATEUR_ADMIN.md) - Guide administrateur
 
 ---
 
-**Document approuvé par** :
-- DPO : _______________
-- Admin NSI : _______________
-- Proviseur : _______________
-- Date : 30 Janvier 2026
+**Document validé par** :  
+- DPO : __________________ Date : __________  
+- Admin NSI : __________________ Date : __________  
+- Proviseur : __________________ Date : __________
+
+---
