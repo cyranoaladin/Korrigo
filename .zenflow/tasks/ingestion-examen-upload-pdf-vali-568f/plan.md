@@ -129,6 +129,7 @@ Save to `{@artifacts_path}/plan.md`.
 - requirements.md § 4.3 Test Fixtures
 
 ### [ ] Step: Write Upload Endpoint Tests - Validation Cases
+<!-- chat-id: 85d71758-c122-4672-8a89-ffbc36dfac35 -->
 
 **Objective**: Test all validation scenarios for the upload endpoint.
 
