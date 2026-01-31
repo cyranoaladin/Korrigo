@@ -105,7 +105,7 @@ pytest backend/grading/tests/test_draft_endpoints.py -v --tb=short
 
 ---
 
-### [ ] Step: Add GRADED Status Protection to Draft Endpoint
+### [x] Step: Add GRADED Status Protection to Draft Endpoint
 <!-- chat-id: 6454cde7-9135-4ba9-98bb-09d83a53f490 -->
 
 **Objective**: Prevent draft saves to finalized copies
