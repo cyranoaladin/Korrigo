@@ -75,7 +75,8 @@ Save to `{@artifacts_path}/plan.md`.
 - spec.md § 2.1 Fix Atomicity Issue
 - spec.md Appendix A1 (code pattern)
 
-### [ ] Step: Improve Error Handling
+### [x] Step: Improve Error Handling
+<!-- chat-id: 8cbcbd0e-dbe2-4592-bf31-7c3cd4a8edc1 -->
 
 **Objective**: Return correct HTTP status codes with user-friendly error messages.
 
@@ -83,17 +84,17 @@ Save to `{@artifacts_path}/plan.md`.
 - `backend/exams/views.py` (same method as above)
 
 **Tasks**:
-- [ ] Add validation error inspection after `serializer.is_valid()` call
-- [ ] Check for `file_too_large` error code → return HTTP 413 instead of 400
-- [ ] Update exception handler to use `safe_error_response()` from `core.utils.errors`
-- [ ] Ensure all error responses include user-friendly French messages
-- [ ] Add logging for all error scenarios with request context
+- [x] Add validation error inspection after `serializer.is_valid()` call
+- [x] Check for `file_too_large` error code → return HTTP 413 instead of 400
+- [x] Update exception handler to use `safe_error_response()` from `core.utils.errors`
+- [x] Ensure all error responses include user-friendly French messages
+- [x] Add logging for all error scenarios with request context
 
 **Verification**:
-- [ ] Manual test: Upload 51 MB file → verify HTTP 413 response
-- [ ] Manual test: Upload corrupted PDF → verify HTTP 400 with clear message
-- [ ] Manual test: Upload empty file → verify HTTP 400 with clear message
-- [ ] Review error messages → all are user-friendly and actionable
+- [x] Manual test: Upload 51 MB file → verify HTTP 413 response
+- [x] Manual test: Upload corrupted PDF → verify HTTP 400 with clear message
+- [x] Manual test: Upload empty file → verify HTTP 400 with clear message
+- [x] Review error messages → all are user-friendly and actionable
 
 **References**:
 - spec.md § 2.2 Improve Error Handling

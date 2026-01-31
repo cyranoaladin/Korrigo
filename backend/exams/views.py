@@ -31,8 +31,24 @@ class ExamUploadView(APIView):
         logger = logging.getLogger(__name__)
         serializer = ExamSerializer(data=request.data)
         
+        # Validate serializer and handle errors
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            errors = serializer.errors
+            
+            # Check for file_too_large error → return HTTP 413 instead of 400
+            if 'pdf_source' in errors:
+                pdf_errors = errors['pdf_source']
+                for error in pdf_errors:
+                    if hasattr(error, 'code') and error.code == 'file_too_large':
+                        logger.warning(f"Upload rejected: file too large (user: {request.user.username})")
+                        return Response(
+                            {"error": str(error)},
+                            status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+                        )
+            
+            # Log other validation errors
+            logger.warning(f"Upload validation failed (user: {request.user.username}): {errors}")
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         
         # Log upload initiation
         logger.info(f"Exam upload initiated by user {request.user.username}")
@@ -74,7 +90,14 @@ class ExamUploadView(APIView):
 
         except Exception as e:
             from core.utils.errors import safe_error_response
-            logger.error(f"Exam upload failed for user {request.user.username}: {str(e)}", exc_info=True)
+            
+            # Log error with full context
+            logger.error(
+                f"Exam upload failed for user {request.user.username}, "
+                f"file: {request.FILES.get('pdf_source', 'unknown')}, "
+                f"error: {str(e)}", 
+                exc_info=True
+            )
             
             # Cleanup uploaded file if exam was partially created
             # Note: transaction.atomic() already rolled back DB changes
@@ -87,8 +110,13 @@ class ExamUploadView(APIView):
                 except Exception as cleanup_error:
                     logger.error(f"Failed to cleanup file: {cleanup_error}")
             
+            # Return user-friendly error with safe_error_response
             return Response(
-                safe_error_response(e, context="PDF processing", user_message="PDF upload failed. Please verify the file is valid."),
+                safe_error_response(
+                    e, 
+                    context="Traitement PDF", 
+                    user_message="Échec du traitement du PDF. Veuillez vérifier que le fichier est valide et réessayer."
+                ),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
