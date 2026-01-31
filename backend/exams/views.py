@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.utils.decorators import method_decorator
+from django.db import transaction
 from core.utils.ratelimit import maybe_ratelimit
 from .models import Exam, Booklet, Copy
 from .serializers import ExamSerializer, BookletSerializer, CopySerializer
@@ -18,6 +19,8 @@ from grading.services import GradingService
 from .permissions import IsTeacherOrAdmin
 
 import fitz  # PyMuPDF
+import logging
+import os
 
 class ExamUploadView(APIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
@@ -25,22 +28,31 @@ class ExamUploadView(APIView):
 
     @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, *args, **kwargs):
+        logger = logging.getLogger(__name__)
         serializer = ExamSerializer(data=request.data)
-        if serializer.is_valid():
-            exam = serializer.save()
-
-            # REAL-TIME PROCESSING using PDFSplitter
-            try:
+        
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Log upload initiation
+        logger.info(f"Exam upload initiated by user {request.user.username}")
+        
+        # Wrap entire operation in atomic transaction
+        try:
+            with transaction.atomic():
+                # Create exam record
+                exam = serializer.save()
+                logger.info(f"Exam {exam.id} created: {exam.name}")
+                
+                # REAL-TIME PROCESSING using PDFSplitter
                 from processing.services.pdf_splitter import PDFSplitter
+                import uuid
 
                 splitter = PDFSplitter(dpi=150)
                 booklets = splitter.split_exam(exam)
+                logger.info(f"PDF split into {len(booklets)} booklets for exam {exam.id}")
 
                 # Créer les copies en statut STAGING (ADR-003)
-                import uuid
-                import logging
-                logger = logging.getLogger(__name__)
-
                 for booklet in booklets:
                     copy = Copy.objects.create(
                         exam=exam,
@@ -49,23 +61,36 @@ class ExamUploadView(APIView):
                         is_identified=False
                     )
                     copy.booklets.add(booklet)
-
                     logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
 
+                # Log successful completion
+                logger.info(f"Exam upload completed successfully: {exam.id} with {len(booklets)} booklets")
+                
                 return Response({
                     **serializer.data,
                     "booklets_created": len(booklets),
                     "message": f"{len(booklets)} booklets created successfully"
                 }, status=status.HTTP_201_CREATED)
 
-            except Exception as e:
-                from core.utils.errors import safe_error_response
-                return Response(
-                    safe_error_response(e, context="PDF processing", user_message="PDF upload failed. Please verify the file is valid."),
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            from core.utils.errors import safe_error_response
+            logger.error(f"Exam upload failed for user {request.user.username}: {str(e)}", exc_info=True)
+            
+            # Cleanup uploaded file if exam was partially created
+            # Note: transaction.atomic() already rolled back DB changes
+            # But we need to clean up the uploaded file from filesystem
+            if 'exam' in locals() and exam.pdf_source:
+                try:
+                    if os.path.exists(exam.pdf_source.path):
+                        os.remove(exam.pdf_source.path)
+                        logger.info(f"Cleaned up orphaned file: {exam.pdf_source.path}")
+                except Exception as cleanup_error:
+                    logger.error(f"Failed to cleanup file: {cleanup_error}")
+            
+            return Response(
+                safe_error_response(e, context="PDF processing", user_message="PDF upload failed. Please verify the file is valid."),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class CopyImportView(APIView):
     """
