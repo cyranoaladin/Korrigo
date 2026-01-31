@@ -38,6 +38,7 @@ Create a detailed implementation plan based on `spec.md`.
 ## Implementation Steps
 
 ### [ ] Step 1: Create Service Layer Infrastructure
+<!-- chat-id: 851f8498-6723-4db3-a64e-a0d44a1d52ed -->
 
 Create the PRONOTE export service with core functionality.
 
