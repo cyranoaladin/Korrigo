@@ -162,6 +162,7 @@ Save to `{@artifacts_path}/plan.md`.
 - `frontend/src/services/api.js`
 
 ### [ ] Step: UX Error Handling
+<!-- chat-id: dfd1fe48-bd6c-4cc8-8fab-3a1114aa056e -->
 
 **Objective**: User-friendly, consistent error messages in French
 
