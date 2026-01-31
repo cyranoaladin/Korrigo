@@ -182,6 +182,7 @@ Save to `{@artifacts_path}/plan.md`.
 - requirements.md FR-3 Atomicity Guarantee
 
 ### [ ] Step: Write Upload Endpoint Tests - Auth & Security
+<!-- chat-id: e0ffce03-6e9b-492a-9063-a3f19ec79c6f -->
 
 **Objective**: Verify authentication, authorization, and security protections.
 
