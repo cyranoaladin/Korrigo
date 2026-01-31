@@ -67,6 +67,7 @@ python -m pytest backend/exams/tests/test_pronote_export.py::test_sanitize_comme
 ---
 
 ### [ ] Step 2: Implement Grade Calculation Logic
+<!-- chat-id: 33a174ee-5059-48e1-b541-2527913d82e9 -->
 
 Implement annotation-based grade calculation since Score model doesn't exist.
 
