@@ -228,6 +228,7 @@ Save to `{@artifacts_path}/plan.md`.
 - requirements.md § 4 Testing Requirements
 
 ### [ ] Step: Run Linting & Type Checking
+<!-- chat-id: ff363dfe-d6d6-45e2-af6b-f4311b924120 -->
 
 **Objective**: Ensure code quality and consistency.
 
