@@ -42,6 +42,7 @@ Create detailed implementation plan with concrete tasks.
 ## Implementation Tasks
 
 ### [ ] Step: Django Deployment Check Audit
+<!-- chat-id: 324993ed-4597-4296-83d0-e2f225925fbf -->
 <!-- Expected duration: 1-2 hours -->
 
 **Objective**: Execute Django deployment check and document all warnings by criticality.
