@@ -4,6 +4,7 @@ Task: ZF-AUD-06 AUTOSAVE + RECOVERY (DraftState DB + localStorage)
 """
 import pytest
 import uuid
+import datetime
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 
@@ -71,7 +72,12 @@ class TestDraftEndpoints:
         """AC-2.1: Save draft with valid lock → 200 OK, version incremented"""
         copy = copy_factory(status=Copy.Status.READY)
         lock_token = uuid.uuid4()
-        lock = CopyLock.objects.create(copy=copy, owner=teacher_user, token=lock_token)
+        lock = CopyLock.objects.create(
+            copy=copy,
+            owner=teacher_user,
+            token=lock_token,
+            expires_at=timezone.now() + datetime.timedelta(hours=1)
+        )
         
         api_client.force_authenticate(teacher_user)
         client_id = uuid.uuid4()
@@ -145,7 +151,12 @@ class TestDraftEndpoints:
         copy = copy_factory()
         other_user = User.objects.create_user(username='other', password='test')
         lock_token = uuid.uuid4()
-        lock = CopyLock.objects.create(copy=copy, owner=other_user, token=lock_token)
+        lock = CopyLock.objects.create(
+            copy=copy,
+            owner=other_user,
+            token=lock_token,
+            expires_at=timezone.now() + datetime.timedelta(hours=1)
+        )
         
         api_client.force_authenticate(teacher_user)
         response = api_client.put(
@@ -166,7 +177,12 @@ class TestDraftEndpoints:
         """AC-2.6: Save to GRADED copy → 400 Bad Request"""
         copy = copy_factory(status=Copy.Status.GRADED)
         lock_token = uuid.uuid4()
-        lock = CopyLock.objects.create(copy=copy, owner=teacher_user, token=lock_token)
+        lock = CopyLock.objects.create(
+            copy=copy,
+            owner=teacher_user,
+            token=lock_token,
+            expires_at=timezone.now() + datetime.timedelta(hours=1)
+        )
         
         api_client.force_authenticate(teacher_user)
         response = api_client.put(
@@ -190,7 +206,12 @@ class TestDraftEndpoints:
         """AC-2.7: client_id conflict → 409 Conflict"""
         copy = copy_factory()
         lock_token = uuid.uuid4()
-        lock = CopyLock.objects.create(copy=copy, owner=teacher_user, token=lock_token)
+        lock = CopyLock.objects.create(
+            copy=copy,
+            owner=teacher_user,
+            token=lock_token,
+            expires_at=timezone.now() + datetime.timedelta(hours=1)
+        )
         
         # Create existing draft with different client_id
         existing_client_id = uuid.uuid4()
