@@ -56,6 +56,7 @@ Save to `{@artifacts_path}/plan.md`.
 ## Implementation Steps
 
 ### [ ] Step: Audit Logging for PII and Security Issues
+<!-- chat-id: d6c19e8b-cd38-428d-ae0d-edea3dded618 -->
 
 **Objective**: Audit all logging statements across grading modules to identify and remove PII leakage
 

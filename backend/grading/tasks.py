@@ -51,7 +51,7 @@ def async_finalize_copy(self, copy_id, user_id, lock_token=None):
 
         user = User.objects.get(id=user_id)
 
-        logger.info(f"Starting async finalization for copy {copy_id} by user {user.username}")
+        logger.info(f"Starting async finalization for copy {copy_id} by user {user_id}")
 
         # Execute synchronous finalize_copy (already has comprehensive error handling)
         finalized_copy = GradingService.finalize_copy(copy, user, lock_token=lock_token)
@@ -178,7 +178,7 @@ def cleanup_orphaned_files():
                     os.remove(filepath)
                     removed_count += 1
                 except Exception as e:
-                    logger.error(f"Failed to remove orphaned file {filepath}: {e}")
+                    logger.error(f"Failed to remove orphaned file {filepath}: {e}", exc_info=True)
         
         logger.info(f"Cleaned up {removed_count} orphaned temp files")
     
