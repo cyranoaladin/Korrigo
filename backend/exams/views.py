@@ -591,3 +591,118 @@ class ExamDispatchView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
+class PronoteExportView(APIView):
+    """
+    Export exam grades in PRONOTE CSV format (admin only).
+    POST /api/exams/<id>/export-pronote/
+    """
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
+    def post(self, request, id):
+        from core.auth import IsAdminOnly
+        from django.http import HttpResponse
+        from decimal import Decimal, ROUND_HALF_UP
+        import csv
+        import io
+        import logging
+        from django.utils import timezone
+        
+        logger = logging.getLogger(__name__)
+        
+        if not IsAdminOnly().has_permission(request, self):
+            return Response(
+                {"error": _("Accès refusé. Seuls les administrateurs peuvent exporter vers PRONOTE.")},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        exam = get_object_or_404(Exam, id=id)
+        copies = Copy.objects.filter(
+            exam=exam,
+            status=Copy.Status.GRADED,
+            is_identified=True
+        ).select_related('student').prefetch_related('scores')
+        
+        ungraded_count = Copy.objects.filter(exam=exam).exclude(status=Copy.Status.GRADED).count()
+        if ungraded_count > 0:
+            return Response(
+                {"error": _(f"Impossible d'exporter : {ungraded_count} copie(s) non corrigée(s).")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        unidentified_count = Copy.objects.filter(
+            exam=exam,
+            status=Copy.Status.GRADED,
+            is_identified=False
+        ).count()
+        if unidentified_count > 0:
+            return Response(
+                {"error": _(f"Impossible d'exporter : {unidentified_count} copie(s) non identifiée(s).")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        missing_ine = []
+        for copy in copies:
+            if not copy.student or not copy.student.ine or copy.student.ine.strip() == '':
+                missing_ine.append(copy.anonymous_id)
+        
+        if missing_ine:
+            return Response(
+                {"error": _(f"Impossible d'exporter : {len(missing_ine)} copie(s) avec INE manquant : {', '.join(missing_ine)}")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if copies.count() == 0:
+            return Response(
+                {"error": _("Aucune copie corrigée trouvée pour cet examen.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        output = io.StringIO()
+        writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(['INE', 'MATIERE', 'NOTE', 'COEFF', 'COMMENTAIRE'])
+        
+        export_count = 0
+        for copy in copies:
+            score_obj = copy.scores.first()
+            if not score_obj:
+                logger.warning(f"Copy {copy.anonymous_id} has no score data, skipping")
+                continue
+            
+            raw_total = sum(
+                Decimal(str(v)) for v in score_obj.scores_data.values() 
+                if v is not None and str(v).strip() != ''
+            )
+            
+            note_decimal = raw_total.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            note_str = str(note_decimal).replace('.', ',')
+            
+            coeff_str = "1,0"
+            
+            comment = copy.global_appreciation or ''
+            comment = comment.replace('\n', ' ').replace('\r', ' ').strip()
+            
+            writer.writerow([
+                copy.student.ine,
+                exam.name.upper(),
+                note_str,
+                coeff_str,
+                comment
+            ])
+            export_count += 1
+        
+        logger.info(
+            f"PRONOTE export for exam {exam.id} ({exam.name}) by user {request.user.username}: "
+            f"{export_count} grades exported at {timezone.now()}"
+        )
+        
+        csv_content = output.getvalue()
+        output.close()
+        
+        response = HttpResponse(csv_content.encode('utf-8-sig'), content_type='text/csv; charset=utf-8')
+        safe_filename = exam.name.replace(' ', '_').replace('/', '_')
+        response['Content-Disposition'] = f'attachment; filename="export_pronote_{safe_filename}_{exam.date}.csv"'
+        
+        return response
+
