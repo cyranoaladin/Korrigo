@@ -123,6 +123,33 @@ test.describe('Corrector Flow & Robustness', () => {
             // Verify editor contains restored content
             await expect(page.getByTestId('editor-panel')).toBeVisible();
             await expect(page.locator('textarea')).toHaveValue('Test E2E Annotation');
+            
+            // STATE FIDELITY CHECKS: Verify 100% reproducible recovery
+            // 1. Verify score input value restored
+            await expect(page.locator('input[type="number"]')).toHaveValue('2');
+            
+            // 2. Verify annotation type selector restored
+            await expect(page.locator('select[name="type"]')).toHaveValue('ERREUR');
+            
+            // 3. Verify page indicator shows correct page
+            await expect(page.getByTestId('page-indicator')).toContainText('Page 1');
+            
+            // 4. Verify canvas annotation rect visible
+            const annotationRect = page.locator('.annotation-rect').first();
+            await expect(annotationRect).toBeVisible();
+            
+            // 5. Verify rect coordinates (bounding box) - approximate values
+            const rectBox = await annotationRect.boundingBox();
+            expect(rectBox).not.toBeNull();
+            if (rectBox) {
+                // Verify rect is in expected region (created at x:100, y:100, width:100, height:100)
+                expect(rectBox.x).toBeGreaterThan(50);
+                expect(rectBox.x).toBeLessThan(250);
+                expect(rectBox.y).toBeGreaterThan(50);
+                expect(rectBox.y).toBeLessThan(250);
+                expect(rectBox.width).toBeGreaterThan(50);
+                expect(rectBox.height).toBeGreaterThan(50);
+            }
 
             // Re-save to persist annotation to list
             const reSaveResponse = page.waitForResponse((r) => {

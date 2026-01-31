@@ -61,6 +61,9 @@ class DraftReturnView(views.APIView):
         try:
             copy = get_object_or_404(Copy, id=copy_id)
 
+            if copy.status == Copy.Status.GRADED:
+                return Response({"detail": "Cannot save draft to GRADED copy."}, status=status.HTTP_400_BAD_REQUEST)
+
             token = request.headers.get('X-Lock-Token') or request.data.get('token')
             if not token:
                 return _handle_permission_error("Missing lock token.", context=context)
