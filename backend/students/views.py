@@ -11,11 +11,17 @@ from .serializers import StudentSerializer
 from exams.permissions import IsStudent
 from core.utils.audit import log_authentication_attempt, log_audit
 
+
+def student_login_ratelimit_key(group, request):
+    ine = request.data.get('ine', '')
+    ip = request.META.get('REMOTE_ADDR', '')
+    return f"{ip}:{ine}"
+
 @method_decorator(csrf_exempt, name='dispatch')
 class StudentLoginView(views.APIView):
     """
     Login endpoint for students.
-    Rate limited to 5 attempts per 15 minutes per IP.
+    Rate limited to 5 attempts per 15 minutes per IP+INE composite key.
     CSRF exempt: Public authentication endpoint, protected by rate limiting.
     
     Conformité: .antigravity/rules/01_security_rules.md § 9
@@ -23,25 +29,50 @@ class StudentLoginView(views.APIView):
     permission_classes = [AllowAny]  # Public endpoint - student authentication
     authentication_classes = []  # No auth required, bypass SessionAuth CSRF
 
-    @method_decorator(maybe_ratelimit(key='ip', rate='5/15m', method='POST', block=True))
+    @method_decorator(maybe_ratelimit(key=student_login_ratelimit_key, rate='5/15m', method='POST', block=True))
     def post(self, request):
+        if getattr(request, 'limited', False):
+            from core.utils.audit import log_audit
+            log_audit(request, 'student.login.ratelimit', 'Student', None)
+            return Response(
+                {'error': 'Trop de tentatives. Réessayez dans 15 minutes.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+        
         ine = request.data.get('ine')
-        last_name = request.data.get('last_name')
+        birth_date = request.data.get('birth_date')
 
-        if not ine or not last_name:
-            return Response({'error': 'INE et Nom sont requis.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not ine or not birth_date:
+            log_authentication_attempt(request, success=False, student_id=None)
+            return Response({'error': 'Identifiants invalides.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Case insensitive match for URL/INE logic if needed, strictly speaking case insensitive filtering
-        student = Student.objects.filter(ine__iexact=ine, last_name__iexact=last_name).first()
+        from datetime import datetime, date
+
+        try:
+            if isinstance(birth_date, str):
+                birth_date_obj = datetime.strptime(birth_date, '%Y-%m-%d').date()
+            else:
+                birth_date_obj = birth_date
+            
+            today = date.today()
+            min_birth_date = date(1990, 1, 1)
+            max_birth_date = date(today.year - 10, today.month, today.day)
+            
+            if birth_date_obj < min_birth_date or birth_date_obj > max_birth_date:
+                log_authentication_attempt(request, success=False, student_id=None)
+                return Response({'error': 'Identifiants invalides.'}, status=status.HTTP_401_UNAUTHORIZED)
+        except (ValueError, TypeError):
+            log_authentication_attempt(request, success=False, student_id=None)
+            return Response({'error': 'Identifiants invalides.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        student = Student.objects.filter(ine__iexact=ine, birth_date=birth_date_obj).first()
 
         if student:
             request.session['student_id'] = student.id
             request.session['role'] = 'Student'
-            # Audit trail: Login élève réussi
             log_authentication_attempt(request, success=True, student_id=student.id)
             return Response({'message': 'Login successful', 'role': 'Student'})
         else:
-            # Audit trail: Login élève échoué
             log_authentication_attempt(request, success=False, student_id=None)
             return Response({'error': 'Identifiants invalides.'}, status=status.HTTP_401_UNAUTHORIZED)
 
