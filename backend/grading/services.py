@@ -421,7 +421,7 @@ class GradingService:
             )
             
         except Exception as e:
-            logger.error(f"Import failed for copy {copy.id}: {e}")
+            logger.error(f"Import failed for copy {copy.id}: {e}", exc_info=True)
             # Could set status to ERROR if model supported it, or just fail transaction
             raise ValueError(f"Rasterization failed: {str(e)}")
             
