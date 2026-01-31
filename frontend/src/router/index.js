@@ -7,6 +7,17 @@ import CorrectorDashboard from '../views/CorrectorDashboard.vue'
 import ImportCopies from '../views/admin/ImportCopies.vue'
 import LoginStudent from '../views/student/LoginStudent.vue'
 
+function getDashboardForRole(role) {
+    if (role === 'Admin') return '/admin-dashboard'
+    if (role === 'Teacher') return '/corrector-dashboard'
+    if (role === 'Student') return '/student-portal'
+    return '/'
+}
+
+function isLoginPage(routeName) {
+    return ['LoginAdmin', 'LoginTeacher', 'StudentLogin', 'Home'].includes(routeName)
+}
+
 const routes = [
     {
         path: '/',
@@ -106,43 +117,57 @@ const router = createRouter({
     routes
 })
 
+let redirectCount = 0
+const MAX_REDIRECTS = 3
+
 router.beforeEach(async (to, from, next) => {
     const authStore = useAuthStore()
 
-    // 1. Fetch user if needed (prevent infinite loop)
-    // Only try to fetch if we don't have user and we aren't already checking
+    if (from.name && to.name !== from.name) {
+        redirectCount = 0
+    }
+
+    if (redirectCount >= MAX_REDIRECTS) {
+        console.error('Max redirect limit reached. Allowing navigation to prevent loop.')
+        redirectCount = 0
+        return next()
+    }
+
     if (!authStore.user && !authStore.isChecking) {
-        // Optimization: Pass preference based on URL to avoid 401s on wrong endpoints
         const preferStudent = to.path.startsWith('/student')
-        await authStore.fetchUser(preferStudent)
+        
+        try {
+            await authStore.fetchUser(preferStudent)
+        } catch (error) {
+            console.error('Router guard: fetchUser failed', error)
+            
+            if (to.meta.requiresAuth) {
+                redirectCount++
+                return next({ path: '/', replace: true })
+            }
+        }
     }
 
     const isAuthenticated = !!authStore.user
     const userRole = authStore.user?.role
 
-    // 2. Route Guard for Protected Routes
     if (to.meta.requiresAuth) {
         if (!isAuthenticated) {
-            // Not authenticated -> Redirect to Home (Landing Page)
-            return next('/')
+            redirectCount++
+            return next({ path: '/', replace: true })
         }
 
-        // Role Check
         if (to.meta.role && userRole !== to.meta.role && userRole !== 'Admin') {
-            // Wrong role -> Redirect to correct dashboard
-            if (userRole === 'Admin') return next('/admin-dashboard')
-            if (userRole === 'Teacher') return next('/corrector-dashboard')
-            if (userRole === 'Student') return next('/student-portal')
-            return next('/')
+            const dashboardPath = getDashboardForRole(userRole)
+            redirectCount++
+            return next({ path: dashboardPath, replace: true })
         }
     }
 
-    // 3. Redirect Logged-In Users away from Login Pages
-    const isLoginPage = ['LoginAdmin', 'LoginTeacher', 'StudentLogin', 'Home'].includes(to.name)
-    if (isLoginPage && isAuthenticated) {
-        if (userRole === 'Admin') return next('/admin-dashboard')
-        if (userRole === 'Teacher') return next('/corrector-dashboard')
-        if (userRole === 'Student') return next('/student-portal')
+    if (isLoginPage(to.name) && isAuthenticated) {
+        const dashboardPath = getDashboardForRole(userRole)
+        redirectCount++
+        return next({ path: dashboardPath, replace: true })
     }
 
     next()
