@@ -51,7 +51,8 @@ If the feature is trivial and doesn't warrant full specification, update this wo
 
 Save to `{@artifacts_path}/plan.md`.
 
-### [ ] Step: Fix Atomicity
+### [x] Step: Fix Atomicity
+<!-- chat-id: 11c8eace-f76b-4714-aeb4-ba552f72054f -->
 
 **Objective**: Ensure upload operation is atomic - no orphaned records on failures.
 
