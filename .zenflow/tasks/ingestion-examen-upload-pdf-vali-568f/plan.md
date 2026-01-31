@@ -158,6 +158,7 @@ Save to `{@artifacts_path}/plan.md`.
 - requirements.md § 4.1 Unit Tests
 
 ### [ ] Step: Write Upload Endpoint Tests - Atomicity Cases
+<!-- chat-id: 7073334b-47fc-4565-a2ec-5a37d95fee53 -->
 
 **Objective**: Verify no orphaned records on processing failures.
 
