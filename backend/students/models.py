@@ -7,6 +7,12 @@ class Student(models.Model):
     last_name = models.CharField(max_length=100, verbose_name="Nom")
     class_name = models.CharField(max_length=50, verbose_name="Classe")
     email = models.EmailField(blank=True, null=True, verbose_name="Email")
+    birth_date = models.DateField(
+        verbose_name="Date de naissance",
+        help_text="Format: YYYY-MM-DD",
+        null=True,
+        blank=True
+    )
 
     # Lien vers utilisateur Django pour authentification
     user = models.OneToOneField(
