@@ -102,6 +102,7 @@ Save to `{@artifacts_path}/plan.md`.
 - requirements.md FR-4 Error Handling & User Messages
 
 ### [ ] Step: Create Test Fixtures
+<!-- chat-id: 4b8b67da-c2e1-41a7-8eb1-5999a6773c0a -->
 
 **Objective**: Create programmatic PDF fixture generation utilities.
 
@@ -202,6 +203,7 @@ Save to `{@artifacts_path}/plan.md`.
 - requirements.md NFR-2 Security
 
 ### [ ] Step: Run Full Test Suite & Coverage
+<!-- chat-id: 9f1ae6df-7c07-4834-a5d5-ded7bd75abcf -->
 
 **Objective**: Achieve ≥95% test coverage for upload functionality.
 
@@ -242,6 +244,7 @@ Save to `{@artifacts_path}/plan.md`.
 - spec.md § 6.5 Linting & Type Checking
 
 ### [ ] Step: Create Audit Documentation
+<!-- chat-id: ea9963ff-6d5e-4fbc-a3b1-962e56369602 -->
 
 **Objective**: Document findings, fixes, and test results.
 
