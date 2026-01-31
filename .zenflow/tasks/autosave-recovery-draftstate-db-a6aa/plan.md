@@ -79,6 +79,7 @@ pytest backend/grading/tests/test_draft_endpoints.py --collect-only
 ---
 
 ### [ ] Step: Implement Backend Unit Tests for Draft Endpoints
+<!-- chat-id: 67d1427b-7960-4a7c-81ec-1661313c8a11 -->
 
 **Objective**: Create comprehensive test coverage for DraftState API
 
@@ -105,6 +106,7 @@ pytest backend/grading/tests/test_draft_endpoints.py -v --tb=short
 ---
 
 ### [ ] Step: Add GRADED Status Protection to Draft Endpoint
+<!-- chat-id: 6454cde7-9135-4ba9-98bb-09d83a53f490 -->
 
 **Objective**: Prevent draft saves to finalized copies
 
@@ -160,7 +162,8 @@ pytest backend/grading/tests/
 
 ---
 
-### [ ] Step: Enhance E2E Test with State Fidelity Checks
+### [x] Step: Enhance E2E Test with State Fidelity Checks
+<!-- chat-id: fdbfa3b1-9a4f-4560-b41e-11e0a29c1252 -->
 
 **Objective**: Verify 100% reproducible recovery with exact state restoration
 
@@ -194,6 +197,7 @@ npm run test:e2e -- corrector_flow.spec.ts
 ---
 
 ### [ ] Step: Run E2E Tests and Verify Recovery
+<!-- chat-id: 79c7c81a-c90e-406f-a2e7-c1ea973c0bd9 -->
 
 **Objective**: Prove 100% reproducible recovery works in real browser
 
@@ -244,7 +248,8 @@ npm run test:e2e -- corrector_flow.spec.ts --headed --repeat-each=3
 
 ---
 
-### [ ] Step: Update Business Workflows Documentation
+### [x] Step: Update Business Workflows Documentation
+<!-- chat-id: 311ee7a2-0da2-4307-93ed-3bd4fca49a42 -->
 
 **Objective**: Fix outdated autosave frequency documentation
 
@@ -252,9 +257,9 @@ npm run test:e2e -- corrector_flow.spec.ts --headed --repeat-each=3
 - `docs/technical/BUSINESS_WORKFLOWS.md`
 
 **Tasks**:
-- [ ] Locate autosave documentation (around line 368)
-- [ ] Update "30s interval" to "2s server + 300ms localStorage (dual-layer)"
-- [ ] Verify change doesn't break document formatting
+- [x] Locate autosave documentation (around line 368)
+- [x] Update "30s interval" to "2s server + 300ms localStorage (dual-layer)"
+- [x] Verify change doesn't break document formatting
 
 **Reference**: spec.md section 6.2 (lines 578-586)
 
