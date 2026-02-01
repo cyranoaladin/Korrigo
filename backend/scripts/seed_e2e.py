@@ -242,7 +242,9 @@ def main():
         exam=exam,
         start_page=1,
         end_page=1,
-        pages_images=[page_image_path]  # Chemin relatif MEDIA_ROOT
+        pages_images=[page_image_path],  # Chemin relatif MEDIA_ROOT
+        needs_review=False,  # E2E booklet doesn't need manual review
+        processing_diagnostics={}  # No processing issues for E2E
     )
     print(f"  ✓ Booklet created: {booklet.id}")
 

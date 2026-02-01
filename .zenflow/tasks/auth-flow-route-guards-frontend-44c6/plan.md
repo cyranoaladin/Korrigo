@@ -204,6 +204,7 @@ Save to `{@artifacts_path}/plan.md`.
 - `frontend/src/views/student/LoginStudent.vue`
 
 ### [ ] Step: E2E Tests - Admin Flow
+<!-- chat-id: a9c40f51-fde3-47f0-adf9-db3c1d13cdfe -->
 
 **Objective**: Complete E2E test coverage for Admin workflows
 
