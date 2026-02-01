@@ -44,6 +44,43 @@ def get_remaining_lockout_time(username: str) -> int:
     return max(0, ttl) if cache.get(key) else 0
 
 
+def _refresh_attempts_ttl(key: str) -> None:
+    """
+    Refresh TTL on attempts key after incr() to ensure LOCKOUT_DURATION is maintained.
+
+    cache.incr() may not preserve TTL on some backends, so we explicitly refresh it.
+    Uses multiple fallback strategies for compatibility.
+    """
+    try:
+        # Method 1: Django's cache.touch() (most portable)
+        result = cache.touch(key, timeout=LOCKOUT_DURATION)
+        if result:
+            return
+    except (AttributeError, NotImplementedError):
+        pass
+
+    # Method 2: django-redis direct expire (if available)
+    try:
+        from django_redis import get_redis_connection
+        conn = get_redis_connection("default")
+        conn.expire(key, LOCKOUT_DURATION)
+        return
+    except (ImportError, Exception):
+        pass
+
+    # Method 3: Fallback - re-set the value (less efficient but works)
+    try:
+        val = cache.get(key)
+        if val is not None:
+            cache.set(key, val, timeout=LOCKOUT_DURATION)
+            logger.warning(
+                "Cache backend does not support TTL refresh; using fallback set()",
+                extra={'key': key}
+            )
+    except Exception as e:
+        logger.error(f"Failed to refresh attempts TTL: {e}", extra={'key': key})
+
+
 def record_failed_attempt(username: str) -> int:
     """
     Record a failed login attempt (atomic increment).
@@ -58,6 +95,8 @@ def record_failed_attempt(username: str) -> int:
     # Atomic increment to prevent race conditions
     try:
         attempts = cache.incr(attempts_key)
+        # CRITICAL: Refresh TTL after incr() to maintain LOCKOUT_DURATION window
+        _refresh_attempts_ttl(attempts_key)
     except ValueError:
         # Key doesn't exist yet, initialize it
         cache.set(attempts_key, 1, timeout=LOCKOUT_DURATION)
