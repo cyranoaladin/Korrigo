@@ -11,7 +11,7 @@ This project strictly follows the architecture and constraints defined in the ro
 ## Critical Constraints
 
 1.  **Technology Stack**:
-    *   **Backend**: Django 5.0+ (Django REST Framework).
+    *   **Backend**: Django 4.2 LTS (Django REST Framework).
     *   **Frontend**: Vue.js 3 (Composition API, Pinia).
     *   **Database**: PostgreSQL 15+ (Required for concurrency and JSONB).
     *   **Infrastructure**: All deployment must be via Docker Compose.

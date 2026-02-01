@@ -33,8 +33,20 @@ const handleLogout = async () => {
     router.push('/login')
 }
 
-const handleChangePassword = () => {
-    alert("Fonctionnalité bientôt disponible. Veuillez contacter l'administrateur.")
+const handleChangePassword = async () => {
+    const newPass = prompt("Nouveau mot de passe (min 6 caractères) :")
+    if (!newPass) return
+    if (newPass.length < 6) {
+        alert("Le mot de passe doit faire au moins 6 caractères.")
+        return
+    }
+    
+    try {
+        await api.post('/change-password/', { password: newPass })
+        alert("Mot de passe mis à jour avec succès.")
+    } catch (e) {
+        alert("Erreur: " + (e.response?.data?.error || "Echec mise à jour"))
+    }
 }
 const goToDesk = (copyId) => {
     router.push(`/corrector/desk/${copyId}`)
@@ -99,6 +111,8 @@ const goToDesk = (copyId) => {
             v-for="copy in copies" 
             :key="copy.id"
             class="copy-card"
+            data-testid="copy-card"
+            :data-copy-anon="copy.anonymous_id"
           >
             <div class="copy-info">
               <div class="exam-name">
@@ -113,6 +127,7 @@ const goToDesk = (copyId) => {
             </div>
             <button 
               class="btn-action"
+              data-testid="copy-action"
               @click="goToDesk(copy.id)"
             >
               {{ copy.status === 'GRADED' ? 'Voir' : (copy.status === 'LOCKED' ? 'Continuer' : 'Corriger') }}

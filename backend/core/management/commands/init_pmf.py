@@ -1,6 +1,8 @@
+import os
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ObjectDoesNotExist
+from core.auth import UserRole
 
 class Command(BaseCommand):
     help = 'Initialize PMF Users and Groups'
@@ -9,16 +11,22 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Starting PMF Initialization...'))
 
         # 1. Create Groups
-        teachers_group, created = Group.objects.get_or_create(name='Teachers')
+        teachers_group, created = Group.objects.get_or_create(name=UserRole.TEACHER)
         if created:
-            self.stdout.write(self.style.SUCCESS('Created group "Teachers"'))
+            self.stdout.write(self.style.SUCCESS(f'Created group "{UserRole.TEACHER}"'))
         else:
-            self.stdout.write('Group "Teachers" already exists')
+            self.stdout.write(f'Group "{UserRole.TEACHER}" already exists')
 
         # 2. Create Admin
         admin_email = 'alaeddine.benrhouma@ert.tn'
-        admin_pass = 'adminpass'
-        
+        # Security: Use environment variable for admin password
+        admin_pass = os.environ.get('ADMIN_DEFAULT_PASSWORD', 'CHANGE_ME_ADMIN')
+
+        if admin_pass == 'CHANGE_ME_ADMIN':  # nosec B105 - Checking for default value, not hardcoding
+            self.stdout.write(self.style.WARNING(
+                'WARNING: Using default admin password. Set ADMIN_DEFAULT_PASSWORD environment variable.'
+            ))
+
         try:
             admin_user = User.objects.get(username=admin_email)
             self.stdout.write(f'Admin user {admin_email} already exists. Updating Permissions.')
@@ -40,7 +48,7 @@ class Command(BaseCommand):
         
         # Add Admin to Teachers group (as requested for testing)
         teachers_group.user_set.add(admin_user)
-        self.stdout.write(f'Added Admin {admin_email} to "Teachers" group')
+        self.stdout.write(f'Added Admin {admin_email} to "{UserRole.TEACHER}" group')
 
         # 3. Create Teachers
         teachers_data = [
@@ -48,7 +56,13 @@ class Command(BaseCommand):
             'selima.klibi@ert.tn',
             'philippe.carr@ert.tn'
         ]
-        default_pass = 'profpass'
+        # Security: Use environment variable for teacher default password
+        default_pass = os.environ.get('TEACHER_DEFAULT_PASSWORD', 'CHANGE_ME_TEACHER')
+
+        if default_pass == 'CHANGE_ME_TEACHER':  # nosec B105 - Checking for default value, not hardcoding
+            self.stdout.write(self.style.WARNING(
+                'WARNING: Using default teacher password. Set TEACHER_DEFAULT_PASSWORD environment variable.'
+            ))
 
         for email in teachers_data:
             try:
@@ -72,6 +86,6 @@ class Command(BaseCommand):
             
             # Add to Group
             teachers_group.user_set.add(user)
-            self.stdout.write(f'Added {email} to "Teachers" group')
+            self.stdout.write(f'Added {email} to "{UserRole.TEACHER}" group')
 
         self.stdout.write(self.style.SUCCESS('PMF Initialization Complete.'))

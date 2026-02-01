@@ -1,6 +1,6 @@
 import api from './api';
 
-const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || 'http://localhost:8000/media';
+const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || '/media';
 
 export default {
     /**
@@ -19,7 +19,12 @@ export default {
 
     async listCopies(params = {}) {
         const response = await api.get('/copies/', { params });
-        return response.data;
+        // Handle DRF pagination: extract results array if paginated response
+        const data = response.data;
+        if (data && typeof data === 'object' && Array.isArray(data.results)) {
+            return data.results;
+        }
+        return data;
     },
 
     async getCopy(id) {
@@ -28,52 +33,57 @@ export default {
     },
 
     async readyCopy(id) {
-        const response = await api.post(`/copies/${id}/ready/`);
+        const response = await api.post(`/grading/copies/${id}/ready/`);
         return response.data;
     },
 
     async acquireLock(id, ttlSeconds = 600) {
-        const response = await api.post(`/copies/${id}/lock/`, { ttl_seconds: ttlSeconds });
+        const response = await api.post(`/grading/copies/${id}/lock/`, { ttl_seconds: ttlSeconds });
         return response.data;
     },
 
     async heartbeatLock(id, token) {
-        const response = await api.post(`/copies/${id}/lock/heartbeat/`, { token });
+        const response = await api.post(`/grading/copies/${id}/lock/heartbeat/`, { token });
         return response.data;
     },
 
     async releaseLock(id, token) {
         // Use 'data' property for DELETE body in axios
-        const response = await api.delete(`/copies/${id}/lock/release/`, { data: { token } });
+        const response = await api.delete(`/grading/copies/${id}/lock/release/`, { data: { token } });
         return response.data;
     },
 
     async getLockStatus(id) {
-        const response = await api.get(`/copies/${id}/lock/status/`);
+        const response = await api.get(`/grading/copies/${id}/lock/status/`);
         return response.data;
     },
 
     async finalizeCopy(id, token = null) {
         const config = token ? { headers: { 'X-Lock-Token': token } } : {};
-        const response = await api.post(`/copies/${id}/finalize/`, {}, config);
+        const response = await api.post(`/grading/copies/${id}/finalize/`, {}, config);
         return response.data;
     },
 
     async createAnnotation(copyId, payload, token = null) {
         const config = token ? { headers: { 'X-Lock-Token': token } } : {};
-        const response = await api.post(`/copies/${copyId}/annotations/`, payload, config);
+        const response = await api.post(`/grading/copies/${copyId}/annotations/`, payload, config);
         return response.data;
     },
 
     async listAnnotations(copyId) {
-        const response = await api.get(`/copies/${copyId}/annotations/`);
-        return response.data;
+        const response = await api.get(`/grading/copies/${copyId}/annotations/`);
+        // Handle DRF pagination: extract results array if paginated response
+        const data = response.data;
+        if (data && typeof data === 'object' && Array.isArray(data.results)) {
+            return data.results;
+        }
+        return data;
     },
 
     async deleteAnnotation(copyId, annotationId, token = null) {
         try {
             const config = token ? { headers: { 'X-Lock-Token': token } } : {};
-            const response = await api.delete(`/annotations/${annotationId}/`, config);
+            const response = await api.delete(`/grading/annotations/${annotationId}/`, config);
             return true;
         } catch (err) {
             throw err;
@@ -83,7 +93,7 @@ export default {
     // --- Autosave / Drafts ---
 
     async getDraft(copyId) {
-        const response = await api.get(`/copies/${copyId}/draft/`);
+        const response = await api.get(`/grading/copies/${copyId}/draft/`);
         // 204 returns null/undefined data usually, or empty string. 
         // Axios handles 204 by returning response with empty data.
         if (response.status === 204) return null;
@@ -97,22 +107,61 @@ export default {
             token,
             client_id: clientId
         };
-        const response = await api.put(`/copies/${copyId}/draft/`, body, config);
+        const response = await api.put(`/grading/copies/${copyId}/draft/`, body, config);
         return response.data;
     },
 
     async deleteDraft(copyId, token = null) {
         const config = token ? { headers: { 'X-Lock-Token': token } } : {};
-        const response = await api.delete(`/copies/${copyId}/draft/`, config);
+        const response = await api.delete(`/grading/copies/${copyId}/draft/`, config);
         return response.data;
     },
 
     async listAuditLogs(copyId) {
-        const response = await api.get(`/copies/${copyId}/audit/`);
-        return response.data;
+        const response = await api.get(`/grading/copies/${copyId}/audit/`);
+        // Handle DRF pagination: extract results array if paginated response
+        const data = response.data;
+        if (data && typeof data === 'object' && Array.isArray(data.results)) {
+            return data.results;
+        }
+        return data;
     },
 
     getFinalPdfUrl(id) {
-        return `${api.defaults.baseURL}/copies/${id}/final-pdf/`;
+        return `${api.defaults.baseURL}/grading/copies/${id}/final-pdf/`;
+    },
+
+    async fetchRemarks(copyId) {
+        const response = await api.get(`/grading/copies/${copyId}/remarks/`);
+        const data = response.data;
+        if (data && typeof data === 'object' && Array.isArray(data.results)) {
+            return data.results;
+        }
+        return data;
+    },
+
+    async saveRemark(copyId, questionId, remark, token = null) {
+        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+        const response = await api.post(
+            `/grading/copies/${copyId}/remarks/`,
+            { question_id: questionId, remark },
+            config
+        );
+        return response.data;
+    },
+
+    async fetchGlobalAppreciation(copyId) {
+        const response = await api.get(`/grading/copies/${copyId}/global-appreciation/`);
+        return response.data;
+    },
+
+    async saveGlobalAppreciation(copyId, appreciation, token = null) {
+        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+        const response = await api.patch(
+            `/grading/copies/${copyId}/global-appreciation/`,
+            { global_appreciation: appreciation },
+            config
+        );
+        return response.data;
     }
 };

@@ -1,63 +1,74 @@
-from rest_framework import viewsets, status, generics
+from rest_framework import viewsets, status, generics, serializers # Added serializers import
 from rest_framework.views import APIView
+
+# ... (omitted)
+
+
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
+from django.utils.decorators import method_decorator
+from core.utils.ratelimit import maybe_ratelimit
 from .models import Exam, Booklet, Copy
 from .serializers import ExamSerializer, BookletSerializer, CopySerializer
 from processing.services.vision import HeaderDetector
 from grading.services import GradingService
 from .permissions import IsTeacherOrAdmin
+from core.auth import IsAdminOnly
 
 import fitz  # PyMuPDF
+from django.db import transaction
 
 class ExamUploadView(APIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    permission_classes = [IsAdminOnly]  # Admin only
     parser_classes = (MultiPartParser, FormParser)
 
+    @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, *args, **kwargs):
         serializer = ExamSerializer(data=request.data)
         if serializer.is_valid():
-            exam = serializer.save()
-
-            # REAL-TIME PROCESSING using PDFSplitter
+            # ZF-AUD-03 FIX: Wrap entire upload+processing in atomic transaction
+            # to prevent orphan Exams if processing fails
             try:
-                from processing.services.pdf_splitter import PDFSplitter
+                with transaction.atomic():
+                    exam = serializer.save()
 
-                splitter = PDFSplitter(pages_per_booklet=4, dpi=150)
-                booklets = splitter.split_exam(exam)
+                    # REAL-TIME PROCESSING using PDFSplitter
+                    from processing.services.pdf_splitter import PDFSplitter
 
-                # Créer les copies en statut STAGING (ADR-003)
-                import uuid
-                import logging
-                logger = logging.getLogger(__name__)
+                    splitter = PDFSplitter(dpi=150)
+                    booklets = splitter.split_exam(exam)
 
-                for booklet in booklets:
-                    copy = Copy.objects.create(
-                        exam=exam,
-                        anonymous_id=str(uuid.uuid4())[:8].upper(),
-                        status=Copy.Status.STAGING,
-                        is_identified=False
-                    )
-                    copy.booklets.add(booklet)
+                    # Créer les copies en statut STAGING (ADR-003)
+                    import uuid
+                    import logging
+                    logger = logging.getLogger(__name__)
 
-                    logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
+                    for booklet in booklets:
+                        copy = Copy.objects.create(
+                            exam=exam,
+                            anonymous_id=str(uuid.uuid4())[:8].upper(),
+                            status=Copy.Status.STAGING,
+                            is_identified=False
+                        )
+                        copy.booklets.add(booklet)
 
-                return Response({
-                    **serializer.data,
-                    "booklets_created": len(booklets),
-                    "message": f"{len(booklets)} booklets created successfully"
-                }, status=status.HTTP_201_CREATED)
+                        logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
+
+                    return Response({
+                        **serializer.data,
+                        "booklets_created": len(booklets),
+                        "message": f"{len(booklets)} booklets created successfully"
+                    }, status=status.HTTP_201_CREATED)
 
             except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error processing PDF: {e}", exc_info=True)
-                return Response({
-                    "error": f"PDF processing failed: {str(e)}"
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                from core.utils.errors import safe_error_response
+                return Response(
+                    safe_error_response(e, context="PDF processing", user_message="PDF upload failed. Please verify the file is valid."),
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -67,7 +78,7 @@ class CopyImportView(APIView):
     POST /api/exams/<exam_id>/copies/import/
     Payload: multipart (pdf_file)
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsAdminOnly]
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, exam_id):
@@ -83,9 +94,13 @@ class CopyImportView(APIView):
              serializer = CopySerializer(copy)
              return Response(serializer.data, status=status.HTTP_201_CREATED)
         except ValueError as e:
-             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+             return Response({'error': 'Invalid PDF file'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-             return Response({'error': f"Internal Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+             from core.utils.errors import safe_error_response
+             return Response(
+                 safe_error_response(e, context="PDF import", user_message="Failed to import PDF. Please try again."),
+                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+             )
 
 
 
@@ -102,41 +117,74 @@ class ExamListView(generics.ListCreateAPIView):
     queryset = Exam.objects.all().order_by('-date')
     serializer_class = ExamSerializer
 
-class BookletHeaderView(APIView):
-    """
-    Serves the header crop of a booklet on-the-fly.
-    """
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+class BookletDetailView(generics.RetrieveDestroyAPIView):
+    queryset = Booklet.objects.all()
+    serializer_class = BookletSerializer
+    permission_classes = [IsTeacherOrAdmin]
+    lookup_field = 'id'
 
-    def get(self, request, id):
+    def perform_destroy(self, instance):
+        # Mission 1.3: Prevent modification if attached to a locked/graded copy
+        if instance.assigned_copy.exclude(status=Copy.Status.STAGING).exists():
+             raise 	serializers.ValidationError(
+                 {"error": _("Impossible de supprimer un fascicule associé à une copie validée ou corrigée.")}
+             )
+        instance.delete()
+
+class BookletSplitView(APIView):
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, id):
         booklet = get_object_or_404(Booklet, id=id)
+        
+        # Mission 1.3: Protocol Enforce
+        if booklet.assigned_copy.exclude(status=Copy.Status.STAGING).exists():
+             return Response(
+                 {"error": _("Impossible de scinder un fascicule associé à une copie validée.")},
+                 status=status.HTTP_403_FORBIDDEN
+             )
+
         if not booklet.exam.pdf_source:
              return Response({"error": "No PDF source found"}, status=status.HTTP_404_NOT_FOUND)
         
+        # Determine source page index
+        page_index = booklet.start_page - 1
+        
+        import tempfile
+        import os
+        from processing.services.splitter import A3Splitter
+
         try:
             doc = fitz.open(booklet.exam.pdf_source.path)
-            # Pages are 0-indexed in fitz, 1-indexed in DB
-            page_index = booklet.start_page - 1
-            
             if page_index < 0 or page_index >= doc.page_count:
                 return Response({"error": "Page out of range"}, status=status.HTTP_404_NOT_FOUND)
                 
             page = doc.load_page(page_index)
+            pix = page.get_pixmap(dpi=150)
             
-            # Crop Header (Top 20%)
-            rect = page.rect
-            rect.y1 *= 0.2
+            fd, temp_path = tempfile.mkstemp(suffix=".png")
+            os.close(fd)
+            pix.save(temp_path)
             
-            # Render to Pixmap
-            pix = page.get_pixmap(clip=rect, dpi=150) # 150 DPI for reasonable quality/speed
-            img_data = pix.tobytes("png")
+            # Use Splitter Service
+            splitter = A3Splitter()
+            result = splitter.process_scan(temp_path)
             
-            from django.http import HttpResponse
-            return HttpResponse(img_data, content_type="image/png")
+            return Response({
+                "message": "Split analysis complete",
+                "type": result.get('type'),
+                "has_header": result.get('has_header', False)
+            }, status=status.HTTP_200_OK)
             
         except Exception as e:
-            print(f"Error rendering header: {e}")
-            return Response({"error": "Rendering failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            from core.utils.errors import safe_error_response
+            return Response(
+                safe_error_response(e, context="Page analysis", user_message="Failed to analyze page."),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        finally:
+            if 'temp_path' in locals() and os.path.exists(temp_path):
+                os.unlink(temp_path)
 
 class ExamDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
@@ -154,11 +202,14 @@ class CopyListView(generics.ListAPIView):
 
     def get_queryset(self):
         exam_id = self.kwargs['exam_id']
-        return Copy.objects.filter(exam_id=exam_id).order_by('anonymous_id')
+        return Copy.objects.filter(exam_id=exam_id)\
+            .select_related('exam', 'student', 'locked_by')\
+            .prefetch_related('booklets', 'annotations__created_by')\
+            .order_by('anonymous_id')
 
 
 class MergeBookletsView(APIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    permission_classes = [IsAdminOnly]  # Admin only
 
     def post(self, request, exam_id):
         booklet_ids = request.data.get('booklet_ids', [])
@@ -198,7 +249,7 @@ class MergeBookletsView(APIView):
         )
 
 class ExportAllView(APIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    permission_classes = [IsAdminOnly]  # Admin only
 
     def post(self, request, id):
         exam = get_object_or_404(Exam, id=id)
@@ -217,46 +268,36 @@ class ExportAllView(APIView):
         return Response({"message": f"{count} copies traitées."}, status=status.HTTP_200_OK)
 
 class CSVExportView(APIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    permission_classes = [IsAdminOnly]  # Admin only
 
     def get(self, request, id):
         import csv
         from django.http import HttpResponse
+        from grading.services import GradingService
         
         exam = get_object_or_404(Exam, id=id)
         copies = exam.copies.all()
         
-        response = HttpResponse(content_type='text/csv')
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = f'attachment; filename="exam_{id}_results.csv"'
         
         writer = csv.writer(response)
         
-        # Dynamic Header based on Grading Structure?
-        # For simplicity, we dump just Total and the raw JSON keys present in the first copy
-        # Better: iterate all possible keys from exam.grading_structure if possible.
-        # MVP: AnonymousID, Total, JSON_Scores
-        
-        header = ['AnonymousID', 'Total']
-        # Attempt to find all keys
-        all_keys = set()
-        for c in copies:
-            if c.scores.exists():
-                all_keys.update(c.scores.first().scores_data.keys())
-        sorted_keys = sorted(list(all_keys))
-        header.extend(sorted_keys)
-        
+        # ZF-AUD-10 FIX: Use annotations for score computation instead of non-existent scores relation
+        # Header: AnonymousID, Student Name, Status, Total
+        header = ['AnonymousID', 'Student Name', 'Status', 'Total']
         writer.writerow(header)
         
         for c in copies:
-            score_obj = c.scores.first()
-            data = score_obj.scores_data if score_obj else {}
+            # Mission 3.2: Student Name
+            student_name = "Inconnu"
+            if c.is_identified and c.student:
+                student_name = str(c.student) 
             
-            # Calculate total
-            total = sum(float(v) for v in data.values() if v)
+            # Calculate total from annotations
+            total = GradingService.compute_score(c)
             
-            row = [c.anonymous_id, total]
-            for k in sorted_keys:
-                row.append(data.get(k, ''))
+            row = [c.anonymous_id, student_name, c.get_status_display(), total]
             writer.writerow(row)
             
         return response
@@ -288,7 +329,9 @@ class UnidentifiedCopiesView(APIView):
     def get(self, request, id):
         # Mission 18: List unidentified copies for Video-Coding
         # Mission 21 Update: Use dynamic header URL
-        copies = Copy.objects.filter(exam_id=id, is_identified=False)
+        # ZF-AUD-13: Prefetch to avoid N+1
+        copies = Copy.objects.filter(exam_id=id, is_identified=False)\
+            .prefetch_related('booklets')
         data = []
         for c in copies:
             booklet = c.booklets.order_by('start_page').first()
@@ -308,16 +351,33 @@ class UnidentifiedCopiesView(APIView):
 class StudentCopiesView(generics.ListAPIView):
     from .permissions import IsStudent
     permission_classes = [IsStudent]
-    
+
     def get_queryset(self):
+        # Try to get student_id from session (legacy) or from user association (new)
         student_id = self.request.session.get('student_id')
-        if not student_id:
-            return Copy.objects.none()
-        return Copy.objects.filter(student=student_id, status=Copy.Status.GRADED)
+        if student_id:
+            # Legacy method: using session
+            return Copy.objects.filter(student=student_id, status=Copy.Status.GRADED)
+        else:
+            # New method: get student via user association
+            try:
+                from students.models import Student
+                student = Student.objects.get(user=self.request.user)
+                return Copy.objects.filter(student=student, status=Copy.Status.GRADED)
+            except Student.DoesNotExist:
+                return Copy.objects.none()
 
     def list(self, request, *args, **kwargs):
         from grading.services import GradingService
+        from core.utils.audit import log_data_access
+        
         queryset = self.get_queryset()
+        
+        # Audit trail: Accès liste copies élève
+        student_id = request.session.get('student_id')
+        if student_id:
+            log_data_access(request, 'Copy', f'student_{student_id}_list', action_detail='list')
+        
         data = []
         for copy in queryset:
             total_score = GradingService.compute_score(copy)
@@ -331,14 +391,15 @@ class StudentCopiesView(generics.ListAPIView):
                 "date": copy.exam.date,
                 "total_score": total_score,
                 "status": copy.status,
-                "final_pdf_url": f"/api/copies/{copy.id}/final-pdf/" if copy.final_pdf else None,
+                "final_pdf_url": f"/api/grading/copies/{copy.id}/final-pdf/" if copy.final_pdf else None,
                 "scores_details": scores_data
             })
         return Response(data)
 class ExamSourceUploadView(APIView):
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsAdminOnly]
     parser_classes = (MultiPartParser, FormParser)
 
+    @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, pk):
         exam = get_object_or_404(Exam, pk=pk)
         
@@ -350,7 +411,7 @@ class ExamSourceUploadView(APIView):
             # Trigger Processing
             try:
                 from processing.services.pdf_splitter import PDFSplitter
-                splitter = PDFSplitter(pages_per_booklet=4, dpi=150)
+                splitter = PDFSplitter(dpi=150)
                 booklets = splitter.split_exam(exam)
                 
                 # Create Copies (Staging)
@@ -377,7 +438,11 @@ class ExamSourceUploadView(APIView):
                 }, status=status.HTTP_201_CREATED)
                 
             except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                from core.utils.errors import safe_error_response
+                return Response(
+                    safe_error_response(e, context="PDF upload", user_message="Failed to process PDF upload."),
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
         
         return Response({"error": "pdf_source field required"}, status=status.HTTP_400_BAD_REQUEST)
 class CopyValidationView(APIView):
@@ -392,9 +457,13 @@ class CopyValidationView(APIView):
              GradingService.validate_copy(copy, request.user)
              return Response({"message": "Copy validated and ready for grading.", "status": copy.status})
         except ValueError as e:
-             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+             return Response({"error": "Invalid copy state"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+             from core.utils.errors import safe_error_response
+             return Response(
+                 safe_error_response(e, context="Copy validation", user_message="Failed to validate copy."),
+                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+             )
 
 class CorrectorCopiesView(generics.ListAPIView):
     """
@@ -406,16 +475,111 @@ class CorrectorCopiesView(generics.ListAPIView):
 
     def get_queryset(self):
         # MVP: Return all copies that are ready/locked/graded
+        # ZF-AUD-13: Prefetch to avoid N+1
         return Copy.objects.filter(
             status__in=[Copy.Status.READY, Copy.Status.LOCKED, Copy.Status.GRADED]
-        ).select_related('exam').order_by('exam__date', 'anonymous_id')
+        ).select_related('exam', 'student', 'assigned_corrector')\
+         .prefetch_related('annotations')\
+         .order_by('exam__date', 'anonymous_id')
 
 class CorrectorCopyDetailView(generics.RetrieveAPIView):
     """
     Permet au correcteur de récupérer les détails d'une copie spécifique.
     """
-    queryset = Copy.objects.all()
+    queryset = Copy.objects.select_related('exam', 'student', 'locked_by')\
+        .prefetch_related('booklets', 'annotations__created_by')
     serializer_class = CopySerializer
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     lookup_field = 'id'
+
+
+class ExamDispatchView(APIView):
+    """
+    Dispatches unassigned copies to correctors fairly and randomly.
+    POST /api/exams/<exam_id>/dispatch/
+    """
+    permission_classes = [IsAdminOnly]
+
+    def post(self, request, exam_id):
+        from django.db import transaction
+        from django.utils import timezone
+        import uuid
+        import random
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        exam = get_object_or_404(Exam, id=exam_id)
+
+        correctors = list(exam.correctors.all())
+        if not correctors:
+            return Response(
+                {"error": _("Aucun correcteur assigné à cet examen.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        unassigned_copies = list(
+            Copy.objects.filter(
+                exam=exam,
+                assigned_corrector__isnull=True
+            ).order_by('anonymous_id')
+        )
+
+        if not unassigned_copies:
+            return Response(
+                {"message": _("Aucune copie à dispatcher.")},
+                status=status.HTTP_200_OK
+            )
+
+        run_id = uuid.uuid4()
+        now = timezone.now()
+
+        random.shuffle(unassigned_copies)
+
+        distribution = {corrector.id: 0 for corrector in correctors}
+        assignments = []
+
+        for i, copy in enumerate(unassigned_copies):
+            corrector = correctors[i % len(correctors)]
+            copy.assigned_corrector = corrector
+            copy.dispatch_run_id = run_id
+            copy.assigned_at = now
+            assignments.append(copy)
+            distribution[corrector.id] += 1
+
+        try:
+            with transaction.atomic():
+                Copy.objects.bulk_update(
+                    assignments,
+                    ['assigned_corrector', 'dispatch_run_id', 'assigned_at']
+                )
+
+                logger.info(
+                    f"Dispatch completed for exam {exam_id}: "
+                    f"{len(assignments)} copies assigned to {len(correctors)} correctors. "
+                    f"Run ID: {run_id}"
+                )
+
+            distribution_stats = {
+                corrector.username: distribution[corrector.id]
+                for corrector in correctors
+            }
+
+            return Response({
+                "message": _("Dispatch effectué avec succès."),
+                "dispatch_run_id": str(run_id),
+                "copies_assigned": len(assignments),
+                "correctors_count": len(correctors),
+                "distribution": distribution_stats,
+                "min_assigned": min(distribution.values()),
+                "max_assigned": max(distribution.values())
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            from core.utils.errors import safe_error_response
+            logger.error(f"Dispatch failed for exam {exam_id}: {str(e)}")
+            return Response(
+                safe_error_response(e, context="Copy dispatch", user_message="Failed to dispatch copies."),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 

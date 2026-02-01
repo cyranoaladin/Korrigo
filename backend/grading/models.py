@@ -72,14 +72,37 @@ class Annotation(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+    
+    # P0-DI-008: Optimistic locking to prevent lost updates
+    version = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Version"),
+        help_text=_("Numéro de version pour le verrouillage optimiste")
+    )
 
     class Meta:
         verbose_name = _("Annotation")
         verbose_name_plural = _("Annotations")
         ordering = ['page_index', 'created_at']
+        # ZF-AUD-13: Performance indexes
         indexes = [
-            models.Index(fields=['copy', 'page_index']),
+            models.Index(fields=['copy', 'page_index'], name='ann_copy_page_idx'),
+            models.Index(fields=['created_by', 'created_at'], name='ann_creator_time_idx'),
         ]
+
+    def __init__(self, *args, **kwargs):
+        if args:
+            super().__init__(*args, **kwargs)
+            return
+        if "annotation_type" in kwargs and "type" not in kwargs:
+            kwargs["type"] = kwargs.pop("annotation_type")
+        if "page_number" in kwargs and "page_index" not in kwargs:
+            kwargs["page_index"] = kwargs.pop("page_number")
+        if "w" not in kwargs:
+            kwargs["w"] = 0.1
+        if "h" not in kwargs:
+            kwargs["h"] = 0.1
+        super().__init__(*args, **kwargs)
 
     def __str__(self):
         return f"Annotation {self.type} - Page {self.page_index} (Copy {self.copy.anonymous_id})"
@@ -135,8 +158,10 @@ class GradingEvent(models.Model):
         verbose_name = _("Événement de correction")
         verbose_name_plural = _("Événements de correction")
         ordering = ['-timestamp']
+        # ZF-AUD-13: Performance indexes
         indexes = [
-            models.Index(fields=['copy', 'timestamp']),
+            models.Index(fields=['copy', 'timestamp'], name='event_copy_time_idx'),
+            models.Index(fields=['actor', 'action'], name='event_actor_action_idx'),
         ]
 
     def __str__(self):
@@ -177,6 +202,14 @@ class CopyLock(models.Model):
     class Meta:
         verbose_name = _("Verrou de copie")
         verbose_name_plural = _("Verrous de copies")
+        constraints = [
+            models.UniqueConstraint(fields=["copy"], name="uniq_copylock_copy"),
+        ]
+        indexes = [
+            models.Index(fields=["expires_at"], name="idx_copylock_expires_at"),
+            models.Index(fields=["owner"], name="idx_copylock_owner"),
+            models.Index(fields=["copy"], name="idx_copylock_copy"),
+        ]
         
     def __str__(self):
         return f"Lock {self.copy.anonymous_id} by {self.owner} (expires {self.expires_at})"
@@ -229,3 +262,44 @@ class DraftState(models.Model):
     
     def __str__(self):
         return f"Draft {self.copy.anonymous_id} by {self.owner} (v{self.version})"
+
+
+class QuestionRemark(models.Model):
+    """
+    Remarque facultative pour une question du barème.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    copy = models.ForeignKey(
+        Copy,
+        on_delete=models.CASCADE,
+        related_name='question_remarks',
+        verbose_name=_("Copie")
+    )
+    question_id = models.CharField(
+        max_length=255,
+        verbose_name=_("ID de la question"),
+        help_text=_("Identifiant de la question dans le barème")
+    )
+    remark = models.TextField(
+        verbose_name=_("Remarque"),
+        blank=True
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='question_remarks_created',
+        verbose_name=_("Créé par")
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+
+    class Meta:
+        verbose_name = _("Remarque de question")
+        verbose_name_plural = _("Remarques de questions")
+        unique_together = ['copy', 'question_id']
+        indexes = [
+            models.Index(fields=['copy', 'question_id']),
+        ]
+
+    def __str__(self):
+        return f"Remarque {self.question_id} - {self.copy.anonymous_id}"

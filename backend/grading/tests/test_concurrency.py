@@ -6,8 +6,11 @@ from rest_framework.test import APIClient
 from exams.models import Copy, Exam, Booklet
 from grading.models import Annotation
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from core.auth import UserRole
 import unittest.mock
 import time
+import datetime
 
 User = get_user_model()
 
@@ -16,7 +19,10 @@ class TestConcurrency:
 
     @pytest.fixture
     def teacher(self):
-        return User.objects.create_user(username='teacher_conc', password='password', is_staff=True)
+        u = User.objects.create_user(username='teacher_conc', password='password', is_staff=True)
+        g, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        u.groups.add(g)
+        return u
 
     @pytest.fixture
     def exam(self):
@@ -43,7 +49,15 @@ class TestConcurrency:
         # C3: Acquire Lock
         from grading.models import CopyLock
         from django.utils import timezone
-        CopyLock.objects.create(copy=copy, owner=teacher, expires_at=timezone.now() + timezone.timedelta(hours=1))
+        copy.status = Copy.Status.LOCKED
+        copy.locked_at = timezone.now()
+        copy.locked_by = teacher
+        copy.save(update_fields=["status", "locked_at", "locked_by"])
+        lock = CopyLock.objects.create(
+            copy=copy,
+            owner=teacher,
+            expires_at=timezone.now() + datetime.timedelta(hours=1),
+        )
         
         client = APIClient()
         client.force_authenticate(user=teacher)
@@ -53,17 +67,19 @@ class TestConcurrency:
         
         # User A saves
         resp_a = client.patch(
-            f"/api/annotations/{ann.id}/", 
+            f"/api/grading/annotations/{ann.id}/", 
             {"content": "Update A", "score_delta": 5}, 
-            format='json'
+            format='json',
+            HTTP_X_LOCK_TOKEN=str(lock.token),
         )
         assert resp_a.status_code == 200
         
         # User B saves (blind overwrite)
         resp_b = client.patch(
-            f"/api/annotations/{ann.id}/", 
+            f"/api/grading/annotations/{ann.id}/", 
             {"content": "Update B", "score_delta": 10}, 
-            format='json'
+            format='json',
+            HTTP_X_LOCK_TOKEN=str(lock.token),
         )
         assert resp_b.status_code == 200
         
@@ -104,6 +120,45 @@ class TestConcurrency:
              # For True Concurrency, we need `select_for_update`.
              # Let's verify if `services.py` uses `select_for_update`.
              pass
+
+    def test_finalize_uses_select_for_update_on_copy_and_lock(self, teacher, copy, monkeypatch):
+        from django.utils import timezone
+        from grading.models import CopyLock
+        from grading.services import GradingService
+
+        copy.status = Copy.Status.LOCKED
+        copy.locked_at = timezone.now()
+        copy.locked_by = teacher
+        copy.save(update_fields=["status", "locked_at", "locked_by"])
+
+        lock = CopyLock.objects.create(
+            copy=copy,
+            owner=teacher,
+            expires_at=timezone.now() + datetime.timedelta(minutes=10),
+        )
+
+        called = {"copy": False, "lock": False}
+
+        original_copy_select_for_update = Copy.objects.select_for_update
+        original_lock_select_for_update = CopyLock.objects.select_for_update
+
+        def copy_select_for_update_spy(*args, **kwargs):
+            called["copy"] = True
+            return original_copy_select_for_update(*args, **kwargs)
+
+        def lock_select_for_update_spy(*args, **kwargs):
+            called["lock"] = True
+            return original_lock_select_for_update(*args, **kwargs)
+
+        monkeypatch.setattr(Copy.objects, "select_for_update", copy_select_for_update_spy)
+        monkeypatch.setattr(CopyLock.objects, "select_for_update", lock_select_for_update_spy)
+
+        with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
+            mock_flatten.return_value = b"%PDF-1.4\n%%EOF"
+            GradingService.finalize_copy(copy, teacher, lock_token=str(lock.token))
+
+        assert called["copy"] is True
+        assert called["lock"] is True
 
 
 

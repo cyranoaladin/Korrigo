@@ -1,26 +1,20 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import api from '../services/api' // Import Axios instance
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref(null)
     const isAuthenticated = computed(() => !!user.value)
+    const mustChangePassword = computed(() => user.value?.must_change_password || false)
 
     // Check if we are checking auth status
     const isChecking = ref(false)
 
-    const API_URL = import.meta.env.VITE_API_URL || ''
+    // Note: api.defaults.baseURL handles the prefix now
 
     async function login(username, password) {
         try {
-            const res = await fetch(`${API_URL}/api/login/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ username, password })
-            })
-
-            if (!res.ok) throw new Error("Login failed")
-
+            await api.post('/login/', { username, password })
             await fetchUser() // Get User Data
             return true
         } catch (e) {
@@ -31,17 +25,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function loginStudent(ine, lastName) {
         try {
-            const res = await fetch(`${API_URL}/api/students/login/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ ine: ine, last_name: lastName })
-            })
-
-            if (res.ok) {
-                const data = await res.json()
-                // Fetch student info
-                await fetchUser(true) // Pass flag to indicate student check preference
+            const res = await api.post('/students/login/', { ine, last_name: lastName })
+            if (res.data) {
+                // Fetch student info explicitly
+                await fetchUser(true)
                 return true
             }
             return false
@@ -53,26 +40,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function logout() {
         try {
-            await fetch(`${API_URL}/api/logout/`, {
-                method: 'POST',
-                credentials: 'include'
-            })
-            user.value = null
+            const endpoint = user.value?.role === 'Student' ? '/students/logout/' : '/logout/'
+            await api.post(endpoint)
         } catch (e) {
             console.error(e)
-            user.value = null
-        }
-    }
-
-    async function logoutStudent() {
-        try {
-            await fetch(`${API_URL}/api/students/logout/`, {
-                method: 'POST',
-                credentials: 'include'
-            })
-            user.value = null
-        } catch (e) {
-            console.error(e)
+        } finally {
             user.value = null
         }
     }
@@ -80,33 +52,25 @@ export const useAuthStore = defineStore('auth', () => {
     async function fetchUser(preferStudent = false) {
         isChecking.value = true
         try {
-            // Strategy: Try /api/me/ (Standard User) first, UNLESS preferStudent is true
-            // CRITICAL: credentials:'include' required to send session cookies
+            // Strategy: Try /me/ (Standard User) first, UNLESS preferStudent is true
+            // Axios automatically uses baseURL (e.g. /api) and sends credentials
 
-            let res = null
             if (!preferStudent) {
-                res = await fetch(`${API_URL}/api/me/`, {
-                    method: 'GET',
-                    credentials: 'include',
-                    headers: { 'Accept': 'application/json' }
-                })
-                if (res.ok) {
-                    user.value = await res.json()
+                try {
+                    const res = await api.get('/me/')
+                    user.value = res.data
                     user.value.role = user.value.role || 'Admin'
                     return
+                } catch {
+                    // Ignore error and fallthrough to student check if not preferred but standard failed
                 }
             }
 
             // If failed or preferStudent, try student endpoint
-            res = await fetch(`${API_URL}/api/students/me/`, {
-                method: 'GET',
-                credentials: 'include',
-                headers: { 'Accept': 'application/json' }
-            })
-            if (res.ok) {
-                const student = await res.json()
-                user.value = { ...student, role: 'Student' }
-            } else {
+            try {
+                const res = await api.get('/students/me/')
+                user.value = { ...res.data, role: 'Student' }
+            } catch {
                 user.value = null
             }
         } catch (e) {
@@ -116,10 +80,21 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-    // Helper for Headers if needed (cookies are HttpOnly, so mainly for CSRF if applicable, but we disabled Secure CSRF for localhost)
-    const authHeaders = {
-        'Content-Type': 'application/json'
+    function clearMustChangePassword() {
+        if (user.value) {
+            user.value.must_change_password = false
+        }
     }
 
-    return { user, isAuthenticated, isChecking, login, loginStudent, logout, logoutStudent, fetchUser, API_URL, authHeaders }
+    return { 
+        user, 
+        isAuthenticated, 
+        mustChangePassword, 
+        isChecking, 
+        login, 
+        loginStudent, 
+        logout, 
+        fetchUser,
+        clearMustChangePassword
+    }
 })

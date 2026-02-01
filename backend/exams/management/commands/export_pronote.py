@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from exams.models import Exam, Copy
+from grading.services import GradingService
 import csv
 import sys
 
@@ -34,13 +35,9 @@ class Command(BaseCommand):
             if not copy.student:
                 self.stderr.write(self.style.WARNING(f"Skipping Copy {copy.anonymous_id}: No Student identified"))
                 continue
-                
-            score_obj = copy.scores.first()
-            if not score_obj:
-                 self.stderr.write(self.style.WARNING(f"Skipping Copy {copy.anonymous_id}: No Score"))
-                 continue
-                 
-            raw_total = sum(float(v) for v in score_obj.scores_data.values() if v)
+            
+            # ZF-AUD-10 FIX: Use GradingService.compute_score() instead of non-existent scores relation
+            raw_total = GradingService.compute_score(copy)
             
             # Simple scaling logic
             # If exam was /40 and we want /20 -> raw * (20/40)
@@ -49,14 +46,14 @@ class Command(BaseCommand):
             else:
                 final_note = raw_total
                 
-            final_note_str = f"{final_note:.2f}".replace('.', ',') # French format often uses comma
+            final_note_str = f"{final_note:.2f}".replace('.', ',')  # French format uses comma
             
             writer.writerow([
                 copy.student.ine,
                 exam.name,
                 final_note_str,
-                "1", # Default Coeff
-                ""   # Default Comment
+                "1",  # Default Coeff
+                ""    # Default Comment
             ])
             count += 1
 

@@ -1,0 +1,200 @@
+name: Korrigo CI (Deployable Gate)
+
+on:
+  push:
+    branches: ["main", "master", "develop"]
+  pull_request:
+    branches: ["main", "master", "develop"]
+
+concurrency:
+  group: korrigo-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.9"
+
+jobs:
+  lint:
+    name: Lint (Backend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8
+
+      - name: Flake8 Link
+        working-directory: backend
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+  unit:
+    name: Unit/Service tests (pytest)
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install System Deps
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
+
+      - name: Install deps + pytest
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run pytest
+        working-directory: backend
+        env:
+          DJANGO_SETTINGS_MODULE: core.settings_test
+        run: |
+          pytest -q
+
+  security:
+    name: Security (pip-audit + bandit)
+    runs-on: ubuntu-latest
+    needs: [unit]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install deps + security tools
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pip-audit bandit
+
+      - name: Dependency audit
+        working-directory: backend
+        run: |
+          # Deployable gate: audit production dependencies only (requirements.txt)
+          # Dev tools (pip-audit, pytest, etc.) are not deployed and excluded from gate
+          pip-audit -r requirements.txt || (echo "pip-audit failed" && exit 1)
+
+      - name: Bandit (backend)
+        working-directory: backend
+        run: |
+          # Use .bandit config file for security policy (tests vs prod scope)
+          # Config excludes: migrations, .venv, staticfiles, __pycache__
+          # False positives suppressed via targeted # nosec comments in code
+          # Block only on Medium/High severity (not Low)
+          bandit -r . -c .bandit -ll
+
+  integration:
+    name: Integration (workflow complete tests subset)
+    runs-on: ubuntu-latest
+    needs: [security]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install System Deps
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
+
+      - name: Install deps + pytest
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run critical workflow tests (gate)
+        working-directory: backend
+        env:
+          DJANGO_SETTINGS_MODULE: core.settings_test
+        run: |
+          # Ajustez la sélection si nécessaire ; votre arborescence montre déjà des tests "workflow_complete"
+          pytest -q grading/tests/test_workflow_complete.py grading/tests/test_concurrency.py exams/tests/test_pdf_validators.py core/tests/test_full_audit.py
+
+  tests-postgres:
+    name: Postgres (pytest -m postgres)
+    runs-on: ubuntu-latest
+    needs: [lint]
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: viatique_test
+          POSTGRES_USER: viatique_user
+          POSTGRES_PASSWORD: viatique_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U viatique_user -d viatique_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install deps + pytest
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run postgres-marked tests (must PASS, must not SKIP)
+        working-directory: backend
+        env:
+          DJANGO_SETTINGS_MODULE: core.settings_test
+          DATABASE_URL: postgres://viatique_user:viatique_password@127.0.0.1:5432/viatique_test
+        run: |
+          set -euo pipefail
+          pytest -q -m postgres grading/tests/test_concurrency_postgres.py | tee /tmp/pytest_postgres.txt
+          if grep -qi "skipp" /tmp/pytest_postgres.txt; then
+            echo "Postgres tests were skipped (unexpected)." >&2
+            exit 1
+          fi
+
+  packaging:
+    name: Packaging (Build backend image)
+    runs-on: ubuntu-latest
+    needs: [integration]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker build backend
+        run: |
+          docker build -t korrigo-backend:ci ./backend
+
+  deployable_gate:
+    name: DEPLOYABLE Gate (Green = Deployable)
+    runs-on: ubuntu-latest
+    needs: [lint, unit, security, integration, packaging]
+    steps:
+      - name: All required jobs passed
+        run: |
+          echo "DEPLOYABLE: all CI gates passed."
+

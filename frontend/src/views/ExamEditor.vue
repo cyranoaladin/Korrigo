@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { useExamStore } from '../stores/examStore'
+
 import GradingScaleBuilder from '../components/GradingScaleBuilder.vue'
 
 const route = useRoute()

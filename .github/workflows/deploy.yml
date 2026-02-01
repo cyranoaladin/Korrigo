@@ -97,29 +97,194 @@ jobs:
     needs: [build_and_push]
     environment: production
     steps:
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Sanity check deploy secrets
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_PATH: ${{ secrets.VPS_PATH }}
+          GHCR_USER: ${{ secrets.GHCR_USER }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+        run: |
+          set -euo pipefail
+          echo "Checking deploy secrets…"
+          
+          [ -n "$VPS_HOST" ] || { echo "❌ VPS_HOST missing"; exit 1; }
+          [ -n "$VPS_USER" ] || { echo "❌ VPS_USER missing"; exit 1; }
+          [ -n "$VPS_SSH_KEY" ] || { echo "❌ VPS_SSH_KEY missing"; exit 1; }
+          [ -n "$VPS_PATH" ] || { echo "❌ VPS_PATH missing. Set in Settings > Environments > production > Environment secrets (example: /home/ubuntu/korrigo)"; exit 1; }
+          [ -n "$GHCR_USER" ] || { echo "❌ GHCR_USER missing"; exit 1; }
+          [ -n "$GHCR_PAT" ] || { echo "❌ GHCR_PAT missing"; exit 1; }
+          
+          echo "🔍 VPS_PATH length: ${#VPS_PATH} chars"
+          echo "✅ Secrets OK"
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          envs: GITHUB_SHA
-          script: |
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Add Known Hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: SSH Diagnostics (Safe)
+        run: |
+          ssh -V
+          ls -la ~/.ssh
+          # Check connectivity without running commands
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "uptime" || echo "Test connection failed (expected if keys not set yet)"
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Sync compose files to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PATH: ${{ secrets.VPS_PATH }}
+        run: |
+          set -euo pipefail
+          
+          echo "📂 Creating directory structure on VPS..."
+          # Create infra directory structure on VPS if not exists
+          ssh -o StrictHostKeyChecking=yes "${VPS_USER}@${VPS_HOST}" \
+            "mkdir -p ${VPS_PATH:?VPS_PATH not set}/infra/docker ${VPS_PATH}/infra/nginx"
+
+          echo "📤 Syncing docker-compose.prod.yml..."
+          # Sync compose file
+          scp -o StrictHostKeyChecking=yes \
+            infra/docker/docker-compose.prod.yml \
+            "${VPS_USER}@${VPS_HOST}:${VPS_PATH}/infra/docker/"
+
+          echo "📤 Syncing nginx configuration..."
+          # Sync nginx config
+          scp -o StrictHostKeyChecking=yes -r \
+            infra/nginx/ \
+            "${VPS_USER}@${VPS_HOST}:${VPS_PATH}/infra/"
+          
+          echo "✅ Sync complete"
+
+      - name: Deploy
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PATH: ${{ secrets.VPS_PATH }}
+          GHCR_USER: ${{ secrets.GHCR_USER }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          KORRIGO_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          ssh -o StrictHostKeyChecking=yes "${VPS_USER}@${VPS_HOST}" bash <<EOSSH
             set -euo pipefail
-            cd ${{ secrets.VPS_PATH }}
-
-            export KORRIGO_SHA="${GITHUB_SHA}"
-            export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
-
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
-
-            docker compose -f docker-compose.prod.yml pull
-
-            docker compose -f docker-compose.prod.yml run --rm backend python manage.py migrate
-            docker compose -f docker-compose.prod.yml run --rm backend python manage.py collectstatic --noinput
-
-            docker compose -f docker-compose.prod.yml up -d
-
+            
+            # Export environment variables passed from GitHub Actions runner
+            export VPS_PATH="${VPS_PATH}"
+            export KORRIGO_SHA="${KORRIGO_SHA}"
+            export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY_OWNER}"
+            export GHCR_USER="${GHCR_USER}"
+            export GHCR_PAT="${GHCR_PAT}"
+            
+            # Verify they were passed correctly
+            test -n "\${VPS_PATH}" || { echo "❌ VPS_PATH empty after export"; exit 1; }
+            test -n "\${KORRIGO_SHA}" || { echo "❌ KORRIGO_SHA empty after export"; exit 1; }
+            
+            # ═══════════════════════════════════════
+            # PRE-FLIGHT CHECKS
+            # ═══════════════════════════════════════
+            echo "🔍 Pre-flight checks..."
+            echo "  User: \$(whoami)"
+            echo "  Host: \$(hostname)"
+            echo "  PWD: \$(pwd)"
+            
+            # Defensive cd with explicit error
+            echo "📂 Changing to deployment directory..."
+            cd "\${VPS_PATH}" || { echo "❌ Failed to cd to \${VPS_PATH}"; exit 1; }
+            echo "  ✅ Now in: \$(pwd)"
+            
+            # Verify directory structure
+            echo "📁 Verifying directory structure..."
+            ls -la infra/ || { echo "❌ infra/ directory missing"; exit 1; }
+            ls -la infra/docker/ || { echo "❌ infra/docker/ directory missing"; exit 1; }
+            
+            # Verify compose file exists
+            echo "📄 Verifying docker-compose.prod.yml..."
+            test -f infra/docker/docker-compose.prod.yml || { 
+              echo "❌ infra/docker/docker-compose.prod.yml not found"
+              ls -la infra/docker/
+              exit 1
+            }
+            echo "  ✅ docker-compose.prod.yml found"
+            
+            # Verify Docker installation
+            echo "🐳 Verifying Docker..."
+            docker --version || { echo "❌ Docker not installed"; exit 1; }
+            docker compose version || { echo "❌ Docker Compose not available"; exit 1; }
+            
+            # ═══════════════════════════════════════
+            # GHCR LOGIN
+            # ═══════════════════════════════════════
+            echo "🔐 Logging in to GitHub Container Registry..."
+            echo "\${GHCR_PAT}" | docker login ghcr.io -u "\${GHCR_USER}" --password-stdin || {
+              echo "❌ GHCR login failed"
+              exit 1
+            }
+            echo "  ✅ GHCR login successful"
+            
+            # ═══════════════════════════════════════
+            # DEPLOYMENT
+            # ═══════════════════════════════════════
+            echo "📥 Pulling latest images (SHA: \${KORRIGO_SHA})..."
+            docker compose -f infra/docker/docker-compose.prod.yml pull || {
+              echo "❌ Failed to pull images"
+              exit 1
+            }
+            echo "  ✅ Images pulled"
+            
+            echo "🔄 Running database migrations..."
+            docker compose -f infra/docker/docker-compose.prod.yml run --rm backend python manage.py migrate || {
+              echo "❌ Migrations failed"
+              exit 1
+            }
+            echo "  ✅ Migrations complete"
+            
+            echo "📦 Collecting static files..."
+            docker compose -f infra/docker/docker-compose.prod.yml run --rm backend python manage.py collectstatic --noinput || {
+              echo "❌ Collectstatic failed"
+              exit 1
+            }
+            echo "  ✅ Static files collected"
+            
+            echo "🚀 Starting containers..."
+            docker compose -f infra/docker/docker-compose.prod.yml up -d || {
+              echo "❌ Failed to start containers"
+              docker compose -f infra/docker/docker-compose.prod.yml ps
+              exit 1
+            }
+            echo "  ✅ Containers started"
+            
+            # ═══════════════════════════════════════
+            # HEALTH CHECK
+            # ═══════════════════════════════════════
+            echo "🏥 Running health check..."
             sleep 5
-            curl -sf --max-time 10 http://127.0.0.1:8088/api/health/ >/dev/null
-            echo "✅ DEPLOY OK: $KORRIGO_SHA"
+            if ! curl -sf --max-time 10 http://127.0.0.1:8088/api/health/ >/dev/null; then
+              echo "❌ Health check failed"
+              echo "Container status:"
+              docker compose -f infra/docker/docker-compose.prod.yml ps
+              echo "Backend logs:"
+              docker compose -f infra/docker/docker-compose.prod.yml logs --tail=30 backend
+              exit 1
+            fi
+            echo "  ✅ Health check passed"
+            
+            # ═══════════════════════════════════════
+            # SUCCESS
+            # ═══════════════════════════════════════
+            echo ""
+            echo "╔════════════════════════════════════════╗"
+            echo "║  ✅ DEPLOY OK: \${KORRIGO_SHA:0:8}         ║"
+            echo "╚════════════════════════════════════════╝"
+          EOSSH

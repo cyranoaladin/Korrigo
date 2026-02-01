@@ -1,0 +1,308 @@
+name: Release Gate One-Shot
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'infra/**'
+      - 'scripts/**'
+      - '.github/workflows/release-gate.yml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  release-gate-oneshot:
+    name: Release Gate Validation (Zero-Tolerance)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Release Gate Integrity (Reminder)
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          
+          echo "Checking if PR modifies Release Gate critical files..."
+
+          # Get base and head SHAs from GitHub PR event context
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          
+          echo "PR base=${BASE_SHA:0:7} head=${HEAD_SHA:0:7}"
+          
+          # Fetch commits if not present (shallow checkout default depth=1)
+          if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "Fetching base commit ${BASE_SHA:0:7}..."
+            git fetch --no-tags --prune --depth=1 origin "${BASE_SHA}"
+          fi
+          if ! git cat-file -e "${HEAD_SHA}^{commit}" 2>/dev/null; then
+            echo "Fetching head commit ${HEAD_SHA:0:7}..."
+            git fetch --no-tags --prune --depth=1 origin "${HEAD_SHA}"
+          fi
+          
+          # Assert both commits are now available
+          git cat-file -e "${BASE_SHA}^{commit}" || { echo "❌ BASE_SHA not present after fetch"; exit 1; }
+          git cat-file -e "${HEAD_SHA}^{commit}" || { echo "❌ HEAD_SHA not present after fetch"; exit 1; }
+          
+          # List changed files between base and head
+          CHANGED_FILES=$(git diff --name-only "${BASE_SHA}..${HEAD_SHA}")
+          
+          FILE_COUNT=$(printf '%s\n' "$CHANGED_FILES" | sed '/^$/d' | wc -l | tr -d ' ')
+          echo "Changed files count: ${FILE_COUNT}"
+          
+          [ -z "${CHANGED_FILES// }" ] && echo "No changed files detected"
+
+          # Critical Release Gate files
+          CRITICAL_FILES=(
+            "scripts/release_gate_oneshot.sh"
+            ".github/workflows/release-gate.yml"
+            "infra/docker/docker-compose.local-prod.yml"
+          )
+
+          MODIFIED_CRITICAL=""
+          for file in "${CRITICAL_FILES[@]}"; do
+            if echo "$CHANGED_FILES" | grep -q "^$file$"; then
+              MODIFIED_CRITICAL="$MODIFIED_CRITICAL\n  - $file"
+            fi
+          done
+
+          if [ -n "$MODIFIED_CRITICAL" ]; then
+            echo "⚠️  RELEASE GATE CRITICAL FILES MODIFIED"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo -e "Modified files:$MODIFIED_CRITICAL"
+            echo ""
+            echo "📋 Release Gate Integrity Checklist:"
+            echo "  [ ] CI run on this PR: Must be SUCCESS"
+            echo "  [ ] After merge: Run 'gh workflow run release-gate.yml --ref main'"
+            echo "  [ ] Post-merge run: Must be SUCCESS before considering done"
+            echo ""
+            echo "📖 See: .github/RELEASE_GATE_INTEGRITY.md for full rules"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "⚙️  Proceeding with validation on PR branch..."
+          else
+            echo "✅ No Release Gate critical files modified in this PR"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install dependencies (jq, curl)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y jq curl netcat-openbsd
+
+      - name: Verify script exists and is executable
+        run: |
+          ls -lh scripts/release_gate_oneshot.sh
+          test -x scripts/release_gate_oneshot.sh || chmod +x scripts/release_gate_oneshot.sh
+
+      - name: Ensure .env exists
+        run: |
+          if [ ! -f .env ]; then
+            echo "Creating minimal .env for docker-compose..."
+            # Don't copy .env.example as it contains DB_HOST=127.0.0.1
+            # which conflicts with docker-compose DATABASE_URL
+            touch .env
+          else
+            echo ".env already exists"
+          fi
+
+      - name: Run Release Gate One-Shot (Production-like)
+        env:
+          # Production environment
+          DJANGO_ENV: production
+          DEBUG: "False"
+
+          # Security: METRICS_TOKEN from GitHub Secrets (or empty = public, with warning)
+          METRICS_TOKEN: "${{ secrets.METRICS_TOKEN || '' }}"
+
+          # Passwords: allow random generation if not set
+          # For CI, we can set these or let seed generate random ones
+          ADMIN_PASSWORD: "${{ secrets.ADMIN_PASSWORD || '' }}"
+          TEACHER_PASSWORD: "${{ secrets.TEACHER_PASSWORD || '' }}"
+
+          # Test password for E2E (needs to match what seed sets)
+          TEST_PROF_PASSWORD: "prof"
+
+          # Compose file
+          COMPOSE_FILE: "infra/docker/docker-compose.local-prod.yml"
+        run: |
+          echo "========================================="
+          echo "Release Gate One-Shot Validation"
+          echo "========================================="
+          echo "Environment:"
+          echo "  DJANGO_ENV=$DJANGO_ENV"
+          echo "  DEBUG=$DEBUG"
+          echo "  METRICS_TOKEN: $([ -n "$METRICS_TOKEN" ] && echo 'set (secured)' || echo 'empty (public metrics)')"
+          echo "========================================="
+
+          # Run the one-shot script
+          ./scripts/release_gate_oneshot.sh
+
+      - name: Collect Release Gate logs and artifacts
+        if: always()
+        run: |
+          echo "Searching for release_gate_* directories in /tmp..."
+          ls -lah /tmp | grep release_gate || echo "No release_gate directories found"
+
+          # Find the latest release_gate_* directory
+          RG_DIR="$(ls -dt /tmp/release_gate_* 2>/dev/null | head -n1 || true)"
+
+          if [ -z "$RG_DIR" ]; then
+            echo "❌ No release_gate_* directory found under /tmp"
+            echo "Available directories in /tmp:"
+            ls -la /tmp | head -30
+            exit 0  # Don't fail artifact collection
+          fi
+
+          echo "Found Release Gate directory: $RG_DIR"
+          echo "RG_DIR=$RG_DIR" >> $GITHUB_ENV
+
+          # List contents
+          echo ""
+          echo "Logs available:"
+          ls -lh "$RG_DIR"
+
+          # Create tarball
+          tar -czf /tmp/release_gate_logs.tgz -C "$(dirname "$RG_DIR")" "$(basename "$RG_DIR")"
+          echo "Tarball created: $(ls -lh /tmp/release_gate_logs.tgz)"
+
+      - name: Display validation summary
+        if: always()
+        run: |
+          if [ -n "$RG_DIR" ] && [ -f "$RG_DIR/17_validation_summary.log" ]; then
+            echo "========================================="
+            echo "VALIDATION SUMMARY"
+            echo "========================================="
+            cat "$RG_DIR/17_validation_summary.log"
+          else
+            echo "⚠️  Validation summary not found"
+          fi
+
+      - name: Check zero-tolerance criteria
+        if: always()
+        run: |
+          if [ -z "$RG_DIR" ]; then
+            echo "❌ No release gate directory found - validation did not complete"
+            exit 1
+          fi
+
+          echo "========================================="
+          echo "ZERO-TOLERANCE VALIDATION"
+          echo "========================================="
+
+          PYTEST_LOG="$RG_DIR/13_pytest_full.log"
+          E2E_LOG="$RG_DIR/12_e2e_3runs.log"
+          SEED_LOG="$RG_DIR/08_seed_run1.log"
+
+          # Check pytest results
+          if [ -f "$PYTEST_LOG" ]; then
+            echo ""
+            echo "=== Test Results ==="
+            # Fix: Only match actual pytest failures (lines starting with FAILED/ERROR),
+            # not test names containing "failed" or "error"
+            if grep -qE '^FAILED |^ERROR ' "$PYTEST_LOG"; then
+              echo "❌ FAILED: Tests have failures or errors"
+              echo "Failing test nodeids:"
+              grep -E '^(FAILED|ERROR) ' "$PYTEST_LOG" | sed -E 's/^(FAILED|ERROR) +//' | head -20
+              exit 1
+            fi
+
+            # Fix: Only match actual skipped in pytest summary (=== X skipped ===)
+            # Pattern matches pytest summary line with "skipped" word
+            if grep -qE '=.*\d+ skipped' "$PYTEST_LOG"; then
+              echo "❌ FAILED: Tests have skipped tests (zero-tolerance)"
+              grep -E '=.*skipped' "$PYTEST_LOG" | head -5
+              exit 1
+            fi
+
+            # Check for XFAIL (expected failures) - optional: decide policy
+            # if grep -qE '\d+ xfailed' "$PYTEST_LOG"; then
+            #   echo "⚠️  WARNING: Tests have expected failures (xfailed)"
+            # fi
+
+            PASSED=$(grep -oP '\d+(?= passed)' "$PYTEST_LOG" | tail -1)
+            echo "✅ PASS: $PASSED tests passed, 0 failed, 0 skipped"
+          else
+            echo "❌ FAILED: pytest log not found"
+            exit 1
+          fi
+
+          # Check E2E results
+          if [ -f "$E2E_LOG" ]; then
+            echo ""
+            echo "=== E2E Results ==="
+            if ! grep -q "✅ E2E: 3/3 RUNS PASSED" "$E2E_LOG"; then
+              echo "❌ FAILED: E2E runs did not pass 3/3"
+              tail -50 "$E2E_LOG"
+              exit 1
+            fi
+
+            # Check annotation POST = 201
+            if ! grep -qE "Annotation created.*201" "$E2E_LOG"; then
+              echo "❌ FAILED: Annotation POST did not return 201"
+              exit 1
+            fi
+
+            echo "✅ PASS: E2E 3/3 runs with annotations (POST 201, GET 200)"
+          else
+            echo "❌ FAILED: E2E log not found"
+            exit 1
+          fi
+
+          # Check seed validation (pages > 0)
+          if [ -f "$SEED_LOG" ]; then
+            echo ""
+            echo "=== Seed Validation ==="
+            if ! grep -qE 'Booklets.*Pages' "$SEED_LOG"; then
+              echo "❌ FAILED: Seed did not create copies with pages"
+              exit 1
+            fi
+
+            # Check that all READY copies have pages > 0
+            PAGES_LINES=$(grep -E 'READY.*Booklets.*Pages' "$SEED_LOG" || true)
+            if echo "$PAGES_LINES" | grep -q "Pages: 0"; then
+              echo "❌ FAILED: Some READY copies have 0 pages"
+              echo "$PAGES_LINES"
+              exit 1
+            fi
+
+            echo "✅ PASS: All READY copies have pages > 0"
+            echo "$PAGES_LINES"
+          else
+            echo "❌ FAILED: Seed log not found"
+            exit 1
+          fi
+
+          echo ""
+          echo "========================================="
+          echo "✅ ZERO-TOLERANCE VALIDATION COMPLETE"
+          echo "========================================="
+
+      - name: Upload Release Gate logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-logs
+          path: /tmp/release_gate_logs.tgz
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload individual critical logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-critical-logs
+          path: |
+            /tmp/release_gate_*/08_seed_run1.log
+            /tmp/release_gate_*/12_e2e_3runs.log
+            /tmp/release_gate_*/13_pytest_full.log
+            /tmp/release_gate_*/17_validation_summary.log
+          retention-days: 30
+          if-no-files-found: warn

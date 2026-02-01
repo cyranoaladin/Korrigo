@@ -4,8 +4,10 @@ import shutil
 from django.conf import settings
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from exams.models import Exam, Copy, Booklet
 from grading.models import GradingEvent, Annotation
+from core.auth import UserRole
 
 User = get_user_model()
 FIXTURES_DIR = os.path.join(settings.BASE_DIR, "grading/tests/fixtures/pdfs")
@@ -17,16 +19,29 @@ class TestWorkflowComplete(TransactionTestCase):
     def setUp(self):
         super().setUp()
         self.client = APIClient()
-        self.teacher = User.objects.create_user(username='teacher_flow', password='password', is_staff=True)
-        self.student = User.objects.create_user(username='student_flow', password='password', is_staff=False)
+
+        # Create groups if they don't exist
+        self.teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        self.admin_group, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
+
+        # Admin user for import (requires IsAdminOnly permission)
+        self.admin = User.objects.create_user(username='admin_flow', password='password', is_staff=True)
+        self.admin.groups.add(self.admin_group)
+
+        self.teacher = User.objects.create_user(username='teacher_flow', password='password')
+        self.teacher.groups.add(self.teacher_group)
+
+        self.student = User.objects.create_user(username='student_flow', password='password')
+        # Student user has no special group permissions - should be denied access
         self.exam = Exam.objects.create(name="E2E Exam", date="2024-01-01")
 
     def tearDown(self):
         super().tearDown()
 
     def test_workflow_teacher_full_cycle_success(self):
-        self.client.force_authenticate(user=self.teacher)
-        
+        # Use admin for import (requires IsAdminOnly), then switch to teacher for grading
+        self.client.force_login(self.admin)
+
         # 1. IMPORT
         pdf_path = os.path.join(FIXTURES_DIR, "copy_2p_simple.pdf")
         with open(pdf_path, 'rb') as f:
@@ -46,10 +61,15 @@ class TestWorkflowComplete(TransactionTestCase):
         # Transition to READY (Simulate Identification/Verification step)
         copy.status = Copy.Status.READY
         copy.save()
-        
+
+        # Switch to teacher for grading workflow
+        self.client.logout()
+        self.client.force_login(self.teacher)
+
         # 2. LOCK (New C3 Requirement: Must lock before annotating)
-        resp = self.client.post(f"/api/copies/{copy_id}/lock/", {}, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy_id}/lock/", {}, format='json')
         self.assertEqual(resp.status_code, 201)
+        lock_token = resp.data["token"]
         
         # 3. ANNOTATE (CRUD)
         # Create
@@ -60,7 +80,12 @@ class TestWorkflowComplete(TransactionTestCase):
             "content": "Good job",
             "score_delta": 2
         }
-        resp = self.client.post(f"/api/copies/{copy_id}/annotations/", ann_data, format='json')
+        resp = self.client.post(
+            f"/api/grading/copies/{copy_id}/annotations/",
+            ann_data,
+            format='json',
+            HTTP_X_LOCK_TOKEN=str(lock_token),
+        )
         self.assertEqual(resp.status_code, 201)
         ann1_id = resp.data['id']
 
@@ -72,36 +97,60 @@ class TestWorkflowComplete(TransactionTestCase):
             "content": "Typo",
             "score_delta": -1
         }
-        resp = self.client.post(f"/api/copies/{copy_id}/annotations/", ann_data2, format='json')
+        resp = self.client.post(
+            f"/api/grading/copies/{copy_id}/annotations/",
+            ann_data2,
+            format='json',
+            HTTP_X_LOCK_TOKEN=str(lock_token),
+        )
         self.assertEqual(resp.status_code, 201)
         ann2_id = resp.data['id']
         
         # Update (PATCH)
-        resp = self.client.patch(f"/api/annotations/{ann1_id}/", {"score_delta": 3}, format='json')
+        resp = self.client.patch(
+            f"/api/grading/annotations/{ann1_id}/",
+            {"score_delta": 3},
+            format='json',
+            HTTP_X_LOCK_TOKEN=str(lock_token),
+        )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data['score_delta'], 3)
         
         # Delete
-        resp = self.client.delete(f"/api/annotations/{ann2_id}/")
+        resp = self.client.delete(
+            f"/api/grading/annotations/{ann2_id}/",
+            HTTP_X_LOCK_TOKEN=str(lock_token),
+        )
         self.assertEqual(resp.status_code, 204)
         self.assertEqual(Annotation.objects.count(), 1) # Only ann1 remains
         
         # Verify Lock enforcement (Cannot create annotation WITHOUT lock?) 
         # Release lock
-        resp = self.client.delete(f"/api/copies/{copy_id}/lock/release/")
+        resp = self.client.delete(
+            f"/api/grading/copies/{copy_id}/lock/release/",
+            HTTP_X_LOCK_TOKEN=str(lock_token),
+        )
         self.assertEqual(resp.status_code, 204)
         
         # Now try to annotate -> Should fail 403 (Write Requires Lock)
-        resp = self.client.post(f"/api/copies/{copy_id}/annotations/", ann_data, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy_id}/annotations/", ann_data, format='json')
         self.assertEqual(resp.status_code, 403)
         
         # Re-acquire lock for Finalize?
-        # Assuming finalize needs LOCKED: I'll manually set it here as a workaround or logic check
-        copy.status = Copy.Status.LOCKED
-        copy.save()
+        resp = self.client.post(f"/api/grading/copies/{copy_id}/lock/", {}, format='json')
+        self.assertIn(resp.status_code, [200, 201])
+        lock_token = resp.data["token"]
         
         # 4. FINALIZE
-        resp = self.client.post(f"/api/copies/{copy_id}/finalize/", {}, format='json')
+        import unittest.mock
+        with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
+            mock_flatten.return_value = b"%PDF-1.4\n%%EOF"
+            resp = self.client.post(
+                f"/api/grading/copies/{copy_id}/finalize/",
+                {},
+                format='json',
+                HTTP_X_LOCK_TOKEN=str(lock_token),
+            )
         self.assertEqual(resp.status_code, 200)
         copy.refresh_from_db()
         self.assertEqual(copy.status, Copy.Status.GRADED)
@@ -118,7 +167,7 @@ class TestWorkflowComplete(TransactionTestCase):
         self.assertGreater(copy.final_pdf.size, 0)
         copy.final_pdf.close()
 
-        url = f"/api/copies/{copy_id}/final-pdf/"
+        url = f"/api/grading/copies/{copy_id}/final-pdf/"
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp['Content-Type'], 'application/pdf')
@@ -149,17 +198,18 @@ class TestWorkflowComplete(TransactionTestCase):
 
 
     def test_workflow_import_corrupted_rollback(self):
-        self.client.force_authenticate(user=self.teacher)
-        
+        # Use admin for import (requires IsAdminOnly permission)
+        self.client.force_login(self.admin)
+
         pdf_path = os.path.join(FIXTURES_DIR, "copy_corrupted.pdf")
-        
+
         with open(pdf_path, 'rb') as f:
             resp = self.client.post(
                 f"/api/exams/{self.exam.id}/copies/import/",
                 {'pdf_file': f},
                 format='multipart'
             )
-        
+
         self.assertIn(resp.status_code, [400, 500])
         self.assertEqual(Copy.objects.count(), 0)
         self.assertEqual(Booklet.objects.count(), 0)
@@ -179,13 +229,13 @@ class TestWorkflowComplete(TransactionTestCase):
             "page_index": 0, "x": 0.1, "y": 0.1, "w": 0.1, "h": 0.1,
             "type": Annotation.Type.COMMENT, "content": "Hacker"
         }
-        resp = self.client.post(f"/api/copies/{copy.id}/annotations/", ann_data, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy.id}/annotations/", ann_data, format='json')
         self.assertEqual(resp.status_code, 403)
         
         # 3. LOCK denied
-        resp = self.client.post(f"/api/copies/{copy.id}/lock/", {}, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy.id}/lock/", {}, format='json')
         self.assertEqual(resp.status_code, 403)
         
         # 4. FINALIZE denied
-        resp = self.client.post(f"/api/copies/{copy.id}/finalize/", {}, format='json')
+        resp = self.client.post(f"/api/grading/copies/{copy.id}/finalize/", {}, format='json')
         self.assertEqual(resp.status_code, 403)

@@ -1,5 +1,7 @@
 from rest_framework import permissions
-from .models import CopyLock, Copy
+from django.utils import timezone
+from .models import CopyLock
+from exams.models import Copy
 
 class IsLockedByOwnerOrReadOnly(permissions.BasePermission):
     """
@@ -27,14 +29,13 @@ class IsLockedByOwnerOrReadOnly(permissions.BasePermission):
         # Check Lock
         try:
             lock = copy.lock
-            # Check expiration (lazy check)
-            # logic here mimics views_lock but ideally we call a service
-            # For simplicity:
+            if lock.expires_at < timezone.now():
+                return False
             if lock.owner == request.user:
                 return True
             else:
                 return False # Locked by other
-        except Copy.DoesNotExist: # Should be CopyLock.DoesNotExist but accessed via reverse relation
+        except CopyLock.DoesNotExist:
              # No lock exists. 
              # VOIE C3: Write requires lock?
              # User spec: "Toute opération d’écriture sur une copie DOIT exiger un lock détenu par l’utilisateur."

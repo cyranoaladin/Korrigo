@@ -89,6 +89,26 @@ const getTotalPoints = (nodes) => {
   return nodes.reduce((sum, node) => sum + getNodePoints(node), 0)
 }
 
+const addChild = (index) => {
+    const currentNode = props.modelValue[index]
+    const isFirstChild = !currentNode.children || currentNode.children.length === 0
+    
+    // If it's the first child, inherit the parent's points to preserve total
+    // Otherwise 0
+    const initialPoints = isFirstChild ? currentNode.points : 0
+    
+    const newChild = {
+        id: generateId(),
+        label: 'Question',
+        points: initialPoints,
+        points_backup: 0,
+        children: []
+    }
+    
+    const newChildren = [...(currentNode.children || []), newChild]
+    updateChildren(index, newChildren)
+}
+
 const totalPoints = computed(() => getTotalPoints(props.modelValue))
 
 </script>
@@ -148,13 +168,7 @@ const totalPoints = computed(() => getTotalPoints(props.modelValue))
             v-if="level < 2" 
             class="btn-icon add-child"
             title="Ajouter une sous-question"
-            @click="updateChildren(nodeIdx, [...(node.children || []), { 
-              id: generateId(),
-              label: 'Question', 
-              points: 0, 
-              points_backup: 0,
-              children: []
-            }])"
+            @click="addChild(nodeIdx)"
           >
             +
           </button>
@@ -294,5 +308,50 @@ const totalPoints = computed(() => getTotalPoints(props.modelValue))
 }
 .sub-actions {
   margin-left: 20px;
+}
+
+/* Missing classes added */
+.node-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.points-input input {
+  width: 60px;
+  padding: 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  text-align: right;
+  font-weight: 500;
+}
+
+.btn-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: bold;
+}
+
+.add-child {
+  background: #e0e7ff;
+  color: #4f46e5;
+}
+.add-child:hover {
+  background: #c7d2fe;
+}
+
+.delete {
+  background: #fee2e2;
+  color: #ef4444;
+}
+.delete:hover {
+  background: #fecaca;
 }
 </style>

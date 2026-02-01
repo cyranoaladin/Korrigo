@@ -8,7 +8,10 @@ from grading.views import (
     CopyFinalizeView,
     CopyReadyView,
     CopyFinalPdfView,
-    CopyAuditView
+    CopyAuditView,
+    QuestionRemarkListCreateView,
+    QuestionRemarkDetailView,
+    CopyGlobalAppreciationView
 )
 from grading.views_lock import (
     LockAcquireView,
@@ -17,6 +20,7 @@ from grading.views_lock import (
     LockStatusView
 )
 from grading.views_draft import DraftReturnView
+from grading.views_async import task_status, cancel_task
 
 urlpatterns = [
     # Drafts
@@ -35,6 +39,17 @@ urlpatterns = [
     path('copies/<uuid:id>/finalize/', CopyFinalizeView.as_view(), name='copy-finalize'),
     path('copies/<uuid:id>/final-pdf/', CopyFinalPdfView.as_view(), name='copy-final-pdf'),
     
+    # Async Task Status (P0-OP-03)
+    path('tasks/<str:task_id>/', task_status, name='task-status'),
+    path('tasks/<str:task_id>/cancel/', cancel_task, name='task-cancel'),
+    
     # Audit
     path('copies/<uuid:id>/audit/', CopyAuditView.as_view(), name='copy-audit'),
+    
+    # Question Remarks
+    path('copies/<uuid:copy_id>/remarks/', QuestionRemarkListCreateView.as_view(), name='question-remark-list-create'),
+    path('remarks/<uuid:pk>/', QuestionRemarkDetailView.as_view(), name='question-remark-detail'),
+    
+    # Global Appreciation
+    path('copies/<uuid:copy_id>/global-appreciation/', CopyGlobalAppreciationView.as_view(), name='copy-global-appreciation'),
 ]

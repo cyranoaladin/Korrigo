@@ -7,7 +7,7 @@ Ce projet permet aux établissements scolaires de numériser leur flux de correc
 
 ## 🏗 Architecture Technique
 Le projet repose sur une stack robuste et conteneurisée :
-*   **Backend** : Django 5 (Python 3.11) + Django REST Framework.
+*   **Backend** : Django 4.2 (Python 3.9) + Django REST Framework.
 *   **Frontend** : Vue.js 3 (Composition API) + Pinia + Vite.
 *   **Base de Données** : PostgreSQL 15.
 *   **Files de Tâches** : Redis + Celery (pour le traitement d'images asynchrone).
@@ -55,6 +55,59 @@ Pour vérifier que tout fonctionne correctement (Tests E2E inclus) :
 ```bash
 make test
 ```
+
+## 📚 Documentation
+
+Korrigo dispose d'une documentation exhaustive couvrant tous les aspects du système : administratif, utilisateur, technique, légal et sécurité.
+
+### 📖 Accès à la Documentation
+
+**👉 [INDEX PRINCIPAL DE LA DOCUMENTATION](docs/INDEX.md)** - Point d'entrée unique pour toute la documentation
+
+### Documentation par Public
+
+#### 🏫 **Direction et Administration du Lycée**
+- [Guide Administrateur Lycée](docs/admin/GUIDE_ADMINISTRATEUR_LYCEE.md) - Vue d'ensemble exécutive (non-technique)
+- [Guide Utilisateur Admin](docs/admin/GUIDE_UTILISATEUR_ADMIN.md) - Manuel administrateur technique
+- [Gestion des Utilisateurs](docs/admin/GESTION_UTILISATEURS.md) - Procédures de gestion des comptes
+- [Procédures Opérationnelles](docs/admin/PROCEDURES_OPERATIONNELLES.md) - Opérations quotidiennes
+
+#### 👥 **Utilisateurs de la Plateforme**
+- [Guide Enseignant](docs/users/GUIDE_ENSEIGNANT.md) - Workflow de correction pour enseignants
+- [Guide Secrétariat](docs/users/GUIDE_SECRETARIAT.md) - Identification et gestion des copies
+- [Guide Étudiant](docs/users/GUIDE_ETUDIANT.md) - Consultation des copies corrigées
+- [Navigation UI](docs/users/NAVIGATION_UI.md) - Référence complète de l'interface
+
+#### 🔒 **Sécurité et Conformité**
+- [Politique RGPD](docs/security/POLITIQUE_RGPD.md) - Conformité RGPD/CNIL complète
+- [Manuel de Sécurité](docs/security/MANUEL_SECURITE.md) - Sécurité technique
+- [Gestion des Données](docs/security/GESTION_DONNEES.md) - Cycle de vie des données
+- [Audit de Conformité](docs/security/AUDIT_CONFORMITE.md) - Procédures d'audit
+
+#### ⚖️ **Documentation Légale**
+- [Politique de Confidentialité](docs/legal/POLITIQUE_CONFIDENTIALITE.md) - Politique utilisateur
+- [Conditions d'Utilisation](docs/legal/CONDITIONS_UTILISATION.md) - CGU de la plateforme
+- [Accord de Traitement des Données](docs/legal/ACCORD_TRAITEMENT_DONNEES.md) - DPA contractuel
+- [Formulaires de Consentement](docs/legal/FORMULAIRES_CONSENTEMENT.md) - Modèles de consentement
+
+#### 🆘 **Support et Assistance**
+- [FAQ](docs/support/FAQ.md) - Questions fréquentes par rôle
+- [Dépannage](docs/support/DEPANNAGE.md) - Guide de résolution de problèmes
+- [Support](docs/support/SUPPORT.md) - Procédures de support
+
+#### 🔧 **Documentation Technique (Développeurs)**
+- [Architecture](docs/ARCHITECTURE.md) - Architecture technique du système
+- [API Reference](docs/API_REFERENCE.md) - Documentation complète de l'API REST
+- [Database Schema](docs/DATABASE_SCHEMA.md) - Schéma PostgreSQL
+- [Business Workflows](docs/BUSINESS_WORKFLOWS.md) - Workflows métier
+- [Development Guide](docs/DEVELOPMENT_GUIDE.md) - Guide de développement local
+- [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) - Guide de déploiement
+
+### 🚀 Démarrage Rapide Documentation
+
+**Nouveau sur Korrigo ?** Consultez le [Guide de Navigation Rapide](docs/INDEX.md#-guide-de-navigation-rapide) dans l'index principal.
+
+**Mise en Production ?** Voir la [Checklist de Conformité](docs/INDEX.md#-documents-requis-pour-mise-en-production).
 
 ## 📜 Crédits & Attribution
 **Concepteur** : Aleddine BEN RHOUMA — Labo Maths ERT

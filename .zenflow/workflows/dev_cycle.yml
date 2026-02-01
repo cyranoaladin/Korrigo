@@ -1,0 +1,3 @@
+workflows:
+  feature_development:
+    steps: ["analysis", "spec_check", "direct_implementation", "testing"]

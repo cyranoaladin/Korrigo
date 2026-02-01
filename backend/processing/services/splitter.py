@@ -7,10 +7,19 @@ class A3Splitter:
     """
     Service responsable du découpage des scans A3 en pages individuelles A4
     et de la reconstruction de l'ordre logique des pages (Recto/Verso).
+    
+    ZF-AUD-04 FIX: Added deskew pre-processing and margin tolerance.
     """
 
-    def __init__(self):
+    def __init__(self, split_tolerance=0.02, deskew_enabled=True):
+        """
+        Args:
+            split_tolerance (float): Tolerance for split point (default 2% of width)
+            deskew_enabled (bool): Enable automatic deskew correction
+        """
         self.detector = HeaderDetector()
+        self.split_tolerance = split_tolerance
+        self.deskew_enabled = deskew_enabled
 
     def process_scan(self, image_path: str):
         """
@@ -31,34 +40,47 @@ class A3Splitter:
         if image is None:
             raise ValueError(_("Impossible de lire l'image : ") + image_path)
 
-        height, width, _ = image.shape
+        # ZF-AUD-04 FIX: Apply deskew correction if enabled
+        if self.deskew_enabled:
+            image = self._deskew_image(image)
+
+        height, width, channels = image.shape
         
-        # Découpage vertical strict à 50%
-        mid_x = width // 2
+        # Patch C: Functional Split with tempfile
+        import tempfile
+        import os
+
+        # ZF-AUD-04 FIX: Smart split with edge detection for better accuracy
+        mid_x = self._find_split_point(image, width)
         left_crop = image[:, :mid_x]
         right_crop = image[:, mid_x:]
 
-        # Sauvegarde temporaire pour la détection (HeaderDetector attend un chemin)
-        # Optimisation: HeaderDetector pourrait accepter un ndarray directement.
-        # Pour ce MVP, on suppose que HeaderDetector a été refactorisé ou on garde l'API path.
-        # Modifions HeaderDetector pour accepter une image en mémoire si on pouvait, 
-        # mais respectons l'interface existante. Hack: sauvegarder temp.
+        # Create localized temp file for detection
+        # We need check right crop for Header
+        fd, temp_path = tempfile.mkstemp(suffix=".jpg")
+        os.close(fd) # Close handle so cv2 can write
         
-        # Pour l'instant on réimplémente une logique simple ou on mock.
-        # Utilisons la logique "Right Half has Header => Recto"
-        
-        # Simuler la détection sur la partie DROITE
-        # En prod, on passerait right_crop à detector.detect_header_from_array(right_crop)
-        
-        # Placeholder logic: On assume que create_temp_file est géré ailleurs. 
-        # Ici on retourne les crops.
-        
-        return {
-            'left': left_crop,
-            'right': right_crop,
-            'width': width,
-            'height': height
-        }
+        try:
+             # Logic is delegated to determine_scan_type_and_order
+             # which writes to temp_path and calls detector
+             result = self.determine_scan_type_and_order(left_crop, right_crop, temp_path)
+             
+             # Enrich result with crops if needed by caller (optional but good for debug)
+             # But the contract says 'type' + 'pages'
+             result['has_header'] = (result['type'] == 'RECTO')
+             return result
+             
+        except Exception as e:
+             # Fallback
+             return {
+                 'type': 'UNKNOWN',
+                 'left': left_crop,
+                 'right': right_crop,
+                 'error': str(e)
+             }
+        finally:
+             if os.path.exists(temp_path):
+                 os.unlink(temp_path)
 
     def determine_scan_type_and_order(self, left_img, right_img, temp_right_path: str) -> dict:
         """
@@ -115,3 +137,99 @@ class A3Splitter:
             verso_data['pages']['p3'], # Page 3
             recto_data['pages']['p4']  # Page 4
         ]
+
+    def _deskew_image(self, image: np.ndarray) -> np.ndarray:
+        """
+        ZF-AUD-04 FIX: Correct skew/rotation in scanned images.
+        Uses Hough line detection to find dominant angle and rotate.
+        
+        Args:
+            image: Input BGR image
+            
+        Returns:
+            Deskewed image (or original if angle < 0.5 degrees)
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+            
+            lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=100,
+                                     minLineLength=100, maxLineGap=10)
+            
+            if lines is None or len(lines) == 0:
+                return image
+            
+            angles = []
+            for line in lines:
+                x1, y1, x2, y2 = line[0]
+                if x2 - x1 != 0:
+                    angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
+                    if abs(angle) < 45:
+                        angles.append(angle)
+            
+            if not angles:
+                return image
+            
+            median_angle = np.median(angles)
+            
+            if abs(median_angle) < 0.5:
+                return image
+            
+            logger.info(f"Deskew: correcting {median_angle:.2f} degrees rotation")
+            
+            height, width = image.shape[:2]
+            center = (width // 2, height // 2)
+            rotation_matrix = cv2.getRotationMatrix2D(center, median_angle, 1.0)
+            rotated = cv2.warpAffine(image, rotation_matrix, (width, height),
+                                      flags=cv2.INTER_LINEAR,
+                                      borderMode=cv2.BORDER_REPLICATE)
+            return rotated
+            
+        except Exception as e:
+            logger.warning(f"Deskew failed, using original: {e}")
+            return image
+
+    def _find_split_point(self, image: np.ndarray, width: int) -> int:
+        """
+        ZF-AUD-04 FIX: Find optimal split point with tolerance for offset scans.
+        Looks for vertical edge/fold line near center.
+        
+        Args:
+            image: Input BGR image
+            width: Image width
+            
+        Returns:
+            X coordinate for split (defaults to width//2 if no edge found)
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        mid_x = width // 2
+        tolerance_px = int(width * self.split_tolerance)
+        
+        try:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            
+            search_region = gray[:, mid_x - tolerance_px:mid_x + tolerance_px]
+            
+            sobel_x = cv2.Sobel(search_region, cv2.CV_64F, 1, 0, ksize=3)
+            sobel_x = np.abs(sobel_x)
+            
+            col_sums = np.sum(sobel_x, axis=0)
+            
+            if len(col_sums) > 0:
+                best_offset = np.argmax(col_sums)
+                split_x = mid_x - tolerance_px + best_offset
+                
+                if abs(split_x - mid_x) > tolerance_px // 2:
+                    logger.info(f"Split point adjusted: {mid_x} -> {split_x}")
+                    return split_x
+            
+            return mid_x
+            
+        except Exception as e:
+            logger.warning(f"Smart split failed, using center: {e}")
+            return mid_x

@@ -1,19 +1,64 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
 import uuid
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
+from .validators import (
+    validate_pdf_size,
+    validate_pdf_not_empty,
+    validate_pdf_mime_type,
+    validate_pdf_integrity,
+)
 
 class Exam(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, verbose_name=_("Nom de l'examen"))
     date = models.DateField(verbose_name=_("Date de l'examen"))
-    pdf_source = models.FileField(upload_to='exams/source/', verbose_name=_("Fichier PDF source"), blank=True, null=True)
+    pdf_source = models.FileField(
+        upload_to='exams/source/',
+        verbose_name=_("Fichier PDF source"),
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=['pdf']),
+            validate_pdf_size,
+            validate_pdf_not_empty,
+            validate_pdf_mime_type,
+            validate_pdf_integrity,
+        ],
+        help_text=_("Fichier PDF uniquement. Taille max: 50 MB, 500 pages max")
+    )
+    pages_per_booklet = models.PositiveIntegerField(
+        default=4,
+        verbose_name=_("Pages par fascicule"),
+        help_text=_("Nombre de pages par copie/fascicule pour le découpage automatique.")
+    )
     grading_structure = models.JSONField(default=list, blank=True, verbose_name=_("Barème (Structure JSON)"))
     is_processed = models.BooleanField(default=False, verbose_name=_("Traité ?"))
+    
+    # Mission 24: Assigned Correctors
+    correctors = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='assigned_exams',
+        verbose_name=_("Correcteurs assignés"),
+        blank=True
+    )
 
     class Meta:
         verbose_name = _("Examen")
         verbose_name_plural = _("Examens")
+
+    def __init__(self, *args, **kwargs):
+        if "title" in kwargs and "name" not in kwargs:
+            kwargs["name"] = kwargs.pop("title")
+        kwargs.pop("created_by", None)
+        # P0-DI-006 FIX: Only set default date if not loading from DB
+        # When loading from DB, Django passes field values via *args
+        # Adding date to kwargs would cause "positional and keyword" conflict
+        if not args and "date" not in kwargs:
+            kwargs["date"] = timezone.now().date()
+        super().__init__(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -26,7 +71,7 @@ class Booklet(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(
         Exam, 
-        on_delete=models.CASCADE, 
+        on_delete=models.PROTECT,  # P0-DI-005 FIX: Prevent accidental deletion of booklets
         related_name='booklets',
         verbose_name=_("Examen")
     )
@@ -67,12 +112,14 @@ class Copy(models.Model):
         STAGING = 'STAGING', _("En attente")
         READY = 'READY', _("Prêt à corriger")
         LOCKED = 'LOCKED', _("Verrouillé")
+        GRADING_IN_PROGRESS = 'GRADING_IN_PROGRESS', _("Correction en cours")
+        GRADING_FAILED = 'GRADING_FAILED', _("Échec de correction")
         GRADED = 'GRADED', _("Corrigé")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(
         Exam, 
-        on_delete=models.CASCADE, 
+        on_delete=models.PROTECT,  # P0-DI-005 FIX: Prevent catastrophic deletion of all student data
         related_name='copies',
         verbose_name=_("Examen")
     )
@@ -96,7 +143,15 @@ class Copy(models.Model):
         upload_to='copies/source/',
         verbose_name=_("Fichier PDF source"),
         blank=True,
-        null=True
+        null=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=['pdf']),
+            validate_pdf_size,
+            validate_pdf_not_empty,
+            validate_pdf_mime_type,
+            validate_pdf_integrity,
+        ],
+        help_text=_("Fichier PDF uniquement. Taille max: 50 MB, 500 pages max")
     )
     status = models.CharField(
         max_length=20, 
@@ -128,12 +183,47 @@ class Copy(models.Model):
         help_text=_("Vrai si la copie a été associée à un élève.")
     )
 
+    # Dispatch fields for copy assignment
+    assigned_corrector = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_copies',
+        verbose_name=_("Correcteur assigné")
+    )
+    dispatch_run_id = models.UUIDField(
+        null=True,
+        blank=True,
+        verbose_name=_("ID d'exécution du dispatch"),
+        help_text=_("UUID généré lors du dispatch pour traçabilité")
+    )
+    assigned_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Date d'assignation"),
+        help_text=_("Timestamp de l'assignation au correcteur")
+    )
+
     # Traçabilité (ADR-003)
     validated_at = models.DateTimeField(
         null=True,
         blank=True,
         verbose_name=_("Date de validation"),
         help_text=_("Timestamp STAGING → READY")
+    )
+    
+    # P0-DI-004: Error tracking for failed grading operations
+    grading_error_message = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name=_("Message d'erreur de correction"),
+        help_text=_("Détails de l'erreur si la correction échoue")
+    )
+    grading_retries = models.IntegerField(
+        default=0,
+        verbose_name=_("Nombre de tentatives"),
+        help_text=_("Nombre de tentatives de correction automatique")
     )
     locked_at = models.DateTimeField(
         null=True,
@@ -155,10 +245,24 @@ class Copy(models.Model):
         verbose_name=_("Date de notation"),
         help_text=_("Timestamp LOCKED → GRADED")
     )
+    
+    # Global appreciation for the copy
+    global_appreciation = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_("Appréciation globale"),
+        help_text=_("Commentaire global du correcteur pour cette copie")
+    )
 
     class Meta:
         verbose_name = _("Copie")
         verbose_name_plural = _("Copies")
+        # ZF-AUD-13: Performance indexes for common queries
+        indexes = [
+            models.Index(fields=['exam', 'status'], name='copy_exam_status_idx'),
+            models.Index(fields=['assigned_corrector', 'status'], name='copy_corrector_status_idx'),
+            models.Index(fields=['student', 'status'], name='copy_student_status_idx'),
+        ]
 
     def __str__(self):
         return f"Copie {self.anonymous_id} ({self.get_status_display()})"
