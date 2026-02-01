@@ -93,9 +93,12 @@ def mock_media(settings):
     """
     Automatically override MEDIA_ROOT for all tests to use a temporary directory.
     Cleans up after tests finish.
+    
+    Worker isolation: each xdist worker gets its own media directory.
     """
-    # Create temp directory
-    temp_media_root = tempfile.mkdtemp(prefix="korrigo_test_media_")
+    import os
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER", "master")
+    temp_media_root = tempfile.mkdtemp(prefix=f"korrigo_test_media_{worker_id}_")
     settings.MEDIA_ROOT = temp_media_root
     
     yield temp_media_root

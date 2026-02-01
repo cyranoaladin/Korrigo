@@ -1,6 +1,7 @@
 import sys
 import os
 import warnings
+import logging
 
 """
 Test settings hardening:
@@ -29,6 +30,9 @@ except Exception:
 raw_suffix = os.environ.get("CI_NODE_INDEX") or os.environ.get("PYTEST_XDIST_WORKER") or "0"
 # Normalize suffix for CI/xdist (e.g., "gw0") and avoid unexpected chars
 DB_SUFFIX = "".join(ch for ch in str(raw_suffix) if ch.isalnum() or ch in "_").lower() or "0"
+
+logger = logging.getLogger(__name__)
+logger.info(f"[DB ISOLATION] Worker: {raw_suffix} → DB suffix: {DB_SUFFIX} → Test DB: test_viatique_{DB_SUFFIX}")
 
 DATABASES['default']['CONN_MAX_AGE'] = 0
 DATABASES['default']['TEST'] = {
