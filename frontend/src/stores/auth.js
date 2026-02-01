@@ -1,39 +1,41 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import api from '../services/api' // Import Axios instance
+import api from '../services/api'
+import { getErrorMessage } from '../utils/errorMessages'
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref(null)
     const isAuthenticated = computed(() => !!user.value)
     const mustChangePassword = computed(() => user.value?.must_change_password || false)
 
-    // Check if we are checking auth status
     const isChecking = ref(false)
-
-    // Note: api.defaults.baseURL handles the prefix now
+    const lastError = ref(null)
 
     async function login(username, password) {
+        lastError.value = null
         try {
             await api.post('/login/', { username, password })
-            await fetchUser() // Get User Data
+            await fetchUser()
             return true
         } catch (e) {
             console.error(e)
+            lastError.value = getErrorMessage(e)
             return false
         }
     }
 
     async function loginStudent(ine, lastName) {
+        lastError.value = null
         try {
             const res = await api.post('/students/login/', { ine, last_name: lastName })
             if (res.data) {
-                // Fetch student info explicitly
                 await fetchUser(true)
                 return true
             }
             return false
         } catch (e) {
             console.error(e)
+            lastError.value = getErrorMessage(e)
             return false
         }
     }
@@ -51,10 +53,8 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function fetchUser(preferStudent = false) {
         isChecking.value = true
+        lastError.value = null
         try {
-            // Strategy: Try /me/ (Standard User) first, UNLESS preferStudent is true
-            // Axios automatically uses baseURL (e.g. /api) and sends credentials
-
             if (!preferStudent) {
                 try {
                     const res = await api.get('/me/')
@@ -62,11 +62,9 @@ export const useAuthStore = defineStore('auth', () => {
                     user.value.role = user.value.role || 'Admin'
                     return
                 } catch {
-                    // Ignore error and fallthrough to student check if not preferred but standard failed
                 }
             }
 
-            // If failed or preferStudent, try student endpoint
             try {
                 const res = await api.get('/students/me/')
                 user.value = { ...res.data, role: 'Student' }
@@ -75,6 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
             }
         } catch (e) {
             user.value = null
+            lastError.value = getErrorMessage(e)
         } finally {
             isChecking.value = false
         }
@@ -86,15 +85,21 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    function clearError() {
+        lastError.value = null
+    }
+
     return { 
         user, 
         isAuthenticated, 
         mustChangePassword, 
-        isChecking, 
+        isChecking,
+        lastError,
         login, 
         loginStudent, 
         logout, 
         fetchUser,
-        clearMustChangePassword
+        clearMustChangePassword,
+        clearError
     }
 })
