@@ -151,7 +151,8 @@ python -m pytest backend/exams/tests/test_pronote_export.py::test_csv_generation
 
 ---
 
-### [ ] Step 5: Write Unit Tests for Service Layer
+### [x] Step 5: Write Unit Tests for Service Layer
+<!-- chat-id: a2fdd763-779e-44a0-bb82-87cd259e0d79 -->
 
 Create comprehensive unit tests for PronoteExporter.
 
