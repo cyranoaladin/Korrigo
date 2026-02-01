@@ -201,6 +201,7 @@ python -m py_compile backend/grading/metrics.py
 ```
 
 ### [ ] Step: Instrument Import and Finalize Services
+<!-- chat-id: 6a8bfa15-8eea-44ca-a47d-be921baa5f02 -->
 
 **Objective**: Add metrics recording to PDF import and finalization workflows
 

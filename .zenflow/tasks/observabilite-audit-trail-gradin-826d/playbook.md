@@ -1,1075 +1,1138 @@
-# Incident Response Playbook: Observability & Audit Trail
+# Incident Response Playbook - Grading System Observability
 
-**Task**: ZF-AUD-11  
+**Date**: 1 février 2026  
 **Version**: 1.0  
-**Date**: 31 janvier 2026  
-**Audience**: Operations Team, Production Support Engineers  
-**Related**: See `docs/support/DEPANNAGE.md` for general troubleshooting
+**Status**: Complete  
+**Audience**: Production Support, DevOps, SRE
 
 ---
 
-## Overview
+## Table of Contents
 
-This playbook provides diagnostic procedures for **observability and grading workflow** incidents in production. Each scenario follows a structured approach:
+1. [Introduction](#1-introduction)
+2. [Diagnostic Tools Reference](#2-diagnostic-tools-reference)
+3. [Scenario 1: Import Stuck](#3-scenario-1-import-stuck)
+4. [Scenario 2: Finalization Failing](#4-scenario-2-finalization-failing)
+5. [Scenario 3: Lock Conflicts](#5-scenario-3-lock-conflicts)
+6. [Scenario 4: High Latency](#6-scenario-4-high-latency)
+7. [Scenario 5: Missing Audit Events](#7-scenario-5-missing-audit-events)
+8. [Escalation Paths](#8-escalation-paths)
 
-1. **Symptoms**: How the issue manifests  
-2. **Diagnosis**: Steps to identify root cause  
-3. **Root Causes**: Likely explanations  
-4. **Actions**: Remediation steps
+---
 
-**Pre-requisites**:
+## 1. Introduction
+
+### 1.1 Purpose
+
+This playbook provides step-by-step diagnostic procedures for common production incidents in the grading system. Each scenario follows a consistent structure:
+
+- **Symptoms**: Observable indicators reported by users or monitoring
+- **Diagnosis**: Step-by-step investigation commands
+- **Root Causes**: Common underlying issues
+- **Actions**: Remediation steps and preventive measures
+
+### 1.2 Prerequisites
+
+**Access Required**:
 - SSH access to production server
-- Docker access: `docker-compose exec backend <command>`
-- Database access: `docker-compose exec db psql -U postgres -d viatique`
-- Prometheus access: `http://<server>:9090` (if configured)
+- Database read access (PostgreSQL)
+- Log file access (`/path/to/backend/logs/`)
+- Prometheus metrics endpoint (`http://localhost:8088/metrics`)
+- Celery worker management (systemctl or supervisor)
 
-**Key Infrastructure**:
-- **Logs**: `logs/django.log`, `logs/audit.log` (JSON format in production)
-- **Metrics**: `/metrics` endpoint (Prometheus format)
-- **Audit Trail**: `GradingEvent` table in database
-- **Celery**: Redis broker, background workers for PDF operations
+**Tools Required**:
+- `grep`, `jq` for log analysis
+- `psql` or Django shell for database queries
+- `curl` for metrics scraping
+- `celery` CLI for queue inspection
+
+### 1.3 Log Correlation
+
+All logs include a **request_id** (UUID) for correlation:
+
+```json
+{
+  "timestamp": "2026-02-01T14:30:45.123Z",
+  "level": "INFO",
+  "logger": "grading",
+  "message": "Starting async finalization for copy...",
+  "request_id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+  "user_id": 42
+}
+```
+
+Use `request_id` to trace a request from HTTP entry → service layer → Celery task.
 
 ---
 
-## Scenario 1: Import Stuck (PDF Not Processing)
+## 2. Diagnostic Tools Reference
 
-### 1.1 Symptoms
+### 2.1 Log Files
 
-- User uploads PDF, but copy remains in `STAGING` status indefinitely
-- No pages generated in `booklet.pages_images` field
-- Copy status never progresses to `READY`
-- Frontend shows "Processing..." spinner forever
+| File | Content | Rotation |
+|------|---------|----------|
+| `logs/django.log` | General application logs (grading, processing, exams) | 10MB × 10 backups |
+| `logs/audit.log` | Audit trail (GradingEvent creation) | 10MB × 10 backups |
 
-### 1.2 Diagnosis Steps
+**Log Format**:
+- **Development**: Human-readable verbose format
+- **Production**: Structured JSON (ViatiqueJSONFormatter)
 
-**Step 1: Check Celery Queue Status**
+### 2.2 Database Tables
+
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `grading_gradingevent` | Audit trail of workflow actions | `copy_id`, `action`, `timestamp`, `metadata` |
+| `exams_copy` | Copy state and status | `id`, `status`, `anonymous_id`, `final_score` |
+| `grading_copylock` | Active locks on copies | `copy_id`, `locked_by_id`, `expires_at`, `token` |
+| `grading_annotation` | Annotations on copies | `copy_id`, `page`, `score` |
+
+### 2.3 Prometheus Metrics
+
+**Current Metrics** (HTTP-level):
+- `http_requests_total{method, path, status}`
+- `http_request_duration_seconds{method, path}`
+- Process metrics (CPU, memory, GC)
+
+**Missing Metrics** (domain-specific - see audit.md):
+- `grading_import_duration_seconds`
+- `grading_finalize_duration_seconds`
+- `grading_lock_conflicts_total`
+- `grading_copies_by_status`
+
+### 2.4 Celery Queues
+
+**Tasks**:
+- `grading.tasks.async_finalize_copy` - Background PDF finalization (3 retries)
+- `grading.tasks.async_import_pdf` - Background PDF rasterization
+
+**Inspection Commands**:
 ```bash
-# Connect to Redis (Celery broker)
-docker-compose exec redis redis-cli
+# Check active tasks
+celery -A core inspect active
 
-# Check queue length
-LLEN celery
+# Check scheduled tasks
+celery -A core inspect scheduled
 
-# Expected: 0 or low number (<10)
-# If high (>100), workers are backed up
+# Check registered tasks
+celery -A core inspect registered
 
-# Check for stuck tasks
-KEYS celery-task-meta-*
-# Shows pending task IDs
-
-# Exit Redis
-exit
-```
-
-**Step 2: Check Celery Worker Health**
-```bash
-# Verify Celery workers are running
-docker-compose ps celery
-
-# Expected: "Up" status
-# If "Exit" or "Restarting", worker crashed
-
-# Check worker logs
-docker-compose logs --tail=100 celery | grep -i "import\|error\|exception"
-
-# Look for:
-# - "Async PDF import failed" (line pattern from tasks.py:139)
-# - "FileNotFoundError: PDF file not found"
-# - "Rasterization failed"
-```
-
-**Step 3: Check Audit Trail for Import Event**
-```bash
-# Connect to database
-docker-compose exec db psql -U postgres -d viatique
-
-# Query GradingEvent for this copy
-SELECT action, timestamp, metadata 
-FROM grading_gradingevent 
-WHERE copy_id = '<copy_uuid>' 
-ORDER BY timestamp;
-
-# Expected: IMPORT event with metadata {"filename": "...", "pages": N}
-# If missing, import never started or failed before event creation
-```
-
-**Step 4: Check Application Logs**
-```bash
-# Search logs for copy UUID
-docker-compose logs backend | grep "<copy_uuid>"
-
-# Look for:
-# - "Starting async PDF import for exam..."
-# - "Import failed for copy..."
-# - "Rasterization failed: ..."
-
-# Check for OCR/PyMuPDF errors
-docker-compose logs backend | grep -i "pymupdf\|fitz\|rasterization"
-```
-
-**Step 5: Verify Disk Space**
-```bash
-# Check available disk space
-df -h
-
-# Expected: >10% free on /opt/korrigo volume
-# If <5%, disk full may block PDF operations
-
-# Check temp upload directory
-du -sh /opt/korrigo/media/temp_uploads/
-
-# If >1GB, orphaned files from failed uploads
-```
-
-### 1.3 Root Causes
-
-| Cause | Evidence | Likelihood |
-|-------|----------|------------|
-| **Celery worker down** | `docker-compose ps celery` shows "Exit" | High |
-| **Corrupted PDF** | Logs show "FileDataError: invalid PDF" | Medium |
-| **OCR timeout** | Logs show "Rasterization timeout" or hung worker | Medium |
-| **Disk space exhausted** | `df -h` shows 0% available | Low |
-| **Redis connection lost** | Logs show "ConnectionError: Redis unavailable" | Low |
-
-### 1.4 Actions
-
-#### Action 1.1: Restart Celery Worker
-```bash
-# Restart Celery service
-docker-compose restart celery
-
-# Wait 10 seconds
-sleep 10
-
-# Verify worker is up
-docker-compose ps celery
-
-# Check logs for startup
-docker-compose logs --tail=50 celery
-
-# Expected: "celery@worker ready" message
-```
-
-#### Action 1.2: Retry Failed Import
-```bash
-# Connect to Django shell
-docker-compose exec backend python manage.py shell
-
-# Python code to retry import
-from exams.models import Copy
-from grading.tasks import async_import_pdf
-
-copy = Copy.objects.get(id='<copy_uuid>')
-# Trigger retry (if PDF still exists in temp directory)
-async_import_pdf.delay(
-    exam_id=str(copy.exam.id),
-    pdf_path=f"/path/to/temp/{copy.id}.pdf",
-    user_id=copy.created_by.id,
-    anonymous_id=copy.anonymous_id
-)
-
-# Exit shell
-exit()
-```
-
-**Alternative**: Re-upload PDF via API (if temp file lost)
-
-#### Action 1.3: Clean Up Orphaned Files
-```bash
-# Run cleanup task manually
-docker-compose exec backend python manage.py shell
-
-from grading.tasks import cleanup_orphaned_files
-result = cleanup_orphaned_files()
-print(result)  # {'removed_count': N}
-
-exit()
-```
-
-#### Action 1.4: Add Disk Space (if exhausted)
-```bash
-# Remove old logs
-cd /opt/korrigo/logs
-ls -lh
-
-# Delete old rotated logs
-rm -f django.log.* audit.log.*
-
-# Or: Configure external log aggregation to reduce local storage
+# Purge queue (DANGER: use only in emergencies)
+celery -A core purge
 ```
 
 ---
 
-## Scenario 2: Finalization Failing (PDF Generation Errors)
-
-### 2.1 Symptoms
-
-- Copy status changes to `GRADING_FAILED`
-- `copy.grading_error_message` field contains error details
-- Multiple failed attempts visible in `GradingEvent` metadata
-- Frontend shows "Finalization failed, please retry"
-
-### 2.2 Diagnosis Steps
-
-**Step 1: Check Copy Status**
-```bash
-# Query database
-docker-compose exec db psql -U postgres -d viatique
-
-SELECT id, status, grading_retries, grading_error_message 
-FROM exams_copy 
-WHERE id = '<copy_uuid>';
-
-# Expected fields:
-# - status: GRADING_FAILED
-# - grading_retries: 1-3
-# - grading_error_message: <error details>
-```
-
-**Step 2: Check GradingEvent Metadata**
-```bash
-# Query audit trail
-SELECT action, timestamp, metadata 
-FROM grading_gradingevent 
-WHERE copy_id = '<copy_uuid>' AND action = 'FINALIZE'
-ORDER BY timestamp DESC 
-LIMIT 5;
-
-# Metadata should include:
-# - "final_score": null (if failed)
-# - "retries": N
-# - "success": false
-# - Potentially: "error": "<error message>"
-```
-
-**Step 3: Check Celery Task Logs**
-```bash
-# Search for finalization attempts
-docker-compose logs celery | grep "<copy_uuid>" | grep finalize
-
-# Look for:
-# - "Async finalization failed for copy... (attempt 1/3)"
-# - "PDF generation failed for copy..."
-# - "ValueError: Failed to generate final PDF: ..."
-```
-
-**Step 4: Check Application Logs for Details**
-```bash
-# Search backend logs with context
-docker-compose logs backend | grep -A 10 "PDF generation failed for copy <copy_uuid>"
-
-# Look for stack traces indicating:
-# - PyMuPDF errors (e.g., "fitz.EmptyFileError")
-# - Missing annotation data
-# - Invalid image paths
-# - Memory errors
-```
-
-**Step 5: Verify Annotations Exist**
-```bash
-# Query database
-docker-compose exec db psql -U postgres -d viatique
-
-SELECT COUNT(*) FROM grading_annotation WHERE copy_id = '<copy_uuid>';
-
-# Expected: >0 annotations
-# If 0, finalization may fail due to empty PDF generation
-```
-
-### 2.3 Root Causes
-
-| Cause | Evidence | Likelihood |
-|-------|----------|------------|
-| **PyMuPDF rendering error** | Logs show "fitz.EmptyFileError" or "PDF generation failed" | High |
-| **Missing page images** | Error message mentions "Image not found: ..." | Medium |
-| **Invalid annotation coordinates** | Logs show "Annotation out of bounds" or rendering crash | Medium |
-| **Memory exhaustion** | Logs show "MemoryError" or worker OOM killed | Low |
-| **Lock token expired** | Error message mentions "Invalid lock token" | Low |
-
-### 2.4 Actions
-
-#### Action 2.1: Inspect Error Message Details
-```bash
-# Get full error message
-docker-compose exec db psql -U postgres -d viatique
-
-SELECT grading_error_message FROM exams_copy WHERE id = '<copy_uuid>';
-
-# Error patterns:
-# - "Failed to generate final PDF: ..." → PyMuPDF issue
-# - "Image not found: ..." → Missing page file
-# - "Invalid lock token" → Lock expired (user must re-lock)
-```
-
-#### Action 2.2: Verify Page Images Exist
-```bash
-# Check media directory
-ls -la /opt/korrigo/media/copies/pages/<copy_uuid>/
-
-# Expected: PNG files (page_0.png, page_1.png, etc.)
-# If missing, rasterization failed (see Scenario 1)
-```
-
-#### Action 2.3: Retry Finalization Manually
-```bash
-# Connect to Django shell
-docker-compose exec backend python manage.py shell
-
-from exams.models import Copy
-from grading.services import GradingService
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
-copy = Copy.objects.get(id='<copy_uuid>')
-user = User.objects.get(id=<user_id>)  # Original user
-
-# Reset retry counter
-copy.grading_retries = 0
-copy.status = Copy.Status.LOCKED
-copy.save()
-
-# Retry finalization (synchronous, for debugging)
-try:
-    finalized = GradingService.finalize_copy(copy, user, lock_token=None)
-    print(f"Success: {finalized.status}")
-except Exception as e:
-    print(f"Failed: {e}")
-
-exit()
-```
-
-#### Action 2.4: Check for Critical Alert (Max Retries)
-```bash
-# Search logs for CRITICAL level
-docker-compose logs backend | grep "CRITICAL"
-
-# Look for:
-# - "Copy <copy_uuid> failed 3 times - manual intervention required"
-# This indicates max retries exceeded (action required: manual fix or escalation)
-```
-
-#### Action 2.5: Manual PDF Generation (Last Resort)
-```bash
-# If automatic finalization fails repeatedly:
-# 1. Export annotations as JSON
-# 2. Generate PDF manually using PyMuPDF CLI
-# 3. Upload final PDF via admin interface
-
-# Step 1: Export annotations
-docker-compose exec backend python manage.py dumpdata grading.annotation \
-  --pks=<annotation_ids> > annotations.json
-
-# Step 2: Generate PDF (requires custom script)
-# See: scripts/manual_pdf_generation.py (if available)
-
-# Step 3: Upload via Django Admin
-# http://<server>/admin/exams/copy/<copy_uuid>/change/
-# Upload final_pdf field manually
-```
-
----
-
-## Scenario 3: Lock Conflicts (Users Blocked from Editing)
+## 3. Scenario 1: Import Stuck
 
 ### 3.1 Symptoms
 
-- User sees "Copy is locked by another user" error
-- Cannot acquire lock even though no one is editing
-- Lock appears expired but not released
-- Frontend lock indicator shows "Locked by [User]"
+- User uploads PDF but copy remains in `STAGING` status
+- No pages appear in copy after several minutes
+- Import progress indicator stalled at 0%
 
-### 3.2 Diagnosis Steps
+### 3.2 Diagnosis
 
-**Step 1: Check Current Lock Status**
+**Step 1: Identify the affected copy**
+
 ```bash
-# Query database
-docker-compose exec db psql -U postgres -d viatique
+# Search logs for recent import attempts
+grep -E "import_pdf|IMPORT" logs/django.log | tail -50
 
-SELECT 
-    cl.copy_id,
-    cl.owner_id,
-    u.username AS owner_username,
-    cl.locked_at,
-    cl.expires_at,
-    NOW() AS current_time,
-    (cl.expires_at < NOW()) AS is_expired
-FROM grading_copylock cl
-JOIN auth_user u ON cl.owner_id = u.id
-WHERE cl.copy_id = '<copy_uuid>';
-
-# Expected:
-# - is_expired = true (lock should be released automatically)
-# - is_expired = false (lock still valid, another user editing)
+# Look for copy_id and user_id in the logs
 ```
 
-**Step 2: Check Lock Heartbeat Activity**
-```bash
-# Check recent lock events in audit trail
-docker-compose exec db psql -U postgres -d viatique
+**Step 2: Check copy status in database**
 
-SELECT action, actor_id, timestamp 
-FROM grading_gradingevent 
-WHERE copy_id = '<copy_uuid>' 
-  AND action IN ('LOCK', 'UNLOCK')
-ORDER BY timestamp DESC 
-LIMIT 10;
+```python
+# Django shell
+from exams.models import Copy
 
-# Pattern analysis:
-# - Multiple LOCKs without UNLOCKs → Browser crash (lock not released)
-# - Last LOCK timestamp old (>30 min) → Expired lock not cleaned
+copy = Copy.objects.get(id='<copy_id>')
+print(f"Status: {copy.status}")
+print(f"Booklets: {copy.booklets.count()}")
+print(f"Total pages: {sum(len(b.pages_images or []) for b in copy.booklets.all())}")
 ```
 
-**Step 3: Check Application Logs for Lock Conflicts**
-```bash
-# Search logs for lock-related errors
-docker-compose logs backend | grep -i "lock" | grep "<copy_uuid>"
+**Step 3: Check for IMPORT event**
 
-# Look for:
-# - "Copy <copy_uuid> already graded (concurrent finalization detected)"
-# - "OptimisticLockingException"
-# - Lock acquisition failures
+```python
+from grading.models import GradingEvent
+
+events = GradingEvent.objects.filter(
+    copy_id='<copy_id>',
+    action='IMPORT'
+).order_by('-timestamp')
+
+for event in events:
+    print(f"{event.timestamp} - {event.metadata}")
 ```
 
-**Step 4: Verify Lock Cleanup Mechanism**
+**Step 4: Check Celery task status**
+
 ```bash
-# Check if expired locks are cleaned automatically
-# (Should be handled by middleware or periodic task)
+# Check if async_import_pdf task is running or failed
+celery -A core inspect active | grep async_import_pdf
 
-docker-compose logs backend | grep "Expired lock" | tail -20
+# Check worker logs for exceptions
+grep "async_import_pdf" logs/django.log | grep -E "ERROR|CRITICAL"
+```
 
-# If no cleanup logs found, expired locks may accumulate
+**Step 5: Check for PDF processing errors**
+
+```bash
+# Search for OCR/rasterization errors
+grep -E "rasterize|OCR|PyMuPDF|fitz" logs/django.log | grep ERROR
+
+# Check for file permission issues
+grep -E "PermissionError|FileNotFoundError" logs/django.log
 ```
 
 ### 3.3 Root Causes
 
-| Cause | Evidence | Likelihood |
-|-------|----------|------------|
-| **Browser crash** | User closed browser without releasing lock | High |
-| **Lock timeout expired** | `expires_at < NOW()` but not cleaned | Medium |
-| **Heartbeat failure** | User lost connection, lock not renewed | Medium |
-| **Token mismatch** | User has lock but wrong token (session issue) | Low |
-| **Concurrent finalization** | Two users tried to finalize simultaneously | Low |
+| Root Cause | Indicators | Frequency |
+|------------|------------|-----------|
+| **Celery worker down** | No active tasks, worker not responding | Common |
+| **OCR timeout** | Task killed after 10+ minutes | Rare (large PDFs) |
+| **Corrupted PDF** | PyMuPDF exception in logs | Occasional |
+| **Disk space exhausted** | OSError in logs, /tmp full | Rare |
+| **Memory exhaustion** | Worker killed by OOM | Rare (very large PDFs) |
 
 ### 3.4 Actions
 
-#### Action 3.1: Force-Release Expired Lock
+**Action 1: Restart Celery worker** (if worker down)
+
 ```bash
-# Delete expired lock manually
-docker-compose exec db psql -U postgres -d viatique
+# Check worker status
+systemctl status celery-worker
+# or
+supervisorctl status celery
 
-DELETE FROM grading_copylock 
-WHERE copy_id = '<copy_uuid>' AND expires_at < NOW();
+# Restart worker
+sudo systemctl restart celery-worker
+# or
+supervisorctl restart celery
 
-# Affected rows: 1 (if lock was expired)
-# Affected rows: 0 (if lock still valid)
+# Verify worker is running
+celery -A core inspect ping
 ```
 
-#### Action 3.2: Check Lock Owner Identity
-```bash
-# Identify who holds the lock
-docker-compose exec db psql -U postgres -d viatique
+**Action 2: Retry import** (if task failed)
 
-SELECT u.username, u.email, cl.expires_at 
-FROM grading_copylock cl
-JOIN auth_user u ON cl.owner_id = u.id
-WHERE cl.copy_id = '<copy_uuid>';
+```python
+# Django shell
+from exams.models import Copy
+from grading.tasks import async_import_pdf
 
-# Contact user to ask if they're still editing
-# If unreachable, proceed with force-release (Action 3.3)
+copy = Copy.objects.get(id='<copy_id>')
+user_id = <user_id>
+
+# Re-trigger async import
+async_import_pdf.delay(copy_id=str(copy.id), user_id=user_id)
 ```
 
-#### Action 3.3: Force-Release Valid Lock (Emergency)
+**Action 3: Check disk space**
+
 ```bash
-# Only use if lock owner unreachable and urgent
-docker-compose exec db psql -U postgres -d viatique
-
-DELETE FROM grading_copylock WHERE copy_id = '<copy_uuid>';
-
-# WARNING: This may cause data loss if user was actively editing
-# Log this action for audit purposes
+df -h
+du -sh /tmp/*
+du -sh /var/lib/postgresql/*
 ```
 
-#### Action 3.4: Verify Lock Cleanup Configuration
+**Action 4: Validate PDF manually**
+
 ```bash
-# Check settings for lock expiration time
-docker-compose exec backend python manage.py shell
-
-from django.conf import settings
-# Check if LOCK_EXPIRATION setting exists (custom, not Django default)
-# Typical value: 1800 seconds (30 minutes)
-
-# If cleanup not working, consider adding periodic task
-from grading.models import CopyLock
-from django.utils import timezone
-
-# Manual cleanup script
-expired_locks = CopyLock.objects.filter(expires_at__lt=timezone.now())
-count = expired_locks.count()
-expired_locks.delete()
-print(f"Deleted {count} expired locks")
-
-exit()
+# Try to open PDF with PyMuPDF
+python3 << EOF
+import fitz
+doc = fitz.open('/path/to/uploaded/file.pdf')
+print(f"Pages: {doc.page_count}")
+doc.close()
+EOF
 ```
 
-#### Action 3.5: Monitor Lock Conflicts Metric (When Implemented)
-```bash
-# After Phase 2 (metrics implementation), check:
-curl http://localhost:8088/metrics | grep grading_lock_conflicts_total
-
-# Expected output:
-# grading_lock_conflicts_total{conflict_type="already_locked"} 5
-# grading_lock_conflicts_total{conflict_type="expired"} 12
-# grading_lock_conflicts_total{conflict_type="token_mismatch"} 1
-
-# High "already_locked" count → Users trying to edit simultaneously
-# High "expired" count → Cleanup mechanism not working properly
-```
+**Preventive Measures**:
+- Monitor Celery worker health (add heartbeat check)
+- Add timeout for OCR operations (configurable per exam)
+- Validate PDF on upload (page count, file size limits)
+- Implement `grading_import_duration_seconds` metric for alerting
 
 ---
 
-## Scenario 4: High Latency (Slow Response Times)
+## 4. Scenario 2: Finalization Failing
 
 ### 4.1 Symptoms
 
-- Requests take >5 seconds to complete
-- Frontend shows timeout errors (504 Gateway Timeout)
-- Slow page loads, laggy annotation rendering
-- Prometheus alerts fire for `http_request_duration_seconds` p95 > 5s
+- Copy status stuck in `LOCKED` after finalization attempt
+- User receives "Finalization failed" error
+- Final PDF not generated (`final_copy_pdf` field is null)
 
-### 4.2 Diagnosis Steps
+### 4.2 Diagnosis
 
-**Step 1: Check Prometheus HTTP Metrics**
-```bash
-# Query metrics endpoint
-curl http://localhost:8088/metrics | grep http_request_duration
+**Step 1: Check copy status and final PDF**
 
-# Look for high latency endpoints:
-# http_request_duration_seconds{method="POST",path="/api/copies/<uuid>/finalize/"} ...
-# High values (>5s) indicate slow operations
+```python
+# Django shell
+from exams.models import Copy
+
+copy = Copy.objects.get(id='<copy_id>')
+print(f"Status: {copy.status}")
+print(f"Final score: {copy.final_score}")
+print(f"Final PDF: {copy.final_copy_pdf}")
 ```
 
-**Step 2: Check Slow Request Logs**
-```bash
-# Search for slow request warnings
-docker-compose logs backend | grep "Slow request detected"
+**Step 2: Check FINALIZE events**
 
-# Example output:
-# "Slow request detected: POST /api/copies/.../finalize/ took 12.45s (status 200)"
+```python
+from grading.models import GradingEvent
 
-# Analyze patterns:
-# - Which endpoints are slow?
-# - What time of day? (peak usage)
-# - Specific users or all users?
+events = GradingEvent.objects.filter(
+    copy_id='<copy_id>',
+    action='FINALIZE'
+).order_by('-timestamp')
+
+for event in events:
+    metadata = event.metadata
+    print(f"{event.timestamp} - success: {metadata.get('success')}, retries: {metadata.get('retries')}")
+    if 'error' in metadata:
+        print(f"  Error: {metadata['error']}")
 ```
 
-**Step 3: Check Database Query Performance**
+**Step 3: Check finalization logs**
+
 ```bash
-# Connect to PostgreSQL
-docker-compose exec db psql -U postgres -d viatique
+# Search for finalization errors for specific copy
+grep "<copy_id>" logs/django.log | grep -E "finalize|FINALIZE" | tail -50
 
-# Enable query timing
-\timing on
-
-# Check active queries
-SELECT pid, now() - pg_stat_activity.query_start AS duration, query 
-FROM pg_stat_activity 
-WHERE state = 'active' AND query NOT LIKE '%pg_stat_activity%'
-ORDER BY duration DESC;
-
-# Look for long-running queries (>5s)
-# Common slow queries:
-# - SELECT with JOINs on large tables (Copy, Annotation)
-# - UPDATE with lock contention
-# - DELETE with cascading foreign keys
+# Look for PyMuPDF errors
+grep "finalize" logs/django.log | grep -E "ERROR|CRITICAL|exc_info"
 ```
 
-**Step 4: Check Database Lock Contention**
+**Step 4: Check Celery task retries**
+
 ```bash
-# Query database locks
-docker-compose exec db psql -U postgres -d viatique
+# Search for async_finalize_copy task
+grep "async_finalize_copy" logs/django.log | grep "<copy_id>"
 
-SELECT 
-    locktype, 
-    relation::regclass AS table_name, 
-    mode, 
-    COUNT(*) AS lock_count
-FROM pg_locks 
-GROUP BY locktype, relation, mode
-ORDER BY lock_count DESC 
-LIMIT 20;
-
-# High lock counts indicate contention
-# Common lock types:
-# - RowExclusiveLock (normal writes)
-# - AccessExclusiveLock (blocking all operations)
+# Check for retry attempts
+grep "attempt" logs/django.log | grep "<copy_id>"
 ```
 
-**Step 5: Check System Resources**
-```bash
-# Check CPU usage
-docker stats --no-stream
+**Step 5: Check lock status**
 
-# Expected:
-# - backend: <80% CPU
-# - celery: <50% CPU
-# - db: <70% CPU
+```python
+from grading.models import CopyLock
 
-# If any service >90% CPU, resource exhaustion
-
-# Check memory
-free -h
-
-# Expected: >1GB available
-# If <500MB, memory pressure may cause swapping
+try:
+    lock = CopyLock.objects.get(copy_id='<copy_id>')
+    print(f"Locked by: {lock.locked_by_id}")
+    print(f"Expires at: {lock.expires_at}")
+    print(f"Is expired: {lock.is_expired()}")
+except CopyLock.DoesNotExist:
+    print("No active lock")
 ```
 
 ### 4.3 Root Causes
 
-| Cause | Evidence | Likelihood |
-|-------|----------|------------|
-| **Database lock contention** | Multiple slow queries, high lock count | High |
-| **Large PDF processing** | Slow finalization for 50+ page copies | High |
-| **High concurrent load** | Many active queries, CPU >80% | Medium |
-| **Missing database indexes** | Full table scans in query plans | Low |
-| **Network issues** | High latency to external services (if any) | Low |
+| Root Cause | Indicators | Frequency |
+|------------|------------|-----------|
+| **PyMuPDF error** | Exception in `flatten_pdf_with_annotations()` | Common |
+| **Missing annotations** | Annotations deleted during finalization | Rare |
+| **Lock token mismatch** | Lock verification failed | Occasional |
+| **Disk space full** | Cannot write final PDF to storage | Rare |
+| **Memory error** | Large PDF causes OOM during flattening | Occasional |
 
 ### 4.4 Actions
 
-#### Action 4.1: Identify Slow Queries
+**Action 1: Check PyMuPDF exception details**
+
 ```bash
-# Enable slow query logging (if not already enabled)
-docker-compose exec db psql -U postgres -d viatique
-
-# Set slow query threshold to 1 second
-ALTER SYSTEM SET log_min_duration_statement = 1000;
-SELECT pg_reload_conf();
-
-# Check logs after 5-10 minutes
-docker-compose logs db | grep "duration:"
-
-# Example output:
-# "LOG: duration: 3456.789 ms statement: SELECT * FROM exams_copy ..."
+# Extract full stack trace
+grep -A 20 "async_finalize_copy.*ERROR" logs/django.log | grep -A 20 "<copy_id>"
 ```
 
-#### Action 4.2: Optimize Slow Queries
-```bash
-# Analyze query plan for slow query
-docker-compose exec db psql -U postgres -d viatique
+**Action 2: Verify annotations exist**
 
-EXPLAIN ANALYZE SELECT * FROM exams_copy 
-JOIN grading_annotation ON exams_copy.id = grading_annotation.copy_id 
-WHERE exams_copy.exam_id = '<exam_uuid>';
+```python
+from grading.models import Annotation
 
-# Look for:
-# - "Seq Scan" (full table scan, bad)
-# - "Index Scan" (good)
-# - "Nested Loop" with high cost
-
-# If missing indexes, contact dev team to add:
-# CREATE INDEX idx_annotation_copy ON grading_annotation(copy_id);
+annotations = Annotation.objects.filter(copy_id='<copy_id>')
+print(f"Annotation count: {annotations.count()}")
+for ann in annotations:
+    print(f"  Page {ann.page}: {ann.annotation_type} = {ann.score} points")
 ```
 
-#### Action 4.3: Restart Backend (If Resource Exhaustion)
-```bash
-# Restart backend service to clear memory/connections
-docker-compose restart backend
+**Action 3: Clear stale lock** (if lock expired)
 
-# Wait 30 seconds
-sleep 30
+```python
+from grading.models import CopyLock
 
-# Verify service is up
-docker-compose ps backend
-
-# Test endpoint
-curl -I http://localhost:8088/api/health/
-
-# Expected: 200 OK
+try:
+    lock = CopyLock.objects.get(copy_id='<copy_id>')
+    if lock.is_expired():
+        lock.delete()
+        print("Stale lock cleared")
+    else:
+        print(f"Lock still valid, expires at {lock.expires_at}")
+except CopyLock.DoesNotExist:
+    print("No lock found")
 ```
 
-#### Action 4.4: Scale Resources (Long-Term)
-```bash
-# Increase Docker resource limits
-# Edit docker-compose.yml:
+**Action 4: Retry finalization** (after clearing lock)
 
-services:
-  backend:
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'  # Increase from 1.0
-          memory: 4G   # Increase from 2G
+```python
+from exams.models import Copy
+from grading.tasks import async_finalize_copy
+from django.contrib.auth import get_user_model
 
-  db:
-    deploy:
-      resources:
-        limits:
-          memory: 4G   # Increase from 2G
+User = get_user_model()
 
-# Apply changes
-docker-compose up -d
+copy = Copy.objects.get(id='<copy_id>')
+user = User.objects.get(id='<user_id>')
+
+# Trigger finalization without lock token (will fail if locked)
+async_finalize_copy.delay(
+    copy_id=str(copy.id),
+    user_id=user.id,
+    lock_token=None
+)
 ```
 
-#### Action 4.5: Check Celery Queue Backlog
-```bash
-# If slow requests are for async operations (finalize, import)
-docker-compose exec redis redis-cli LLEN celery
+**Action 5: Manual finalization** (emergency only)
 
-# High value (>50) indicates backlog
-# Solution: Scale Celery workers
-docker-compose up -d --scale celery=3  # Run 3 workers instead of 1
-```
-
----
-
-## Scenario 5: Missing Audit Events (Events Not Recorded)
-
-### 5.1 Symptoms
-
-- `GradingEvent.objects.filter(copy=copy, action='IMPORT')` returns no results
-- Expected events missing from audit trail
-- Cannot trace workflow history for a copy
-- Incident investigation blocked due to missing audit data
-
-### 5.2 Diagnosis Steps
-
-**Step 1: Verify Event Creation Code Paths**
-```bash
-# Check if events are created for this copy at all
-docker-compose exec db psql -U postgres -d viatique
-
-SELECT action, timestamp FROM grading_gradingevent 
-WHERE copy_id = '<copy_uuid>' 
-ORDER BY timestamp;
-
-# If empty → No events ever created (likely transaction rollback)
-# If partial → Some events created (identify missing action types)
-```
-
-**Step 2: Check Application Logs for Exceptions**
-```bash
-# Search for exceptions during workflow
-docker-compose logs backend | grep "<copy_uuid>" | grep -i "exception\|error\|failed"
-
-# Common patterns:
-# - "Import failed for copy..." (exception before IMPORT event)
-# - "PDF generation failed..." (exception before FINALIZE event)
-# - "IntegrityError" (database constraint violation)
-```
-
-**Step 3: Check Transaction Rollbacks**
-```bash
-# Query database transaction logs (if enabled)
-docker-compose exec db psql -U postgres -d viatique
-
-# Check recent rollbacks (requires pg_stat_statements extension)
-SELECT query, calls, mean_exec_time 
-FROM pg_stat_statements 
-WHERE query LIKE '%ROLLBACK%' 
-ORDER BY calls DESC 
-LIMIT 10;
-
-# High ROLLBACK count indicates transaction failures
-```
-
-**Step 4: Verify Event Creation Happens Within Transactions**
-```bash
-# Code inspection (not diagnostic, but helps understand behavior)
-# Services.py uses @transaction.atomic decorators
-# If exception occurs before event creation, transaction rolls back
-
-# Example code path:
-# 1. @transaction.atomic
-# 2. Copy.objects.create(...)  ← If fails here
-# 3. GradingEvent.objects.create(...)  ← Never reached
-
-# Check logs for step 2 failures:
-docker-compose logs backend | grep "Copy.objects.create"
-```
-
-**Step 5: Check for Intentional Event Skipping**
-```bash
-# Some actions may not create events if:
-# - Dry-run mode enabled (testing)
-# - Admin actions bypassing services layer
-# - Direct database modifications (SQL scripts)
-
-# Check for admin actions in logs
-docker-compose logs backend | grep "admin" | grep "<copy_uuid>"
-```
-
-### 5.3 Root Causes
-
-| Cause | Evidence | Likelihood |
-|-------|----------|------------|
-| **Transaction rollback** | Exception before event creation, ROLLBACK in logs | High |
-| **Service method bypassed** | Direct model save, admin edit, SQL script | Medium |
-| **Event creation code commented out** | Missing events for all copies (code regression) | Low |
-| **Database constraint violation** | IntegrityError for GradingEvent INSERT | Low |
-| **Async task failure** | Celery task crashed before event creation | Medium |
-
-### 5.4 Actions
-
-#### Action 5.1: Identify Transaction Rollback Cause
-```bash
-# Search logs for exception details
-docker-compose logs backend | grep -A 20 "Import failed for copy <copy_uuid>"
-
-# Look for root cause:
-# - "FileNotFoundError" → PDF file missing
-# - "ValidationError" → Invalid data
-# - "IntegrityError" → Database constraint violation
-# - "OperationalError" → Database connection lost
-
-# Fix root cause before retrying operation
-```
-
-#### Action 5.2: Manually Create Missing Audit Event (Post-Hoc)
-```bash
-# If event is missing but operation succeeded (e.g., import worked, no IMPORT event)
-docker-compose exec backend python manage.py shell
-
-from grading.models import GradingEvent
+```python
+from grading.services import GradingService
 from exams.models import Copy
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
-copy = Copy.objects.get(id='<copy_uuid>')
-user = User.objects.get(id=<user_id>)  # Original actor
 
-# Create missing event
-GradingEvent.objects.create(
-    copy=copy,
-    action=GradingEvent.Action.IMPORT,  # Or FINALIZE, etc.
-    actor=user,
-    metadata={'note': 'Manually created for audit compliance', 'pages': 10}
-)
+copy = Copy.objects.get(id='<copy_id>')
+user = User.objects.get(id='<user_id>')
 
-print("Event created")
-exit()
+# Clear lock if needed
+CopyLock.objects.filter(copy=copy).delete()
+
+# Synchronous finalization (use with caution in production)
+finalized_copy = GradingService.finalize_copy(copy, user, lock_token=None)
+print(f"Finalized: {finalized_copy.final_score} points")
 ```
 
-**WARNING**: Manual event creation should be rare and logged for compliance.
+**Preventive Measures**:
+- Implement `grading_finalize_duration_seconds` metric with alerting on P95 > 60s
+- Add automatic lock cleanup cron job (clear locks older than 1 hour)
+- Test PDF flattening with sample PDFs of different sizes
+- Add retry logic with exponential backoff
 
-#### Action 5.3: Verify Code Hasn't Regressed
-```bash
-# Check if event creation code is present
-docker-compose exec backend cat /app/grading/services.py | grep -A 5 "GradingEvent.objects.create"
+---
 
-# Expected: Multiple matches (IMPORT, CREATE_ANN, UPDATE_ANN, FINALIZE)
-# If missing, code regression (deployment issue)
+## 5. Scenario 3: Lock Conflicts
 
-# Verify deployment version
-docker-compose exec backend cat /app/VERSION  # Or git rev-parse HEAD
+### 5.1 Symptoms
 
-# Compare with expected version
+- User cannot edit copy, receives "Copy is locked by another user"
+- Copy appears locked in UI but no one is editing
+- Lock conflicts reported in logs
+
+### 5.2 Diagnosis
+
+**Step 1: Check active locks**
+
+```python
+# Django shell
+from grading.models import CopyLock
+from django.utils import timezone
+
+# All active locks
+locks = CopyLock.objects.all()
+for lock in locks:
+    print(f"Copy {lock.copy.anonymous_id} locked by user {lock.locked_by_id}")
+    print(f"  Expires: {lock.expires_at}")
+    print(f"  Expired: {lock.is_expired()}")
 ```
 
-#### Action 5.4: Check for Async Task Failures (Celery)
-```bash
-# If events missing for async operations (finalize, import)
-docker-compose logs celery | grep "<copy_uuid>"
+**Step 2: Check lock for specific copy**
 
-# Look for:
-# - "Async finalization failed" (task failed before event)
-# - "Max retries exceeded" (task gave up)
-# - Worker crash (no completion log)
+```python
+from grading.models import CopyLock
 
-# Check Celery task results in Redis
-docker-compose exec redis redis-cli
-
-KEYS celery-task-meta-*
-GET celery-task-meta-<task_id>
-
-# Result should include status: "SUCCESS" or "FAILURE"
-exit
+try:
+    lock = CopyLock.objects.get(copy_id='<copy_id>')
+    print(f"Locked by: {lock.locked_by.username} (ID: {lock.locked_by_id})")
+    print(f"Locked at: {lock.created_at}")
+    print(f"Expires at: {lock.expires_at}")
+    print(f"Token prefix: {lock.token[:8]}...")
+    print(f"Is expired: {lock.is_expired()}")
+except CopyLock.DoesNotExist:
+    print("No active lock - copy should be editable")
 ```
 
-#### Action 5.5: Implement Missing Event Detection (Monitoring)
-```bash
-# After Phase 4 (testing), add monitoring query:
-# Daily cron job to detect copies with incomplete audit trails
+**Step 3: Check lock conflict events**
 
-docker-compose exec backend python manage.py shell
-
-from exams.models import Copy
+```python
 from grading.models import GradingEvent
 
-# Find copies missing IMPORT event
-copies_missing_import = Copy.objects.exclude(
-    grading_events__action=GradingEvent.Action.IMPORT
-).filter(status__in=['READY', 'LOCKED', 'GRADED'])
+events = GradingEvent.objects.filter(
+    copy_id='<copy_id>',
+    action__in=['LOCK', 'UNLOCK']
+).order_by('-timestamp')[:20]
 
-print(f"Found {copies_missing_import.count()} copies missing IMPORT event")
-
-# Log for investigation
-for copy in copies_missing_import[:10]:
-    print(f"Copy {copy.id}: status={copy.status}, created={copy.created_at}")
-
-exit()
+for event in events:
+    print(f"{event.timestamp} - {event.action} by user {event.actor_id}")
+    print(f"  Metadata: {event.metadata}")
 ```
+
+**Step 4: Check lock conflict logs**
+
+```bash
+# Search for lock conflicts
+grep -E "LockConflictError|already_locked|lock conflict" logs/django.log | tail -30
+
+# Check warnings for lock-related issues
+grep -E "LOCK|UNLOCK" logs/django.log | grep WARNING
+```
+
+**Step 5: Identify lock expiration issues**
+
+```python
+from grading.models import CopyLock
+from django.utils import timezone
+from datetime import timedelta
+
+# Find expired locks still in database
+expired_locks = CopyLock.objects.filter(
+    expires_at__lt=timezone.now()
+)
+print(f"Expired locks: {expired_locks.count()}")
+for lock in expired_locks:
+    age = timezone.now() - lock.expires_at
+    print(f"  Copy {lock.copy.anonymous_id}: expired {age} ago")
+```
+
+### 5.3 Root Causes
+
+| Root Cause | Indicators | Frequency |
+|------------|------------|-----------|
+| **Expired lock not cleaned** | Lock exists with `expires_at < now()` | Common |
+| **Client didn't unlock** | User closed browser without unlocking | Very Common |
+| **Token mismatch** | Unlock attempted with wrong token | Occasional |
+| **Race condition** | Two users locked simultaneously | Rare |
+| **Lock cleanup cron failed** | Many expired locks in database | Rare |
+
+### 5.4 Actions
+
+**Action 1: Clear expired locks**
+
+```python
+from grading.models import CopyLock
+from django.utils import timezone
+
+expired_locks = CopyLock.objects.filter(
+    expires_at__lt=timezone.now()
+)
+count = expired_locks.count()
+expired_locks.delete()
+print(f"Cleared {count} expired locks")
+```
+
+**Action 2: Force unlock specific copy** (emergency only)
+
+```python
+from grading.models import CopyLock
+
+lock = CopyLock.objects.filter(copy_id='<copy_id>')
+if lock.exists():
+    lock.delete()
+    print("Lock forcibly removed")
+else:
+    print("No lock found")
+```
+
+**Action 3: Check for lock cleanup task**
+
+```bash
+# Check if lock cleanup cron job exists
+crontab -l | grep lock
+
+# If not, create cleanup script
+# /opt/grading/scripts/cleanup_expired_locks.py
+```
+
+**Action 4: Investigate race conditions** (if multiple locks created)
+
+```bash
+# Check for simultaneous LOCK events
+grep "LOCK" logs/django.log | grep "<copy_id>" | grep -A 5 -B 5 "already_locked"
+```
+
+**Action 5: Add lock conflict metric** (proactive monitoring)
+
+```python
+# Add to grading/metrics.py (when implemented)
+# grading_lock_conflicts_total.labels(conflict_type='already_locked').inc()
+# grading_lock_conflicts_total.labels(conflict_type='expired').inc()
+# grading_lock_conflicts_total.labels(conflict_type='token_mismatch').inc()
+```
+
+**Preventive Measures**:
+- Implement scheduled lock cleanup task (every 5 minutes)
+- Add client-side heartbeat to extend lock expiration
+- Implement `grading_lock_conflicts_total` counter for monitoring
+- Add lock age gauge to track oldest lock in system
+- Document lock lifecycle in operator runbook
 
 ---
 
-## Appendix A: Useful Commands Reference
+## 6. Scenario 4: High Latency
 
-### Database Queries
+### 6.1 Symptoms
+
+- Users report slow page loads (> 5 seconds)
+- PDF finalization takes > 2 minutes
+- Database query timeouts in logs
+- HTTP 504 Gateway Timeout errors
+
+### 6.2 Diagnosis
+
+**Step 1: Check Prometheus HTTP metrics**
+
+```bash
+# Scrape metrics endpoint
+curl http://localhost:8088/metrics | grep http_request_duration_seconds
+
+# Look for P95/P99 latencies
+# http_request_duration_seconds{method="POST",path="/api/copies/finalize/",quantile="0.95"} 12.5
+```
+
+**Step 2: Identify slow endpoints**
+
+```bash
+# Search for slow requests in logs (assuming duration logged)
+grep -E "duration|took|elapsed" logs/django.log | awk '{if ($NF > 5) print}'
+
+# Check for database query timeouts
+grep -E "timeout|too long|slow query" logs/django.log
+```
+
+**Step 3: Check database performance**
 
 ```sql
--- Check copy status and workflow history
-SELECT 
-    c.id,
-    c.anonymous_id,
-    c.status,
-    c.grading_retries,
-    COUNT(ge.id) AS event_count
-FROM exams_copy c
-LEFT JOIN grading_gradingevent ge ON c.id = ge.copy_id
-WHERE c.id = '<copy_uuid>'
-GROUP BY c.id;
+-- PostgreSQL slow query log
+-- Requires: log_min_duration_statement = 1000 (1 second) in postgresql.conf
 
--- Find all events for a copy (audit trail)
-SELECT action, actor_id, timestamp, metadata 
-FROM grading_gradingevent 
-WHERE copy_id = '<copy_uuid>' 
-ORDER BY timestamp;
+-- Check active queries
+SELECT pid, now() - pg_stat_activity.query_start AS duration, query
+FROM pg_stat_activity
+WHERE state = 'active'
+ORDER BY duration DESC;
 
--- Find stuck copies (STAGING for >1 hour)
-SELECT id, anonymous_id, created_at 
-FROM exams_copy 
-WHERE status = 'STAGING' 
-  AND created_at < NOW() - INTERVAL '1 hour';
+-- Check database size
+SELECT pg_size_pretty(pg_database_size('viatique'));
 
--- Count copies by status (workflow backlog)
-SELECT status, COUNT(*) 
-FROM exams_copy 
-GROUP BY status;
-
--- Find lock conflicts (expired but not released)
-SELECT copy_id, owner_id, expires_at 
-FROM grading_copylock 
-WHERE expires_at < NOW();
+-- Check table sizes
+SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
+LIMIT 10;
 ```
 
-### Prometheus Queries (PromQL)
+**Step 4: Check for N+1 queries**
 
-```promql
-# Request latency p95 (95th percentile)
-histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+```python
+# Django shell - enable query logging
+from django.db import connection
+from django.test.utils import override_settings
 
-# Slow requests (>5s)
-http_request_duration_seconds_bucket{le="5.0"}
-
-# Error rate (4xx + 5xx)
-rate(http_requests_total{status=~"4..|5.."}[5m])
-
-# Import duration p95 (after Phase 2 implementation)
-histogram_quantile(0.95, rate(grading_import_duration_seconds_bucket[5m]))
-
-# Lock conflicts rate
-rate(grading_lock_conflicts_total[5m])
+with override_settings(DEBUG=True):
+    from exams.models import Copy
+    copies = Copy.objects.all()[:10]
+    for copy in copies:
+        _ = copy.booklets.all()  # Potential N+1
+    print(f"Queries executed: {len(connection.queries)}")
+    for q in connection.queries:
+        print(f"{q['time']}s: {q['sql'][:100]}")
 ```
 
-### Log Analysis (grep patterns)
+**Step 5: Check Celery queue backlog**
 
 ```bash
-# Find all errors for a copy
-docker-compose logs backend | grep "<copy_uuid>" | grep -i error
+# Check queue length
+celery -A core inspect active | grep -c "async_finalize_copy"
 
-# Find slow requests
-docker-compose logs backend | grep "Slow request detected"
+# Check if workers are overwhelmed
+celery -A core inspect stats
+```
 
-# Find Celery failures
-docker-compose logs celery | grep -i "failed\|error\|exception"
+### 6.3 Root Causes
 
-# Find transaction rollbacks
-docker-compose logs backend | grep -i "rollback"
+| Root Cause | Indicators | Frequency |
+|------------|------------|-----------|
+| **N+1 query problem** | Many identical queries in logs | Common |
+| **Missing database index** | Sequential scans in query plan | Occasional |
+| **Large PDF processing** | Finalization > 60s | Occasional |
+| **Celery queue backlog** | > 50 tasks waiting | Rare |
+| **Insufficient workers** | All workers busy | Occasional |
+| **Database connection exhaustion** | "too many clients" error | Rare |
 
-# Find audit events in JSON logs (production)
-docker-compose logs backend | grep "GradingEvent.objects.create"
+### 6.4 Actions
+
+**Action 1: Identify slow queries**
+
+```bash
+# Enable PostgreSQL slow query log
+# Edit /etc/postgresql/.../postgresql.conf
+# log_min_duration_statement = 1000  # Log queries > 1s
+
+# Restart PostgreSQL
+sudo systemctl restart postgresql
+
+# Monitor slow query log
+tail -f /var/log/postgresql/postgresql-*.log | grep "duration:"
+```
+
+**Action 2: Analyze query plans**
+
+```sql
+-- Get query plan for slow query
+EXPLAIN ANALYZE
+SELECT * FROM exams_copy
+WHERE status = 'LOCKED'
+ORDER BY created_at DESC;
+
+-- Look for "Seq Scan" (bad) vs "Index Scan" (good)
+```
+
+**Action 3: Add missing indexes**
+
+```python
+# Django shell - check existing indexes
+from django.db import connection
+cursor = connection.cursor()
+cursor.execute("""
+    SELECT indexname, tablename, indexdef
+    FROM pg_indexes
+    WHERE schemaname = 'public'
+    AND tablename LIKE '%copy%';
+""")
+for row in cursor.fetchall():
+    print(row)
+```
+
+**Action 4: Optimize N+1 queries with select_related/prefetch_related**
+
+```python
+# Bad: N+1 queries
+copies = Copy.objects.all()
+for copy in copies:
+    print(copy.exam.title)  # N queries
+
+# Good: 1 query with JOIN
+copies = Copy.objects.select_related('exam').all()
+for copy in copies:
+    print(copy.exam.title)  # No extra queries
+```
+
+**Action 5: Scale Celery workers**
+
+```bash
+# Check current worker count
+celery -A core inspect stats | grep concurrency
+
+# Increase worker concurrency (temporary)
+celery -A core worker --concurrency=8
+
+# Permanent: Edit systemd service or supervisor config
+# ExecStart=/usr/bin/celery -A core worker --concurrency=8
+```
+
+**Action 6: Add database connection pooling**
+
+```python
+# settings.py - add pgbouncer or increase CONN_MAX_AGE
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'CONN_MAX_AGE': 600,  # 10 minutes
+        # ... other settings
+    }
+}
+```
+
+**Preventive Measures**:
+- Implement `grading_finalize_duration_seconds` histogram with P95/P99 alerting
+- Add database query monitoring (django-silk or django-debug-toolbar in staging)
+- Create database index review checklist
+- Set up automatic query plan analysis for slow endpoints
+- Monitor Celery queue length with alerting
+
+---
+
+## 7. Scenario 5: Missing Audit Events
+
+### 7.1 Symptoms
+
+- GradingEvent missing for known workflow action
+- Audit log incomplete when investigating user action
+- Event timeline has gaps (e.g., IMPORT → FINALIZE without LOCK)
+
+### 7.2 Diagnosis
+
+**Step 1: Verify expected events exist**
+
+```python
+# Django shell
+from grading.models import GradingEvent
+
+# Check all events for a copy
+events = GradingEvent.objects.filter(
+    copy_id='<copy_id>'
+).order_by('timestamp')
+
+print(f"Total events: {events.count()}")
+for event in events:
+    print(f"{event.timestamp} - {event.action} by user {event.actor_id}")
+```
+
+**Step 2: Check audit log file**
+
+```bash
+# Search audit.log for specific copy
+grep "<copy_id>" logs/audit.log
+
+# Check for event creation logs
+grep "GradingEvent" logs/django.log | grep "<copy_id>"
+```
+
+**Step 3: Identify missing event types**
+
+```python
+from grading.models import GradingEvent
+from django.db.models import Count
+
+# Count events by action type
+event_counts = GradingEvent.objects.values('action').annotate(count=Count('id'))
+for ec in event_counts:
+    print(f"{ec['action']}: {ec['count']}")
+
+# Check if specific action type is never recorded
+missing_actions = set(GradingEvent.Action.values) - set(event_counts.values_list('action', flat=True))
+if missing_actions:
+    print(f"Never recorded: {missing_actions}")
+```
+
+**Step 4: Check for transaction rollbacks**
+
+```bash
+# Search for database errors during event creation
+grep -E "transaction.*aborted|IntegrityError|OperationalError" logs/django.log | tail -20
+
+# Check for rollback logs
+grep -E "rollback|transaction.*failed" logs/django.log
+```
+
+**Step 5: Verify event creation in code**
+
+```bash
+# Find all GradingEvent.objects.create() calls
+grep -rn "GradingEvent.objects.create" backend/grading/
+
+# Expected locations:
+# - services.py:116 (CREATE_ANN)
+# - services.py:166 (UPDATE_ANN)
+# - services.py:187 (DELETE_ANN)
+# - services.py:289 (LOCK)
+# - services.py:346 (UNLOCK)
+# - services.py:419 (IMPORT)
+# - services.py:477 (VALIDATE)
+# - services.py:587 (FINALIZE)
+```
+
+### 7.3 Root Causes
+
+| Root Cause | Indicators | Frequency |
+|------------|------------|-----------|
+| **Transaction rollback** | Database error in logs | Occasional |
+| **Exception before event creation** | Service method failed early | Common |
+| **Missing event creation call** | Code path doesn't create event | Rare (regression) |
+| **Duplicate key error** | GradingEvent UUID collision | Extremely Rare |
+| **Database constraint violation** | Foreign key or NOT NULL error | Rare |
+
+### 7.4 Actions
+
+**Action 1: Check for exceptions in service layer**
+
+```bash
+# Find exceptions during workflow actions
+grep -E "ERROR|CRITICAL" logs/django.log | grep -E "import_pdf|finalize_copy|add_annotation"
+
+# Look for stack traces
+grep -A 10 "exc_info" logs/django.log
+```
+
+**Action 2: Verify transaction boundaries**
+
+```python
+# Check if event creation is inside @transaction.atomic
+# services.py example:
+
+from django.db import transaction
+
+@transaction.atomic
+def finalize_copy(copy, user, lock_token=None):
+    # ... validation logic ...
+    
+    # Event creation MUST be inside transaction
+    GradingEvent.objects.create(
+        copy=copy,
+        action=GradingEvent.Action.FINALIZE,
+        actor=user,
+        metadata={'final_score': final_score}
+    )
+    
+    return copy
+```
+
+**Action 3: Manually create missing event** (data correction only)
+
+```python
+from grading.models import GradingEvent
+from exams.models import Copy
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+
+User = get_user_model()
+
+copy = Copy.objects.get(id='<copy_id>')
+user = User.objects.get(id='<user_id>')
+
+# Create missing IMPORT event (example)
+GradingEvent.objects.create(
+    copy=copy,
+    action=GradingEvent.Action.IMPORT,
+    actor=user,
+    timestamp=timezone.now(),  # Will be auto-set
+    metadata={'filename': 'reconstructed', 'pages': 10}
+)
+print("Event created manually for data correction")
+```
+
+**Action 4: Check event creation during testing**
+
+```bash
+# Run audit event tests
+pytest backend/grading/tests/test_audit_events.py -v
+
+# Expected tests:
+# - test_import_creates_audit_event
+# - test_create_annotation_creates_audit_event
+# - test_finalize_creates_audit_event_success
+# - test_finalize_creates_audit_event_failure
+```
+
+**Action 5: Add event creation verification**
+
+```python
+# Add assertion in service methods
+def finalize_copy(copy, user, lock_token=None):
+    # ... finalization logic ...
+    
+    event = GradingEvent.objects.create(
+        copy=copy,
+        action=GradingEvent.Action.FINALIZE,
+        actor=user,
+        metadata={'final_score': final_score, 'success': True}
+    )
+    
+    # Verify event was persisted
+    assert event.pk is not None
+    logger.info(f"FINALIZE event created: {event.id}")
+    
+    return copy
+```
+
+**Preventive Measures**:
+- Add unit tests for event creation in all workflow actions
+- Implement event creation counter metric: `grading_events_created_total{action}`
+- Add database constraint checks in CI/CD pipeline
+- Monitor audit log completeness with scheduled verification job
+- Document event creation requirements in developer guide
+
+---
+
+## 8. Escalation Paths
+
+### 8.1 Severity Levels
+
+| Severity | Definition | Response Time | Example |
+|----------|-----------|---------------|---------|
+| **P0 - Critical** | Complete system outage, data loss risk | < 15 minutes | Database down, all workers crashed |
+| **P1 - High** | Major feature broken, many users affected | < 1 hour | All finalizations failing, import broken |
+| **P2 - Medium** | Feature degraded, few users affected | < 4 hours | Single copy stuck, lock conflict |
+| **P3 - Low** | Minor issue, workaround available | < 24 hours | Slow query, missing audit event |
+
+### 8.2 Escalation Contacts
+
+**First Responder** (Production Support):
+- Check this playbook for known scenarios
+- Gather diagnostic information
+- Attempt remediation actions
+
+**Escalate to Development Team** if:
+- Scenario not covered in playbook
+- Remediation actions fail after 2 attempts
+- Data corruption suspected
+- Security incident detected
+
+**Escalate to Database Admin** if:
+- Database connection issues
+- Slow queries not resolved by index creation
+- Database disk space > 90%
+- Replication lag detected
+
+### 8.3 Communication Template
+
+**Incident Report**:
+```
+Subject: [P{severity}] {Brief Description}
+
+Incident ID: INC-{timestamp}
+Severity: P{0-3}
+Start Time: {YYYY-MM-DD HH:MM:SS UTC}
+Affected Users: {count or "all"}
+
+Symptoms:
+- {observable symptom 1}
+- {observable symptom 2}
+
+Investigation:
+- {diagnostic step 1 result}
+- {diagnostic step 2 result}
+
+Actions Taken:
+- {remediation attempt 1}
+- {remediation attempt 2}
+
+Current Status: {ongoing/resolved/escalated}
+Next Steps: {what will happen next}
+
+Diagnostic Data:
+- Request ID: {request_id}
+- Copy ID: {copy_id}
+- User ID: {user_id}
+- Logs: {attachment or link}
+```
+
+### 8.4 Post-Incident Review
+
+After resolving a P0/P1 incident:
+
+1. **Document root cause** in incident report
+2. **Update playbook** if new scenario discovered
+3. **Add monitoring** to detect similar issues earlier
+4. **Create preventive tasks** in backlog
+5. **Conduct blameless postmortem** with team
+
+**Postmortem Template**:
+- Timeline of events
+- Root cause analysis (5 Whys)
+- What went well
+- What went poorly
+- Action items (with owners and due dates)
+
+---
+
+## Appendix A: Useful Commands Cheat Sheet
+
+### A.1 Log Analysis
+
+```bash
+# Find all logs for a request_id
+grep "{request_id}" logs/django.log
+
+# Find all logs for a copy_id
+grep "{copy_id}" logs/django.log
+
+# Find all ERROR logs in last hour
+find logs/ -name "*.log" -mmin -60 -exec grep -H "ERROR" {} \;
+
+# Count events by level
+grep -o '"level":"[A-Z]*"' logs/django.log | sort | uniq -c
+
+# Extract all request_ids from last 100 lines
+tail -100 logs/django.log | grep -o '"request_id":"[^"]*"' | sort | uniq
+```
+
+### A.2 Database Queries
+
+```python
+# Django shell quick queries
+from exams.models import Copy
+from grading.models import GradingEvent, CopyLock
+
+# Count copies by status
+Copy.objects.values('status').annotate(count=Count('id'))
+
+# Find copies without events
+Copy.objects.exclude(grading_events__isnull=False).count()
+
+# Find oldest locked copy
+CopyLock.objects.order_by('created_at').first()
+
+# Event timeline for copy
+GradingEvent.objects.filter(copy_id='...').order_by('timestamp').values('timestamp', 'action', 'actor__username')
+```
+
+### A.3 Metrics Queries
+
+```bash
+# Scrape all metrics
+curl -s http://localhost:8088/metrics
+
+# Filter HTTP request metrics
+curl -s http://localhost:8088/metrics | grep http_requests_total
+
+# Calculate request rate (5-minute window)
+curl -s http://localhost:8088/metrics | grep http_requests_total | awk '{print $NF}'
+
+# Check process memory
+curl -s http://localhost:8088/metrics | grep process_resident_memory_bytes
 ```
 
 ---
 
-## Appendix B: Escalation Matrix
+## Appendix B: Cross-References
 
-| Issue Type | Severity | First Response | Escalate To |
-|-----------|----------|----------------|-------------|
-| Import stuck (Celery down) | P1 - Critical | Restart Celery worker | DevOps team if persists >15 min |
-| Finalization failing | P2 - High | Check error logs, retry | Dev team if error unknown |
-| Lock conflicts | P3 - Medium | Force-release expired locks | Dev team if >10 conflicts/day |
-| High latency | P2 - High | Check metrics, restart if needed | DevOps + Dev if persists >30 min |
-| Missing audit events | P3 - Medium | Create manual event | Dev team for code inspection |
+### B.1 Related Documentation
 
-**On-Call Contacts**:
-- DevOps: [Contact Info]
-- Backend Dev: [Contact Info]
-- Database Admin: [Contact Info]
-
----
-
-## Appendix C: Health Check Script
-
-```bash
-#!/bin/bash
-# health_check.sh - Quick diagnostic script
-
-echo "=== Viatique Health Check ==="
-echo ""
-
-# Services
-echo "1. Docker Services:"
-docker-compose ps | grep -E "backend|celery|db|redis"
-echo ""
-
-# Celery Queue
-echo "2. Celery Queue Length:"
-docker-compose exec -T redis redis-cli LLEN celery
-echo ""
-
-# Database Connections
-echo "3. Active Database Connections:"
-docker-compose exec -T db psql -U postgres -d viatique -c "SELECT count(*) FROM pg_stat_activity;" -t
-echo ""
-
-# Disk Space
-echo "4. Disk Space:"
-df -h | grep -E "/$|/opt"
-echo ""
-
-# Recent Errors
-echo "5. Recent Errors (last 1 hour):"
-docker-compose logs --since 1h backend 2>&1 | grep -i error | wc -l
-echo ""
-
-# Stuck Copies
-echo "6. Stuck Copies (STAGING >1 hour):"
-docker-compose exec -T db psql -U postgres -d viatique -c "SELECT COUNT(*) FROM exams_copy WHERE status = 'STAGING' AND created_at < NOW() - INTERVAL '1 hour';" -t
-echo ""
-
-echo "=== Health Check Complete ==="
-```
-
-**Usage**:
-```bash
-chmod +x health_check.sh
-./health_check.sh
-```
-
----
-
-## Appendix D: Related Documentation
-
-- **General Troubleshooting**: `docs/support/DEPANNAGE.md`
 - **Technical Specification**: `.zenflow/tasks/observabilite-audit-trail-gradin-826d/spec.md`
 - **Requirements**: `.zenflow/tasks/observabilite-audit-trail-gradin-826d/requirements.md`
 - **Audit Report**: `.zenflow/tasks/observabilite-audit-trail-gradin-826d/audit.md`
+- **Support Guide** (if exists): `docs/support/DEPANNAGE.md`
 
-**Metrics Documentation** (after Phase 2):
-- Prometheus metrics: `/metrics` endpoint
-- Grafana dashboards: `http://<server>:3000` (if configured)
+### B.2 Code References
+
+- **GradingEvent Model**: `backend/grading/models.py:109-165`
+- **GradingService**: `backend/grading/services.py`
+- **Celery Tasks**: `backend/grading/tasks.py`
+- **Request ID Middleware**: `backend/core/middleware/request_id.py`
+- **Prometheus Metrics**: `backend/core/prometheus.py`
+- **Logging Configuration**: `backend/core/settings.py:272-348`
+
+### B.3 Monitoring Links
+
+- **Prometheus Metrics**: `http://localhost:8088/metrics` (or production URL)
+- **Grafana Dashboards** (if configured): TBD
+- **Celery Flower** (if configured): `http://localhost:5555`
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 31 janvier 2026  
-**Next Review**: After production incidents (update based on learnings)
+## Document History
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 1.0 | 2026-02-01 | Automated Review | Initial playbook creation |
+
+---
+
+**End of Playbook**
