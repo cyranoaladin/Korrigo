@@ -5,7 +5,9 @@ class Student(models.Model):
     ine = models.CharField(max_length=50, unique=True, verbose_name="Identifiant National Élève")
     first_name = models.CharField(max_length=100, verbose_name="Prénom")
     last_name = models.CharField(max_length=100, verbose_name="Nom")
+    date_of_birth = models.DateField(null=True, blank=True, verbose_name="Date de naissance")
     class_name = models.CharField(max_length=50, verbose_name="Classe")
+    eds_group = models.CharField(max_length=100, blank=True, default="", verbose_name="Groupe EDS")
     email = models.EmailField(blank=True, null=True, verbose_name="Email")
 
     # Lien vers utilisateur Django pour authentification
