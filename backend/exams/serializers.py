@@ -1,6 +1,13 @@
 from rest_framework import serializers
+from django.core.validators import FileExtensionValidator
 from django.utils.translation import gettext_lazy as _
 from .models import Exam, Booklet, Copy
+from .validators import (
+    validate_pdf_size,
+    validate_pdf_not_empty,
+    validate_pdf_mime_type,
+    validate_pdf_integrity,
+)
 
 class BookletSerializer(serializers.ModelSerializer):
     header_image_url = serializers.SerializerMethodField()
@@ -22,6 +29,16 @@ class BookletSerializer(serializers.ModelSerializer):
 
 class ExamSerializer(serializers.ModelSerializer):
     booklet_count = serializers.SerializerMethodField()
+    pdf_source = serializers.FileField(
+        required=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=['pdf']),
+            validate_pdf_size,
+            validate_pdf_not_empty,
+            validate_pdf_mime_type,
+            validate_pdf_integrity,
+        ]
+    )
 
     class Meta:
         model = Exam
