@@ -382,15 +382,29 @@ CELERY_TASK_ANNOTATIONS = {
 # ZF-AUD-13: Prefetch multiplier (1 for long tasks to avoid blocking)
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 
-# Cache Configuration (required for django-ratelimit)
-# Cache Configuration (required for django-ratelimit)
-# Use LocMemCache for testing/dev without Redis
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+# Cache Configuration (required for django-ratelimit and login lockout)
+# Use Redis if available (production/Docker), otherwise LocMemCache (dev)
+REDIS_HOST = os.environ.get('REDIS_HOST', '')
+if REDIS_HOST:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': f'redis://{REDIS_HOST}:{os.environ.get("REDIS_PORT", "6379")}/{os.environ.get("REDIS_DB", "1")}',
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+            'KEY_PREFIX': 'viatique',
+            'TIMEOUT': 300,
+        }
     }
-}
+else:
+    # Development: LocMemCache (WARNING: does not work with multiple workers)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
 
 # Rate limiting configuration
 RATELIMIT_USE_CACHE = 'default'
