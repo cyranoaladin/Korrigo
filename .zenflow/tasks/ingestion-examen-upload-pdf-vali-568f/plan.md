@@ -128,7 +128,7 @@ Save to `{@artifacts_path}/plan.md`.
 - spec.md Appendix A2 Test Fixture Example
 - requirements.md § 4.3 Test Fixtures
 
-### [ ] Step: Write Upload Endpoint Tests - Validation Cases
+### [x] Step: Write Upload Endpoint Tests - Validation Cases
 <!-- chat-id: 85d71758-c122-4672-8a89-ffbc36dfac35 -->
 
 **Objective**: Test all validation scenarios for the upload endpoint.
@@ -137,27 +137,27 @@ Save to `{@artifacts_path}/plan.md`.
 - `backend/exams/tests/test_upload_endpoint.py` (NEW)
 
 **Tasks**:
-- [ ] Set up test class with pytest fixtures (authenticated teacher user, API client)
-- [ ] Write `test_upload_valid_pdf_creates_exam_and_booklets()` - 4-page PDF success
-- [ ] Write `test_upload_valid_pdf_with_remainder_pages()` - 13-page PDF with partial booklet
-- [ ] Write `test_upload_no_file_returns_400()` - missing file
-- [ ] Write `test_upload_wrong_extension_returns_400()` - .txt file
-- [ ] Write `test_upload_file_too_large_returns_413()` - 51 MB file
-- [ ] Write `test_upload_empty_file_returns_400()` - 0-byte file
-- [ ] Write `test_upload_fake_pdf_returns_400()` - text file renamed to .pdf
-- [ ] Write `test_upload_corrupted_pdf_returns_400()` - invalid PDF structure
-- [ ] Write `test_upload_too_many_pages_returns_400()` - 501-page PDF
+- [x] Set up test class with pytest fixtures (authenticated teacher user, API client)
+- [x] Write `test_upload_valid_pdf_creates_exam_and_booklets()` - 4-page PDF success
+- [x] Write `test_upload_valid_pdf_with_remainder_pages()` - 13-page PDF with partial booklet
+- [x] Write `test_upload_no_file_returns_400()` - missing file
+- [x] Write `test_upload_wrong_extension_returns_400()` - .txt file
+- [x] Write `test_upload_file_too_large_returns_413()` - 51 MB file
+- [x] Write `test_upload_empty_file_returns_400()` - 0-byte file
+- [x] Write `test_upload_fake_pdf_returns_400()` - text file renamed to .pdf
+- [x] Write `test_upload_corrupted_pdf_returns_400()` - invalid PDF structure
+- [x] Write `test_upload_too_many_pages_returns_400()` - 501-page PDF
 
 **Verification**:
-- [ ] Run `pytest backend/exams/tests/test_upload_endpoint.py -v`
-- [ ] All validation tests pass
-- [ ] Verify test output shows correct HTTP status codes
+- [x] Run `pytest backend/exams/tests/test_upload_endpoint.py -v`
+- [x] All validation tests pass
+- [x] Verify test output shows correct HTTP status codes
 
 **References**:
 - spec.md § 3.2 Files to Create (test_upload_endpoint.py)
 - requirements.md § 4.1 Unit Tests
 
-### [ ] Step: Write Upload Endpoint Tests - Atomicity Cases
+### [x] Step: Write Upload Endpoint Tests - Atomicity Cases
 <!-- chat-id: 7073334b-47fc-4565-a2ec-5a37d95fee53 -->
 
 **Objective**: Verify no orphaned records on processing failures.
@@ -166,22 +166,22 @@ Save to `{@artifacts_path}/plan.md`.
 - `backend/exams/tests/test_upload_endpoint.py` (continue from previous step)
 
 **Tasks**:
-- [ ] Write `test_upload_processing_failure_no_orphan_exam()` - mock split_exam() failure
-- [ ] Write `test_upload_booklet_creation_failure_rollback()` - mock Copy.create() failure
-- [ ] Write `test_upload_file_cleanup_on_failure()` - verify file deleted on error
-- [ ] Add assertions: verify Exam count = 0, Booklet count = 0, Copy count = 0 after failure
-- [ ] Verify media/exams/source/ directory is empty after failures
+- [x] Write `test_upload_processing_failure_no_orphan_exam()` - mock split_exam() failure
+- [x] Write `test_upload_booklet_creation_failure_rollback()` - mock Copy.create() failure
+- [x] Write `test_upload_file_cleanup_on_failure()` - verify file deleted on error
+- [x] Add assertions: verify Exam count = 0, Booklet count = 0, Copy count = 0 after failure
+- [x] Verify media/exams/source/ directory is empty after failures
 
 **Verification**:
-- [ ] Run atomicity tests → all pass
-- [ ] Verify DB state after mocked failures (no records)
-- [ ] Verify no orphaned files in media directories
+- [x] Run atomicity tests → all pass
+- [x] Verify DB state after mocked failures (no records)
+- [x] Verify no orphaned files in media directories
 
 **References**:
 - spec.md § 3.2 Files to Create (atomicity tests)
 - requirements.md FR-3 Atomicity Guarantee
 
-### [ ] Step: Write Upload Endpoint Tests - Auth & Security
+### [x] Step: Write Upload Endpoint Tests - Auth & Security
 <!-- chat-id: e0ffce03-6e9b-492a-9063-a3f19ec79c6f -->
 
 **Objective**: Verify authentication, authorization, and security protections.
@@ -190,16 +190,16 @@ Save to `{@artifacts_path}/plan.md`.
 - `backend/exams/tests/test_upload_endpoint.py` (continue from previous step)
 
 **Tasks**:
-- [ ] Write `test_upload_anonymous_user_rejected()` - unauthenticated → 401
-- [ ] Write `test_upload_student_role_rejected()` - student user → 403
-- [ ] Write `test_upload_teacher_role_allowed()` - teacher user → 201
-- [ ] Write `test_upload_admin_role_allowed()` - admin user → 201
-- [ ] Write `test_upload_path_traversal_protection()` - filename: `../../../../etc/passwd.pdf`
+- [x] Write `test_upload_anonymous_user_rejected()` - unauthenticated → 401
+- [x] Write `test_upload_student_role_rejected()` - student user → 403
+- [x] Write `test_upload_teacher_role_allowed()` - teacher user → 201
+- [x] Write `test_upload_admin_role_allowed()` - admin user → 201
+- [x] Write `test_upload_path_traversal_protection()` - filename: `../../../../etc/passwd.pdf`
 - [ ] Write `test_upload_rate_limit_enforced()` - 21 uploads/hour → 429 (optional, if rate limiting is testable)
 
 **Verification**:
-- [ ] Run auth/security tests → all pass
-- [ ] Verify path traversal test: file saved as `passwd.pdf` in correct directory
+- [x] Run auth/security tests → all pass
+- [x] Verify path traversal test: file saved as `passwd.pdf` in correct directory
 
 **References**:
 - spec.md § 6.3 Security Verification
