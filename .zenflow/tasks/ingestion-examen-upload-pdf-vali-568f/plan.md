@@ -195,7 +195,8 @@ Save to `{@artifacts_path}/plan.md`.
 - [x] Write `test_upload_teacher_role_allowed()` - teacher user → 201
 - [x] Write `test_upload_admin_role_allowed()` - admin user → 201
 - [x] Write `test_upload_path_traversal_protection()` - filename: `../../../../etc/passwd.pdf`
-- [ ] Write `test_upload_rate_limit_enforced()` - 21 uploads/hour → 429 (optional, if rate limiting is testable)
+- [x] Write `test_upload_dangerous_filename_sanitized()` - filename with dangerous characters
+- [x] Write `test_upload_rate_limit_enforced()` - 21 uploads/hour → 429 (optional, skipped with documentation)
 
 **Verification**:
 - [x] Run auth/security tests → all pass
@@ -247,7 +248,7 @@ Save to `{@artifacts_path}/plan.md`.
 **References**:
 - spec.md § 6.5 Linting & Type Checking
 
-### [ ] Step: Create Audit Documentation
+### [x] Step: Create Audit Documentation
 <!-- chat-id: ea9963ff-6d5e-4fbc-a3b1-962e56369602 -->
 
 **Objective**: Document findings, fixes, and test results.
@@ -256,18 +257,18 @@ Save to `{@artifacts_path}/plan.md`.
 - `audit.md` (in project root or task artifacts folder)
 
 **Tasks**:
-- [ ] Document current implementation review (what was found)
-- [ ] Document atomicity issues and fixes applied
-- [ ] Document error handling improvements
-- [ ] List all test cases created (with counts)
-- [ ] Include test results (all pass, coverage %)
-- [ ] Document HTTP behavior reference table
-- [ ] Add recommendations for future improvements (if any)
+- [x] Document current implementation review (what was found)
+- [x] Document atomicity issues and fixes applied
+- [x] Document error handling improvements
+- [x] List all test cases created (with counts)
+- [x] Include test results (all pass, coverage %)
+- [x] Document HTTP behavior reference table
+- [x] Add recommendations for future improvements (if any)
 
 **Verification**:
-- [ ] Review audit.md for completeness
-- [ ] Ensure all findings are documented with file/line references
-- [ ] Test results are clearly presented
+- [x] Review audit.md for completeness
+- [x] Ensure all findings are documented with file/line references
+- [x] Test results are clearly presented
 
 **References**:
 - spec.md Phase 4: Documentation & Audit Report
