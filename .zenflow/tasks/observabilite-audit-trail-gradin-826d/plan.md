@@ -55,20 +55,20 @@ Save to `{@artifacts_path}/plan.md`.
 
 ## Implementation Steps
 
-### [ ] Step: Audit Logging for PII and Security Issues
+### [x] Step: Audit Logging for PII and Security Issues
 <!-- chat-id: d6c19e8b-cd38-428d-ae0d-edea3dded618 -->
 
 **Objective**: Audit all logging statements across grading modules to identify and remove PII leakage
 
 **Tasks**:
-- [ ] Audit `grading/` module for PII in logging statements
-- [ ] Audit `processing/` module for PII in logging statements
-- [ ] Audit `exams/` module for PII in logging statements
-- [ ] Audit `identification/` module for PII in logging statements
-- [ ] Audit `students/` module for PII in logging statements
-- [ ] Check exception messages for PII (email, name, exam content)
-- [ ] Verify only user_id logged (not email/username)
-- [ ] Check all exception handlers have `exc_info=True`
+- [x] Audit `grading/` module for PII in logging statements
+- [x] Audit `processing/` module for PII in logging statements
+- [x] Audit `exams/` module for PII in logging statements
+- [x] Audit `identification/` module for PII in logging statements
+- [x] Audit `students/` module for PII in logging statements
+- [x] Check exception messages for PII (email, name, exam content)
+- [x] Verify only user_id logged (not email/username)
+- [x] Check all exception handlers have `exc_info=True`
 
 **References**:
 - Spec: Section 5, Phase 1 (Audit & Documentation)
