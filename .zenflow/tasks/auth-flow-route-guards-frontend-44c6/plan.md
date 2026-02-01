@@ -240,6 +240,7 @@ Save to `{@artifacts_path}/plan.md`.
 - `frontend/e2e/tests/admin_auth_flow.spec.ts`
 
 ### [ ] Step: E2E Tests - Teacher & Student Flow
+<!-- chat-id: 57aaa85b-1f61-4d60-bcad-6d643306a0fe -->
 
 **Objective**: Complete E2E test coverage for Teacher and Student workflows
 
