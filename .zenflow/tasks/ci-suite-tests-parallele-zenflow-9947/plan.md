@@ -163,7 +163,8 @@ npx playwright test --workers=2  # Should run with 2 workers
 
 ---
 
-### [ ] Step: CI Pipeline Integration
+### [x] Step: CI Pipeline Integration
+<!-- chat-id: 056df66d-5003-45f7-920e-4411df10a097 -->
 
 **Objective**: Update GitHub Actions to use parallel execution.
 
@@ -195,6 +196,7 @@ npx playwright test --workers=2  # Should run with 2 workers
 ---
 
 ### [ ] Step: Zenflow Multi-Task Isolation Setup
+<!-- chat-id: 081de134-90fc-44d2-95f4-349047dca031 -->
 
 **Objective**: Support multiple Zenflow tasks running in parallel without port conflicts.
 
@@ -231,6 +233,7 @@ bash scripts/test_parallel_zenflow.sh
 ---
 
 ### [ ] Step: Comprehensive Testing Guide Documentation
+<!-- chat-id: c1eeb27c-c459-4149-b7c1-b100cfd43751 -->
 
 **Objective**: Create developer guide for parallel testing best practices.
 
@@ -267,6 +270,7 @@ bash scripts/test_parallel_zenflow.sh
 ---
 
 ### [ ] Step: Stability Validation - 5 Consecutive Runs
+<!-- chat-id: f8f25700-cd27-4a9e-ad6d-d194f9873106 -->
 
 **Objective**: Prove parallel execution is stable with 0 flakes over 5 runs.
 
@@ -312,6 +316,7 @@ grep -E "PASSED|FAILED" proof_*_run*.txt
 ---
 
 ### [ ] Step: Final CI Validation and Metrics
+<!-- chat-id: 20138590-56de-4185-8f0c-4644d0a215a7 -->
 
 **Objective**: Validate parallel execution in actual CI environment.
 
