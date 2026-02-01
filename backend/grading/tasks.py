@@ -149,6 +149,39 @@ def async_import_pdf(self, exam_id, pdf_path, user_id, anonymous_id):
         }
 
 
+@shared_task(bind=True, max_retries=2, default_retry_delay=30)
+def async_batch_import(self, exam_id, pdf_paths, user_id):
+    """
+    ZF-AUD-13: Batch import multiple PDFs in parallel.
+    
+    Args:
+        exam_id: UUID of the Exam
+        pdf_paths: List of temporary paths to uploaded PDF files
+        user_id: ID of the uploading user
+        
+    Returns:
+        dict: {'total': int, 'success': int, 'failed': int, 'task_ids': list}
+    """
+    from celery import group
+    
+    logger.info(f"Starting batch import of {len(pdf_paths)} PDFs for exam {exam_id}")
+    
+    # Create individual import tasks
+    task_ids = []
+    for i, pdf_path in enumerate(pdf_paths):
+        anonymous_id = f"BATCH-{i:04d}"
+        result = async_import_pdf.delay(exam_id, pdf_path, user_id, anonymous_id)
+        task_ids.append(result.id)
+    
+    logger.info(f"Queued {len(task_ids)} import tasks for batch processing")
+    
+    return {
+        'total': len(pdf_paths),
+        'task_ids': task_ids,
+        'status': 'queued'
+    }
+
+
 @shared_task
 def cleanup_orphaned_files():
     """

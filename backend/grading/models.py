@@ -84,8 +84,10 @@ class Annotation(models.Model):
         verbose_name = _("Annotation")
         verbose_name_plural = _("Annotations")
         ordering = ['page_index', 'created_at']
+        # ZF-AUD-13: Performance indexes
         indexes = [
-            models.Index(fields=['copy', 'page_index']),
+            models.Index(fields=['copy', 'page_index'], name='ann_copy_page_idx'),
+            models.Index(fields=['created_by', 'created_at'], name='ann_creator_time_idx'),
         ]
 
     def __init__(self, *args, **kwargs):
@@ -156,8 +158,10 @@ class GradingEvent(models.Model):
         verbose_name = _("Événement de correction")
         verbose_name_plural = _("Événements de correction")
         ordering = ['-timestamp']
+        # ZF-AUD-13: Performance indexes
         indexes = [
-            models.Index(fields=['copy', 'timestamp']),
+            models.Index(fields=['copy', 'timestamp'], name='event_copy_time_idx'),
+            models.Index(fields=['actor', 'action'], name='event_actor_action_idx'),
         ]
 
     def __str__(self):
