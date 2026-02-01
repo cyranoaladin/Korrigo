@@ -231,6 +231,7 @@ python -m pytest backend/exams/tests/test_pronote_export_api.py -v
 ---
 
 ### [ ] Step 7: Write API Integration Tests
+<!-- chat-id: 88c91884-d2f3-4789-aafb-a162f4c49572 -->
 
 Test the export endpoint with API client.
 
@@ -271,6 +272,7 @@ python -m pytest backend/exams/tests/test_pronote_export_api.py -v --tb=short
 ---
 
 ### [ ] Step 8: Update Management Command
+<!-- chat-id: 8d93b963-52b6-4de7-8566-ca877adbdacc -->
 
 Refactor export_pronote command to use PronoteExporter service.
 
