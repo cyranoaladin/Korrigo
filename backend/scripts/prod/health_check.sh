@@ -18,6 +18,7 @@ if curl -f -s "$NGINX_URL/static/admin/css/base.css" > /dev/null; then
     echo "✅ Static Files: OK"
 else
     echo "❌ Static Files: FAILED (Is collectstatic run? Is Nginx mapping correct?)"
+    exit 1
 fi
 
 echo "Checking Media Access..."

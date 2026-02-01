@@ -61,7 +61,11 @@ class TestWorkflowComplete(TransactionTestCase):
         # Transition to READY (Simulate Identification/Verification step)
         copy.status = Copy.Status.READY
         copy.save()
-        
+
+        # Switch to teacher for grading workflow
+        self.client.logout()
+        self.client.force_login(self.teacher)
+
         # 2. LOCK (New C3 Requirement: Must lock before annotating)
         resp = self.client.post(f"/api/grading/copies/{copy_id}/lock/", {}, format='json')
         self.assertEqual(resp.status_code, 201)

@@ -4,9 +4,9 @@ Conformité RGPD/CNIL - Traçabilité des actions critiques
 
 Référence: .antigravity/rules/01_security_rules.md § 7.3
 """
-import hashlib
 import logging
 from django.utils import timezone
+from django.utils.crypto import salted_hmac
 from django.http import HttpRequest
 
 audit_logger = logging.getLogger('audit')
@@ -16,7 +16,7 @@ def _anonymize_id(value) -> str:
     """Hash an ID for GDPR-compliant logging (no raw PII in logs)."""
     if value is None:
         return None
-    return hashlib.sha256(str(value).encode()).hexdigest()[:12]
+    return salted_hmac("audit", str(value)).hexdigest()[:12]
 
 
 def get_client_ip(request: HttpRequest) -> str:
