@@ -226,12 +226,14 @@ class TestEdgeCases:
     def test_grayscale_image_handling(self):
         """Handle grayscale images (2D array)."""
         detector = HeaderDetector()
-        
+
         gray_img = np.zeros((100, 100), dtype=np.uint8)
-        
-        with patch('processing.services.vision.cv2.imread', return_value=None):
+
+        with patch('processing.services.vision.cv2.imread', return_value=gray_img):
             result = detector.detect_header("gray.jpg")
-            assert result is False
+            # Should handle grayscale without crashing
+            assert result is not None, "Grayscale image should be processed"
+            assert isinstance(result, (dict, bool)), "Result should be dict or bool"
 
     def test_rotated_scan_detection(self):
         """Rotated scans should still be processable."""

@@ -79,15 +79,18 @@ except Exception:
 # Export environment variables (with shell-safe quoting)
 ENV_FILE="${PROOF_DIR}/00-meta/env.sh"
 python3 -c "
-import sys, yaml, shlex
+import sys, yaml, shlex, re
 try:
     with open('${TASK_YAML}', 'r') as f:
         doc = yaml.safe_load(f)
     env_vars = doc.get('env', {})
     for k, v in env_vars.items():
-        ks = k.replace(\"'\", \"'\\\"'\\\"'\")
+        # Validate variable name (prevent injection)
+        if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', k):
+            print(f'# Skipping invalid env var name: {k}', file=sys.stderr)
+            continue
         vs = shlex.quote(str(v))
-        print(f'export {ks}={vs}')
+        print(f'export {k}={vs}')
 except Exception as e:
     pass
 " > "${ENV_FILE}" 2>/dev/null || echo "# No env vars"
@@ -107,20 +110,20 @@ run_step() {
   local step_num="${STEP_COUNTER:-0}"
   STEP_COUNTER=$((step_num + 1))
 
-  # Escape apostrophes in step name for shell safety
-  local escaped_name="${step_name//\'/\'\"\'\"\'}"
-
   echo "[$(date -Iseconds)] Step ${step_num}: ${step_name}"
 
   # Read entire step block from stdin
   local step_file="${PROOF_DIR}/10-commands/step-${step_num}.sh"
   cat > "${step_file}"
 
-  # Save step metadata
+  # Save step metadata (JSON-safe)
+  local name_json
+  name_json=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "${step_name}")
+
   cat > "${PROOF_DIR}/10-commands/step-${step_num}.json" <<STEP_META
 {
   "step": ${step_num},
-  "name": "${escaped_name}",
+  "name": ${name_json},
   "started_at": "$(date -Iseconds)"
 }
 STEP_META
@@ -199,16 +202,19 @@ run_step() {
   local step_num="${STEP_COUNTER:-0}"
   STEP_COUNTER=$((step_num + 1))
 
-  local escaped_name="${step_name//\'/\'\"\'\"\'}"
   echo "[$(date -Iseconds)] Step ${step_num}: ${step_name}"
 
   local step_file="${PROOF_DIR}/10-commands/step-${step_num}.sh"
   cat > "${step_file}"
 
+  # JSON-safe name
+  local name_json
+  name_json=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "${step_name}")
+
   cat > "${PROOF_DIR}/10-commands/step-${step_num}.json" <<STEP_META
 {
   "step": ${step_num},
-  "name": "${escaped_name}",
+  "name": ${name_json},
   "started_at": "$(date -Iseconds)"
 }
 STEP_META

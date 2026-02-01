@@ -360,14 +360,17 @@ class TestDraftGradedProtection:
         
         # Try to acquire lock
         response = client.post(f"/api/grading/copies/{copy.id}/lock/")
-        
-        # Lock acquisition on GRADED should update status to LOCKED (service behavior)
-        # But the frontend enforces read-only for GRADED
-        # The key protection is that finalize cannot be called twice
-        # Let's verify the copy status
+
+        # Service allows lock acquisition (status 201) but frontend enforces read-only
+        # The real protection is in finalize_copy which prevents double finalization
+        assert response.status_code in [201, 409], f"Expected 201 or 409, got {response.status_code}"
+
+        # If lock acquired (201), verify copy transitioned to LOCKED
         copy.refresh_from_db()
-        # Service allows lock but frontend blocks editing
-        # The real protection is in finalize_copy which checks status
+        if response.status_code == 201:
+            assert copy.status == Copy.Status.LOCKED, "Lock should transition GRADED to LOCKED"
+        else:
+            assert copy.status == Copy.Status.GRADED, "If lock rejected, status should remain GRADED"
 
 
 @pytest.mark.django_db
