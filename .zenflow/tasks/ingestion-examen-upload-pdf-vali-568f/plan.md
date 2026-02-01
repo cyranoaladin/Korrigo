@@ -101,7 +101,7 @@ Save to `{@artifacts_path}/plan.md`.
 - spec.md § 2.3 Add HTTP 413 Support
 - requirements.md FR-4 Error Handling & User Messages
 
-### [ ] Step: Create Test Fixtures
+### [x] Step: Create Test Fixtures
 <!-- chat-id: 4b8b67da-c2e1-41a7-8eb1-5999a6773c0a -->
 
 **Objective**: Create programmatic PDF fixture generation utilities.
@@ -110,18 +110,18 @@ Save to `{@artifacts_path}/plan.md`.
 - `backend/exams/tests/fixtures/pdf_fixtures.py` (NEW)
 
 **Tasks**:
-- [ ] Create `create_valid_pdf(pages=4)` - returns PDF bytes with N pages
-- [ ] Create `create_large_pdf(size_mb=51)` - returns PDF > 50 MB
-- [ ] Create `create_corrupted_pdf()` - returns invalid PDF bytes
-- [ ] Create `create_fake_pdf()` - returns text file content (for MIME type test)
-- [ ] Add helper: `create_uploadedfile(pdf_bytes, filename)` - wraps bytes in Django UploadedFile
-- [ ] Test each fixture manually to ensure they work as expected
+- [x] Create `create_valid_pdf(pages=4)` - returns PDF bytes with N pages
+- [x] Create `create_large_pdf(size_mb=51)` - returns PDF > 50 MB
+- [x] Create `create_corrupted_pdf()` - returns invalid PDF bytes
+- [x] Create `create_fake_pdf()` - returns text file content (for MIME type test)
+- [x] Add helper: `create_uploadedfile(pdf_bytes, filename)` - wraps bytes in Django UploadedFile
+- [x] Test each fixture manually to ensure they work as expected
 
 **Verification**:
-- [ ] Run each fixture generator → verify outputs match expected behavior
-- [ ] Verify valid PDF opens in PyMuPDF without errors
-- [ ] Verify corrupted PDF raises exception when opened with PyMuPDF
-- [ ] Verify fake PDF fails MIME type detection
+- [x] Run each fixture generator → verify outputs match expected behavior
+- [x] Verify valid PDF opens in PyMuPDF without errors
+- [x] Verify corrupted PDF raises exception when opened with PyMuPDF
+- [x] Verify fake PDF fails MIME type detection
 
 **References**:
 - spec.md § 3.2 Files to Create (pdf_fixtures.py)
@@ -227,22 +227,22 @@ Save to `{@artifacts_path}/plan.md`.
 - spec.md § 6.1 Test Execution
 - requirements.md § 4 Testing Requirements
 
-### [ ] Step: Run Linting & Type Checking
+### [x] Step: Run Linting & Type Checking
 <!-- chat-id: ff363dfe-d6d6-45e2-af6b-f4311b924120 -->
 
 **Objective**: Ensure code quality and consistency.
 
 **Tasks**:
-- [ ] Check project for linting tools: `cat backend/pyproject.toml` or `cat backend/requirements.txt`
-- [ ] Run linter if configured (e.g., `ruff check backend/exams/` or `flake8 backend/exams/`)
-- [ ] Run Django system checks: `python backend/manage.py check`
-- [ ] Fix any linting errors or warnings
-- [ ] Run type checker if configured (e.g., `mypy backend/exams/views.py`)
+- [x] Check project for linting tools: `cat backend/pyproject.toml` or `cat backend/requirements.txt`
+- [x] Run linter if configured (e.g., `ruff check backend/exams/` or `flake8 backend/exams/`)
+- [x] Run Django system checks: `python backend/manage.py check`
+- [x] Fix any linting errors or warnings
+- [x] Run type checker if configured (e.g., `mypy backend/exams/views.py`)
 
 **Verification**:
-- [ ] All linting checks pass (0 errors)
-- [ ] Django system checks pass
-- [ ] Type checking passes (if applicable)
+- [x] All linting checks pass (0 errors)
+- [x] Django system checks pass
+- [x] Type checking passes (if applicable)
 
 **References**:
 - spec.md § 6.5 Linting & Type Checking
