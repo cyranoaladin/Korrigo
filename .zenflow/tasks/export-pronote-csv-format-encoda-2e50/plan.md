@@ -121,7 +121,8 @@ python -m pytest backend/exams/tests/test_pronote_export.py::test_validate_* -v
 
 ---
 
-### [ ] Step 4: Implement CSV Generation
+### [x] Step 4: Implement CSV Generation
+<!-- chat-id: 3529f9ae-3e03-4349-8e53-3c80d58c6192 -->
 
 Build PRONOTE-format CSV generator.
 
