@@ -364,6 +364,24 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300
 CELERY_TASK_SOFT_TIME_LIMIT = 270
 
+# ZF-AUD-13: Dedicated queues for performance optimization
+# Separate heavy tasks (import, finalize) from light tasks (default)
+CELERY_TASK_ROUTES = {
+    'grading.tasks.async_import_pdf': {'queue': 'import'},
+    'grading.tasks.async_batch_import': {'queue': 'import'},
+    'grading.tasks.async_finalize_copy': {'queue': 'finalize'},
+    'grading.tasks.cleanup_orphaned_files': {'queue': 'maintenance'},
+}
+
+# ZF-AUD-13: Rate limiting to prevent overload
+CELERY_TASK_ANNOTATIONS = {
+    'grading.tasks.async_import_pdf': {'rate_limit': '10/m'},
+    'grading.tasks.async_finalize_copy': {'rate_limit': '5/m'},
+}
+
+# ZF-AUD-13: Prefetch multiplier (1 for long tasks to avoid blocking)
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+
 # Cache Configuration (required for django-ratelimit)
 # Cache Configuration (required for django-ratelimit)
 # Use LocMemCache for testing/dev without Redis
