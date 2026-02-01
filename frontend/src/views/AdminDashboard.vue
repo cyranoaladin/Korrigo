@@ -110,6 +110,54 @@ const dispatchResults = ref(null)
 const dispatchingExam = ref(null)
 const isDispatching = ref(false)
 
+// Student management
+const students = ref([])
+const loadingStudents = ref(false)
+const showStudentsSection = ref(false)
+
+const loadStudents = async () => {
+    loadingStudents.value = true
+    try {
+        const res = await api.get('/students/')
+        students.value = res.data
+    } catch (e) {
+        console.error("Failed to load students", e)
+        alert("Erreur lors du chargement des étudiants: " + (e.response?.data?.error || e.message))
+    } finally {
+        loadingStudents.value = false
+    }
+}
+
+const resetStudentPassword = async (student) => {
+    if (!confirm(
+        `Réinitialiser le mot de passe de ${student.first_name} ${student.last_name} ?\n\n` +
+        `Un mot de passe temporaire sera généré.`
+    )) {
+        return
+    }
+
+    try {
+        const res = await api.post(`/students/${student.id}/reset-password/`)
+
+        alert(
+            `Mot de passe réinitialisé avec succès !\n\n` +
+            `Mot de passe temporaire : ${res.data.temporary_password}\n\n` +
+            `⚠️ L'étudiant devra le changer à la prochaine connexion.\n` +
+            `⚠️ Notez ce mot de passe, il ne sera pas affiché à nouveau.`
+        )
+    } catch (err) {
+        console.error('Password reset error:', err)
+        alert('Erreur lors de la réinitialisation du mot de passe: ' + (err.response?.data?.error || err.message))
+    }
+}
+
+const toggleStudentsSection = async () => {
+    showStudentsSection.value = !showStudentsSection.value
+    if (showStudentsSection.value && students.value.length === 0) {
+        await loadStudents()
+    }
+}
+
 const loadTeachers = async () => {
     loadingTeachers.value = true
     try {
@@ -368,6 +416,75 @@ onUnmounted(() => {
             </tr>
           </tbody>
         </table>
+      </section>
+
+      <!-- Student Management Section -->
+      <section class="student-management">
+        <div class="section-header">
+          <h2>Gestion des Élèves</h2>
+          <button
+            class="btn btn-outline"
+            @click="toggleStudentsSection"
+          >
+            {{ showStudentsSection ? 'Masquer' : 'Afficher' }} les élèves
+          </button>
+        </div>
+
+        <div
+          v-if="showStudentsSection"
+          class="students-content"
+        >
+          <div
+            v-if="loadingStudents"
+            class="loading"
+          >
+            Chargement des élèves...
+          </div>
+
+          <table
+            v-else
+            class="data-table"
+          >
+            <thead>
+              <tr>
+                <th>INE</th>
+                <th>Nom</th>
+                <th>Prénom</th>
+                <th>Email</th>
+                <th>Classe</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="student in students"
+                :key="student.id"
+              >
+                <td>{{ student.ine }}</td>
+                <td>{{ student.last_name }}</td>
+                <td>{{ student.first_name }}</td>
+                <td>{{ student.email }}</td>
+                <td>{{ student.class_name }}</td>
+                <td>
+                  <button
+                    class="btn-sm btn-action"
+                    @click="resetStudentPassword(student)"
+                  >
+                    Réinitialiser mot de passe
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="students.length === 0">
+                <td
+                  colspan="6"
+                  class="empty-cell"
+                >
+                  Aucun élève trouvé.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
 

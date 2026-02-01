@@ -79,7 +79,8 @@ def seed_prod():
     print("\n👥 Creating User Groups...")
     teacher_group, _ = Group.objects.get_or_create(name='teacher')
     admin_group, _ = Group.objects.get_or_create(name='admin')
-    print(f"  ✓ Groups ready: teacher, admin")
+    student_group, _ = Group.objects.get_or_create(name='student')
+    print(f"  ✓ Groups ready: teacher, admin, student")
 
     # 1. Create Admin User
     print("\n📋 Creating Admin User...")
@@ -143,23 +144,65 @@ def seed_prod():
 
         professors.append(prof)
 
-    # 3. Create Students
+    # 3. Create Students (with User accounts)
     print("\n👨‍🎓 Creating Students...")
     students = []
+
+    # Get student password once (same for all students in local dev)
+    student_password, was_generated = get_or_generate_password(
+        'STUDENT_PASSWORD',
+        default_for_local='eleve'  # Only for local dev
+    )
+
     for i in range(1, 11):  # 10 students
+        email = f'eleve{i}@viatique.local'
+
+        # Create User Django first
+        user, user_created = User.objects.get_or_create(
+            username=f'student_INE{i:03d}PROD',
+            defaults={
+                'email': email,
+                'first_name': f'Élève{i}',
+                'last_name': f'Dupont{i}',
+                'is_staff': False,
+                'is_superuser': False,
+            }
+        )
+        if user_created:
+            user.set_password(student_password)
+            user.save()
+            print(f"  ✓ Created user: {user.username}")
+        else:
+            print(f"  ↻ User already exists: {user.username}")
+
+        # Add to student group
+        if not user.groups.filter(name='student').exists():
+            user.groups.add(student_group)
+            print(f"    ✓ Added {user.username} to student group")
+
+        # Create Student profile
         student, created = Student.objects.get_or_create(
             ine=f"INE{i:03d}PROD",
             defaults={
+                'user': user,
                 'first_name': f'Élève{i}',
                 'last_name': f'Dupont{i}',
                 'class_name': 'Terminale S',
-                'email': f'eleve{i}@viatique.local',
+                'email': email,
+                'date_of_birth': date(2008, 1, min(i, 28)),  # Valid dates
             }
         )
         if created:
             print(f"  ✓ Created student: {student.ine} - {student.first_name} {student.last_name}")
         else:
-            print(f"  ↻ Student already exists: {student.ine}")
+            # Update user if needed (in case student existed but had no user)
+            if student.user != user:
+                student.user = user
+                student.save(update_fields=['user'])
+                print(f"  ↻ Student already exists, updated user: {student.ine}")
+            else:
+                print(f"  ↻ Student already exists: {student.ine}")
+
         students.append(student)
 
     # 4. Create Exam
@@ -306,6 +349,20 @@ def seed_prod():
     print(f"    - READY: {Copy.objects.filter(status=Copy.Status.READY).count()}")
     print(f"    - GRADED: {Copy.objects.filter(status=Copy.Status.GRADED).count()}")
     print(f"    - LOCKED: {Copy.objects.filter(status=Copy.Status.LOCKED).count()}")
+    print("\n" + "="*60)
+    print("🔐 IDENTIFIANTS CRÉÉS")
+    print("="*60)
+    print("\nADMIN:")
+    print(f"  Username: admin")
+    print(f"  Password: {os.environ.get('ADMIN_PASSWORD', 'admin')}")
+    print("\nPROFESSEURS (x3):")
+    print(f"  Username: prof1, prof2, prof3")
+    print(f"  Email: prof1@viatique.local, prof2@..., prof3@...")
+    print(f"  Password: {os.environ.get('TEACHER_PASSWORD', 'prof')}")
+    print("\nÉTUDIANTS (x10):")
+    print(f"  Email: eleve1@viatique.local, eleve2@..., ..., eleve10@...")
+    print(f"  Password: {os.environ.get('STUDENT_PASSWORD', 'eleve')}")
+    print("\n⚠️  IMPORTANT: Changer ces mots de passe en production!")
     print("="*60)
 
 if __name__ == "__main__":

@@ -337,3 +337,55 @@ class UserResetPasswordView(APIView):
             "message": "Password reset successfully",
             "temporary_password": temporary_password
         })
+
+
+class StudentPasswordResetView(APIView):
+    """
+    Admin endpoint to reset a student's password.
+    Generates a temporary password and forces password change on next login.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
+    def post(self, request, student_id):
+        if not request.user.is_superuser and not request.user.is_staff:
+            return Response({"error": "Admin only"}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            from students.models import Student
+            student = Student.objects.get(id=student_id)
+            user = student.user
+        except Student.DoesNotExist:
+            return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Générer mot de passe temporaire
+        import secrets
+        import string
+        alphabet = string.ascii_letters + string.digits
+        temporary_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+
+        user.set_password(temporary_password)
+        user.save()
+
+        # Forcer changement de mot de passe
+        try:
+            from core.models import UserProfile
+            profile, created = UserProfile.objects.get_or_create(user=user)
+            profile.must_change_password = True
+            profile.save()
+        except Exception:
+            pass
+
+        from core.utils.audit import log_audit
+        log_audit(
+            request,
+            'student.password.reset',
+            'Student',
+            student.id,
+            metadata={'reset_by': request.user.username}
+        )
+
+        return Response({
+            "message": "Mot de passe réinitialisé",
+            "temporary_password": temporary_password
+        })
