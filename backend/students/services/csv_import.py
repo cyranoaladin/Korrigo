@@ -9,7 +9,7 @@ from django.db import transaction
 
 
 REQUIRED_FIELDS = ("INE", "NOM", "PRENOM")
-OPTIONAL_FIELDS = ("CLASSE", "EMAIL")
+OPTIONAL_FIELDS = ("CLASSE", "EMAIL", "DATE_NAISSANCE", "GROUPE_EDS")
 
 
 @dataclass
@@ -136,6 +136,8 @@ def parse_students_csv(path: str, delimiter: str = ",") -> Tuple[ImportResult, L
                     "PRENOM": normalized.get("PRENOM", ""),
                     "CLASSE": normalized.get("CLASSE", ""),
                     "EMAIL": normalized.get("EMAIL", ""),
+                    "DATE_NAISSANCE": normalized.get("DATE_NAISSANCE", ""),
+                    "GROUPE_EDS": normalized.get("GROUPE_EDS", ""),
                 }
                 rows.append(cleaned)
                 
@@ -147,6 +149,21 @@ def parse_students_csv(path: str, delimiter: str = ",") -> Tuple[ImportResult, L
         raise CsvReadError(f"Unexpected error reading CSV: {str(e)}")
 
     return result, rows
+
+
+def _parse_date(date_str: str):
+    """Parse date from various formats (DD/MM/YYYY, YYYY-MM-DD, etc.)"""
+    if not date_str:
+        return None
+    
+    from datetime import datetime
+    formats = ["%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d.%m.%Y"]
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_str.strip(), fmt).date()
+        except ValueError:
+            continue
+    return None
 
 
 def import_students_rows(rows: List[Dict[str, str]], student_model) -> ImportResult:
@@ -161,6 +178,8 @@ def import_students_rows(rows: List[Dict[str, str]], student_model) -> ImportRes
         first_name = r["PRENOM"]
         class_name = r.get("CLASSE", "")
         email = r.get("EMAIL", "")
+        date_of_birth = _parse_date(r.get("DATE_NAISSANCE", ""))
+        eds_group = r.get("GROUPE_EDS", "")
 
         try:
             with transaction.atomic():
@@ -171,6 +190,8 @@ def import_students_rows(rows: List[Dict[str, str]], student_model) -> ImportRes
                         "last_name": last_name,
                         "class_name": class_name,
                         "email": email,
+                        "date_of_birth": date_of_birth,
+                        "eds_group": eds_group,
                     },
                 )
             if created:
