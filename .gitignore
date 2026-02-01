@@ -106,3 +106,4 @@ push_to_github.sh
 .zenflow/tasks/local-prod-ready-v2/report*.md
 .zenflow/tasks/local-prod-ready-v2/CORRECTIONS_APPLIED.md
 .zenflow/tasks/local-prod-ready-v2/REPORT_FINAL.md
+reports/
