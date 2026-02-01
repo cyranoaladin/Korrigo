@@ -6,6 +6,7 @@ pdf2image
 psycopg2-binary
 celery
 redis
+django-redis
 django-cors-headers
 python-dotenv
 gunicorn

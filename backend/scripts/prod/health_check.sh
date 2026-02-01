@@ -4,8 +4,11 @@ set -e
 BASE_URL="http://localhost:8000"
 NGINX_URL="http://localhost:8088"
 
+# In Docker setup, backend is accessed via nginx proxy
+API_URL="${API_BASE_URL:-$NGINX_URL}"
+
 echo "Checking Backend Health..."
-if curl -f -s "$BASE_URL/api/health/" > /dev/null; then
+if curl -f -s "$API_URL/api/health/" > /dev/null; then
     echo "✅ Backend API: OK"
 else
     echo "❌ Backend API: FAILED"
