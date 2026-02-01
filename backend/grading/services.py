@@ -15,6 +15,13 @@ from exams.models import Copy, Booklet, Exam
 import logging
 import datetime
 
+from grading.metrics import (
+    track_import_duration,
+    track_finalize_duration,
+    grading_ocr_errors_total,
+    grading_lock_conflicts_total,
+)
+
 logger = logging.getLogger(__name__)
 
 
