@@ -121,7 +121,7 @@ assert_status "${RUN_ID}" "test-timeout" "timeout" "124"
 
 # Verify no leaked processes
 sleep 1
-leaked=$(ps aux | grep -c "sleep 300" || echo 0)
+leaked=$(pgrep -fc "sleep 300" 2>/dev/null || echo 0)
 if [[ ${leaked} -gt 0 ]]; then
   echo "   ⚠️  Warning: ${leaked} leaked processes detected (may be from other tests)"
 else

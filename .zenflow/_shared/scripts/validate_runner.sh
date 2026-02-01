@@ -18,6 +18,7 @@ echo "[TEST 1] Timeout Semantic (timeout blocks dependents)"
 echo "---------------------------------------"
 
 # Create a task that times out
+mkdir -p "${VALIDATION_DIR}/tasks/test-timeout"
 cat > "${VALIDATION_DIR}/tasks/test-timeout/task.yaml" <<'EOF'
 id: test-timeout
 title: Task That Times Out
@@ -33,6 +34,7 @@ commands:
 EOF
 
 # Create a dependent task
+mkdir -p "${VALIDATION_DIR}/tasks/test-dependent"
 cat > "${VALIDATION_DIR}/tasks/test-dependent/task.yaml" <<'EOF'
 id: test-dependent
 title: Task Dependent on Timeout

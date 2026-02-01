@@ -46,18 +46,23 @@ def get_remaining_lockout_time(username: str) -> int:
 
 def record_failed_attempt(username: str) -> int:
     """
-    Record a failed login attempt.
+    Record a failed login attempt (atomic increment).
     Returns the current attempt count.
     """
     if not username:
         return 0
-    
+
     attempts_key = _get_attempts_key(username)
     lockout_key = _get_lockout_key(username)
-    
-    attempts = cache.get(attempts_key, 0) + 1
-    cache.set(attempts_key, attempts, timeout=LOCKOUT_DURATION)
-    
+
+    # Atomic increment to prevent race conditions
+    try:
+        attempts = cache.incr(attempts_key)
+    except ValueError:
+        # Key doesn't exist yet, initialize it
+        cache.set(attempts_key, 1, timeout=LOCKOUT_DURATION)
+        attempts = 1
+
     if attempts >= LOCKOUT_THRESHOLD:
         cache.set(lockout_key, True, timeout=LOCKOUT_DURATION)
         logger.warning(
@@ -68,7 +73,7 @@ def record_failed_attempt(username: str) -> int:
                 'lockout_duration': LOCKOUT_DURATION
             }
         )
-    
+
     return attempts
 
 

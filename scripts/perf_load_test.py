@@ -112,23 +112,25 @@ def simulate_import_operation(exam_id: str, copy_num: int) -> tuple:
 
 
 def simulate_lock_operation(copy_id: str, user_id: int) -> tuple:
-    """Simulate lock acquisition."""
+    """Simulate lock acquisition. Returns (latency, error, lock_token)."""
     from exams.models import Copy
     from grading.services import GradingService
-    
+
     start = time.time()
     error = None
-    
+    lock_token = None
+
     try:
         copy = Copy.objects.get(id=copy_id)
         user = User.objects.get(id=user_id)
-        
+
         if copy.status == Copy.Status.READY:
             lock, created = GradingService.acquire_lock(copy, user)
+            lock_token = str(lock.token) if lock else None
     except Exception as e:
         error = str(e)
-    
-    return time.time() - start, error
+
+    return time.time() - start, error, lock_token
 
 
 def simulate_annotation_operation(copy_id: str, user_id: int, lock_token: str = None) -> tuple:
@@ -272,16 +274,16 @@ def run_correction_scenario(num_teachers: int = 30, annotations_per_copy: int = 
     # Simulate concurrent corrections
     for copy in copies:
         teacher = random.choice(teachers)
-        
+
         # Lock
-        lock_latency, lock_error = simulate_lock_operation(str(copy.id), teacher.id)
+        lock_latency, lock_error, lock_token = simulate_lock_operation(str(copy.id), teacher.id)
         metrics.record(lock_latency, lock_error)
-        
+
         copy.refresh_from_db()
-        
-        # Add annotations
+
+        # Add annotations (with lock token)
         for _ in range(annotations_per_copy):
-            ann_latency, ann_error = simulate_annotation_operation(str(copy.id), teacher.id)
+            ann_latency, ann_error = simulate_annotation_operation(str(copy.id), teacher.id, lock_token=lock_token)
             metrics.record(ann_latency, ann_error)
     
     metrics.end_time = time.time()
