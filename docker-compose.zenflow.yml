@@ -1,0 +1,93 @@
+version: '3.8'
+
+# Zenflow-aware Docker Compose configuration
+# This template uses environment variables to avoid port conflicts
+# between parallel Zenflow tasks.
+#
+# Usage:
+#   1. Source task-specific .env.task file:
+#      source .zenflow/tasks/{task_id}/.env.task
+#   2. Run docker compose with this file:
+#      docker-compose -f infra/docker/docker-compose.yml -f docker-compose.zenflow.yml up
+
+services:
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data_${ZENFLOW_TASK_ID:-default}:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DB_NAME:-viatique}
+      - POSTGRES_USER=${DB_USER:-viatique_user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-viatique_password}
+    ports:
+      # Use task-specific port (default 10000 if not set)
+      - "${POSTGRES_PORT:-5435}:5432"
+    networks:
+      - zenflow_${ZENFLOW_TASK_ID:-default}
+
+  backend:
+    build: ./backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    ports:
+      # Use task-specific port (default 18000 if not set)
+      - "${BACKEND_PORT:-8088}:8000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DATABASE_URL=postgres://${DB_USER:-viatique_user}:${DB_PASSWORD:-viatique_password}@db:5432/${DB_NAME:-viatique}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - DEBUG=true
+      - SSL_ENABLED=false
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-core.settings}
+      - ZENFLOW_TASK_ID=${ZENFLOW_TASK_ID}
+    networks:
+      - zenflow_${ZENFLOW_TASK_ID:-default}
+
+  redis:
+    image: redis:7
+    ports:
+      # Use task-specific port (default 16000 if not set)
+      - "${REDIS_PORT:-6385}:6379"
+    networks:
+      - zenflow_${ZENFLOW_TASK_ID:-default}
+
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      # Use task-specific port (default 15000 if not set)
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      - VITE_API_URL=http://localhost:${BACKEND_PORT:-8088}/api
+      - ZENFLOW_TASK_ID=${ZENFLOW_TASK_ID}
+    networks:
+      - zenflow_${ZENFLOW_TASK_ID:-default}
+
+  celery:
+    build: ./backend
+    command: celery -A core worker -l info
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DATABASE_URL=postgres://${DB_USER:-viatique_user}:${DB_PASSWORD:-viatique_password}@db:5432/${DB_NAME:-viatique}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - ZENFLOW_TASK_ID=${ZENFLOW_TASK_ID}
+    networks:
+      - zenflow_${ZENFLOW_TASK_ID:-default}
+
+volumes:
+  postgres_data_${ZENFLOW_TASK_ID:-default}:
+
+networks:
+  zenflow_${ZENFLOW_TASK_ID:-default}:
+    name: zenflow_${ZENFLOW_TASK_ID:-default}
