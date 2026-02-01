@@ -16,47 +16,52 @@ from .serializers import ExamSerializer, BookletSerializer, CopySerializer
 from processing.services.vision import HeaderDetector
 from grading.services import GradingService
 from .permissions import IsTeacherOrAdmin
+from core.auth import IsAdminOnly
 
 import fitz  # PyMuPDF
+from django.db import transaction
 
 class ExamUploadView(APIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    permission_classes = [IsAdminOnly]  # Admin only
     parser_classes = (MultiPartParser, FormParser)
 
     @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, *args, **kwargs):
         serializer = ExamSerializer(data=request.data)
         if serializer.is_valid():
-            exam = serializer.save()
-
-            # REAL-TIME PROCESSING using PDFSplitter
+            # ZF-AUD-03 FIX: Wrap entire upload+processing in atomic transaction
+            # to prevent orphan Exams if processing fails
             try:
-                from processing.services.pdf_splitter import PDFSplitter
+                with transaction.atomic():
+                    exam = serializer.save()
 
-                splitter = PDFSplitter(dpi=150)
-                booklets = splitter.split_exam(exam)
+                    # REAL-TIME PROCESSING using PDFSplitter
+                    from processing.services.pdf_splitter import PDFSplitter
 
-                # Créer les copies en statut STAGING (ADR-003)
-                import uuid
-                import logging
-                logger = logging.getLogger(__name__)
+                    splitter = PDFSplitter(dpi=150)
+                    booklets = splitter.split_exam(exam)
 
-                for booklet in booklets:
-                    copy = Copy.objects.create(
-                        exam=exam,
-                        anonymous_id=str(uuid.uuid4())[:8].upper(),
-                        status=Copy.Status.STAGING,
-                        is_identified=False
-                    )
-                    copy.booklets.add(booklet)
+                    # Créer les copies en statut STAGING (ADR-003)
+                    import uuid
+                    import logging
+                    logger = logging.getLogger(__name__)
 
-                    logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
+                    for booklet in booklets:
+                        copy = Copy.objects.create(
+                            exam=exam,
+                            anonymous_id=str(uuid.uuid4())[:8].upper(),
+                            status=Copy.Status.STAGING,
+                            is_identified=False
+                        )
+                        copy.booklets.add(booklet)
 
-                return Response({
-                    **serializer.data,
-                    "booklets_created": len(booklets),
-                    "message": f"{len(booklets)} booklets created successfully"
-                }, status=status.HTTP_201_CREATED)
+                        logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
+
+                    return Response({
+                        **serializer.data,
+                        "booklets_created": len(booklets),
+                        "message": f"{len(booklets)} booklets created successfully"
+                    }, status=status.HTTP_201_CREATED)
 
             except Exception as e:
                 from core.utils.errors import safe_error_response
@@ -73,7 +78,7 @@ class CopyImportView(APIView):
     POST /api/exams/<exam_id>/copies/import/
     Payload: multipart (pdf_file)
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsAdminOnly]
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, exam_id):
@@ -204,7 +209,7 @@ class CopyListView(generics.ListAPIView):
 
 
 class MergeBookletsView(APIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    permission_classes = [IsAdminOnly]  # Admin only
 
     def post(self, request, exam_id):
         booklet_ids = request.data.get('booklet_ids', [])
@@ -244,7 +249,7 @@ class MergeBookletsView(APIView):
         )
 
 class ExportAllView(APIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    permission_classes = [IsAdminOnly]  # Admin only
 
     def post(self, request, id):
         exam = get_object_or_404(Exam, id=id)
@@ -263,54 +268,36 @@ class ExportAllView(APIView):
         return Response({"message": f"{count} copies traitées."}, status=status.HTTP_200_OK)
 
 class CSVExportView(APIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    permission_classes = [IsAdminOnly]  # Admin only
 
     def get(self, request, id):
         import csv
         from django.http import HttpResponse
+        from grading.services import GradingService
         
         exam = get_object_or_404(Exam, id=id)
         copies = exam.copies.all()
         
-        response = HttpResponse(content_type='text/csv')
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = f'attachment; filename="exam_{id}_results.csv"'
         
         writer = csv.writer(response)
         
-        # Dynamic Header based on Grading Structure?
-        # For simplicity, we dump just Total and the raw JSON keys present in the first copy
-        # Better: iterate all possible keys from exam.grading_structure if possible.
-        # MVP: AnonymousID, Total, JSON_Scores
-        
-        # Mission 3.2: Explicit Mapping
+        # ZF-AUD-10 FIX: Use annotations for score computation instead of non-existent scores relation
+        # Header: AnonymousID, Student Name, Status, Total
         header = ['AnonymousID', 'Student Name', 'Status', 'Total']
-        
-        # Attempt to find all keys
-        all_keys = set()
-        for c in copies:
-            if c.scores.exists():
-                all_keys.update(c.scores.first().scores_data.keys())
-        sorted_keys = sorted(list(all_keys))
-        header.extend(sorted_keys)
-        
         writer.writerow(header)
         
         for c in copies:
-            score_obj = c.scores.first()
-            data = score_obj.scores_data if score_obj else {}
-            
             # Mission 3.2: Student Name
             student_name = "Inconnu"
             if c.is_identified and c.student:
-                 # Check if Student model has name/first_name or just string representation
-                 student_name = str(c.student) 
+                student_name = str(c.student) 
             
-            # Calculate total
-            total = sum(float(v) for v in data.values() if v)
+            # Calculate total from annotations
+            total = GradingService.compute_score(c)
             
             row = [c.anonymous_id, student_name, c.get_status_display(), total]
-            for k in sorted_keys:
-                row.append(data.get(k, ''))
             writer.writerow(row)
             
         return response
@@ -342,7 +329,9 @@ class UnidentifiedCopiesView(APIView):
     def get(self, request, id):
         # Mission 18: List unidentified copies for Video-Coding
         # Mission 21 Update: Use dynamic header URL
-        copies = Copy.objects.filter(exam_id=id, is_identified=False)
+        # ZF-AUD-13: Prefetch to avoid N+1
+        copies = Copy.objects.filter(exam_id=id, is_identified=False)\
+            .prefetch_related('booklets')
         data = []
         for c in copies:
             booklet = c.booklets.order_by('start_page').first()
@@ -407,7 +396,7 @@ class StudentCopiesView(generics.ListAPIView):
             })
         return Response(data)
 class ExamSourceUploadView(APIView):
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsAdminOnly]
     parser_classes = (MultiPartParser, FormParser)
 
     @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
@@ -486,9 +475,12 @@ class CorrectorCopiesView(generics.ListAPIView):
 
     def get_queryset(self):
         # MVP: Return all copies that are ready/locked/graded
+        # ZF-AUD-13: Prefetch to avoid N+1
         return Copy.objects.filter(
             status__in=[Copy.Status.READY, Copy.Status.LOCKED, Copy.Status.GRADED]
-        ).select_related('exam').order_by('exam__date', 'anonymous_id')
+        ).select_related('exam', 'student', 'assigned_corrector')\
+         .prefetch_related('annotations')\
+         .order_by('exam__date', 'anonymous_id')
 
 class CorrectorCopyDetailView(generics.RetrieveAPIView):
     """
@@ -506,7 +498,7 @@ class ExamDispatchView(APIView):
     Dispatches unassigned copies to correctors fairly and randomly.
     POST /api/exams/<exam_id>/dispatch/
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsAdminOnly]
 
     def post(self, request, exam_id):
         from django.db import transaction

@@ -10,6 +10,12 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from core.utils.audit import log_authentication_attempt
 from core.auth import UserRole
+from core.middleware.login_lockout import (
+    is_locked_out,
+    record_failed_attempt,
+    clear_failed_attempts,
+    get_remaining_lockout_time,
+)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
@@ -28,6 +34,15 @@ class LoginView(APIView):
         username = request.data.get('username')
         password = request.data.get('password')
         
+        # R4: Check lockout before attempting authentication
+        if username and is_locked_out(username):
+            remaining = get_remaining_lockout_time(username)
+            log_authentication_attempt(request, success=False, username=username)
+            return Response(
+                {"error": "Account temporarily locked", "retry_after": remaining},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+        
         user = authenticate(request, username=username, password=password)
         
         if user is None and username and '@' in username:
@@ -39,6 +54,10 @@ class LoginView(APIView):
         
         if user is not None:
             if user.is_active:
+                # R4: Clear failed attempts on successful login
+                clear_failed_attempts(username)
+                # Session rotation to prevent session fixation
+                request.session.cycle_key()
                 login(request, user)
                 # Audit trail: Login réussi
                 log_authentication_attempt(request, success=True, username=username)
@@ -56,9 +75,12 @@ class LoginView(APIView):
                 })
             else:
                 # Audit trail: Compte désactivé
+                record_failed_attempt(username)
                 log_authentication_attempt(request, success=False, username=username)
                 return Response({"error": "Account disabled"}, status=status.HTTP_403_FORBIDDEN)
         else:
+            # R4: Record failed attempt
+            record_failed_attempt(username)
             # Audit trail: Identifiants invalides
             log_authentication_attempt(request, success=False, username=username)
             return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
