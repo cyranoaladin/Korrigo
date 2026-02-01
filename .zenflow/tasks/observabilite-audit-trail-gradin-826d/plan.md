@@ -173,7 +173,7 @@ Manual code review to ensure levels match workflow severity
 - [x] Each scenario has all 4 sections
 - [x] Example queries are executable
 
-### [ ] Step: Create Grading Metrics Module
+### [x] Step: Create Grading Metrics Module
 <!-- chat-id: 658972b2-3f90-4ef1-b13b-9f307754b97b -->
 
 **Objective**: Implement domain-specific Prometheus metrics for grading workflows
