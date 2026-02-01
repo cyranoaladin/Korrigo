@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
@@ -14,9 +14,16 @@ const fetchExams = async () => {
     try {
         const res = await api.get('/exams/')
         // Handle pagination (DRF default) or flat list
-        exams.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
+        const data = Array.isArray(res.data) ? res.data : (res.data.results || [])
+        // Ensure correctors is always an array for each exam
+        exams.value = data.map(exam => ({
+            ...exam,
+            correctors: Array.isArray(exam.correctors) ? exam.correctors : []
+        }))
     } catch (e) {
         console.error("Failed to fetch exams", e)
+        exams.value = []
+        alert("Erreur lors du chargement des examens: " + (e.response?.data?.error || e.message))
     } finally {
         loading.value = false
     }
@@ -169,8 +176,30 @@ const canDispatch = (exam) => {
     return exam.correctors && exam.correctors.length > 0
 }
 
+const handleEscape = (event) => {
+    if (event.key === 'Escape' || event.key === 'Esc') {
+        showCreateModal.value = false
+        showCorrectorModal.value = false
+        showDispatchModal.value = false
+        showDispatchResultsModal.value = false
+    }
+}
+
 onMounted(() => {
+    // Reset all modal states to ensure no modal is stuck open
+    showCreateModal.value = false
+    showCorrectorModal.value = false
+    showDispatchModal.value = false
+    showDispatchResultsModal.value = false
+
+    // Add escape key listener
+    window.addEventListener('keydown', handleEscape)
+
     fetchExams()
+})
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleEscape)
 })
 </script>
 
@@ -388,9 +417,10 @@ onMounted(() => {
     </div>
 
     <!-- Assign Correctors Modal -->
-    <div 
-      v-if="showCorrectorModal" 
+    <div
+      v-if="showCorrectorModal"
       class="modal-overlay"
+      @click.self="showCorrectorModal = false"
     >
       <div class="modal-card">
         <h3>Assigner Correcteurs</h3>
@@ -445,9 +475,10 @@ onMounted(() => {
     </div>
 
     <!-- Dispatch Confirmation Modal -->
-    <div 
-      v-if="showDispatchModal" 
+    <div
+      v-if="showDispatchModal"
       class="modal-overlay"
+      @click.self="showDispatchModal = false"
     >
       <div class="modal-card">
         <h3>Dispatcher les Copies</h3>
@@ -484,9 +515,10 @@ onMounted(() => {
     </div>
 
     <!-- Dispatch Results Modal -->
-    <div 
-      v-if="showDispatchResultsModal" 
+    <div
+      v-if="showDispatchResultsModal"
       class="modal-overlay"
+      @click.self="showDispatchResultsModal = false"
     >
       <div class="modal-card modal-card-wide">
         <h3>Distribution Terminée</h3>
