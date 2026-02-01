@@ -20,6 +20,7 @@ def test_fixtures_existence():
         assert os.path.exists(os.path.join(FIXTURES_DIR, f))
 
 @pytest.mark.unit
+@pytest.mark.processing
 def test_simple_pdf_properties():
     path = os.path.join(FIXTURES_DIR, "copy_2p_simple.pdf")
     with fitz.open(path) as doc:
@@ -28,6 +29,7 @@ def test_simple_pdf_properties():
         assert "Page 1 of 2" in text
 
 @pytest.mark.unit
+@pytest.mark.processing
 def test_heavy_pdf_properties():
     path = os.path.join(FIXTURES_DIR, "copy_12p_heavy.pdf")
     with fitz.open(path) as doc:
@@ -36,6 +38,7 @@ def test_heavy_pdf_properties():
         assert doc[0].rect.width > 0
 
 @pytest.mark.unit
+@pytest.mark.processing
 def test_corrupted_pdf_raises_error():
     path = os.path.join(FIXTURES_DIR, "copy_corrupted.pdf")
     # fitz might raise RuntimeError or simply return empty/partial doc depending on corruption

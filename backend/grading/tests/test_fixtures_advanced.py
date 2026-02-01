@@ -20,24 +20,28 @@ def test_advanced_fixtures_existence():
         assert os.path.exists(os.path.join(FIXTURES_DIR, f))
 
 @pytest.mark.unit
+@pytest.mark.processing
 def test_scan_like_properties():
     path = os.path.join(FIXTURES_DIR, "scan_like_10p.pdf")
     with fitz.open(path) as doc:
         assert doc.page_count == 10
 
 @pytest.mark.unit
+@pytest.mark.processing
 def test_multi_booklet_properties():
     path = os.path.join(FIXTURES_DIR, "multi_booklets_20p.pdf")
     with fitz.open(path) as doc:
         assert doc.page_count == 20
 
 @pytest.mark.unit
+@pytest.mark.processing
 def test_heavy_properties():
     path = os.path.join(FIXTURES_DIR, "heavy_60p.pdf")
     with fitz.open(path) as doc:
         assert doc.page_count == 60
 
 @pytest.mark.unit
+@pytest.mark.processing
 def test_mixed_orientation_properties():
     path = os.path.join(FIXTURES_DIR, "mixed_orientation.pdf")
     with fitz.open(path) as doc:
@@ -48,6 +52,7 @@ def test_mixed_orientation_properties():
         assert p2.rect.width > p2.rect.height
 
 @pytest.mark.unit
+@pytest.mark.processing
 def test_corrupted_truncated_fails_gracefully():
     path = os.path.join(FIXTURES_DIR, "corrupted_truncated.pdf")
     # Truncated PDF might open with fitz (it tries to repair), or fail.

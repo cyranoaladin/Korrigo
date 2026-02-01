@@ -11,6 +11,7 @@ from core.auth import UserRole
 User = get_user_model()
 
 @pytest.mark.api
+@pytest.mark.processing
 @pytest.mark.django_db
 class TestIntegrationReal:
     """

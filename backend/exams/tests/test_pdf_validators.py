@@ -101,6 +101,7 @@ class TestPDFValidators:
         assert 'mime' in str(exc_info.value).lower()
         assert exc_info.value.code == 'invalid_mime_type'
 
+    @pytest.mark.processing
     def test_validate_pdf_integrity_valid(self):
         """Test avec un PDF valide (intégrité OK)"""
         # Créer un PDF minimal valide avec PyMuPDF
@@ -125,6 +126,7 @@ class TestPDFValidators:
         import os
         os.remove("test_temp.pdf")
 
+    @pytest.mark.processing
     def test_validate_pdf_integrity_corrupted(self):
         """Test avec un PDF corrompu"""
         # Créer un fichier corrompu (commence comme PDF mais invalide)
@@ -145,6 +147,7 @@ class TestPDFValidators:
 
 
 @pytest.mark.django_db
+@pytest.mark.processing
 class TestPDFValidatorsIntegration:
     """Tests d'intégration avec les modèles"""
 

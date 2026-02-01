@@ -87,7 +87,8 @@ pytest -n 4 -v  # Should run with 4 workers
 
 ---
 
-### [ ] Step: Test Suite Categorization and Markers
+### [x] Step: Test Suite Categorization and Markers
+<!-- chat-id: a14def61-6656-46ac-bdee-6dac49642616 -->
 
 **Objective**: Organize tests into execution suites and add appropriate markers.
 
