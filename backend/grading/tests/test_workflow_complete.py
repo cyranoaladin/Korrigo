@@ -24,8 +24,12 @@ class TestWorkflowComplete(TransactionTestCase):
         self.teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
         self.admin_group, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
 
+        # Admin user for import (requires IsAdminOnly permission)
+        self.admin = User.objects.create_user(username='admin_flow', password='password', is_staff=True)
+        self.admin.groups.add(self.admin_group)
+
         self.teacher = User.objects.create_user(username='teacher_flow', password='password')
-        self.teacher.groups.add(self.teacher_group)  # Add to teacher group instead of is_staff
+        self.teacher.groups.add(self.teacher_group)
 
         self.student = User.objects.create_user(username='student_flow', password='password')
         # Student user has no special group permissions - should be denied access
@@ -35,7 +39,8 @@ class TestWorkflowComplete(TransactionTestCase):
         super().tearDown()
 
     def test_workflow_teacher_full_cycle_success(self):
-        self.client.force_login(self.teacher)
+        # Use admin for import (requires IsAdminOnly), then switch to teacher for grading
+        self.client.force_login(self.admin)
 
         # 1. IMPORT
         pdf_path = os.path.join(FIXTURES_DIR, "copy_2p_simple.pdf")
@@ -189,7 +194,8 @@ class TestWorkflowComplete(TransactionTestCase):
 
 
     def test_workflow_import_corrupted_rollback(self):
-        self.client.force_login(self.teacher)
+        # Use admin for import (requires IsAdminOnly permission)
+        self.client.force_login(self.admin)
 
         pdf_path = os.path.join(FIXTURES_DIR, "copy_corrupted.pdf")
 
