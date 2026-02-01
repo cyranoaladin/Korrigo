@@ -37,7 +37,7 @@ Create a detailed implementation plan based on `spec.md`.
 
 ## Implementation Steps
 
-### [ ] Step 1: Create Service Layer Infrastructure
+### [x] Step 1: Create Service Layer Infrastructure
 <!-- chat-id: 851f8498-6723-4db3-a64e-a0d44a1d52ed -->
 
 Create the PRONOTE export service with core functionality.
@@ -47,8 +47,8 @@ Create the PRONOTE export service with core functionality.
 - `backend/exams/services/pronote_export.py`
 
 **Tasks**:
-- [ ] Create services directory structure
-- [ ] Implement `PronoteExporter` class with:
+- [x] Create services directory structure
+- [x] Implement `PronoteExporter` class with:
   - `__init__(exam, coefficient)` 
   - `format_decimal_french(value, precision)` - convert float to French decimal format
   - `sanitize_comment(comment)` - clean CSV comments
@@ -66,7 +66,7 @@ python -m pytest backend/exams/tests/test_pronote_export.py::test_sanitize_comme
 
 ---
 
-### [ ] Step 2: Implement Grade Calculation Logic
+### [x] Step 2: Implement Grade Calculation Logic
 <!-- chat-id: 33a174ee-5059-48e1-b541-2527913d82e9 -->
 
 Implement annotation-based grade calculation since Score model doesn't exist.
@@ -75,12 +75,12 @@ Implement annotation-based grade calculation since Score model doesn't exist.
 - `backend/exams/services/pronote_export.py`
 
 **Tasks**:
-- [ ] Implement `calculate_copy_grade(copy)` method:
+- [x] Implement `calculate_copy_grade(copy)` method:
   - Sum `annotation.score_delta` values from `copy.annotations`
   - Parse `exam.grading_structure` JSON to get max_score
   - Scale to /20 if needed
   - Clamp result to [0, 20] range
-- [ ] Add error handling for edge cases (no annotations, invalid structure)
+- [x] Add error handling for edge cases (no annotations, invalid structure)
 
 **Verification**:
 ```bash
