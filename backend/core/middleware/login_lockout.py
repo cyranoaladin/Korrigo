@@ -68,17 +68,13 @@ def _refresh_attempts_ttl(key: str) -> None:
     except (ImportError, Exception):
         pass
 
-    # Method 3: Fallback - re-set the value (less efficient but works)
-    try:
-        val = cache.get(key)
-        if val is not None:
-            cache.set(key, val, timeout=LOCKOUT_DURATION)
-            logger.warning(
-                "Cache backend does not support TTL refresh; using fallback set()",
-                extra={'key': key}
-            )
-    except Exception as e:
-        logger.error(f"Failed to refresh attempts TTL: {e}", extra={'key': key})
+    # No safe fallback: get/set would cause race conditions (overwrite concurrent incr)
+    # Best effort: log warning and accept that TTL may not be refreshed on unsupported backends
+    logger.warning(
+        "Cache backend does not support TTL refresh (touch/expire unavailable). "
+        "Lockout window may be inconsistent on this backend.",
+        extra={'key': key, 'backend': type(cache).__name__}
+    )
 
 
 def record_failed_attempt(username: str) -> int:
