@@ -194,6 +194,7 @@ python -m pytest backend/exams/tests/test_pronote_export.py -v --tb=short
 ---
 
 ### [ ] Step 6: Create API Endpoint
+<!-- chat-id: e9068ef9-0914-4f72-bc4f-6ec8f4d0a191 -->
 
 Add admin-only PRONOTE export endpoint.
 
