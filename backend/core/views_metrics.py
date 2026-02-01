@@ -26,7 +26,7 @@ class MetricsView(APIView):
     @method_decorator(maybe_ratelimit(key='user', rate='60/h', method='GET', block=True))
     def get(self, request):
         """Return current metrics"""
-        logger.info(f"Metrics accessed by user {request.user.username}")
+        logger.info(f"Metrics accessed by user {request.user.id}")
         
         metrics = metrics_collector.get_metrics()
         
@@ -60,6 +60,6 @@ class MetricsView(APIView):
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='DELETE', block=True))
     def delete(self, request):
         """Reset metrics (admin only)"""
-        logger.warning(f"Metrics reset by user {request.user.username}")
+        logger.warning(f"Metrics reset by user {request.user.id}")
         metrics_collector.reset()
         return Response({'status': 'metrics_reset'})

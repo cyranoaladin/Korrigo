@@ -53,7 +53,7 @@ class PDFFlattener:
             full_path = os.path.join(settings.MEDIA_ROOT, img_path) if not img_path.startswith('/') else img_path
 
             if not os.path.exists(full_path):
-                logger.warning(f"Image not found: {full_path}")
+                logger.error(f"Image not found: {full_path}")
                 continue
 
             # Ouvrir l'image et la convertir en page PDF
