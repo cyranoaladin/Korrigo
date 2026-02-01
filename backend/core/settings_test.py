@@ -57,3 +57,6 @@ CELERY_TASK_ALWAYS_EAGER = True
 # Disable rate limiting in tests (django-ratelimit)
 # This allows login tests to work without Redis and without hitting rate limits
 RATELIMIT_ENABLE = False
+
+# Disable login lockout in tests to allow multiple failed login attempts
+LOGIN_LOCKOUT_THRESHOLD = 9999  # Effectively disabled

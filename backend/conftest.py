@@ -1,12 +1,38 @@
 """
 Pytest configuration and fixtures for Korrigo backend tests.
+ZF-AUD-14: Parallel test execution support with isolation.
 """
 import pytest
 import shutil
 import tempfile
+import os
 from django.conf import settings
 from django.contrib.auth.models import Group
 from core.auth import UserRole
+
+
+def pytest_configure(config):
+    """
+    ZF-AUD-14: Configure pytest for parallel execution.
+    Sets up worker-specific environment variables.
+    """
+    # Get worker ID for xdist parallel execution
+    worker_id = os.environ.get('PYTEST_XDIST_WORKER', 'master')
+    
+    # Set worker-specific temp directory
+    if worker_id != 'master':
+        os.environ['PYTEST_WORKER_ID'] = worker_id
+
+
+def get_worker_id():
+    """Get current pytest-xdist worker ID or 'master' if not parallel."""
+    return os.environ.get('PYTEST_XDIST_WORKER', 'master')
+
+
+@pytest.fixture(scope='session')
+def worker_id():
+    """Fixture providing the current worker ID for parallel tests."""
+    return get_worker_id()
 
 
 @pytest.fixture
@@ -92,13 +118,29 @@ def teacher_client(api_client, teacher_user):
 def mock_media(settings):
     """
     Automatically override MEDIA_ROOT for all tests to use a temporary directory.
+    ZF-AUD-14: Worker-isolated temp directory for parallel execution.
     Cleans up after tests finish.
     """
-    # Create temp directory
-    temp_media_root = tempfile.mkdtemp(prefix="korrigo_test_media_")
+    # Create worker-specific temp directory for parallel isolation
+    worker_id = get_worker_id()
+    temp_media_root = tempfile.mkdtemp(prefix=f"korrigo_test_media_{worker_id}_")
     settings.MEDIA_ROOT = temp_media_root
     
     yield temp_media_root
     
     # Cleanup
     shutil.rmtree(temp_media_root, ignore_errors=True)
+
+
+@pytest.fixture
+def isolated_temp_dir():
+    """
+    ZF-AUD-14: Provides an isolated temporary directory for tests that need file I/O.
+    Worker-specific to avoid conflicts in parallel execution.
+    """
+    worker_id = get_worker_id()
+    temp_dir = tempfile.mkdtemp(prefix=f"korrigo_test_{worker_id}_")
+    
+    yield temp_dir
+    
+    shutil.rmtree(temp_dir, ignore_errors=True)
