@@ -66,6 +66,11 @@ DEBUG=true
 DATABASE_URL=postgres://viatique_user:viatique_password@db:5432/viatique
 CELERY_BROKER_URL=redis://redis:6379/0
 
+# Redis Cache (login lockout multi-worker)
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_DB=1
+
 # Frontend
 VITE_API_URL=http://localhost:8088
 
@@ -73,6 +78,10 @@ VITE_API_URL=http://localhost:8088
 SSL_ENABLED=false
 ALLOWED_HOSTS=localhost,127.0.0.1
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8088
+
+# Development
+DJANGO_AUTO_MIGRATE=true
+E2E_TEST_MODE=false
 ```
 
 ### 3. Démarrer les Services
@@ -126,16 +135,78 @@ Ouvrir dans le navigateur:
 | `DEBUG` | `true` | Mode debug |
 | `DATABASE_URL` | `postgres://...` | URL connexion PostgreSQL |
 | `CELERY_BROKER_URL` | `redis://redis:6379/0` | URL broker Celery |
+| `REDIS_HOST` | `redis` | Hôte Redis pour cache applicatif |
+| `REDIS_PORT` | `6379` | Port Redis |
+| `REDIS_DB` | `1` | Base Redis (DB 1 = cache, DB 0 = Celery) |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Hôtes autorisés |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,...` | Origins CORS |
 | `SSL_ENABLED` | `false` | Activer SSL/HTTPS |
 | `RATELIMIT_ENABLE` | `true` | Activer rate limiting |
+| `DJANGO_AUTO_MIGRATE` | `true` | Auto-exécuter migrations au démarrage |
+| `E2E_TEST_MODE` | `false` | Activer mode test E2E (désactive rate-limiting) |
+| `E2E_SEED_TOKEN` | _(vide)_ | Token pour endpoint `/api/dev/seed/` |
 
 #### Frontend (`.env`)
 
 | Variable | Défaut (Dev) | Description |
 |----------|--------------|-------------|
 | `VITE_API_URL` | `http://localhost:8088` | URL du backend |
+
+### Configuration Redis Cache
+
+**Contexte**: Le cache Redis est utilisé pour le système de verrouillage de compte (login lockout) multi-worker.
+
+**Architecture**:
+- **DB 0**: Broker Celery (`CELERY_BROKER_URL`)
+- **DB 1**: Cache applicatif (`REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`)
+
+**Fonctionnalités utilisant le cache**:
+1. **Login lockout**: Tentatives de connexion échouées persistées entre workers Gunicorn
+2. **TTL automatique**: Clés expirées après 15 minutes (durée du lockout)
+
+**Configuration locale**:
+```bash
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_DB=1  # Séparation logique avec Celery
+```
+
+**Vérification**:
+```bash
+# Connexion au cache Redis
+docker-compose exec redis redis-cli -n 1
+
+# Lister les clés de lockout
+127.0.0.1:6379[1]> KEYS login_attempts:*
+```
+
+### Mode Test E2E
+
+**Variables**:
+- `E2E_TEST_MODE=true`: Active des comportements de test
+- `E2E_SEED_TOKEN=<secret>`: Expose l'endpoint `/api/dev/seed/`
+
+**Comportements activés**:
+1. **Rate-limiting désactivé**: Permet tests intensifs sans throttling
+2. **Logs verbeux**: Traçabilité complète des opérations
+3. **Endpoint de seed**: Population rapide de données de test
+
+**Usage**:
+```bash
+# 1. Activer mode E2E
+export E2E_TEST_MODE=true
+export E2E_SEED_TOKEN=my-test-secret
+
+# 2. Initialiser données de test
+curl -X POST http://localhost:8088/api/dev/seed/ \
+  -H "X-Seed-Token: my-test-secret"
+
+# 3. Lancer tests Playwright
+cd frontend
+npm run test:e2e
+```
+
+**⚠️ Sécurité**: Ne **jamais** activer `E2E_TEST_MODE` en production.
 
 ### Configuration Docker Compose
 

@@ -1,8 +1,8 @@
 # Documentation Korrigo - Index Principal
 
-> **Version**: 1.0  
-> **Date**: 30 janvier 2026  
-> **Statut**: Documentation complète de la plateforme Korrigo
+> **Version**: 1.1  
+> **Date**: 1er février 2026  
+> **Statut**: Documentation complète et à jour de la plateforme Korrigo
 
 ---
 
@@ -43,6 +43,7 @@
 | [**GUIDE_ENSEIGNANT**](users/GUIDE_ENSEIGNANT.md) | Guide complet pour les enseignants correcteurs | ~22 KB | Enseignants |
 | [**GUIDE_SECRETARIAT**](users/GUIDE_SECRETARIAT.md) | Guide pour le personnel d'identification | ~18 KB | Secrétariat |
 | [**GUIDE_ETUDIANT**](users/GUIDE_ETUDIANT.md) | Guide simple pour les élèves | ~11 KB | Élèves |
+| [**GUIDE_AUTHENTIFICATION**](users/GUIDE_AUTHENTIFICATION.md) | Guide de connexion et authentification | ~7 KB | Tous utilisateurs |
 | [**NAVIGATION_UI**](users/NAVIGATION_UI.md) | Référence complète de navigation par rôle | ~27 KB | Tous utilisateurs |
 
 **📂 Accès rapide**: [Index Utilisateurs](users/README.md)
@@ -86,9 +87,9 @@
 
 | Document | Description | Taille | Public |
 |----------|-------------|--------|--------|
-| [**FAQ**](support/FAQ.md) | Foire aux questions par rôle | ~23 KB | Tous utilisateurs |
-| [**DEPANNAGE**](support/DEPANNAGE.md) | Guide de dépannage et diagnostic | ~17 KB | Administrateurs |
-| [**SUPPORT**](support/SUPPORT.md) | Procédures de support et contact | ~9 KB | Tous utilisateurs |
+| [**FAQ**](support/FAQ.md) | Foire aux questions par rôle | ~35 KB | Tous utilisateurs |
+| [**DEPANNAGE**](support/DEPANNAGE.md) | Guide de dépannage et diagnostic | ~32 KB | Administrateurs |
+| [**SUPPORT**](support/SUPPORT.md) | Procédures de support et contact | ~30 KB | Tous utilisateurs |
 
 **📂 Accès rapide**: [Index Support](support/README.md)
 
@@ -100,14 +101,15 @@
 
 | Document | Description | Taille | Public |
 |----------|-------------|--------|--------|
-| [**ARCHITECTURE**](ARCHITECTURE.md) | Architecture technique du système | ~16 KB | Développeurs |
-| [**API_REFERENCE**](API_REFERENCE.md) | Référence complète de l'API REST | ~17 KB | Développeurs |
+| [**ARCHITECTURE**](ARCHITECTURE.md) | Architecture technique du système | ~18 KB | Développeurs |
+| [**API_REFERENCE**](API_REFERENCE.md) | Référence complète de l'API REST | ~18 KB | Développeurs |
 | [**DATABASE_SCHEMA**](DATABASE_SCHEMA.md) | Schéma de base de données PostgreSQL | ~18 KB | Développeurs |
 | [**BUSINESS_WORKFLOWS**](BUSINESS_WORKFLOWS.md) | Workflows métier détaillés | ~19 KB | Développeurs |
 | [**TECHNICAL_MANUAL**](TECHNICAL_MANUAL.md) | Manuel technique général | ~5 KB | Développeurs |
-| [**DEVELOPMENT_GUIDE**](DEVELOPMENT_GUIDE.md) | Guide de développement local | ~17 KB | Développeurs |
-| [**DEPLOYMENT_GUIDE**](DEPLOYMENT_GUIDE.md) | Guide de déploiement | ~17 KB | DevOps |
+| [**DEVELOPMENT_GUIDE**](DEVELOPMENT_GUIDE.md) | Guide de développement local | ~19 KB | Développeurs |
+| [**DEPLOYMENT_GUIDE**](DEPLOYMENT_GUIDE.md) | Guide de déploiement | ~20 KB | DevOps |
 | [**DEPLOY_PRODUCTION**](DEPLOY_PRODUCTION.md) | Déploiement en production | ~3 KB | DevOps |
+| [**E2E_TESTING_CONTRACT**](quality/E2E_TESTING_CONTRACT.md) | Contrat de tests E2E | ~8 KB | QA, Développeurs |
 
 ---
 

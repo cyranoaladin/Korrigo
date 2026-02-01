@@ -823,6 +823,38 @@ Content-Type: application/json
 
 ---
 
+### Réinitialisation Mot de Passe Élève
+
+```http
+POST /api/students/<student_id>/reset-password/
+Content-Type: application/json
+```
+
+**Permissions**: `IsAdminUser`
+
+**Description**: Réinitialise le mot de passe d'un élève (administrateurs uniquement).
+
+**Payload**:
+```json
+{
+  "new_password": "MotDePasse2026!"
+}
+```
+
+**Response** (200 OK):
+```json
+{
+  "message": "Password reset successfully for student Jean Dupont"
+}
+```
+
+**Erreurs**:
+- `403`: Permission refusée (seuls les admins peuvent réinitialiser)
+- `404`: Élève introuvable
+- `400`: Mot de passe invalide (longueur minimale non respectée)
+
+---
+
 ## Codes d'Erreur
 
 | Code | Signification | Description |

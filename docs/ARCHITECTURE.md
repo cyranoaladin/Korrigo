@@ -51,7 +51,7 @@ Korrigo PMF est une plateforme locale de correction dématérialisée pour exame
 | **Django** | 4.2 (LTS) | Framework web, ORM, Admin |
 | **Django REST Framework** | 3.16+ | API REST |
 | **PostgreSQL** | 15+ | Base de données relationnelle |
-| **Redis** | 7+ | Cache, broker Celery |
+| **Redis** | 7+ | Cache applicatif, broker Celery |
 | **Celery** | 5+ | Traitement asynchrone |
 | **PyMuPDF (fitz)** | 1.23.26 | Manipulation PDF |
 | **OpenCV** | 4.8.0 | Traitement d'images |
@@ -326,6 +326,66 @@ graph LR
     APIService -->|update state| Store
     Store -->|reactive| Component
 ```
+
+---
+
+## Architecture Redis
+
+### Utilisation Multi-Database
+
+Redis est utilisé avec **deux bases de données logiques** séparées:
+
+| Base | Usage | Variables d'Environnement |
+|------|-------|---------------------------|
+| **DB 0** | Broker Celery | `CELERY_BROKER_URL=redis://redis:6379/0` |
+| **DB 1** | Cache applicatif | `REDIS_HOST=redis`, `REDIS_PORT=6379`, `REDIS_DB=1` |
+
+### Cache Applicatif (DB 1)
+
+**Fonctionnalités**:
+
+1. **Login Lockout Multi-Worker**
+   - Clé: `login_attempts:<username>`
+   - TTL: 900 secondes (15 minutes)
+   - Valeur: Compteur de tentatives échouées
+   - **Contexte**: Gunicorn multi-worker nécessite un cache centralisé (vs in-memory)
+
+2. **Session Management** (futur)
+   - Rate-limiting par utilisateur
+   - Données temporaires de session
+
+**Diagramme**:
+```mermaid
+graph TB
+    subgraph "Gunicorn (4 workers)"
+        W1[Worker 1]
+        W2[Worker 2]
+        W3[Worker 3]
+        W4[Worker 4]
+    end
+    
+    subgraph "Redis DB 1"
+        Cache[(Cache Redis<br/>login_attempts:*)]
+    end
+    
+    W1 -->|incr login_attempts:user1| Cache
+    W2 -->|get login_attempts:user1| Cache
+    W3 -->|incr login_attempts:user2| Cache
+    W4 -->|expire 900s| Cache
+```
+
+**Exemple de clés**:
+```
+login_attempts:admin         # Compteur: 3
+login_attempts:teacher1      # Compteur: 1
+login_attempts:student123    # Compteur: 5 (verrouillé)
+```
+
+**Avantages**:
+- ✅ Persistance entre workers Gunicorn
+- ✅ TTL automatique (pas de nettoyage manuel)
+- ✅ Séparation logique avec Celery (DB 0)
+- ✅ Performance (opérations atomiques INCR/EXPIRE)
 
 ---
 

@@ -226,10 +226,20 @@ DATABASE_URL=postgres://viatique_user:<password>@db:5432/viatique_prod
 
 # Redis
 CELERY_BROKER_URL=redis://redis:6379/0
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_DB=1
+
+# Django Behavior
+DJANGO_AUTO_MIGRATE=true  # Auto-run migrations on startup (default: true)
 
 # Security
 SSL_ENABLED=true
 RATELIMIT_ENABLE=true
+
+# Testing (E2E environments only)
+E2E_TEST_MODE=false  # Enable test-specific features (default: false)
+E2E_SEED_TOKEN=  # Token for /api/dev/seed/ endpoint (empty = disabled)
 
 # Email (optionnel)
 EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
@@ -244,6 +254,62 @@ EMAIL_HOST_PASSWORD=<password>
 
 ```bash
 python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+### Description des Variables Critiques
+
+#### Variables Redis Cache
+
+| Variable | Valeur Défaut | Description |
+|----------|---------------|-------------|
+| `REDIS_HOST` | `redis` | Hôte du serveur Redis pour le cache applicatif |
+| `REDIS_PORT` | `6379` | Port du serveur Redis |
+| `REDIS_DB` | `1` | Numéro de base Redis (DB 0 = Celery, DB 1 = Cache) |
+
+**Usage**: Le cache Redis est utilisé pour le système de verrouillage de compte (login lockout) multi-worker. Contrairement à `CELERY_BROKER_URL`, ces variables configurent un cache applicatif séparé pour la persistance des tentatives de connexion échouées.
+
+#### Variables de Comportement Django
+
+| Variable | Valeur Défaut | Description |
+|----------|---------------|-------------|
+| `DJANGO_AUTO_MIGRATE` | `true` | Exécute automatiquement `manage.py migrate` au démarrage du conteneur |
+
+**Usage**: 
+- **Production**: Définir à `false` pour contrôler manuellement les migrations (déploiement Blue/Green, migrations à risque)
+- **Development/Staging**: Laisser à `true` pour faciliter les déploiements
+
+**Exemple** (déploiement contrôlé):
+```bash
+# 1. Désactiver auto-migration
+export DJANGO_AUTO_MIGRATE=false
+
+# 2. Démarrer conteneurs
+docker-compose up -d
+
+# 3. Appliquer migrations manuellement
+docker-compose exec backend python manage.py migrate
+
+# 4. Vérifier santé
+curl http://localhost:8088/api/health/ready/
+```
+
+#### Variables de Test E2E
+
+| Variable | Valeur Défaut | Description |
+|----------|---------------|-------------|
+| `E2E_TEST_MODE` | `false` | Active des fonctionnalités spécifiques aux tests E2E |
+| `E2E_SEED_TOKEN` | _(vide)_ | Token secret pour l'endpoint `/api/dev/seed/` |
+
+**Usage**:
+- **`E2E_TEST_MODE`**: Active des comportements de test (désactivation rate-limiting, logs verbeux)
+- **`E2E_SEED_TOKEN`**: Si défini, expose l'endpoint `/api/dev/seed/` pour initialiser les données de test
+
+**⚠️ ATTENTION**: Ces variables doivent **toujours** être désactivées en production réelle.
+
+**Exemple** (environnement de test local-prod):
+```bash
+E2E_TEST_MODE=true
+E2E_SEED_TOKEN=my-secret-token-for-tests-only
 ```
 
 ---
