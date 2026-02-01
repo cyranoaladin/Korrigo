@@ -40,9 +40,10 @@ class TestIntegrationReal:
         return path
 
     @pytest.fixture
-    def teacher(self):
-        u = User.objects.create_user(username='teacher_real', password='password', is_staff=True)
-        g, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+    def admin(self):
+        """Admin user for import (requires IsAdminOnly permission)."""
+        u = User.objects.create_user(username='admin_real', password='password', is_staff=True)
+        g, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
         u.groups.add(g)
         return u
 
@@ -50,12 +51,12 @@ class TestIntegrationReal:
     def exam(self):
         return Exam.objects.create(name="Real Integration Exam", date="2024-01-01")
 
-    def test_full_import_flow_real_fs(self, teacher, exam, real_pdf_path, settings):
+    def test_full_import_flow_real_fs(self, admin, exam, real_pdf_path, settings):
         """
         End-to-End API Flow with Real Filesystem side effects.
         """
         client = APIClient()
-        client.force_authenticate(user=teacher)
+        client.force_authenticate(user=admin)
 
         # 1. IMPORT
         # Use simple open/close or context manager, but ensure it's closed before assertion if needed
@@ -88,12 +89,12 @@ class TestIntegrationReal:
         # 4. VERIFY AUDIT
         assert GradingEvent.objects.filter(copy=copy, action=GradingEvent.Action.IMPORT).exists()
 
-    def test_security_gates_real(self, teacher, exam):
+    def test_security_gates_real(self, admin, exam):
         """
         Verify Security Gates logic with DB state integration.
         """
         client = APIClient()
-        client.force_authenticate(user=teacher)
+        client.force_authenticate(user=admin)
         
         # Setup Copy
         copy = Copy.objects.create(exam=exam, anonymous_id="SECURE_TEST")
