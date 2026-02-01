@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/users/', views.UserListView.as_view(), name='user_list'),
     path('api/users/<int:pk>/', views.UserManageView.as_view(), name='user_manage'),
     path('api/users/<int:pk>/reset-password/', views.UserResetPasswordView.as_view(), name='user_reset_password'),
+    path('api/students/<int:student_id>/reset-password/', views.StudentPasswordResetView.as_view(), name='student_reset_password'),
 ]
 
 # API Documentation (DRF Spectacular)

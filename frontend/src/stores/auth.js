@@ -23,18 +23,31 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-    async function loginStudent(ine, lastName) {
+    async function loginStudent(email, password) {
         try {
-            const res = await api.post('/students/login/', { ine, last_name: lastName })
+            const res = await api.post('/students/login/', { email, password })
+
             if (res.data) {
-                // Fetch student info explicitly
+                // Stocker info must_change_password si présent
+                if (res.data.must_change_password) {
+                    sessionStorage.setItem('must_change_password', 'true')
+                }
+
                 await fetchUser(true)
-                return true
+
+                return {
+                    success: true,
+                    must_change_password: res.data.must_change_password || false
+                }
             }
-            return false
-        } catch (e) {
-            console.error(e)
-            return false
+
+            return {
+                success: false,
+                error: 'Identifiants invalides'
+            }
+        } catch (err) {
+            console.error('Login error:', err)
+            throw err  // Propager pour gestion dans le composant
         }
     }
 

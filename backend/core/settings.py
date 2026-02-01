@@ -231,10 +231,14 @@ else:
     DATABASES = {'default': db_config}
 
 
+# Authentication Backends
+# Custom backend pour authentification email (étudiants/enseignants) + username admin
+AUTHENTICATION_BACKENDS = [
+    'core.backends.email_auth.EmailAuthBackend',
+    'django.contrib.auth.backends.ModelBackend',  # Fallback
+]
 
-
-
-
+# Password Validators
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',

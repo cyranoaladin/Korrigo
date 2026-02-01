@@ -3,6 +3,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import authenticate, login
 from core.utils.ratelimit import maybe_ratelimit
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -10,14 +11,19 @@ from .models import Student
 from .serializers import StudentSerializer
 from exams.permissions import IsStudent
 from core.utils.audit import log_authentication_attempt, log_audit
+from core.middleware.login_lockout import (
+    is_locked_out, record_failed_attempt,
+    clear_failed_attempts, get_remaining_lockout_time
+)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class StudentLoginView(views.APIView):
     """
-    Login endpoint for students.
+    Login endpoint for students using email + password.
     Rate limited to 5 attempts per 15 minutes per IP.
+    Lockout after 5 failed attempts per email for 15 minutes.
     CSRF exempt: Public authentication endpoint, protected by rate limiting.
-    
+
     Conformité: .antigravity/rules/01_security_rules.md § 9
     """
     permission_classes = [AllowAny]  # Public endpoint - student authentication
@@ -25,25 +31,57 @@ class StudentLoginView(views.APIView):
 
     @method_decorator(maybe_ratelimit(key='ip', rate='5/15m', method='POST', block=True))
     def post(self, request):
-        ine = request.data.get('ine')
-        last_name = request.data.get('last_name')
+        email = request.data.get('email')
+        password = request.data.get('password')
 
-        if not ine or not last_name:
-            return Response({'error': 'INE et Nom sont requis.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not email or not password:
+            return Response(
+                {'error': 'Email et mot de passe requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # Case insensitive match for URL/INE logic if needed, strictly speaking case insensitive filtering
-        student = Student.objects.filter(ine__iexact=ine, last_name__iexact=last_name).first()
+        # Vérifier lockout
+        if is_locked_out(email):
+            remaining = get_remaining_lockout_time(email)
+            log_authentication_attempt(request, success=False, username=email)
+            return Response(
+                {"error": "Compte temporairement verrouillé", "retry_after": remaining},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
 
-        if student:
+        # Authentifier via Django (utilise EmailAuthBackend)
+        user = authenticate(request, username=email, password=password)
+
+        if user and hasattr(user, 'student_profile'):
+            # Succès - Étudiant authentifié
+            clear_failed_attempts(email)
+            request.session.cycle_key()  # Régénérer session ID pour sécurité
+            login(request, user)
+
+            student = user.student_profile
             request.session['student_id'] = student.id
             request.session['role'] = 'Student'
-            # Audit trail: Login élève réussi
+
             log_authentication_attempt(request, success=True, student_id=student.id)
-            return Response({'message': 'Login successful', 'role': 'Student'})
+
+            # Vérifier si changement de mot de passe requis
+            must_change_password = False
+            if hasattr(user, 'profile'):
+                must_change_password = user.profile.must_change_password
+
+            return Response({
+                'message': 'Connexion réussie',
+                'role': 'Student',
+                'must_change_password': must_change_password
+            })
         else:
-            # Audit trail: Login élève échoué
-            log_authentication_attempt(request, success=False, student_id=None)
-            return Response({'error': 'Identifiants invalides.'}, status=status.HTTP_401_UNAUTHORIZED)
+            # Échec - Identifiants invalides ou pas de profil étudiant
+            record_failed_attempt(email)
+            log_authentication_attempt(request, success=False, username=email)
+            return Response(
+                {'error': 'Identifiants invalides'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
 class StudentLogoutView(views.APIView):
     permission_classes = [AllowAny]  # Public endpoint - allow logout even if session expired
