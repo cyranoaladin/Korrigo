@@ -319,13 +319,13 @@ for task_id in "${TASKS[@]}"; do
   status="${TASK_STATUS[$task_id]}"
   case "${status}" in
     success)
-      ((success_count++))
+      ((++success_count))
       ;;
     failure)
-      ((failure_count++))
+      ((++failure_count))
       ;;
     timeout)
-      ((timeout_count++))
+      ((++timeout_count))
       ;;
   esac
 done

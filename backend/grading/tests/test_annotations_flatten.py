@@ -368,11 +368,13 @@ class TestAnnotationSecurity:
         # PDF should be valid (not corrupted by injection)
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         assert doc.page_count >= 2
-        
+
         # Content should be rendered as text, not executed
         page = doc[0]
         text = page.get_text()
         # The script tags should appear as literal text if rendered
+        assert "script" in text.lower(), "Malicious content not found in PDF text"
+        assert "alert" in text.lower(), "Malicious payload not found in PDF text"
         doc.close()
 
     def test_annotation_belongs_to_correct_copy(self, copy_with_pages, db, setup_teacher):
