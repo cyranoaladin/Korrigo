@@ -93,7 +93,7 @@ python -m pytest backend/exams/tests/test_pronote_export.py::test_calculate_grad
 
 ---
 
-### [ ] Step 3: Implement Export Validation Logic
+### [x] Step 3: Implement Export Validation Logic
 <!-- chat-id: e0f50cf6-b31f-40b3-a707-40f52bf4926c -->
 
 Add pre-export validation to ensure data quality.
@@ -102,13 +102,13 @@ Add pre-export validation to ensure data quality.
 - `backend/exams/services/pronote_export.py`
 
 **Tasks**:
-- [ ] Implement `validate_export_eligibility()` method:
+- [x] Implement `validate_export_eligibility()` method:
   - Check for graded copies (status=GRADED)
   - Validate all copies are identified (is_identified=True)
   - Verify all students have valid INE
   - Detect comments with delimiter (warning)
-- [ ] Return structured validation result with errors and warnings
-- [ ] Use French error messages
+- [x] Return structured validation result with errors and warnings
+- [x] Use French error messages
 
 **Verification**:
 ```bash
