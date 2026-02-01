@@ -111,7 +111,8 @@ class TestAuditHelpers:
         
         log = AuditLog.objects.get(action='login.success')
         assert log.metadata['success'] is True
-        assert log.metadata['username'] == 'testuser'
+        # R5: username is hashed for RGPD compliance, not stored raw
+        assert 'username_hash' in log.metadata
 
     def test_log_authentication_attempt_failed(self):
         """Test log tentative authentification échouée"""
@@ -123,7 +124,8 @@ class TestAuditHelpers:
         
         log = AuditLog.objects.get(action='login.failed')
         assert log.metadata['success'] is False
-        assert log.metadata['username'] == 'baduser'
+        # R5: username is hashed for RGPD compliance, not stored raw
+        assert 'username_hash' in log.metadata
 
     def test_log_data_access(self):
         """Test log accès données"""
