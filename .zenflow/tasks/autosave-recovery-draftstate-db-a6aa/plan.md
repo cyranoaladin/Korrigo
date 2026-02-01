@@ -78,22 +78,22 @@ pytest backend/grading/tests/test_draft_endpoints.py --collect-only
 
 ---
 
-### [ ] Step: Implement Backend Unit Tests for Draft Endpoints
+### [x] Step: Implement Backend Unit Tests for Draft Endpoints
 <!-- chat-id: 67d1427b-7960-4a7c-81ec-1661313c8a11 -->
 
 **Objective**: Create comprehensive test coverage for DraftState API
 
 **Tests to implement** (10 test cases):
-- [ ] `test_save_draft_with_valid_lock` - AC-2.1: 200 OK, version incremented
-- [ ] `test_load_draft_as_owner` - AC-2.2: 200 OK, payload returned
-- [ ] `test_load_non_existent_draft` - AC-2.3: 204 No Content
-- [ ] `test_save_without_lock_token` - AC-2.4: 403 Forbidden
-- [ ] `test_save_with_wrong_lock_owner` - AC-2.5: 409 Conflict
-- [ ] `test_save_to_graded_copy_forbidden` - AC-2.6: 400 Bad Request (NEW)
-- [ ] `test_client_id_conflict` - AC-2.7: 409 Conflict
-- [ ] `test_unauthorized_access` - AC-2.8: 401/403
-- [ ] `test_delete_draft_as_owner` - 204 No Content
-- [ ] Test class structure with `@pytest.mark.django_db`
+- [x] `test_save_draft_with_valid_lock` - AC-2.1: 200 OK, version incremented
+- [x] `test_load_draft_as_owner` - AC-2.2: 200 OK, payload returned
+- [x] `test_load_non_existent_draft` - AC-2.3: 204 No Content
+- [x] `test_save_without_lock_token` - AC-2.4: 403 Forbidden
+- [x] `test_save_with_wrong_lock_owner` - AC-2.5: 409 Conflict
+- [x] `test_save_to_graded_copy_forbidden` - AC-2.6: 400 Bad Request (NEW)
+- [x] `test_client_id_conflict` - AC-2.7: 409 Conflict
+- [x] `test_unauthorized_access` - AC-2.8: 401/403
+- [x] `test_delete_draft_as_owner` - 204 No Content
+- [x] Test class structure with `@pytest.mark.django_db`
 
 **Reference**: spec.md section 5.1 (lines 312-467)
 
@@ -102,6 +102,11 @@ pytest backend/grading/tests/test_draft_endpoints.py --collect-only
 pytest backend/grading/tests/test_draft_endpoints.py -v --tb=short
 # Expect: 9/10 tests pass (test_save_to_graded_copy_forbidden will fail until next step)
 ```
+
+**Result**: ✅ All 10 tests implemented successfully
+- Initial run: 9/10 tests passed (test_save_to_graded_copy_forbidden failed as expected, returning 200 instead of 400)
+- GRADED protection already added to views_draft.py:64-65 by previous step
+- All tests now pass with the GRADED protection in place
 
 ---
 
