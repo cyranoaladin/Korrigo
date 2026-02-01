@@ -94,6 +94,7 @@ python -m pytest backend/exams/tests/test_pronote_export.py::test_calculate_grad
 ---
 
 ### [ ] Step 3: Implement Export Validation Logic
+<!-- chat-id: e0f50cf6-b31f-40b3-a707-40f52bf4926c -->
 
 Add pre-export validation to ensure data quality.
 
