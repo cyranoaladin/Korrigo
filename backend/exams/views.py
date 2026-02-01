@@ -595,7 +595,23 @@ class ExamDispatchView(APIView):
 class PronoteExportView(APIView):
     """
     Export exam grades in PRONOTE CSV format (admin only).
+    
     POST /api/exams/<id>/export-pronote/
+    
+    Request body (optional):
+        {
+            "coefficient": 1.0  // Override default coefficient
+        }
+    
+    Response:
+        - 200 OK: CSV file download
+        - 400 Bad Request: Validation errors (ungraded copies, missing INE, etc.)
+        - 403 Forbidden: Non-admin user
+        - 404 Not Found: Exam not found
+        - 429 Too Many Requests: Rate limit exceeded (10/hour)
+    
+    Audit:
+        Logs all export attempts (success/failure) with user, exam, timestamp
     """
     permission_classes = [IsAuthenticated]
 
@@ -603,106 +619,151 @@ class PronoteExportView(APIView):
     def post(self, request, id):
         from core.auth import IsAdminOnly
         from django.http import HttpResponse
-        from decimal import Decimal, ROUND_HALF_UP
-        import csv
-        import io
+        from core.utils.audit import log_audit
+        from exams.services import PronoteExporter
+        from exams.services.pronote_export import ValidationError
         import logging
-        from django.utils import timezone
         
         logger = logging.getLogger(__name__)
         
+        # Admin-only permission check
         if not IsAdminOnly().has_permission(request, self):
+            log_audit(
+                request,
+                'export.pronote.forbidden',
+                'Exam',
+                id,
+                {'reason': 'Non-admin user attempted PRONOTE export'}
+            )
             return Response(
                 {"error": _("Accès refusé. Seuls les administrateurs peuvent exporter vers PRONOTE.")},
                 status=status.HTTP_403_FORBIDDEN
             )
         
+        # Get exam
         exam = get_object_or_404(Exam, id=id)
-        copies = Copy.objects.filter(
-            exam=exam,
-            status=Copy.Status.GRADED,
-            is_identified=True
-        ).select_related('student').prefetch_related('scores')
         
-        ungraded_count = Copy.objects.filter(exam=exam).exclude(status=Copy.Status.GRADED).count()
-        if ungraded_count > 0:
+        # Get optional coefficient from request
+        coefficient = request.data.get('coefficient', 1.0)
+        try:
+            coefficient = float(coefficient)
+        except (ValueError, TypeError):
             return Response(
-                {"error": _(f"Impossible d'exporter : {ungraded_count} copie(s) non corrigée(s).")},
+                {"error": _("Coefficient invalide. Doit être un nombre décimal.")},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        unidentified_count = Copy.objects.filter(
-            exam=exam,
-            status=Copy.Status.GRADED,
-            is_identified=False
-        ).count()
-        if unidentified_count > 0:
+        # Create exporter
+        exporter = PronoteExporter(exam, coefficient=coefficient)
+        
+        # Validate export eligibility
+        validation = exporter.validate_export_eligibility()
+        if not validation.is_valid:
+            # Log failed attempt
+            log_audit(
+                request,
+                'export.pronote.failed',
+                'Exam',
+                exam.id,
+                {
+                    'exam_name': exam.name,
+                    'errors': validation.errors,
+                    'coefficient': coefficient
+                }
+            )
+            
             return Response(
-                {"error": _(f"Impossible d'exporter : {unidentified_count} copie(s) non identifiée(s).")},
+                {
+                    "error": _("Export impossible"),
+                    "details": validation.errors
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        missing_ine = []
-        for copy in copies:
-            if not copy.student or not copy.student.ine or copy.student.ine.strip() == '':
-                missing_ine.append(copy.anonymous_id)
-        
-        if missing_ine:
+        # Generate CSV
+        try:
+            csv_content, warnings = exporter.generate_csv()
+        except ValidationError as e:
+            # Log failed attempt
+            log_audit(
+                request,
+                'export.pronote.failed',
+                'Exam',
+                exam.id,
+                {
+                    'exam_name': exam.name,
+                    'error': str(e),
+                    'coefficient': coefficient
+                }
+            )
+            
             return Response(
-                {"error": _(f"Impossible d'exporter : {len(missing_ine)} copie(s) avec INE manquant : {', '.join(missing_ine)}")},
+                {"error": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        if copies.count() == 0:
+        except Exception as e:
+            # Log unexpected error
+            logger.error(f"Unexpected error during PRONOTE export for exam {exam.id}: {e}", exc_info=True)
+            log_audit(
+                request,
+                'export.pronote.error',
+                'Exam',
+                exam.id,
+                {
+                    'exam_name': exam.name,
+                    'error': str(e),
+                    'coefficient': coefficient
+                }
+            )
+            
+            from core.utils.errors import safe_error_response
             return Response(
-                {"error": _("Aucune copie corrigée trouvée pour cet examen.")},
-                status=status.HTTP_400_BAD_REQUEST
+                safe_error_response(
+                    e,
+                    context="PRONOTE export",
+                    user_message="Erreur lors de l'export. Veuillez réessayer ou contacter le support."
+                ),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
-        output = io.StringIO()
-        writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow(['INE', 'MATIERE', 'NOTE', 'COEFF', 'COMMENTAIRE'])
+        # Count exported grades
+        export_count = csv_content.count('\n') - 1  # Minus header
         
-        export_count = 0
-        for copy in copies:
-            score_obj = copy.scores.first()
-            if not score_obj:
-                logger.warning(f"Copy {copy.anonymous_id} has no score data, skipping")
-                continue
-            
-            raw_total = sum(
-                Decimal(str(v)) for v in score_obj.scores_data.values() 
-                if v is not None and str(v).strip() != ''
-            )
-            
-            note_decimal = raw_total.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            note_str = str(note_decimal).replace('.', ',')
-            
-            coeff_str = "1,0"
-            
-            comment = copy.global_appreciation or ''
-            comment = comment.replace('\n', ' ').replace('\r', ' ').strip()
-            
-            writer.writerow([
-                copy.student.ine,
-                exam.name.upper(),
-                note_str,
-                coeff_str,
-                comment
-            ])
-            export_count += 1
+        # Log successful export
+        log_audit(
+            request,
+            'export.pronote.success',
+            'Exam',
+            exam.id,
+            {
+                'exam_name': exam.name,
+                'export_count': export_count,
+                'coefficient': coefficient,
+                'warnings': warnings
+            }
+        )
         
         logger.info(
             f"PRONOTE export for exam {exam.id} ({exam.name}) by user {request.user.username}: "
-            f"{export_count} grades exported at {timezone.now()}"
+            f"{export_count} grades exported. Warnings: {len(warnings)}"
         )
         
-        csv_content = output.getvalue()
-        output.close()
+        # Create HTTP response with proper headers
+        # Note: csv_content already has UTF-8 BOM from exporter
+        response = HttpResponse(
+            csv_content.encode('utf-8'),  # Don't re-add BOM
+            content_type='text/csv; charset=utf-8'
+        )
         
-        response = HttpResponse(csv_content.encode('utf-8-sig'), content_type='text/csv; charset=utf-8')
-        safe_filename = exam.name.replace(' ', '_').replace('/', '_')
-        response['Content-Disposition'] = f'attachment; filename="export_pronote_{safe_filename}_{exam.date}.csv"'
+        # Generate safe filename
+        safe_filename = exam.name.replace(' ', '_').replace('/', '_')[:50]  # Limit length
+        response['Content-Disposition'] = (
+            f'attachment; filename="export_pronote_{safe_filename}_{exam.date}.csv"'
+        )
+        
+        # Add warnings to response headers if any (for debugging)
+        if warnings:
+            response['X-Export-Warnings'] = f"{len(warnings)} warning(s)"
         
         return response
 
