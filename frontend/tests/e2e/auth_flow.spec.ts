@@ -97,11 +97,11 @@ test.describe('ZF-AUD-02: Auth Flow & Route Guards', () => {
     });
 
     test.describe('Student Flow', () => {
-        test('Student login (INE+LastName) -> portal -> list graded copies', async ({ page }) => {
+        test('Student login (Email+LastName) -> portal -> list graded copies', async ({ page }) => {
             await page.goto('/student/login');
             await expect(page).toHaveURL(/\/student\/login/);
 
-            await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
+            await page.fill('input[placeholder="votre.email@example.com"]', CREDS.student.email);
             await page.fill('input[placeholder="Votre nom"]', CREDS.student.lastname);
 
             const loginResp = page.waitForResponse(r =>
@@ -116,7 +116,7 @@ test.describe('ZF-AUD-02: Auth Flow & Route Guards', () => {
 
         test('Student cannot access teacher/admin pages', async ({ page }) => {
             await page.goto('/student/login');
-            await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
+            await page.fill('input[placeholder="votre.email@example.com"]', CREDS.student.email);
             await page.fill('input[placeholder="Votre nom"]', CREDS.student.lastname);
             await page.click('button[type="submit"]');
             await page.waitForURL(/\/student-portal/, { timeout: 15000 });
@@ -132,7 +132,7 @@ test.describe('ZF-AUD-02: Auth Flow & Route Guards', () => {
 
         test('Student logout clears session', async ({ page }) => {
             await page.goto('/student/login');
-            await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
+            await page.fill('input[placeholder="votre.email@example.com"]', CREDS.student.email);
             await page.fill('input[placeholder="Votre nom"]', CREDS.student.lastname);
             await page.click('button[type="submit"]');
             await page.waitForURL(/\/student-portal/, { timeout: 15000 });
