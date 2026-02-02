@@ -1,6 +1,10 @@
 """
 Tests for ensure_admin management command
+
+In development mode (default), the command uses 'admin' as fallback password.
+In production mode (DJANGO_ENV=production), ADMIN_PASSWORD env var is required.
 """
+import os
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
@@ -9,8 +13,16 @@ from core.models import UserProfile
 User = get_user_model()
 
 
+@pytest.fixture(autouse=True)
+def ensure_dev_mode(monkeypatch):
+    """Ensure tests run in development mode (not production)."""
+    monkeypatch.delenv('DJANGO_ENV', raising=False)
+    monkeypatch.delenv('ADMIN_PASSWORD', raising=False)
+
+
 @pytest.mark.django_db
 def test_ensure_admin_creates_admin_user():
+    """In dev mode, admin is created with default password 'admin'."""
     assert not User.objects.filter(username='admin').exists()
     
     call_command('ensure_admin')
@@ -59,3 +71,15 @@ def test_ensure_admin_with_existing_admin_without_profile():
     admin.refresh_from_db()
     assert hasattr(admin, 'profile')
     assert admin.profile.must_change_password is True
+
+
+@pytest.mark.django_db
+def test_ensure_admin_uses_env_password_when_provided(monkeypatch):
+    """When ADMIN_PASSWORD is set, it should be used instead of default."""
+    monkeypatch.setenv('ADMIN_PASSWORD', 'CustomPassword123!')
+    
+    call_command('ensure_admin')
+    
+    admin_user = User.objects.get(username='admin')
+    assert admin_user.is_staff is True
+    assert admin_user.check_password('CustomPassword123!') is True

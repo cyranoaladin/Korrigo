@@ -23,9 +23,9 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-    async function loginStudent(ine, lastName) {
+    async function loginStudent(email, lastName) {
         try {
-            const res = await api.post('/students/login/', { ine, last_name: lastName })
+            const res = await api.post('/students/login/', { email, last_name: lastName })
             if (res.data) {
                 // Fetch student info explicitly
                 await fetchUser(true)

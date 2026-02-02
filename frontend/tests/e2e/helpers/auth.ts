@@ -14,7 +14,7 @@ export const CREDS = {
     password: process.env.E2E_TEACHER_PASSWORD || 'password',
   },
   student: {
-    ine: process.env.E2E_STUDENT_INE || '123456789',
+    email: process.env.E2E_STUDENT_EMAIL || 'e2e.student@test.com',
     lastname: process.env.E2E_STUDENT_LASTNAME || 'E2E_STUDENT',
   },
 };

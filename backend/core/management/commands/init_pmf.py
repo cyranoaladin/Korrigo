@@ -2,13 +2,16 @@ import os
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
 from core.auth import UserRole
 
 class Command(BaseCommand):
-    help = 'Initialize PMF Users and Groups'
+    help = 'Initialize PMF Users and Groups. In production, requires strong passwords via env vars.'
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('Starting PMF Initialization...'))
+        
+        is_prod = getattr(settings, 'DJANGO_ENV', os.environ.get('DJANGO_ENV', 'development')) == 'production'
 
         # 1. Create Groups
         teachers_group, created = Group.objects.get_or_create(name=UserRole.TEACHER)
@@ -18,14 +21,22 @@ class Command(BaseCommand):
             self.stdout.write(f'Group "{UserRole.TEACHER}" already exists')
 
         # 2. Create Admin
-        admin_email = 'alaeddine.benrhouma@ert.tn'
+        admin_email = os.environ.get('PMF_ADMIN_EMAIL', 'alaeddine.benrhouma@ert.tn')
         # Security: Use environment variable for admin password
-        admin_pass = os.environ.get('ADMIN_DEFAULT_PASSWORD', 'CHANGE_ME_ADMIN')
+        admin_pass = os.environ.get('ADMIN_DEFAULT_PASSWORD', '')
 
-        if admin_pass == 'CHANGE_ME_ADMIN':  # nosec B105 - Checking for default value, not hardcoding
-            self.stdout.write(self.style.WARNING(
-                'WARNING: Using default admin password. Set ADMIN_DEFAULT_PASSWORD environment variable.'
-            ))
+        if is_prod:
+            if not admin_pass or len(admin_pass) < 12:
+                self.stderr.write(self.style.ERROR(
+                    'CRITICAL: In production, ADMIN_DEFAULT_PASSWORD must be set and >= 12 characters.'
+                ))
+                return
+        else:
+            if not admin_pass:
+                admin_pass = 'CHANGE_ME_ADMIN'
+                self.stdout.write(self.style.WARNING(
+                    'WARNING: Using default admin password. NOT for production!'
+                ))
 
         try:
             admin_user = User.objects.get(username=admin_email)
@@ -57,12 +68,20 @@ class Command(BaseCommand):
             'philippe.carr@ert.tn'
         ]
         # Security: Use environment variable for teacher default password
-        default_pass = os.environ.get('TEACHER_DEFAULT_PASSWORD', 'CHANGE_ME_TEACHER')
+        default_pass = os.environ.get('TEACHER_DEFAULT_PASSWORD', '')
 
-        if default_pass == 'CHANGE_ME_TEACHER':  # nosec B105 - Checking for default value, not hardcoding
-            self.stdout.write(self.style.WARNING(
-                'WARNING: Using default teacher password. Set TEACHER_DEFAULT_PASSWORD environment variable.'
-            ))
+        if is_prod:
+            if not default_pass or len(default_pass) < 12:
+                self.stderr.write(self.style.ERROR(
+                    'CRITICAL: In production, TEACHER_DEFAULT_PASSWORD must be set and >= 12 characters.'
+                ))
+                return
+        else:
+            if not default_pass:
+                default_pass = 'CHANGE_ME_TEACHER'
+                self.stdout.write(self.style.WARNING(
+                    'WARNING: Using default teacher password. NOT for production!'
+                ))
 
         for email in teachers_data:
             try:
