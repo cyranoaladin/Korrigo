@@ -22,46 +22,100 @@ import fitz  # PyMuPDF
 from django.db import transaction
 
 class ExamUploadView(APIView):
-    permission_classes = [IsAdminOnly]  # Admin only
+    """
+    Upload d'examen avec détection automatique du format:
+    - A3 batch avec CSV: utilise BatchA3Processor pour segmentation par élève
+    - A3 simple: utilise A3PDFProcessor
+    - A4 standard: utilise PDFSplitter
+    
+    Paramètres optionnels:
+    - students_csv: fichier CSV des élèves (whitelist pour OCR)
+    - batch_mode: true pour activer le mode batch avec segmentation
+    """
+    permission_classes = [IsAdminOnly]
     parser_classes = (MultiPartParser, FormParser)
 
     @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, *args, **kwargs):
         serializer = ExamSerializer(data=request.data)
         if serializer.is_valid():
-            # ZF-AUD-03 FIX: Wrap entire upload+processing in atomic transaction
-            # to prevent orphan Exams if processing fails
             try:
                 with transaction.atomic():
                     exam = serializer.save()
-
-                    # REAL-TIME PROCESSING using A3PDFProcessor (auto-detects A3 vs standard)
-                    from processing.services.a3_pdf_processor import A3PDFProcessor
-
-                    processor = A3PDFProcessor(dpi=150)
-                    booklets = processor.process_exam(exam)
-
-                    # Créer les copies en statut STAGING (ADR-003)
+                    
                     import uuid
                     import logging
+                    import tempfile
+                    import os
                     logger = logging.getLogger(__name__)
-
-                    for booklet in booklets:
-                        copy = Copy.objects.create(
-                            exam=exam,
-                            anonymous_id=str(uuid.uuid4())[:8].upper(),
-                            status=Copy.Status.STAGING,
-                            is_identified=False
-                        )
-                        copy.booklets.add(booklet)
-
-                        logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
-
-                    return Response({
-                        **serializer.data,
-                        "booklets_created": len(booklets),
-                        "message": f"{len(booklets)} booklets created successfully"
-                    }, status=status.HTTP_201_CREATED)
+                    
+                    # Vérifier si mode batch avec CSV
+                    students_csv = request.FILES.get('students_csv')
+                    batch_mode = request.data.get('batch_mode', 'false').lower() == 'true'
+                    
+                    if batch_mode and students_csv:
+                        # Mode batch: utiliser BatchA3Processor
+                        logger.info(f"Batch mode enabled for exam {exam.id}")
+                        
+                        # Sauvegarder le CSV temporairement
+                        with tempfile.NamedTemporaryFile(mode='wb', suffix='.csv', delete=False) as f:
+                            for chunk in students_csv.chunks():
+                                f.write(chunk)
+                            csv_path = f.name
+                        
+                        try:
+                            from processing.services.batch_processor import BatchA3Processor
+                            
+                            processor = BatchA3Processor(dpi=200, csv_path=csv_path)
+                            
+                            # Traiter le batch
+                            student_copies = processor.process_batch_pdf(
+                                exam.pdf_source.path, 
+                                str(exam.id)
+                            )
+                            
+                            # Créer les copies en DB
+                            copies = processor.create_copies_from_batch(exam, student_copies)
+                            
+                            # Stats
+                            ready_count = sum(1 for c in copies if c.status == Copy.Status.READY)
+                            staging_count = sum(1 for c in copies if c.status == Copy.Status.STAGING)
+                            
+                            return Response({
+                                **serializer.data,
+                                "copies_created": len(copies),
+                                "ready_count": ready_count,
+                                "needs_review_count": staging_count,
+                                "message": f"{len(copies)} copies created ({ready_count} ready, {staging_count} need review)"
+                            }, status=status.HTTP_201_CREATED)
+                            
+                        finally:
+                            if os.path.exists(csv_path):
+                                os.unlink(csv_path)
+                    
+                    else:
+                        # Mode standard: A3PDFProcessor (auto-détecte A3 vs A4)
+                        from processing.services.a3_pdf_processor import A3PDFProcessor
+                        
+                        processor = A3PDFProcessor(dpi=150)
+                        booklets = processor.process_exam(exam)
+                        
+                        # Créer les copies en statut STAGING (ADR-003)
+                        for booklet in booklets:
+                            copy = Copy.objects.create(
+                                exam=exam,
+                                anonymous_id=str(uuid.uuid4())[:8].upper(),
+                                status=Copy.Status.STAGING,
+                                is_identified=False
+                            )
+                            copy.booklets.add(booklet)
+                            logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
+                        
+                        return Response({
+                            **serializer.data,
+                            "booklets_created": len(booklets),
+                            "message": f"{len(booklets)} booklets created successfully"
+                        }, status=status.HTTP_201_CREATED)
 
             except Exception as e:
                 from core.utils.errors import safe_error_response
