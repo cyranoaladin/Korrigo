@@ -237,9 +237,12 @@ class BatchA3Processor:
             return False
 
     def _rasterize_page(self, doc: fitz.Document, page_idx: int) -> np.ndarray:
-        """Rasterise une page PDF en image numpy BGR."""
+        """Rasterise une page PDF en image numpy BGR, avec correction de rotation."""
         page = doc.load_page(page_idx)
-        pix = page.get_pixmap(dpi=self.dpi)
+        
+        # Rasteriser avec le DPI spécifié
+        mat = fitz.Matrix(self.dpi / 72, self.dpi / 72)
+        pix = page.get_pixmap(matrix=mat)
         
         img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
         
@@ -247,6 +250,22 @@ class BatchA3Processor:
             img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         elif pix.n == 4:
             img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
+        
+        # Corriger la rotation selon les métadonnées PDF
+        # La rotation PDF indique comment la page doit être affichée
+        # On doit appliquer la rotation inverse pour obtenir l'image correcte
+        rotation = page.rotation
+        if rotation == 90:
+            img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+        elif rotation == 180:
+            img = cv2.rotate(img, cv2.ROTATE_180)
+        elif rotation == 270:
+            img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        
+        # Assurer le format paysage A3
+        height, width = img.shape[:2]
+        if height > width:
+            img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
         
         return img
 
@@ -274,6 +293,7 @@ class BatchA3Processor:
     def _ocr_header(self, header_image: np.ndarray) -> Tuple[str, str]:
         """
         Extrait le nom et la date de naissance de l'en-tête via OCR.
+        Format attendu: en-tête CMEN v2 avec champs structurés.
         
         Returns:
             Tuple (nom_complet, date_naissance)
@@ -283,29 +303,83 @@ class BatchA3Processor:
             
             # Prétraitement pour OCR
             gray = cv2.cvtColor(header_image, cv2.COLOR_BGR2GRAY)
-            _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
             
-            # OCR
+            # Améliorer le contraste
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            enhanced = clahe.apply(gray)
+            
+            # Binarisation adaptative pour mieux gérer les variations
+            binary = cv2.adaptiveThreshold(
+                enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                cv2.THRESH_BINARY, 11, 2
+            )
+            
+            # OCR avec configuration optimisée pour texte structuré
+            config = '--psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/-. '
             text = pytesseract.image_to_string(binary, lang='fra', config='--psm 6')
             
-            # Extraire nom (première ligne non vide significative)
-            lines = [l.strip() for l in text.split('\n') if l.strip()]
+            logger.debug(f"OCR raw text: {text[:200]}")
+            
             name = ""
+            first_name = ""
             date = ""
             
+            lines = text.split('\n')
+            
             for line in lines:
-                # Chercher une date (format dd/mm/yyyy ou similaire)
-                date_match = re.search(r'(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4})', line)
-                if date_match:
-                    date = date_match.group(1)
+                line = line.strip()
+                if not line:
                     continue
                 
-                # Chercher un nom (lettres majuscules, espaces)
-                if re.match(r'^[A-ZÉÈÊËÀÂÄÙÛÜÔÖÎÏÇ\s\-]+$', line) and len(line) > 3:
-                    if not name:
-                        name = line
+                # Chercher "Nom de famille" suivi du nom
+                if 'nom' in line.lower() and 'famille' in line.lower():
+                    # Le nom est souvent sur la même ligne après ":"
+                    parts = line.split(':')
+                    if len(parts) > 1:
+                        name_part = parts[1].strip()
+                        # Extraire les lettres majuscules
+                        name_chars = re.findall(r'[A-ZÉÈÊËÀÂÄÙÛÜÔÖÎÏÇ]', name_part)
+                        if name_chars:
+                            name = ''.join(name_chars)
+                
+                # Chercher "Prénom"
+                elif 'prénom' in line.lower() or 'prenom' in line.lower():
+                    parts = line.split(':')
+                    if len(parts) > 1:
+                        first_part = parts[1].strip()
+                        first_chars = re.findall(r'[A-ZÉÈÊËÀÂÄÙÛÜÔÖÎÏÇ]', first_part)
+                        if first_chars:
+                            first_name = ''.join(first_chars)
+                
+                # Chercher une date (format dd/mm/yyyy ou similaire)
+                date_match = re.search(r'(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{2,4})', line)
+                if date_match:
+                    d, m, y = date_match.groups()
+                    date = f"{d}/{m}/{y}"
             
-            return name, date
+            # Si on n'a pas trouvé via les labels, chercher des patterns
+            if not name:
+                # Chercher des séquences de lettres majuscules isolées (cases remplies)
+                all_caps = re.findall(r'\b[A-Z]{2,}\b', text)
+                if all_caps:
+                    # Prendre le premier groupe significatif
+                    for caps in all_caps:
+                        if len(caps) >= 3 and caps not in ['CMEN', 'NEOPTEC', 'CONSIGNES']:
+                            name = caps
+                            break
+            
+            if not date:
+                # Chercher n'importe quelle date dans le texte
+                date_match = re.search(r'(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{2,4})', text)
+                if date_match:
+                    d, m, y = date_match.groups()
+                    date = f"{d}/{m}/{y}"
+            
+            # Combiner nom et prénom
+            full_name = f"{name} {first_name}".strip() if name else ""
+            
+            logger.info(f"OCR extracted: name='{full_name}', date='{date}'")
+            return full_name, date
             
         except Exception as e:
             logger.warning(f"OCR failed: {e}")
