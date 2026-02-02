@@ -47,7 +47,7 @@ test.describe('Student Flow (Mission 17)', () => {
         await page.goto('/student/login');
         await expect(page).toHaveURL(/student\/login/, { timeout: 15000 });
 
-        await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
+        await page.fill('input[placeholder="votre.email@example.com"]', CREDS.student.email);
         await page.fill('input[placeholder="Votre nom"]', CREDS.student.lastname);
 
         // Wait for login API 200 (more robust than URL-only)
@@ -90,12 +90,12 @@ test.describe('Student Flow (Mission 17)', () => {
 
     test('Security: Student cannot access another student\'s PDF (403)', async ({ browser }) => {
         // HELPER: Robust login function
-        async function loginAs(contextPage: any, ine: string, name: string) {
+        async function loginAs(contextPage: any, email: string, name: string) {
             // Relative URL to bypass any relative routing ambiguity
             await contextPage.goto('/student/login', { waitUntil: 'domcontentloaded' });
             await expect(contextPage).toHaveURL(/\/student\/login/, { timeout: 15000 });
 
-            await contextPage.fill('input[placeholder="ex: 123456789A"]', ine);
+            await contextPage.fill('input[placeholder="votre.email@example.com"]', email);
             await contextPage.fill('input[placeholder="Votre nom"]', name);
 
             const loginResp = contextPage.waitForResponse((r: any) =>
@@ -110,12 +110,12 @@ test.describe('Student Flow (Mission 17)', () => {
         // CONTEXT A: Student 1 (E2E_STUDENT)
         const ctxA = await browser.newContext();
         const pageA = await ctxA.newPage();
-        await loginAs(pageA, CREDS.student.ine, CREDS.student.lastname);
+        await loginAs(pageA, CREDS.student.email, CREDS.student.lastname);
 
         // CONTEXT B: Student 2 (OTHER)
         const ctxB = await browser.newContext();
         const pageB = await ctxB.newPage();
-        await loginAs(pageB, '987654321', 'OTHER');
+        await loginAs(pageB, 'other.student@test.com', 'OTHER');
 
         // Get OTHER copy id with user B
         const otherCopiesResp = await pageB.request.get('/api/students/copies/');
@@ -139,7 +139,7 @@ test.describe('Student Flow (Mission 17)', () => {
         // Login as the test student
         await page.goto('/student/login');
         await expect(page).toHaveURL(/\/student\/login/, { timeout: 15000 });
-        await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
+        await page.fill('input[placeholder="votre.email@example.com"]', CREDS.student.email);
         await page.fill('input[placeholder="Votre nom"]', CREDS.student.lastname);
 
         const loginRespPromise = page.waitForResponse(resp =>
