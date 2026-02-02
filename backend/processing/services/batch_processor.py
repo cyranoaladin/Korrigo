@@ -65,6 +65,11 @@ class StudentCopy:
     pages: List[PageInfo]
     needs_review: bool = False
     review_reason: str = ""
+    header_crops: List[str] = None  # Chemins vers les crops d'en-tête
+    
+    def __post_init__(self):
+        if self.header_crops is None:
+            self.header_crops = []
 
 
 class BatchA3Processor:
@@ -133,8 +138,9 @@ class BatchA3Processor:
         text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
         # Minuscules
         text = text.lower()
-        # Remplacer tirets et espaces multiples
-        text = re.sub(r'[-_]+', ' ', text)
+        # Supprimer tirets et underscores (pas remplacer par espace)
+        text = re.sub(r'[-_]+', '', text)
+        # Normaliser espaces multiples
         text = re.sub(r'\s+', ' ', text)
         return text.strip()
 
@@ -509,53 +515,98 @@ class BatchA3Processor:
         
         return student_copies
 
+    def _is_same_student(self, student1: Optional[StudentMatch], student2: Optional[StudentMatch]) -> bool:
+        """
+        Vérifie si deux StudentMatch représentent le même élève.
+        Utilisé pour fusionner les feuilles multiples d'un même élève.
+        """
+        if student1 is None or student2 is None:
+            return False
+        
+        # Comparaison par email (identifiant unique)
+        if student1.email and student2.email:
+            return student1.email.lower() == student2.email.lower()
+        
+        # Fallback: comparaison par nom + prénom normalisés
+        name1 = self._normalize_text(f"{student1.last_name} {student1.first_name}")
+        name2 = self._normalize_text(f"{student2.last_name} {student2.first_name}")
+        return name1 == name2
+
     def _segment_by_student(self, pages: List[PageInfo], exam_id: str) -> List[StudentCopy]:
         """
         Segmente les pages par élève en détectant les en-têtes.
         
-        Règle: Chaque feuille (4 pages) commence par une page avec en-tête.
-        Si l'en-tête change (nouvel élève), on commence une nouvelle copie.
+        RÈGLE CRITIQUE (multi-feuilles):
+        - Chaque feuille (4 pages A4) commence par une page avec en-tête.
+        - Si l'en-tête détecté correspond AU MÊME élève que la copie courante,
+          on CONCATÈNE les 4 pages à la copie existante.
+        - Si l'en-tête correspond à un AUTRE élève, on ferme la copie courante
+          et on en démarre une nouvelle.
+        - Si l'en-tête est illisible/incertain, on crée une copie en STAGING.
+        
+        Résultat: 1 Copy par élève, même si l'élève a rendu plusieurs feuilles.
         """
         student_copies: List[StudentCopy] = []
         current_pages: List[PageInfo] = []
         current_student: Optional[StudentMatch] = None
+        current_header_crops: List[str] = []  # Pour stocker les crops d'en-tête
         
         # Créer le dossier de sortie
         output_dir = Path(settings.MEDIA_ROOT) / 'batch_processing' / exam_id
         output_dir.mkdir(parents=True, exist_ok=True)
+        headers_dir = output_dir / 'headers'
+        headers_dir.mkdir(parents=True, exist_ok=True)
+        
+        sheet_count = 0  # Compteur de feuilles pour le rapport
         
         for i, page in enumerate(pages):
             is_first_of_sheet = page.position_in_sheet == 1
             
             if is_first_of_sheet:
+                sheet_count += 1
+                
                 # Détecter si c'est un nouvel élève
                 has_header = self._detect_header_on_page(page.image)
                 
                 if has_header:
-                    # Extraire les infos de l'en-tête
+                    # Extraire et sauvegarder l'en-tête
                     header_region = self._extract_header_region(page.image)
+                    header_filename = f"header_sheet_{sheet_count:04d}.png"
+                    header_path = headers_dir / header_filename
+                    cv2.imwrite(str(header_path), header_region)
+                    
+                    # OCR sur l'en-tête
                     ocr_name, ocr_date = self._ocr_header(header_region)
                     
                     # Matcher avec le CSV
                     new_student = self._match_student(ocr_name, ocr_date)
                     
-                    # Si on a des pages en cours et que c'est un nouvel élève
-                    if current_pages:
-                        # Sauvegarder la copie précédente
-                        student_copies.append(StudentCopy(
-                            student_match=current_student,
-                            pages=current_pages.copy(),
-                            needs_review=current_student is None,
-                            review_reason="No student match found" if current_student is None else ""
-                        ))
-                        current_pages = []
-                    
-                    current_student = new_student
-                    
-                    if new_student:
-                        logger.info(f"New student detected: {new_student.last_name} {new_student.first_name} (confidence: {new_student.confidence:.2f})")
+                    # LOGIQUE MULTI-FEUILLES: vérifier si c'est le même élève
+                    if current_pages and self._is_same_student(current_student, new_student):
+                        # MÊME ÉLÈVE: on continue à accumuler les pages
+                        logger.info(f"Sheet {sheet_count}: Same student ({new_student.last_name if new_student else 'unknown'}), concatenating pages")
+                        current_header_crops.append(str(header_path.relative_to(settings.MEDIA_ROOT)))
                     else:
-                        logger.warning(f"Could not match student from OCR: name='{ocr_name}', date='{ocr_date}'")
+                        # NOUVEL ÉLÈVE ou premier élève
+                        if current_pages:
+                            # Sauvegarder la copie précédente
+                            student_copies.append(StudentCopy(
+                                student_match=current_student,
+                                pages=current_pages.copy(),
+                                needs_review=current_student is None,
+                                review_reason="No student match found" if current_student is None else "",
+                                header_crops=current_header_crops.copy()
+                            ))
+                            current_pages = []
+                            current_header_crops = []
+                        
+                        current_student = new_student
+                        current_header_crops = [str(header_path.relative_to(settings.MEDIA_ROOT))]
+                        
+                        if new_student:
+                            logger.info(f"Sheet {sheet_count}: New student detected: {new_student.last_name} {new_student.first_name} (confidence: {new_student.confidence:.2f})")
+                        else:
+                            logger.warning(f"Sheet {sheet_count}: Could not match student from OCR: name='{ocr_name}', date='{ocr_date}'")
             
             # Sauvegarder l'image de la page
             page_filename = f"page_{i+1:04d}.png"
@@ -571,17 +622,32 @@ class BatchA3Processor:
                 student_match=current_student,
                 pages=current_pages.copy(),
                 needs_review=current_student is None,
-                review_reason="No student match found" if current_student is None else ""
+                review_reason="No student match found" if current_student is None else "",
+                header_crops=current_header_crops.copy()
             ))
         
-        # Vérifier les invariants
-        for copy in student_copies:
+        # Vérifier les invariants et générer le rapport
+        anomalies = []
+        for idx, copy in enumerate(student_copies):
             if len(copy.pages) % 4 != 0:
                 copy.needs_review = True
                 copy.review_reason = f"Page count not multiple of 4: {len(copy.pages)}"
-                logger.warning(f"Copy has {len(copy.pages)} pages (not multiple of 4)")
+                anomalies.append(f"Copy {idx+1}: {len(copy.pages)} pages (not multiple of 4)")
+                logger.warning(f"Copy {idx+1} has {len(copy.pages)} pages (not multiple of 4)")
         
-        logger.info(f"Segmented into {len(student_copies)} student copies")
+        # Rapport de segmentation
+        logger.info(f"=== SEGMENTATION REPORT ===")
+        logger.info(f"Total sheets processed: {sheet_count}")
+        logger.info(f"Total A4 pages: {len(pages)}")
+        logger.info(f"Students detected: {len(student_copies)}")
+        for idx, copy in enumerate(student_copies):
+            student_name = f"{copy.student_match.last_name} {copy.student_match.first_name}" if copy.student_match else "UNKNOWN"
+            sheets_count = len(copy.pages) // 4
+            logger.info(f"  Copy {idx+1}: {student_name} - {len(copy.pages)} pages ({sheets_count} sheets), needs_review={copy.needs_review}")
+        if anomalies:
+            logger.warning(f"Anomalies: {anomalies}")
+        logger.info(f"=== END REPORT ===")
+        
         return student_copies
 
     @transaction.atomic
