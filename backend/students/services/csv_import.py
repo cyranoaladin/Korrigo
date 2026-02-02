@@ -8,8 +8,8 @@ import os
 from django.db import transaction
 
 
-REQUIRED_FIELDS = ("INE", "NOM", "PRENOM")
-OPTIONAL_FIELDS = ("CLASSE", "EMAIL", "DATE_NAISSANCE", "GROUPE_EDS")
+REQUIRED_FIELDS = ("NOM", "PRENOM", "EMAIL")
+OPTIONAL_FIELDS = ("DATE_NAISSANCE", "CLASSE", "GROUPE_EDS")
 
 
 @dataclass
@@ -131,12 +131,11 @@ def parse_students_csv(path: str, delimiter: str = ",") -> Tuple[ImportResult, L
 
                 # Keep only known fields + required
                 cleaned = {
-                    "INE": normalized.get("INE", ""),
                     "NOM": normalized.get("NOM", ""),
                     "PRENOM": normalized.get("PRENOM", ""),
-                    "CLASSE": normalized.get("CLASSE", ""),
                     "EMAIL": normalized.get("EMAIL", ""),
                     "DATE_NAISSANCE": normalized.get("DATE_NAISSANCE", ""),
+                    "CLASSE": normalized.get("CLASSE", ""),
                     "GROUPE_EDS": normalized.get("GROUPE_EDS", ""),
                 }
                 rows.append(cleaned)
@@ -169,28 +168,27 @@ def _parse_date(date_str: str):
 def import_students_rows(rows: List[Dict[str, str]], student_model) -> ImportResult:
     """
     Apply rows to DB. Separated from parsing to keep it testable.
+    Uses email as unique identifier for students.
     """
     result = ImportResult(delimiter=",")
 
     for i, r in enumerate(rows, start=1):
-        ine = r["INE"]
         last_name = r["NOM"]
         first_name = r["PRENOM"]
-        class_name = r.get("CLASSE", "")
-        email = r.get("EMAIL", "")
+        email = r["EMAIL"]
         date_of_birth = _parse_date(r.get("DATE_NAISSANCE", ""))
+        class_name = r.get("CLASSE", "")
         eds_group = r.get("GROUPE_EDS", "")
 
         try:
             with transaction.atomic():
                 obj, created = student_model.objects.update_or_create(
-                    ine=ine,
+                    email=email,  # Email is now the unique identifier
                     defaults={
                         "first_name": first_name,
                         "last_name": last_name,
-                        "class_name": class_name,
-                        "email": email,
                         "date_of_birth": date_of_birth,
+                        "class_name": class_name,
                         "eds_group": eds_group,
                     },
                 )
