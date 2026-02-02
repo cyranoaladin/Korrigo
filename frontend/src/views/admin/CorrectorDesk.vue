@@ -63,7 +63,7 @@ const isLocked = computed(() => copy.value?.status === 'LOCKED')
 const isGraded = computed(() => copy.value?.status === 'GRADED')
 
 const isReadOnly = computed(() => isGraded.value || isLockConflict.value)
-const canAnnotate = computed(() => isReady.value && !isReadOnly.value)
+const canAnnotate = computed(() => (isReady.value || isLocked.value) && !isReadOnly.value)
 
 const pages = computed(() => {
     if (!copy.value || !copy.value.booklets) return []
@@ -816,6 +816,7 @@ onUnmounted(() => {
               </button>
               <button
                 class="btn-sm btn-primary"
+                data-testid="save-annotation-btn"
                 @click="saveAnnotation"
               >
                 Save

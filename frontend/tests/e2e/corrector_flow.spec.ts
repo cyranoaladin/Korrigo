@@ -90,7 +90,7 @@ test.describe('Corrector Flow & Robustness', () => {
             );
         });
 
-        await page.click('.editor-actions .btn-primary'); // "Save" button
+        await page.click('[data-testid="save-annotation-btn"]'); // "Save" button
 
         // Wait for server sync AND UI feedback
         await saveResponse;
