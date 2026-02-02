@@ -29,11 +29,10 @@ class BackupRestoreTest(TestCase):
         self.admin_user.groups.add(self.admin_group)
         
         self.student = Student.objects.create(
-            ine="1234567890A",
+            email="jean.dupont@example.com",
             first_name="Jean",
             last_name="Dupont",
             class_name="TG2",
-            email="jean.dupont@example.com",
             user=self.admin_user  # Using admin user for test
         )
         

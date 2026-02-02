@@ -25,10 +25,10 @@ class Command(BaseCommand):
 
         copies = Copy.objects.filter(exam=exam, status=Copy.Status.GRADED)
         
-        # Pronote Format: INE;MATIERE;NOTE;COEFF;COMMENTAIRE
+        # Pronote Format: EMAIL;MATIERE;NOTE;COEFF;COMMENTAIRE
         
         writer = csv.writer(sys.stdout, delimiter=';')
-        writer.writerow(['INE', 'MATIERE', 'NOTE', 'COEFF', 'COMMENTAIRE'])
+        writer.writerow(['EMAIL', 'MATIERE', 'NOTE', 'COEFF', 'COMMENTAIRE'])
 
         count = 0
         for copy in copies:
@@ -49,7 +49,7 @@ class Command(BaseCommand):
             final_note_str = f"{final_note:.2f}".replace('.', ',')  # French format uses comma
             
             writer.writerow([
-                copy.student.ine,
+                copy.student.email,
                 exam.name,
                 final_note_str,
                 "1",  # Default Coeff

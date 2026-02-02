@@ -7,14 +7,14 @@ from students.models import Student
 @pytest.fixture
 def clean_csv(tmp_path):
     f = tmp_path / "valid.csv"
-    content = "INE,NOM,PRENOM\n123,Doe,John\n456,Smith,Jane"
+    content = "NOM,PRENOM,EMAIL\nDoe,John,john@test.com\nSmith,Jane,jane@test.com"
     f.write_text(content, encoding="utf-8")
     return str(f)
 
 @pytest.fixture
 def bom_csv(tmp_path):
     f = tmp_path / "bom.csv"
-    content = "\ufeffINE,NOM,PRENOM\n123,Doe,John"
+    content = "\ufeffNOM,PRENOM,EMAIL\nDoe,John,john@test.com"
     f.write_text(content, encoding="utf-8")
     return str(f)
 
@@ -29,19 +29,19 @@ def test_read_csv_nominal(clean_csv):
     result, rows = parse_students_csv(clean_csv, delimiter=',')
     assert result.delimiter == ','
     assert len(rows) == 2
-    assert rows[0]['INE'] == '123'
+    assert rows[0]['EMAIL'] == 'john@test.com'
 
 @pytest.mark.django_db
 def test_read_csv_bom(bom_csv):
     result, rows = parse_students_csv(bom_csv, delimiter=',', )
     assert len(rows) == 1
-    assert rows[0]['INE'] == '123' 
+    assert rows[0]['EMAIL'] == 'john@test.com'
 
 @pytest.mark.django_db
 def test_read_csv_missing_header(bad_header_csv):
     # Service robustly handles missing headers by skipping rows and logging errors
     result, rows = parse_students_csv(bad_header_csv, delimiter=',')
-    # "INE" is required but checking "ID" in fixture
+    # "EMAIL" is required but checking "ID" in fixture
     assert len(result.errors) > 0
     assert result.skipped > 0
 
