@@ -45,7 +45,7 @@ class TestRateLimitingBaseline:
         # 5 tentatives avec mauvais identifiants
         for i in range(5):
             response = client.post('/api/students/login/', {
-                'ine': 'WRONGINE',
+                'email': 'wrong@test.com',
                 'last_name': 'WRONGNAME'
             })
             # Rate limiting désactivé en test: toujours 401

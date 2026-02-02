@@ -173,7 +173,7 @@ class TestAPIEndpoints:
         """Student login endpoint should exist."""
         client = Client()
         response = client.post('/api/students/login/', {
-            'ine': 'NONEXISTENT',
+            'email': 'nonexistent@test.com',
             'last_name': 'WRONG'
         })
         
