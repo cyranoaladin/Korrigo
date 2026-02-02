@@ -14,7 +14,7 @@ from core.utils.audit import log_authentication_attempt, log_audit
 @method_decorator(csrf_exempt, name='dispatch')
 class StudentLoginView(views.APIView):
     """
-    Login endpoint for students.
+    Login endpoint for students using email + last_name.
     Rate limited to 5 attempts per 15 minutes per IP.
     CSRF exempt: Public authentication endpoint, protected by rate limiting.
     
@@ -25,14 +25,14 @@ class StudentLoginView(views.APIView):
 
     @method_decorator(maybe_ratelimit(key='ip', rate='5/15m', method='POST', block=True))
     def post(self, request):
-        ine = request.data.get('ine')
+        email = request.data.get('email')
         last_name = request.data.get('last_name')
 
-        if not ine or not last_name:
-            return Response({'error': 'INE et Nom sont requis.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not email or not last_name:
+            return Response({'error': 'Email et Nom sont requis.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Case insensitive match for URL/INE logic if needed, strictly speaking case insensitive filtering
-        student = Student.objects.filter(ine__iexact=ine, last_name__iexact=last_name).first()
+        # Case insensitive match for email and last_name
+        student = Student.objects.filter(email__iexact=email, last_name__iexact=last_name).first()
 
         if student:
             request.session['student_id'] = student.id
@@ -74,59 +74,71 @@ class StudentListView(generics.ListAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['first_name', 'last_name', 'ine']
+    search_fields = ['first_name', 'last_name', 'email']
 
 class StudentImportView(views.APIView):
-    permission_classes = [IsAuthenticated] # Teacher/Admin only
+    """
+    Import students from CSV file.
+    
+    Expected CSV format (headers):
+    - NOM (required): Nom de famille
+    - PRENOM (required): Prénom
+    - EMAIL (required): Email pour connexion au portail élève (identifiant unique)
+    - DATE_NAISSANCE (optional): Date de naissance (DD/MM/YYYY or YYYY-MM-DD)
+    - CLASSE (optional): Classe (ex: T1, 1S2)
+    - GROUPE_EDS (optional): Groupe EDS (ex: Maths-Physique, SVT-Chimie)
+    """
+    permission_classes = [IsAuthenticated]  # Teacher/Admin only
     parser_classes = [MultiPartParser, FormParser]
 
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request):
-        import csv
-        import io
+        import tempfile
+        import os
+        from students.services.csv_import import import_students_from_csv, CsvReadError
         
         file_obj = request.FILES.get('file')
         if not file_obj:
             return Response({'error': 'File required'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        # Basic CSV Import: INE, Last Name, First Name, Class
-        # Or simple XML Sconet parser mock-up
         
-        results = {"created": 0, "errors": []}
+        # Check file extension
+        filename = file_obj.name.lower()
+        if filename.endswith('.xml'):
+            return Response(
+                {'error': "XML Sconet parsing not implemented. Please use CSV format with headers: NOM,PRENOM,EMAIL,DATE_NAISSANCE,CLASSE,GROUPE_EDS"},
+                status=status.HTTP_501_NOT_IMPLEMENTED
+            )
         
         try:
-            decoded_file = file_obj.read().decode('utf-8')
-            io_string = io.StringIO(decoded_file)
+            # Save uploaded file to temp location for csv_import service
+            with tempfile.NamedTemporaryFile(mode='wb', suffix='.csv', delete=False) as tmp:
+                for chunk in file_obj.chunks():
+                    tmp.write(chunk)
+                tmp_path = tmp.name
             
-            # Auto-detect if it looks like XML
-            if decoded_file.strip().startswith('<'):
-                 # Very basic XML parsing mock for Sconet
-                 # Assuming <Eleves><Eleve><INE>...</INE><Nom>...</Nom>...</Eleve></Eleves>
-                 # For MVP we stick to CSV or basic failure if XML complex
-                 return Response({'error': "XML Sconet parsing not fully implemented yet, please use CSV (INE,Nom,Prenom,Classe)"}, status=status.HTTP_501_NOT_IMPLEMENTED)
-            
-            reader = csv.reader(io_string, delimiter=',')
-            # Skip header if present? Let's assume headers: INE, Last, First, Class
-            
-            for idx, row in enumerate(reader):
-                if idx == 0 and "INE" in row[0].upper(): continue # Skip header
-                if len(row) < 4: continue
+            try:
+                result = import_students_from_csv(tmp_path, Student)
                 
-                ine, last, first, class_name = row[0], row[1], row[2], row[3]
+                response_data = {
+                    'created': result.created,
+                    'updated': result.updated,
+                    'skipped': result.skipped,
+                    'errors': [
+                        {'row': e.row, 'message': e.message}
+                        for e in result.errors[:10]  # Limit errors in response
+                    ],
+                    'total_errors': len(result.errors),
+                }
                 
-                # Create or Update
-                _, created = Student.objects.update_or_create(
-                    ine=ine,
-                    defaults={
-                        'last_name': last,
-                        'first_name': first,
-                        'class_name': class_name
-                    }
-                )
-                if created: results['created'] += 1
+                return Response(response_data)
                 
-            return Response(results)
-            
+            finally:
+                # Clean up temp file
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+                    
+        except CsvReadError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             from core.utils.errors import safe_error_response
             return Response(
