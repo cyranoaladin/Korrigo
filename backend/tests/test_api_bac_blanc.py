@@ -50,11 +50,10 @@ class BacBlancE2ETest(TestCase):
         
         # Create test student
         self.student = Student.objects.create(
-            ine="1234567890A",
+            email="jean.dupont@example.com",
             first_name="Jean",
             last_name="Dupont",
             class_name="TG2",
-            email="jean.dupont@example.com",
             user=self.student_user
         )
 
