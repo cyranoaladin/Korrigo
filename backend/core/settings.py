@@ -259,6 +259,11 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
+# Auth URLs
+LOGIN_URL = '/admin/login/'
+LOGIN_REDIRECT_URL = '/admin-dashboard'
+LOGOUT_REDIRECT_URL = '/'
+
 # P1.1 FIX: Ensure logs directory exists before configuring logging
 LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 os.makedirs(LOGS_DIR, exist_ok=True)

@@ -21,13 +21,13 @@ User = get_user_model()
 def setup_students(db):
     """Create students for testing."""
     student1 = Student.objects.create(
-        ine="INE001",
+        email="alice@test.com",
         first_name="Alice",
         last_name="DUPONT",
         class_name="3A"
     )
     student2 = Student.objects.create(
-        ine="INE002",
+        email="bob@test.com",
         first_name="Bob",
         last_name="MARTIN",
         class_name="3B"
@@ -88,15 +88,15 @@ def setup_copies_with_students(db, setup_students):
 
 @pytest.mark.django_db
 class TestStudentLogin:
-    """Test student authentication (INE + last_name)."""
+    """Test student authentication (email + last_name)."""
 
     def test_login_success_with_valid_credentials(self, setup_students):
-        """Valid INE + last_name should login successfully."""
+        """Valid email + last_name should login successfully."""
         student1, _ = setup_students
         
         client = Client()
         response = client.post('/api/students/login/', {
-            'ine': 'INE001',
+            'email': 'alice@test.com',
             'last_name': 'DUPONT'
         })
         
@@ -110,17 +110,17 @@ class TestStudentLogin:
         
         client = Client()
         response = client.post('/api/students/login/', {
-            'ine': 'ine001',  # lowercase
+            'email': 'ALICE@TEST.COM',  # uppercase
             'last_name': 'dupont'  # lowercase
         })
         
         assert response.status_code == 200
 
-    def test_login_fails_with_wrong_ine(self, setup_students):
-        """Wrong INE should return 401."""
+    def test_login_fails_with_wrong_email(self, setup_students):
+        """Wrong email should return 401."""
         client = Client()
         response = client.post('/api/students/login/', {
-            'ine': 'WRONGINE',
+            'email': 'wrong@test.com',
             'last_name': 'DUPONT'
         })
         
@@ -130,7 +130,7 @@ class TestStudentLogin:
         """Wrong last_name should return 401."""
         client = Client()
         response = client.post('/api/students/login/', {
-            'ine': 'INE001',
+            'email': 'alice@test.com',
             'last_name': 'WRONGNAME'
         })
         
@@ -141,26 +141,26 @@ class TestStudentLogin:
         client = Client()
         
         # Missing last_name
-        response = client.post('/api/students/login/', {'ine': 'INE001'})
+        response = client.post('/api/students/login/', {'email': 'alice@test.com'})
         assert response.status_code == 400
         
-        # Missing ine
+        # Missing email
         response = client.post('/api/students/login/', {'last_name': 'DUPONT'})
         assert response.status_code == 400
 
     def test_error_message_does_not_reveal_existence(self, setup_students):
-        """Error message should not reveal if INE exists."""
+        """Error message should not reveal if email exists."""
         client = Client()
         
-        # Wrong INE
+        # Wrong email
         response1 = client.post('/api/students/login/', {
-            'ine': 'NONEXISTENT',
+            'email': 'nonexistent@test.com',
             'last_name': 'DUPONT'
         })
         
-        # Wrong name for existing INE
+        # Wrong name for existing email
         response2 = client.post('/api/students/login/', {
-            'ine': 'INE001',
+            'email': 'alice@test.com',
             'last_name': 'WRONGNAME'
         })
         
@@ -181,7 +181,7 @@ class TestStudentCopiesAccess:
         client = Client()
         # Login as student1
         client.post('/api/students/login/', {
-            'ine': 'INE001',
+            'email': 'alice@test.com',
             'last_name': 'DUPONT'
         })
         
@@ -200,7 +200,7 @@ class TestStudentCopiesAccess:
         
         client = Client()
         client.post('/api/students/login/', {
-            'ine': 'INE001',
+            'email': 'alice@test.com',
             'last_name': 'DUPONT'
         })
         
@@ -217,7 +217,7 @@ class TestStudentCopiesAccess:
         
         client = Client()
         client.post('/api/students/login/', {
-            'ine': 'INE001',
+            'email': 'alice@test.com',
             'last_name': 'DUPONT'
         })
         
@@ -247,7 +247,7 @@ class TestPDFDownloadSecurity:
         
         client = Client()
         client.post('/api/students/login/', {
-            'ine': 'INE001',
+            'email': 'alice@test.com',
             'last_name': 'DUPONT'
         })
         
@@ -262,7 +262,7 @@ class TestPDFDownloadSecurity:
         
         client = Client()
         client.post('/api/students/login/', {
-            'ine': 'INE001',
+            'email': 'alice@test.com',
             'last_name': 'DUPONT'
         })
         
@@ -277,7 +277,7 @@ class TestPDFDownloadSecurity:
         
         client = Client()
         client.post('/api/students/login/', {
-            'ine': 'INE001',
+            'email': 'alice@test.com',
             'last_name': 'DUPONT'
         })
         
@@ -302,7 +302,7 @@ class TestPDFDownloadSecurity:
         
         client = Client()
         client.post('/api/students/login/', {
-            'ine': 'INE001',
+            'email': 'alice@test.com',
             'last_name': 'DUPONT'
         })
         
@@ -362,7 +362,7 @@ class TestStudentLogout:
         
         client = Client()
         client.post('/api/students/login/', {
-            'ine': 'INE001',
+            'email': 'alice@test.com',
             'last_name': 'DUPONT'
         })
         
@@ -382,7 +382,7 @@ class TestStudentLogout:
         
         client = Client()
         client.post('/api/students/login/', {
-            'ine': 'INE001',
+            'email': 'alice@test.com',
             'last_name': 'DUPONT'
         })
         

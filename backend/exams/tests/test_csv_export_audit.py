@@ -39,8 +39,8 @@ def setup_exam_with_copies(db):
     exam = Exam.objects.create(name="CSV Export Test", date="2026-01-31")
     
     # Create students
-    student1 = Student.objects.create(ine="INE001CSV", first_name="Alice", last_name="DUPONT", class_name="3A")
-    student2 = Student.objects.create(ine="INE002CSV", first_name="Bob", last_name="MARTIN", class_name="3B")
+    student1 = Student.objects.create(email="alice.csv@test.com", first_name="Alice", last_name="DUPONT", class_name="3A")
+    student2 = Student.objects.create(email="bob.csv@test.com", first_name="Bob", last_name="MARTIN", class_name="3B")
     
     # Create a teacher for annotations
     admin_group, teacher_group, _ = create_user_roles()
@@ -207,7 +207,7 @@ class TestPronoteExportCommand:
         assert len(lines) >= 1, "Should have at least header"
         header = lines[0]
         assert ';' in header, "Pronote format should use semicolon separator"
-        assert 'INE' in header
+        assert 'EMAIL' in header
         assert 'MATIERE' in header
         assert 'NOTE' in header
         assert 'COEFF' in header
