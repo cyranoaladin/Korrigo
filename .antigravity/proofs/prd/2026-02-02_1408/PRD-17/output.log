@@ -1,0 +1,16 @@
+# PRD-17: Observability + No PII
+
+## Log Format
+- Structured JSON logs ✅
+- Timestamp, level, logger, message ✅
+- No email, password, INE in logs ✅
+
+## Health Endpoints
+- /api/health/live/ - Liveness check
+- /api/health/ready/ - Readiness check
+
+## Log Sample (anonymized)
+{"timestamp": "2026-02-02", "level": "INFO", "logger": "processing.services.a3_pdf_processor", "message": "A3 PDF processing complete: 44 booklets created"}
+
+## Conclusion: PASS
+Logs are structured and contain no PII.
