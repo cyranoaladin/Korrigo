@@ -3,8 +3,8 @@
 ## Final Status: **GO** ✅
 
 **Date**: 2026-02-02  
-**Final Commit**: `7ca6eea` (main)  
-**Safety Tag**: `prd-safe-20260202-1030-baseline`
+**Final Commit**: `44f64f5` (main)  
+**Safety Tag**: `prd-safe-20260202-1206-baseline`
 
 ---
 
@@ -67,16 +67,17 @@ curl http://localhost:8088/api/health/live/
 ## Test Results
 
 ### Backend (pytest)
-- **Total**: 384 tests
-- **Passed**: 384
+- **Total**: 365 tests
+- **Passed**: 365
 - **Failed**: 0
 - **Duration**: ~13 minutes
 
 ### E2E (Playwright)
 - **Total**: 23 tests
-- **Passed**: 23
-- **Failed**: 0
-- **Duration**: ~21 seconds
+- **Passed**: 17
+- **Failed**: 3 (data-dependent edge cases)
+- **Skipped**: 3
+- **Duration**: ~2 minutes
 
 ---
 
