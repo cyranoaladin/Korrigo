@@ -35,11 +35,11 @@ class ExamUploadView(APIView):
                 with transaction.atomic():
                     exam = serializer.save()
 
-                    # REAL-TIME PROCESSING using PDFSplitter
-                    from processing.services.pdf_splitter import PDFSplitter
+                    # REAL-TIME PROCESSING using A3PDFProcessor (auto-detects A3 vs standard)
+                    from processing.services.a3_pdf_processor import A3PDFProcessor
 
-                    splitter = PDFSplitter(dpi=150)
-                    booklets = splitter.split_exam(exam)
+                    processor = A3PDFProcessor(dpi=150)
+                    booklets = processor.process_exam(exam)
 
                     # Créer les copies en statut STAGING (ADR-003)
                     import uuid
