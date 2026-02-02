@@ -52,7 +52,7 @@ class RBACPermissionsTest(TestCase):
         
         # Create test data
         self.student = Student.objects.create(
-            ine="1234567890A",
+            email="jean.dupont@test.com",
             first_name="Jean",
             last_name="Dupont",
             class_name="TG2"
