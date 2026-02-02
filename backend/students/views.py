@@ -14,7 +14,7 @@ from core.utils.audit import log_authentication_attempt, log_audit
 @method_decorator(csrf_exempt, name='dispatch')
 class StudentLoginView(views.APIView):
     """
-    Login endpoint for students.
+    Login endpoint for students using email + last_name.
     Rate limited to 5 attempts per 15 minutes per IP.
     CSRF exempt: Public authentication endpoint, protected by rate limiting.
     
@@ -25,14 +25,14 @@ class StudentLoginView(views.APIView):
 
     @method_decorator(maybe_ratelimit(key='ip', rate='5/15m', method='POST', block=True))
     def post(self, request):
-        ine = request.data.get('ine')
+        email = request.data.get('email')
         last_name = request.data.get('last_name')
 
-        if not ine or not last_name:
-            return Response({'error': 'INE et Nom sont requis.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not email or not last_name:
+            return Response({'error': 'Email et Nom sont requis.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Case insensitive match for URL/INE logic if needed, strictly speaking case insensitive filtering
-        student = Student.objects.filter(ine__iexact=ine, last_name__iexact=last_name).first()
+        # Case insensitive match for email and last_name
+        student = Student.objects.filter(email__iexact=email, last_name__iexact=last_name).first()
 
         if student:
             request.session['student_id'] = student.id
@@ -74,18 +74,17 @@ class StudentListView(generics.ListAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['first_name', 'last_name', 'ine']
+    search_fields = ['first_name', 'last_name', 'email']
 
 class StudentImportView(views.APIView):
     """
     Import students from CSV file.
     
     Expected CSV format (headers):
-    - INE (required): Identifiant National Élève
     - NOM (required): Nom de famille
     - PRENOM (required): Prénom
+    - EMAIL (required): Email pour connexion au portail élève (identifiant unique)
     - DATE_NAISSANCE (optional): Date de naissance (DD/MM/YYYY or YYYY-MM-DD)
-    - EMAIL (optional): Email pour connexion au portail élève
     - CLASSE (optional): Classe (ex: T1, 1S2)
     - GROUPE_EDS (optional): Groupe EDS (ex: Maths-Physique, SVT-Chimie)
     """
@@ -106,7 +105,7 @@ class StudentImportView(views.APIView):
         filename = file_obj.name.lower()
         if filename.endswith('.xml'):
             return Response(
-                {'error': "XML Sconet parsing not implemented. Please use CSV format with headers: INE,NOM,PRENOM,DATE_NAISSANCE,EMAIL,CLASSE,GROUPE_EDS"},
+                {'error': "XML Sconet parsing not implemented. Please use CSV format with headers: NOM,PRENOM,EMAIL,DATE_NAISSANCE,CLASSE,GROUPE_EDS"},
                 status=status.HTTP_501_NOT_IMPLEMENTED
             )
         

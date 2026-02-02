@@ -27,12 +27,14 @@ class Migration(migrations.Migration):
             field=models.EmailField(unique=True, verbose_name='Email'),
         ),
 
-        # Make user required (non-nullable) and change on_delete to CASCADE
+        # Keep user optional (nullable) with SET_NULL on delete
         migrations.AlterField(
             model_name='student',
             name='user',
             field=models.OneToOneField(
-                on_delete=django.db.models.deletion.CASCADE,
+                on_delete=django.db.models.deletion.SET_NULL,
+                null=True,
+                blank=True,
                 related_name='student_profile',
                 to=settings.AUTH_USER_MODEL,
                 verbose_name='Utilisateur associé'

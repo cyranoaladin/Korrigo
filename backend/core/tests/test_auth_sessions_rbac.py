@@ -26,13 +26,13 @@ class AuthSessionsRBACTests(TestCase):
         self.teacher_user.groups.add(self.teacher_group)
 
         self.student_a = Student.objects.create(
-            ine="INE123456",
+            email="alice@test.com",
             first_name="Alice",
             last_name="Student",
             class_name="T1",
         )
         self.student_b = Student.objects.create(
-            ine="INE654321",
+            email="bob@test.com",
             first_name="Bob",
             last_name="Other",
             class_name="T2",
@@ -113,7 +113,7 @@ class AuthSessionsRBACTests(TestCase):
         client = APIClient()
         login_response = client.post(
             "/api/students/login/",
-            {"ine": self.student_a.ine, "last_name": self.student_a.last_name},
+            {"email": self.student_a.email, "last_name": self.student_a.last_name},
             format="json",
         )
         self.assertEqual(login_response.status_code, 200)
@@ -126,7 +126,7 @@ class AuthSessionsRBACTests(TestCase):
         client = APIClient()
         login_response = client.post(
             "/api/students/login/",
-            {"ine": self.student_a.ine, "last_name": self.student_a.last_name},
+            {"email": self.student_a.email, "last_name": self.student_a.last_name},
             format="json",
         )
         self.assertEqual(login_response.status_code, 200)
