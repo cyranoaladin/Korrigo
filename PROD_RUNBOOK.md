@@ -186,3 +186,91 @@ curl -H "X-Metrics-Token: $METRICS_TOKEN" http://localhost:8088/api/metrics/
 ---
 
 *Last updated: 2026-02-02*
+
+---
+
+## Batch A3 Scans Processing
+
+### Overview
+
+Korrigo supports processing batch A3 scans containing multiple student copies scanned recto-verso. The system automatically:
+1. Detects A3 format (aspect ratio > 1.2)
+2. Splits each A3 page into 2 A4 pages
+3. Reorders pages correctly (P1, P2, P3, P4 per sheet)
+4. Segments copies by student using OCR + CSV whitelist
+5. Creates one Copy per student with all their pages
+
+### Format Requirements
+
+| Requirement | Value |
+|-------------|-------|
+| Page format | A3 landscape (2 A4 pages side-by-side) |
+| Pages per sheet | 2 A3 = 4 A4 (one student sheet) |
+| Page order in A3 | A3#1: P1(right), P4(left) / A3#2: P2(left), P3(right) |
+| Total A3 pages | Must be even (pairs of recto/verso) |
+| A4 pages per student | Multiple of 4 |
+
+### Page Reconstruction Rule
+
+```
+A3 Page #1 (recto):  [P4 | P1]  (P1 is on the right, P4 on the left)
+A3 Page #2 (verso):  [P2 | P3]  (P2 is on the left, P3 on the right)
+
+Final order: P1, P2, P3, P4
+```
+
+### CSV Whitelist Format
+
+The CSV file must contain student information for OCR matching:
+
+```csv
+Élèves,Né(e) le,Adresse E-mail,Classe
+ABID YOUCEF,01/02/2008,youcef.abid-e@ert.tn,T.01
+BEN JEMAA SADRI,21/09/2008,sadri.benjemaa-e@ert.tn,T.01
+```
+
+Required columns:
+- `Élèves`: Full name (format "LASTNAME FIRSTNAME")
+- `Né(e) le`: Date of birth (dd/mm/yyyy)
+- `Adresse E-mail`: Student email
+
+### API Usage
+
+```bash
+# Upload batch A3 with CSV
+curl -X POST /api/exams/upload/ \
+  -F "name=Exam Name" \
+  -F "pdf_source=@batch_scan.pdf" \
+  -F "students_csv=@students.csv" \
+  -F "batch_mode=true"
+```
+
+### Response
+
+```json
+{
+  "id": "uuid",
+  "name": "Exam Name",
+  "copies_created": 28,
+  "ready_count": 25,
+  "needs_review_count": 3,
+  "message": "28 copies created (25 ready, 3 need review)"
+}
+```
+
+### Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `needs_review=true` | OCR couldn't match student | Manual identification in UI |
+| Page count not multiple of 4 | Incomplete scan | Re-scan missing pages |
+| Wrong page order | Incorrect scan orientation | Check scanner settings |
+| No students matched | CSV format issue | Verify CSV encoding (UTF-8) |
+
+### Invariants (Non-negotiable)
+
+1. **Zero page loss**: Every A3 page produces exactly 2 A4 pages
+2. **Zero student mixing**: Each Copy contains only one student's pages
+3. **Correct order**: Pages always in order P1, P2, P3, P4 per sheet
+4. **Multiple of 4**: Each student Copy has pages as multiple of 4
+
