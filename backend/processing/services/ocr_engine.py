@@ -472,8 +472,8 @@ class MultiLayerOCR:
         text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
         # Lowercase
         text = text.lower()
-        # Remove hyphens and underscores
-        text = re.sub(r'[-_]+', '', text)
+        # Replace hyphens and underscores with spaces
+        text = re.sub(r'[-_]+', ' ', text)
         # Normalize multiple spaces
         text = re.sub(r'\s+', ' ', text)
         return text.strip()
