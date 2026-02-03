@@ -95,4 +95,4 @@ Cette décision respecte :
 2026-01-21
 
 ## Auteur
-Claude Sonnet 4.5 (Architecture Lead)
+Alaeddine BEN RHOUMA (Architecture Lead)

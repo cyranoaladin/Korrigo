@@ -54,4 +54,4 @@ Run `docker-compose exec -T backend python manage.py check` (0 issues), restart 
 
 ---
 
-**Maintainer:** Claude Sonnet 4.5
+**Maintainer:** Alaeddine BEN RHOUMA
