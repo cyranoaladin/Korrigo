@@ -25,3 +25,8 @@ pytest-cov~=4.1
 numpy<2.0.0
 tenacity<9.0.0
 pytesseract
+
+# Multi-layer OCR (PRD-19 robustification)
+easyocr>=1.7.0
+paddlepaddle>=2.5.0
+paddleocr>=2.7.0
