@@ -85,9 +85,9 @@ class TestMultiLayerOCR(unittest.TestCase):
         self.assertNotIn('ç', result)
 
     def test_normalize_text_removes_hyphens(self):
-        """Text normalization should replace hyphens with spaces."""
+        """Text normalization should remove hyphens."""
         result = self.ocr._normalize_text("JEAN-PAUL")
-        self.assertEqual(result, "jean paul")
+        self.assertEqual(result, "jeanpaul")
 
     def test_normalize_text_handles_empty(self):
         """Should handle empty text gracefully."""
