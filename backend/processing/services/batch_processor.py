@@ -576,10 +576,19 @@ class BatchA3Processor:
         if student1.email and student2.email:
             return student1.email.lower() == student2.email.lower()
         
-        # Fallback: comparaison par nom + prénom normalisés
+        # Fallback: comparaison par nom + prénom normalisés avec fuzzy matching
         name1 = self._normalize_text(f"{student1.last_name} {student1.first_name}")
         name2 = self._normalize_text(f"{student2.last_name} {student2.first_name}")
-        return name1 == name2
+
+        # Exact match
+        if name1 == name2:
+            return True
+
+        # Fuzzy match to handle variations like "ben attouch" vs "benattouch"
+        # Use Jaccard similarity
+        from thefuzz import fuzz
+        similarity = fuzz.ratio(name1, name2) / 100.0
+        return similarity >= 0.90  # 90% similarity threshold
 
     def _determine_review_reason(self, student: Optional[StudentMatch], ocr_mode: str) -> str:
         """Determine why a copy needs review based on student match and OCR mode."""
