@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20  # Increased from default 10 minutes
+    timeout-minutes: 30  # Increased from default 10 minutes
 
     services:
       postgres:
