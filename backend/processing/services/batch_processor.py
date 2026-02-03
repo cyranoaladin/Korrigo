@@ -30,6 +30,14 @@ from dataclasses import dataclass
 from django.conf import settings
 from django.db import transaction
 
+# PRD-19: Multi-layer OCR engine
+try:
+    from processing.services.ocr_engine import MultiLayerOCR, OCRResult as OCREngineResult
+    MULTILAYER_OCR_AVAILABLE = True
+except ImportError:
+    MULTILAYER_OCR_AVAILABLE = False
+    logger.warning("Multi-layer OCR not available, falling back to Tesseract")
+
 logger = logging.getLogger(__name__)
 
 # Seuil pour détecter un format A3 (landscape)
@@ -66,10 +74,16 @@ class StudentCopy:
     needs_review: bool = False
     review_reason: str = ""
     header_crops: List[str] = None  # Chemins vers les crops d'en-tête
-    
+
+    # PRD-19: Multi-layer OCR fields
+    ocr_mode: str = 'MANUAL'  # 'AUTO', 'SEMI_AUTO', 'MANUAL'
+    top_candidates: List = None  # Top-k OCR candidates for semi-automatic mode
+
     def __post_init__(self):
         if self.header_crops is None:
             self.header_crops = []
+        if self.top_candidates is None:
+            self.top_candidates = []
 
 
 class BatchA3Processor:
@@ -86,7 +100,18 @@ class BatchA3Processor:
         self.dpi = dpi
         self.csv_path = csv_path
         self.students_whitelist: List[Dict] = []
-        
+
+        # PRD-19: Initialize multi-layer OCR engine
+        if MULTILAYER_OCR_AVAILABLE:
+            try:
+                self.ocr_engine = MultiLayerOCR()
+                logger.info("Multi-layer OCR engine initialized")
+            except Exception as e:
+                logger.error(f"Failed to initialize multi-layer OCR: {e}")
+                self.ocr_engine = None
+        else:
+            self.ocr_engine = None
+
         if csv_path:
             self._load_csv_whitelist(csv_path)
 
@@ -391,6 +416,30 @@ class BatchA3Processor:
             logger.warning(f"OCR failed: {e}")
             return "", ""
 
+    def _ocr_header_multilayer(self, header_image: np.ndarray) -> Optional[OCREngineResult]:
+        """
+        PRD-19: Extract text using multi-layer OCR with top-k candidates.
+
+        Uses multiple OCR engines (Tesseract, EasyOCR, PaddleOCR) with
+        consensus voting to match against CSV whitelist.
+
+        Returns:
+            OCREngineResult with top_candidates, ocr_mode, and all OCR outputs
+            None if multi-layer OCR not available (falls back to legacy)
+        """
+        if not self.ocr_engine or not self.students_whitelist:
+            return None
+
+        try:
+            result = self.ocr_engine.extract_text_with_candidates(
+                header_image,
+                self.students_whitelist
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Multi-layer OCR failed: {e}")
+            return None
+
     def _detect_header_on_page(self, page_image: np.ndarray) -> bool:
         """
         Détecte si la page contient un en-tête (marqueur de début de copie).
@@ -532,6 +581,35 @@ class BatchA3Processor:
         name2 = self._normalize_text(f"{student2.last_name} {student2.first_name}")
         return name1 == name2
 
+    def _determine_review_reason(self, student: Optional[StudentMatch], ocr_mode: str) -> str:
+        """Determine why a copy needs review based on student match and OCR mode."""
+        if student is None:
+            return "No student match found"
+        elif ocr_mode == 'SEMI_AUTO':
+            return f"Semi-automatic OCR - confidence {student.confidence:.2f} - teacher review required"
+        elif ocr_mode == 'MANUAL':
+            return "Manual identification required"
+        else:
+            return ""
+
+    def _serialize_candidate(self, candidate) -> dict:
+        """
+        Serialize a StudentMatch candidate to dict for JSON storage.
+
+        Args:
+            candidate: StudentMatch object from OCR engine
+
+        Returns:
+            Dict with candidate data suitable for JSON storage
+        """
+        return {
+            'student_id': candidate.student_id,
+            'confidence': candidate.confidence,
+            'vote_count': candidate.vote_count,
+            'vote_agreement': candidate.vote_agreement,
+            'sources': candidate.sources
+        }
+
     def _segment_by_student(self, pages: List[PageInfo], exam_id: str) -> List[StudentCopy]:
         """
         Segmente les pages par élève en détectant les en-têtes.
@@ -550,6 +628,10 @@ class BatchA3Processor:
         current_pages: List[PageInfo] = []
         current_student: Optional[StudentMatch] = None
         current_header_crops: List[str] = []  # Pour stocker les crops d'en-tête
+
+        # PRD-19: Track OCR mode and candidates for current copy
+        current_ocr_mode: str = 'MANUAL'
+        current_top_candidates: List = []
         
         # Créer le dossier de sortie
         output_dir = Path(settings.MEDIA_ROOT) / 'batch_processing' / exam_id
@@ -574,12 +656,33 @@ class BatchA3Processor:
                     header_filename = f"header_sheet_{sheet_count:04d}.png"
                     header_path = headers_dir / header_filename
                     cv2.imwrite(str(header_path), header_region)
-                    
-                    # OCR sur l'en-tête
-                    ocr_name, ocr_date = self._ocr_header(header_region)
-                    
-                    # Matcher avec le CSV
-                    new_student = self._match_student(ocr_name, ocr_date)
+
+                    # PRD-19: Try multi-layer OCR first, fallback to legacy
+                    ocr_result = self._ocr_header_multilayer(header_region)
+
+                    if ocr_result and ocr_result.top_candidates:
+                        # Multi-layer OCR succeeded
+                        top_candidate = ocr_result.top_candidates[0]
+                        new_student = StudentMatch(
+                            student_id=top_candidate.student_id,
+                            last_name=top_candidate.last_name,
+                            first_name=top_candidate.first_name,
+                            email=top_candidate.email,
+                            date_of_birth=top_candidate.date_of_birth,
+                            confidence=top_candidate.confidence,
+                            ocr_text=f"Multi-layer OCR ({ocr_result.ocr_mode})"
+                        )
+                        ocr_mode = ocr_result.ocr_mode
+                        top_candidates = ocr_result.top_candidates
+                        logger.info(f"Sheet {sheet_count}: Multi-layer OCR - {ocr_result.ocr_mode} mode, confidence={top_candidate.confidence:.2f}")
+                    else:
+                        # Fallback to legacy Tesseract OCR
+                        ocr_name, ocr_date = self._ocr_header(header_region)
+                        new_student = self._match_student(ocr_name, ocr_date)
+                        ocr_mode = 'MANUAL' if new_student is None else 'AUTO'
+                        top_candidates = []
+                        logger.info(f"Sheet {sheet_count}: Legacy OCR (fallback)")
+
                     
                     # LOGIQUE MULTI-FEUILLES: vérifier si c'est le même élève
                     if current_pages and self._is_same_student(current_student, new_student):
@@ -593,15 +696,19 @@ class BatchA3Processor:
                             student_copies.append(StudentCopy(
                                 student_match=current_student,
                                 pages=current_pages.copy(),
-                                needs_review=current_student is None,
-                                review_reason="No student match found" if current_student is None else "",
-                                header_crops=current_header_crops.copy()
+                                needs_review=current_student is None or current_ocr_mode == 'SEMI_AUTO',
+                                review_reason=self._determine_review_reason(current_student, current_ocr_mode),
+                                header_crops=current_header_crops.copy(),
+                                ocr_mode=current_ocr_mode,
+                                top_candidates=current_top_candidates
                             ))
                             current_pages = []
                             current_header_crops = []
-                        
+
                         current_student = new_student
                         current_header_crops = [str(header_path.relative_to(settings.MEDIA_ROOT))]
+                        current_ocr_mode = ocr_mode
+                        current_top_candidates = [self._serialize_candidate(c) for c in top_candidates[:5]] if top_candidates else []
                         
                         if new_student:
                             logger.info(f"Sheet {sheet_count}: New student detected: {new_student.last_name} {new_student.first_name} (confidence: {new_student.confidence:.2f})")
@@ -621,9 +728,11 @@ class BatchA3Processor:
             student_copies.append(StudentCopy(
                 student_match=current_student,
                 pages=current_pages.copy(),
-                needs_review=current_student is None,
-                review_reason="No student match found" if current_student is None else "",
-                header_crops=current_header_crops.copy()
+                needs_review=current_student is None or current_ocr_mode == 'SEMI_AUTO',
+                review_reason=self._determine_review_reason(current_student, current_ocr_mode),
+                header_crops=current_header_crops.copy(),
+                ocr_mode=current_ocr_mode,
+                top_candidates=current_top_candidates
             ))
         
         # Vérifier les invariants et générer le rapport
@@ -705,9 +814,29 @@ class BatchA3Processor:
                 student=student
             )
             copy.booklets.add(booklet)
-            
+
+            # PRD-19: Create OCRResult with top candidates if available
+            if sc.top_candidates:
+                from identification.models import OCRResult
+
+                detected_text = f"Multi-layer OCR ({sc.ocr_mode})"
+                if sc.student_match:
+                    detected_text += f": {sc.student_match.last_name} {sc.student_match.first_name}"
+
+                ocr_result = OCRResult.objects.create(
+                    copy=copy,
+                    detected_text=detected_text,
+                    confidence=sc.student_match.confidence if sc.student_match else 0.0,
+                    top_candidates=sc.top_candidates,
+                    ocr_mode=sc.ocr_mode,
+                    selected_candidate_rank=1 if sc.ocr_mode == 'AUTO' and sc.student_match else None,
+                    manual_override=False
+                )
+
+                logger.info(f"Created OCR result for copy {copy.anonymous_id}: mode={sc.ocr_mode}, {len(sc.top_candidates)} candidates")
+
             created_copies.append(copy)
-            
+
             logger.info(f"Created copy {copy.anonymous_id}: {len(pages_images)} pages, student={student}, status={status}")
         
         return created_copies
