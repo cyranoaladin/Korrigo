@@ -110,6 +110,7 @@ class CorrectorCopySerializer(serializers.ModelSerializer):
     """
     Sérialiseur sécurisé pour les correcteurs.
     Exclut STRICTEMENT les informations nominatives (student, is_identified).
+    Inclut les détails de l'examen avec grading_structure pour le barème.
     """
     exam_name = serializers.CharField(source='exam.name', read_only=True)
     booklet_ids = serializers.SerializerMethodField()
@@ -135,4 +136,11 @@ class CorrectorCopySerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['booklets'] = BookletSerializer(instance.booklets.all(), many=True, context=self.context).data
+        # Inclure les détails de l'examen avec grading_structure
+        representation['exam'] = {
+            'id': str(instance.exam.id),
+            'name': instance.exam.name,
+            'date': str(instance.exam.date) if instance.exam.date else None,
+            'grading_structure': instance.exam.grading_structure or []
+        }
         return representation
