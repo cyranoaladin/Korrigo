@@ -177,4 +177,4 @@ class Copy(models.Model):
 2026-01-21
 
 ## Auteur
-Claude Sonnet 4.5 (Backend Architect)
+Alaeddine BEN RHOUMA (Backend Architect)

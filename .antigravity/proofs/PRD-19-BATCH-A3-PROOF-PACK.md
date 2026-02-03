@@ -342,7 +342,7 @@ OpenCV: [version système]
 
 ## Signature
 
-**Auditeur:** Claude Sonnet 4.5
+**Auditeur:** Alaeddine BEN RHOUMA
 **Date:** 2026-02-02 21:30 UTC+01:00
 **Commit:** b7e4c19
 **Status:** ✅ **LOGIQUE VALIDÉE** | ⚠️ **OCR LIMITATION DOCUMENTÉE** | ⏸️ **DOCKER TESTS PENDING**
