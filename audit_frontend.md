@@ -1,6 +1,60 @@
+Suite à l'analyse du code source (notamment `frontend/src/services`, `frontend/src/components/CanvasLayer.vue` et `frontend/src/views/admin/CorrectorDesk.vue`), voici le rapport de vérification et les suggestions d'optimisation.
+
+### 1. Vérification du Typage TypeScript
+
+**Constat :**
+Le projet n'utilise **pas** correctement le typage TypeScript pour les données provenant de l'API. Bien que l'environnement soit configuré pour TypeScript (`tsconfig.json` présent, `strict: true`), l'implémentation actuelle est majoritairement en JavaScript standard :
+*   **Services API :** Les fichiers `api.js` et `gradingApi.js` sont en JavaScript pur. Ils retournent `response.data` sans aucune définition de type.
+*   **Composants :** `CorrectorDesk.vue` et `CanvasLayer.vue` n'utilisent pas `<script setup lang="ts">`. Les données sont stockées dans des `ref(null)` sans typage générique (ex: `const copy = ref(null)` au lieu de `const copy = ref<Copy | null>(null)`).
+*   **Absence de définitions :** Il n'existe pas de dossier `types/` ou d'interfaces partagées pour les objets métiers (Copie, Annotation, Examen).
+
+**Recommandation (Action immédiate) :**
+Créer un fichier de définitions et migrer les composants clés.
+
+**Fichier suggéré : `frontend/src/types/grading.ts`**
+```typescript
+export interface Annotation {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  type?: string;
+  content?: string;
+  page_index?: number;
+}
+
+export interface Exam {
+  id: string;
+  name: string;
+  grading_structure: any[]; // À préciser selon la structure JSON
+}
+
+export interface Copy {
+  id: string;
+  status: 'STAGING' | 'READY' | 'LOCKED' | 'GRADED';
+  exam: Exam;
+  booklets: Array<{
+    id: string;
+    pages_images: string[];
+  }>;
+}
+```
+
+### 2. Optimisation du Rendu Canvas (`CanvasLayer.vue`)
+
+**Problèmes de performance identifiés :**
+1.  **Redessin complet à chaque frame :** La fonction `redraw` efface (`clearRect`) et redessine *toutes* les annotations existantes à chaque mouvement de souris (`mousemove`) lors de la création d'une nouvelle annotation.
+2.  **Calculs répétitifs :** La boucle `forEach` sur `initialAnnotations` est exécutée inutilement alors que ces annotations ne changent pas pendant le drag & drop.
+
+**Solution proposée : Double Buffering (Mise en cache)**
+Utiliser un canvas hors-écran (en mémoire) pour dessiner les annotations statiques une seule fois. Le canvas principal ne fait que copier cette image et dessiner le rectangle de sélection par-dessus.
+
+Voici le code refactorisé (migré en TypeScript + Optimisé) :
+
+```vue
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import type { Annotation } from '@/types/grading'
+import type { Annotation } from '@/types/grading' // Supposant que vous avez créé le fichier
 
 const props = defineProps<{
   width: number
@@ -185,3 +239,4 @@ const stopDrawing = () => {
     pointer-events: none;
 }
 </style>
+```
