@@ -25,9 +25,17 @@ def test_batch_a3_real_data():
     """Test avec les données réelles : eval_loi_binom_log.pdf + G3_EDS_MATHS.csv"""
 
     # Chemins des fichiers
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    pdf_path = os.path.join(project_root, 'eval_loi_binom_log.pdf')
-    csv_path = os.path.join(project_root, 'G3_EDS_MATHS.csv')
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
+    
+    # Try current dir first (Docker /app) then project root (Local)
+    pdf_path = os.path.join(current_dir, 'eval_loi_binom_log.pdf')
+    if not os.path.exists(pdf_path):
+        pdf_path = os.path.join(project_root, 'eval_loi_binom_log.pdf')
+
+    csv_path = os.path.join(current_dir, 'G3_EDS_MATHS.csv')
+    if not os.path.exists(csv_path):
+        csv_path = os.path.join(project_root, 'G3_EDS_MATHS.csv')
 
     if not os.path.exists(pdf_path):
         pytest.skip(f"PDF not found: {pdf_path}. Skipping integration test.")
