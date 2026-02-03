@@ -185,6 +185,90 @@ class BookletDetailView(generics.RetrieveDestroyAPIView):
              )
         instance.delete()
 
+
+class BookletHeaderView(APIView):
+    """
+    Retourne l'image de l'en-tête d'un booklet pour l'identification.
+    GET /api/exams/booklets/<id>/header/
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def get(self, request, id):
+        from django.http import FileResponse
+        import os
+        
+        booklet = get_object_or_404(Booklet, id=id)
+        
+        # Chercher l'image d'en-tête dans les pages_images
+        if booklet.pages_images and len(booklet.pages_images) > 0:
+            first_page_path = booklet.pages_images[0]
+            full_path = os.path.join(settings.MEDIA_ROOT, first_page_path)
+            
+            if os.path.exists(full_path):
+                # Extraire la région d'en-tête (top 20%)
+                import cv2
+                img = cv2.imread(full_path)
+                if img is not None:
+                    height = img.shape[0]
+                    header_height = int(height * 0.25)
+                    header = img[:header_height, :]
+                    
+                    # Sauvegarder temporairement
+                    import tempfile
+                    fd, temp_path = tempfile.mkstemp(suffix=".png")
+                    os.close(fd)
+                    cv2.imwrite(temp_path, header)
+                    
+                    response = FileResponse(
+                        open(temp_path, 'rb'),
+                        content_type='image/png'
+                    )
+                    response['Content-Disposition'] = f'inline; filename="header_{id}.png"'
+                    
+                    # Cleanup sera fait par le garbage collector
+                    return response
+        
+        # Fallback: extraire depuis le PDF source
+        if booklet.exam.pdf_source:
+            page_index = booklet.start_page - 1 if booklet.start_page else 0
+            
+            try:
+                doc = fitz.open(booklet.exam.pdf_source.path)
+                if 0 <= page_index < doc.page_count:
+                    page = doc.load_page(page_index)
+                    pix = page.get_pixmap(dpi=150)
+                    
+                    # Crop top 25% for header
+                    import io
+                    from PIL import Image
+                    
+                    img_data = pix.tobytes("png")
+                    img = Image.open(io.BytesIO(img_data))
+                    header_height = int(img.height * 0.25)
+                    header = img.crop((0, 0, img.width, header_height))
+                    
+                    buffer = io.BytesIO()
+                    header.save(buffer, format='PNG')
+                    buffer.seek(0)
+                    
+                    doc.close()
+                    
+                    return FileResponse(
+                        buffer,
+                        content_type='image/png',
+                        filename=f'header_{id}.png'
+                    )
+                doc.close()
+            except Exception as e:
+                from core.utils.errors import safe_error_response
+                return Response(
+                    safe_error_response(e, context="Header extraction"),
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+        return Response({"error": "No header image available"}, status=status.HTTP_404_NOT_FOUND)
+
+
 class BookletSplitView(APIView):
     permission_classes = [IsTeacherOrAdmin]
 

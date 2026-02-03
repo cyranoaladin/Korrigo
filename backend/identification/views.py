@@ -204,3 +204,141 @@ class OCRPerformView(APIView):
                 safe_error_response(e, context="OCR", user_message="OCR processing failed. Please try again."),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+# PRD-19: Multi-layer OCR API Endpoints
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsTeacherOrAdmin])
+def get_ocr_candidates(request, copy_id):
+    """
+    Get top-k OCR candidates for semi-automatic selection.
+
+    Returns list of top-5 student candidates with confidence scores,
+    OCR engine sources, and vote counts.
+    """
+    copy = get_object_or_404(Copy, id=copy_id)
+
+    # Check if OCR result exists
+    if not hasattr(copy, 'ocr_result'):
+        return Response({
+            'error': 'No OCR result available for this copy'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    ocr_result = copy.ocr_result
+
+    # Build candidate list from top_candidates JSON field
+    candidates = []
+    for idx, candidate_data in enumerate(ocr_result.top_candidates[:5], 1):
+        try:
+            student = Student.objects.get(id=candidate_data['student_id'])
+            candidates.append({
+                'rank': idx,
+                'student': {
+                    'id': student.id,
+                    'first_name': student.first_name,
+                    'last_name': student.last_name,
+                    'email': student.email,
+                    'date_of_birth': student.date_of_birth.strftime('%d/%m/%Y') if student.date_of_birth else None
+                },
+                'confidence': candidate_data['confidence'],
+                'vote_count': candidate_data.get('vote_count', 0),
+                'vote_agreement': candidate_data.get('vote_agreement', 0.0),
+                'ocr_sources': candidate_data.get('sources', [])
+            })
+        except Student.DoesNotExist:
+            # Student not found, skip this candidate
+            continue
+
+    return Response({
+        'copy_id': str(copy_id),
+        'anonymous_id': copy.anonymous_id,
+        'ocr_mode': ocr_result.ocr_mode,
+        'candidates': candidates,
+        'total_engines': len(ocr_result.top_candidates[0].get('sources', [])) if ocr_result.top_candidates else 0
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsTeacherOrAdmin])
+def select_ocr_candidate(request, copy_id):
+    """
+    Teacher selects a student from the top-k OCR candidates.
+
+    Expected POST data:
+    {
+        "rank": 1  // 1-5, rank of the selected candidate
+    }
+    """
+    copy = get_object_or_404(Copy, id=copy_id)
+
+    # Get selected rank from request
+    selected_rank = request.data.get('rank')
+    if not selected_rank or not isinstance(selected_rank, int) or selected_rank < 1 or selected_rank > 5:
+        return Response({
+            'error': 'Invalid rank. Must be integer between 1 and 5.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check if OCR result exists
+    if not hasattr(copy, 'ocr_result'):
+        return Response({
+            'error': 'No OCR result available for this copy'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    ocr_result = copy.ocr_result
+
+    # Check if selected rank is within available candidates
+    if selected_rank > len(ocr_result.top_candidates):
+        return Response({
+            'error': f'Rank {selected_rank} exceeds available candidates ({len(ocr_result.top_candidates)})'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    # Get selected candidate
+    candidate = ocr_result.top_candidates[selected_rank - 1]
+
+    try:
+        student = Student.objects.get(id=candidate['student_id'])
+    except Student.DoesNotExist:
+        return Response({
+            'error': 'Selected student not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    # Assign student to copy
+    copy.student = student
+    copy.is_identified = True
+
+    # Transition copy to READY status if currently STAGING
+    if copy.status == 'STAGING':
+        copy.status = 'READY'
+
+    copy.save()
+
+    # Update OCR result audit trail
+    ocr_result.selected_candidate_rank = selected_rank
+    ocr_result.save()
+
+    # Log grading event for audit trail
+    GradingEvent.objects.create(
+        copy=copy,
+        action='IDENTIFIED_FROM_OCR_CANDIDATES',
+        details={
+            'selected_rank': selected_rank,
+            'student_id': student.id,
+            'confidence': candidate['confidence'],
+            'ocr_mode': ocr_result.ocr_mode
+        },
+        user=request.user if request.user.is_authenticated else None,
+        timestamp=timezone.now()
+    )
+
+    return Response({
+        'success': True,
+        'copy_id': str(copy.id),
+        'student': {
+            'id': student.id,
+            'first_name': student.first_name,
+            'last_name': student.last_name,
+            'email': student.email
+        },
+        'status': copy.status
+    })

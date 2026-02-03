@@ -101,10 +101,12 @@ class UserDetailView(APIView):
     def get(self, request):
         user = request.user
         # Determine Role
+        # Admin = superuser only
+        # Teacher = staff but not superuser
         role = "Teacher"
-        if user.is_superuser or user.is_staff:
+        if user.is_superuser:
             role = "Admin"
-        elif user.groups.filter(name=UserRole.TEACHER).exists():
+        elif user.is_staff or user.groups.filter(name=UserRole.TEACHER).exists():
             role = "Teacher"
         
         must_change_password = False

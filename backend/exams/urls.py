@@ -4,7 +4,7 @@ from .views import (
     ExamDetailView, CopyListView, MergeBookletsView, ExportAllView, CSVExportView,
     CopyIdentificationView, UnidentifiedCopiesView, StudentCopiesView,
     CopyImportView, ExamSourceUploadView, BookletSplitView, BookletDetailView,
-    ExamDispatchView
+    BookletHeaderView, ExamDispatchView
 )
 
 urlpatterns = [
@@ -19,7 +19,7 @@ urlpatterns = [
 
     # Mission 16: Booklet Management
     path('<uuid:exam_id>/booklets/', BookletListView.as_view(), name='booklet-list'),
-    # path('booklets/<uuid:id>/header/', BookletHeaderView.as_view(), name='booklet-header'), # Not implemented
+    path('booklets/<uuid:id>/header/', BookletHeaderView.as_view(), name='booklet-header'),
     path('booklets/<uuid:id>/split/', BookletSplitView.as_view(), name='booklet-split'),
     path('booklets/<uuid:id>/', BookletDetailView.as_view(), name='booklet-detail'),
     

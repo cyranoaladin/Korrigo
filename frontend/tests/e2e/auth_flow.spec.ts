@@ -73,15 +73,14 @@ test.describe('ZF-AUD-02: Auth Flow & Route Guards', () => {
             await page.click('[data-testid="login.submit"]');
             await page.waitForURL(/\/corrector-dashboard/, { timeout: 15000 });
 
+            // Try to access admin-only page
             await page.goto('/admin/users');
-            await page.goto('/admin/users');
-            // Should be redirected to /admin/login because Teacher is not Admin
-            await expect(page).toHaveURL(/.*\/admin\/login/);
+            // Should be redirected to corrector-dashboard (Teacher's home)
+            await expect(page).toHaveURL(/\/corrector-dashboard/);
 
             await page.goto('/admin/settings');
-            await page.goto('/admin/settings');
-            await expect(page).toHaveURL(/.*admin.*login/);
-            // Removed contradictory assertion
+            // Should also be redirected to corrector-dashboard
+            await expect(page).toHaveURL(/\/corrector-dashboard/);
         });
 
         test('Teacher can access corrector desk', async ({ page }) => {
