@@ -40,6 +40,7 @@ services:
     volumes:
       - static_volume_local:/app/staticfiles
       - media_volume_local:/app/media
+      - ocr_cache_local:/app/.cache
       # Mount code for hot-reload (optional, remove for true prod-like)
       # - ../../backend:/app
     depends_on:
@@ -69,6 +70,11 @@ services:
       E2E_TEST_MODE: "true"
       E2E_SEED_TOKEN: "${E2E_SEED_TOKEN:-}"
       DJANGO_AUTO_MIGRATE: "false"
+      # PRD-19: OCR configuration
+      PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
+      XDG_CACHE_HOME: "/app/.cache"
+      EASYOCR_MODULE_PATH: "/app/.cache/easyocr"
+      TORCH_HOME: "/app/.cache/torch"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health/live/" ]
       interval: 30s
@@ -84,6 +90,7 @@ services:
     command: celery -A core worker -l info
     volumes:
       - media_volume_local:/app/media
+      - ocr_cache_local:/app/.cache
     depends_on:
       - db
       - redis
@@ -92,6 +99,11 @@ services:
       DEBUG: "False"
       DATABASE_URL: "postgres://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique_local}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
+      # PRD-19: OCR configuration
+      PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
+      XDG_CACHE_HOME: "/app/.cache"
+      EASYOCR_MODULE_PATH: "/app/.cache/easyocr"
+      TORCH_HOME: "/app/.cache/torch"
 
   nginx:
     build:
@@ -115,3 +127,4 @@ volumes:
   postgres_data_local:
   static_volume_local:
   media_volume_local:
+  ocr_cache_local:
