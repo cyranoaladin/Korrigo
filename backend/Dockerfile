@@ -27,10 +27,10 @@ RUN chmod +x entrypoint.sh
 
 # Ensure logs directory exists with proper permissions
 # P0-OP-01 fix: Logging directory must exist for RotatingFileHandler
-RUN mkdir -p /app/logs && chmod 777 /app/logs
+RUN mkdir -p /app/logs && chmod 755 /app/logs
 
 # PRD-19: Create OCR cache directory with proper permissions
-RUN mkdir -p /app/.cache && chmod 777 /app/.cache
+RUN mkdir -p /app/.cache && chmod 755 /app/.cache
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 

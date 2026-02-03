@@ -122,10 +122,14 @@ test.describe('PRD-19: Multi-layer OCR Identification Flow', () => {
             await page.waitForTimeout(1000);
 
             // Verify we moved to next copy or see completion message
-            const newCopyId = await page.locator('.absolute.top-4.left-4').textContent();
             const completionMessage = page.locator('text=Toutes les copies sont identifiées');
+            const copyIdElement = page.locator('.absolute.top-4.left-4');
 
-            const didProgress = newCopyId !== initialCopyId || await completionMessage.isVisible();
+            // Check if completion message is visible or we moved to a different copy
+            const isCompleted = await completionMessage.isVisible().catch(() => false);
+            const newCopyId = await copyIdElement.textContent().catch(() => null);
+
+            const didProgress = isCompleted || (newCopyId && newCopyId !== initialCopyId);
             expect(didProgress).toBeTruthy();
         }
     });

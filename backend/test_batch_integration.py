@@ -108,7 +108,10 @@ def test_batch_a3_real_data():
         logger.info(f"Identified: {identified_count}")
         logger.info(f"Needs review: {needs_review_count}")
         logger.info(f"Total pages A4: {total_pages}")
-        logger.info(f"Average pages per copy: {total_pages / len(student_copies):.1f}")
+        if len(student_copies) > 0:
+            logger.info(f"Average pages per copy: {total_pages / len(student_copies):.1f}")
+        else:
+            logger.info("Average pages per copy: N/A (no copies)")
         logger.info("")
 
         # Validation des invariants
