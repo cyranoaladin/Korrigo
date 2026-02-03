@@ -19,7 +19,7 @@ class TestFullSystemAudit:
         # Create Teacher
         self.teacher_user = User.objects.create_user('teacher', 'teacher@example.com', 'teacherpass')
         # Create Student
-        self.student = Student.objects.create(email="amine@test.com", last_name="BEN ALI", first_name="Amine", class_name="T1")
+        self.student = Student.objects.create(email="amine@test.com", full_name="BEN ALI Amine", date_of_birth="2008-01-15", class_name="T1")
 
     def test_01_authentication_admin(self):
         """Vérifie le login/logout ADMIN et l'accès aux infos (ME)"""
@@ -55,7 +55,7 @@ class TestFullSystemAudit:
 
     def test_03_authentication_student(self):
         """Vérifie le login Élève via endpoint dédié"""
-        response = self.client.post('/api/students/login/', {'email': 'amine@test.com', 'last_name': 'BEN ALI'})
+        response = self.client.post('/api/students/login/', {'email': 'amine@test.com', 'last_name': 'BEN ALI'})  # last_name is derived from full_name
         assert response.status_code == 200, "Student Login Failed"
         
         # Access Student Me
