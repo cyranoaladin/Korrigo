@@ -195,8 +195,9 @@ class BookletHeaderView(APIView):
 
     def get(self, request, id):
         from django.http import FileResponse
+        from django.conf import settings
         import os
-        
+
         booklet = get_object_or_404(Booklet, id=id)
         
         # Chercher l'image d'en-tête dans les pages_images
