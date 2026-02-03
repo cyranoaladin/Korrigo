@@ -39,8 +39,8 @@ def setup_exam_with_copies(db):
     exam = Exam.objects.create(name="CSV Export Test", date="2026-01-31")
     
     # Create students
-    student1 = Student.objects.create(email="alice.csv@test.com", first_name="Alice", last_name="DUPONT", class_name="3A")
-    student2 = Student.objects.create(email="bob.csv@test.com", first_name="Bob", last_name="MARTIN", class_name="3B")
+    student1 = Student.objects.create(email="alice.csv@test.com", full_name="DUPONT Alice", date_of_birth="2008-01-15", class_name="3A")
+    student2 = Student.objects.create(email="bob.csv@test.com", full_name="MARTIN Bob", date_of_birth="2008-02-20", class_name="3B")
     
     # Create a teacher for annotations
     admin_group, teacher_group, _ = create_user_roles()
