@@ -212,20 +212,18 @@ class BookletHeaderView(APIView):
                     height = img.shape[0]
                     header_height = int(height * 0.25)
                     header = img[:header_height, :]
-                    
-                    # Sauvegarder temporairement
-                    import tempfile
-                    fd, temp_path = tempfile.mkstemp(suffix=".png")
-                    os.close(fd)
-                    cv2.imwrite(temp_path, header)
-                    
+
+                    # Encode to PNG in memory
+                    from io import BytesIO
+                    _, buffer = cv2.imencode('.png', header)
+                    image_bytes = BytesIO(buffer.tobytes())
+
                     response = FileResponse(
-                        open(temp_path, 'rb'),
+                        image_bytes,
                         content_type='image/png'
                     )
                     response['Content-Disposition'] = f'inline; filename="header_{id}.png"'
-                    
-                    # Cleanup sera fait par le garbage collector
+
                     return response
         
         # Fallback: extraire depuis le PDF source

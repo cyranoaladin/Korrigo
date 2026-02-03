@@ -30,6 +30,8 @@ from dataclasses import dataclass
 from django.conf import settings
 from django.db import transaction
 
+logger = logging.getLogger(__name__)
+
 # PRD-19: Multi-layer OCR engine
 try:
     from processing.services.ocr_engine import MultiLayerOCR, OCRResult as OCREngineResult
@@ -37,8 +39,6 @@ try:
 except ImportError:
     MULTILAYER_OCR_AVAILABLE = False
     logger.warning("Multi-layer OCR not available, falling back to Tesseract")
-
-logger = logging.getLogger(__name__)
 
 # Seuil pour détecter un format A3 (landscape)
 A3_ASPECT_RATIO_THRESHOLD = 1.2
