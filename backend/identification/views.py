@@ -219,6 +219,12 @@ def get_ocr_candidates(request, copy_id):
     """
     copy = get_object_or_404(Copy, id=copy_id)
 
+    # Validate copy status - only allow editable states
+    if copy.status not in [Copy.Status.STAGING, Copy.Status.READY]:
+        return Response({
+            'error': f'Copy is in {copy.status} state and cannot be modified'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
     # Check if OCR result exists
     if not hasattr(copy, 'ocr_result'):
         return Response({
@@ -272,6 +278,12 @@ def select_ocr_candidate(request, copy_id):
     """
     copy = get_object_or_404(Copy, id=copy_id)
 
+    # Validate copy status - only allow editable states
+    if copy.status not in [Copy.Status.STAGING, Copy.Status.READY]:
+        return Response({
+            'error': f'Copy is in {copy.status} state and cannot be modified'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
     # Get selected rank from request
     selected_rank = request.data.get('rank')
     if not selected_rank or not isinstance(selected_rank, int) or selected_rank < 1 or selected_rank > 5:
@@ -308,8 +320,8 @@ def select_ocr_candidate(request, copy_id):
     copy.is_identified = True
 
     # Transition copy to READY status if currently STAGING
-    if copy.status == 'STAGING':
-        copy.status = 'READY'
+    if copy.status == Copy.Status.STAGING:
+        copy.status = Copy.Status.READY
 
     copy.save()
 

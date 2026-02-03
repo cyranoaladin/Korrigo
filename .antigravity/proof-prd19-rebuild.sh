@@ -3,6 +3,7 @@
 # This script validates PRD-19 compliance with --no-cache rebuild
 
 set -e
+set -o pipefail
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 PROOF_DIR=".antigravity/proofs/prd19/${TIMESTAMP}"
@@ -16,7 +17,6 @@ echo ""
 
 # Create proof directory
 mkdir -p "${PROOF_DIR}"
-cd /home/alaeddine/viatique__PMF
 
 # Capture git state
 echo "📋 Capturing Git State..."
