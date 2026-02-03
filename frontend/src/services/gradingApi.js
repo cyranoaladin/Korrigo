@@ -150,6 +150,21 @@ export default {
         return response.data;
     },
 
+    async saveQuestionScore(copyId, questionId, score, token = null) {
+        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+        const response = await api.post(
+            `/grading/copies/${copyId}/scores/`,
+            { question_id: questionId, score },
+            config
+        );
+        return response.data;
+    },
+
+    async fetchQuestionScores(copyId) {
+        const response = await api.get(`/grading/copies/${copyId}/scores/`);
+        return response.data;
+    },
+
     async fetchGlobalAppreciation(copyId) {
         const response = await api.get(`/grading/copies/${copyId}/global-appreciation/`);
         return response.data;

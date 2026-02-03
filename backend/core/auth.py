@@ -27,11 +27,16 @@ def create_user_roles():
 
 class IsAdmin(BasePermission):
     """
-    Permission pour les administrateurs
+    Permission pour les administrateurs.
+    Vérifie: groupe Admin OU is_superuser OU is_staff
     """
     def has_permission(self, request, view):
         if request.user.is_authenticated:
-            return request.user.groups.filter(name=UserRole.ADMIN).exists()
+            return (
+                request.user.is_superuser or
+                request.user.is_staff or
+                request.user.groups.filter(name=UserRole.ADMIN).exists()
+            )
         return False
 
 class IsTeacher(BasePermission):
@@ -57,19 +62,29 @@ class IsStudent(BasePermission):
 
 class IsAdminOrTeacher(BasePermission):
     """
-    Permission pour admin ou teacher
+    Permission pour admin ou teacher.
+    Vérifie: is_superuser OU is_staff OU groupe Admin OU groupe Teacher
     """
     def has_permission(self, request, view):
         if request.user.is_authenticated:
-            return (request.user.groups.filter(name=UserRole.ADMIN).exists() or 
-                   request.user.groups.filter(name=UserRole.TEACHER).exists())
+            return (
+                request.user.is_superuser or
+                request.user.is_staff or
+                request.user.groups.filter(name=UserRole.ADMIN).exists() or 
+                request.user.groups.filter(name=UserRole.TEACHER).exists()
+            )
         return False
 
 class IsAdminOnly(BasePermission):
     """
-    Permission pour admin seulement
+    Permission pour admin seulement.
+    Vérifie: groupe Admin OU is_superuser OU is_staff
     """
     def has_permission(self, request, view):
         if request.user.is_authenticated:
-            return request.user.groups.filter(name=UserRole.ADMIN).exists()
+            return (
+                request.user.is_superuser or
+                request.user.is_staff or
+                request.user.groups.filter(name=UserRole.ADMIN).exists()
+            )
         return False

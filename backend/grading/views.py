@@ -4,9 +4,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.http import FileResponse
 from rest_framework.permissions import IsAuthenticated
-from .models import Annotation, GradingEvent, QuestionRemark
+from .models import Annotation, GradingEvent, QuestionRemark, QuestionScore
 from exams.models import Copy
-from .serializers import AnnotationSerializer, GradingEventSerializer, QuestionRemarkSerializer
+from .serializers import AnnotationSerializer, GradingEventSerializer, QuestionRemarkSerializer, QuestionScoreSerializer
 from exams.permissions import IsTeacherOrAdmin
 from .permissions import IsLockedByOwnerOrReadOnly
 from django.shortcuts import get_object_or_404
@@ -406,3 +406,59 @@ class CopyGlobalAppreciationView(APIView):
             'copy_id': str(copy.id),
             'global_appreciation': copy.global_appreciation or ''
         })
+
+
+class QuestionScoreListCreateView(generics.ListCreateAPIView):
+    """
+    GET: Liste les notes d'une copie.
+    POST: Crée ou met à jour une note sur une question.
+    """
+    permission_classes = [IsTeacherOrAdmin]
+    serializer_class = QuestionScoreSerializer
+
+    def get_queryset(self):
+        copy_id = self.kwargs['copy_id']
+        copy = get_object_or_404(Copy, id=copy_id)
+        return QuestionScore.objects.filter(copy=copy).select_related('created_by').order_by('created_at')
+
+    def create(self, request, *args, **kwargs):
+        copy_id = self.kwargs['copy_id']
+        copy = get_object_or_404(Copy, id=copy_id)
+        question_id = request.data.get('question_id')
+        score = request.data.get('score')
+
+        if not question_id:
+            return Response(
+                {"detail": "question_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if score is None:
+            return Response(
+                {"detail": "score is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            score = float(score)
+        except (ValueError, TypeError):
+            return Response(
+                {"detail": "score must be a number."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Update or create
+        obj, created = QuestionScore.objects.update_or_create(
+            copy=copy,
+            question_id=question_id,
+            defaults={
+                'score': score,
+                'created_by': request.user
+            }
+        )
+
+        serializer = self.get_serializer(obj)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )

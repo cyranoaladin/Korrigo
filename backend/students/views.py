@@ -26,24 +26,27 @@ class StudentLoginView(views.APIView):
     @method_decorator(maybe_ratelimit(key='ip', rate='5/15m', method='POST', block=True))
     def post(self, request):
         email = request.data.get('email')
-        last_name = request.data.get('last_name')
+        last_name = request.data.get('last_name')  # Premier mot du full_name
 
         if not email or not last_name:
             return Response({'error': 'Email et Nom sont requis.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Case insensitive match for email and last_name
-        student = Student.objects.filter(email__iexact=email, last_name__iexact=last_name).first()
-
+        # Match by email and check if full_name starts with last_name (case insensitive)
+        student = Student.objects.filter(email__iexact=email).first()
+        
         if student:
-            request.session['student_id'] = student.id
-            request.session['role'] = 'Student'
-            # Audit trail: Login élève réussi
-            log_authentication_attempt(request, success=True, student_id=student.id)
-            return Response({'message': 'Login successful', 'role': 'Student'})
-        else:
-            # Audit trail: Login élève échoué
-            log_authentication_attempt(request, success=False, student_id=None)
-            return Response({'error': 'Identifiants invalides.'}, status=status.HTTP_401_UNAUTHORIZED)
+            # Verify last_name matches the first word of full_name
+            student_last_name = student.full_name.split()[0] if student.full_name else ""
+            if student_last_name.upper() == last_name.upper():
+                request.session['student_id'] = student.id
+                request.session['role'] = 'Student'
+                # Audit trail: Login élève réussi
+                log_authentication_attempt(request, success=True, student_id=student.id)
+                return Response({'message': 'Login successful', 'role': 'Student'})
+        
+        # Audit trail: Login élève échoué
+        log_authentication_attempt(request, success=False, student_id=None)
+        return Response({'error': 'Identifiants invalides.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 class StudentLogoutView(views.APIView):
     permission_classes = [AllowAny]  # Public endpoint - allow logout even if session expired
@@ -74,7 +77,14 @@ class StudentListView(generics.ListAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['first_name', 'last_name', 'email']
+    search_fields = ['full_name', 'email', 'class_name']
+
+
+class StudentDetailView(generics.RetrieveAPIView):
+    """Récupérer un étudiant par son ID"""
+    permission_classes = [IsAuthenticated]
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer
 
 class StudentImportView(views.APIView):
     """

@@ -75,13 +75,13 @@ const routes = [
         path: '/admin/users',
         name: 'UserManagement',
         component: () => import('../views/admin/UserManagement.vue'),
-        meta: { requiresAuth: true, role: 'Admin' }
+        meta: { requiresAuth: true, role: 'Admin', title: 'Gestion Utilisateurs' }
     },
     {
         path: '/admin/settings',
         name: 'Settings',
         component: () => import('../views/Settings.vue'),
-        meta: { requiresAuth: true, role: 'Admin' }
+        meta: { requiresAuth: true, role: 'Admin', title: 'Paramètres' }
     },
     {
         path: '/exam/:examId/staple',

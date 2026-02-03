@@ -33,7 +33,7 @@ class IdentificationDeskView(APIView):
             header_url = None
             if booklet:
                 # Use the same format as the original endpoint
-                header_url = f"/api/booklets/{booklet.id}/header/"
+                header_url = f"/api/exams/booklets/{booklet.id}/header/"
 
             data.append({
                 "id": copy.id,
@@ -73,7 +73,9 @@ class ManualIdentifyView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
         # Vérifier que la copie est dans l'état approprié pour identification
-        if copy.status not in [Copy.Status.STAGING, Copy.Status.READY]:
+        # LOCKED = copie en cours de correction, on peut quand même l'identifier
+        allowed_statuses = [Copy.Status.STAGING, Copy.Status.READY, Copy.Status.LOCKED]
+        if copy.status not in allowed_statuses:
             return Response({
                 'error': f'Impossible d\'identifier une copie en statut {copy.status}'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -96,7 +98,7 @@ class ManualIdentifyView(APIView):
             actor=request.user if request.user.is_authenticated else None,
             metadata={
                 'student_id': str(student.id),
-                'student_name': f"{student.first_name} {student.last_name}",
+                'student_name': student.full_name,
                 'method': 'manual_identification'
             }
         )
@@ -104,7 +106,7 @@ class ManualIdentifyView(APIView):
         return Response({
             'message': 'Copie identifiée avec succès',
             'copy_id': copy.id,
-            'student_name': f"{student.first_name} {student.last_name}",
+            'student_name': student.full_name,
             'new_status': copy.status
         })
 
@@ -354,3 +356,344 @@ def select_ocr_candidate(request, copy_id):
         },
         'status': copy.status
     })
+
+
+class CMENOCRView(APIView):
+    """
+    OCR spécialisé pour les en-têtes CMEN v2.
+    Extrait NOM, PRÉNOM et DATE DE NAISSANCE pour identification.
+    
+    POST /api/identification/cmen-ocr/<copy_id>/
+    """
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
+
+    def post(self, request, copy_id):
+        from processing.services.cmen_header_ocr import CMENHeaderOCR, load_students_from_csv
+        from django.conf import settings
+        import os
+        import cv2
+        
+        copy = get_object_or_404(Copy, id=copy_id)
+        booklet = copy.booklets.first()
+        
+        if not booklet:
+            return Response({
+                'error': 'Aucun fascicule associé à cette copie'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Obtenir l'image de l'en-tête
+            if booklet.pages_images and len(booklet.pages_images) > 0:
+                first_page_path = booklet.pages_images[0]
+                full_path = os.path.join(settings.MEDIA_ROOT, first_page_path)
+                
+                if not os.path.exists(full_path):
+                    return Response({
+                        'error': f'Image non trouvée: {first_page_path}'
+                    }, status=status.HTTP_404_NOT_FOUND)
+                
+                # Charger l'image
+                image = cv2.imread(full_path)
+                if image is None:
+                    return Response({
+                        'error': 'Impossible de charger l\'image'
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+                # Extraire l'en-tête (25% supérieur)
+                height = image.shape[0]
+                header_height = int(height * 0.25)
+                header_image = image[:header_height, :]
+                
+                # Effectuer l'OCR CMEN
+                ocr = CMENHeaderOCR(debug=False)
+                header_result = ocr.extract_header(header_image)
+                
+                # Charger les élèves depuis la base de données
+                from processing.services.cmen_header_ocr import StudentCSVRecord
+                students = []
+                for db_student in Student.objects.all():
+                    # Extraire nom et prénom depuis full_name
+                    parts = db_student.full_name.split(maxsplit=1) if db_student.full_name else []
+                    last_name = parts[0] if parts else ''
+                    first_name = parts[1] if len(parts) > 1 else ''
+                    
+                    # Formater la date de naissance
+                    dob = ''
+                    if db_student.date_of_birth:
+                        dob = db_student.date_of_birth.strftime('%d/%m/%Y')
+                    
+                    students.append(StudentCSVRecord(
+                        student_id=str(db_student.id),
+                        last_name=last_name,
+                        first_name=first_name,
+                        date_of_birth=dob,
+                        email=db_student.email or '',
+                        class_name=db_student.class_name or ''
+                    ))
+                
+                # Chercher une correspondance
+                match_result = None
+                suggestions = []
+                
+                if students:
+                    match_result = ocr.match_student(header_result, students, threshold=0.5)
+                    
+                    # Générer des suggestions triées par score
+                    from difflib import SequenceMatcher
+                    
+                    scored_students = []
+                    for student in students:
+                        name_score = SequenceMatcher(None, header_result.last_name.upper(), student.last_name.upper()).ratio()
+                        firstname_score = SequenceMatcher(None, header_result.first_name.upper(), student.first_name.upper()).ratio()
+                        date_score = 1.0 if header_result.date_of_birth == student.date_of_birth else 0.0
+                        
+                        overall = (name_score * 0.35 + firstname_score * 0.35 + date_score * 0.30)
+                        scored_students.append((student, overall, {
+                            'last_name': name_score,
+                            'first_name': firstname_score,
+                            'date_of_birth': date_score
+                        }))
+                    
+                    # Trier par score décroissant et prendre les 5 meilleurs
+                    scored_students.sort(key=lambda x: x[1], reverse=True)
+                    
+                    for student, score, details in scored_students[:5]:
+                        # Chercher l'élève dans la base de données par full_name
+                        full_name = f"{student.last_name} {student.first_name}".strip()
+                        db_student = Student.objects.filter(
+                            full_name__iexact=full_name
+                        ).first()
+                        
+                        # Si pas trouvé, essayer avec le student_id (qui est l'ID de la DB)
+                        if not db_student and student.student_id:
+                            try:
+                                db_student = Student.objects.filter(id=int(student.student_id)).first()
+                            except (ValueError, TypeError):
+                                pass
+                        
+                        suggestions.append({
+                            'csv_id': student.student_id,
+                            'db_id': db_student.id if db_student else None,
+                            'last_name': student.last_name,
+                            'first_name': student.first_name,
+                            'date_of_birth': student.date_of_birth,
+                            'email': student.email,
+                            'score': round(score, 3),
+                            'match_details': {k: round(v, 3) for k, v in details.items()}
+                        })
+                
+                return Response({
+                    'success': True,
+                    'copy_id': str(copy.id),
+                    'ocr_result': {
+                        'last_name': header_result.last_name,
+                        'first_name': header_result.first_name,
+                        'date_of_birth': header_result.date_of_birth,
+                        'confidence': round(header_result.overall_confidence, 3),
+                        'fields': [{
+                            'name': f.field_name,
+                            'value': f.value,
+                            'confidence': round(f.confidence, 3)
+                        } for f in header_result.fields]
+                    },
+                    'best_match': {
+                        'student_id': match_result.student.student_id if match_result else None,
+                        'last_name': match_result.student.last_name if match_result else None,
+                        'first_name': match_result.student.first_name if match_result else None,
+                        'date_of_birth': match_result.student.date_of_birth if match_result else None,
+                        'confidence': round(match_result.confidence, 3) if match_result else 0,
+                        'match_details': {k: round(v, 3) for k, v in match_result.match_details.items()} if match_result else {}
+                    } if match_result else None,
+                    'suggestions': suggestions
+                })
+            else:
+                return Response({
+                    'error': 'Aucune image de page disponible'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'error': f'Erreur OCR: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class BatchAutoIdentifyView(APIView):
+    """
+    Auto-identification batch de toutes les copies non identifiées d'un examen.
+    
+    POST /api/identification/batch-auto-identify/<exam_id>/
+    
+    Workflow:
+    1. Récupère toutes les copies non identifiées de l'examen
+    2. Pour chaque copie, lance l'OCR CMEN
+    3. Si confiance > seuil, identifie automatiquement
+    4. Retourne un rapport avec les résultats
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request, exam_id):
+        from processing.services.cmen_header_ocr import CMENHeaderOCR, StudentCSVRecord
+        from exams.models import Exam
+        from django.conf import settings
+        import os
+        import cv2
+        
+        exam = get_object_or_404(Exam, id=exam_id)
+        
+        # Paramètres
+        confidence_threshold = float(request.data.get('confidence_threshold', 0.6))
+        dry_run = request.data.get('dry_run', False)
+        
+        # Charger les élèves depuis la base de données
+        students = []
+        for db_student in Student.objects.all():
+            parts = db_student.full_name.split(maxsplit=1) if db_student.full_name else []
+            last_name = parts[0] if parts else ''
+            first_name = parts[1] if len(parts) > 1 else ''
+            dob = db_student.date_of_birth.strftime('%d/%m/%Y') if db_student.date_of_birth else ''
+            
+            students.append(StudentCSVRecord(
+                student_id=str(db_student.id),
+                last_name=last_name,
+                first_name=first_name,
+                date_of_birth=dob,
+                email=db_student.email or '',
+                class_name=db_student.class_name or ''
+            ))
+        
+        if not students:
+            return Response({
+                'error': 'Aucun élève dans la base de données'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Récupérer les copies non identifiées
+        unidentified_copies = Copy.objects.filter(
+            exam=exam,
+            is_identified=False
+        ).prefetch_related('booklets')
+        
+        results = {
+            'total': unidentified_copies.count(),
+            'auto_identified': 0,
+            'needs_review': 0,
+            'failed': 0,
+            'details': []
+        }
+        
+        ocr = CMENHeaderOCR(debug=False)
+        
+        for copy in unidentified_copies:
+            booklet = copy.booklets.first()
+            if not booklet or not booklet.pages_images:
+                results['failed'] += 1
+                results['details'].append({
+                    'copy_id': str(copy.id),
+                    'anonymous_id': copy.anonymous_id,
+                    'status': 'failed',
+                    'reason': 'Pas d\'image disponible'
+                })
+                continue
+            
+            try:
+                # Charger l'image de l'en-tête
+                first_page_path = booklet.pages_images[0]
+                full_path = os.path.join(settings.MEDIA_ROOT, first_page_path)
+                
+                if not os.path.exists(full_path):
+                    results['failed'] += 1
+                    results['details'].append({
+                        'copy_id': str(copy.id),
+                        'anonymous_id': copy.anonymous_id,
+                        'status': 'failed',
+                        'reason': f'Image non trouvée: {first_page_path}'
+                    })
+                    continue
+                
+                image = cv2.imread(full_path)
+                if image is None:
+                    results['failed'] += 1
+                    continue
+                
+                # Extraire l'en-tête (25% supérieur)
+                height = image.shape[0]
+                header_height = int(height * 0.25)
+                header_image = image[:header_height, :]
+                
+                # OCR CMEN
+                header_result = ocr.extract_header(header_image)
+                match_result = ocr.match_student(header_result, students, threshold=confidence_threshold)
+                
+                if match_result and match_result.confidence >= confidence_threshold:
+                    # Chercher l'élève dans la base de données
+                    db_student = Student.objects.filter(
+                        last_name__iexact=match_result.student.last_name,
+                        first_name__iexact=match_result.student.first_name
+                    ).first()
+                    
+                    if db_student and not dry_run:
+                        # Identifier la copie
+                        copy.student = db_student
+                        copy.is_identified = True
+                        copy.status = Copy.Status.READY
+                        copy.save()
+                        
+                        results['auto_identified'] += 1
+                        results['details'].append({
+                            'copy_id': str(copy.id),
+                            'anonymous_id': copy.anonymous_id,
+                            'status': 'auto_identified',
+                            'student': f'{db_student.last_name} {db_student.first_name}',
+                            'confidence': round(match_result.confidence, 3)
+                        })
+                    elif db_student and dry_run:
+                        results['auto_identified'] += 1
+                        results['details'].append({
+                            'copy_id': str(copy.id),
+                            'anonymous_id': copy.anonymous_id,
+                            'status': 'would_identify',
+                            'student': f'{match_result.student.last_name} {match_result.student.first_name}',
+                            'confidence': round(match_result.confidence, 3)
+                        })
+                    else:
+                        results['needs_review'] += 1
+                        results['details'].append({
+                            'copy_id': str(copy.id),
+                            'anonymous_id': copy.anonymous_id,
+                            'status': 'needs_review',
+                            'reason': 'Élève trouvé dans CSV mais pas dans la base de données',
+                            'ocr_result': f'{match_result.student.last_name} {match_result.student.first_name}'
+                        })
+                else:
+                    results['needs_review'] += 1
+                    results['details'].append({
+                        'copy_id': str(copy.id),
+                        'anonymous_id': copy.anonymous_id,
+                        'status': 'needs_review',
+                        'reason': 'Confiance OCR insuffisante',
+                        'ocr_result': {
+                            'last_name': header_result.last_name,
+                            'first_name': header_result.first_name,
+                            'date_of_birth': header_result.date_of_birth,
+                            'confidence': round(header_result.overall_confidence, 3)
+                        }
+                    })
+                    
+            except Exception as e:
+                results['failed'] += 1
+                results['details'].append({
+                    'copy_id': str(copy.id),
+                    'anonymous_id': copy.anonymous_id,
+                    'status': 'failed',
+                    'reason': str(e)
+                })
+        
+        return Response({
+            'success': True,
+            'exam_id': str(exam.id),
+            'exam_name': exam.name,
+            'dry_run': dry_run,
+            'confidence_threshold': confidence_threshold,
+            'results': results
+        })

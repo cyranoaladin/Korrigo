@@ -10,7 +10,7 @@ export const CREDS = {
     password: process.env.E2E_ADMIN_PASSWORD || 'admin',
   },
   teacher: {
-    username: process.env.E2E_TEACHER_USERNAME || 'prof1',
+    username: process.env.E2E_TEACHER_USERNAME || 'teacher',
     password: process.env.E2E_TEACHER_PASSWORD || 'password',
   },
   student: {
