@@ -10,6 +10,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from types import SimpleNamespace
 
 
 # Mock view for testing permissions
@@ -53,8 +54,8 @@ class RBACPermissionsTest(TestCase):
         # Create test data
         self.student = Student.objects.create(
             email="jean.dupont@test.com",
-            first_name="Jean",
-            last_name="Dupont",
+            full_name="Dupont Jean",
+            date_of_birth="2008-01-15",
             class_name="TG2"
         )
         
@@ -85,21 +86,21 @@ class RBACPermissionsTest(TestCase):
         
         # Admin should have permission
         self.assertTrue(permission.has_permission(
-            type('MockRequest', (), {'user': self.admin_user})(),
+            SimpleNamespace(user=self.admin_user),
             None
         ))
         
         # Others should not have admin permission
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.teacher_user})(),
+            SimpleNamespace(user=self.teacher_user),
             None
         ))
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.student_user})(),
+            SimpleNamespace(user=self.student_user),
             None
         ))
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.regular_user})(),
+            SimpleNamespace(user=self.regular_user),
             None
         ))
 
@@ -111,21 +112,21 @@ class RBACPermissionsTest(TestCase):
         
         # Teacher should have permission
         self.assertTrue(permission.has_permission(
-            type('MockRequest', (), {'user': self.teacher_user})(),
+            SimpleNamespace(user=self.teacher_user),
             None
         ))
         
         # Others should not have teacher permission
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.admin_user})(),
+            SimpleNamespace(user=self.admin_user),
             None
         ))
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.student_user})(),
+            SimpleNamespace(user=self.student_user),
             None
         ))
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.regular_user})(),
+            SimpleNamespace(user=self.regular_user),
             None
         ))
 
@@ -137,21 +138,21 @@ class RBACPermissionsTest(TestCase):
         
         # Student should have permission
         self.assertTrue(permission.has_permission(
-            type('MockRequest', (), {'user': self.student_user})(),
+            SimpleNamespace(user=self.student_user),
             None
         ))
         
         # Others should not have student permission
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.admin_user})(),
+            SimpleNamespace(user=self.admin_user),
             None
         ))
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.teacher_user})(),
+            SimpleNamespace(user=self.teacher_user),
             None
         ))
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.regular_user})(),
+            SimpleNamespace(user=self.regular_user),
             None
         ))
 
@@ -163,21 +164,21 @@ class RBACPermissionsTest(TestCase):
         
         # Both admin and teacher should have permission
         self.assertTrue(permission.has_permission(
-            type('MockRequest', (), {'user': self.admin_user})(),
+            SimpleNamespace(user=self.admin_user),
             None
         ))
         self.assertTrue(permission.has_permission(
-            type('MockRequest', (), {'user': self.teacher_user})(),
+            SimpleNamespace(user=self.teacher_user),
             None
         ))
         
         # Others should not have permission
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.student_user})(),
+            SimpleNamespace(user=self.student_user),
             None
         ))
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.regular_user})(),
+            SimpleNamespace(user=self.regular_user),
             None
         ))
 
@@ -189,21 +190,21 @@ class RBACPermissionsTest(TestCase):
         
         # Both admin and teacher should have permission
         self.assertTrue(permission.has_permission(
-            type('MockRequest', (), {'user': self.admin_user})(),
+            SimpleNamespace(user=self.admin_user),
             None
         ))
         self.assertTrue(permission.has_permission(
-            type('MockRequest', (), {'user': self.teacher_user})(),
+            SimpleNamespace(user=self.teacher_user),
             None
         ))
         
         # Students and regular users should not have permission
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.student_user})(),
+            SimpleNamespace(user=self.student_user),
             None
         ))
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': self.regular_user})(),
+            SimpleNamespace(user=self.regular_user),
             None
         ))
 
@@ -212,22 +213,22 @@ class RBACPermissionsTest(TestCase):
         Test des permissions pour utilisateur non authentifié
         """
         permission = IsAdmin()
-        unauthenticated_user = type('MockUser', (), {'is_authenticated': False})()
+        unauthenticated_user = SimpleNamespace(is_authenticated=False)
         
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': unauthenticated_user})(),
+            SimpleNamespace(user=unauthenticated_user),
             None
         ))
         
         permission = IsTeacher()
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': unauthenticated_user})(),
+            SimpleNamespace(user=unauthenticated_user),
             None
         ))
         
         permission = IsStudent()
         self.assertFalse(permission.has_permission(
-            type('MockRequest', (), {'user': unauthenticated_user, 'session': {}})(),
+            SimpleNamespace(user=unauthenticated_user, session={}),
             None
         ))
 
@@ -267,7 +268,7 @@ class APIEndpointSecurityTest(TestCase):
         
         # Test with unauthenticated request
         request = factory.get('/test/')
-        request.user = type('MockUser', (), {'is_authenticated': False})()
+        request.user = SimpleNamespace(is_authenticated=False)
         
         # Should fail authentication check
         auth_perm = IsAuthenticated()
