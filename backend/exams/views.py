@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.decorators import method_decorator
 from core.utils.ratelimit import maybe_ratelimit
 from .models import Exam, Booklet, Copy
-from .serializers import ExamSerializer, BookletSerializer, CopySerializer
+from .serializers import ExamSerializer, BookletSerializer, CopySerializer, CorrectorCopySerializer
 from processing.services.vision import HeaderDetector
 from grading.services import GradingService
 from .permissions import IsTeacherOrAdmin
@@ -608,14 +608,14 @@ class CorrectorCopiesView(generics.ListAPIView):
     GET /api/copies/
     """
     permission_classes = [IsTeacherOrAdmin]
-    serializer_class = CopySerializer
+    serializer_class = CorrectorCopySerializer
 
     def get_queryset(self):
         # MVP: Return all copies that are ready/locked/graded
         # ZF-AUD-13: Prefetch to avoid N+1
         return Copy.objects.filter(
             status__in=[Copy.Status.READY, Copy.Status.LOCKED, Copy.Status.GRADED]
-        ).select_related('exam', 'student', 'assigned_corrector')\
+        ).select_related('exam', 'assigned_corrector')\
          .prefetch_related('annotations')\
          .order_by('exam__date', 'anonymous_id')
 
@@ -623,9 +623,9 @@ class CorrectorCopyDetailView(generics.RetrieveAPIView):
     """
     Permet au correcteur de récupérer les détails d'une copie spécifique.
     """
-    queryset = Copy.objects.select_related('exam', 'student', 'locked_by')\
+    queryset = Copy.objects.select_related('exam', 'locked_by')\
         .prefetch_related('booklets', 'annotations__created_by')
-    serializer_class = CopySerializer
+    serializer_class = CorrectorCopySerializer
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     lookup_field = 'id'
 

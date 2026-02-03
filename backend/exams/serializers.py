@@ -105,3 +105,34 @@ class CopySerializer(serializers.ModelSerializer):
         representation['booklets'] = BookletSerializer(instance.booklets.all(), many=True, context=self.context).data
         return representation
 
+
+class CorrectorCopySerializer(serializers.ModelSerializer):
+    """
+    Sérialiseur sécurisé pour les correcteurs.
+    Exclut STRICTEMENT les informations nominatives (student, is_identified).
+    """
+    exam_name = serializers.CharField(source='exam.name', read_only=True)
+    booklet_ids = serializers.SerializerMethodField()
+    assigned_corrector_username = serializers.CharField(
+        source='assigned_corrector.username', 
+        read_only=True, 
+        allow_null=True
+    )
+
+    class Meta:
+        model = Copy
+        fields = [
+            'id', 'exam', 'exam_name', 'anonymous_id', 
+            'status', # Note: student and is_identified REMOVED
+            'booklet_ids', 'assigned_corrector', 'assigned_corrector_username',
+            'dispatch_run_id', 'assigned_at', 'global_appreciation'
+        ]
+        read_only_fields = fields
+
+    def get_booklet_ids(self, obj):
+        return list(obj.booklets.values_list('id', flat=True))
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['booklets'] = BookletSerializer(instance.booklets.all(), many=True, context=self.context).data
+        return representation
