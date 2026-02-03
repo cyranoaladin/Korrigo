@@ -1,6 +1,4 @@
 import { test, expect } from '@playwright/test';
-import * as path from 'path';
-import * as fs from 'fs';
 
 test.describe('Upload with Auto-Staple', () => {
     test.beforeEach(async ({ page }) => {
