@@ -204,27 +204,53 @@ class MultiLayerOCR:
         self, header_image: np.ndarray, csv_whitelist: List[dict]
     ) -> OCRResult:
         """
-        Extract text using multiple OCR engines and match against CSV whitelist.
-
-        Args:
-            header_image: Header region image (BGR or grayscale)
-            csv_whitelist: List of student dicts with keys: id, first_name, last_name, email, date_of_birth
-
-        Returns:
-            OCRResult with top-k student candidates and OCR mode
+        Extract text using cascading OCR engines (Optimization: Early Exit).
         """
         # Generate preprocessing variants
         variants = self.preprocessor.preprocess_variants(header_image)
         logger.info(f"Generated {len(variants)} preprocessing variants")
 
-        # Run all OCR engines on all variants
-        ocr_candidates = self._run_all_ocr_engines(variants)
-        logger.info(f"Collected {len(ocr_candidates)} OCR candidates")
+        all_candidates = []
+        
+        # --- STAGE 1: Fast Path (Tesseract) ---
+        logger.info("Stage 1: Running Tesseract...")
+        tesseract_candidates = self._run_specific_engine('tesseract', variants)
+        all_candidates.extend(tesseract_candidates)
 
-        # Consensus voting to match students
-        top_matches = self._consensus_vote(ocr_candidates, csv_whitelist)
+        # Check for early exit
+        top_matches = self._consensus_vote(all_candidates, csv_whitelist)
+        if top_matches and top_matches[0].confidence > 0.85:
+            logger.info(f"Early exit after Tesseract (Confidence: {top_matches[0].confidence:.2f})")
+            return OCRResult(
+                top_candidates=top_matches,
+                ocr_mode='AUTO',
+                all_ocr_outputs=all_candidates
+            )
 
-        # Determine OCR mode based on top candidate confidence
+        # --- STAGE 2: Robust Path (EasyOCR) ---
+        # Only load and run heavy models if necessary
+        logger.info("Stage 2: Tesseract low confidence. Running EasyOCR...")
+        easyocr_candidates = self._run_specific_engine('easyocr', variants)
+        all_candidates.extend(easyocr_candidates)
+
+        top_matches = self._consensus_vote(all_candidates, csv_whitelist)
+        if top_matches and top_matches[0].confidence > 0.85:
+            logger.info(f"Early exit after EasyOCR (Confidence: {top_matches[0].confidence:.2f})")
+            return OCRResult(
+                top_candidates=top_matches,
+                ocr_mode='AUTO', # Still AUTO if we found a strong match
+                all_ocr_outputs=all_candidates
+            )
+
+        # --- STAGE 3: Fallback (PaddleOCR) ---
+        logger.info("Stage 3: Still low confidence. Running PaddleOCR...")
+        paddle_candidates = self._run_specific_engine('paddleocr', variants)
+        all_candidates.extend(paddle_candidates)
+
+        # Final consensus
+        top_matches = self._consensus_vote(all_candidates, csv_whitelist)
+        
+        # Determine mode based on final result
         if top_matches and top_matches[0].confidence > 0.7:
             ocr_mode = 'AUTO'
         elif top_matches and top_matches[0].confidence > 0.4:
@@ -235,60 +261,40 @@ class MultiLayerOCR:
         return OCRResult(
             top_candidates=top_matches,
             ocr_mode=ocr_mode,
-            all_ocr_outputs=ocr_candidates
+            all_ocr_outputs=all_candidates
         )
 
-    def _run_all_ocr_engines(self, preprocessed_images: List[np.ndarray]) -> List[OCRCandidate]:
-        """Run all available OCR engines on all image variants."""
+    def _run_specific_engine(self, engine_name: str, variants: List[np.ndarray]) -> List[OCRCandidate]:
+        """Run a specific OCR engine on all variants."""
         candidates = []
-
-        for variant_idx, img in enumerate(preprocessed_images):
-            # Tesseract
+        
+        for variant_idx, img in enumerate(variants):
             try:
-                text = self._ocr_tesseract(img)
-                confidence = self._estimate_tesseract_confidence(text)
-                candidates.append(OCRCandidate(
-                    engine='tesseract',
-                    variant=variant_idx,
-                    text=text,
-                    confidence=confidence
-                ))
+                if engine_name == 'tesseract':
+                    text = self._ocr_tesseract(img)
+                    confidence = self._estimate_tesseract_confidence(text)
+                    candidates.append(OCRCandidate('tesseract', variant_idx, text, confidence))
+                
+                elif engine_name == 'easyocr':
+                    reader = self._get_easyocr()
+                    if reader:
+                        results = reader.readtext(img, detail=1)
+                        text = ' '.join([res[1] for res in results])
+                        confidence = sum([res[2] for res in results]) / len(results) if results else 0.0
+                        candidates.append(OCRCandidate('easyocr', variant_idx, text, confidence))
+                        
+                elif engine_name == 'paddleocr':
+                    paddle = self._get_paddleocr()
+                    if paddle:
+                        results = paddle.ocr(img, cls=True)
+                        if results and results[0]:
+                            text = ' '.join([line[1][0] for line in results[0]])
+                            confidence = sum([line[1][1] for line in results[0]]) / len(results[0])
+                            candidates.append(OCRCandidate('paddleocr', variant_idx, text, confidence))
+                            
             except Exception as e:
-                logger.warning(f"Tesseract failed on variant {variant_idx}: {e}")
-
-            # EasyOCR
-            try:
-                reader = self._get_easyocr()
-                if reader:
-                    results = reader.readtext(img, detail=1)
-                    text = ' '.join([res[1] for res in results])
-                    confidence = sum([res[2] for res in results]) / len(results) if results else 0.0
-                    candidates.append(OCRCandidate(
-                        engine='easyocr',
-                        variant=variant_idx,
-                        text=text,
-                        confidence=confidence
-                    ))
-            except Exception as e:
-                logger.warning(f"EasyOCR failed on variant {variant_idx}: {e}")
-
-            # PaddleOCR
-            try:
-                paddle = self._get_paddleocr()
-                if paddle:
-                    results = paddle.ocr(img, cls=True)
-                    if results and results[0]:
-                        text = ' '.join([line[1][0] for line in results[0]])
-                        confidence = sum([line[1][1] for line in results[0]]) / len(results[0])
-                        candidates.append(OCRCandidate(
-                            engine='paddleocr',
-                            variant=variant_idx,
-                            text=text,
-                            confidence=confidence
-                        ))
-            except Exception as e:
-                logger.warning(f"PaddleOCR failed on variant {variant_idx}: {e}")
-
+                logger.warning(f"{engine_name} failed on variant {variant_idx}: {e}")
+                
         return candidates
 
     def _ocr_tesseract(self, image: np.ndarray) -> str:
