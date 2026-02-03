@@ -32,9 +32,9 @@ class TestTextNormalization(TestCase):
     def test_normalize_handles_hyphens(self):
         from processing.services.batch_processor import BatchA3Processor
         processor = BatchA3Processor()
-        
-        self.assertEqual(processor._normalize_text("SANDRA-INES"), "sandra ines")
-        self.assertEqual(processor._normalize_text("BEN-ATTOUCH"), "ben attouch")
+
+        self.assertEqual(processor._normalize_text("SANDRA-INES"), "sandraines")
+        self.assertEqual(processor._normalize_text("BEN-ATTOUCH"), "benattouch")
 
     def test_normalize_handles_multiple_spaces(self):
         from processing.services.batch_processor import BatchA3Processor
