@@ -69,13 +69,13 @@ jobs:
         cd backend
         python manage.py migrate --noinput
 
-    - name: Run tests with parallel execution
+    - name: Run tests sequentially (debug mode)
       env:
         DJANGO_SETTINGS_MODULE: core.settings_test
         DATABASE_URL: postgresql://viatique_user:viatique_password@localhost:5432/viatique_db
       run: |
         cd backend
-        pytest -n auto --maxfail=5 --tb=short -q
+        pytest --durations=10 --maxfail=5 --tb=short -q
 
     - name: Upload test results
       if: always()
