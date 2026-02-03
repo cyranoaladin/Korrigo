@@ -27,14 +27,14 @@ class AuthSessionsRBACTests(TestCase):
 
         self.student_a = Student.objects.create(
             email="alice@test.com",
-            first_name="Alice",
-            last_name="Student",
+            full_name="Student Alice",
+            date_of_birth="2008-01-15",
             class_name="T1",
         )
         self.student_b = Student.objects.create(
             email="bob@test.com",
-            first_name="Bob",
-            last_name="Other",
+            full_name="Other Bob",
+            date_of_birth="2008-02-20",
             class_name="T2",
         )
 
