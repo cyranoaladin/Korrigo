@@ -401,9 +401,14 @@ class MultiLayerOCR:
         Returns:
             (name, date) tuple
         """
-        # Extract name (uppercase letters)
-        name_pattern = r'[A-Z][A-Z\s-]+'
-        name_matches = re.findall(name_pattern, text)
+        # Extract name (uppercase letters, including accented characters)
+        # Normalize text to handle accented uppercase letters (ÉMILIE, etc.)
+        import unicodedata
+        normalized_text = unicodedata.normalize('NFKD', text)
+
+        # Match uppercase letters including accented characters
+        name_pattern = r'[A-ZÀ-ÿ][A-ZÀ-ÿ\s-]+'
+        name_matches = re.findall(name_pattern, text)  # Use original text to preserve accents
         name = ' '.join(name_matches).strip() if name_matches else ''
 
         # Extract date (DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY)
