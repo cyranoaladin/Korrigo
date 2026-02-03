@@ -358,7 +358,7 @@ Vous disposez maintenant d'un **runner Zenflow v3.0 production-ready** avec :
 
 ---
 
-**Auteur** : Claude Sonnet 4.5
+**Auteur** : Alaeddine BEN RHOUMA
 **Date** : 2026-01-31
 **Version** : 3.0 Final
 **Statut** : ✅ Production-Ready

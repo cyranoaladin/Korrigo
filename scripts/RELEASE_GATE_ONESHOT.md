@@ -295,6 +295,6 @@ release-gate:
 
 ---
 
-**Auteur**: Claude Sonnet 4.5
+**Auteur**: Alaeddine BEN RHOUMA
 **Date**: 2026-01-29
 **Status**: Production Ready ✅

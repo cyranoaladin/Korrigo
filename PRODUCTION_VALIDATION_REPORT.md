@@ -3,7 +3,7 @@
 **Date**: 2026-02-01
 **Commit**: 458d1c0
 **Environment**: Local production-like (Docker Compose)
-**Validator**: Claude Sonnet 4.5
+**Validator**: Alaeddine BEN RHOUMA
 
 ---
 
@@ -418,7 +418,7 @@ Generated during validation:
 ## Sign-off
 
 **Validation Complete**: 2026-02-01 11:05 UTC
-**Validator**: Claude Sonnet 4.5
+**Validator**: Alaeddine BEN RHOUMA
 **Final Commit**: 458d1c0
 **Status**: ✅ PRODUCTION READY (with fixes applied)
 

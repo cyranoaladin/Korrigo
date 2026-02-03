@@ -139,4 +139,4 @@ def test_pdf_export_precision():
 2026-01-21
 
 ## Auteur
-Claude Sonnet 4.5 (PDF Processing Expert)
+Alaeddine BEN RHOUMA (PDF Processing Expert)
