@@ -113,3 +113,4 @@ reports/
 .zenflow/validation/
 .zenflow/tasks/test-*/
 .zenflow/.zenflow/
+.gemini/
