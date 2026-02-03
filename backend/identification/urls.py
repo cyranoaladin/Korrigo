@@ -10,4 +10,10 @@ urlpatterns = [
     # PRD-19: Multi-layer OCR endpoints
     path('copies/<uuid:copy_id>/ocr-candidates/', views.get_ocr_candidates, name='ocr-candidates'),
     path('copies/<uuid:copy_id>/select-candidate/', views.select_ocr_candidate, name='select-ocr-candidate'),
+    
+    # CMEN OCR spécialisé (NOM, PRÉNOM, DATE DE NAISSANCE)
+    path('cmen-ocr/<uuid:copy_id>/', views.CMENOCRView.as_view(), name='cmen-ocr'),
+    
+    # Batch auto-identification
+    path('batch-auto-identify/<uuid:exam_id>/', views.BatchAutoIdentifyView.as_view(), name='batch-auto-identify'),
 ]

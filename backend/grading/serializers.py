@@ -2,7 +2,7 @@
 Serializers pour l'app grading.
 """
 from rest_framework import serializers
-from grading.models import Annotation, GradingEvent, QuestionRemark
+from grading.models import Annotation, GradingEvent, QuestionRemark, QuestionScore
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -67,6 +67,19 @@ class QuestionRemarkSerializer(serializers.ModelSerializer):
         model = QuestionRemark
         fields = [
             'id', 'copy', 'question_id', 'remark',
+            'created_by', 'created_by_username',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_by', 'created_by_username', 'created_at', 'updated_at']
+
+
+class QuestionScoreSerializer(serializers.ModelSerializer):
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+
+    class Meta:
+        model = QuestionScore
+        fields = [
+            'id', 'copy', 'question_id', 'score',
             'created_by', 'created_by_username',
             'created_at', 'updated_at'
         ]
