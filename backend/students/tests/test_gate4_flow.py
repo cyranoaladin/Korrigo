@@ -17,8 +17,8 @@ class TestGate4StudentFlow(TransactionTestCase):
         # 1. Setup Student
         self.student = Student.objects.create(
             email="student@test.com", 
-            last_name="E2E_STUDENT",
-            first_name="Jean",
+            full_name="E2E_STUDENT Jean",
+            date_of_birth="2008-01-15",
             class_name="T1"
         )
         
@@ -43,7 +43,7 @@ class TestGate4StudentFlow(TransactionTestCase):
         )
         
         # Other student's copy
-        self.other_student = Student.objects.create(email="other@test.com", last_name="OTHER", first_name="Other", class_name="T2")
+        self.other_student = Student.objects.create(email="other@test.com", full_name="OTHER Other", date_of_birth="2008-02-20", class_name="T2")
         self.copy_other = Copy.objects.create(
             exam=self.exam,
             anonymous_id="GATE4-OTHER",
