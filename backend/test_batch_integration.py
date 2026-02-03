@@ -6,6 +6,7 @@ Teste la segmentation multi-feuilles par élève.
 import os
 import sys
 import django
+import pytest
 
 # Setup Django
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -28,12 +29,10 @@ def test_batch_a3_real_data():
     csv_path = os.path.join(project_root, 'G3_EDS_MATHS.csv')
 
     if not os.path.exists(pdf_path):
-        logger.error(f"PDF not found: {pdf_path}")
-        return False
+        pytest.skip(f"PDF not found: {pdf_path}. Skipping integration test.")
 
     if not os.path.exists(csv_path):
-        logger.error(f"CSV not found: {csv_path}")
-        return False
+        pytest.skip(f"CSV not found: {csv_path}. Skipping integration test.")
 
     logger.info("=" * 80)
     logger.info("BATCH A3 INTEGRATION TEST - REAL DATA")
@@ -53,8 +52,7 @@ def test_batch_a3_real_data():
     logger.info(f"Is A3 format: {is_a3}")
 
     if not is_a3:
-        logger.error("PDF is not A3 format!")
-        return False
+        pytest.fail("PDF is not A3 format!")
 
     # Traiter le batch
     logger.info("")
@@ -145,9 +143,10 @@ def test_batch_a3_real_data():
         logger.error(f"Error processing batch: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        pytest.fail(f"Batch processing failed: {e}")
 
 
 if __name__ == '__main__':
-    success = test_batch_a3_real_data()
-    sys.exit(0 if success else 1)
+    # Run test via pytest when executed directly
+    import pytest
+    sys.exit(pytest.main([__file__, '-v']))
