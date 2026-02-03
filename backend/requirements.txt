@@ -30,3 +30,4 @@ pytesseract
 easyocr>=1.7.0
 paddlepaddle>=2.5.0
 paddleocr>=2.7.0
+pytest-xdist>=3.5.0  # Parallel test execution
