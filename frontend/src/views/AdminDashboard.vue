@@ -43,36 +43,106 @@ const goToIdentification = (id) => {
 }
 
 const fileInput = ref(null)
+const csvInput = ref(null)
 
-const triggerUpload = () => {
-    fileInput.value.click()
+// Upload Modal State
+const showUploadModal = ref(false)
+const uploadForm = ref({
+    name: '',
+    date: new Date().toISOString().split('T')[0],
+    pdfFile: null,
+    csvFile: null,
+    autoStaple: false
+})
+const uploading = ref(false)
+const uploadProgress = ref('')
+
+const openUploadModal = () => {
+    uploadForm.value = {
+        name: '',
+        date: new Date().toISOString().split('T')[0],
+        pdfFile: null,
+        csvFile: null,
+        autoStaple: false
+    }
+    showUploadModal.value = true
 }
 
-const uploadExam = async (event) => {
+const handlePdfSelect = (event) => {
     const file = event.target.files[0]
-    if (!file) return
+    if (file) {
+        uploadForm.value.pdfFile = file
+        if (!uploadForm.value.name) {
+            uploadForm.value.name = file.name.replace('.pdf', '')
+        }
+    }
+}
 
-    const examName = prompt("Nom de l'examen :", file.name.replace('.pdf', ''))
-    if (!examName) return
+const handleCsvSelect = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+        uploadForm.value.csvFile = file
+    }
+}
+
+const submitUpload = async () => {
+    if (!uploadForm.value.pdfFile || !uploadForm.value.name) {
+        alert('Veuillez sélectionner un fichier PDF et entrer un nom.')
+        return
+    }
+
+    if (uploadForm.value.autoStaple && !uploadForm.value.csvFile) {
+        alert('L\'agrafage automatique nécessite un fichier CSV des élèves.')
+        return
+    }
+
+    uploading.value = true
+    uploadProgress.value = 'Envoi du fichier...'
 
     const formData = new FormData()
-    formData.append('pdf_source', file)
-    formData.append('name', examName)
-    // Default date to today
-    formData.append('date', new Date().toISOString().split('T')[0])
+    formData.append('pdf_source', uploadForm.value.pdfFile)
+    formData.append('name', uploadForm.value.name)
+    formData.append('date', uploadForm.value.date)
+
+    if (uploadForm.value.autoStaple && uploadForm.value.csvFile) {
+        formData.append('batch_mode', 'true')
+        formData.append('students_csv', uploadForm.value.csvFile)
+        uploadProgress.value = 'Traitement OCR et agrafage automatique...'
+    }
 
     try {
-        await api.post('/exams/upload/', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' } // Axios auto-sets boundary but good to be explicit
+        const response = await api.post('/exams/upload/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 300000 // 5 minutes for large files with OCR
         })
         
-        alert('Examen importé avec succès !')
+        const data = response.data
+        let message = 'Examen importé avec succès !'
+        
+        if (data.copies_created) {
+            message += `\n\n${data.copies_created} copies créées`
+            if (data.ready_count) message += `\n- ${data.ready_count} prêtes (identification automatique)`
+            if (data.needs_review_count) message += `\n- ${data.needs_review_count} à vérifier manuellement`
+        } else if (data.booklets_created) {
+            message += `\n\n${data.booklets_created} fascicules créés (agrafage manuel requis)`
+        }
+        
+        alert(message)
+        showUploadModal.value = false
         await fetchExams()
     } catch (e) {
-        const errMsg = e.response?.data?.error || 'Erreur technique'
+        const errMsg = e.response?.data?.error || e.message || 'Erreur technique'
         console.error("Upload failed", e)
         alert('Erreur: ' + errMsg)
+    } finally {
+        uploading.value = false
+        uploadProgress.value = ''
     }
+}
+
+// Legacy simple upload (kept for backwards compatibility)
+const triggerUpload = () => {
+    openUploadModal()
 }
 
 const showCreateModal = ref(false)
@@ -172,7 +242,6 @@ const confirmDispatch = async () => {
 }
 
 const canDispatch = (exam) => {
-    console.log(`Exam ${exam.name}: Correctors=`, exam.correctors);
     return exam.correctors && exam.correctors.length > 0
 }
 
@@ -182,6 +251,7 @@ const handleEscape = (event) => {
         showCorrectorModal.value = false
         showDispatchModal.value = false
         showDispatchResultsModal.value = false
+        if (!uploading.value) showUploadModal.value = false
     }
 }
 
@@ -191,6 +261,7 @@ onMounted(() => {
     showCorrectorModal.value = false
     showDispatchModal.value = false
     showDispatchResultsModal.value = false
+    showUploadModal.value = false
 
     // Add escape key listener
     window.addEventListener('keydown', handleEscape)
@@ -416,6 +487,118 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Upload Scans Modal -->
+    <div
+      v-if="showUploadModal"
+      class="modal-overlay"
+      @click.self="showUploadModal = false"
+    >
+      <div class="modal-card modal-large">
+        <h3>Importer des Scans</h3>
+        
+        <div class="form-group">
+          <label>Nom de l'examen *</label>
+          <input 
+            v-model="uploadForm.name" 
+            type="text" 
+            placeholder="Ex: Bac Blanc Maths 2026" 
+            class="form-input"
+            :disabled="uploading"
+          >
+        </div>
+        
+        <div class="form-group">
+          <label>Date</label>
+          <input 
+            v-model="uploadForm.date" 
+            type="date" 
+            class="form-input"
+            :disabled="uploading"
+          >
+        </div>
+        
+        <div class="form-group">
+          <label>Fichier PDF des scans *</label>
+          <div class="file-input-wrapper">
+            <input 
+              ref="fileInput"
+              type="file" 
+              accept="application/pdf"
+              class="file-input"
+              :disabled="uploading"
+              @change="handlePdfSelect"
+            >
+            <span v-if="uploadForm.pdfFile" class="file-name">
+              {{ uploadForm.pdfFile.name }}
+            </span>
+            <span v-else class="file-placeholder">
+              Cliquez pour sélectionner un PDF
+            </span>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input 
+              v-model="uploadForm.autoStaple" 
+              type="checkbox"
+              :disabled="uploading"
+            >
+            <span class="checkbox-text">
+              <strong>Agrafage automatique (OCR)</strong>
+              <br>
+              <small>Reconnaît automatiquement les noms des élèves et regroupe leurs copies</small>
+            </span>
+          </label>
+        </div>
+        
+        <div v-if="uploadForm.autoStaple" class="form-group">
+          <label>Fichier CSV des élèves *</label>
+          <div class="file-input-wrapper">
+            <input 
+              ref="csvInput"
+              type="file" 
+              accept=".csv,text/csv"
+              class="file-input"
+              :disabled="uploading"
+              @change="handleCsvSelect"
+            >
+            <span v-if="uploadForm.csvFile" class="file-name">
+              {{ uploadForm.csvFile.name }}
+            </span>
+            <span v-else class="file-placeholder">
+              Cliquez pour sélectionner le CSV des élèves
+            </span>
+          </div>
+          <small class="help-text">
+            Le CSV doit contenir les colonnes: Nom et Prénom, Date de naissance, Email
+          </small>
+        </div>
+        
+        <div v-if="uploading" class="upload-progress">
+          <div class="spinner"></div>
+          <span>{{ uploadProgress }}</span>
+        </div>
+        
+        <div class="modal-actions">
+          <button 
+            class="btn btn-outline"
+            :disabled="uploading"
+            @click="showUploadModal = false" 
+          >
+            Annuler
+          </button>
+          <button 
+            class="btn btn-primary"
+            :disabled="uploading || !uploadForm.pdfFile || !uploadForm.name"
+            @click="submitUpload" 
+          >
+            {{ uploading ? 'Import en cours...' : 'Importer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Assign Correctors Modal -->
     <div
       v-if="showCorrectorModal"
@@ -617,6 +800,27 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 /* Modal Styles */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
 .modal-card { background: white; padding: 2rem; border-radius: 12px; width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+.modal-large { width: 500px; }
+
+/* File Input Styles */
+.file-input-wrapper { position: relative; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+.file-input-wrapper:hover { border-color: #2563eb; background: #f8fafc; }
+.file-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10; }
+.file-name { color: #2563eb; font-weight: 500; }
+.file-placeholder { color: #94a3b8; }
+.help-text { display: block; margin-top: 0.5rem; color: #64748b; font-size: 0.8rem; }
+
+/* Checkbox Label for Auto-Staple */
+.checkbox-label { display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+.checkbox-label:hover { background: #f1f5f9; }
+.checkbox-label input[type="checkbox"] { margin-top: 0.25rem; width: 18px; height: 18px; }
+.checkbox-text { flex: 1; }
+.checkbox-text small { color: #64748b; }
+
+/* Upload Progress */
+.upload-progress { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #eff6ff; border-radius: 8px; color: #1e40af; }
+.spinner { width: 20px; height: 20px; border: 2px solid #93c5fd; border-top-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .modal-card h3 { margin-top: 0; margin-bottom: 1.5rem; color: #1e293b; }
 .form-group { margin-bottom: 1rem; }
 .form-group label { display: block; margin-bottom: 0.5rem; color: #475569; font-size: 0.9rem; }

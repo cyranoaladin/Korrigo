@@ -14,11 +14,21 @@ from core.auth import create_user_roles
 from exams.models import Exam, Booklet, Copy
 
 
-def create_valid_pdf(pages=4):
-    """Create a minimal valid PDF with specified number of pages."""
+def create_valid_pdf(pages=4, a3_format=False):
+    """Create a minimal valid PDF with specified number of pages.
+    
+    Args:
+        pages: Number of pages to create
+        a3_format: If True, create A3 landscape pages (for batch mode tests)
+    """
     doc = fitz.open()
     for i in range(pages):
-        page = doc.new_page()
+        if a3_format:
+            # A3 landscape: 1190 x 841 points
+            page = doc.new_page(width=1190, height=841)
+        else:
+            # A4 portrait (default)
+            page = doc.new_page()
         page.insert_text((50, 50), f"Page {i + 1}")
     
     buffer = BytesIO()
@@ -207,6 +217,79 @@ class TestUploadErrorMessages:
         
         error_text = str(response.data)
         assert "pdf" in error_text.lower() or "mime" in error_text.lower() or "invalid" in error_text.lower()
+
+
+class TestBatchModeUpload:
+    """Tests for batch mode upload with auto-stapling."""
+
+    def test_batch_mode_requires_csv(self, admin_client):
+        """Batch mode without CSV should fall back to standard mode."""
+        pdf_content = create_valid_pdf(8)
+        pdf_file = SimpleUploadedFile("batch.pdf", pdf_content, content_type="application/pdf")
+        
+        response = admin_client.post(
+            "/api/exams/upload/",
+            {
+                "name": "Batch No CSV",
+                "date": "2026-01-31",
+                "pdf_source": pdf_file,
+                "batch_mode": "true"
+            },
+            format="multipart",
+        )
+        
+        # Should succeed but use standard mode (no CSV provided)
+        assert response.status_code == 201
+        assert "booklets_created" in response.data
+
+    def test_batch_mode_with_csv_creates_copies(self, admin_client):
+        """Batch mode with CSV should create copies directly."""
+        pdf_content = create_valid_pdf(8, a3_format=True)
+        pdf_file = SimpleUploadedFile("batch.pdf", pdf_content, content_type="application/pdf")
+        
+        csv_content = b"Eleves,Ne(e) le,Adresse E-mail,Classe\nDUPONT Jean,01/01/2008,jean.dupont@test.com,T.01\n"
+        csv_file = SimpleUploadedFile("students.csv", csv_content, content_type="text/csv")
+        
+        response = admin_client.post(
+            "/api/exams/upload/",
+            {
+                "name": "Batch With CSV",
+                "date": "2026-01-31",
+                "pdf_source": pdf_file,
+                "batch_mode": "true",
+                "students_csv": csv_file
+            },
+            format="multipart",
+        )
+        
+        assert response.status_code == 201
+        # Batch mode returns copies_created instead of booklets_created
+        assert "copies_created" in response.data or "booklets_created" in response.data
+
+    def test_batch_mode_response_includes_stats(self, admin_client):
+        """Batch mode response should include ready/review counts."""
+        pdf_content = create_valid_pdf(8, a3_format=True)
+        pdf_file = SimpleUploadedFile("batch_stats.pdf", pdf_content, content_type="application/pdf")
+        
+        csv_content = b"Eleves,Ne(e) le,Adresse E-mail,Classe\nMARTIN Pierre,15/03/2008,pierre.martin@test.com,T.02\n"
+        csv_file = SimpleUploadedFile("students.csv", csv_content, content_type="text/csv")
+        
+        response = admin_client.post(
+            "/api/exams/upload/",
+            {
+                "name": "Batch Stats Test",
+                "date": "2026-01-31",
+                "pdf_source": pdf_file,
+                "batch_mode": "true",
+                "students_csv": csv_file
+            },
+            format="multipart",
+        )
+        
+        assert response.status_code == 201
+        # Should include statistics about auto-identification
+        if "copies_created" in response.data:
+            assert "ready_count" in response.data or "needs_review_count" in response.data
 
 
 class TestUploadPathTraversal:

@@ -339,3 +339,18 @@ class UserResetPasswordView(APIView):
             "message": "Password reset successfully",
             "temporary_password": temporary_password
         })
+
+
+class CSRFTokenView(APIView):
+    """
+    Endpoint to get CSRF token cookie.
+    This endpoint sets the CSRF cookie and returns a simple response.
+    Used by frontend to initialize CSRF protection before making POST requests.
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        from django.middleware.csrf import get_token
+        csrf_token = get_token(request)
+        return Response({"csrfToken": csrf_token})

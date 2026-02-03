@@ -191,7 +191,7 @@ class MultiLayerOCR:
             try:
                 from paddleocr import PaddleOCR
                 self._paddleocr_engine = PaddleOCR(
-                    lang='fr', use_angle_cls=True, use_gpu=False, show_log=False
+                    lang='fr', use_angle_cls=True, use_gpu=False
                 )
                 logger.info("PaddleOCR loaded successfully")
             except ImportError:

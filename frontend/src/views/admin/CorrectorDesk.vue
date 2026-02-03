@@ -48,12 +48,15 @@ const showEditor = ref(false) // Overlay editor
 const draftAnnotation = ref(null) // { normalizedRect, type, content }
 const editorInputRef = ref(null)
 
-// Grading / Remarks
+// Grading / Remarks / Scores
 const questionRemarks = ref(new Map()) // Map<question_id, remark_text>
+const questionScores = ref(new Map()) // Map<question_id, score>
 const globalAppreciation = ref('')
 const remarksSaving = ref(new Map()) // Map<question_id, boolean> for save indicators
+const scoresSaving = ref(new Map()) // Map<question_id, boolean> for save indicators
 const appreciationSaving = ref(false)
 const remarkTimers = ref(new Map()) // Map<question_id, timerId> for debouncing
+const scoreTimers = ref(new Map()) // Map<question_id, timerId> for debouncing
 const appreciationTimer = ref(null)
 
 // --- Computed ---
@@ -76,7 +79,33 @@ const pages = computed(() => {
     return allPages
 })
 
+// Calculer les indices des premières pages de chaque fascicule (pour masquer les en-têtes)
+const firstPageIndices = computed(() => {
+    if (!copy.value || !copy.value.booklets) return new Set([0])
+    const indices = new Set()
+    let pageIndex = 0
+    copy.value.booklets.forEach(booklet => {
+        if (booklet.pages_images && booklet.pages_images.length > 0) {
+            indices.add(pageIndex) // Première page de ce fascicule
+            pageIndex += booklet.pages_images.length
+        }
+    })
+    return indices
+})
+
 const hasPages = computed(() => pages.value.length > 0)
+
+// Masquer l'en-tête (zone nominative) sur la première page de CHAQUE fascicule
+const isFirstPageOfBooklet = computed(() => {
+    // currentPage est 1-indexed, firstPageIndices est 0-indexed
+    return firstPageIndices.value.has(currentPage.value - 1)
+})
+
+const headerMaskHeight = computed(() => {
+    // Masquer environ 20% de la hauteur pour couvrir l'en-tête CMEN
+    if (!isFirstPageOfBooklet.value) return 0
+    return Math.round(pdfDimensions.value.height * 0.20 * scale.value)
+})
 
 const currentPageImageUrl = computed(() => {
     if (!hasPages.value) return null;
@@ -100,16 +129,18 @@ const gradingStructure = computed(() => {
 const flattenQuestions = (structure, parentId = '') => {
     let questions = []
     structure.forEach((item, index) => {
-        const itemId = parentId ? `${parentId}.${index + 1}` : `${index + 1}`
-        if (item.type === 'question') {
+        const itemId = item.id || (parentId ? `${parentId}.${index + 1}` : `${index + 1}`)
+        // Les questions sont les éléments avec points > 0 et sans enfants (feuilles)
+        const isLeafQuestion = item.points > 0 && (!item.children || item.children.length === 0)
+        if (isLeafQuestion) {
             questions.push({
                 id: itemId,
-                title: item.title || `Question ${itemId}`,
-                maxScore: item.maxScore || 0
+                title: item.label || `Question ${itemId}`,
+                maxScore: item.points || 0
             })
         }
         if (item.children && Array.isArray(item.children)) {
-            questions = questions.concat(flattenQuestions(item.children, itemId))
+            questions = questions.concat(flattenQuestions(item.children, item.label || itemId))
         }
     })
     return questions
@@ -159,6 +190,7 @@ const fetchCopy = async () => {
     await refreshAnnotations()
     await fetchHistory()
     await fetchRemarks()
+    await fetchScores()
     await fetchGlobalAppreciation()
   } catch (err) {
     if (err.response?.status === 403) {
@@ -192,6 +224,17 @@ const fetchRemarks = async () => {
         })
         questionRemarks.value = remarksMap
     } catch (err) { console.error("Failed to load remarks", err) }
+}
+
+const fetchScores = async () => {
+    try {
+        const scores = await gradingApi.fetchQuestionScores(copyId)
+        const scoresMap = new Map()
+        scores.forEach(s => {
+            scoresMap.set(s.question_id, parseFloat(s.score))
+        })
+        questionScores.value = scoresMap
+    } catch (err) { console.error("Failed to load scores", err) }
 }
 
 const fetchGlobalAppreciation = async () => {
@@ -237,6 +280,37 @@ const onRemarkChange = (questionId, value) => {
     }, 1000)
     
     remarkTimers.value.set(questionId, timerId)
+}
+
+const onScoreChange = (questionId, value, maxScore) => {
+    const numValue = parseFloat(value)
+    if (isNaN(numValue) || numValue < 0 || numValue > maxScore) {
+        return
+    }
+    
+    questionScores.value.set(questionId, numValue)
+    
+    if (scoreTimers.value.has(questionId)) {
+        clearTimeout(scoreTimers.value.get(questionId))
+    }
+    
+    const timerId = setTimeout(() => {
+        saveScore(questionId, numValue)
+    }, 1000)
+    
+    scoreTimers.value.set(questionId, timerId)
+}
+
+const saveScore = async (questionId, score) => {
+    scoresSaving.value.set(questionId, true)
+    try {
+        await gradingApi.saveQuestionScore(copyId, questionId, score, softLock.value?.token)
+    } catch (err) {
+        console.error('Failed to save score:', err)
+        error.value = err.response?.data?.detail || 'Échec de la sauvegarde de la note'
+    } finally {
+        scoresSaving.value.set(questionId, false)
+    }
 }
 
 const onAppreciationChange = (value) => {
@@ -706,6 +780,14 @@ onUnmounted(() => {
             class="canvas-wrapper" 
             :style="{ width: displayWidth + 'px', height: displayHeight + 'px' }"
           >
+            <!-- Masque d'anonymisation de l'en-tête (première page uniquement) -->
+            <div
+              v-if="headerMaskHeight > 0"
+              class="header-mask"
+              :style="{ height: headerMaskHeight + 'px', width: displayWidth + 'px' }"
+            >
+              <span class="mask-label">Zone d'identification masquée</span>
+            </div>
             <img
               :src="currentPageImageUrl"
               class="page-image"
@@ -885,7 +967,28 @@ onUnmounted(() => {
               >
                 <div class="question-header">
                   <span class="question-title">{{ question.title }}</span>
-                  <span class="question-score">{{ question.maxScore }} pts</span>
+                  <span class="question-score">/ {{ question.maxScore }} pts</span>
+                </div>
+                <div class="question-score-field">
+                  <label :for="'score-' + question.id">Note</label>
+                  <input
+                    :id="'score-' + question.id"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    :max="question.maxScore"
+                    :value="questionScores.get(question.id) ?? ''"
+                    :disabled="isReadOnly"
+                    :placeholder="isReadOnly ? '-' : '0'"
+                    class="score-input"
+                    @input="onScoreChange(question.id, $event.target.value, question.maxScore)"
+                  />
+                  <span
+                    v-if="scoresSaving.get(question.id)"
+                    class="save-indicator small"
+                  >
+                    Enregistrement...
+                  </span>
                 </div>
                 <div class="question-remark-field">
                   <label :for="'remark-' + question.id">Remarque (facultatif)</label>
@@ -894,7 +997,7 @@ onUnmounted(() => {
                     :value="questionRemarks.get(question.id) || ''"
                     :disabled="isReadOnly"
                     :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une remarque...'"
-                    rows="3"
+                    rows="2"
                     @input="onRemarkChange(question.id, $event.target.value)"
                   />
                   <span
@@ -989,6 +1092,27 @@ onUnmounted(() => {
 .canvas-wrapper { position: relative; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); }
 .page-image { width: 100%; height: 100%; display: block; }
 
+/* Masque d'anonymisation de l'en-tête */
+.header-mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 3px solid #e74c3c;
+}
+.mask-label {
+    color: #ecf0f1;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.8;
+}
+
 .inspector-panel { width: 320px; background: white; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; }
 .inspector-tabs { display: flex; border-bottom: 1px solid #dee2e6; }
 .inspector-tabs button { flex: 1; padding: 10px; border: none; background: #f8f9fa; cursor: pointer; font-weight: bold; color: #666; }
@@ -1030,6 +1154,11 @@ onUnmounted(() => {
 .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .question-title { font-weight: bold; font-size: 0.95rem; color: #333; }
 .question-score { font-size: 0.85rem; color: #666; background: #e9ecef; padding: 2px 8px; border-radius: 4px; }
+.question-score-field { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.question-score-field label { font-size: 0.85rem; color: #666; min-width: 40px; }
+.score-input { width: 80px; padding: 8px; border: 2px solid #007bff; border-radius: 4px; font-size: 1rem; font-weight: bold; text-align: center; }
+.score-input:focus { outline: none; border-color: #0056b3; box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25); }
+.score-input:disabled { background: #e9ecef; border-color: #ced4da; cursor: not-allowed; }
 .question-remark-field { display: flex; flex-direction: column; }
 .question-remark-field label { font-size: 0.85rem; color: #666; margin-bottom: 5px; }
 .question-remark-field textarea { padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9rem; font-family: inherit; resize: vertical; }

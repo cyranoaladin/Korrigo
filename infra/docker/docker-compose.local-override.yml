@@ -1,0 +1,43 @@
+services:
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    image: korrigo-backend:local
+    volumes:
+      - ../../backend:/app
+      - ../../eval_loi_binom_log.pdf:/app/eval_loi_binom_log.pdf
+      - ../../G3_EDS_MATHS.csv:/app/G3_EDS_MATHS.csv
+    environment:
+      SECRET_KEY: "prod-secret-key-override-for-local-testing-must-be-long-enough"
+      DJANGO_ENV: "production"
+
+  celery:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    image: korrigo-backend:local
+    volumes:
+      - ../../backend:/app
+      - ../../eval_loi_binom_log.pdf:/app/eval_loi_binom_log.pdf
+      - ../../G3_EDS_MATHS.csv:/app/G3_EDS_MATHS.csv
+    environment:
+      SECRET_KEY: "prod-secret-key-override-for-local-testing-must-be-long-enough"
+      DJANGO_ENV: "production"
+
+  celery-beat:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    image: korrigo-backend:local
+    volumes:
+      - ../../backend:/app
+    environment:
+      SECRET_KEY: "prod-secret-key-override-for-local-testing-must-be-long-enough"
+      DJANGO_ENV: "production"
+
+  nginx:
+    build:
+      context: ../..
+      dockerfile: infra/nginx/Dockerfile
+    image: korrigo-nginx:local

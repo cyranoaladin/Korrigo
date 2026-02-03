@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '../services/api'
+import AdminLayout from '../components/AdminLayout.vue'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -46,7 +47,8 @@ onMounted(() => {
 
 
 <template>
-  <div class="settings-view">
+  <AdminLayout>
+    <div class="settings-view">
     <header class="page-header">
       <h2>Paramètres Système</h2>
     </header>
@@ -107,7 +109,8 @@ onMounted(() => {
         </button>
       </div>
     </div>
-  </div>
+    </div>
+  </AdminLayout>
 </template>
 
 <style scoped>

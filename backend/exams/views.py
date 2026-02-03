@@ -164,7 +164,18 @@ class BookletListView(generics.ListAPIView):
 
     def get_queryset(self):
         exam_id = self.kwargs['exam_id']
-        return Booklet.objects.filter(exam_id=exam_id).order_by('start_page')
+        # Exclude booklets already assigned to a Copy with status READY or higher
+        # Only show unassigned booklets (for stapling workflow)
+        return Booklet.objects.filter(
+            exam_id=exam_id
+        ).exclude(
+            assigned_copy__status__in=[
+                Copy.Status.READY,
+                Copy.Status.LOCKED,
+                Copy.Status.GRADING_IN_PROGRESS,
+                Copy.Status.GRADED
+            ]
+        ).order_by('start_page')
 
 class ExamListView(generics.ListCreateAPIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
@@ -333,16 +344,24 @@ class ExamDetailView(generics.RetrieveUpdateDestroyAPIView):
 class CopyListView(generics.ListAPIView):
     """
     Liste les copies d'un examen.
+    Les admins voient toutes les copies, les enseignants ne voient que leurs copies assignées.
     """
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     serializer_class = CopySerializer
 
     def get_queryset(self):
         exam_id = self.kwargs['exam_id']
-        return Copy.objects.filter(exam_id=exam_id)\
-            .select_related('exam', 'student', 'locked_by')\
-            .prefetch_related('booklets', 'annotations__created_by')\
-            .order_by('anonymous_id')
+        user = self.request.user
+        
+        queryset = Copy.objects.filter(exam_id=exam_id)\
+            .select_related('exam', 'student', 'locked_by', 'assigned_corrector')\
+            .prefetch_related('booklets', 'annotations__created_by')
+        
+        # Les admins voient toutes les copies, les enseignants seulement les leurs
+        if not (user.is_superuser or user.is_staff or user.groups.filter(name='admin').exists()):
+            queryset = queryset.filter(assigned_corrector=user)
+        
+        return queryset.order_by('anonymous_id')
 
 
 class MergeBookletsView(APIView):
@@ -362,6 +381,23 @@ class MergeBookletsView(APIView):
                 {"error": _("Certains fascicules sont introuvables ou ne correspondent pas à cet examen.")}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # PROTECTION ANTI-DOUBLONS: Vérifier si les booklets sont déjà assignés à une copie
+        already_assigned = []
+        for booklet in booklets:
+            existing_copies = booklet.assigned_copy.exclude(status=Copy.Status.STAGING)
+            if existing_copies.exists():
+                already_assigned.append({
+                    'booklet_id': str(booklet.id),
+                    'pages': f'{booklet.start_page}-{booklet.end_page}',
+                    'existing_copies': [str(c.id) for c in existing_copies]
+                })
+        
+        if already_assigned:
+            return Response({
+                "error": _("Certains fascicules sont déjà assignés à des copies existantes."),
+                "already_assigned": already_assigned
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # Logic: Create Copy -> Assign Booklets
         # Since Copy <-> Booklet relationship is via Booklet.assigned_copy (ManyToMany defined in Copy),
@@ -604,20 +640,26 @@ class CopyValidationView(APIView):
 
 class CorrectorCopiesView(generics.ListAPIView):
     """
-    List all copies available for correction (Global List).
+    List copies assigned to the current corrector.
     GET /api/copies/
+    Admins see all copies, teachers see only their assigned copies.
     """
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = CorrectorCopySerializer
 
     def get_queryset(self):
-        # MVP: Return all copies that are ready/locked/graded
-        # ZF-AUD-13: Prefetch to avoid N+1
-        return Copy.objects.filter(
+        user = self.request.user
+        
+        queryset = Copy.objects.filter(
             status__in=[Copy.Status.READY, Copy.Status.LOCKED, Copy.Status.GRADED]
         ).select_related('exam', 'assigned_corrector')\
-         .prefetch_related('annotations')\
-         .order_by('exam__date', 'anonymous_id')
+         .prefetch_related('annotations')
+        
+        # Les admins voient toutes les copies, les enseignants seulement les leurs
+        if not (user.is_superuser or user.is_staff or user.groups.filter(name='admin').exists()):
+            queryset = queryset.filter(assigned_corrector=user)
+        
+        return queryset.order_by('exam__date', 'anonymous_id')
 
 class CorrectorCopyDetailView(generics.RetrieveAPIView):
     """
@@ -658,7 +700,8 @@ class ExamDispatchView(APIView):
         unassigned_copies = list(
             Copy.objects.filter(
                 exam=exam,
-                assigned_corrector__isnull=True
+                assigned_corrector__isnull=True,
+                status=Copy.Status.READY  # Only dispatch READY copies, not STAGING
             ).order_by('anonymous_id')
         )
 
