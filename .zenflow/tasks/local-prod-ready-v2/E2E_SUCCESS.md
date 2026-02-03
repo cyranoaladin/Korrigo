@@ -210,7 +210,7 @@ Files modified:
 
 Result: 9/9 E2E tests passing, DEBUG=false preserved.
 
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+
 EOF
 )"
 ```
@@ -339,6 +339,6 @@ Running 9 tests using 1 worker
 
 ---
 
-**Authored by:** Claude Sonnet 4.5
+**Authored by:** Alaeddine BEN RHOUMA
 **Version:** 1.1 - Success Report + Corrector Flow Fix
 **Date:** 2026-01-30 23:57 UTC

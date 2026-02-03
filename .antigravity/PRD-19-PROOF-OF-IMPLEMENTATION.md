@@ -479,5 +479,5 @@ System is **production-ready** in current state (Tesseract-only mode). Install E
 ---
 
 **Generated:** 2026-02-02  
-**Author:** Claude Sonnet 4.5  
+**Author:** Alaeddine BEN RHOUMA  
 **PRD:** 19 - OCR Robustification

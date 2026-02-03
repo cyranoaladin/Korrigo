@@ -28,5 +28,5 @@ L'audit de robustesse et de sécurité a permis de corriger les points bloquants
 3.  **Frontend**: Finaliser la couverture E2E Playwright (actuellement partielle mais non bloquante pour le backend).
 
 ---
-**Auditeur**: Antigravity
+**Auditeur: Alaeddine BEN RHOUMA
 **Date**: 26/01/2026

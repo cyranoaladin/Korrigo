@@ -379,5 +379,5 @@ docker-compose up -d
 
 ---
 
-**Maintainer:** Claude Sonnet 4.5
+**Maintainer:** Alaeddine BEN RHOUMA
 **Last Updated:** 2026-01-21
