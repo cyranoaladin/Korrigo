@@ -163,8 +163,8 @@ class BatchA3Processor:
         text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
         # Minuscules
         text = text.lower()
-        # Supprimer tirets et underscores (pas remplacer par espace)
-        text = re.sub(r'[-_]+', '', text)
+        # Remplacer tirets et underscores par des espaces
+        text = re.sub(r'[-_]+', ' ', text)
         # Normaliser espaces multiples
         text = re.sub(r'\s+', ' ', text)
         return text.strip()

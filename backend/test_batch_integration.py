@@ -139,7 +139,7 @@ def test_batch_a3_real_data():
         logger.info("")
         logger.info("=" * 80)
 
-        return validation_ok
+        assert validation_ok, "Validation failed: some copies have invalid page counts"
 
     except Exception as e:
         logger.error(f"Error processing batch: {e}")
