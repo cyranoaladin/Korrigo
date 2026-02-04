@@ -307,7 +307,8 @@ python manage.py export_pronote <exam_uuid> --output /tmp/test.csv
 
 ---
 
-### [ ] Step 9: Write Management Command Tests
+### [x] Step 9: Write Management Command Tests
+<!-- chat-id: 7710ba91-ac38-4de4-a238-5117bacf056d -->
 
 Test CLI interface for export command.
 
@@ -315,18 +316,18 @@ Test CLI interface for export command.
 - `backend/exams/tests/test_export_pronote_command.py`
 
 **Tasks**:
-- [ ] Test basic command execution:
+- [x] Test basic command execution:
   - Valid exam → success output
   - Invalid UUID → error message
-- [ ] Test `--output` option:
+- [x] Test `--output` option:
   - File created with correct content
   - UTF-8 BOM present
-- [ ] Test `--validate-only` option:
+- [x] Test `--validate-only` option:
   - No CSV generated
   - Validation errors shown
-- [ ] Test `--coefficient` option:
+- [x] Test `--coefficient` option:
   - Custom coefficient appears in CSV
-- [ ] Use Django's `call_command()` helper
+- [x] Use Django's `call_command()` helper
 
 **Verification**:
 ```bash
