@@ -56,14 +56,14 @@ class GPT4VisionOCR:
     which is difficult for traditional OCR engines like Tesseract.
     """
     
-    def __init__(self, api_key: str = None, model: str = "gpt-4o"):
+    def __init__(self, api_key: str = None, model: str = None):
         """
         Args:
             api_key: OpenAI API key. If None, reads from OPENAI_API_KEY env var.
-            model: Model to use (gpt-4o, gpt-4-vision-preview, etc.)
+            model: Model to use. If None, reads from OPENAI_MODEL env var or defaults to gpt-4.1-mini.
         """
         self.api_key = api_key or os.environ.get('OPENAI_API_KEY')
-        self.model = model
+        self.model = model or os.environ.get('OPENAI_MODEL', 'gpt-4.1-mini-2025-04-14')
         
         if not self.api_key:
             raise ValueError("OpenAI API key required. Set OPENAI_API_KEY or pass api_key parameter.")
