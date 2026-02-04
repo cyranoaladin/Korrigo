@@ -16,4 +16,7 @@ urlpatterns = [
     
     # Batch auto-identification
     path('batch-auto-identify/<uuid:exam_id>/', views.BatchAutoIdentifyView.as_view(), name='batch-auto-identify'),
+    
+    # GPT-4 Vision indexation automatisée
+    path('gpt4v-index/<uuid:exam_id>/', views.GPT4VisionIndexView.as_view(), name='gpt4v-index'),
 ]
