@@ -14,7 +14,7 @@ services:
   db:
     image: postgres:15
     volumes:
-      - postgres_data_${ZENFLOW_TASK_ID:-default}:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=${DB_NAME:-viatique}
       - POSTGRES_USER=${DB_USER:-viatique_user}
@@ -23,7 +23,7 @@ services:
       # Use task-specific port (default 10000 if not set)
       - "${POSTGRES_PORT:-5435}:5432"
     networks:
-      - zenflow_${ZENFLOW_TASK_ID:-default}
+      - zenflow_network
 
   backend:
     build: ./backend
@@ -44,7 +44,7 @@ services:
       - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-core.settings}
       - ZENFLOW_TASK_ID=${ZENFLOW_TASK_ID}
     networks:
-      - zenflow_${ZENFLOW_TASK_ID:-default}
+      - zenflow_network
 
   redis:
     image: redis:7
@@ -52,7 +52,7 @@ services:
       # Use task-specific port (default 16000 if not set)
       - "${REDIS_PORT:-6385}:6379"
     networks:
-      - zenflow_${ZENFLOW_TASK_ID:-default}
+      - zenflow_network
 
   frontend:
     build:
@@ -68,7 +68,7 @@ services:
       - VITE_API_URL=http://localhost:${BACKEND_PORT:-8088}/api
       - ZENFLOW_TASK_ID=${ZENFLOW_TASK_ID}
     networks:
-      - zenflow_${ZENFLOW_TASK_ID:-default}
+      - zenflow_network
 
   celery:
     build: ./backend
@@ -83,11 +83,11 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - ZENFLOW_TASK_ID=${ZENFLOW_TASK_ID}
     networks:
-      - zenflow_${ZENFLOW_TASK_ID:-default}
+      - zenflow_network
 
 volumes:
-  postgres_data_${ZENFLOW_TASK_ID:-default}:
+  postgres_data:
 
 networks:
-  zenflow_${ZENFLOW_TASK_ID:-default}:
-    name: zenflow_${ZENFLOW_TASK_ID:-default}
+  zenflow_network:
+    driver: bridge

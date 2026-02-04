@@ -195,7 +195,7 @@ npx playwright test --workers=2  # Should run with 2 workers
 
 ---
 
-### [ ] Step: Zenflow Multi-Task Isolation Setup
+### [x] Step: Zenflow Multi-Task Isolation Setup
 <!-- chat-id: 081de134-90fc-44d2-95f4-349047dca031 -->
 
 **Objective**: Support multiple Zenflow tasks running in parallel without port conflicts.
