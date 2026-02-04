@@ -1,0 +1,5 @@
+npm error Missing script: "test:e2e"
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: /home/alaeddine/.npm/_logs/2026-02-04T12_23_11_223Z-debug-0.log
