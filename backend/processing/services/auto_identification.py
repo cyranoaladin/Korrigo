@@ -20,7 +20,7 @@ import os
 import cv2
 import numpy as np
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple, Any
+from typing import List, Dict, Optional, Tuple, Any, TYPE_CHECKING
 from dataclasses import dataclass, field
 from enum import Enum
 from django.db import transaction
@@ -35,6 +35,10 @@ from .grid_ocr import (
     MARGIN_STRICT,
 )
 from .vision import HeaderDetector
+
+if TYPE_CHECKING:
+    from students.models import Student
+    from exams.models import Copy
 
 logger = logging.getLogger(__name__)
 
