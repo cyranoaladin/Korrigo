@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 
-@pytest.mark.skipif(os.environ.get("CI") == "true", reason="Too slow for CI")
+@pytest.mark.skip(reason="Legacy test - PDF files no longer available")
 def test_batch_a3_real_data():
     """Test avec les données réelles : eval_loi_binom_log.pdf + G3_EDS_MATHS.csv"""
 

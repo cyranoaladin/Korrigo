@@ -22,14 +22,14 @@ def setup_students(db):
     """Create students for testing."""
     student1 = Student.objects.create(
         email="alice@test.com",
-        first_name="Alice",
-        last_name="DUPONT",
+        full_name="DUPONT Alice",  # Format: LASTNAME Firstname
+        date_of_birth="2008-01-15",
         class_name="3A"
     )
     student2 = Student.objects.create(
         email="bob@test.com",
-        first_name="Bob",
-        last_name="MARTIN",
+        full_name="MARTIN Bob",
+        date_of_birth="2008-02-20",
         class_name="3B"
     )
     return student1, student2
