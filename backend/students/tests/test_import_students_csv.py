@@ -7,21 +7,23 @@ from students.models import Student
 @pytest.fixture
 def clean_csv(tmp_path):
     f = tmp_path / "valid.csv"
-    content = "NOM,PRENOM,EMAIL\nDoe,John,john@test.com\nSmith,Jane,jane@test.com"
+    # Use expected format: Élèves (FULL_NAME), Né(e) le (DATE_NAISSANCE), Adresse E-mail (EMAIL)
+    content = "Élèves,Né(e) le,Adresse E-mail\nDoe John,15/01/2008,john@test.com\nSmith Jane,20/02/2008,jane@test.com"
     f.write_text(content, encoding="utf-8")
     return str(f)
 
 @pytest.fixture
 def bom_csv(tmp_path):
     f = tmp_path / "bom.csv"
-    content = "\ufeffNOM,PRENOM,EMAIL\nDoe,John,john@test.com"
+    content = "\ufeffÉlèves,Né(e) le,Adresse E-mail\nDoe John,15/01/2008,john@test.com"
     f.write_text(content, encoding="utf-8")
     return str(f)
 
 @pytest.fixture
 def bad_header_csv(tmp_path):
     f = tmp_path / "bad.csv"
-    f.write_text("ID,NOM,PRENOM\n1,A,B", encoding="utf-8")
+    # Missing required FULL_NAME and DATE_NAISSANCE columns
+    f.write_text("ID,EMAIL\n1,test@test.com", encoding="utf-8")
     return str(f)
 
 @pytest.mark.django_db
