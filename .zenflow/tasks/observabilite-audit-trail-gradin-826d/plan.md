@@ -308,26 +308,46 @@ python -m py_compile backend/grading/tasks.py
 # Exit code: 0 ✓
 ```
 
-### [ ] Step: Update Task Dispatch Sites with Request ID
+### [x] Step: Update Task Dispatch Sites with Request ID
+<!-- chat-id: fd61bdb6-8640-4a87-aa18-118aae73caa3 -->
 
 **Objective**: Pass request_id from HTTP requests when dispatching Celery tasks
 
 **Tasks**:
-- [ ] Audit all calls to `async_finalize_copy.delay()` in codebase
-- [ ] Audit all calls to `async_import_pdf.delay()` in codebase
-- [ ] Update calls in `views_async.py` to pass `request_id=request.request_id`
-- [ ] Update calls in `services.py` to pass `request_id` (extract from thread-local if available)
-- [ ] Verify RequestIDMiddleware provides `request.request_id`
+- [x] Audit all calls to `async_finalize_copy.delay()` in codebase
+- [x] Audit all calls to `async_import_pdf.delay()` in codebase
+- [x] Update calls in `views_async.py` to pass `request_id=request.request_id`
+- [x] Update calls in `services.py` to pass `request_id` (extract from thread-local if available)
+- [x] Verify RequestIDMiddleware provides `request.request_id`
 
 **References**:
 - Spec: Section 3.2 (Modified Files), Section 5 Phase 3
 - Requirements: REQ-1.4
 
+**Findings**:
+- Audited codebase for `.delay()` and `.apply_async()` calls: **0 matches found**
+- Current implementation uses synchronous service calls:
+  - `backend/exams/views.py:88` - `GradingService.import_pdf()` (synchronous)
+  - `backend/grading/views.py:174` - `GradingService.finalize_copy()` (synchronous)
+- Async tasks exist but are never dispatched asynchronously in production code:
+  - `async_finalize_copy` at `backend/grading/tasks.py:21` (has `request_id=None` parameter)
+  - `async_import_pdf` at `backend/grading/tasks.py:94` (has `request_id=None` parameter)
+  - Only called synchronously in tests (test_tasks.py)
+- Verified RequestIDMiddleware provides `request.request_id` at `backend/core/middleware/request_id.py:82`
+- Thread-local helper `get_current_request_id()` available at line 25-32
+
+**Conclusion**:
+No async dispatch sites exist to update. Infrastructure is ready for async task correlation (tasks have `request_id` parameters, middleware provides `request.request_id`), but application currently uses synchronous service calls instead of Celery task dispatches.
+
 **Verification**:
 ```bash
-# Upload PDF and check logs for request_id correlation
-grep "<request_id>" logs/django.log
-# Expected: Same request_id in HTTP request and Celery task logs
+# Audit for async task dispatches
+grep -rn "\.delay\(|\.apply_async" backend/
+# Result: 0 matches ✓
+
+# Verify RequestIDMiddleware
+grep -n "request.request_id = request_id" backend/core/middleware/request_id.py
+# Result: Line 82 found ✓
 ```
 
 ### [ ] Step: Create Audit Event Tests
