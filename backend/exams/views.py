@@ -399,6 +399,21 @@ class MergeBookletsView(APIView):
                 "already_assigned": already_assigned
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # NETTOYAGE: Supprimer les copies STAGING associées aux booklets sélectionnés
+        # Ces copies ont été créées automatiquement lors de l'upload (1 copie par booklet)
+        # et doivent être remplacées par la copie fusionnée
+        staging_copies_to_delete = set()
+        for booklet in booklets:
+            staging_copies = booklet.assigned_copy.filter(status=Copy.Status.STAGING)
+            for staging_copy in staging_copies:
+                staging_copies_to_delete.add(staging_copy.id)
+        
+        if staging_copies_to_delete:
+            deleted_count = Copy.objects.filter(id__in=staging_copies_to_delete).delete()[0]
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"MergeBookletsView: Deleted {deleted_count} STAGING copies before merge")
+
         # Logic: Create Copy -> Assign Booklets
         # Since Copy <-> Booklet relationship is via Booklet.assigned_copy (ManyToMany defined in Copy),
         # we create the Copy and add booklets.
