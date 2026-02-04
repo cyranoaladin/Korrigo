@@ -282,6 +282,7 @@ Save to `{@artifacts_path}/plan.md`.
 - `frontend/e2e/tests/helpers/auth.ts`
 
 ### [ ] Step: E2E Tests - Multi-Tab & Edge Cases
+<!-- chat-id: 674c02da-6ffb-4d06-93e1-fcad1361fa4a -->
 
 **Objective**: Test multi-tab scenarios and edge cases
 
