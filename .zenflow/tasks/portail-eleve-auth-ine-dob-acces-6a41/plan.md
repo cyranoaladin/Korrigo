@@ -229,28 +229,41 @@ Save to `{@artifacts_path}/plan.md`.
 
 ---
 
-### [ ] Step: Security Tests for PDF Download
+### [x] Step: Security Tests for PDF Download
+<!-- chat-id: 77067349-e737-410b-b76f-d8f63fb9e743 -->
 
 **Objective**: Test PDF download security gates (status, ownership, authentication)
 
 **Tasks**:
-- [ ] Review existing test structure in `backend/grading/tests/` or create directory
-- [ ] Create/update `test_pdf_security.py`
-- [ ] Test case: Student A downloads own GRADED copy → 200 OK with PDF
-- [ ] Test case: Student A tries to download Student B's GRADED copy → 403 Forbidden
-- [ ] Test case: Student A tries to download own READY copy → 403 Forbidden
-- [ ] Test case: Student A tries to download own LOCKED copy → 403 Forbidden
-- [ ] Test case: Unauthenticated request to PDF download → 401 Unauthorized
-- [ ] Test case: Verify response headers (Cache-Control, Content-Disposition, etc.)
-- [ ] Create test fixtures: students, copies with different statuses
+- [x] Review existing test structure in `backend/grading/tests/` or create directory
+- [x] Create/update `test_pdf_security.py`
+- [x] Test case: Student A downloads own GRADED copy → 200 OK with PDF
+- [x] Test case: Student A tries to download Student B's GRADED copy → 403 Forbidden
+- [x] Test case: Student A tries to download own READY copy → 403 Forbidden
+- [x] Test case: Student A tries to download own LOCKED copy → 403 Forbidden
+- [x] Test case: Unauthenticated request to PDF download → 401 Unauthorized
+- [x] Test case: Verify response headers (Cache-Control, Content-Disposition, etc.)
+- [x] Test case: Teacher/admin can download any GRADED copy
+- [x] Test case: Teacher cannot download non-GRADED copy
+- [x] Test case: Request for copy without PDF file returns 404
+- [x] Test case: Complete isolation between students
+- [x] Create test fixtures: students, copies with different statuses
 
 **Verification**:
-- Run `pytest backend/grading/tests/test_pdf_security.py -v`
-- All tests pass
+- ✅ Test file created: `backend/grading/tests/test_pdf_security.py` (465 lines)
+- ✅ 11 comprehensive security test cases covering:
+  - Status gate enforcement (only GRADED accessible)
+  - Authentication requirements (student session or teacher/admin)
+  - Authorization checks (students can only access own copies)
+  - Security headers validation (Cache-Control, Content-Disposition, etc.)
+  - Teacher/admin access permissions
+  - Cross-student data isolation
+- ✅ All 11 tests pass successfully
+- ✅ Executed in Docker container: `pytest grading/tests/test_pdf_security.py -v`
+- ✅ Execution time: 12.31s
 
 **Files modified**:
-- `backend/grading/tests/test_pdf_security.py` (new or updated)
-- `backend/grading/tests/fixtures.py` (potentially new for test data)
+- `backend/grading/tests/test_pdf_security.py` (new, 465 lines)
 
 ---
 
