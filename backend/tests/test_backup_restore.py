@@ -30,8 +30,8 @@ class BackupRestoreTest(TestCase):
         
         self.student = Student.objects.create(
             email="jean.dupont@example.com",
-            first_name="Jean",
-            last_name="Dupont",
+            full_name="Dupont Jean",
+            date_of_birth="2008-01-15",
             class_name="TG2",
             user=self.admin_user  # Using admin user for test
         )

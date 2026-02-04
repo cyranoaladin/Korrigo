@@ -193,7 +193,7 @@ class OCRPerformView(APIView):
             
             suggestion_data = [{
                 'id': student.id,
-                'full_name': f"{student.first_name} {student.last_name}",
+                'full_name': student.full_name,
                 'class_name': student.class_name
             } for student in suggestions]
             
@@ -247,8 +247,8 @@ def get_ocr_candidates(request, copy_id):
                 'rank': idx,
                 'student': {
                     'id': student.id,
-                    'first_name': student.first_name,
-                    'last_name': student.last_name,
+                    'full_name': student.full_name,
+                    'last_name': student.last_name,  # Property: first word of full_name
                     'email': student.email,
                     'date_of_birth': student.date_of_birth.strftime('%d/%m/%Y') if student.date_of_birth else None
                 },
@@ -353,7 +353,7 @@ def select_ocr_candidate(request, copy_id):
         'copy_id': str(copy.id),
         'student': {
             'id': student.id,
-            'first_name': student.first_name,
+            'full_name': student.full_name,
             'last_name': student.last_name,
             'email': student.email
         },
@@ -629,10 +629,10 @@ class BatchAutoIdentifyView(APIView):
                 match_result = ocr.match_student(header_result, students, threshold=confidence_threshold)
                 
                 if match_result and match_result.confidence >= confidence_threshold:
-                    # Chercher l'élève dans la base de données
+                    # Chercher l'élève dans la base de données par full_name
+                    full_name = f"{match_result.student.last_name} {match_result.student.first_name}".strip()
                     db_student = Student.objects.filter(
-                        last_name__iexact=match_result.student.last_name,
-                        first_name__iexact=match_result.student.first_name
+                        full_name__iexact=full_name
                     ).first()
                     
                     if db_student and not dry_run:
@@ -647,7 +647,7 @@ class BatchAutoIdentifyView(APIView):
                             'copy_id': str(copy.id),
                             'anonymous_id': copy.anonymous_id,
                             'status': 'auto_identified',
-                            'student': f'{db_student.last_name} {db_student.first_name}',
+                            'student': db_student.full_name,
                             'confidence': round(match_result.confidence, 3)
                         })
                     elif db_student and dry_run:
