@@ -77,7 +77,8 @@ class OCRService:
     @staticmethod
     def find_matching_students(ocr_text):
         """
-        Trouve les élèves correspondant au texte OCR
+        Trouve les élèves correspondant au texte OCR.
+        Utilise full_name car le modèle Student n'a pas de champs first_name/last_name séparés.
         """
         from django.db.models import Q
         
@@ -86,7 +87,8 @@ class OCRService:
         q_objects = Q()
         for word in words:
             if len(word) > 2:
-                q_objects |= Q(last_name__icontains=word) | Q(first_name__icontains=word)
+                # Chercher dans full_name (le modèle Student utilise full_name, pas first_name/last_name)
+                q_objects |= Q(full_name__icontains=word)
         
         if q_objects:
             matches = Student.objects.filter(q_objects).distinct()[:10]
