@@ -340,7 +340,8 @@ python -m pytest backend/exams/tests/test_export_pronote_command.py -v
 
 ---
 
-### [ ] Step 10: Create Manual Testing Documentation
+### [x] Step 10: Create Manual Testing Documentation
+<!-- chat-id: d08e3f76-ff13-4a5b-8ecf-793016537153 -->
 
 Document manual test procedures for PRONOTE import verification.
 
@@ -348,7 +349,7 @@ Document manual test procedures for PRONOTE import verification.
 - `.zenflow/tasks/export-pronote-csv-format-encoda-2e50/audit.md`
 
 **Tasks**:
-- [ ] Document test cases:
+- [x] Document test cases:
   - **Format validation**: Check CSV structure matches spec
   - **Encoding test**: Verify UTF-8 BOM, CRLF line endings
   - **Decimal format**: Confirm comma separator (15,50 not 15.50)
@@ -357,8 +358,8 @@ Document manual test procedures for PRONOTE import verification.
   - **PRONOTE import**: Actual import test (if PRONOTE available)
   - **Rate limiting**: Verify 10/hour limit
   - **Audit log**: Check AuditLog entries
-- [ ] Include test data examples
-- [ ] Document expected vs actual results template
+- [x] Include test data examples
+- [x] Document expected vs actual results template
 
 **References**:
 - spec.md section 5.4
