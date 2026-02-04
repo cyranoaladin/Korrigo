@@ -19,6 +19,10 @@ except Exception:
     # If Django isn't importable yet, do not broaden ignores.
     pass
 
+# Force development mode for tests to avoid production checks
+os.environ['DJANGO_ENV'] = 'development'
+os.environ.setdefault('DEBUG', 'True')
+
 from .settings import *
 
 try:
