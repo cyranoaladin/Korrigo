@@ -4,7 +4,7 @@ from PIL import Image
 import pytesseract
 from io import BytesIO
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from .models import OCRResult
+from identification.models import OCRResult
 from students.models import Student
 
 
