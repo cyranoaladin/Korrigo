@@ -351,6 +351,7 @@ grep -n "request.request_id = request_id" backend/core/middleware/request_id.py
 ```
 
 ### [ ] Step: Create Audit Event Tests
+<!-- chat-id: 19196b23-fdb9-4f91-907c-ead194c025bf -->
 
 **Objective**: Verify GradingEvent creation at key workflow moments
 
