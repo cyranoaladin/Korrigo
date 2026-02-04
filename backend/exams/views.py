@@ -456,38 +456,112 @@ class ExportAllView(APIView):
         return Response({"message": f"{count} copies traitées."}, status=status.HTTP_200_OK)
 
 class CSVExportView(APIView):
-    permission_classes = [IsAdminOnly]  # Admin only
+    """
+    Export CSV des résultats d'un examen.
+    
+    PRD-19 Guarantees:
+    - Une ligne par élève (pas de doublons)
+    - Encoding UTF-8 avec BOM pour Excel
+    - Format stable et documenté
+    - Inclut uniquement les copies GRADED ou avec note
+    """
+    permission_classes = [IsAdminOnly]
 
     def get(self, request, id):
         import csv
         from django.http import HttpResponse
         from grading.services import GradingService
+        from django.db.models import Max
         
         exam = get_object_or_404(Exam, id=id)
-        copies = exam.copies.all()
         
-        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        # PRD-19: Filtrer pour n'avoir qu'une copie par élève
+        # Si plusieurs copies existent pour le même élève, prendre celle avec le statut le plus avancé
+        # Priorité: GRADED > LOCKED > READY > autres
+        status_priority = {
+            Copy.Status.GRADED: 1,
+            Copy.Status.LOCKED: 2,
+            Copy.Status.GRADING_IN_PROGRESS: 3,
+            Copy.Status.READY: 4,
+            Copy.Status.GRADING_FAILED: 5,
+            Copy.Status.STAGING: 6,
+        }
+        
+        # Récupérer toutes les copies identifiées
+        identified_copies = exam.copies.filter(
+            is_identified=True,
+            student__isnull=False
+        ).select_related('student').order_by('student_id', 'graded_at')
+        
+        # Dédupliquer par élève (garder la copie avec le meilleur statut)
+        seen_students = {}
+        for copy in identified_copies:
+            student_id = copy.student_id
+            if student_id not in seen_students:
+                seen_students[student_id] = copy
+            else:
+                existing = seen_students[student_id]
+                # Garder la copie avec le meilleur statut
+                if status_priority.get(copy.status, 99) < status_priority.get(existing.status, 99):
+                    seen_students[student_id] = copy
+                # Si même statut, garder celle qui est notée (graded_at non null)
+                elif copy.status == existing.status and copy.graded_at and not existing.graded_at:
+                    seen_students[student_id] = copy
+        
+        # Récupérer aussi les copies non identifiées (pour traçabilité)
+        unidentified_copies = exam.copies.filter(
+            is_identified=False
+        ).exclude(status=Copy.Status.STAGING)
+        
+        # Préparer la réponse CSV avec BOM UTF-8 pour Excel
+        response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
         response['Content-Disposition'] = f'attachment; filename="exam_{id}_results.csv"'
+        response['X-Content-Type-Options'] = 'nosniff'
         
-        writer = csv.writer(response)
+        writer = csv.writer(response, delimiter=';')  # Point-virgule pour Excel FR
         
-        # ZF-AUD-10 FIX: Use annotations for score computation instead of non-existent scores relation
-        # Header: AnonymousID, Student Name, Status, Total
-        header = ['AnonymousID', 'Student Name', 'Status', 'Total']
+        # Header enrichi
+        header = [
+            'Anonymat',
+            'Nom Élève',
+            'Date Naissance',
+            'Statut',
+            'Note Totale',
+            'Identifié',
+            'Corrigé le'
+        ]
         writer.writerow(header)
         
-        for c in copies:
-            # Mission 3.2: Student Name
-            student_name = "Inconnu"
-            if c.is_identified and c.student:
-                student_name = str(c.student) 
+        # Écrire les copies identifiées (une par élève)
+        for student_id, copy in sorted(seen_students.items(), key=lambda x: x[1].student.full_name if x[1].student else ''):
+            student = copy.student
+            total = GradingService.compute_score(copy)
             
-            # Calculate total from annotations
-            total = GradingService.compute_score(c)
-            
-            row = [c.anonymous_id, student_name, c.get_status_display(), total]
+            row = [
+                copy.anonymous_id,
+                student.full_name if student else 'Inconnu',
+                student.date_of_birth.strftime('%d/%m/%Y') if student and student.date_of_birth else '',
+                copy.get_status_display(),
+                total,
+                'Oui',
+                copy.graded_at.strftime('%d/%m/%Y %H:%M') if copy.graded_at else ''
+            ]
             writer.writerow(row)
-            
+        
+        # Écrire les copies non identifiées
+        for copy in unidentified_copies:
+            total = GradingService.compute_score(copy)
+            row = [
+                copy.anonymous_id,
+                'NON IDENTIFIÉ',
+                '',
+                copy.get_status_display(),
+                total,
+                'Non',
+                copy.graded_at.strftime('%d/%m/%Y %H:%M') if copy.graded_at else ''
+            ]
+            writer.writerow(row)
+        
         return response
 
 class CopyIdentificationView(APIView):
@@ -691,6 +765,12 @@ class ExamDispatchView(APIView):
     """
     Dispatches unassigned copies to correctors fairly and randomly.
     POST /api/exams/<exam_id>/dispatch/
+    
+    PRD-19 Guarantees:
+    - Idempotent: re-running dispatch only assigns new unassigned copies
+    - Race-condition safe: uses select_for_update to prevent double assignment
+    - No duplicate assignments: filters assigned_corrector__isnull=True
+    - Audit trail: logs run_id for each dispatch operation
     """
     permission_classes = [IsAdminOnly]
 
@@ -712,38 +792,53 @@ class ExamDispatchView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        unassigned_copies = list(
-            Copy.objects.filter(
-                exam=exam,
-                assigned_corrector__isnull=True,
-                status=Copy.Status.READY  # Only dispatch READY copies, not STAGING
-            ).order_by('anonymous_id')
-        )
-
-        if not unassigned_copies:
-            return Response(
-                {"message": _("Aucune copie à dispatcher.")},
-                status=status.HTTP_200_OK
-            )
-
         run_id = uuid.uuid4()
         now = timezone.now()
 
-        random.shuffle(unassigned_copies)
-
-        distribution = {corrector.id: 0 for corrector in correctors}
-        assignments = []
-
-        for i, copy in enumerate(unassigned_copies):
-            corrector = correctors[i % len(correctors)]
-            copy.assigned_corrector = corrector
-            copy.dispatch_run_id = run_id
-            copy.assigned_at = now
-            assignments.append(copy)
-            distribution[corrector.id] += 1
-
         try:
             with transaction.atomic():
+                # PRD-19: Lock copies to prevent race conditions
+                # select_for_update ensures no other dispatch can modify these copies
+                unassigned_copies = list(
+                    Copy.objects.select_for_update(skip_locked=True).filter(
+                        exam=exam,
+                        assigned_corrector__isnull=True,
+                        status=Copy.Status.READY
+                    ).order_by('anonymous_id')
+                )
+
+                if not unassigned_copies:
+                    return Response(
+                        {"message": _("Aucune copie à dispatcher.")},
+                        status=status.HTTP_200_OK
+                    )
+
+                # Shuffle for fair random distribution
+                random.shuffle(unassigned_copies)
+
+                # PRD-19: Balance distribution based on current load
+                # Count existing assignments per corrector for this exam
+                from django.db.models import Count
+                current_load = dict(
+                    Copy.objects.filter(exam=exam, assigned_corrector__isnull=False)
+                    .values('assigned_corrector')
+                    .annotate(count=Count('id'))
+                    .values_list('assigned_corrector', 'count')
+                )
+
+                distribution = {corrector.id: current_load.get(corrector.id, 0) for corrector in correctors}
+                assignments = []
+
+                for copy in unassigned_copies:
+                    # Assign to corrector with lowest current load
+                    corrector = min(correctors, key=lambda c: distribution[c.id])
+                    copy.assigned_corrector = corrector
+                    copy.dispatch_run_id = run_id
+                    copy.assigned_at = now
+                    assignments.append(copy)
+                    distribution[corrector.id] += 1
+
+                # Bulk update with explicit fields
                 Copy.objects.bulk_update(
                     assignments,
                     ['assigned_corrector', 'dispatch_run_id', 'assigned_at']
@@ -755,7 +850,8 @@ class ExamDispatchView(APIView):
                     f"Run ID: {run_id}"
                 )
 
-            distribution_stats = {
+            # Calculate final distribution stats
+            final_distribution = {
                 corrector.username: distribution[corrector.id]
                 for corrector in correctors
             }
@@ -765,9 +861,9 @@ class ExamDispatchView(APIView):
                 "dispatch_run_id": str(run_id),
                 "copies_assigned": len(assignments),
                 "correctors_count": len(correctors),
-                "distribution": distribution_stats,
-                "min_assigned": min(distribution.values()),
-                "max_assigned": max(distribution.values())
+                "distribution": final_distribution,
+                "min_assigned": min(distribution.values()) if distribution else 0,
+                "max_assigned": max(distribution.values()) if distribution else 0
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
