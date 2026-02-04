@@ -9,7 +9,7 @@ from django.contrib.auth.models import User, Group
 from django.core.files.uploadedfile import SimpleUploadedFile
 from exams.models import Exam, Copy
 from students.models import Student
-from grading.models import Annotation, Score
+from grading.models import Annotation
 from core.auth import UserRole
 import json
 
@@ -187,9 +187,12 @@ class PronoteExportAPIValidationTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(
+        Annotation.objects.create(
             copy=copy,
-            scores_data={"ex1": 15}
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.admin_user
         )
         
         response = self.client.post(
@@ -273,8 +276,20 @@ class PronoteExportAPISuccessTests(TestCase):
             status=Copy.Status.GRADED
         )
         
-        Score.objects.create(copy=copy1, scores_data={"ex1": 15.5})
-        Score.objects.create(copy=copy2, scores_data={"ex1": 12.0})
+        Annotation.objects.create(
+            copy=copy1,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.admin_user
+        )
+        Annotation.objects.create(
+            copy=copy2,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=12,
+            created_by=self.admin_user
+        )
         
         response = self.client.post(
             self.url,
@@ -320,7 +335,13 @@ class PronoteExportAPISuccessTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 15})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.admin_user
+        )
         
         response = self.client.post(
             self.url,
@@ -352,7 +373,13 @@ class PronoteExportAPISuccessTests(TestCase):
             status=Copy.Status.GRADED,
             global_appreciation="Très bien; effort remarquable!"
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 18})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=18,
+            created_by=self.admin_user
+        )
         
         response = self.client.post(
             self.url,
@@ -379,7 +406,13 @@ class PronoteExportAPISuccessTests(TestCase):
             status=Copy.Status.GRADED,
             global_appreciation="Comment with ; semicolon"
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 15})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.admin_user
+        )
         
         response = self.client.post(
             self.url,
@@ -427,7 +460,13 @@ class PronoteExportAPIRateLimitTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 15})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.admin_user
+        )
         
         self.url = f'/api/exams/{self.exam.id}/export-pronote/'
         self.client.force_login(self.admin_user)
@@ -521,7 +560,13 @@ class PronoteExportAPIAuditTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 15})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.admin_user
+        )
         
         # Import AuditLog if it exists
         try:
