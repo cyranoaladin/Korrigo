@@ -1574,6 +1574,476 @@ docker volume inspect <project>_postgres_data
 - [ ] ✅ Exécuter les smoke tests (`scripts/smoke.sh`)
 - [ ] ✅ Valider l'authentification utilisateur
 
+### 6.6 Mapping Volumes et Containers
+
+**Détail des montages** (`infra/docker/docker-compose.prod.yml`):
+
+#### Volume `postgres_data`
+
+| Container | Point de montage | Mode | Utilisation |
+|-----------|------------------|------|-------------|
+| `db` | `/var/lib/postgresql/data` | RW | Stockage PGDATA (tables, indexes, WAL) |
+
+**Contenu**:
+- Tables PostgreSQL (users, exams, booklets, annotations, grades)
+- Indexes et contraintes
+- Write-Ahead Logs (WAL)
+- Configuration PostgreSQL (`postgresql.conf`, `pg_hba.conf`)
+
+**Taille estimée**:
+- Petite plateforme (< 500 copies/an): 100-500 MB
+- Moyenne plateforme (500-5000 copies/an): 500 MB - 5 GB
+- Grande plateforme (> 5000 copies/an): 5-50 GB
+
+#### Volume `media_volume`
+
+| Container | Point de montage | Mode | Utilisation |
+|-----------|------------------|------|-------------|
+| `backend` | `/app/media` | RW | Stockage uploads, génération PDFs annotés |
+| `celery` | `/app/media` | RW | Traitement async (OCR, rasterisation, génération PDFs) |
+| `nginx` | `/app/media` | RO | Service fichiers statiques (PDFs téléchargeables) |
+
+**Contenu**:
+- PDFs scannés originaux (copies brutes)
+- PDFs rasterisés (pour annotation web)
+- PDFs annotés finaux (avec corrections enseignants)
+- Images extraites (en-têtes de copies pour OCR)
+- Logs de traitement (optionnel)
+
+**Structure typique**:
+```
+media/
+├── scans/                    # PDFs originaux scannés
+│   ├── exam_001/
+│   │   └── scan_20260315.pdf
+├── booklets/                 # Fascicules individuels (après découpage)
+│   ├── booklet_001.pdf
+│   ├── booklet_002.pdf
+├── annotated/                # PDFs annotés finaux
+│   ├── exam_001_student_042_annotated.pdf
+└── headers/                  # Images en-têtes (OCR)
+    ├── booklet_001_header.jpg
+```
+
+**Taille estimée** (dépend fortement du volume d'examens):
+- Petite plateforme: 1-10 GB/an
+- Moyenne plateforme: 10-100 GB/an
+- Grande plateforme: 100-500 GB/an
+
+**Facteurs de croissance**:
+- 1 copie (4 pages A4) ≈ 2-5 MB (scan) + 3-8 MB (rasterisé) + 4-10 MB (annoté) = **~10-20 MB/copie**
+- Examen de 50 copies ≈ **500 MB - 1 GB**
+
+#### Volume `static_volume`
+
+| Container | Point de montage | Mode | Utilisation |
+|-----------|------------------|------|-------------|
+| `backend` | `/app/staticfiles` | RW | Collecte static files (Django `collectstatic`) |
+| `nginx` | `/app/staticfiles` | RO | Service fichiers statiques (CSS, JS, images frontend) |
+
+**Contenu**:
+- CSS/JS compilés du frontend (bundles Vite)
+- Assets Django Admin
+- Fonts, icônes, images statiques
+- Fichiers DRF Spectacular (Swagger UI)
+
+**Régénération**: ✅ Peut être régénéré avec `python manage.py collectstatic`
+
+**Taille estimée**: 10-50 MB (stable, ne croît pas avec l'utilisation)
+
+#### Volume `redis_data` (Non Défini Explicitement)
+
+**Statut**: ❌ **Non persisté** dans `docker-compose.prod.yml`
+
+**Conséquence**: 
+- Redis fonctionne en mode **éphémère** (données perdues au redémarrage du container)
+- Cache vidé à chaque `docker compose restart redis`
+- Queues Celery perdues si Redis redémarre pendant traitement (tâches réessayées automatiquement)
+
+**Impact**: 🟢 **Acceptable** pour production
+- Cache: Peut être régénéré automatiquement
+- Queues Celery: Les tâches sont re-queued automatiquement en cas de perte
+- Sessions: Stockées en DB (pas dans Redis), donc non impactées
+
+**Recommandation**: Pas de sauvegarde nécessaire pour Redis (données non critiques)
+
+### 6.7 Exigences de Sauvegarde par Volume
+
+#### `postgres_data` 🔴 CRITIQUE
+
+**Fréquence**: 
+- **Quotidienne** (minimum)
+- **Pré-maintenance** (avant toute opération de mise à jour)
+- **Pré-restauration** (backup de l'état actuel avant restore)
+
+**Méthodes disponibles**:
+
+1. **Méthode 1: Shell script** (`scripts/backup_db.sh`)
+   - Utilise `pg_dump` directement
+   - Format: SQL compressé (`.sql.gz`)
+   - Avantages: Rapide, compatible avec tous outils PostgreSQL
+   - Commande:
+     ```bash
+     ./scripts/backup_db.sh
+     # Produit: backups/db_backup_YYYYMMDD_HHMMSS.sql.gz
+     ```
+
+2. **Méthode 2: Django management command** (`python manage.py backup`)
+   - Utilise Django serialization (JSON)
+   - Format: JSON avec manifest
+   - Avantages: Portable entre versions Django, inclut metadata
+   - Commande:
+     ```bash
+     python manage.py backup --output-dir=backups/
+     # Produit: backups/korrigo_backup_YYYYMMDD_HHMMSS/
+     #   ├── db_backup_YYYYMMDD_HHMMSS.json
+     #   └── manifest.json
+     ```
+
+**Rétention**: 
+- 30 jours (défini dans `scripts/backup_db.sh:19`)
+- Backups pré-maintenance: conservation permanente (ou 1 an minimum)
+
+**Restauration**:
+- Méthode 1: `psql` ou `pg_restore`
+- Méthode 2: `python manage.py restore --backup-path=<path>`
+
+**Validation post-backup**:
+```bash
+# Vérifier l'intégrité du fichier .sql.gz
+gunzip -t backups/db_backup_*.sql.gz
+
+# Vérifier la taille (doit être > 0)
+ls -lh backups/db_backup_*.sql.gz
+```
+
+#### `media_volume` 🔴 CRITIQUE
+
+**Fréquence**:
+- **Quotidienne** (minimum, si activité récente)
+- **Hebdomadaire** (si période sans examens)
+- **Pré-maintenance**
+- **Après chaque examen important** (manuel)
+
+**Méthodes disponibles**:
+
+1. **Méthode 1: Backup Django avec flag** (`python manage.py backup --include-media`)
+   - Format: ZIP du répertoire `/app/media`
+   - Avantages: Backup atomique DB + media
+   - Commande:
+     ```bash
+     python manage.py backup --include-media --output-dir=backups/
+     # Produit: backups/korrigo_backup_YYYYMMDD_HHMMSS/
+     #   ├── db_backup_YYYYMMDD_HHMMSS.json
+     #   ├── media_backup_YYYYMMDD_HHMMSS.zip
+     #   └── manifest.json
+     ```
+
+2. **Méthode 2: Tar/Gzip manuel du volume Docker**
+   - Commande:
+     ```bash
+     # Identifier le chemin du volume
+     MEDIA_PATH=$(docker volume inspect <project>_media_volume -f '{{.Mountpoint}}')
+     
+     # Créer archive tar.gz
+     sudo tar -czf backups/media_backup_$(date +%Y%m%d_%H%M%S).tar.gz -C "$MEDIA_PATH" .
+     ```
+
+3. **Méthode 3: Rsync vers NAS/serveur distant**
+   - Synchronisation incrémentale
+   - Avantages: Économie d'espace, historique des versions
+   - Commande exemple:
+     ```bash
+     rsync -avz --delete /var/lib/docker/volumes/<project>_media_volume/_data/ \
+           backup-server:/backups/korrigo/media/
+     ```
+
+**Rétention**:
+- Backups quotidiens: 30 jours
+- Backups post-examen: 1 an (archivage légal)
+
+**Validation post-backup**:
+```bash
+# Vérifier l'intégrité du ZIP
+unzip -t backups/media_backup_*.zip
+
+# Compter les fichiers (doit correspondre au volume)
+unzip -l backups/media_backup_*.zip | wc -l
+```
+
+#### `static_volume` 🟡 OPTIONNEL
+
+**Fréquence**: ❌ Pas de backup régulier nécessaire (régénérable)
+
+**Méthode de régénération**:
+```bash
+# Re-collecter les static files
+docker compose exec backend python manage.py collectstatic --noinput
+```
+
+**Backup recommandé uniquement**:
+- Avant migration Django majeure
+- Si customisation manuelle des static files (non recommandé)
+
+### 6.8 Estimation Croissance Volumes et Planification Capacité
+
+#### Modèle de Croissance Typique
+
+**Hypothèses** (lycée moyen):
+- 500 élèves
+- 10 examens/an (5 bacs blancs + 5 devoirs surveillés)
+- Taux de numérisation: 80% des examens
+- Moyenne: 4 pages/copie
+
+**Calcul annuel**:
+```
+Examens/an:       10 examens
+Copies/examen:    500 élèves × 1 copie = 500 copies
+Total copies/an:  10 × 500 = 5000 copies
+Numériques:       5000 × 80% = 4000 copies
+Taille/copie:     15 MB (moyenne scan + rasterisé + annoté)
+
+Croissance media/an: 4000 copies × 15 MB = 60 GB/an
+Croissance DB/an:    Metadata + annotations ≈ 2 GB/an
+```
+
+**Besoin stockage 3 ans** (planification):
+```
+Media:     60 GB/an × 3 ans = 180 GB
+Database:  2 GB/an × 3 ans = 6 GB
+Backups:   (180 + 6) × 2 (redondance) = 372 GB
+TOTAL:     ~560 GB (recommandé: 1 TB pour marge)
+```
+
+#### Recommandations Dimensionnement
+
+**Infrastructure minimale** (petite plateforme < 1000 copies/an):
+- Volume host: 200 GB SSD
+- Backup storage: 300 GB (NAS ou cloud)
+
+**Infrastructure recommandée** (moyenne plateforme 1000-5000 copies/an):
+- Volume host: 500 GB SSD
+- Backup storage: 1 TB (NAS avec rétention 30j + archivage annuel)
+- Monitoring: Alertes à 70% et 90% d'utilisation
+
+**Infrastructure production** (grande plateforme > 5000 copies/an):
+- Volume host: 1-2 TB SSD
+- Backup storage: 3-5 TB (stratégie 3-2-1: 3 copies, 2 médias, 1 hors-site)
+- Monitoring: Dashboard temps réel + alertes automatiques
+- Archivage: Déplacement automatique des examens > 1 an vers stockage froid (S3 Glacier, etc.)
+
+#### Surveillance Utilisation Disque
+
+**Commandes de monitoring**:
+```bash
+# Taille totale des volumes Docker
+docker system df -v
+
+# Taille d'un volume spécifique
+du -sh /var/lib/docker/volumes/<project>_postgres_data/_data
+du -sh /var/lib/docker/volumes/<project>_media_volume/_data
+
+# Espace disque hôte
+df -h /var/lib/docker
+```
+
+**Seuils d'alerte recommandés**:
+- 🟢 < 70%: Normal
+- 🟡 70-85%: Avertissement (planifier nettoyage/extension)
+- 🟠 85-95%: Critique (action immédiate requise)
+- 🔴 > 95%: Urgence (risque de panne imminente)
+
+**Actions de nettoyage**:
+```bash
+# Supprimer examens archivés (> 2 ans) - AVEC BACKUP PRÉALABLE
+# Via interface admin Django ou script de nettoyage
+
+# Nettoyer images Docker inutilisées
+docker image prune -a
+
+# Nettoyer volumes orphelins (ATTENTION: vérifier avant)
+docker volume ls -qf dangling=true
+# docker volume rm $(docker volume ls -qf dangling=true)  # À faire avec précaution
+```
+
+### 6.9 Checklist Opérations Destructives (Procédure Sécurisée)
+
+**⚠️ AVERTISSEMENT MAJEUR**:  
+Les commandes avec `-v` ou `volume rm` détruisent **définitivement** les données.  
+**Aucune récupération possible** sans backup préalable.
+
+#### Checklist Pré-Opération (OBLIGATOIRE)
+
+**Avant TOUTE commande contenant** `-v`, `volume rm`, ou `volume prune`:
+
+1. **[ ] STOP - Vérifier l'intention**
+   - Question: "Cette opération doit-elle VRAIMENT supprimer les volumes ?"
+   - Réponse attendue: "OUI" uniquement pour recréation complète environnement (rare)
+   - Si doute: **NE PAS EXÉCUTER**
+
+2. **[ ] BACKUP - Créer sauvegarde complète**
+   ```bash
+   # Backup DB
+   ./scripts/backup_db.sh
+   
+   # Backup media
+   python manage.py backup --include-media --output-dir=backups/pre_destruction_$(date +%Y%m%d_%H%M%S)
+   ```
+
+3. **[ ] VERIFY - Valider l'intégrité des backups**
+   ```bash
+   # Test backup DB
+   gunzip -t backups/db_backup_*.sql.gz && echo "✅ DB backup OK"
+   
+   # Test backup media
+   unzip -t backups/*/media_backup_*.zip && echo "✅ Media backup OK"
+   
+   # Vérifier la taille (doit être > 0)
+   ls -lh backups/
+   ```
+
+4. **[ ] DOCUMENT - Enregistrer l'opération**
+   - Créer un ticket/incident
+   - Noter: Date, heure, responsable, raison, commande exacte
+   - Conserver référence backup utilisé
+
+5. **[ ] COMMUNICATE - Informer les parties prenantes**
+   - Avertir administrateurs/enseignants si en production
+   - Bloquer l'accès utilisateurs pendant l'opération
+   - Estimer durée d'indisponibilité
+
+6. **[ ] TEST - Tester sur environnement de staging**
+   - Exécuter la procédure sur un environnement de test d'abord
+   - Valider la restauration depuis backup
+   - Chronométrer l'opération
+
+7. **[ ] APPROVE - Obtenir autorisation**
+   - Pour production: Validation responsable technique + direction
+   - Pour staging: Validation équipe dev/ops
+
+#### Exécution de l'Opération Destructive
+
+**Template de commande sécurisée**:
+```bash
+# 1. Arrêter les services (SANS -v)
+docker compose -f infra/docker/docker-compose.prod.yml down
+
+# 2. (POINT DE NON-RETOUR) Supprimer les volumes
+docker volume rm <project>_postgres_data <project>_media_volume
+
+# 3. Recréer les volumes (vides)
+docker compose -f infra/docker/docker-compose.prod.yml up -d
+
+# 4. Restaurer depuis backup (voir runbook_backup_restore.md)
+python manage.py migrate
+python manage.py restore --backup-path=backups/korrigo_backup_YYYYMMDD_HHMMSS/
+```
+
+#### Checklist Post-Opération (VALIDATION)
+
+**Après toute destruction/restauration de volumes**:
+
+1. **[ ] VALIDATE - Services démarrés**
+   ```bash
+   docker compose ps  # Tous containers "Up"
+   ```
+
+2. **[ ] VALIDATE - Connexion DB**
+   ```bash
+   docker compose exec backend python manage.py dbshell
+   # Doit se connecter sans erreur
+   ```
+
+3. **[ ] VALIDATE - Intégrité données**
+   ```bash
+   # Compter les enregistrements (comparer avec pré-backup)
+   docker compose exec backend python manage.py shell -c "
+   from django.contrib.auth.models import User
+   print(f'Users: {User.objects.count()}')
+   "
+   ```
+
+4. **[ ] VALIDATE - Accès media**
+   ```bash
+   # Lister les fichiers media
+   docker compose exec backend ls -lh /app/media/
+   
+   # Tester un téléchargement (via curl ou navigateur)
+   curl -I http://localhost:8088/media/<test-file>.pdf
+   ```
+
+5. **[ ] VALIDATE - Smoke tests**
+   ```bash
+   ./scripts/smoke.sh
+   # Tous tests doivent passer (✅)
+   ```
+
+6. **[ ] VALIDATE - Authentification**
+   - Tester login utilisateur (admin + enseignant + élève)
+   - Vérifier permissions
+
+7. **[ ] VALIDATE - Fonctionnalités critiques**
+   - Créer un examen test
+   - Uploader un PDF test
+   - Annoter une copie test
+   - Exporter un CSV test
+
+8. **[ ] MONITOR - Surveiller logs (30 min)**
+   ```bash
+   docker compose logs -f --tail=100
+   # Vérifier absence d'erreurs critiques
+   ```
+
+9. **[ ] DOCUMENT - Clôturer incident**
+   - Noter résultat: succès/échec
+   - Documenter anomalies rencontrées
+   - Mettre à jour runbook si nécessaire
+
+#### Scripts d'Urgence (Destructeurs de Volumes)
+
+**⚠️ Ces scripts sont DANGEREUX - Usage restreint**:
+
+**Script**: `scripts/prod_down.sh`
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "WARNING: this will remove volumes (-v) and delete the local postgres data."
+docker compose -f infra/docker/docker-compose.prod.yml down -v
+```
+
+**Usage légitime**:
+- ✅ Environnement dev local (reset complet)
+- ✅ Environnement E2E (reset entre tests)
+- ❌ **JAMAIS en production** (sauf disaster recovery documenté)
+
+**Alternative sécurisée** (à privilégier):
+```bash
+# Arrêt sans suppression volumes
+docker compose -f infra/docker/docker-compose.prod.yml down
+
+# Redémarrage propre
+docker compose -f infra/docker/docker-compose.prod.yml up -d
+```
+
+#### Cas d'Usage Légitimes de Suppression Volumes
+
+**Scénario 1: Migration infrastructure**
+- Migration serveur physique vers cloud
+- Sauvegarde complète → Transfert fichiers → Recréation volumes → Restauration
+
+**Scénario 2: Corruption volume Docker**
+- Volume Docker corrompu (filesystem errors)
+- Sauvegarde de secours → Suppression volume → Recréation → Restauration
+
+**Scénario 3: Reset environnement test**
+- Environnement staging/E2E
+- Restauration depuis snapshot production pour tests
+
+**Scénario 4: Downgrade PostgreSQL (rare)**
+- Downgrade version PostgreSQL nécessitant recréation PGDATA
+- Dump logique (pg_dump) → Suppression → Nouvelle version → Restore
+
 ---
 
 ## 7. Plan d'Action Priorisé
