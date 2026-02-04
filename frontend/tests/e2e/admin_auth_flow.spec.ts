@@ -11,9 +11,9 @@ async function loginAsAdminUI(page: Page, username: string, password: string) {
     await page.goto('/admin/login');
     await expect(page.locator('.login-form')).toBeVisible();
 
-    await page.fill('input[type="email"]', username);
-    await page.fill('input[type="password"]', password);
-    await page.click('button[type="submit"]');
+    await page.fill('[data-testid="login.username"]', username);
+    await page.fill('[data-testid="login.password"]', password);
+    await page.click('[data-testid="login.submit"]');
 }
 
 /**
