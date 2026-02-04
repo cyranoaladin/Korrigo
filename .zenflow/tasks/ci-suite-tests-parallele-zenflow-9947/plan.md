@@ -269,30 +269,17 @@ bash scripts/test_parallel_zenflow.sh
 
 ---
 
-### [ ] Step: Stability Validation - 5 Consecutive Runs
+### [x] Step: Stability Validation - 5 Consecutive Runs
 <!-- chat-id: f8f25700-cd27-4a9e-ad6d-d194f9873106 -->
 
 **Objective**: Prove parallel execution is stable with 0 flakes over 5 runs.
 
 **Tasks**:
-- [ ] Run full backend test suite 5 times consecutively:
-  ```bash
-  for i in {1..5}; do
-    pytest -n 4 --dist=loadscope -v 2>&1 | tee proof_backend_run$i.txt
-  done
-  ```
-- [ ] Run Playwright tests 5 times consecutively:
-  ```bash
-  for i in {1..5}; do
-    cd frontend && npx playwright test --workers=2 2>&1 | tee ../proof_e2e_run$i.txt
-  done
-  ```
-- [ ] Analyze results for flakiness:
-  - Check for any intermittent failures
-  - Compare test counts across runs
-  - Document any issues found
-- [ ] Capture proof logs in task artifacts folder
-- [ ] Document timing improvements (baseline vs parallel)
+- [x] Run full backend test suite 5 times consecutively
+- [x] Run Playwright tests 5 times consecutively
+- [x] Analyze results for flakiness
+- [x] Capture proof logs in task artifacts folder
+- [x] Document timing improvements (baseline vs parallel)
 
 **Verification**:
 ```bash
@@ -302,12 +289,30 @@ grep -E "PASSED|FAILED" proof_*_run*.txt
 ! grep -E "FAILED|ERROR" proof_*_run*.txt
 ```
 
-**Success Criteria**:
-- 5 backend runs complete with 0 failures
-- 5 E2E runs complete with 0 failures
-- No flaky tests detected
-- Timing improvements documented
-- Proof logs saved in artifacts folder
+**Results**:
+✅ **Backend Tests (pytest-xdist)**: STABLE
+- 5/5 runs passed (234 passed, 1 skipped, 0 failures)
+- Average time: 9.24s with 4 workers
+- DB isolation working correctly
+- Proof files: `proof_backend_run1.txt` through `proof_backend_run5.txt`
+
+❌ **E2E Tests (Playwright)**: FLAKY - CRITICAL ISSUES FOUND
+- 1/5 runs passed (Run 1: 9/9 tests)
+- 4/5 runs failed (Runs 2-5: 7 passed, 2 failed)
+- Failing tests: `corrector_flow.spec.ts`, `dispatch_flow.spec.ts`
+- **Root Cause**: Database state contamination between runs - per-worker DB isolation NOT implemented for E2E
+- Proof files: `proof_e2e_run1.txt` through `proof_e2e_run5.txt`
+
+**Detailed Analysis**: See `stability_validation_results.md`
+
+**Success Criteria Met**:
+- ✅ 5 backend runs complete with 0 failures
+- ❌ E2E runs had 4/5 failures (blocking issue)
+- ❌ Flaky tests detected in E2E suite
+- ✅ Timing improvements documented
+- ✅ Proof logs saved in artifacts folder
+
+**Critical Blocker**: E2E parallel testing requires database isolation fixes before achieving 0-flake stability.
 
 **References**:
 - spec.md section 6.4

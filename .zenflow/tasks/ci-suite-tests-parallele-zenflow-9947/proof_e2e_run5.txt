@@ -1,0 +1,191 @@
+
+==> E2E Global Setup [main]: Starting initialization...
+  [main] ⚠️  E2E_TEST_MODE is not set to "true"
+  [main] ⚠️  Run tests via: bash tools/e2e.sh
+  [main] ⚠️  Or ensure Docker Compose + seed are ready
+  [main] Checking backend health at http://localhost:8088/api/health/...
+  [main] ✓ Backend health check passed (status: 200)
+  [main] ℹ️  Worker isolation: Each worker shares the same backend
+  [main] ℹ️  Per-worker database isolation: Placeholder for future implementation
+  [main] ✓ Environment validation complete
+
+
+Running 9 tests using 2 workers
+
+[browser] error Failed to load resource: the server responded with a status of 403 (Forbidden)
+[browser] error Failed to load resource: the server responded with a status of 403 (Forbidden)
+[browser] Failed to load resource: the server responded with a status of 403 (Forbidden)
+[browser] Failed to load resource: the server responded with a status of 403 (Forbidden)
+[api] [33m200[39m http://localhost:8088/api/copies/
+[api-body] {"count":5,"next":null,"previous":null,"results":[{"id":"39fe75c6-e2fe-4edd-b007-1c77b2ee9032","exam":"addeefb9-0c17-44c9-8d74-13a6abc83d3c","exam_name":"Gate 4 Exam","anonymous_id":"GATE4-GRADED","final_pdf":"http://localhost/media/copies/final/gate4_graded.pdf","final_pdf_url":"http://localhost/media/copies/final/gate4_graded.pdf","status":"GRADED","is_identified":true,"student":2,"booklet_ids":[],"assigned_corrector":null,"assigned_corrector_username":null,"dispatch_run_id":null,"assigned_at":null,"global_appreciation":null,"booklets":[]},{"id":"85ac3cda-3b01-44aa-8741-4f918f24e1f4","exam":"addeefb9-0c17-44c9-8d74-13a6abc83d3c","exam_name":"Gate 4 Exam","anonymous_id":"GATE4-LOCKED","final_pdf":null,"final_pdf_url":null,"status":"LOCKED","is_identified":true,"student":2,"booklet_ids":[]
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[url-after-click] http://localhost:8088/corrector/desk/c31d6e58-e72b-4e3d-bd1f-4bec663c12a4
+[api] [33m200[39m http://localhost:8088/api/copies/c31d6e58-e72b-4e3d-bd1f-4bec663c12a4/
+[api-body] {"id":"c31d6e58-e72b-4e3d-bd1f-4bec663c12a4","exam":"5e558e88-2dc2-4313-bea0-750167f0ed89","exam_name":"[E2E-SEED] Exam 20260204-122422","anonymous_id":"E2E-READY","final_pdf":null,"final_pdf_url":null,"status":"LOCKED","is_identified":false,"student":null,"booklet_ids":["9710b4c3-cc09-4b97-9f7c-e9c18706e82e"],"assigned_corrector":1,"assigned_corrector_username":"prof1","dispatch_run_id":"ef6f70f7-e9b9-4b41-8829-fc4526b44730","assigned_at":"2026-02-04T12:26:32.941572Z","global_appreciation":null,"booklets":[{"id":"9710b4c3-cc09-4b97-9f7c-e9c18706e82e","start_page":1,"end_page":1,"pages_images":["e2e/pages/e2e_page_1.png"],"header_image":null,"header_image_url":null,"student_name_guess":null}]}
+  ✓  2 [chromium] › tests/e2e/dispatch_flow.spec.ts:15:3 › Exam Copy Dispatch Flow › should disable dispatch button when no correctors assigned (1.2s)
+[browser] Failed to load resource: the server responded with a status of 403 (Forbidden)
+[browser] Failed to load resource: the server responded with a status of 403 (Forbidden)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+  ✓  3 [chromium] › tests/e2e/dispatch_flow.spec.ts:29:3 › Exam Copy Dispatch Flow › should show dispatch confirmation modal (1.2s)
+[browser] Failed to load resource: the server responded with a status of 403 (Forbidden)
+[browser] Failed to load resource: the server responded with a status of 403 (Forbidden)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+  ✘  4 [chromium] › tests/e2e/dispatch_flow.spec.ts:52:3 › Exam Copy Dispatch Flow › should complete dispatch and show results (1.2s)
+[browser] Failed to load resource: the server responded with a status of 403 (Forbidden)
+[browser] Failed to load resource: the server responded with a status of 403 (Forbidden)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+  ✓  5 [chromium] › tests/e2e/dispatch_flow.spec.ts:99:3 › Exam Copy Dispatch Flow › should show dispatch run ID for traceability (1.5s)
+  ✘  1 [chromium] › tests/e2e/corrector_flow.spec.ts:7:5 › Corrector Flow & Robustness › Full Corrector Cycle: Login -> Lock -> Annotate -> Autosave -> Refresh -> Restore (6.1s)
+[browser] Failed to load resource: the server responded with a status of 403 (Forbidden)
+[browser] Failed to load resource: the server responded with a status of 403 (Forbidden)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[nav] http://localhost:8088/student/login
+[nav] http://localhost:8088/student/login
+[browser] error Failed to load resource: the server responded with a status of 403 (Forbidden)
+[nav] http://localhost:8088/student/login
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam [E2E-SEED] Exam 20260204-122422: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+[browser] Exam Gate 4 Exam: Correctors= Proxy(Array)
+  ✓  6 [chromium] › tests/e2e/dispatch_flow.spec.ts:122:3 › Exam Copy Dispatch Flow › should handle dispatch with no unassigned copies gracefully (2.4s)
+[nav] http://localhost:8088/student/login
+[nav] http://localhost:8088/student-portal
+  ✓  7 [chromium] › tests/e2e/student_flow.spec.ts:5:5 › Student Flow (Mission 17) › Full Student Cycle: Login -> List -> PDF accessible (3.1s)
+  ✓  8 [chromium] › tests/e2e/student_flow.spec.ts:91:5 › Student Flow (Mission 17) › Security: Student cannot access another student's PDF (403) (1.9s)
+  ✓  9 [chromium] › tests/e2e/student_flow.spec.ts:138:5 › Student Flow (Mission 17) › Security: LOCKED copies are not visible in student list (475ms)
+
+
+  1) [chromium] › tests/e2e/corrector_flow.spec.ts:7:5 › Corrector Flow & Robustness › Full Corrector Cycle: Login -> Lock -> Annotate -> Autosave -> Refresh -> Restore 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('editor-panel')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByTestId('editor-panel')[22m
+
+
+      75 |
+      76 |         // Check Editor opens
+    > 77 |         await expect(page.getByTestId('editor-panel')).toBeVisible();
+         |                                                        ^
+      78 |
+      79 |         // Fill content
+      80 |         await page.fill('textarea', 'Test E2E Annotation');
+        at /home/alaeddine/.zenflow/worktrees/ci-suite-tests-parallele-zenflow-9947/frontend/tests/e2e/corrector_flow.spec.ts:77:56
+
+    Error Context: test-results/corrector_flow-Corrector-F-e503d-utosave---Refresh---Restore-chromium/error-context.md
+
+  2) [chromium] › tests/e2e/dispatch_flow.spec.ts:52:3 › Exam Copy Dispatch Flow › should complete dispatch and show results 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m0[39m
+    Received:   [31m0[39m
+
+      73 |
+      74 |       const copiesAssigned = await page.locator('.result-item:has-text("Copies assignées") .result-value').textContent();
+    > 75 |       expect(parseInt(copiesAssigned || '0')).toBeGreaterThan(0);
+         |                                               ^
+      76 |
+      77 |       const correctorsCount = await page.locator('.result-item:has-text("Nombre de correcteurs") .result-value').textContent();
+      78 |       expect(parseInt(correctorsCount || '0')).toBeGreaterThan(0);
+        at /home/alaeddine/.zenflow/worktrees/ci-suite-tests-parallele-zenflow-9947/frontend/tests/e2e/dispatch_flow.spec.ts:75:47
+
+    Error Context: test-results/dispatch_flow-Exam-Copy-Di-e0678-e-dispatch-and-show-results-chromium/error-context.md
+
+  2 failed
+    [chromium] › tests/e2e/corrector_flow.spec.ts:7:5 › Corrector Flow & Robustness › Full Corrector Cycle: Login -> Lock -> Annotate -> Autosave -> Refresh -> Restore 
+    [chromium] › tests/e2e/dispatch_flow.spec.ts:52:3 › Exam Copy Dispatch Flow › should complete dispatch and show results 
+  7 passed (11.5s)
