@@ -26,8 +26,8 @@ def seed_gate4(student_email=None, student_lastname=None):
     student, created = Student.objects.get_or_create(
         email=student_email,
         defaults={
-            "first_name": "Jean",
-            "last_name": student_lastname,
+            "full_name": f"{student_lastname} Jean",
+            "date_of_birth": "2008-01-15",
             "class_name": "TG2",
         }
     )
