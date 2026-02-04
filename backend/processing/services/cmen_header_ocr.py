@@ -78,11 +78,20 @@ class CMENHeaderOCR:
     et fait correspondre avec la liste des élèves du CSV.
     """
     
-    # Régions approximatives de l'en-tête (en % de la largeur/hauteur)
+    # Régions de l'en-tête CMEN v2 (en % de la largeur/hauteur de l'en-tête)
+    # Calibré pour le format CMEN v2 ONEOPTEC avec cases individuelles
+    # L'en-tête fait environ 25% de la hauteur de la page A4
+    # Structure:
+    #   - Ligne 1 (0-33%): "Nom de famille :" + cases
+    #   - Ligne 2 (33-66%): "Prénom(s) :" + cases  
+    #   - Ligne 3 (66-100%): "Numéro Inscription :" (gauche) + "Né(e) le :" (droite)
     REGIONS = {
-        'last_name': {'y_start': 0.05, 'y_end': 0.25, 'x_start': 0.25, 'x_end': 0.95},
-        'first_name': {'y_start': 0.25, 'y_end': 0.45, 'x_start': 0.15, 'x_end': 0.95},
-        'date_of_birth': {'y_start': 0.45, 'y_end': 0.65, 'x_start': 0.55, 'x_end': 0.95},
+        # Nom: après le label "Nom de famille :" jusqu'à la fin des cases
+        'last_name': {'y_start': 0.0, 'y_end': 0.33, 'x_start': 0.22, 'x_end': 0.98},
+        # Prénom: après le label "Prénom(s) :" jusqu'à la fin des cases
+        'first_name': {'y_start': 0.33, 'y_end': 0.55, 'x_start': 0.18, 'x_end': 0.98},
+        # Date de naissance: partie droite de la ligne 3, après "Né(e) le :"
+        'date_of_birth': {'y_start': 0.55, 'y_end': 0.75, 'x_start': 0.55, 'x_end': 0.98},
     }
     
     def __init__(self, debug: bool = False):
@@ -122,7 +131,12 @@ class CMENHeaderOCR:
     
     def preprocess_image(self, image: np.ndarray) -> List[np.ndarray]:
         """
-        Prétraitement de l'image avec plusieurs variantes.
+        Prétraitement de l'image avec plusieurs variantes optimisées pour CMEN v2.
+        
+        Les cases CMEN ont des caractéristiques spécifiques:
+        - Fond blanc/gris clair avec grille bleue
+        - Écriture manuscrite en bleu foncé ou noir
+        - Cases individuelles alignées horizontalement
         
         Returns:
             Liste d'images prétraitées pour améliorer l'OCR.
@@ -135,29 +149,45 @@ class CMENHeaderOCR:
         else:
             gray = image.copy()
         
-        # Variante 1: Image originale en gris
-        variants.append(gray)
+        # Redimensionner si l'image est trop petite (améliore l'OCR)
+        h, w = gray.shape[:2]
+        if h < 50:
+            scale = 100 / h
+            gray = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
         
-        # Variante 2: Binarisation Otsu
+        # Variante 1: Binarisation Otsu (bon pour contraste élevé)
         _, binary_otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         variants.append(binary_otsu)
         
-        # Variante 3: Binarisation adaptative
+        # Variante 2: Binarisation adaptative (meilleur pour éclairage inégal)
         binary_adaptive = cv2.adaptiveThreshold(
-            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
+            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 5
         )
         variants.append(binary_adaptive)
         
-        # Variante 4: Débruitage + Otsu
+        # Variante 3: Débruitage + Otsu (réduit le bruit de scan)
         denoised = cv2.fastNlMeansDenoising(gray, None, 10, 7, 21)
         _, binary_denoised = cv2.threshold(denoised, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         variants.append(binary_denoised)
         
-        # Variante 5: Contraste amélioré (CLAHE)
+        # Variante 4: CLAHE + Otsu (améliore le contraste local)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(gray)
         _, binary_enhanced = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         variants.append(binary_enhanced)
+        
+        # Variante 5: Morphologie pour nettoyer les lignes de grille
+        # Dilater puis éroder pour supprimer les lignes fines (grille bleue)
+        kernel_v = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 3))
+        kernel_h = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 1))
+        morph = cv2.morphologyEx(binary_otsu, cv2.MORPH_CLOSE, kernel_v)
+        morph = cv2.morphologyEx(morph, cv2.MORPH_CLOSE, kernel_h)
+        variants.append(morph)
+        
+        # Variante 6: Inversion si le texte est clair sur fond sombre
+        # (certains scans peuvent avoir un contraste inversé)
+        inverted = cv2.bitwise_not(binary_otsu)
+        variants.append(inverted)
         
         return variants
     
@@ -182,19 +212,31 @@ class CMENHeaderOCR:
         
         return image[y1:y2, x1:x2]
     
-    def ocr_with_tesseract(self, image: np.ndarray, config: str = '') -> Tuple[str, float]:
-        """OCR avec Tesseract."""
+    def ocr_with_tesseract(self, image: np.ndarray, config: str = '', field_type: str = 'name') -> Tuple[str, float]:
+        """OCR avec Tesseract optimisé pour les cases CMEN."""
         if not self._tesseract_available:
             return '', 0.0
         
         try:
             import pytesseract
             
-            # Configuration pour écriture manuscrite
-            custom_config = f'--oem 3 --psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/ {config}'
+            # Configuration optimisée pour les cases individuelles CMEN v2
+            # PSM 6: Assume a single uniform block of text (meilleur pour les cases alignées)
+            # PSM 7: Treat the image as a single text line (alternative)
+            # PSM 13: Raw line. Treat the image as a single text line, bypassing hacks
+            if field_type == 'date':
+                # Pour les dates: chiffres et séparateurs uniquement
+                whitelist = '0123456789/'
+                psm = 7  # Single line
+            else:
+                # Pour les noms: lettres majuscules uniquement (format CMEN)
+                whitelist = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                psm = 6  # Uniform block (cases alignées)
+            
+            custom_config = f'--oem 3 --psm {psm} -c tessedit_char_whitelist={whitelist} {config}'
             
             # Obtenir le texte avec données détaillées
-            data = pytesseract.image_to_data(image, config=custom_config, output_type=pytesseract.Output.DICT)
+            data = pytesseract.image_to_data(image, lang='fra', config=custom_config, output_type=pytesseract.Output.DICT)
             
             texts = []
             confidences = []
@@ -289,9 +331,12 @@ class CMENHeaderOCR:
         # Collecter les résultats de tous les moteurs sur toutes les variantes
         all_results = []
         
+        # Déterminer le type de champ pour Tesseract
+        field_type = 'date' if field_name == 'date_of_birth' else 'name'
+        
         for variant_idx, variant in enumerate(variants):
-            # Tesseract
-            text, conf = self.ocr_with_tesseract(variant)
+            # Tesseract avec configuration adaptée au type de champ
+            text, conf = self.ocr_with_tesseract(variant, field_type=field_type)
             if text:
                 all_results.append({'text': text, 'confidence': conf, 'engine': 'tesseract', 'variant': variant_idx})
             
