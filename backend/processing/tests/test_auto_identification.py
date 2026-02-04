@@ -212,10 +212,10 @@ class TestCopyUniqueness:
         except TypeError:
             # Alternative model structure
             student = Student.objects.create(
-                first_name='Jean',
-                last_name='DUPONT',
+                full_name='DUPONT Jean',
+                date_of_birth='2008-01-15',
                 email='jean.dupont@test.com',
-                ine='0000000001'
+                class_name='TG2'
             )
         
         # Create first copy
