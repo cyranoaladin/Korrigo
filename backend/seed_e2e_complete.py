@@ -110,16 +110,16 @@ def seed_e2e_complete():
         print("\n[3/5] Creating students...")
         
         # Primary E2E student: e2e.student@test.com / E2E_STUDENT
-        # Note: Student model uses first_name + last_name, login checks last_name
+        # Note: Student model uses full_name, login checks last_name (property)
         student1, created = Student.objects.get_or_create(
             email='e2e.student@test.com',
             defaults={
-                'first_name': 'Test',
-                'last_name': 'E2E_STUDENT',
+                'full_name': 'E2E_STUDENT Test',
+                'date_of_birth': '2008-01-15',
                 'class_name': '3A'
             }
         )
-        student1_name = f"{student1.first_name} {student1.last_name}"
+        student1_name = student1.full_name
         result['students']['student1'] = {'id': student1.id, 'email': student1.email, 'name': student1_name}
         print(f"  ✓ Student1: {student1.email} / {student1_name} (id={student1.id})")
         
@@ -127,12 +127,12 @@ def seed_e2e_complete():
         student2, created = Student.objects.get_or_create(
             email='other.student@test.com',
             defaults={
-                'first_name': 'Test',
-                'last_name': 'OTHER_STUDENT',
+                'full_name': 'OTHER_STUDENT Test',
+                'date_of_birth': '2008-02-20',
                 'class_name': '3B'
             }
         )
-        student2_name = f"{student2.first_name} {student2.last_name}"
+        student2_name = student2.full_name
         result['students']['student2'] = {'id': student2.id, 'email': student2.email, 'name': student2_name}
         print(f"  ✓ Student2: {student2.email} / {student2_name} (id={student2.id})")
         

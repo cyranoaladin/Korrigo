@@ -370,10 +370,10 @@ class AutoIdentificationService:
             if student:
                 return student
         
-        # Try by name
+        # Try by full_name (Student model uses full_name field, not first_name/last_name)
+        full_name = f"{match.last_name} {match.first_name}".strip()
         student = Student.objects.filter(
-            last_name__iexact=match.last_name,
-            first_name__iexact=match.first_name
+            full_name__iexact=full_name
         ).first()
         
         return student

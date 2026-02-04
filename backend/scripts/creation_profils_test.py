@@ -42,13 +42,13 @@ def run():
     student, created = Student.objects.get_or_create(
         email="jean.dupont@test.com",
         defaults={
-            "first_name": "Jean",
-            "last_name": "DUPONT",
+            "full_name": "DUPONT Jean",
+            "date_of_birth": "2008-01-15",
             "class_name": "TG2",
         }
     )
     if created:
-        print(f"✅ Élève créé: {student.first_name} {student.last_name} (Email: {student.email})")
+        print(f"✅ Élève créé: {student.full_name} (Email: {student.email})")
     else:
         print(f"ℹ️ Élève existe déjà: {student.email}")
 

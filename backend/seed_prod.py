@@ -150,13 +150,13 @@ def seed_prod():
         student, created = Student.objects.get_or_create(
             email=f'eleve{i}@viatique.local',
             defaults={
-                'first_name': f'Élève{i}',
-                'last_name': f'Dupont{i}',
+                'full_name': f'Dupont{i} Élève{i}',
+                'date_of_birth': f'2008-01-{i:02d}',
                 'class_name': 'Terminale S',
             }
         )
         if created:
-            print(f"  ✓ Created student: {student.email} - {student.first_name} {student.last_name}")
+            print(f"  ✓ Created student: {student.email} - {student.full_name}")
         else:
             print(f"  ↻ Student already exists: {student.email}")
         students.append(student)
