@@ -77,12 +77,18 @@ from grading.models import GradingEvent
 
 class ManualIdentifyView(APIView):
     """
-    Endpoint pour identifier une copie manuellement (sans OCR)
+    Endpoint pour identifier une copie manuellement (sans OCR).
+    
+    PRD-19: Utilise CopyIdentificationService pour garantir:
+    - Un seul Copy identifié par (exam, student)
+    - Fusion automatique si doublon détecté
+    - Race-condition safe via select_for_update
     """
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
 
     def post(self, request, copy_id):
-        copy = get_object_or_404(Copy, id=copy_id)
+        from identification.services import CopyIdentificationService
+        
         student_id = request.data.get('student_id')
 
         if not student_id:
@@ -91,66 +97,41 @@ class ManualIdentifyView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            student = Student.objects.get(id=student_id)
-        except Student.DoesNotExist:
+            result = CopyIdentificationService.identify_copy(
+                copy_id=copy_id,
+                student_id=student_id,
+                user=request.user,
+                method='manual_identification'
+            )
+            
             return Response({
-                'error': 'Élève non trouvé'
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        # Vérifier que la copie est dans l'état approprié pour identification
-        # IMPORTANT: Seules les copies READY ou LOCKED peuvent être identifiées
-        # Les copies STAGING doivent d'abord passer par l'agrafage (MergeBookletsView)
-        allowed_statuses = [Copy.Status.READY, Copy.Status.LOCKED]
-        if copy.status not in allowed_statuses:
-            if copy.status == Copy.Status.STAGING:
-                return Response({
-                    'error': 'Cette copie est en statut STAGING. Elle doit d\'abord être agrafée avant identification.'
-                }, status=status.HTTP_400_BAD_REQUEST)
+                'message': result['message'],
+                'copy_id': result['copy_id'],
+                'student_name': result['student_name'],
+                'merged': result['merged'],
+                'merged_from': result.get('merged_from')
+            })
+            
+        except ValueError as e:
             return Response({
-                'error': f'Impossible d\'identifier une copie en statut {copy.status}'
+                'error': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Associer la copie à l'élève
-        copy.student = student
-        copy.is_identified = True
-        
-        # Mettre à jour validated_at si pas déjà défini
-        if not copy.validated_at:
-            copy.validated_at = timezone.now()
-
-        copy.save()
-
-        # Créer un événement d'audit
-        GradingEvent.objects.create(
-            copy=copy,
-            action=GradingEvent.Action.VALIDATE,  # Using existing action for identification
-            actor=request.user if request.user.is_authenticated else None,
-            metadata={
-                'student_id': str(student.id),
-                'student_name': student.full_name,
-                'method': 'manual_identification'
-            }
-        )
-
-        return Response({
-            'message': 'Copie identifiée avec succès',
-            'copy_id': copy.id,
-            'student_name': student.full_name,
-            'new_status': copy.status
-        })
 
 
 class OCRIdentifyView(APIView):
     """
     Endpoint pour identifier une copie via OCR + validation humaine.
     
-    IMPORTANT: Seules les copies READY peuvent être identifiées.
-    Les copies STAGING doivent d'abord passer par l'agrafage.
+    PRD-19: Utilise CopyIdentificationService pour garantir:
+    - Un seul Copy identifié par (exam, student)
+    - Fusion automatique si doublon détecté
+    - Race-condition safe via select_for_update
     """
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
 
     def post(self, request, copy_id):
-        copy = get_object_or_404(Copy, id=copy_id)
+        from identification.services import CopyIdentificationService
+        
         student_id = request.data.get('student_id')
 
         if not student_id:
@@ -158,48 +139,26 @@ class OCRIdentifyView(APIView):
                 'error': 'student_id requis'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Vérifier le statut de la copie
-        allowed_statuses = [Copy.Status.READY, Copy.Status.LOCKED]
-        if copy.status not in allowed_statuses:
-            if copy.status == Copy.Status.STAGING:
-                return Response({
-                    'error': 'Cette copie est en statut STAGING. Elle doit d\'abord être agrafée avant identification.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            return Response({
-                'error': f'Impossible d\'identifier une copie en statut {copy.status}'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
         try:
-            student = Student.objects.get(id=student_id)
-        except Student.DoesNotExist:
+            result = CopyIdentificationService.identify_copy(
+                copy_id=copy_id,
+                student_id=student_id,
+                user=request.user,
+                method='ocr_assisted_identification'
+            )
+            
             return Response({
-                'error': 'Élève non trouvé'
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        # Associer la copie à l'élève
-        copy.student = student
-        copy.is_identified = True
-        if not copy.validated_at:
-            copy.validated_at = timezone.now()
-        copy.save()
-
-        # Créer un événement d'audit OCR
-        GradingEvent.objects.create(
-            copy=copy,
-            action=GradingEvent.Action.VALIDATE,
-            actor=request.user if request.user.is_authenticated else None,
-            metadata={
-                'student_id': str(student.id),
-                'student_name': student.full_name,
-                'method': 'ocr_assisted_identification'
-            }
-        )
-
-        return Response({
-            'message': 'Copie identifiée avec succès',
-            'copy_id': str(copy.id),
-            'student_name': student.full_name
-        })
+                'message': result['message'],
+                'copy_id': result['copy_id'],
+                'student_name': result['student_name'],
+                'merged': result['merged'],
+                'merged_from': result.get('merged_from')
+            })
+            
+        except ValueError as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class OCRPerformView(APIView):
