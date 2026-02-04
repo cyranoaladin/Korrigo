@@ -242,25 +242,37 @@ python -m py_compile backend/grading/services.py
 # Exit code: 0 ✓
 ```
 
-### [ ] Step: Add Copy Status Gauge Updater
+### [x] Step: Add Copy Status Gauge Updater
+<!-- chat-id: 9a9959c9-afa0-43a7-a071-56ad7b838775 -->
 
 **Objective**: Track workflow backlog by monitoring copy counts per status
 
 **Tasks**:
-- [ ] Implement periodic Celery task to update `grading_copies_by_status` gauge
-- [ ] Query `Copy.objects.values('status').annotate(count=Count('id'))`
-- [ ] Update gauge for each status (STAGING, READY, LOCKED, etc.)
-- [ ] Schedule task to run every 60 seconds
-- [ ] Alternative: Update gauge on state transitions (if preferred)
+- [x] Implement periodic Celery task to update `grading_copies_by_status` gauge
+- [x] Query `Copy.objects.values('status').annotate(count=Count('id'))`
+- [x] Update gauge for each status (STAGING, READY, LOCKED, etc.)
+- [x] Schedule task to run every 60 seconds
+- [x] Alternative: Update gauge on state transitions (if preferred)
 
 **References**:
 - Spec: Section 5 Phase 2
 - Requirements: REQ-2.5 (Copy Status Gauge)
 
+**Findings**:
+- Created `update_copy_status_metrics()` task in `backend/grading/tasks.py:190-223`
+- Task queries all Copy status counts using Django ORM aggregation
+- Updates `grading_copies_by_status` gauge for all statuses (STAGING, READY, LOCKED, GRADING_IN_PROGRESS, GRADING_FAILED, GRADED)
+- Configured Celery Beat schedule in `backend/core/celery.py:19-25` to run every 60 seconds
+- Error handling ensures metrics failures don't break monitoring
+
 **Verification**:
 ```bash
 # Check gauge updates by scraping metrics
 curl http://localhost:8088/metrics | grep grading_copies_by_status
+# Syntax check passed
+python -m py_compile backend/grading/tasks.py
+python -m py_compile backend/core/celery.py
+# Exit code: 0 ✓
 ```
 
 ### [ ] Step: Add Request Correlation to Celery Tasks
