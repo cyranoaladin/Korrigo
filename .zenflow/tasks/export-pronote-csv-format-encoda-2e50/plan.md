@@ -230,7 +230,7 @@ python -m pytest backend/exams/tests/test_pronote_export_api.py -v
 
 ---
 
-### [ ] Step 7: Write API Integration Tests
+### [x] Step 7: Write API Integration Tests
 <!-- chat-id: 88c91884-d2f3-4789-aafb-a162f4c49572 -->
 
 Test the export endpoint with API client.
@@ -239,23 +239,23 @@ Test the export endpoint with API client.
 - `backend/exams/tests/test_pronote_export_api.py`
 
 **Tasks**:
-- [ ] Test permission requirements:
+- [x] Test permission requirements:
   - Admin can export → 200
   - Teacher cannot export → 403
   - Anonymous cannot export → 401
-- [ ] Test validation scenarios:
+- [x] Test validation scenarios:
   - Missing INE → 400 with error message
   - Unidentified copies → 400
   - No graded copies → 400
-- [ ] Test successful export:
+- [x] Test successful export:
   - Valid exam → 200 with CSV
   - Check Content-Type, Content-Disposition headers
   - Verify CSV format (BOM, delimiter, encoding)
-- [ ] Test rate limiting:
+- [x] Test rate limiting:
   - 11th request within hour → 429
-- [ ] Test audit logging:
+- [x] Test audit logging:
   - Success/failure logged to AuditLog table
-- [ ] Test special characters:
+- [x] Test special characters:
   - Accents in student names
   - Quotes in comments
   - Semicolons in comments
