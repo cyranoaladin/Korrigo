@@ -200,29 +200,15 @@ class PronoteExporter:
         Raises:
             ValueError: If no grade data available
         """
-        raw_score = None
-        
-        # Strategy 1: Use Score model if available
-        score_obj = copy.scores.first()
-        if score_obj and score_obj.scores_data:
-            # Sum all scores from scores_data JSON
-            raw_score = sum(
-                float(v) for v in score_obj.scores_data.values() 
-                if v is not None and v != ''
-            )
-        
-        # Strategy 2: Fall back to annotations
-        if raw_score is None:
-            annotations = copy.annotations.filter(score_delta__isnull=False)
-            if annotations.exists():
-                raw_score = sum(
-                    ann.score_delta for ann in annotations 
-                    if ann.score_delta is not None
-                )
-        
-        # If still no score, raise error
-        if raw_score is None:
+        # Calculate grade from annotations
+        annotations = copy.annotations.filter(score_delta__isnull=False)
+        if not annotations.exists():
             raise ValueError(f"No grade data found for copy {copy.anonymous_id}")
+        
+        raw_score = sum(
+            ann.score_delta for ann in annotations 
+            if ann.score_delta is not None
+        )
         
         # Get max score from exam structure
         max_score = self._calculate_max_score(self.exam.grading_structure)
@@ -351,7 +337,7 @@ class PronoteExporter:
             exam=self.exam,
             status=Copy.Status.GRADED,
             is_identified=True
-        ).select_related('student').prefetch_related('annotations', 'scores')
+        ).select_related('student').prefetch_related('annotations')
         
         # Generate rows
         for copy in copies:
