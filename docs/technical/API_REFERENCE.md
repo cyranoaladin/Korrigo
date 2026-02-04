@@ -1,7 +1,7 @@
 # API Reference - Korrigo PMF
 
-> **Version**: 1.3.0
-> **Date**: 26 Janvier 2026  
+> **Version**: 1.4.0
+> **Date**: 1 Février 2026  
 > **Base URL**: `http://localhost:8088/api/` (dev) | `https://viatique.example.com/api/` (prod)
 
 Documentation complète de l'API REST de la plateforme Korrigo PMF.
@@ -799,6 +799,8 @@ POST /api/students/login/
 Content-Type: application/json
 ```
 
+**Permissions**: `AllowAny` (public endpoint)
+
 **Payload**:
 ```json
 {
@@ -807,19 +809,41 @@ Content-Type: application/json
 }
 ```
 
+**Validations**:
+- `ine`: Requis, 11 caractères (case-insensitive)
+- `birth_date`: Requis, format ISO 8601 (YYYY-MM-DD)
+  - Plage valide: 1990-01-01 à (date_actuelle - 10 ans)
+  - Exemples valides: `2005-03-15`, `2004-12-25`
+  - Exemples invalides: `15/03/2005`, `2005/03/15`, `15-03-2005`
+
 **Response** (200 OK):
 ```json
 {
-  "student": {
-    "id": 123,
-    "first_name": "Jean",
-    "last_name": "Dupont",
-    "class_name": "TG2"
-  }
+  "message": "Login successful",
+  "role": "Student"
 }
 ```
 
-**Session**: `student_id` stocké dans session Django
+**Response** (401 Unauthorized):
+```json
+{
+  "error": "Identifiants invalides."
+}
+```
+
+**Response** (429 Too Many Requests):
+```json
+{
+  "error": "Trop de tentatives. Réessayez dans 15 minutes."
+}
+```
+
+**Session**: `student_id` et `role='Student'` stockés dans session Django
+
+**Sécurité**:
+- Rate limiting: 5 tentatives par 15 minutes (composite key: IP + INE)
+- Messages d'erreur génériques (prévention user enumeration)
+- Audit logging: tous les succès/échecs enregistrés
 
 ---
 
@@ -862,6 +886,7 @@ Content-Type: application/json
 | Endpoint | Limite | Fenêtre |
 |----------|--------|---------|
 | `POST /api/auth/login/` | 5 requêtes | 5 minutes |
+| `POST /api/students/login/` | 5 requêtes | 15 minutes (par IP + INE) |
 | `POST /api/exams/upload/` | 10 requêtes | 1 heure |
 | Autres endpoints | 100 requêtes | 1 minute |
 
