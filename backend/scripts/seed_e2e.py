@@ -215,6 +215,16 @@ def main():
     """Seed principal - idempotent et déterministe."""
     teacher = ensure_teacher()
     ensure_admin()
+    
+    # Test admin with must_change_password for E2E tests
+    test_admin = ensure_admin(
+        username="test_admin_password_change",
+        password="initialpass123",
+        email="test_admin@e2e.local"
+    )
+    test_admin.must_change_password = True
+    test_admin.save()
+    print(f"  ✓ Test admin created with must_change_password=True")
 
     # Clean up old seed data to ensure fresh state
     # Note: Exam.delete() cascade vers Booklet via FK on_delete=CASCADE
