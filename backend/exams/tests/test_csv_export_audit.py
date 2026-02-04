@@ -99,8 +99,9 @@ def setup_exam_with_copies(db):
 class TestCSVExportPermissions:
     """Test CSV export is admin-only."""
 
-    def test_admin_can_export_csv(self, setup_admin_and_teacher, setup_exam_with_copies):
+    def test_admin_can_export_csv(self, setup_admin_and_teacher, setup_exam_with_copies, settings):
         """Admin should be able to export CSV."""
+        settings.SECURE_SSL_REDIRECT = False  # Disable HTTPS redirect for tests
         admin, _ = setup_admin_and_teacher
         exam, _, _ = setup_exam_with_copies
         
@@ -112,8 +113,9 @@ class TestCSVExportPermissions:
         assert response.status_code == 200
         assert 'text/csv' in response['Content-Type']
 
-    def test_teacher_cannot_export_csv(self, setup_admin_and_teacher, setup_exam_with_copies):
+    def test_teacher_cannot_export_csv(self, setup_admin_and_teacher, setup_exam_with_copies, settings):
         """Teacher should not be able to export CSV."""
+        settings.SECURE_SSL_REDIRECT = False
         _, teacher = setup_admin_and_teacher
         exam, _, _ = setup_exam_with_copies
         
@@ -124,8 +126,9 @@ class TestCSVExportPermissions:
         
         assert response.status_code == 403
 
-    def test_unauthenticated_cannot_export_csv(self, setup_exam_with_copies):
+    def test_unauthenticated_cannot_export_csv(self, setup_exam_with_copies, settings):
         """Unauthenticated user should not be able to export CSV."""
+        settings.SECURE_SSL_REDIRECT = False
         exam, _, _ = setup_exam_with_copies
         
         client = APIClient()
@@ -139,8 +142,9 @@ class TestCSVExportPermissions:
 class TestCSVExportFormat:
     """Test CSV format compliance."""
 
-    def test_csv_has_correct_content_type(self, setup_admin_and_teacher, setup_exam_with_copies):
+    def test_csv_has_correct_content_type(self, setup_admin_and_teacher, setup_exam_with_copies, settings):
         """CSV response should have correct content type."""
+        settings.SECURE_SSL_REDIRECT = False
         admin, _ = setup_admin_and_teacher
         exam, _, _ = setup_exam_with_copies
         
@@ -152,8 +156,9 @@ class TestCSVExportFormat:
         assert 'text/csv' in response['Content-Type']
         assert 'attachment' in response['Content-Disposition']
 
-    def test_csv_has_header_row(self, setup_admin_and_teacher, setup_exam_with_copies):
+    def test_csv_has_header_row(self, setup_admin_and_teacher, setup_exam_with_copies, settings):
         """CSV should have a header row."""
+        settings.SECURE_SSL_REDIRECT = False
         admin, _ = setup_admin_and_teacher
         exam, _, _ = setup_exam_with_copies
         
@@ -162,15 +167,17 @@ class TestCSVExportFormat:
         
         response = client.get(f"/api/exams/{exam.id}/export-csv/")
         
-        content = response.content.decode('utf-8')
+        content = response.content.decode('utf-8-sig')  # Handle BOM
         lines = content.strip().split('\n')
         
         assert len(lines) >= 1
         header = lines[0]
-        assert 'AnonymousID' in header or 'INE' in header
+        # PRD-19: Updated header format
+        assert 'Anonymat' in header or 'AnonymousID' in header or 'INE' in header
 
-    def test_csv_encoding_utf8(self, setup_admin_and_teacher, setup_exam_with_copies):
+    def test_csv_encoding_utf8(self, setup_admin_and_teacher, setup_exam_with_copies, settings):
         """CSV should be UTF-8 encoded."""
+        settings.SECURE_SSL_REDIRECT = False
         admin, _ = setup_admin_and_teacher
         exam, _, _ = setup_exam_with_copies
         
@@ -179,9 +186,9 @@ class TestCSVExportFormat:
         
         response = client.get(f"/api/exams/{exam.id}/export-csv/")
         
-        # Should decode without errors
+        # Should decode without errors (with BOM support)
         try:
-            content = response.content.decode('utf-8')
+            content = response.content.decode('utf-8-sig')
             assert True
         except UnicodeDecodeError:
             pytest.fail("CSV is not valid UTF-8")
@@ -284,8 +291,9 @@ class TestCSVDataLeakage:
 class TestCSVExportEdgeCases:
     """Test CSV export edge cases."""
 
-    def test_export_empty_exam(self, setup_admin_and_teacher, db):
+    def test_export_empty_exam(self, setup_admin_and_teacher, db, settings):
         """Export of exam with no copies should work."""
+        settings.SECURE_SSL_REDIRECT = False
         admin, _ = setup_admin_and_teacher
         
         exam = Exam.objects.create(name="Empty Exam", date="2026-01-31")
@@ -296,14 +304,15 @@ class TestCSVExportEdgeCases:
         response = client.get(f"/api/exams/{exam.id}/export-csv/")
         
         assert response.status_code == 200
-        content = response.content.decode('utf-8')
+        content = response.content.decode('utf-8-sig')
         lines = content.strip().split('\n')
         
         # Should have at least header
         assert len(lines) >= 1
 
-    def test_export_nonexistent_exam_returns_404(self, setup_admin_and_teacher):
+    def test_export_nonexistent_exam_returns_404(self, setup_admin_and_teacher, settings):
         """Export of nonexistent exam should return 404."""
+        settings.SECURE_SSL_REDIRECT = False
         admin, _ = setup_admin_and_teacher
         
         client = APIClient()
