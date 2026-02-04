@@ -138,12 +138,16 @@ def ensure_admin(username=None, password=None, email="alaeddine.benrhouma@ert.tn
     username = username or E2E_ADMIN_USERNAME
     password = password or E2E_ADMIN_PASSWORD
 
-    # Ensure Admin exists for e2e tests
-    u, created = User.objects.get_or_create(
-        email=email,
-        defaults={"username": username}
-    )
-    u.username = username
+    # Ensure Admin exists for e2e tests - use username as primary identifier
+    try:
+        u = User.objects.get(username=username)
+        created = False
+    except User.DoesNotExist:
+        u = User.objects.create(username=username, email=email)
+        created = True
+    
+    # Update credentials and permissions
+    u.email = email
     u.set_password(password)
     u.is_staff = True
     u.is_superuser = True
@@ -154,7 +158,7 @@ def ensure_admin(username=None, password=None, email="alaeddine.benrhouma@ert.tn
     u.groups.add(admins)
     
     if created:
-        print(f"  ✓ Admin created: {email}")
+        print(f"  ✓ Admin created: {username} ({email})")
     return u
 
 
