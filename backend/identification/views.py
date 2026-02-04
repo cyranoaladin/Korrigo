@@ -700,3 +700,156 @@ class BatchAutoIdentifyView(APIView):
             'confidence_threshold': confidence_threshold,
             'results': results
         })
+
+
+class GPT4VisionIndexView(APIView):
+    """
+    Pipeline d'Indexation Automatisée avec GPT-4 Vision.
+    
+    POST /api/identification/gpt4v-index/<exam_id>/
+    
+    Traite un PDF scanné avec OCR GPT-4 Vision et réconcilie
+    avec le CSV des élèves pour identification automatique.
+    
+    Body:
+    {
+        "pdf_path": "/path/to/scan.pdf",  # ou pdf_url
+        "csv_path": "/path/to/students.csv",  # ou csv_url
+        "dry_run": false,
+        "max_copies": null  # optionnel, pour tests
+    }
+    """
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
+
+    def post(self, request, exam_id):
+        from exams.models import Exam
+        from processing.services.exam_indexing_service import ExamIndexingService
+        from identification.services import CopyIdentificationService
+        import tempfile
+        import os
+        
+        exam = get_object_or_404(Exam, id=exam_id)
+        
+        pdf_path = request.data.get('pdf_path')
+        csv_path = request.data.get('csv_path')
+        dry_run = request.data.get('dry_run', False)
+        max_copies = request.data.get('max_copies')
+        
+        if not pdf_path or not csv_path:
+            return Response({
+                'error': 'pdf_path et csv_path sont requis'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not os.path.exists(pdf_path):
+            return Response({
+                'error': f'PDF non trouvé: {pdf_path}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not os.path.exists(csv_path):
+            return Response({
+                'error': f'CSV non trouvé: {csv_path}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Initialiser le service d'indexation
+            service = ExamIndexingService(
+                csv_path=csv_path,
+                pdf_path=pdf_path,
+                debug=request.data.get('debug', False)
+            )
+            
+            # 1. Charger le CSV (SSOT)
+            students = service.load_csv()
+            
+            # 2-4. Traiter le PDF avec OCR GPT-4V et matching
+            output_dir = tempfile.mkdtemp(prefix='gpt4v_index_')
+            results = service.process_pdf(output_dir=output_dir, max_copies=max_copies)
+            
+            # 5. Générer le manifest
+            manifest_path = service.generate_manifest(output_dir)
+            
+            # Statistiques
+            summary = {
+                'total_copies': len(results),
+                'validated': sum(1 for r in results if r.validation_status == 'VALIDATED'),
+                'ambiguous': sum(1 for r in results if r.validation_status == 'AMBIGUOUS'),
+                'manual_review': sum(1 for r in results if r.validation_status == 'MANUAL_REVIEW'),
+                'no_match': sum(1 for r in results if r.validation_status == 'NO_MATCH'),
+            }
+            
+            # Si pas dry_run, créer les copies et identifier
+            copies_created = []
+            if not dry_run:
+                for result in results:
+                    if result.validation_status == 'VALIDATED' and result.student:
+                        # Chercher l'élève dans la base de données
+                        db_student = Student.objects.filter(
+                            full_name__icontains=result.student.last_name
+                        ).first()
+                        
+                        if db_student:
+                            # Créer ou récupérer la copie
+                            copy, created = Copy.objects.get_or_create(
+                                exam=exam,
+                                anonymous_id=f"GPT4V-{result.page_start:03d}",
+                                defaults={
+                                    'status': Copy.Status.READY,
+                                    'student': db_student,
+                                    'is_identified': True,
+                                    'validated_at': timezone.now()
+                                }
+                            )
+                            
+                            if created:
+                                # Log l'événement
+                                GradingEvent.objects.create(
+                                    copy=copy,
+                                    action=GradingEvent.Action.VALIDATE,
+                                    actor=request.user,
+                                    metadata={
+                                        'method': 'gpt4v_auto_identification',
+                                        'ocr_confidence': result.ocr_extraction.confidence,
+                                        'match_score': result.match_score,
+                                        'page_start': result.page_start,
+                                        'page_end': result.page_end
+                                    }
+                                )
+                                
+                                copies_created.append({
+                                    'copy_id': str(copy.id),
+                                    'student': db_student.full_name,
+                                    'pages': f"{result.page_start}-{result.page_end}"
+                                })
+            
+            return Response({
+                'success': True,
+                'exam_id': str(exam.id),
+                'exam_name': exam.name,
+                'dry_run': dry_run,
+                'students_loaded': len(students),
+                'summary': summary,
+                'manifest_path': manifest_path,
+                'copies_created': copies_created if not dry_run else [],
+                'details': [
+                    {
+                        'page_start': r.page_start,
+                        'page_end': r.page_end,
+                        'status': r.validation_status,
+                        'student': r.student.raw_name if r.student else None,
+                        'score': round(r.match_score, 3),
+                        'ocr': {
+                            'last_name': r.ocr_extraction.last_name,
+                            'first_name': r.ocr_extraction.first_name,
+                            'date_of_birth': r.ocr_extraction.date_of_birth
+                        }
+                    }
+                    for r in results
+                ]
+            })
+            
+        except Exception as e:
+            import traceback
+            return Response({
+                'error': str(e),
+                'traceback': traceback.format_exc()
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
