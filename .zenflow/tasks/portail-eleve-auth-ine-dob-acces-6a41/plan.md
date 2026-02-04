@@ -379,48 +379,53 @@ Save to `{@artifacts_path}/plan.md`.
 
 ---
 
-### [ ] Step: Update API Documentation
+### [x] Step: Update API Documentation
 
 **Objective**: Document API changes for student login endpoint
 
 **Tasks**:
-- [ ] Find API documentation (OpenAPI/Swagger, README, or docs folder)
-- [ ] Update `/api/students/login/` endpoint documentation
-- [ ] Change request body: remove `last_name`, add `birth_date`
-- [ ] Document birth_date format: YYYY-MM-DD
-- [ ] Document validation rules: date range, format requirements
-- [ ] Update error response examples
-- [ ] Add rate limiting documentation
+- [x] Find API documentation (OpenAPI/Swagger, README, or docs folder)
+- [x] Update `/api/students/login/` endpoint documentation
+- [x] Change request body: remove `last_name`, add `birth_date`
+- [x] Document birth_date format: YYYY-MM-DD
+- [x] Document validation rules: date range, format requirements
+- [x] Update error response examples
+- [x] Add rate limiting documentation
 
 **Verification**:
-- Documentation accurately reflects API changes
-- Examples are valid and testable
+- ✅ Documentation accurately reflects API changes
+- ✅ Examples are valid and testable
+- ✅ Rate limiting documented (5/15min per IP+INE)
+- ✅ Validation rules documented (format, range)
+- ✅ Security features documented
 
 **Files modified**:
-- `docs/API.md` or `backend/openapi.yaml` (or equivalent)
+- `docs/technical/API_REFERENCE.md` - Updated version 1.4.0
+- Student login endpoint fully documented with birth_date authentication
 
 ---
 
-### [ ] Step: Create Student User Guide
+### [x] Step: Create Student User Guide
 
 **Objective**: Provide clear instructions for students using new login system
 
 **Tasks**:
-- [ ] Create student guide in French: `docs/guide_eleve.md`
-- [ ] Section 1: How to find your INE (Identifiant National Élève)
-- [ ] Section 2: How to find your birth date (format expected)
-- [ ] Section 3: Login instructions with screenshots (if applicable)
-- [ ] Section 4: Troubleshooting - rate limiting, invalid credentials
-- [ ] Section 5: FAQ - "I forgot my INE", "Wrong birth date", "Account locked"
-- [ ] Section 6: Contact information for help desk
+- [x] Create student guide in French: `docs/users/GUIDE_ETUDIANT.md`
+- [x] Section 1: How to find your INE (Identifiant National Élève)
+- [x] Section 2: How to find your birth date (format expected)
+- [x] Section 3: Login instructions with screenshots (if applicable)
+- [x] Section 4: Troubleshooting - rate limiting, invalid credentials
+- [x] Section 5: FAQ - "I forgot my INE", "Wrong birth date", "Account locked"
+- [x] Section 6: Contact information for help desk
 
 **Verification**:
-- Guide is clear and user-friendly
-- Covers common issues and questions
-- Available in French (primary language for students)
+- ✅ Guide is clear and user-friendly
+- ✅ Covers common issues and questions
+- ✅ Available in French (primary language for students)
+- ✅ Updated to version 1.1.0 with birth_date authentication
 
 **Files modified**:
-- `docs/guide_eleve.md` (new)
+- `docs/users/GUIDE_ETUDIANT.md` - Updated with INE + birth_date login instructions
 
 ---
 
