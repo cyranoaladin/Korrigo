@@ -26,14 +26,18 @@
             "@/*": [
                 "src/*"
             ]
-        }
+        },
+        "types": [
+            "node"
+        ]
     },
     "include": [
         "src/**/*.ts",
         "src/**/*.d.ts",
         "src/**/*.tsx",
         "src/**/*.vue",
-        "e2e/**/*.ts"
+        "playwright.config.ts",
+        "tests/e2e/**/*.ts"
     ],
     "references": [
         {

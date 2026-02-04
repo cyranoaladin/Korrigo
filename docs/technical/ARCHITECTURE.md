@@ -1,7 +1,7 @@
 # Architecture Korrigo PMF
 
-> **Version**: 1.2.0  
-> **Date**: Janvier 2026  
+> **Version**: 2.0.0  
+> **Date**: Février 2026  
 > **Public**: Développeurs, Architectes, DevOps
 
 Ce document décrit l'architecture complète de la plateforme Korrigo PMF, une solution de correction numérique d'examens scannés pour établissements scolaires.

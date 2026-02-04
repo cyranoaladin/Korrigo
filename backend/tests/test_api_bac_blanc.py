@@ -225,7 +225,7 @@ class BacBlancE2ETest(TestCase):
         copy = Copy.objects.create(
             exam=exam,
             anonymous_id="TEST456",
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY  # Must be READY for identification
         )
         copy.booklets.add(booklet)
         
