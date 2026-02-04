@@ -1,0 +1,12 @@
+============================= test session starts ==============================
+platform linux -- Python 3.9.25, pytest-8.4.2, pluggy-1.6.0 -- /usr/local/bin/python3.9
+cachedir: .pytest_cache
+django: version: 4.2.27, settings: core.settings (from env)
+rootdir: /app
+configfile: pytest.ini
+plugins: cov-4.1.0, django-4.11.1
+collecting ... ERROR: file or directory not found: grading/tests/test_draft_endpoints.py
+
+collected 0 items
+
+============================ no tests ran in 0.00s =============================
