@@ -185,3 +185,39 @@ def cleanup_orphaned_files():
     # TODO: Clean up orphaned page images (pages with no corresponding Copy)
     
     return {'removed_count': removed_count}
+
+
+@shared_task
+def update_copy_status_metrics():
+    """
+    Periodic task to update grading_copies_by_status gauge
+    
+    Observability: Tracks workflow backlog by monitoring copy counts per status
+    Should be run every 60 seconds via Celery Beat
+    
+    Returns:
+        dict: Status counts for verification
+    """
+    from django.db.models import Count
+    from grading.metrics import grading_copies_by_status
+    
+    try:
+        status_counts = Copy.objects.values('status').annotate(count=Count('id'))
+        
+        counts_dict = {}
+        for item in status_counts:
+            status = item['status']
+            count = item['count']
+            counts_dict[status] = count
+            
+            try:
+                grading_copies_by_status.labels(status=status).set(count)
+            except Exception as e:
+                logger.warning(f"Failed to update gauge for status {status}: {e}", exc_info=True)
+        
+        logger.debug(f"Updated copy status metrics: {counts_dict}")
+        return {'status_counts': counts_dict}
+        
+    except Exception as exc:
+        logger.error(f"Failed to update copy status metrics: {exc}", exc_info=True)
+        return {'error': str(exc)}
