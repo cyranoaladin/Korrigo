@@ -200,12 +200,23 @@ class TestCopyUniqueness:
         # Create exam
         exam = Exam.objects.create(name='Test Exam')
         
-        # Create student (using full_name as per model)
-        student = Student.objects.create(
-            full_name='DUPONT Jean',
-            date_of_birth=date(2008, 3, 15),
-            email='jean.dupont@test.com'
-        )
+        # Create student - handle both model versions
+        # Version 1: full_name + date_of_birth
+        # Version 2: first_name + last_name + ine
+        try:
+            student = Student.objects.create(
+                full_name='DUPONT Jean',
+                date_of_birth=date(2008, 3, 15),
+                email='jean.dupont@test.com'
+            )
+        except TypeError:
+            # Alternative model structure
+            student = Student.objects.create(
+                first_name='Jean',
+                last_name='DUPONT',
+                email='jean.dupont@test.com',
+                ine='0000000001'
+            )
         
         # Create first copy
         copy1 = Copy.objects.create(
