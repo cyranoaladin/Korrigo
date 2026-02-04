@@ -242,7 +242,8 @@ if not ALLOWED_HOSTS:
 
 ---
 
-### [ ] Step: Docker Volumes and Data Safety Documentation
+### [x] Step: Docker Volumes and Data Safety Documentation
+<!-- chat-id: 5b5c8035-9ae1-46d1-808b-c4dc528f8ce3 -->
 <!-- Expected duration: 1 hour -->
 
 **Objective**: Document critical Docker volumes and backup requirements.
@@ -264,11 +265,22 @@ if not ALLOWED_HOSTS:
 - `.env.prod.example`
 
 **Verification**:
-- [ ] All critical volumes identified
-- [ ] Destruction risks documented
-- [ ] Clear warnings for operators
+- [x] All critical volumes identified
+- [x] Destruction risks documented
+- [x] Clear warnings for operators
 
 **Output**: Section in `audit.md` with volumes documentation
+
+**Status**: ✅ Complete
+- Enhanced audit.md section 6 with 4 new subsections (6.6-6.9)
+- Section 6.6: Detailed volume mount locations for all containers (postgres_data, media_volume, static_volume, redis_data)
+- Section 6.7: Comprehensive backup requirements per volume with frequencies, methods, and validation procedures
+- Section 6.8: Volume growth estimation and capacity planning (small/medium/large platforms)
+- Section 6.9: Enhanced warning checklist for destructive operations with pre/during/post checklists
+- Total: 474 lines added covering volume mapping, backup strategies, capacity planning, and operational safety
+- All critical volumes identified with detailed mount points, content description, and size estimates
+- Destruction risks extensively documented with safe vs destructive commands
+- Clear operational warnings with STOP-BACKUP-VERIFY-DOCUMENT-COMMUNICATE-TEST-APPROVE workflow
 
 ---
 
