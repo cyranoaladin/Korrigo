@@ -271,7 +271,7 @@ python -m pytest backend/exams/tests/test_pronote_export_api.py -v --tb=short
 
 ---
 
-### [ ] Step 8: Update Management Command
+### [x] Step 8: Update Management Command
 <!-- chat-id: 8d93b963-52b6-4de7-8566-ca877adbdacc -->
 
 Refactor export_pronote command to use PronoteExporter service.
@@ -280,20 +280,20 @@ Refactor export_pronote command to use PronoteExporter service.
 - `backend/exams/management/commands/export_pronote.py`
 
 **Tasks**:
-- [ ] Remove Score model references (line 38-43)
-- [ ] Import and use `PronoteExporter` service
-- [ ] Add CLI arguments:
+- [x] Remove Score model references (line 38-43)
+- [x] Import and use `PronoteExporter` service
+- [x] Add CLI arguments:
   - `--coefficient` (float, default=1.0)
   - `--output` (file path, optional)
   - `--validate-only` (flag)
-- [ ] Implement new command flow:
+- [x] Implement new command flow:
   - Get exam by UUID
   - Create exporter with coefficient
   - Validate eligibility → print errors and exit if invalid
   - Print warnings to stderr
   - Generate CSV if not validate-only
   - Output to file or stdout
-- [ ] Use UTF-8 with BOM for file output
+- [x] Use UTF-8 with BOM for file output
 
 **Verification**:
 ```bash
@@ -303,7 +303,7 @@ python manage.py export_pronote <exam_uuid> --output /tmp/test.csv
 
 **References**:
 - spec.md section 4
-- Current implementation in `export_pronote.py:1-64`
+- Current implementation in `export_pronote.py:1-123`
 
 ---
 
