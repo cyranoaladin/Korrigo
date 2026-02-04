@@ -18,8 +18,8 @@ class TestFullSystemAudit:
         self.admin_user = User.objects.create_superuser('admin', 'admin@example.com', 'adminpass')
         # Create Teacher
         self.teacher_user = User.objects.create_user('teacher', 'teacher@example.com', 'teacherpass')
-        # Create Student
-        self.student = Student.objects.create(email="amine@test.com", full_name="BEN ALI Amine", date_of_birth="2008-01-15", class_name="T1")
+        # Create Student (full_name format: "LASTNAME Firstname" - login uses first word as last_name)
+        self.student = Student.objects.create(email="amine@test.com", full_name="BENALI Amine", date_of_birth="2008-01-15", class_name="T1")
 
     def test_01_authentication_admin(self):
         """Vérifie le login/logout ADMIN et l'accès aux infos (ME)"""
@@ -55,7 +55,7 @@ class TestFullSystemAudit:
 
     def test_03_authentication_student(self):
         """Vérifie le login Élève via endpoint dédié"""
-        response = self.client.post('/api/students/login/', {'email': 'amine@test.com', 'last_name': 'BEN ALI'})  # last_name is derived from full_name
+        response = self.client.post('/api/students/login/', {'email': 'amine@test.com', 'last_name': 'BENALI'})  # last_name is first word of full_name
         assert response.status_code == 200, "Student Login Failed"
         
         # Access Student Me
@@ -91,7 +91,8 @@ class TestFullSystemAudit:
         """Vérifie l'import de fichier CSV"""
         self.client.force_authenticate(user=self.admin_user)
         
-        csv_content = b"NOM,PRENOM,EMAIL\nTEST,User,test@test.com"
+        # CSV format: Élèves (FULL_NAME), Né(e) le (DATE_NAISSANCE), Adresse E-mail (EMAIL)
+        csv_content = b"\xc3\x89l\xc3\xa8ves,N\xc3\xa9(e) le,Adresse E-mail,Classe\nTEST User,15/01/2008,test@test.com,T1"
         file = io.BytesIO(csv_content)
         file.name = "import.csv"
         

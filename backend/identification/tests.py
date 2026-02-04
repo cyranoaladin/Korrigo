@@ -22,8 +22,8 @@ class OCRServiceTest(TestCase):
         # Create test student
         self.student = Student.objects.create(
             email="jean.dupont@test.com",
-            first_name="Jean",
-            last_name="Dupont",
+            full_name="Dupont Jean",
+            date_of_birth="2008-01-15",
             class_name="TG2"
         )
         
@@ -90,8 +90,8 @@ class OCRViewsTest(TestCase):
         # Create test data
         self.student = Student.objects.create(
             email="jean.dupont@test.com",
-            first_name="Jean",
-            last_name="Dupont",
+            full_name="Dupont Jean",
+            date_of_birth="2008-01-15",
             class_name="TG2"
         )
 
@@ -151,8 +151,8 @@ class OCRModelTest(TestCase):
     def setUp(self):
         self.student = Student.objects.create(
             email="jean.dupont@test.com",
-            first_name="Jean",
-            last_name="Dupont",
+            full_name="Dupont Jean",
+            date_of_birth="2008-01-15",
             class_name="TG2"
         )
         
