@@ -47,7 +47,7 @@ test.describe('Admin Authentication Flow', () => {
 
         // Take screenshot for documentation
         await page.screenshot({ 
-            path: 'e2e/screenshots/admin-login-dashboard.png',
+            path: 'e2e-screenshots/admin-login-dashboard.png',
             fullPage: true 
         });
 
@@ -74,7 +74,7 @@ test.describe('Admin Authentication Flow', () => {
 
         // Take screenshot for documentation
         await page.screenshot({ 
-            path: 'e2e/screenshots/admin-users-access.png',
+            path: 'e2e-screenshots/admin-users-access.png',
             fullPage: true 
         });
 
@@ -112,7 +112,7 @@ test.describe('Admin Authentication Flow', () => {
 
         // Take screenshot for documentation
         await page.screenshot({ 
-            path: 'e2e/screenshots/admin-logout-back-button.png',
+            path: 'e2e-screenshots/admin-logout-back-button.png',
             fullPage: true 
         });
 
@@ -195,7 +195,7 @@ test.describe('Admin Authentication Flow', () => {
 
         // Take screenshot of modal
         await page.screenshot({ 
-            path: 'e2e/screenshots/admin-forced-password-modal.png',
+            path: 'e2e-screenshots/admin-forced-password-modal.png',
             fullPage: true 
         });
 
@@ -219,7 +219,7 @@ test.describe('Admin Authentication Flow', () => {
 
         // Take screenshot after password change
         await page.screenshot({ 
-            path: 'e2e/screenshots/admin-after-password-change.png',
+            path: 'e2e-screenshots/admin-after-password-change.png',
             fullPage: true 
         });
 
