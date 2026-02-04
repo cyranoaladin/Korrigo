@@ -870,16 +870,210 @@ proxy_set_header X-Forwarded-Proto $scheme;
 ```
 ✅ **Confirmé**: Header correctement défini
 
-### 4.4 Recommandations
+### 4.4 Inventaire Complet des Paramètres Cookie
 
-**Actions requises**: ✅ Aucune - Configuration cookie optimale
+#### Session Cookie - Paramètres Complets
 
-**Validation pré-déploiement**:
-1. ✅ Vérifier que `SSL_ENABLED=true` en production réelle
-2. ✅ Vérifier que nginx utilise HTTPS (port 443)
-3. ✅ Tester cookies dans DevTools navigateur:
-   - Session cookie doit avoir flags: `Secure; HttpOnly; SameSite=Lax`
-   - CSRF cookie doit avoir flags: `Secure; SameSite=Lax` (pas HttpOnly)
+| Paramètre | Valeur (Production) | Valeur (Dev) | Source | Description |
+|-----------|---------------------|--------------|--------|-------------|
+| `SESSION_ENGINE` | `cached_db` | `cached_db` | settings.py:256 | Backend hybrid (cache + DB) |
+| `SESSION_COOKIE_AGE` | `14400` (4h) | `14400` (4h) | settings.py:257 | Durée de vie de la session |
+| `SESSION_EXPIRE_AT_BROWSER_CLOSE` | `True` | `True` | settings.py:258 | Session expire à fermeture navigateur |
+| `SESSION_COOKIE_HTTPONLY` | `True` | `True` | settings.py:259 | Protection XSS (pas de lecture JS) |
+| `SESSION_COOKIE_SAMESITE` | `Lax` | `Lax` | settings.py:260 | Protection CSRF partielle |
+| `SESSION_COOKIE_SECURE` | `True` (SSL_ENABLED) | `False` | settings.py:107-117 | Transmission HTTPS uniquement |
+| `SESSION_COOKIE_NAME` | `sessionid` | `sessionid` | Django default | Nom du cookie (non modifié) |
+| `SESSION_COOKIE_DOMAIN` | `None` | `None` | Django default | Domaine cookie (inherit current) |
+| `SESSION_COOKIE_PATH` | `/` | `/` | Django default | Chemin cookie (site entier) |
+
+**Notes de sécurité**:
+- ✅ `SESSION_ENGINE = cached_db`: Performances optimales avec persistance DB
+- ✅ `SESSION_COOKIE_AGE = 14400`: 4 heures max (conforme best practices éducation)
+- ✅ `SESSION_EXPIRE_AT_BROWSER_CLOSE = True`: Session non persistante (sécurité accrue)
+- ✅ `SESSION_COOKIE_HTTPONLY = True`: Cookie illisible par JavaScript (protection XSS)
+
+#### CSRF Cookie - Paramètres Complets
+
+| Paramètre | Valeur (Production) | Valeur (Dev) | Source | Description |
+|-----------|---------------------|--------------|--------|-------------|
+| `CSRF_COOKIE_SAMESITE` | `Lax` | `Lax` | settings.py:129 | Protection CSRF partielle |
+| `CSRF_COOKIE_HTTPONLY` | `False` | `False` | settings.py:130 | **Requis pour SPA** (lecture JS) |
+| `CSRF_COOKIE_SECURE` | `True` (SSL_ENABLED) | `False` | settings.py:107-117 | Transmission HTTPS uniquement |
+| `CSRF_COOKIE_NAME` | `csrftoken` | `csrftoken` | Django default | Nom du cookie CSRF |
+| `CSRF_COOKIE_AGE` | `31449600` (1 an) | `31449600` (1 an) | Django default | Durée de vie token CSRF |
+| `CSRF_COOKIE_DOMAIN` | `None` | `None` | Django default | Domaine cookie (inherit current) |
+| `CSRF_COOKIE_PATH` | `/` | `/` | Django default | Chemin cookie (site entier) |
+| `CSRF_USE_SESSIONS` | `False` | `False` | Django default | CSRF token dans cookie (pas session) |
+
+**Notes de sécurité**:
+- ⚠️ `CSRF_COOKIE_HTTPONLY = False`: **Intentionnel** - SPA Vue.js doit lire le token
+  - Justification technique: Frontend envoie token dans header `X-CSRFToken` (CORS_ALLOW_HEADERS:426)
+  - Mitigation: `SAMESITE=Lax` + validation serveur Django
+- ✅ `CSRF_COOKIE_AGE = 31449600`: 1 an (valeur par défaut Django, acceptable)
+- ✅ `CSRF_USE_SESSIONS = False`: Token dans cookie (meilleure UX pour SPAs)
+
+### 4.5 Validation Django Deployment Check
+
+**Commande exécutée**:
+```bash
+DJANGO_SETTINGS_MODULE=core.settings_prod python manage.py check --deploy
+```
+
+**Résultat pour les cookies**: ✅ **Aucun warning lié aux cookies**
+
+Les paramètres suivants ont été validés automatiquement:
+- ✅ `SESSION_COOKIE_SECURE` est `True` quand SSL_ENABLED=true (settings.py:107)
+- ✅ `CSRF_COOKIE_SECURE` est `True` quand SSL_ENABLED=true (settings.py:108)
+- ✅ `SESSION_COOKIE_HTTPONLY` est `True` (settings.py:259)
+- ✅ Pas de warning `security.W012` (SESSION_COOKIE_SECURE manquant)
+- ✅ Pas de warning `security.W016` (CSRF_COOKIE_SECURE manquant)
+- ✅ Pas de warning `security.W013` (SESSION_COOKIE_HTTPONLY manquant)
+
+**Note**: Les warnings W012/W016 apparaîtraient si `SSL_ENABLED=false`, ce qui est attendu en environnement prod-like (E2E).
+
+### 4.6 Configuration Environnement (SSL_ENABLED)
+
+#### Impact de SSL_ENABLED sur les Cookies
+
+Le flag `SSL_ENABLED` contrôle les flags `Secure` des cookies de manière conditionnelle:
+
+**Tableau de comportement**:
+
+| Environnement | `DEBUG` | `SSL_ENABLED` | `SESSION_COOKIE_SECURE` | `CSRF_COOKIE_SECURE` | Use Case |
+|---------------|---------|---------------|-------------------------|----------------------|----------|
+| **Development** | `True` | N/A | `False` | `False` | Dev local HTTP |
+| **Prod-like (E2E)** | `False` | `False` | `False` | `False` | Tests E2E HTTP (nginx sans TLS) |
+| **Production HTTPS** | `False` | `True` | `True` | `True` | Production réelle avec TLS |
+
+**Code conditionnel** (`settings.py:102-126`):
+```python
+if not DEBUG:
+    if SSL_ENABLED:
+        # Production réelle HTTPS
+        SECURE_SSL_REDIRECT = True
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
+        SECURE_HSTS_SECONDS = 31536000
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+        SECURE_HSTS_PRELOAD = True
+        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    else:
+        # Prod-like E2E (HTTP)
+        SECURE_SSL_REDIRECT = False
+        SESSION_COOKIE_SECURE = False
+        CSRF_COOKIE_SECURE = False
+```
+
+**Override settings_prod.py** (lignes 41-43):
+```python
+SESSION_COOKIE_SECURE = True   # Force True indépendamment de SSL_ENABLED
+CSRF_COOKIE_SECURE = True      # Force True indépendamment de SSL_ENABLED
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+```
+
+**⚠️ ATTENTION - Conflit de configuration**:
+- `settings_prod.py` **force** `SESSION_COOKIE_SECURE = True`
+- `settings.py` définit conditionnellement basé sur `SSL_ENABLED`
+- **Précédence**: `settings_prod.py` importe `settings.py` puis override → valeur finale = `True`
+- **Impact**: En environnement prod-like avec `SSL_ENABLED=false`, les cookies auront quand même le flag `Secure` → **Tests E2E échoueront**
+
+**Recommandation**: Utiliser uniquement `SSL_ENABLED` pour la logique conditionnelle, supprimer les overrides dans `settings_prod.py`:
+
+```python
+# settings_prod.py - Configuration recommandée
+# Supprimer les lignes 41-42, garder uniquement:
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+```
+
+Ou documenter explicitement que `settings_prod.py` est uniquement pour production HTTPS réelle, et utiliser `settings.py` (avec `DEBUG=False` et `SSL_ENABLED=False`) pour prod-like.
+
+### 4.7 Exigences Variables d'Environnement
+
+#### Variables Requises en Production
+
+| Variable | Valeur Recommandée | Obligatoire | Impact si Absente |
+|----------|-------------------|-------------|-------------------|
+| `SSL_ENABLED` | `true` | ✅ Oui (prod réelle) | Cookies non sécurisés, pas de HSTS |
+| `SECRET_KEY` | Aléatoire 50+ chars | ✅ Oui | Erreur démarrage Django |
+| `DJANGO_ALLOWED_HOSTS` | `korrigo.fr` | ✅ Oui | Erreur démarrage (settings_prod.py:20) |
+
+#### Variables Optionnelles (Avec Defaults)
+
+| Variable | Default | Impact |
+|----------|---------|--------|
+| `SESSION_COOKIE_SAMESITE` | `Lax` | Protection CSRF partielle |
+| `CSRF_COOKIE_SAMESITE` | `Lax` | Protection CSRF partielle |
+| `SECURE_HSTS_SECONDS` | `31536000` (si SSL_ENABLED) | Durée HSTS (1 an) |
+
+**Exemple .env.prod complet**:
+```bash
+# Cookies & HTTPS
+SSL_ENABLED=true
+SESSION_COOKIE_SAMESITE=Lax
+CSRF_COOKIE_SAMESITE=Lax
+
+# Django Core
+SECRET_KEY=<généré via secrets.token_urlsafe(50)>
+DJANGO_ENV=production
+DEBUG=false
+DJANGO_ALLOWED_HOSTS=korrigo.education.fr
+
+# Database
+DB_NAME=korrigo_prod
+DB_USER=korrigo_user
+DB_PASSWORD=<strong_password>
+DB_HOST=postgres
+DB_PORT=5432
+```
+
+### 4.8 Recommandations et Plan d'Action
+
+**Actions requises avant déploiement production**:
+
+1. **[P1] Résoudre conflit settings_prod.py**:
+   - **Option A**: Supprimer overrides `SESSION_COOKIE_SECURE/CSRF_COOKIE_SECURE` de settings_prod.py
+   - **Option B**: Documenter que settings_prod.py est exclusivement pour HTTPS production
+
+2. **[P2] Valider variables d'environnement**:
+   - Vérifier que `SSL_ENABLED=true` dans `.env.prod`
+   - Vérifier que nginx est configuré avec certificat TLS valide
+
+3. **[P3] Tester cookies en production**:
+   - Ouvrir DevTools → Application → Cookies
+   - Vérifier `sessionid`: `Secure; HttpOnly; SameSite=Lax`
+   - Vérifier `csrftoken`: `Secure; SameSite=Lax` (pas HttpOnly)
+
+**Validation pré-déploiement** (checklist):
+- [ ] ✅ Vérifier que `SSL_ENABLED=true` dans `.env.prod`
+- [ ] ✅ Vérifier que nginx utilise HTTPS (port 443) avec certificat valide
+- [ ] ✅ Tester login utilisateur → Cookie `sessionid` créé avec flags corrects
+- [ ] ✅ Tester requête API POST → Header `X-CSRFToken` envoyé correctement
+- [ ] ✅ Valider expiration session après 4 heures (`SESSION_COOKIE_AGE`)
+- [ ] ✅ Valider expiration session à fermeture navigateur
+
+**Tests automatisés recommandés**:
+```python
+# backend/tests/test_cookie_security.py
+def test_session_cookie_secure_in_production(client, settings):
+    settings.DEBUG = False
+    settings.SSL_ENABLED = True
+    response = client.post('/api/login/', {...})
+    assert 'Secure' in response.cookies['sessionid'].output()
+    assert 'HttpOnly' in response.cookies['sessionid'].output()
+    assert 'SameSite=Lax' in response.cookies['sessionid'].output()
+
+def test_csrf_cookie_not_httponly(client, settings):
+    response = client.get('/api/csrf/')
+    assert 'HttpOnly' not in response.cookies['csrftoken'].output()
+```
+
+**Statut final**: ✅ Configuration cookie sécurisée et conforme aux best practices Django
+
+**Points d'attention**:
+- ⚠️ Conflit potentiel settings.py/settings_prod.py à résoudre (P1)
+- ✅ Tous les flags de sécurité présents et correctement configurés
+- ✅ Justification documentée pour `CSRF_COOKIE_HTTPONLY=False`
+- ✅ Aucun warning Django deployment check lié aux cookies
 
 ---
 
