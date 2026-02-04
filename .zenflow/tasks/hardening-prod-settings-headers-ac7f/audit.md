@@ -319,6 +319,471 @@ add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment
 
 **Priorité**: P2 - Recommandé mais non bloquant
 
+### 3.5 Précédence des Headers et Défense en Profondeur
+
+#### Stratégie Multi-Couches
+
+La configuration actuelle implémente une **défense en profondeur** avec headers définis à deux niveaux:
+
+1. **Niveau 1 - Nginx (Reverse Proxy)**: Headers ajoutés par `infra/nginx/nginx.conf`
+2. **Niveau 2 - Django (Application)**: Headers ajoutés par `SecurityMiddleware` (middleware Django)
+
+**Ordre de traitement**:
+```
+Client ← [Nginx Headers] ← [Django Headers] ← Application
+```
+
+#### Règles de Précédence
+
+**Cas 1: Header défini dans nginx ET Django**
+- **Comportement**: Les deux headers sont envoyés (nginx ajoute, ne remplace pas)
+- **Exemple**: `X-Frame-Options` défini dans nginx.conf:13 ET Django `X_FRAME_OPTIONS='DENY'`
+- **Résultat**: Client reçoit deux headers `X-Frame-Options: DENY` (redondant mais inoffensif)
+- **Meilleure pratique**: ✅ Accepté - Défense en profondeur
+
+**Cas 2: Header défini uniquement dans nginx**
+- **Comportement**: Client reçoit le header nginx
+- **Exemple**: `Referrer-Policy` défini uniquement dans nginx.conf:16
+- **Résultat**: ✅ Fonctionne correctement
+
+**Cas 3: Header défini uniquement dans Django**
+- **Comportement**: Client reçoit le header Django (si middleware actif)
+- **Exemple**: HSTS défini via `SECURE_HSTS_SECONDS` quand `SSL_ENABLED=true`
+- **Résultat**: ✅ Fonctionne correctement
+- **Limite**: Header absent si Django est contourné (attaque reverse proxy)
+
+**Cas 4: Header conditionnel (HSTS)**
+- **Problème potentiel**: Si HSTS défini dans nginx HTTP (port 80) → ⚠️ **DANGER**
+- **Solution actuelle**: HSTS uniquement via Django quand `SSL_ENABLED=true`
+- **Recommandation**: Ajouter HSTS dans bloc nginx HTTPS uniquement (section 3.7)
+
+#### Comparaison État Actuel
+
+| Header | Nginx | Django | Précédence | Recommandation |
+|--------|-------|--------|------------|----------------|
+| `X-Frame-Options` | ✅ `DENY` | ✅ `DENY` | Double | ✅ OK - Défense profondeur |
+| `X-Content-Type-Options` | ✅ `nosniff` | ✅ `nosniff` | Double | ✅ OK - Défense profondeur |
+| `X-XSS-Protection` | ✅ `1; mode=block` | ✅ Activé | Double | ✅ OK - Défense profondeur |
+| `Referrer-Policy` | ✅ `strict-origin-when-cross-origin` | ❌ Non | Nginx seul | ⚠️ Ajouter Django backup |
+| `HSTS` | ❌ Non | ✅ Conditionnel | Django seul | ⚠️ Ajouter nginx HTTPS |
+| `CSP` | ❌ Non | ✅ Via django-csp | Django seul | ⚠️ Ajouter nginx |
+| `Permissions-Policy` | ❌ Non | ❌ Non | Aucun | ⚠️ Ajouter nginx |
+
+**Actions prioritaires**:
+1. **P1**: Ajouter HSTS dans bloc nginx HTTPS (défense profondeur)
+2. **P1**: Ajouter CSP dans nginx (alignée avec Django)
+3. **P2**: Ajouter Permissions-Policy dans nginx
+
+### 3.6 Configuration Conditionnelle SSL_ENABLED
+
+#### Logique de Configuration
+
+Le système utilise une variable d'environnement `SSL_ENABLED` pour gérer trois environnements:
+
+**Architecture décisionnelle**:
+```python
+# Arbre de décision (settings.py:100-121)
+if DEBUG:
+    # Développement local (HTTP)
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    HSTS = Désactivé
+else:
+    # Production ou Prod-like
+    if SSL_ENABLED:
+        # Production réelle (HTTPS)
+        SECURE_SSL_REDIRECT = True
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
+        SECURE_HSTS_SECONDS = 31536000
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+        SECURE_HSTS_PRELOAD = True
+    else:
+        # Prod-like (E2E tests HTTP)
+        SECURE_SSL_REDIRECT = False
+        SESSION_COOKIE_SECURE = False
+        CSRF_COOKIE_SECURE = False
+```
+
+#### Environnements Supportés
+
+| Environnement | `DEBUG` | `SSL_ENABLED` | SSL Redirect | HSTS | Cookies Secure | Use Case |
+|---------------|---------|---------------|--------------|------|----------------|----------|
+| **Development** | `True` | N/A | ❌ | ❌ | ❌ | Dev local HTTP |
+| **Prod-like (E2E)** | `False` | `False` | ❌ | ❌ | ❌ | Tests E2E HTTP |
+| **Production** | `False` | `True` | ✅ | ✅ | ✅ | Prod réelle HTTPS |
+
+#### Override settings_prod.py
+
+**Conflit potentiel**: `settings_prod.py` force certains paramètres:
+
+```python
+# settings_prod.py:41-43 (OVERRIDE)
+SESSION_COOKIE_SECURE = True  # Force True même si SSL_ENABLED=false
+CSRF_COOKIE_SECURE = True     # Force True même si SSL_ENABLED=false
+```
+
+**Analyse**:
+- ⚠️ **Risque**: En environnement prod-like (E2E HTTP), ces overrides cassent la logique conditionnelle
+- ⚠️ **Impact**: Cookies ne seront pas envoyés en HTTP → Tests E2E échouent
+- ✅ **Solution actuelle**: Utiliser `settings.py` pour prod-like, `settings_prod.py` uniquement pour prod HTTPS réelle
+
+**Recommandation**:
+```python
+# settings_prod.py (version améliorée)
+SSL_ENABLED = os.environ.get("SSL_ENABLED", "True").lower() == "true"
+
+if SSL_ENABLED:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+else:
+    # Prod-like E2E
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+```
+
+#### Configuration Nginx Conditionnelle
+
+**Problème**: Nginx ne lit pas les variables d'environnement Python.
+
+**Solutions possibles**:
+
+**Option 1: Template nginx.conf avec envsubst** (Recommandé)
+```bash
+# Dockerfile ou entrypoint.sh
+envsubst '${SSL_ENABLED}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+```
+
+```nginx
+# nginx.conf.template
+# Conditionnel: HSTS uniquement si SSL_ENABLED=true
+map $ssl_enabled $hsts_header {
+    default "";
+    "true" "max-age=31536000; includeSubDomains; preload";
+}
+
+server {
+    listen 443 ssl http2;
+    add_header Strict-Transport-Security $hsts_header always;
+}
+```
+
+**Option 2: Deux fichiers nginx séparés**
+- `nginx-http.conf` (prod-like E2E)
+- `nginx-https.conf` (production réelle)
+- Sélection via variable Docker Compose
+
+**Option 3: Bloc conditionnel manuel** (Solution actuelle implicite)
+- Configuration HTTP uniquement (nginx.conf actuel)
+- Opérateur ajoute manuellement HSTS lors du passage HTTPS
+
+### 3.7 Configuration Nginx Complète pour Production
+
+#### Scénario 1: Production HTTP (Prod-like E2E)
+
+**Fichier**: `infra/nginx/nginx.conf` (état actuel adapté)
+
+```nginx
+# Docker DNS resolver
+resolver 127.0.0.11 valid=10s ipv6=off;
+
+server {
+    listen 80;
+    include /etc/nginx/mime.types;
+    
+    # Increase body size for large PDF uploads
+    client_max_body_size 100M;
+
+    # Security Headers (sans HSTS)
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    
+    # Content Security Policy (aligné avec Django)
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+    
+    # Permissions Policy (optionnel pour E2E)
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Backend Static Files
+    location /static/ {
+        alias /app/staticfiles/;
+    }
+
+    # Backend Media Files
+    location /media/ {
+        alias /app/media/;
+    }
+
+    # API Proxy - Dynamic upstream resolution
+    location /api/ {
+        set $backend_upstream http://backend:8000;
+        proxy_pass $backend_upstream;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+    }
+
+    # Admin Proxy - Dynamic upstream resolution
+    location /admin/ {
+        set $backend_upstream http://backend:8000;
+        proxy_pass $backend_upstream;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+    }
+
+    # Frontend (SPA) - Fallback to index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+#### Scénario 2: Production HTTPS (Production Réelle)
+
+**Fichier**: `infra/nginx/nginx-https.conf` (nouveau fichier recommandé)
+
+```nginx
+# Docker DNS resolver
+resolver 127.0.0.11 valid=10s ipv6=off;
+
+# HTTP Server: Redirect to HTTPS
+server {
+    listen 80;
+    server_name korrigo.education.fr;
+    
+    # Redirect all HTTP to HTTPS
+    return 301 https://$server_name$request_uri;
+}
+
+# HTTPS Server: Full Security Headers
+server {
+    listen 443 ssl http2;
+    server_name korrigo.education.fr;
+    include /etc/nginx/mime.types;
+    
+    # SSL Configuration
+    ssl_certificate /etc/nginx/ssl/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    # Increase body size for large PDF uploads
+    client_max_body_size 100M;
+
+    # Security Headers (FULL)
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Backend Static Files
+    location /static/ {
+        alias /app/staticfiles/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Backend Media Files
+    location /media/ {
+        alias /app/media/;
+        expires 1y;
+        add_header Cache-Control "public";
+    }
+
+    # API Proxy - Dynamic upstream resolution
+    location /api/ {
+        set $backend_upstream http://backend:8000;
+        proxy_pass $backend_upstream;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;  # Force HTTPS
+        proxy_redirect off;
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # Admin Proxy - Dynamic upstream resolution
+    location /admin/ {
+        set $backend_upstream http://backend:8000;
+        proxy_pass $backend_upstream;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;  # Force HTTPS
+        proxy_redirect off;
+    }
+
+    # Frontend (SPA) - Fallback to index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+**Différences clés HTTP vs HTTPS**:
+
+| Aspect | HTTP (Prod-like) | HTTPS (Production) |
+|--------|------------------|-------------------|
+| Port | 80 | 443 + Redirect 80→443 |
+| HSTS | ❌ Absent | ✅ `max-age=31536000; includeSubDomains; preload` |
+| CSP `upgrade-insecure-requests` | ❌ Absent | ✅ Présent |
+| `X-Forwarded-Proto` | `$scheme` (http) | `https` (forcé) |
+| SSL/TLS Config | ❌ Absent | ✅ TLS 1.2/1.3 uniquement |
+| Cache Headers | Basique | Optimisé (expires 1y) |
+
+### 3.8 Validation et Tests des Headers
+
+#### Méthode 1: curl (Ligne de commande)
+
+**Test headers complets**:
+```bash
+# Production HTTPS
+curl -I https://korrigo.education.fr/api/health/ 2>&1 | grep -E "Strict-Transport|Content-Security|Permissions|X-Frame|X-Content|Referrer"
+
+# Sortie attendue:
+# Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+# Content-Security-Policy: default-src 'self'; script-src 'self'; ...
+# Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+# X-Frame-Options: DENY
+# X-Content-Type-Options: nosniff
+# Referrer-Policy: strict-origin-when-cross-origin
+```
+
+**Test redirection HTTP→HTTPS**:
+```bash
+curl -I http://korrigo.education.fr/api/health/
+
+# Sortie attendue:
+# HTTP/1.1 301 Moved Permanently
+# Location: https://korrigo.education.fr/api/health/
+```
+
+**Test HSTS absent en HTTP** (validation sécurité):
+```bash
+curl -I http://localhost:8088/api/health/ 2>&1 | grep -i strict-transport
+
+# Sortie attendue: (vide) - HSTS ne doit PAS apparaître en HTTP
+```
+
+#### Méthode 2: Browser DevTools
+
+**Procédure**:
+1. Ouvrir DevTools (`F12`)
+2. Onglet **Network**
+3. Naviguer vers `https://korrigo.education.fr/api/health/`
+4. Clic sur la requête → Onglet **Headers**
+5. Section **Response Headers**: Vérifier présence de tous les headers
+
+**Checklist visuelle**:
+- ✅ `strict-transport-security: max-age=31536000; includeSubDomains; preload`
+- ✅ `content-security-policy: default-src 'self'; ...`
+- ✅ `permissions-policy: camera=(), ...`
+- ✅ `x-frame-options: DENY`
+- ✅ `x-content-type-options: nosniff`
+- ✅ `referrer-policy: strict-origin-when-cross-origin`
+
+#### Méthode 3: Outils en Ligne
+
+**Mozilla Observatory**: https://observatory.mozilla.org/
+```bash
+# Tester après déploiement
+https://observatory.mozilla.org/analyze/korrigo.education.fr
+```
+
+**Grade attendu**: **A** ou **A+**
+
+**Critères**:
+- ✅ HSTS avec preload
+- ✅ CSP sans 'unsafe-inline' ou 'unsafe-eval'
+- ✅ X-Frame-Options ou CSP frame-ancestors
+- ✅ X-Content-Type-Options
+- ✅ Referrer-Policy
+
+**Security Headers**: https://securityheaders.com/
+```bash
+# Alternative à Mozilla Observatory
+https://securityheaders.com/?q=korrigo.education.fr
+```
+
+#### Méthode 4: Script Automatisé
+
+**Script de validation** (`scripts/validate_headers.sh`):
+```bash
+#!/bin/bash
+# Validation automatisée des headers de sécurité
+
+URL="${1:-https://korrigo.education.fr}"
+FAILED=0
+
+echo "🔍 Validation Headers de Sécurité: $URL"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Fonction de test générique
+test_header() {
+    local header=$1
+    local pattern=$2
+    local result=$(curl -sI "$URL/api/health/" | grep -i "^$header:" | grep -i "$pattern")
+    
+    if [ -n "$result" ]; then
+        echo "✅ $header: OK"
+        echo "   $result"
+    else
+        echo "❌ $header: MANQUANT ou INVALIDE"
+        FAILED=$((FAILED + 1))
+    fi
+}
+
+# Tests
+test_header "Strict-Transport-Security" "max-age=31536000"
+test_header "Content-Security-Policy" "default-src 'self'"
+test_header "Permissions-Policy" "camera=()"
+test_header "X-Frame-Options" "DENY"
+test_header "X-Content-Type-Options" "nosniff"
+test_header "Referrer-Policy" "strict-origin"
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if [ $FAILED -eq 0 ]; then
+    echo "✅ Tous les headers sont corrects"
+    exit 0
+else
+    echo "❌ $FAILED header(s) manquant(s) ou invalide(s)"
+    exit 1
+fi
+```
+
+**Usage**:
+```bash
+chmod +x scripts/validate_headers.sh
+./scripts/validate_headers.sh https://korrigo.education.fr
+```
+
 ---
 
 ## 4. Configuration des Cookies de Sécurité
