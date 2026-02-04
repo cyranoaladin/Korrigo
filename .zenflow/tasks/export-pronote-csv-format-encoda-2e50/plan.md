@@ -368,6 +368,7 @@ Document manual test procedures for PRONOTE import verification.
 ---
 
 ### [ ] Step 11: Run Full Test Suite
+<!-- chat-id: 6c359397-6735-4052-8897-db2a00bf4b53 -->
 
 Execute all tests and verify coverage.
 

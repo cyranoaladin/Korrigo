@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from exams.models import Exam, Copy
 from exams.services.pronote_export import PronoteExporter, ValidationError
 from students.models import Student
-from grading.models import Annotation, Score
+from grading.models import Annotation
 from decimal import Decimal
 
 
@@ -143,19 +143,26 @@ class PronoteExporterGradeCalculationTests(TestCase):
         )
     
     def test_calculate_grade_from_score_model(self):
-        """Test grade calculation from Score model"""
-        Score.objects.create(
+        """Test grade calculation from annotations"""
+        Annotation.objects.create(
             copy=self.copy,
-            scores_data={
-                "ex1": 8.0,
-                "ex2": 7.5
-            }
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=8,
+            created_by=self.user
+        )
+        Annotation.objects.create(
+            copy=self.copy,
+            page_index=1,
+            x=0.2, y=0.2, w=0.1, h=0.1,
+            score_delta=7,
+            created_by=self.user
         )
         
         grade = self.exporter.calculate_copy_grade(self.copy)
         
-        # 8 + 7.5 = 15.5 out of 20 = 15.5
-        self.assertAlmostEqual(grade, 15.5, places=2)
+        # 8 + 7 = 15 out of 20 = 15.0
+        self.assertAlmostEqual(grade, 15.0, places=2)
     
     def test_calculate_grade_from_annotations(self):
         """Test grade calculation from annotations when no Score"""
@@ -197,9 +204,20 @@ class PronoteExporterGradeCalculationTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(
+        # Create annotations with score_delta: 16 + 14 = 30 out of 40
+        Annotation.objects.create(
             copy=copy_40,
-            scores_data={"ex1": 16, "ex2": 14}
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=16,
+            created_by=self.user
+        )
+        Annotation.objects.create(
+            copy=copy_40,
+            page_index=1,
+            x=0.2, y=0.2, w=0.1, h=0.1,
+            score_delta=14,
+            created_by=self.user
         )
         
         exporter_40 = PronoteExporter(exam_40)
@@ -230,9 +248,19 @@ class PronoteExporterGradeCalculationTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(
+        Annotation.objects.create(
             copy=copy2,
-            scores_data={"ex1": 15, "ex2": 15}
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.user
+        )
+        Annotation.objects.create(
+            copy=copy2,
+            page_index=1,
+            x=0.2, y=0.2, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.user
         )
         
         grade2 = self.exporter.calculate_copy_grade(copy2)
@@ -336,6 +364,7 @@ class PronoteExporterValidationTests(TestCase):
     
     def test_validation_success(self):
         """Test validation passes with valid graded copies"""
+        user = User.objects.create(username='teacher_validation_success')
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='VALID001',
@@ -343,9 +372,12 @@ class PronoteExporterValidationTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(
+        Annotation.objects.create(
             copy=copy,
-            scores_data={"ex1": 15}
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=user
         )
         
         result = self.exporter.validate_export_eligibility()
@@ -355,6 +387,7 @@ class PronoteExporterValidationTests(TestCase):
     
     def test_validation_warning_delimiter_in_comment(self):
         """Test warning for comments with delimiter"""
+        user = User.objects.create(username='teacher_warning_delimiter')
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='COMMENT001',
@@ -363,9 +396,12 @@ class PronoteExporterValidationTests(TestCase):
             status=Copy.Status.GRADED,
             global_appreciation="Bien; mais peut mieux faire"
         )
-        Score.objects.create(
+        Annotation.objects.create(
             copy=copy,
-            scores_data={"ex1": 14}
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=14,
+            created_by=user
         )
         
         result = self.exporter.validate_export_eligibility()
@@ -414,9 +450,12 @@ class PronoteExporterCSVGenerationTests(TestCase):
             status=Copy.Status.GRADED,
             global_appreciation="Excellent travail"
         )
-        Score.objects.create(
+        Annotation.objects.create(
             copy=copy,
-            scores_data={"ex1": 15.5}
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=16,
+            created_by=self.user
         )
         
         csv_content, warnings = self.exporter.generate_csv()
@@ -429,7 +468,7 @@ class PronoteExporterCSVGenerationTests(TestCase):
         self.assertIn('INE;MATIERE;NOTE;COEFF;COMMENTAIRE', lines[0])
         
         # Check data row
-        self.assertIn('11111111111;MATHEMATIQUES;15,50;1,0;Excellent travail', lines[1])
+        self.assertIn('11111111111;MATHEMATIQUES;16,00;1,0;Excellent travail', lines[1])
     
     def test_generate_csv_multiple_copies(self):
         """Test CSV with multiple copies"""
@@ -448,8 +487,20 @@ class PronoteExporterCSVGenerationTests(TestCase):
             status=Copy.Status.GRADED
         )
         
-        Score.objects.create(copy=copy1, scores_data={"ex1": 16})
-        Score.objects.create(copy=copy2, scores_data={"ex1": 12})
+        Annotation.objects.create(
+            copy=copy1,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=16,
+            created_by=self.user
+        )
+        Annotation.objects.create(
+            copy=copy2,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=12,
+            created_by=self.user
+        )
         
         csv_content, warnings = self.exporter.generate_csv()
         
@@ -481,7 +532,13 @@ class PronoteExporterCSVGenerationTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 15})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.user
+        )
         
         csv_content, warnings = exporter_custom.generate_csv()
         
