@@ -50,3 +50,91 @@ export async function loginAsAdmin(page: Page) {
 
     console.log('✓ Login successful and hydrated via real app flow');
 }
+
+/**
+ * Login as teacher user via direct API calls and hydrate the auth store
+ */
+export async function loginAsTeacher(page: Page) {
+    // 1) Navigate to login page to establish origin and cookie jar
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+
+    // 2) Perform login via API
+    const username = process.env.E2E_TEACHER_USERNAME || 'prof1';
+    const password = process.env.E2E_TEACHER_PASSWORD || 'password';
+
+    const loginResult = await page.evaluate(async ({ username, password }) => {
+        try {
+            const res = await fetch('/api/login/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ username, password }),
+            });
+            return {
+                ok: res.ok,
+                status: res.status,
+                body: await res.text()
+            };
+        } catch (e) {
+            return {
+                ok: false,
+                status: 0,
+                body: (e as Error).toString()
+            };
+        }
+    }, { username, password });
+
+    expect(loginResult.ok, `Login API failed: HTTP ${loginResult.status}\nBody: ${loginResult.body}`).toBeTruthy();
+
+    // 3) Navigate to corrector dashboard to trigger hydration
+    await page.goto('/corrector-dashboard', { waitUntil: 'networkidle' });
+
+    // Verify hydration by waiting for a UI element that requires a logged-in user
+    await expect(page.getByTestId('corrector-dashboard')).toBeVisible({ timeout: 10000 });
+
+    console.log('✓ Teacher login successful and hydrated via real app flow');
+}
+
+/**
+ * Login as student user via direct API calls and hydrate the auth store
+ */
+export async function loginAsStudent(page: Page, ine?: string, lastName?: string) {
+    // 1) Navigate to student login page to establish origin and cookie jar
+    await page.goto('/login-student', { waitUntil: 'domcontentloaded' });
+
+    // 2) Perform login via API
+    const studentIne = ine || process.env.E2E_STUDENT_INE || '123456789';
+    const studentLastName = lastName || process.env.E2E_STUDENT_LASTNAME || 'E2E_STUDENT';
+
+    const loginResult = await page.evaluate(async ({ ine, lastName }) => {
+        try {
+            const res = await fetch('/api/students/login/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ ine, last_name: lastName }),
+            });
+            return {
+                ok: res.ok,
+                status: res.status,
+                body: await res.text()
+            };
+        } catch (e) {
+            return {
+                ok: false,
+                status: 0,
+                body: (e as Error).toString()
+            };
+        }
+    }, { ine: studentIne, lastName: studentLastName });
+
+    expect(loginResult.ok, `Student login API failed: HTTP ${loginResult.status}\nBody: ${loginResult.body}`).toBeTruthy();
+
+    // 3) Navigate to student portal to trigger hydration
+    await page.goto('/student-portal', { waitUntil: 'networkidle' });
+
+    // Verify hydration by waiting for a UI element that requires a logged-in student
+    await expect(page.getByTestId('student-portal')).toBeVisible({ timeout: 10000 });
+
+    console.log('✓ Student login successful and hydrated via real app flow');
+}
