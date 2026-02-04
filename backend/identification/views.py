@@ -15,31 +15,56 @@ from django.utils import timezone
 
 class IdentificationDeskView(APIView):
     """
-    Interface "Video-Coding" pour l'identification manuelle des copies
+    Interface "Video-Coding" pour l'identification manuelle des copies.
+    
+    IMPORTANT: Ne retourne que les copies en statut READY non identifiées.
+    Les copies STAGING sont en attente d'agrafage et ne doivent pas apparaître ici.
+    
+    Flux normal:
+    1. Upload → Crée copies STAGING (1 par booklet)
+    2. Agrafage (MergeBookletsView) → Supprime STAGING, crée 1 copie READY
+    3. Video-coding (ici) → Affiche copies READY non identifiées
+    4. Identification → Associe élève, garde statut READY
+    5. Dispatch → Assigne copies READY aux correcteurs
     """
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
 
     def get(self, request):
-        # Récupérer les copies non identifiées avec en-tête
         from exams.models import Copy, Booklet
 
-        # Get ALL unidentified copies (not limited to a specific exam)
-        unidentified_copies = Copy.objects.filter(is_identified=False).select_related('exam')
+        # CORRECTION: Ne récupérer que les copies READY non identifiées
+        # Les copies STAGING ne doivent PAS apparaître dans le video-coding
+        # car elles n'ont pas encore été agrafées/validées
+        unidentified_copies = Copy.objects.filter(
+            is_identified=False,
+            status=Copy.Status.READY  # Seulement les copies prêtes
+        ).select_related('exam').prefetch_related('booklets')
 
         data = []
+        seen_booklet_sets = set()  # Pour détecter les doublons
+        
         for copy in unidentified_copies:
             # Get the first booklet for the header image
             booklet = copy.booklets.first()
             header_url = None
             if booklet:
-                # Use the same format as the original endpoint
                 header_url = f"/api/exams/booklets/{booklet.id}/header/"
+            
+            # Créer une clé unique basée sur les booklets pour détecter les doublons
+            booklet_ids = tuple(sorted(str(b.id) for b in copy.booklets.all()))
+            if booklet_ids in seen_booklet_sets:
+                # Doublon détecté, ignorer cette copie
+                continue
+            seen_booklet_sets.add(booklet_ids)
 
             data.append({
-                "id": copy.id,
+                "id": str(copy.id),
                 "anonymous_id": copy.anonymous_id,
                 "header_image_url": header_url,
-                "status": copy.status
+                "status": copy.status,
+                "exam_id": str(copy.exam_id),
+                "exam_name": copy.exam.name if copy.exam else None,
+                "booklet_count": copy.booklets.count()
             })
 
         return Response(data)
@@ -73,9 +98,14 @@ class ManualIdentifyView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
         # Vérifier que la copie est dans l'état approprié pour identification
-        # LOCKED = copie en cours de correction, on peut quand même l'identifier
-        allowed_statuses = [Copy.Status.STAGING, Copy.Status.READY, Copy.Status.LOCKED]
+        # IMPORTANT: Seules les copies READY ou LOCKED peuvent être identifiées
+        # Les copies STAGING doivent d'abord passer par l'agrafage (MergeBookletsView)
+        allowed_statuses = [Copy.Status.READY, Copy.Status.LOCKED]
         if copy.status not in allowed_statuses:
+            if copy.status == Copy.Status.STAGING:
+                return Response({
+                    'error': 'Cette copie est en statut STAGING. Elle doit d\'abord être agrafée avant identification.'
+                }, status=status.HTTP_400_BAD_REQUEST)
             return Response({
                 'error': f'Impossible d\'identifier une copie en statut {copy.status}'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -83,10 +113,9 @@ class ManualIdentifyView(APIView):
         # Associer la copie à l'élève
         copy.student = student
         copy.is_identified = True
-
-        # Transition d'état : STAGING → READY (prêt à corriger)
-        if copy.status == Copy.Status.STAGING:
-            copy.status = Copy.Status.READY
+        
+        # Mettre à jour validated_at si pas déjà défini
+        if not copy.validated_at:
             copy.validated_at = timezone.now()
 
         copy.save()
@@ -113,7 +142,10 @@ class ManualIdentifyView(APIView):
 
 class OCRIdentifyView(APIView):
     """
-    Endpoint pour identifier une copie via OCR + validation humaine
+    Endpoint pour identifier une copie via OCR + validation humaine.
+    
+    IMPORTANT: Seules les copies READY peuvent être identifiées.
+    Les copies STAGING doivent d'abord passer par l'agrafage.
     """
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
 
@@ -121,41 +153,53 @@ class OCRIdentifyView(APIView):
         copy = get_object_or_404(Copy, id=copy_id)
         student_id = request.data.get('student_id')
 
-        if student_id:
-            try:
-                student = Student.objects.get(id=student_id)
-            except Student.DoesNotExist:
-                return Response({
-                    'error': 'Élève non trouvé'
-                }, status=status.HTTP_404_NOT_FOUND)
-
-            # Associer la copie à l'élève
-            copy.student = student
-            copy.is_identified = True
-            copy.status = Copy.Status.READY  # Passer à READY après identification
-            copy.save()
-
-            # Créer un événement d'audit OCR
-            GradingEvent.objects.create(
-                copy=copy,
-                action=GradingEvent.Action.VALIDATE,
-                actor=request.user if request.user.is_authenticated else None,
-                metadata={
-                    'student_id': str(student.id),
-                    'student_name': f"{student.first_name} {student.last_name}",
-                    'method': 'ocr_assisted_identification'
-                }
-            )
-
+        if not student_id:
             return Response({
-                'message': 'Copie identifiée avec succès',
-                'copy_id': copy.id,
-                'student_name': f"{student.first_name} {student.last_name}"
-            })
+                'error': 'student_id requis'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Vérifier le statut de la copie
+        allowed_statuses = [Copy.Status.READY, Copy.Status.LOCKED]
+        if copy.status not in allowed_statuses:
+            if copy.status == Copy.Status.STAGING:
+                return Response({
+                    'error': 'Cette copie est en statut STAGING. Elle doit d\'abord être agrafée avant identification.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'error': f'Impossible d\'identifier une copie en statut {copy.status}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            student = Student.objects.get(id=student_id)
+        except Student.DoesNotExist:
+            return Response({
+                'error': 'Élève non trouvé'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Associer la copie à l'élève
+        copy.student = student
+        copy.is_identified = True
+        if not copy.validated_at:
+            copy.validated_at = timezone.now()
+        copy.save()
+
+        # Créer un événement d'audit OCR
+        GradingEvent.objects.create(
+            copy=copy,
+            action=GradingEvent.Action.VALIDATE,
+            actor=request.user if request.user.is_authenticated else None,
+            metadata={
+                'student_id': str(student.id),
+                'student_name': student.full_name,
+                'method': 'ocr_assisted_identification'
+            }
+        )
 
         return Response({
-            'error': 'student_id requis'
-        }, status=status.HTTP_400_BAD_REQUEST)
+            'message': 'Copie identifiée avec succès',
+            'copy_id': str(copy.id),
+            'student_name': student.full_name
+        })
 
 
 class OCRPerformView(APIView):
