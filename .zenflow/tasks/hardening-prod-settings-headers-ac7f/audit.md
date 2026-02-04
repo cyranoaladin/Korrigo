@@ -1173,20 +1173,316 @@ DJANGO_ALLOWED_HOSTS="example.com" python manage.py check
 # System check identified no issues (0 silenced).
 ```
 
-### 5.4 Recommandations
+### 5.4 Différence entre ALLOWED_HOSTS et DJANGO_ALLOWED_HOSTS
 
-**Actions requises**: ✅ Aucune modification code
+**Contexte**: Deux noms de variables différents selon l'environnement.
 
-**Documentation requise**:
-1. ✅ Mettre à jour `.env.prod.example` avec exemples
-2. ✅ Ajouter commentaires explicatifs sur DJANGO_ALLOWED_HOSTS
-3. ✅ Documenter la différence entre ALLOWED_HOSTS (base) et DJANGO_ALLOWED_HOSTS (prod)
+#### Variable de Base: ALLOWED_HOSTS
 
-**Checklist pré-déploiement**:
+**Fichier**: `settings.py:42`  
+**Usage**: Environnements dev et prod-like  
+**Source**: Variable d'environnement `ALLOWED_HOSTS`  
+**Parsing**: Helper `csv_env("ALLOWED_HOSTS", "localhost,127.0.0.1")`
+
+```python
+# settings.py
+ALLOWED_HOSTS = csv_env("ALLOWED_HOSTS", "localhost,127.0.0.1")
+```
+
+**Comportement**:
+- Défaut développement: `localhost,127.0.0.1`
+- Validation anti-wildcard: bloque `*` si `DJANGO_ENV=production`
+
+#### Variable Production: DJANGO_ALLOWED_HOSTS
+
+**Fichier**: `settings_prod.py:18-21`  
+**Usage**: Production réelle uniquement  
+**Source**: Variable d'environnement `DJANGO_ALLOWED_HOSTS`  
+**Parsing**: Split CSV manuel avec `.strip()`
+
+```python
+# settings_prod.py
+DJANGO_ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = [h.strip() for h in DJANGO_ALLOWED_HOSTS.split(",") if h.strip()]
+if not ALLOWED_HOSTS:
+    raise ValueError("DJANGO_ALLOWED_HOSTS must be set (comma-separated)")
+```
+
+**Comportement**:
+- Défaut: chaîne vide → **erreur au démarrage**
+- Validation stricte: bloque si liste finale vide
+- Override: remplace la valeur de `settings.py`
+
+#### Tableau Comparatif
+
+| Aspect | `ALLOWED_HOSTS` (base) | `DJANGO_ALLOWED_HOSTS` (prod) |
+|--------|------------------------|-------------------------------|
+| **Fichier** | `settings.py` | `settings_prod.py` |
+| **Env var** | `ALLOWED_HOSTS` | `DJANGO_ALLOWED_HOSTS` |
+| **Défaut** | `localhost,127.0.0.1` | Vide (erreur) |
+| **Validation** | Anti-wildcard en prod | Anti-vide strict |
+| **Usage** | Dev, prod-like | Production HTTPS |
+| **Parsing** | Helper `csv_env()` | Split manuel |
+
+#### Pourquoi deux noms différents ?
+
+**Raison historique**: Séparation des responsabilités.
+
+1. **`settings.py`**: Configuration générale avec valeurs par défaut raisonnables
+2. **`settings_prod.py`**: Configuration production qui **override** les valeurs de base
+
+**Avantage**: 
+- Variable `DJANGO_ALLOWED_HOSTS` **explicitement production**
+- Impossible de confondre avec config dev
+- Validation stricte spécifique à la production
+
+**Inconvénient**:
+- Risque de confusion pour les opérateurs
+- Documentation claire requise (✅ résolu dans ce document)
+
+### 5.5 Comportement de Validation Django
+
+#### Protection Host Header Attack
+
+**Contexte**: Django valide le header HTTP `Host` contre `ALLOWED_HOSTS` pour prévenir les attaques.
+
+**Attaque typique**:
+```http
+GET /api/health/ HTTP/1.1
+Host: attacker.com
+```
+
+**Comportement Django**:
+```python
+# Si "attacker.com" pas dans ALLOWED_HOSTS
+→ SuspiciousOperation exception
+→ HTTP 400 Bad Request
+→ Log: "Invalid HTTP_HOST header: 'attacker.com'"
+```
+
+**Protection contre**:
+- Cache poisoning
+- Password reset poisoning
+- Email injection via host header
+
+#### Exemples de Validation
+
+**Cas 1: Host valide**
+```bash
+curl -H "Host: korrigo.education.fr" https://korrigo.education.fr/api/health/
+# → HTTP 200 OK (korrigo.education.fr dans ALLOWED_HOSTS)
+```
+
+**Cas 2: Host invalide**
+```bash
+curl -H "Host: malicious.com" https://korrigo.education.fr/api/health/
+# → HTTP 400 Bad Request
+# Django log: Invalid HTTP_HOST header: 'malicious.com'
+```
+
+**Cas 3: Wildcard bloqué en production**
+```bash
+DJANGO_ALLOWED_HOSTS="*" DJANGO_ENV=production python manage.py check
+# → ValueError: ALLOWED_HOSTS cannot contain '*' in production
+```
+
+**Cas 4: Liste vide en production**
+```bash
+DJANGO_ALLOWED_HOSTS="" python manage.py check
+# → ValueError: DJANGO_ALLOWED_HOSTS must be set (comma-separated)
+```
+
+#### Wildcards et Subdomains
+
+**Wildcard complet**: ❌ Bloqué en production
+```python
+ALLOWED_HOSTS = ["*"]  # Accepte tous les hosts (DANGEREUX)
+```
+
+**Wildcard subdomain**: ✅ Autorisé (si nécessaire)
+```python
+ALLOWED_HOSTS = [".example.com"]  # Accepte *.example.com
+# Valide: app.example.com, api.example.com, admin.example.com
+```
+
+**IMPORTANT**: Le wildcard subdomain (`.example.com`) n'est **pas** bloqué par la validation actuelle car elle check uniquement `"*"` exact.
+
+**Recommandation**: Lister explicitement les subdomains au lieu d'utiliser wildcard:
+```python
+# ✅ Préféré: Liste explicite
+ALLOWED_HOSTS = ["app.example.com", "api.example.com", "admin.example.com"]
+
+# ⚠️ Acceptable si vraiment nécessaire
+ALLOWED_HOSTS = [".example.com"]  # Tous les subdomains
+```
+
+### 5.6 Cas d'Usage Avancés
+
+#### Scénario 6: Environnement Multi-Région
+
+**Contexte**: Application déployée dans plusieurs datacenters avec domaines régionaux.
+
+```bash
+# .env.prod
+DJANGO_ALLOWED_HOSTS=korrigo.fr,korrigo.eu,korrigo.asia
+```
+
+**Considération**: CORS et CSRF doivent aussi être configurés pour ces domaines.
+
+#### Scénario 7: Migration de Domaine
+
+**Contexte**: Transition de `old-domain.com` vers `new-domain.com`.
+
+```bash
+# .env.prod (pendant la migration)
+DJANGO_ALLOWED_HOSTS=old-domain.com,new-domain.com,www.old-domain.com,www.new-domain.com
+```
+
+**Étapes**:
+1. Ajouter nouveau domaine à ALLOWED_HOSTS
+2. Configurer redirection DNS
+3. Tester accès sur nouveau domaine
+4. Supprimer ancien domaine après migration complète
+
+#### Scénario 8: Load Balancer avec IP Interne
+
+**Contexte**: Load balancer AWS/GCP envoie `Host: 10.0.1.50` pour health checks.
+
+```bash
+# .env.prod
+DJANGO_ALLOWED_HOSTS=korrigo.education.fr,10.0.1.50
+```
+
+**Alternative**: Configurer load balancer pour envoyer `Host: korrigo.education.fr` au lieu de l'IP.
+
+### 5.7 Pièges Courants et Solutions
+
+#### Piège 1: Espaces dans la Liste
+
+**Erreur courante**:
+```bash
+DJANGO_ALLOWED_HOSTS="korrigo.fr, www.korrigo.fr"  # Espace après virgule
+```
+
+**Conséquence**:
+```python
+ALLOWED_HOSTS = ["korrigo.fr", " www.korrigo.fr"]  # Espace en début
+# Host "www.korrigo.fr" rejeté (espace non trimé)
+```
+
+**Solution**: La logique actuelle **gère ce cas** via `.strip()`
+```python
+# settings_prod.py:19
+ALLOWED_HOSTS = [h.strip() for h in DJANGO_ALLOWED_HOSTS.split(",") if h.strip()]
+# → ["korrigo.fr", "www.korrigo.fr"] ✅
+```
+
+#### Piège 2: Port dans Host Header
+
+**Situation**: Accès via `http://korrigo.fr:8080`
+
+**Host header**: `korrigo.fr:8080`
+
+**Configuration requise**:
+```bash
+# Option 1: Inclure le port
+DJANGO_ALLOWED_HOSTS=korrigo.fr:8080,korrigo.fr
+
+# Option 2: Proxy stripping (nginx)
+proxy_set_header Host $host;  # Sans port
+```
+
+**Recommandation**: ✅ Option 2 (nginx strip le port automatiquement)
+
+#### Piège 3: IPv6
+
+**Situation**: Accès direct via IPv6 `[2001:db8::1]`
+
+**Configuration**:
+```bash
+DJANGO_ALLOWED_HOSTS=korrigo.fr,[2001:db8::1]
+# ⚠️ IPv6 doit être entre crochets
+```
+
+**Recommandation**: Utiliser domaines au lieu d'IPs IPv6.
+
+#### Piège 4: Variable Non Définie vs Vide
+
+**Cas 1: Variable non définie** (absence totale)
+```bash
+# .env ne contient PAS DJANGO_ALLOWED_HOSTS
+```
+```python
+DJANGO_ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
+# → "" (chaîne vide)
+# → ValueError
+```
+
+**Cas 2: Variable définie mais vide** (présente avec valeur vide)
+```bash
+# .env
+DJANGO_ALLOWED_HOSTS=
+```
+```python
+DJANGO_ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
+# → "" (chaîne vide)
+# → ValueError
+```
+
+**Résultat**: Même comportement → **ValueError** (validation stricte fonctionne)
+
+### 5.8 Recommandations
+
+#### Actions Code
+
+✅ **Aucune modification requise** - La logique actuelle est robuste et sécurisée.
+
+#### Documentation
+
+✅ **Complétées**:
+1. ✅ `.env.prod.example` mis à jour avec exemples et documentation
+2. ✅ Commentaires explicatifs sur DJANGO_ALLOWED_HOSTS ajoutés
+3. ✅ Différence ALLOWED_HOSTS vs DJANGO_ALLOWED_HOSTS documentée
+4. ✅ Cas d'usage avancés et pièges documentés
+
+#### Checklist Pré-Déploiement Production
+
+**Validation configuration**:
 - [ ] Variable `DJANGO_ALLOWED_HOSTS` définie dans fichier `.env.prod`
-- [ ] Valeur correspond exactement au(x) nom(s) de domaine
-- [ ] Test `curl -H "Host: example.com" http://localhost:8088/api/health/` → 200 OK
-- [ ] Test `curl -H "Host: attacker.com" http://localhost:8088/api/health/` → 400 Bad Request
+- [ ] Valeur correspond **exactement** au(x) nom(s) de domaine production
+- [ ] Aucun wildcard `*` présent
+- [ ] Aucun espace superflu (mais géré par `.strip()` si présent)
+- [ ] Domaines avec et sans `www` inclus si nécessaire
+
+**Tests manuels**:
+```bash
+# Test 1: Host valide accepté
+curl -I -H "Host: korrigo.education.fr" http://localhost:8088/api/health/
+# → HTTP 200 OK
+
+# Test 2: Host invalide rejeté
+curl -I -H "Host: attacker.com" http://localhost:8088/api/health/
+# → HTTP 400 Bad Request
+
+# Test 3: Démarrage avec config invalide bloqué
+DJANGO_ALLOWED_HOSTS="" python manage.py check
+# → ValueError: DJANGO_ALLOWED_HOSTS must be set
+
+# Test 4: Wildcard bloqué en production
+DJANGO_ALLOWED_HOSTS="*" DJANGO_ENV=production python manage.py check
+# → ValueError: ALLOWED_HOSTS cannot contain '*' in production
+```
+
+**Validation post-déploiement**:
+```bash
+# Vérifier logs Django pour SuspiciousOperation
+docker logs <container> | grep "Invalid HTTP_HOST"
+# → Aucune ligne (pas d'attaque détectée)
+
+# Vérifier que le service répond sur le bon domaine
+curl -I https://korrigo.education.fr/api/health/
+# → HTTP 200 OK + tous les security headers
+```
 
 ---
 
