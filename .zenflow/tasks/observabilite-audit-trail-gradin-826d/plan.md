@@ -275,25 +275,38 @@ python -m py_compile backend/core/celery.py
 # Exit code: 0 ✓
 ```
 
-### [ ] Step: Add Request Correlation to Celery Tasks
+### [x] Step: Add Request Correlation to Celery Tasks
+<!-- chat-id: f54ed51e-7ff6-4fe7-9ab0-674b25aea12a -->
 
 **Objective**: Propagate request_id from HTTP requests to Celery tasks for log correlation
 
 **Tasks**:
-- [ ] Modify `grading/tasks.py` - `async_finalize_copy()` signature
+- [x] Modify `grading/tasks.py` - `async_finalize_copy()` signature
   - Add `request_id=None` parameter
   - Inject `request_id` into all log statements via `extra={'request_id': request_id}`
-- [ ] Modify `grading/tasks.py` - `async_import_pdf()` signature
+- [x] Modify `grading/tasks.py` - `async_import_pdf()` signature
   - Add `request_id=None` parameter
   - Inject `request_id` into all log statements via `extra={'request_id': request_id}`
-- [ ] Add metrics recording in Celery tasks (success/failure)
+- [x] Add metrics recording in Celery tasks (success/failure)
 
 **References**:
 - Spec: Section 2.2 (Request Correlation Pattern), Section 4.1 (Celery Task Signatures), Section 5 Phase 3
 - Requirements: REQ-1.4 (Celery Task Correlation)
 
+**Findings**:
+- Modified `async_finalize_copy()` signature at line 21: added `request_id=None` parameter
+- Modified `async_import_pdf()` signature at line 94: added `request_id=None` parameter
+- Updated all logger calls in both tasks (9 total) to include `extra={'request_id': request_id}` when request_id is not None
+- Locations updated in `async_finalize_copy`: lines 46-47, 56-57, 65-66, 77-82
+- Locations updated in `async_import_pdf`: lines 116-117, 131-132, 138-139, 149-154
+- Backward compatibility maintained with `request_id=None` default parameter
+
 **Verification**:
-Backward compatibility maintained with `request_id=None` default parameter
+```bash
+# Syntax check passed
+python -m py_compile backend/grading/tasks.py
+# Exit code: 0 ✓
+```
 
 ### [ ] Step: Update Task Dispatch Sites with Request ID
 
