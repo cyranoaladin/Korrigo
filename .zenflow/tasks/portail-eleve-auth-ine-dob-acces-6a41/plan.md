@@ -268,6 +268,7 @@ Save to `{@artifacts_path}/plan.md`.
 ---
 
 ### [ ] Step: E2E Tests with Playwright
+<!-- chat-id: 6d1dd790-7e8e-4c74-a2d2-b7ed7e223aa3 -->
 
 **Objective**: Test complete student workflow from login to PDF download
 
