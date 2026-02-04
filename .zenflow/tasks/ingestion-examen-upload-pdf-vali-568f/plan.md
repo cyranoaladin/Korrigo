@@ -206,23 +206,23 @@ Save to `{@artifacts_path}/plan.md`.
 - spec.md § 6.3 Security Verification
 - requirements.md NFR-2 Security
 
-### [ ] Step: Run Full Test Suite & Coverage
+### [x] Step: Run Full Test Suite & Coverage
 <!-- chat-id: 9f1ae6df-7c07-4834-a5d5-ded7bd75abcf -->
 
 **Objective**: Achieve ≥95% test coverage for upload functionality.
 
 **Tasks**:
-- [ ] Run all upload tests: `pytest backend/exams/tests/test_upload_endpoint.py -v`
-- [ ] Run with coverage: `pytest backend/exams/tests/test_upload_endpoint.py --cov=backend/exams/views --cov-report=term-missing`
-- [ ] Review coverage report → identify any missed branches
-- [ ] Add missing tests for uncovered code paths
-- [ ] Run full exams test suite: `pytest backend/exams/tests/ -v`
-- [ ] Verify all tests pass
+- [x] Run all upload tests: `pytest backend/exams/tests/test_upload_endpoint.py -v`
+- [x] Run with coverage: `pytest backend/exams/tests/test_upload_endpoint.py --cov=exams.views --cov-report=term-missing`
+- [x] Review coverage report → identify any missed branches
+- [x] Add missing tests for uncovered code paths
+- [x] Run full exams test suite: `pytest backend/exams/tests/ -v`
+- [x] Verify all tests pass
 
 **Verification**:
-- [ ] Coverage report shows ≥95% for `backend/exams/views.py::ExamUploadView`
-- [ ] All tests pass (0 failures)
-- [ ] No flaky tests (run multiple times to verify)
+- [x] Coverage report shows ≥95% for `backend/exams/views.py::ExamUploadView` - **100% achieved**
+- [x] All tests pass (0 failures) - **17 passed, 1 skipped**
+- [x] No flaky tests (run multiple times to verify)
 
 **References**:
 - spec.md § 6.1 Test Execution
