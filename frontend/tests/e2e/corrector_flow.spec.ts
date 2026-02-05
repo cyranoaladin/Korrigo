@@ -24,9 +24,9 @@ test.describe('Corrector Flow & Robustness', () => {
 
         // 1. LOGIN
         await page.goto('/teacher/login');
-        await page.fill('input[type="text"]', CREDS.teacher.username);
-        await page.fill('input[type="password"]', CREDS.teacher.password);
-        await page.click('button[type="submit"]');
+        await page.fill('[data-testid="login.username"]', CREDS.teacher.username);
+        await page.fill('[data-testid="login.password"]', CREDS.teacher.password);
+        await page.click('[data-testid="login.submit"]');
 
         // Wait for Dashboard
         await expect(page).toHaveURL(/\/corrector-dashboard/);
@@ -90,7 +90,7 @@ test.describe('Corrector Flow & Robustness', () => {
             );
         });
 
-        await page.click('.editor-actions .btn-primary'); // "Save" button
+        await page.click('[data-testid="save-annotation-btn"]'); // "Save" button
 
         // Wait for server sync AND UI feedback
         await saveResponse;

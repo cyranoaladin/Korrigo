@@ -62,4 +62,4 @@ These folders are **not versioned** to keep the repository clean.
 **Decision**: ✅ **GO**
 As Assistant Lead, I certify that this pack aligns code, proofs, and identity. Collisions on IDs are mitigated by `crypto.randomUUID()`. Branding is consistent. 
 
-**Signed**: Antigravity (Assistant Lead)
+**Signed: Alaeddine BEN RHOUMA

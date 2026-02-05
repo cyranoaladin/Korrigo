@@ -99,22 +99,26 @@ if DJANGO_ENV == "production" and not METRICS_TOKEN and not DEBUG:
 # SSL_ENABLED: Set to "False" in prod-like (HTTP-only E2E), "True" in real prod
 SSL_ENABLED = os.environ.get("SSL_ENABLED", "False").lower() == "true"
 
+# Always trust X-Forwarded-Proto header from reverse proxy
+# This is required for proper session/CSRF cookie handling behind HTTPS proxy
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
 if not DEBUG:
     # Production Security Headers
     if SSL_ENABLED:
-        # Real production: Force HTTPS
+        # Real production: Force HTTPS redirect and secure cookies
         SECURE_SSL_REDIRECT = True
         SESSION_COOKIE_SECURE = True
         CSRF_COOKIE_SECURE = True
         SECURE_HSTS_SECONDS = 31536000
         SECURE_HSTS_INCLUDE_SUBDOMAINS = True
         SECURE_HSTS_PRELOAD = True
-        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     else:
-        # Prod-like (E2E): HTTP-only, no SSL redirect
+        # Prod-like (E2E): No SSL redirect, but still secure cookies since proxy handles HTTPS
         SECURE_SSL_REDIRECT = False
-        SESSION_COOKIE_SECURE = False
-        CSRF_COOKIE_SECURE = False
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
 
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -259,6 +263,11 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
+# Auth URLs
+LOGIN_URL = '/admin/login/'
+LOGIN_REDIRECT_URL = '/admin-dashboard'
+LOGOUT_REDIRECT_URL = '/'
+
 # P1.1 FIX: Ensure logs directory exists before configuring logging
 LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -364,15 +373,47 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300
 CELERY_TASK_SOFT_TIME_LIMIT = 270
 
-# Cache Configuration (required for django-ratelimit)
-# Cache Configuration (required for django-ratelimit)
-# Use LocMemCache for testing/dev without Redis
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
-    }
+# ZF-AUD-13: Dedicated queues for performance optimization
+# Separate heavy tasks (import, finalize) from light tasks (default)
+CELERY_TASK_ROUTES = {
+    'grading.tasks.async_import_pdf': {'queue': 'import'},
+    'grading.tasks.async_batch_import': {'queue': 'import'},
+    'grading.tasks.async_finalize_copy': {'queue': 'finalize'},
+    'grading.tasks.cleanup_orphaned_files': {'queue': 'maintenance'},
 }
+
+# ZF-AUD-13: Rate limiting to prevent overload
+CELERY_TASK_ANNOTATIONS = {
+    'grading.tasks.async_import_pdf': {'rate_limit': '10/m'},
+    'grading.tasks.async_finalize_copy': {'rate_limit': '5/m'},
+}
+
+# ZF-AUD-13: Prefetch multiplier (1 for long tasks to avoid blocking)
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+
+# Cache Configuration (required for django-ratelimit and login lockout)
+# Use Redis if available (production/Docker), otherwise LocMemCache (dev)
+REDIS_HOST = os.environ.get('REDIS_HOST', '')
+if REDIS_HOST:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': f'redis://{REDIS_HOST}:{os.environ.get("REDIS_PORT", "6379")}/{os.environ.get("REDIS_DB", "1")}',
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+            'KEY_PREFIX': 'viatique',
+            'TIMEOUT': 300,
+        }
+    }
+else:
+    # Development: LocMemCache (WARNING: does not work with multiple workers)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
 
 # Rate limiting configuration
 RATELIMIT_USE_CACHE = 'default'

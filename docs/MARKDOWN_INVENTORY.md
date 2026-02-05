@@ -115,7 +115,7 @@
 
 | File | Classification | Notes |
 |------|----------------|-------|
-| `.antigravity/README.md` | **KEEP** | Antigravity docs |
+| `.antigravity/README.md` | **KEEP** | Internal docs |
 | `.antigravity/ANTIGRAVITY_SYNC_REPORT.md` | **KEEP** | Sync report |
 | `.antigravity/PHASE3_FRONTEND_MANUAL_CHECKLIST.md` | **KEEP** | Checklist |
 | `.antigravity/SUPERVISION_RULES.md` | **KEEP** | Rules |

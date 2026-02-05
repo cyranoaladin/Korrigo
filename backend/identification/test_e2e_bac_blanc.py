@@ -47,11 +47,10 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         
         # Create student
         self.student = Student.objects.create(
-            ine="E2E123456789A",
-            first_name="Jean",
-            last_name="BacBlanc",
+            email="jean.bacblanc@test.com",
+            full_name="BacBlanc Jean",
+            date_of_birth="2008-01-15",
             class_name="TG2",
-            email="jean.bacblanc@example.com",
             user=self.student_user
         )
         
@@ -71,7 +70,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         buffer = io.BytesIO()
         c = canvas.Canvas(buffer, pagesize=A4)
         c.drawString(100, 750, "Bac Blanc Test Copy")
-        c.drawString(100, 730, "Student: Jean BacBlanc")
+        c.drawString(100, 730, "Student: BacBlanc Jean")
         c.save()
         
         # Move to beginning of buffer
@@ -101,7 +100,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
             exam=self.exam,
             start_page=1,
             end_page=4,
-            student_name_guess="Jean BacBlanc"
+            student_name_guess="BacBlanc Jean"
         )
         copy.booklets.add(booklet)
 
@@ -123,7 +122,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         copy.validated_at = timezone.now()
         copy.save()
         
-        print(f"   - Copie liée à élève: {self.student.first_name} {self.student.last_name}")
+        print(f"   - Copie liée à élève: {self.student.full_name}")
         print(f"   - Nouveau statut: {copy.status}")
         
         # Vérifier la transition d'état
@@ -213,7 +212,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         # Vérifier que les données sont prêtes pour l'export
         export_data = {
             'exam_name': copy.exam.name,
-            'student_name': f"{copy.student.first_name} {copy.student.last_name}",
+            'student_name': copy.student.full_name,
             'anonymous_id': copy.anonymous_id,
             'status': copy.status,
             'graded_at': copy.graded_at,
@@ -225,7 +224,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         
         # Vérifier que toutes les étapes sont complètes
         self.assertEqual(export_data['status'], Copy.Status.GRADED)
-        self.assertEqual(export_data['student_name'], "Jean BacBlanc")
+        self.assertEqual(export_data['student_name'], "BacBlanc Jean")
         self.assertEqual(export_data['annotations_count'], 1)
         self.assertGreaterEqual(export_data['events_count'], 2)
         
@@ -309,17 +308,17 @@ class BacBlancSecurityTest(TestCase):
         
         # Créer étudiants
         self.student1 = Student.objects.create(
-            ine="SEC123456789A",
-            first_name="Jean",
-            last_name="Sécurité",
+            email="jean.securite@test.com",
+            full_name="Sécurité Jean",
+            date_of_birth="2008-02-20",
             class_name="TG2",
             user=self.student_user
         )
         
         self.student2 = Student.objects.create(
-            ine="SEC987654321B",
-            first_name="Marie",
-            last_name="Sécurité",
+            email="marie.securite@test.com",
+            full_name="Sécurité Marie",
+            date_of_birth="2008-03-25",
             class_name="TG2"
         )
         

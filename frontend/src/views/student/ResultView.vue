@@ -90,7 +90,7 @@ onMounted(() => {
               <span class="exam-date">{{ copy.date }}</span>
             </div>
             <div class="copy-score">
-              Note: <span class="score-value">{{ copy.total_score.toFixed(2) }}</span> / 20
+              Note: <span class="score-value">{{ copy.total_score ? copy.total_score.toFixed(2) : 'N/A' }}</span> / 20
             </div>
           </li>
         </ul>

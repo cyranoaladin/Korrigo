@@ -75,13 +75,13 @@ const routes = [
         path: '/admin/users',
         name: 'UserManagement',
         component: () => import('../views/admin/UserManagement.vue'),
-        meta: { requiresAuth: true, role: 'Admin' }
+        meta: { requiresAuth: true, role: 'Admin', title: 'Gestion Utilisateurs' }
     },
     {
         path: '/admin/settings',
         name: 'Settings',
         component: () => import('../views/Settings.vue'),
-        meta: { requiresAuth: true, role: 'Admin' }
+        meta: { requiresAuth: true, role: 'Admin', title: 'Paramètres' }
     },
     {
         path: '/exam/:examId/staple',
@@ -128,17 +128,27 @@ router.beforeEach(async (to, from, next) => {
         }
 
         // Role Check
-        if (to.meta.role && userRole !== to.meta.role && userRole !== 'Admin') {
-            // Wrong role -> Redirect to correct dashboard
-            if (userRole === 'Admin') return next('/admin-dashboard')
-            if (userRole === 'Teacher') return next('/corrector-dashboard')
-            if (userRole === 'Student') return next('/student-portal')
-            return next('/')
+        // Admin can access Admin routes only
+        // Teacher can access Teacher routes only
+        // Admin can also access Teacher routes (supervisor mode)
+        const requiredRole = to.meta.role
+        if (requiredRole) {
+            const hasAccess = 
+                userRole === requiredRole || 
+                (userRole === 'Admin' && requiredRole === 'Teacher')  // Admin can supervise teachers
+            
+            if (!hasAccess) {
+                // Wrong role -> Redirect to correct dashboard
+                if (userRole === 'Admin') return next('/admin-dashboard')
+                if (userRole === 'Teacher') return next('/corrector-dashboard')
+                if (userRole === 'Student') return next('/student-portal')
+                return next('/')
+            }
         }
     }
 
-    // 3. Redirect Logged-In Users away from Login Pages
-    const isLoginPage = ['LoginAdmin', 'LoginTeacher', 'StudentLogin', 'Home'].includes(to.name)
+    // 3. Redirect Logged-In Users away from Login Pages (but NOT from Home)
+    const isLoginPage = ['LoginAdmin', 'LoginTeacher', 'StudentLogin'].includes(to.name)
     if (isLoginPage && isAuthenticated) {
         if (userRole === 'Admin') return next('/admin-dashboard')
         if (userRole === 'Teacher') return next('/corrector-dashboard')

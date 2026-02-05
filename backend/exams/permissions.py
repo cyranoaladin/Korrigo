@@ -9,6 +9,10 @@ class IsTeacherOrAdmin(permissions.BasePermission):
         if not (request.user and request.user.is_authenticated):
             return False
 
+        # Superusers and staff always have access
+        if request.user.is_superuser or request.user.is_staff:
+            return True
+
         # Check if user belongs to Teacher or Admin group
         return (request.user.groups.filter(name=UserRole.TEACHER).exists() or
                 request.user.groups.filter(name=UserRole.ADMIN).exists())

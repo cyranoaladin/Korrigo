@@ -449,6 +449,131 @@ Après déploiement, tester manuellement :
 - [ ] Hotfix appliqués si nécessaire
 
 ---
+# Korrigo — Production Readiness Checklist (PRD-01 → PRD-19)
+
+**Règle d’or :** interdiction de déclarer “prod-ready” tant que **PRD-19** n’est pas **PASS** (from scratch) avec preuves.
+
+## A. Pré-conditions (à chaque session)
+- [ ] `git pull --ff-only` (main à jour)
+- [ ] `git status` = clean
+- [ ] Dossier preuves créé : `.antigravity/proofs/prd/YYYY-MM-DD_HHMM/`
+- [ ] Toute donnée élève potentielle **non commitée** (seulement compteurs/hashes)
+
+---
+
+## B. PRD Checklist (actions + preuves)
+
+### PRD-01 — Baseline / Proof structure
+- [ ] Preuves : git status, HEAD, arborescence preuves
+- [ ] Commit + push sur main
+
+### PRD-02 — Docker Compose Prod Config
+- [ ] Validation compose prod
+- [ ] Preuves (logs)
+
+### PRD-03 — Docker Compose Local-Prod Config
+- [ ] Validation compose local-prod
+- [ ] Preuves (logs)
+
+### PRD-04 — Build Images (no-cache)
+- [ ] Build no-cache
+- [ ] Preuves (logs build)
+
+### PRD-05 — Boot Stack + Services UP
+- [ ] `docker ps` (tous services up)
+- [ ] Preuves (docker ps + healthchecks)
+
+### PRD-06 — Migrations Applied
+- [ ] Migrations OK
+- [ ] Preuves (liste migrations)
+
+### PRD-07 — Collectstatic + Nginx Config
+- [ ] static/media OK via curl
+- [ ] Preuves (curl -I + logs)
+
+### PRD-08 — Seed Deterministic + Idempotent
+- [ ] seed 1 OK
+- [ ] seed 2 OK (idempotent)
+- [ ] Preuves (compteurs DB)
+
+### PRD-09 — Backend Tests 100% Pass
+- [ ] pytest complet PASS
+- [ ] Preuves (résumé)
+
+### PRD-10 — Frontend Build Prod OK
+- [ ] build prod PASS
+- [ ] Preuves
+
+### PRD-11 — Frontend Lint/Typecheck OK
+- [ ] lint PASS
+- [ ] typecheck PASS
+- [ ] Preuves
+
+### PRD-12 — E2E 100% Pass
+- [ ] Playwright PASS
+- [ ] Preuves
+
+### PRD-13 — Auth/Lockout TTL Validation
+- [ ] TTL/lockout conforme
+- [ ] Preuves (logs/commandes)
+
+### PRD-14 — Workflow métier complet
+- [ ] Upload → identification → READY → lock → annotate → finalize → export
+- [ ] Preuves (captures anonymisées + compteurs DB)
+
+### PRD-15 — Restart Resilience
+- [ ] restart stack OK
+- [ ] Preuves
+
+### PRD-16 — Security Headers/Nginx
+- [ ] headers OK
+- [ ] Preuves (curl -I)
+
+### PRD-17 — Observabilité + No PII
+- [ ] logs structurés
+- [ ] no PII (preuve grep)
+- [ ] Preuves
+
+### PRD-18 — Runbook + Risk Register
+- [ ] `PROD_RUNBOOK.md` présent et exact
+- [ ] `RISK_REGISTER.md` présent et exact
+- [ ] Preuves
+
+### PRD-19 — Gate Final GO/NO-GO (FROM SCRATCH)
+- [ ] rebuild no-cache
+- [ ] rerun tests complets
+- [ ] rerun workflow A3
+- [ ] **PASS** uniquement si tout est vert + preuves
+- [ ] Rapport final d’attestation (ex: `PROD_SIMULATION_REPORT.md`)
+
+---
+
+## C. Spécial — Scans A3 Recto/Verso (critères d’acceptation)
+
+**But :** gérer automatiquement les PDF A3 “2-up” (2 pages A4 côte à côte) avec ordre :
+- scan1: P1 + P4
+- scan2: P2 + P3
+- puis répétition
+
+Critères :
+- [ ] Détection automatique A3 (ou fallback sûr)
+- [ ] Découpe A3 → 2xA4 par page A3
+- [ ] Reconstruction par copie en ordre P1,P2,P3,P4
+- [ ] Nombre de copies cohérent : `copies = (nb_pages_A4_total / 4)`
+- [ ] Les pages affichées côté identification/correction correspondent bien à la copie
+- [ ] Aucune ambiguïté de header (si incertain : erreur explicite)
+- [ ] Preuves chiffrées : nb pages PDF, nb pages A4, nb copies, exemple de mapping (sans PII)
+
+---
+
+## D. Table de suivi Main-Only (à remplir au fil de l’eau)
+
+| PRD | Action livrée | Commandes clés | Preuves (dossier) | Commit (hash) | Statut |
+|-----|---------------|----------------|-------------------|---------------|--------|
+| PRD-01 | Baseline + preuves | `git status`, `git rev-parse` | `.antigravity/proofs/prd/...` | `...` | PASS/FAIL |
+| PRD-A3 | Intégration A3Splitter upload | `upload`, `split`, checks DB | `.antigravity/proofs/prd/...` | `...` | PASS/FAIL |
+| PRD-19 | Gate final from scratch | rebuild + tests + workflow | `.antigravity/proofs/prd/...` | `...` | PASS/FAIL |
+
 
 ## Validation Finale
 

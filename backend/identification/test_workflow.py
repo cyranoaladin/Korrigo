@@ -25,9 +25,9 @@ class IdentificationWorkflowTest(TestCase):
         
         # Create test student
         self.student = Student.objects.create(
-            ine="1234567890A",
-            first_name="Jean",
-            last_name="Dupont",
+            email="jean.dupont@test.com",
+            full_name="Dupont Jean",
+            date_of_birth="2008-01-15",
             class_name="TG2"
         )
         
@@ -117,9 +117,9 @@ class IdentificationWorkflowTest(TestCase):
         
         # Créer un autre étudiant
         other_student = Student.objects.create(
-            ine="0987654321B",
-            first_name="Marie",
-            last_name="Martin",
+            email="marie.martin@test.com",
+            full_name="Martin Marie",
+            date_of_birth="2008-02-20",
             class_name="TG3"
         )
         
@@ -152,9 +152,9 @@ class IdentificationPermissionsTest(TestCase):
         
         # Create test data
         self.student = Student.objects.create(
-            ine="1234567890A",
-            first_name="Jean",
-            last_name="Dupont",
+            email="jean.dupont2@test.com",
+            full_name="Dupont Jean",
+            date_of_birth="2008-03-25",
             class_name="TG2"
         )
         

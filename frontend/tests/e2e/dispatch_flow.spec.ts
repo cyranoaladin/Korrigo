@@ -4,11 +4,14 @@ import { CREDS } from './helpers/auth';
 test.describe('Exam Copy Dispatch Flow', () => {
   test.beforeEach(async ({ page }) => {
     page.on('console', msg => console.log(`[browser] ${msg.text()}`));
-    await page.goto('/teacher/login');
-    await page.fill('[data-testid="login.username"]', CREDS.admin.username);
-    await page.fill('[data-testid="login.password"]', CREDS.admin.password);
-    await page.click('[data-testid="login.submit"]');
-    await expect(page).toHaveURL('http://localhost:8088/admin-dashboard');
+    await page.goto('/admin/login');
+    await page.fill('input[name="username"]', CREDS.admin.username);
+    await page.fill('input[name="password"]', CREDS.admin.password);
+    await page.click('input[type="submit"]');
+    // Standard Admin redirects to /admin/
+    await page.waitForURL(/\/admin\/$/, { timeout: 15000 });
+    await page.goto('/admin-dashboard');
+    await expect(page).toHaveURL(/\/admin-dashboard/);
     await page.waitForLoadState('networkidle');
   });
 

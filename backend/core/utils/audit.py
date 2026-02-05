@@ -6,9 +6,17 @@ Référence: .antigravity/rules/01_security_rules.md § 7.3
 """
 import logging
 from django.utils import timezone
+from django.utils.crypto import salted_hmac
 from django.http import HttpRequest
 
 audit_logger = logging.getLogger('audit')
+
+
+def _anonymize_id(value) -> str:
+    """Hash an ID for GDPR-compliant logging (no raw PII in logs)."""
+    if value is None:
+        return None
+    return salted_hmac("audit", str(value)).hexdigest()[:12]
 
 
 def get_client_ip(request: HttpRequest) -> str:
@@ -56,13 +64,14 @@ def log_audit(request: HttpRequest, action: str, resource_type: str, resource_id
     )
 
     # Log structuré pour monitoring externe (Sentry, CloudWatch, etc.)
+    # R5: Anonymize PII - use hashed IDs in logs, raw IDs only in DB
     audit_logger.info(
         "audit",
         extra={
             'action': action,
-            'resource': f"{resource_type}:{resource_id}",
+            'resource': f"{resource_type}:{_anonymize_id(resource_id)}",
             'user': user.username if user and user.is_authenticated else 'anonymous',
-            'student_id': student_id,
+            'student_id_hash': _anonymize_id(student_id) if student_id else None,
             'ip': get_client_ip(request),
             'timestamp': timezone.now().isoformat()
         }
@@ -85,10 +94,11 @@ def log_authentication_attempt(request: HttpRequest, success: bool, username: st
     resource_type = 'Student' if student_id else 'User'
     resource_id = student_id if student_id else username or 'unknown'
     
+    # R5: Anonymize PII in metadata for logs
     metadata = {
         'success': success,
-        'username': username,
-        'student_id': student_id,
+        'username_hash': _anonymize_id(username) if username else None,
+        'student_id_hash': _anonymize_id(student_id) if student_id else None,
     }
     
     return log_audit(request, action, resource_type, resource_id, metadata)

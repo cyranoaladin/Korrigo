@@ -257,6 +257,12 @@ class Copy(models.Model):
     class Meta:
         verbose_name = _("Copie")
         verbose_name_plural = _("Copies")
+        # ZF-AUD-13: Performance indexes for common queries
+        indexes = [
+            models.Index(fields=['exam', 'status'], name='copy_exam_status_idx'),
+            models.Index(fields=['assigned_corrector', 'status'], name='copy_corrector_status_idx'),
+            models.Index(fields=['student', 'status'], name='copy_student_status_idx'),
+        ]
 
     def __str__(self):
         return f"Copie {self.anonymous_id} ({self.get_status_display()})"

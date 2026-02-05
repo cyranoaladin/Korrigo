@@ -88,7 +88,7 @@ docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manag
 
 ## 6. Historique des Audits
 
-- **26/01/2026**: Audit de Sécurité & Robustesse (Antigravity). **Status: PASS**.
+- **26/01/2026**: Audit de Sécurité & Robustesse (Alaeddine BEN RHOUMA). **Status: PASS**.
   - Fix: RBAC Permissions.
   - Fix: Restore Command.
   - Fix: CI Pipeline Downgrade (Actions v3/v4).

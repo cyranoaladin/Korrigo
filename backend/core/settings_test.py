@@ -20,6 +20,10 @@ except Exception:
     # If Django isn't importable yet, do not broaden ignores.
     pass
 
+# Force development mode for tests to avoid production checks
+os.environ['DJANGO_ENV'] = 'development'
+os.environ.setdefault('DEBUG', 'True')
+
 from .settings import *
 
 try:
@@ -61,3 +65,6 @@ CELERY_TASK_ALWAYS_EAGER = True
 # Disable rate limiting in tests (django-ratelimit)
 # This allows login tests to work without Redis and without hitting rate limits
 RATELIMIT_ENABLE = False
+
+# Disable login lockout in tests to allow multiple failed login attempts
+LOGIN_LOCKOUT_THRESHOLD = 9999  # Effectively disabled

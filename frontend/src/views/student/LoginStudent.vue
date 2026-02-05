@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 
-const ine = ref('')
+const email = ref('')
 const lastName = ref('')
 const error = ref('')
 const loading = ref(false)
@@ -14,7 +14,7 @@ const handleLogin = async () => {
     error.value = ''
     loading.value = true
     try {
-        const success = await authStore.loginStudent(ine.value, lastName.value)
+        const success = await authStore.loginStudent(email.value, lastName.value)
         if (success) {
             router.push('/student-portal')
         } else {
@@ -38,11 +38,12 @@ const handleLogin = async () => {
             
       <form @submit.prevent="handleLogin">
         <div class="form-group">
-          <label>Identifiant National (INE)</label>
+          <label>Email</label>
           <input
-            v-model="ine"
-            type="text"
-            placeholder="ex: 123456789A"
+            v-model="email"
+            data-testid="student-login.email"
+            type="email"
+            placeholder="votre.email@example.com"
             required
           >
         </div>
@@ -51,6 +52,7 @@ const handleLogin = async () => {
           <label>Nom de Famille</label>
           <input
             v-model="lastName"
+            data-testid="student-login.lastname"
             type="text"
             placeholder="Votre nom"
             required
@@ -60,6 +62,7 @@ const handleLogin = async () => {
         <div
           v-if="error"
           class="error-msg"
+          data-testid="student-login.error"
         >
           {{ error }}
         </div>
@@ -68,6 +71,7 @@ const handleLogin = async () => {
           type="submit"
           :disabled="loading"
           class="btn-login"
+          data-testid="student-login.submit"
         >
           {{ loading ? 'Connexion...' : 'Accéder à mes copies' }}
         </button>

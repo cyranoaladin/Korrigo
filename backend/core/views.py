@@ -10,6 +10,12 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from core.utils.audit import log_authentication_attempt
 from core.auth import UserRole
+from core.middleware.login_lockout import (
+    is_locked_out,
+    record_failed_attempt,
+    clear_failed_attempts,
+    get_remaining_lockout_time,
+)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
@@ -28,6 +34,15 @@ class LoginView(APIView):
         username = request.data.get('username')
         password = request.data.get('password')
         
+        # R4: Check lockout before attempting authentication
+        if username and is_locked_out(username):
+            remaining = get_remaining_lockout_time(username)
+            log_authentication_attempt(request, success=False, username=username)
+            return Response(
+                {"error": "Account temporarily locked", "retry_after": remaining},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+        
         user = authenticate(request, username=username, password=password)
         
         if user is None and username and '@' in username:
@@ -39,6 +54,10 @@ class LoginView(APIView):
         
         if user is not None:
             if user.is_active:
+                # R4: Clear failed attempts on successful login
+                clear_failed_attempts(username)
+                # Session rotation to prevent session fixation
+                request.session.cycle_key()
                 login(request, user)
                 # Audit trail: Login réussi
                 log_authentication_attempt(request, success=True, username=username)
@@ -56,9 +75,12 @@ class LoginView(APIView):
                 })
             else:
                 # Audit trail: Compte désactivé
+                record_failed_attempt(username)
                 log_authentication_attempt(request, success=False, username=username)
                 return Response({"error": "Account disabled"}, status=status.HTTP_403_FORBIDDEN)
         else:
+            # R4: Record failed attempt
+            record_failed_attempt(username)
             # Audit trail: Identifiants invalides
             log_authentication_attempt(request, success=False, username=username)
             return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -79,10 +101,12 @@ class UserDetailView(APIView):
     def get(self, request):
         user = request.user
         # Determine Role
+        # Admin = superuser only
+        # Teacher = staff but not superuser
         role = "Teacher"
-        if user.is_superuser or user.is_staff:
+        if user.is_superuser:
             role = "Admin"
-        elif user.groups.filter(name=UserRole.TEACHER).exists():
+        elif user.is_staff or user.groups.filter(name=UserRole.TEACHER).exists():
             role = "Teacher"
         
         must_change_password = False
@@ -139,17 +163,33 @@ class ChangePasswordView(APIView):
         from django.core.exceptions import ValidationError
         
         user = request.user
-        password = request.data.get('password')
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
         
+        # Validate required fields
+        if not current_password or not new_password:
+            return Response({
+                "error": "Current password and new password are required"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verify current password
+        if not user.check_password(current_password):
+            return Response({
+                "error": "Current password is incorrect"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate new password
         try:
-            validate_password(password, user=user)
+            validate_password(new_password, user=user)
         except ValidationError as e:
             return Response({"error": e.messages}, status=status.HTTP_400_BAD_REQUEST)
         
-        user.set_password(password)
+        # Set new password
+        user.set_password(new_password)
         user.save()
         update_session_auth_hash(request, user)
         
+        # Clear must_change_password flag
         try:
             if hasattr(user, 'profile'):
                 user.profile.must_change_password = False
@@ -315,3 +355,18 @@ class UserResetPasswordView(APIView):
             "message": "Password reset successfully",
             "temporary_password": temporary_password
         })
+
+
+class CSRFTokenView(APIView):
+    """
+    Endpoint to get CSRF token cookie.
+    This endpoint sets the CSRF cookie and returns a simple response.
+    Used by frontend to initialize CSRF protection before making POST requests.
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        from django.middleware.csrf import get_token
+        csrf_token = get_token(request)
+        return Response({"csrfToken": csrf_token})

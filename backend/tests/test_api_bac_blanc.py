@@ -50,11 +50,10 @@ class BacBlancE2ETest(TestCase):
         
         # Create test student
         self.student = Student.objects.create(
-            ine="1234567890A",
-            first_name="Jean",
-            last_name="Dupont",
-            class_name="TG2",
             email="jean.dupont@example.com",
+            full_name="Dupont Jean",
+            date_of_birth="2008-01-15",
+            class_name="TG2",
             user=self.student_user
         )
 
@@ -226,7 +225,7 @@ class BacBlancE2ETest(TestCase):
         copy = Copy.objects.create(
             exam=exam,
             anonymous_id="TEST456",
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY  # Must be READY for identification
         )
         copy.booklets.add(booklet)
         

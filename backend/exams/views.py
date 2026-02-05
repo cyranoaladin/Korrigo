@@ -12,51 +12,110 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.decorators import method_decorator
 from core.utils.ratelimit import maybe_ratelimit
 from .models import Exam, Booklet, Copy
-from .serializers import ExamSerializer, BookletSerializer, CopySerializer
+from .serializers import ExamSerializer, BookletSerializer, CopySerializer, CorrectorCopySerializer
 from processing.services.vision import HeaderDetector
 from grading.services import GradingService
 from .permissions import IsTeacherOrAdmin
+from core.auth import IsAdminOnly
 
 import fitz  # PyMuPDF
+from django.db import transaction
 
 class ExamUploadView(APIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    """
+    Upload d'examen avec détection automatique du format:
+    - A3 batch avec CSV: utilise BatchA3Processor pour segmentation par élève
+    - A3 simple: utilise A3PDFProcessor
+    - A4 standard: utilise PDFSplitter
+    
+    Paramètres optionnels:
+    - students_csv: fichier CSV des élèves (whitelist pour OCR)
+    - batch_mode: true pour activer le mode batch avec segmentation
+    """
+    permission_classes = [IsAdminOnly]
     parser_classes = (MultiPartParser, FormParser)
 
     @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, *args, **kwargs):
         serializer = ExamSerializer(data=request.data)
         if serializer.is_valid():
-            exam = serializer.save()
-
-            # REAL-TIME PROCESSING using PDFSplitter
             try:
-                from processing.services.pdf_splitter import PDFSplitter
-
-                splitter = PDFSplitter(dpi=150)
-                booklets = splitter.split_exam(exam)
-
-                # Créer les copies en statut STAGING (ADR-003)
-                import uuid
-                import logging
-                logger = logging.getLogger(__name__)
-
-                for booklet in booklets:
-                    copy = Copy.objects.create(
-                        exam=exam,
-                        anonymous_id=str(uuid.uuid4())[:8].upper(),
-                        status=Copy.Status.STAGING,
-                        is_identified=False
-                    )
-                    copy.booklets.add(booklet)
-
-                    logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
-
-                return Response({
-                    **serializer.data,
-                    "booklets_created": len(booklets),
-                    "message": f"{len(booklets)} booklets created successfully"
-                }, status=status.HTTP_201_CREATED)
+                with transaction.atomic():
+                    exam = serializer.save()
+                    
+                    import uuid
+                    import logging
+                    import tempfile
+                    import os
+                    logger = logging.getLogger(__name__)
+                    
+                    # Vérifier si mode batch avec CSV
+                    students_csv = request.FILES.get('students_csv')
+                    batch_mode = request.data.get('batch_mode', 'false').lower() == 'true'
+                    
+                    if batch_mode and students_csv:
+                        # Mode batch: utiliser BatchA3Processor
+                        logger.info(f"Batch mode enabled for exam {exam.id}")
+                        
+                        # Sauvegarder le CSV temporairement
+                        with tempfile.NamedTemporaryFile(mode='wb', suffix='.csv', delete=False) as f:
+                            for chunk in students_csv.chunks():
+                                f.write(chunk)
+                            csv_path = f.name
+                        
+                        try:
+                            from processing.services.batch_processor import BatchA3Processor
+                            
+                            processor = BatchA3Processor(dpi=200, csv_path=csv_path)
+                            
+                            # Traiter le batch
+                            student_copies = processor.process_batch_pdf(
+                                exam.pdf_source.path, 
+                                str(exam.id)
+                            )
+                            
+                            # Créer les copies en DB
+                            copies = processor.create_copies_from_batch(exam, student_copies)
+                            
+                            # Stats
+                            ready_count = sum(1 for c in copies if c.status == Copy.Status.READY)
+                            staging_count = sum(1 for c in copies if c.status == Copy.Status.STAGING)
+                            
+                            return Response({
+                                **serializer.data,
+                                "copies_created": len(copies),
+                                "ready_count": ready_count,
+                                "needs_review_count": staging_count,
+                                "message": f"{len(copies)} copies created ({ready_count} ready, {staging_count} need review)"
+                            }, status=status.HTTP_201_CREATED)
+                            
+                        finally:
+                            if os.path.exists(csv_path):
+                                os.unlink(csv_path)
+                    
+                    else:
+                        # Mode standard: A3PDFProcessor (auto-détecte A3 vs A4)
+                        from processing.services.a3_pdf_processor import A3PDFProcessor
+                        
+                        processor = A3PDFProcessor(dpi=150)
+                        booklets = processor.process_exam(exam)
+                        
+                        # Créer les copies en statut STAGING (ADR-003)
+                        for booklet in booklets:
+                            copy = Copy.objects.create(
+                                exam=exam,
+                                anonymous_id=str(uuid.uuid4())[:8].upper(),
+                                status=Copy.Status.STAGING,
+                                is_identified=False
+                            )
+                            copy.booklets.add(booklet)
+                            logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
+                        
+                        return Response({
+                            **serializer.data,
+                            "booklets_created": len(booklets),
+                            "message": f"{len(booklets)} booklets created successfully"
+                        }, status=status.HTTP_201_CREATED)
 
             except Exception as e:
                 from core.utils.errors import safe_error_response
@@ -73,7 +132,7 @@ class CopyImportView(APIView):
     POST /api/exams/<exam_id>/copies/import/
     Payload: multipart (pdf_file)
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsAdminOnly]
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, exam_id):
@@ -105,7 +164,18 @@ class BookletListView(generics.ListAPIView):
 
     def get_queryset(self):
         exam_id = self.kwargs['exam_id']
-        return Booklet.objects.filter(exam_id=exam_id).order_by('start_page')
+        # Exclude booklets already assigned to a Copy with status READY or higher
+        # Only show unassigned booklets (for stapling workflow)
+        return Booklet.objects.filter(
+            exam_id=exam_id
+        ).exclude(
+            assigned_copy__status__in=[
+                Copy.Status.READY,
+                Copy.Status.LOCKED,
+                Copy.Status.GRADING_IN_PROGRESS,
+                Copy.Status.GRADED
+            ]
+        ).order_by('start_page')
 
 class ExamListView(generics.ListCreateAPIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
@@ -125,6 +195,89 @@ class BookletDetailView(generics.RetrieveDestroyAPIView):
                  {"error": _("Impossible de supprimer un fascicule associé à une copie validée ou corrigée.")}
              )
         instance.delete()
+
+
+class BookletHeaderView(APIView):
+    """
+    Retourne l'image de l'en-tête d'un booklet pour l'identification.
+    GET /api/exams/booklets/<id>/header/
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def get(self, request, id):
+        from django.http import FileResponse
+        from django.conf import settings
+        import os
+
+        booklet = get_object_or_404(Booklet, id=id)
+        
+        # Chercher l'image d'en-tête dans les pages_images
+        if booklet.pages_images and len(booklet.pages_images) > 0:
+            first_page_path = booklet.pages_images[0]
+            full_path = os.path.join(settings.MEDIA_ROOT, first_page_path)
+            
+            if os.path.exists(full_path):
+                # Extraire la région d'en-tête (top 20%)
+                import cv2
+                img = cv2.imread(full_path)
+                if img is not None:
+                    height = img.shape[0]
+                    header_height = int(height * 0.25)
+                    header = img[:header_height, :]
+
+                    # Encode to PNG in memory
+                    from io import BytesIO
+                    _, buffer = cv2.imencode('.png', header)
+                    image_bytes = BytesIO(buffer.tobytes())
+
+                    response = FileResponse(
+                        image_bytes,
+                        content_type='image/png'
+                    )
+                    response['Content-Disposition'] = f'inline; filename="header_{id}.png"'
+
+                    return response
+        
+        # Fallback: extraire depuis le PDF source
+        if booklet.exam.pdf_source:
+            page_index = booklet.start_page - 1 if booklet.start_page else 0
+            
+            try:
+                doc = fitz.open(booklet.exam.pdf_source.path)
+                if 0 <= page_index < doc.page_count:
+                    page = doc.load_page(page_index)
+                    pix = page.get_pixmap(dpi=150)
+                    
+                    # Crop top 25% for header
+                    import io
+                    from PIL import Image
+                    
+                    img_data = pix.tobytes("png")
+                    img = Image.open(io.BytesIO(img_data))
+                    header_height = int(img.height * 0.25)
+                    header = img.crop((0, 0, img.width, header_height))
+                    
+                    buffer = io.BytesIO()
+                    header.save(buffer, format='PNG')
+                    buffer.seek(0)
+                    
+                    doc.close()
+                    
+                    return FileResponse(
+                        buffer,
+                        content_type='image/png',
+                        filename=f'header_{id}.png'
+                    )
+                doc.close()
+            except Exception as e:
+                from core.utils.errors import safe_error_response
+                return Response(
+                    safe_error_response(e, context="Header extraction"),
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+        return Response({"error": "No header image available"}, status=status.HTTP_404_NOT_FOUND)
+
 
 class BookletSplitView(APIView):
     permission_classes = [IsTeacherOrAdmin]
@@ -191,20 +344,28 @@ class ExamDetailView(generics.RetrieveUpdateDestroyAPIView):
 class CopyListView(generics.ListAPIView):
     """
     Liste les copies d'un examen.
+    Les admins voient toutes les copies, les enseignants ne voient que leurs copies assignées.
     """
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     serializer_class = CopySerializer
 
     def get_queryset(self):
         exam_id = self.kwargs['exam_id']
-        return Copy.objects.filter(exam_id=exam_id)\
-            .select_related('exam', 'student', 'locked_by')\
-            .prefetch_related('booklets', 'annotations__created_by')\
-            .order_by('anonymous_id')
+        user = self.request.user
+        
+        queryset = Copy.objects.filter(exam_id=exam_id)\
+            .select_related('exam', 'student', 'locked_by', 'assigned_corrector')\
+            .prefetch_related('booklets', 'annotations__created_by')
+        
+        # Les admins voient toutes les copies, les enseignants seulement les leurs
+        if not (user.is_superuser or user.is_staff or user.groups.filter(name='admin').exists()):
+            queryset = queryset.filter(assigned_corrector=user)
+        
+        return queryset.order_by('anonymous_id')
 
 
 class MergeBookletsView(APIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    permission_classes = [IsAdminOnly]  # Admin only
 
     def post(self, request, exam_id):
         booklet_ids = request.data.get('booklet_ids', [])
@@ -220,6 +381,38 @@ class MergeBookletsView(APIView):
                 {"error": _("Certains fascicules sont introuvables ou ne correspondent pas à cet examen.")}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # PROTECTION ANTI-DOUBLONS: Vérifier si les booklets sont déjà assignés à une copie
+        already_assigned = []
+        for booklet in booklets:
+            existing_copies = booklet.assigned_copy.exclude(status=Copy.Status.STAGING)
+            if existing_copies.exists():
+                already_assigned.append({
+                    'booklet_id': str(booklet.id),
+                    'pages': f'{booklet.start_page}-{booklet.end_page}',
+                    'existing_copies': [str(c.id) for c in existing_copies]
+                })
+        
+        if already_assigned:
+            return Response({
+                "error": _("Certains fascicules sont déjà assignés à des copies existantes."),
+                "already_assigned": already_assigned
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # NETTOYAGE: Supprimer les copies STAGING associées aux booklets sélectionnés
+        # Ces copies ont été créées automatiquement lors de l'upload (1 copie par booklet)
+        # et doivent être remplacées par la copie fusionnée
+        staging_copies_to_delete = set()
+        for booklet in booklets:
+            staging_copies = booklet.assigned_copy.filter(status=Copy.Status.STAGING)
+            for staging_copy in staging_copies:
+                staging_copies_to_delete.add(staging_copy.id)
+        
+        if staging_copies_to_delete:
+            deleted_count = Copy.objects.filter(id__in=staging_copies_to_delete).delete()[0]
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"MergeBookletsView: Deleted {deleted_count} STAGING copies before merge")
 
         # Logic: Create Copy -> Assign Booklets
         # Since Copy <-> Booklet relationship is via Booklet.assigned_copy (ManyToMany defined in Copy),
@@ -244,7 +437,7 @@ class MergeBookletsView(APIView):
         )
 
 class ExportAllView(APIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    permission_classes = [IsAdminOnly]  # Admin only
 
     def post(self, request, id):
         exam = get_object_or_404(Exam, id=id)
@@ -263,56 +456,112 @@ class ExportAllView(APIView):
         return Response({"message": f"{count} copies traitées."}, status=status.HTTP_200_OK)
 
 class CSVExportView(APIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    """
+    Export CSV des résultats d'un examen.
+    
+    PRD-19 Guarantees:
+    - Une ligne par élève (pas de doublons)
+    - Encoding UTF-8 avec BOM pour Excel
+    - Format stable et documenté
+    - Inclut uniquement les copies GRADED ou avec note
+    """
+    permission_classes = [IsAdminOnly]
 
     def get(self, request, id):
         import csv
         from django.http import HttpResponse
+        from grading.services import GradingService
+        from django.db.models import Max
         
         exam = get_object_or_404(Exam, id=id)
-        copies = exam.copies.all()
         
-        response = HttpResponse(content_type='text/csv')
+        # PRD-19: Filtrer pour n'avoir qu'une copie par élève
+        # Si plusieurs copies existent pour le même élève, prendre celle avec le statut le plus avancé
+        # Priorité: GRADED > LOCKED > READY > autres
+        status_priority = {
+            Copy.Status.GRADED: 1,
+            Copy.Status.LOCKED: 2,
+            Copy.Status.GRADING_IN_PROGRESS: 3,
+            Copy.Status.READY: 4,
+            Copy.Status.GRADING_FAILED: 5,
+            Copy.Status.STAGING: 6,
+        }
+        
+        # Récupérer toutes les copies identifiées
+        identified_copies = exam.copies.filter(
+            is_identified=True,
+            student__isnull=False
+        ).select_related('student').order_by('student_id', 'graded_at')
+        
+        # Dédupliquer par élève (garder la copie avec le meilleur statut)
+        seen_students = {}
+        for copy in identified_copies:
+            student_id = copy.student_id
+            if student_id not in seen_students:
+                seen_students[student_id] = copy
+            else:
+                existing = seen_students[student_id]
+                # Garder la copie avec le meilleur statut
+                if status_priority.get(copy.status, 99) < status_priority.get(existing.status, 99):
+                    seen_students[student_id] = copy
+                # Si même statut, garder celle qui est notée (graded_at non null)
+                elif copy.status == existing.status and copy.graded_at and not existing.graded_at:
+                    seen_students[student_id] = copy
+        
+        # Récupérer aussi les copies non identifiées (pour traçabilité)
+        unidentified_copies = exam.copies.filter(
+            is_identified=False
+        ).exclude(status=Copy.Status.STAGING)
+        
+        # Préparer la réponse CSV avec BOM UTF-8 pour Excel
+        response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
         response['Content-Disposition'] = f'attachment; filename="exam_{id}_results.csv"'
+        response['X-Content-Type-Options'] = 'nosniff'
         
-        writer = csv.writer(response)
+        writer = csv.writer(response, delimiter=';')  # Point-virgule pour Excel FR
         
-        # Dynamic Header based on Grading Structure?
-        # For simplicity, we dump just Total and the raw JSON keys present in the first copy
-        # Better: iterate all possible keys from exam.grading_structure if possible.
-        # MVP: AnonymousID, Total, JSON_Scores
-        
-        # Mission 3.2: Explicit Mapping
-        header = ['AnonymousID', 'Student Name', 'Status', 'Total']
-        
-        # Attempt to find all keys
-        all_keys = set()
-        for c in copies:
-            if c.scores.exists():
-                all_keys.update(c.scores.first().scores_data.keys())
-        sorted_keys = sorted(list(all_keys))
-        header.extend(sorted_keys)
-        
+        # Header enrichi
+        header = [
+            'Anonymat',
+            'Nom Élève',
+            'Date Naissance',
+            'Statut',
+            'Note Totale',
+            'Identifié',
+            'Corrigé le'
+        ]
         writer.writerow(header)
         
-        for c in copies:
-            score_obj = c.scores.first()
-            data = score_obj.scores_data if score_obj else {}
+        # Écrire les copies identifiées (une par élève)
+        for student_id, copy in sorted(seen_students.items(), key=lambda x: x[1].student.full_name if x[1].student else ''):
+            student = copy.student
+            total = GradingService.compute_score(copy)
             
-            # Mission 3.2: Student Name
-            student_name = "Inconnu"
-            if c.is_identified and c.student:
-                 # Check if Student model has name/first_name or just string representation
-                 student_name = str(c.student) 
-            
-            # Calculate total
-            total = sum(float(v) for v in data.values() if v)
-            
-            row = [c.anonymous_id, student_name, c.get_status_display(), total]
-            for k in sorted_keys:
-                row.append(data.get(k, ''))
+            row = [
+                copy.anonymous_id,
+                student.full_name if student else 'Inconnu',
+                student.date_of_birth.strftime('%d/%m/%Y') if student and student.date_of_birth else '',
+                copy.get_status_display(),
+                total,
+                'Oui',
+                copy.graded_at.strftime('%d/%m/%Y %H:%M') if copy.graded_at else ''
+            ]
             writer.writerow(row)
-            
+        
+        # Écrire les copies non identifiées
+        for copy in unidentified_copies:
+            total = GradingService.compute_score(copy)
+            row = [
+                copy.anonymous_id,
+                'NON IDENTIFIÉ',
+                '',
+                copy.get_status_display(),
+                total,
+                'Non',
+                copy.graded_at.strftime('%d/%m/%Y %H:%M') if copy.graded_at else ''
+            ]
+            writer.writerow(row)
+        
         return response
 
 class CopyIdentificationView(APIView):
@@ -342,7 +591,9 @@ class UnidentifiedCopiesView(APIView):
     def get(self, request, id):
         # Mission 18: List unidentified copies for Video-Coding
         # Mission 21 Update: Use dynamic header URL
-        copies = Copy.objects.filter(exam_id=id, is_identified=False)
+        # ZF-AUD-13: Prefetch to avoid N+1
+        copies = Copy.objects.filter(exam_id=id, is_identified=False)\
+            .prefetch_related('booklets')
         data = []
         for c in copies:
             booklet = c.booklets.order_by('start_page').first()
@@ -407,7 +658,7 @@ class StudentCopiesView(generics.ListAPIView):
             })
         return Response(data)
 class ExamSourceUploadView(APIView):
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsAdminOnly]
     parser_classes = (MultiPartParser, FormParser)
 
     @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
@@ -478,25 +729,34 @@ class CopyValidationView(APIView):
 
 class CorrectorCopiesView(generics.ListAPIView):
     """
-    List all copies available for correction (Global List).
+    List copies assigned to the current corrector.
     GET /api/copies/
+    Admins see all copies, teachers see only their assigned copies.
     """
     permission_classes = [IsTeacherOrAdmin]
-    serializer_class = CopySerializer
+    serializer_class = CorrectorCopySerializer
 
     def get_queryset(self):
-        # MVP: Return all copies that are ready/locked/graded
-        return Copy.objects.filter(
+        user = self.request.user
+        
+        queryset = Copy.objects.filter(
             status__in=[Copy.Status.READY, Copy.Status.LOCKED, Copy.Status.GRADED]
-        ).select_related('exam').order_by('exam__date', 'anonymous_id')
+        ).select_related('exam', 'assigned_corrector')\
+         .prefetch_related('annotations')
+        
+        # Les admins voient toutes les copies, les enseignants seulement les leurs
+        if not (user.is_superuser or user.is_staff or user.groups.filter(name='admin').exists()):
+            queryset = queryset.filter(assigned_corrector=user)
+        
+        return queryset.order_by('exam__date', 'anonymous_id')
 
 class CorrectorCopyDetailView(generics.RetrieveAPIView):
     """
     Permet au correcteur de récupérer les détails d'une copie spécifique.
     """
-    queryset = Copy.objects.select_related('exam', 'student', 'locked_by')\
+    queryset = Copy.objects.select_related('exam', 'locked_by')\
         .prefetch_related('booklets', 'annotations__created_by')
-    serializer_class = CopySerializer
+    serializer_class = CorrectorCopySerializer
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     lookup_field = 'id'
 
@@ -505,8 +765,14 @@ class ExamDispatchView(APIView):
     """
     Dispatches unassigned copies to correctors fairly and randomly.
     POST /api/exams/<exam_id>/dispatch/
+    
+    PRD-19 Guarantees:
+    - Idempotent: re-running dispatch only assigns new unassigned copies
+    - Race-condition safe: uses select_for_update to prevent double assignment
+    - No duplicate assignments: filters assigned_corrector__isnull=True
+    - Audit trail: logs run_id for each dispatch operation
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsAdminOnly]
 
     def post(self, request, exam_id):
         from django.db import transaction
@@ -526,37 +792,53 @@ class ExamDispatchView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        unassigned_copies = list(
-            Copy.objects.filter(
-                exam=exam,
-                assigned_corrector__isnull=True
-            ).order_by('anonymous_id')
-        )
-
-        if not unassigned_copies:
-            return Response(
-                {"message": _("Aucune copie à dispatcher.")},
-                status=status.HTTP_200_OK
-            )
-
         run_id = uuid.uuid4()
         now = timezone.now()
 
-        random.shuffle(unassigned_copies)
-
-        distribution = {corrector.id: 0 for corrector in correctors}
-        assignments = []
-
-        for i, copy in enumerate(unassigned_copies):
-            corrector = correctors[i % len(correctors)]
-            copy.assigned_corrector = corrector
-            copy.dispatch_run_id = run_id
-            copy.assigned_at = now
-            assignments.append(copy)
-            distribution[corrector.id] += 1
-
         try:
             with transaction.atomic():
+                # PRD-19: Lock copies to prevent race conditions
+                # select_for_update ensures no other dispatch can modify these copies
+                unassigned_copies = list(
+                    Copy.objects.select_for_update(skip_locked=True).filter(
+                        exam=exam,
+                        assigned_corrector__isnull=True,
+                        status=Copy.Status.READY
+                    ).order_by('anonymous_id')
+                )
+
+                if not unassigned_copies:
+                    return Response(
+                        {"message": _("Aucune copie à dispatcher.")},
+                        status=status.HTTP_200_OK
+                    )
+
+                # Shuffle for fair random distribution
+                random.shuffle(unassigned_copies)
+
+                # PRD-19: Balance distribution based on current load
+                # Count existing assignments per corrector for this exam
+                from django.db.models import Count
+                current_load = dict(
+                    Copy.objects.filter(exam=exam, assigned_corrector__isnull=False)
+                    .values('assigned_corrector')
+                    .annotate(count=Count('id'))
+                    .values_list('assigned_corrector', 'count')
+                )
+
+                distribution = {corrector.id: current_load.get(corrector.id, 0) for corrector in correctors}
+                assignments = []
+
+                for copy in unassigned_copies:
+                    # Assign to corrector with lowest current load
+                    corrector = min(correctors, key=lambda c: distribution[c.id])
+                    copy.assigned_corrector = corrector
+                    copy.dispatch_run_id = run_id
+                    copy.assigned_at = now
+                    assignments.append(copy)
+                    distribution[corrector.id] += 1
+
+                # Bulk update with explicit fields
                 Copy.objects.bulk_update(
                     assignments,
                     ['assigned_corrector', 'dispatch_run_id', 'assigned_at']
@@ -568,7 +850,8 @@ class ExamDispatchView(APIView):
                     f"Run ID: {run_id}"
                 )
 
-            distribution_stats = {
+            # Calculate final distribution stats
+            final_distribution = {
                 corrector.username: distribution[corrector.id]
                 for corrector in correctors
             }
@@ -578,9 +861,9 @@ class ExamDispatchView(APIView):
                 "dispatch_run_id": str(run_id),
                 "copies_assigned": len(assignments),
                 "correctors_count": len(correctors),
-                "distribution": distribution_stats,
-                "min_assigned": min(distribution.values()),
-                "max_assigned": max(distribution.values())
+                "distribution": final_distribution,
+                "min_assigned": min(distribution.values()) if distribution else 0,
+                "max_assigned": max(distribution.values()) if distribution else 0
             }, status=status.HTTP_200_OK)
 
         except Exception as e:

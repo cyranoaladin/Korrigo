@@ -4,7 +4,7 @@ from PIL import Image
 import pytesseract
 from io import BytesIO
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from .models import OCRResult
+from identification.models import OCRResult
 from students.models import Student
 
 
@@ -26,8 +26,11 @@ class OCRService:
             
             # Extraire la zone d'en-tête de la première page
             if booklet.pages_images:
+                import os
+                from django.conf import settings
                 first_page_path = booklet.pages_images[0]
-                header_bytes = detector.extract_header_crop(first_page_path)
+                full_path = os.path.join(settings.MEDIA_ROOT, first_page_path)
+                header_bytes = detector.extract_header_crop(full_path)
                 
                 # Convertir en fichier Django
                 image_io = BytesIO(header_bytes)
@@ -74,7 +77,8 @@ class OCRService:
     @staticmethod
     def find_matching_students(ocr_text):
         """
-        Trouve les élèves correspondant au texte OCR
+        Trouve les élèves correspondant au texte OCR.
+        Utilise full_name car le modèle Student n'a pas de champs first_name/last_name séparés.
         """
         from django.db.models import Q
         
@@ -83,7 +87,8 @@ class OCRService:
         q_objects = Q()
         for word in words:
             if len(word) > 2:
-                q_objects |= Q(last_name__icontains=word) | Q(first_name__icontains=word)
+                # Chercher dans full_name (le modèle Student utilise full_name, pas first_name/last_name)
+                q_objects |= Q(full_name__icontains=word)
         
         if q_objects:
             matches = Student.objects.filter(q_objects).distinct()[:10]

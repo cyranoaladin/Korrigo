@@ -6,6 +6,7 @@ pdf2image
 psycopg2-binary
 celery
 redis
+django-redis
 django-cors-headers
 python-dotenv
 gunicorn
@@ -25,3 +26,9 @@ pytest-xdist~=3.5
 numpy<2.0.0
 tenacity<9.0.0
 pytesseract
+
+# Multi-layer OCR (PRD-19 robustification)
+easyocr>=1.7.0
+paddlepaddle>=2.5.0
+paddleocr>=2.7.0
+pytest-xdist>=3.5.0  # Parallel test execution
