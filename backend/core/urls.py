@@ -21,6 +21,8 @@ urlpatterns = [
     path('api/users/', views.UserListView.as_view(), name='user_list'),
     path('api/users/<int:pk>/', views.UserManageView.as_view(), name='user_manage'),
     path('api/users/<int:pk>/reset-password/', views.UserResetPasswordView.as_view(), name='user_reset_password'),
+    # Phase 3: Celery task status endpoint
+    path('api/tasks/<str:task_id>/status/', views.TaskStatusView.as_view(), name='task_status'),
 ]
 
 # API Documentation (DRF Spectacular)
