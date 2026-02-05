@@ -216,5 +216,122 @@ def cleanup_orphaned_files():
         logger.info(f"Cleaned up {removed_count} orphaned temp files")
     
     # TODO: Clean up orphaned page images (pages with no corresponding Copy)
-    
+
     return {'removed_count': removed_count}
+
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
+def async_flatten_copy(self, copy_id):
+    """
+    Async PDF flattening for a single copy
+
+    Phase 2 Fix: Moves PDF flattening to background worker
+    - Prevents blocking HTTP requests (can take 30-60s per copy)
+    - Handles heavy PDF operations in background
+
+    Args:
+        copy_id: UUID of the Copy to flatten
+
+    Returns:
+        dict: {'copy_id': str, 'status': str}
+    """
+    try:
+        from processing.services.pdf_flattener import PDFFlattener
+
+        logger.info(f"Starting async PDF flatten for copy {copy_id}")
+
+        try:
+            copy = Copy.objects.get(id=copy_id)
+        except Copy.DoesNotExist:
+            logger.error(f"Copy {copy_id} not found")
+            return {
+                'copy_id': str(copy_id),
+                'status': 'error',
+                'detail': 'Copy not found'
+            }
+
+        flattener = PDFFlattener()
+        flattener.flatten_copy(copy)
+
+        logger.info(f"Successfully flattened copy {copy_id}")
+
+        return {
+            'copy_id': str(copy_id),
+            'status': 'success',
+            'attempt': self.request.retries + 1
+        }
+
+    except Exception as exc:
+        logger.error(
+            f"Async flatten failed for copy {copy_id} "
+            f"(attempt {self.request.retries + 1}/2): {exc}",
+            exc_info=True
+        )
+
+        return {
+            'copy_id': str(copy_id),
+            'status': 'error',
+            'detail': str(exc)
+        }
+
+
+@shared_task(bind=True, max_retries=2)
+def async_export_all_copies(self, exam_id, user_id=None):
+    """
+    Async bulk export of all copies for an exam
+
+    Phase 2 Fix: Replaces synchronous loop in ExportAllView
+    - Prevents HTTP timeout for large exams (100+ copies)
+    - Processes copies in parallel using Celery workers
+
+    Args:
+        exam_id: UUID of the Exam
+        user_id: ID of user requesting export (for audit)
+
+    Returns:
+        dict: {'exam_id': str, 'total': int, 'task_ids': list}
+    """
+    try:
+        logger.info(f"Starting async export all for exam {exam_id}")
+
+        try:
+            exam = Exam.objects.get(id=exam_id)
+        except Exam.DoesNotExist:
+            logger.error(f"Exam {exam_id} not found")
+            return {
+                'exam_id': str(exam_id),
+                'status': 'error',
+                'detail': 'Exam not found'
+            }
+
+        copies = exam.copies.all()
+        copy_ids = [str(copy.id) for copy in copies]
+
+        logger.info(f"Queueing {len(copy_ids)} copies for export")
+
+        # Queue individual flatten tasks
+        task_ids = []
+        for copy_id in copy_ids:
+            result = async_flatten_copy.delay(copy_id)
+            task_ids.append(result.id)
+
+        logger.info(f"Queued {len(task_ids)} flatten tasks for exam {exam_id}")
+
+        return {
+            'exam_id': str(exam_id),
+            'total': len(copy_ids),
+            'task_ids': task_ids,
+            'status': 'queued'
+        }
+
+    except Exception as exc:
+        logger.error(
+            f"Async export all failed for exam {exam_id}: {exc}",
+            exc_info=True
+        )
+
+        return {
+            'exam_id': str(exam_id),
+            'status': 'error',
+            'detail': str(exc)
+        }
