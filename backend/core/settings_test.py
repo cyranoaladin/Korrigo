@@ -57,9 +57,19 @@ PASSWORD_HASHERS = [
 # Ensure we are in test mode
 DEBUG = False
 
-# Celery: Run tasks synchronously in tests and store results
+# Celery: Run tasks synchronously in tests without Redis
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_STORE_EAGER_RESULT = True
+CELERY_BROKER_URL = 'memory://'  # Use in-memory broker for tests
+CELERY_RESULT_BACKEND = 'cache+memory://'  # Use in-memory result backend
+
+# Cache: Use LocMemCache for tests (no Redis)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'test-cache',
+    }
+}
 
 # Disable rate limiting in tests (django-ratelimit)
 # This allows login tests to work without Redis and without hitting rate limits
