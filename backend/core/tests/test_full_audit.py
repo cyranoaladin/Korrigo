@@ -18,8 +18,15 @@ class TestFullSystemAudit:
         self.admin_user = User.objects.create_superuser('admin', 'admin@example.com', 'adminpass')
         # Create Teacher
         self.teacher_user = User.objects.create_user('teacher', 'teacher@example.com', 'teacherpass')
-        # Create Student (full_name format: "LASTNAME Firstname" - login uses first word as last_name)
-        self.student = Student.objects.create(email="amine@test.com", full_name="BENALI Amine", date_of_birth="2008-01-15", class_name="T1")
+        # Create Student with associated User for authentication
+        self.student_user = User.objects.create_user('student_amine', 'amine@test.com', 'studentpass123')
+        self.student = Student.objects.create(
+            email="amine@test.com", 
+            full_name="BENALI Amine", 
+            date_of_birth="2008-01-15", 
+            class_name="T1",
+            user=self.student_user
+        )
 
     def test_01_authentication_admin(self):
         """Vérifie le login/logout ADMIN et l'accès aux infos (ME)"""
@@ -55,8 +62,8 @@ class TestFullSystemAudit:
 
     def test_03_authentication_student(self):
         """Vérifie le login Élève via endpoint dédié"""
-        response = self.client.post('/api/students/login/', {'email': 'amine@test.com', 'last_name': 'BENALI'})  # last_name is first word of full_name
-        assert response.status_code == 200, "Student Login Failed"
+        response = self.client.post('/api/students/login/', {'email': 'amine@test.com', 'password': 'studentpass123'})
+        assert response.status_code == 200, f"Student Login Failed: {response.data}"
         
         # Access Student Me
         # Note: session auth might need passing session cookie, failing that check if client handles it
