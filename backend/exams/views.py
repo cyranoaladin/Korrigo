@@ -461,19 +461,21 @@ class ExportAllView(APIView):
 
     def post(self, request, id):
         exam = get_object_or_404(Exam, id=id)
-        # Trigger processing (Sync for MVP)
-        from processing.services.pdf_flattener import PDFFlattener
-        flattener = PDFFlattener()
 
-        copies = exam.copies.all()
-        # Verify related name in Copy model: exam = ForeignKey(Exam) -> default copy_set
+        # Phase 3: Use async task instead of synchronous loop
+        from grading.tasks import async_export_all_copies
 
-        count = 0
-        for copy in copies:
-             flattener.flatten_copy(copy)
-             count += 1
+        # Queue async task for background processing
+        result = async_export_all_copies.delay(str(id), request.user.id)
 
-        return Response({"message": f"{count} copies traitées."}, status=status.HTTP_200_OK)
+        copies_count = exam.copies.count()
+
+        return Response({
+            "task_id": result.id,
+            "message": f"Export of {copies_count} copies queued. Use task_id to check status.",
+            "status_url": f"/api/tasks/{result.id}/status/",
+            "copies_count": copies_count
+        }, status=status.HTTP_202_ACCEPTED)
 
 class CSVExportView(APIView):
     """

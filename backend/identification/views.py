@@ -371,155 +371,26 @@ class CMENOCRView(APIView):
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
 
     def post(self, request, copy_id):
-        from processing.services.cmen_header_ocr import CMENHeaderOCR, load_students_from_csv
-        from django.conf import settings
-        import os
-        import cv2
-        
+        # Phase 3: Use async task instead of synchronous OCR
+        from identification.tasks import async_cmen_ocr
+
         copy = get_object_or_404(Copy, id=copy_id)
-        booklet = copy.booklets.first()
-        
-        if not booklet:
+
+        # Verify copy has booklets
+        if not copy.booklets.exists():
             return Response({
                 'error': 'Aucun fascicule associé à cette copie'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            # Obtenir l'image de l'en-tête
-            if booklet.pages_images and len(booklet.pages_images) > 0:
-                first_page_path = booklet.pages_images[0]
-                full_path = os.path.join(settings.MEDIA_ROOT, first_page_path)
-                
-                if not os.path.exists(full_path):
-                    return Response({
-                        'error': f'Image non trouvée: {first_page_path}'
-                    }, status=status.HTTP_404_NOT_FOUND)
-                
-                # Charger l'image
-                image = cv2.imread(full_path)
-                if image is None:
-                    return Response({
-                        'error': 'Impossible de charger l\'image'
-                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
-                # Extraire l'en-tête (25% supérieur)
-                height = image.shape[0]
-                header_height = int(height * 0.25)
-                header_image = image[:header_height, :]
-                
-                # Effectuer l'OCR CMEN
-                ocr = CMENHeaderOCR(debug=False)
-                header_result = ocr.extract_header(header_image)
-                
-                # Charger les élèves depuis la base de données
-                from processing.services.cmen_header_ocr import StudentCSVRecord
-                students = []
-                for db_student in Student.objects.all():
-                    # Extraire nom et prénom depuis full_name
-                    parts = db_student.full_name.split(maxsplit=1) if db_student.full_name else []
-                    last_name = parts[0] if parts else ''
-                    first_name = parts[1] if len(parts) > 1 else ''
-                    
-                    # Formater la date de naissance
-                    dob = ''
-                    if db_student.date_of_birth:
-                        dob = db_student.date_of_birth.strftime('%d/%m/%Y')
-                    
-                    students.append(StudentCSVRecord(
-                        student_id=str(db_student.id),
-                        last_name=last_name,
-                        first_name=first_name,
-                        date_of_birth=dob,
-                        email=db_student.email or '',
-                        class_name=db_student.class_name or ''
-                    ))
-                
-                # Chercher une correspondance
-                match_result = None
-                suggestions = []
-                
-                if students:
-                    match_result = ocr.match_student(header_result, students, threshold=0.5)
-                    
-                    # Générer des suggestions triées par score
-                    from difflib import SequenceMatcher
-                    
-                    scored_students = []
-                    for student in students:
-                        name_score = SequenceMatcher(None, header_result.last_name.upper(), student.last_name.upper()).ratio()
-                        firstname_score = SequenceMatcher(None, header_result.first_name.upper(), student.first_name.upper()).ratio()
-                        date_score = 1.0 if header_result.date_of_birth == student.date_of_birth else 0.0
-                        
-                        overall = (name_score * 0.35 + firstname_score * 0.35 + date_score * 0.30)
-                        scored_students.append((student, overall, {
-                            'last_name': name_score,
-                            'first_name': firstname_score,
-                            'date_of_birth': date_score
-                        }))
-                    
-                    # Trier par score décroissant et prendre les 5 meilleurs
-                    scored_students.sort(key=lambda x: x[1], reverse=True)
-                    
-                    for student, score, details in scored_students[:5]:
-                        # Chercher l'élève dans la base de données par full_name
-                        full_name = f"{student.last_name} {student.first_name}".strip()
-                        db_student = Student.objects.filter(
-                            full_name__iexact=full_name
-                        ).first()
-                        
-                        # Si pas trouvé, essayer avec le student_id (qui est l'ID de la DB)
-                        if not db_student and student.student_id:
-                            try:
-                                db_student = Student.objects.filter(id=int(student.student_id)).first()
-                            except (ValueError, TypeError):
-                                pass
-                        
-                        suggestions.append({
-                            'csv_id': student.student_id,
-                            'db_id': db_student.id if db_student else None,
-                            'last_name': student.last_name,
-                            'first_name': student.first_name,
-                            'date_of_birth': student.date_of_birth,
-                            'email': student.email,
-                            'score': round(score, 3),
-                            'match_details': {k: round(v, 3) for k, v in details.items()}
-                        })
-                
-                return Response({
-                    'success': True,
-                    'copy_id': str(copy.id),
-                    'ocr_result': {
-                        'last_name': header_result.last_name,
-                        'first_name': header_result.first_name,
-                        'date_of_birth': header_result.date_of_birth,
-                        'confidence': round(header_result.overall_confidence, 3),
-                        'fields': [{
-                            'name': f.field_name,
-                            'value': f.value,
-                            'confidence': round(f.confidence, 3)
-                        } for f in header_result.fields]
-                    },
-                    'best_match': {
-                        'student_id': match_result.student.student_id if match_result else None,
-                        'last_name': match_result.student.last_name if match_result else None,
-                        'first_name': match_result.student.first_name if match_result else None,
-                        'date_of_birth': match_result.student.date_of_birth if match_result else None,
-                        'confidence': round(match_result.confidence, 3) if match_result else 0,
-                        'match_details': {k: round(v, 3) for k, v in match_result.match_details.items()} if match_result else {}
-                    } if match_result else None,
-                    'suggestions': suggestions
-                })
-            else:
-                return Response({
-                    'error': 'Aucune image de page disponible'
-                }, status=status.HTTP_400_BAD_REQUEST)
-                
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return Response({
-                'error': f'Erreur OCR: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Queue async OCR task for background processing
+        result = async_cmen_ocr.delay(str(copy_id))
+
+        return Response({
+            "task_id": result.id,
+            "message": "OCR processing started. Use task_id to check status and results.",
+            "status_url": f"/api/tasks/{result.id}/status/",
+            "copy_id": str(copy_id)
+        }, status=status.HTTP_202_ACCEPTED)
 
 
 class BatchAutoIdentifyView(APIView):
