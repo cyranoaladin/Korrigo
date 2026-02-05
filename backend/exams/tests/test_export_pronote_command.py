@@ -10,7 +10,7 @@ from django.core.management.base import CommandError
 from django.contrib.auth.models import User
 from exams.models import Exam, Copy
 from students.models import Student
-from grading.models import Score, Annotation
+from grading.models import Annotation
 import tempfile
 import os
 from io import StringIO
@@ -70,7 +70,13 @@ class ExportPronoteCommandTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 15})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.user
+        )
         
         out = StringIO()
         err = StringIO()
@@ -125,7 +131,13 @@ class ExportPronoteCommandTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 15})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.user
+        )
         
         with self.assertRaises(CommandError) as cm:
             call_command('export_pronote', str(self.exam.id))
@@ -142,7 +154,13 @@ class ExportPronoteCommandTests(TestCase):
             status=Copy.Status.GRADED,
             global_appreciation="Excellent"
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 15.5})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.user
+        )
         
         # Create temp file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp:
@@ -201,7 +219,13 @@ class ExportPronoteCommandTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 16})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=16,
+            created_by=self.user
+        )
         
         out = StringIO()
         err = StringIO()
@@ -229,7 +253,13 @@ class ExportPronoteCommandTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 15})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.user
+        )
         
         out = StringIO()
         err = StringIO()
@@ -264,8 +294,20 @@ class ExportPronoteCommandTests(TestCase):
             status=Copy.Status.GRADED
         )
         
-        Score.objects.create(copy=copy1, scores_data={"ex1": 16})
-        Score.objects.create(copy=copy2, scores_data={"ex1": 14})
+        Annotation.objects.create(
+            copy=copy1,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=16,
+            created_by=self.user
+        )
+        Annotation.objects.create(
+            copy=copy2,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=14,
+            created_by=self.user
+        )
         
         # Create temp file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp:
@@ -311,7 +353,13 @@ class ExportPronoteCommandTests(TestCase):
             status=Copy.Status.GRADED,
             global_appreciation="Comment with ; semicolon"
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 15})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.user
+        )
         
         out = StringIO()
         err = StringIO()
@@ -346,7 +394,13 @@ class ExportPronoteCommandTests(TestCase):
             status=Copy.Status.GRADED,
             global_appreciation="Très bien!"
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 18})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=18,
+            created_by=self.user
+        )
         
         # Create temp file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp:
@@ -419,7 +473,13 @@ class ExportPronoteCommandTests(TestCase):
             is_identified=True,
             status=Copy.Status.GRADED
         )
-        Score.objects.create(copy=copy, scores_data={"ex1": 15})
+        Annotation.objects.create(
+            copy=copy,
+            page_index=0,
+            x=0.1, y=0.1, w=0.1, h=0.1,
+            score_delta=15,
+            created_by=self.user
+        )
         
         # Try to write to invalid path
         invalid_path = '/nonexistent/directory/export.csv'
