@@ -266,3 +266,113 @@ class TestAuditEvents(TransactionTestCase):
         
         # Note: The error IS logged via logger.error() which provides the audit trail
         # in production. See captured logs for "PDF generation failed for copy..."
+
+    def test_import_records_duration_metric(self):
+        """
+        Verify that importing a PDF records duration metric in grading_import_duration_seconds histogram.
+        
+        This smoke test ensures metrics instrumentation is working correctly.
+        """
+        self.client.force_authenticate(user=self.teacher)
+
+        # Import metrics module to access histogram
+        from grading.metrics import grading_import_duration_seconds
+
+        # Get initial metric sample count
+        initial_samples = list(grading_import_duration_seconds.collect())[0].samples
+        initial_count = sum(s.value for s in initial_samples if s.name.endswith('_count'))
+
+        # Upload PDF via API (this should record metric)
+        pdf_path = os.path.join(FIXTURES_DIR, "copy_2p_simple.pdf")
+        with open(pdf_path, 'rb') as f:
+            resp = self.client.post(
+                f"/api/exams/{self.exam.id}/copies/import/",
+                {'pdf_file': f},
+                format='multipart'
+            )
+
+        self.assertEqual(resp.status_code, 201)
+        copy_id = resp.data['id']
+        copy = Copy.objects.get(id=copy_id)
+
+        # Verify metric was recorded (count increased)
+        final_samples = list(grading_import_duration_seconds.collect())[0].samples
+        final_count = sum(s.value for s in final_samples if s.name.endswith('_count'))
+        
+        self.assertGreater(final_count, initial_count, 
+                          "grading_import_duration_seconds should have recorded a new observation")
+
+        # Verify metric has correct labels (status=success, pages_bucket=1-10)
+        # Find the specific bucket for our import
+        success_samples = [s for s in final_samples 
+                          if s.name.endswith('_count') 
+                          and s.labels.get('status') == 'success'
+                          and s.labels.get('pages_bucket') == '1-10']
+        
+        self.assertTrue(len(success_samples) > 0, 
+                       "Should have recorded metric with status=success and pages_bucket=1-10")
+
+        # Cleanup
+        if copy.pdf_source:
+            copy.pdf_source.delete(save=False)
+
+    def test_lock_conflict_records_metric(self):
+        """
+        Verify that lock conflicts increment the grading_lock_conflicts_total counter.
+        
+        This smoke test triggers an 'already_locked' conflict by having a second user
+        attempt to acquire a lock held by the first user.
+        """
+        # Import metrics module to access counter
+        from grading.metrics import grading_lock_conflicts_total
+
+        # Create a second teacher user for conflict scenario
+        second_teacher = User.objects.create_user(username='teacher_audit_2', password='password')
+        second_teacher.groups.add(self.teacher_group)
+
+        # Create copy in READY state
+        copy = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id="AUDIT-LOCK",
+            status=Copy.Status.READY
+        )
+
+        # Get initial counter value for 'already_locked' conflict type
+        initial_samples = list(grading_lock_conflicts_total.collect())[0].samples
+        initial_value = 0
+        for sample in initial_samples:
+            if sample.labels.get('conflict_type') == 'already_locked':
+                initial_value = sample.value
+                break
+
+        # First teacher acquires lock (should succeed)
+        self.client.force_authenticate(user=self.teacher)
+        resp1 = self.client.post(f"/api/grading/copies/{copy.id}/lock/", {}, format='json')
+        self.assertEqual(resp1.status_code, 201)
+        first_token = resp1.data['token']
+
+        # Second teacher attempts to acquire same lock (should conflict)
+        self.client.force_authenticate(user=second_teacher)
+        resp2 = self.client.post(f"/api/grading/copies/{copy.id}/lock/", {}, format='json')
+        self.assertEqual(resp2.status_code, 409)  # Conflict status
+        self.assertIn("locked by another user", resp2.data['detail'].lower())
+
+        # Verify counter incremented for 'already_locked' conflict
+        final_samples = list(grading_lock_conflicts_total.collect())[0].samples
+        final_value = 0
+        for sample in final_samples:
+            if sample.labels.get('conflict_type') == 'already_locked':
+                final_value = sample.value
+                break
+
+        self.assertGreater(final_value, initial_value,
+                          f"grading_lock_conflicts_total{{conflict_type='already_locked'}} should have incremented from {initial_value} to {final_value}")
+
+        # Cleanup: release lock (switch back to first teacher)
+        self.client.force_authenticate(user=self.teacher)
+        self.client.post(
+            f"/api/grading/copies/{copy.id}/unlock/",
+            {},
+            format='json',
+            HTTP_X_LOCK_TOKEN=str(first_token)
+        )

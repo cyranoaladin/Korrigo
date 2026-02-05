@@ -393,15 +393,16 @@ docker-compose -f infra/docker/docker-compose.prod.yml exec -T backend pytest gr
 # Result: 4 passed in 5.49s ✓
 ```
 
-### [ ] Step: Add Metrics Recording Tests
+### [x] Step: Add Metrics Recording Tests
+<!-- chat-id: 7beadaec-73d5-451e-b1e0-a5e8c4bd0d6d -->
 
 **Objective**: Verify metrics are recorded during workflow operations (optional smoke tests)
 
 **Tasks**:
-- [ ] Add `test_import_records_duration_metric()` to `test_audit_events.py`
+- [x] Add `test_import_records_duration_metric()` to `test_audit_events.py`
   - Perform import operation
   - Check `grading_import_duration_seconds` histogram updated
-- [ ] Add `test_lock_conflict_records_metric()`
+- [x] Add `test_lock_conflict_records_metric()`
   - Trigger lock conflict scenario
   - Check `grading_lock_conflicts_total` counter incremented
 
@@ -409,9 +410,23 @@ docker-compose -f infra/docker/docker-compose.prod.yml exec -T backend pytest gr
 - Spec: Section 5 Phase 4
 - Requirements: REQ-2.1, REQ-2.4
 
+**Findings**:
+- Added `test_import_records_duration_metric()` at line 270-317
+  - Verifies `grading_import_duration_seconds` histogram records observations during PDF import
+  - Checks that metric count increases after import operation
+  - Validates correct labels (status=success, pages_bucket=1-10)
+- Added `test_lock_conflict_records_metric()` at line 319-378
+  - Verifies `grading_lock_conflicts_total` counter increments on lock conflicts
+  - Uses two-teacher scenario to trigger 'already_locked' conflict
+  - Validates counter increases when second user attempts to acquire lock held by first user
+- Both tests use Prometheus client's `collect()` method to inspect metric samples
+- Updated test file to 378 lines (6 tests total)
+- All tests pass: 6/6 ✓
+
 **Verification**:
 ```bash
-pytest backend/grading/tests/test_audit_events.py::test_import_records_duration_metric -v
+docker-compose -f infra/docker/docker-compose.prod.yml exec -T backend pytest grading/tests/test_audit_events.py -v
+# Result: 6 passed in 5.09s ✓
 ```
 
 ### [ ] Step: Verify Existing Tests Pass
