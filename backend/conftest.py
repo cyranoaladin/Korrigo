@@ -120,6 +120,8 @@ def mock_media(settings):
     Automatically override MEDIA_ROOT for all tests to use a temporary directory.
     ZF-AUD-14: Worker-isolated temp directory for parallel execution.
     Cleans up after tests finish.
+    
+    Worker isolation: each xdist worker gets its own media directory.
     """
     # Create worker-specific temp directory for parallel isolation
     worker_id = get_worker_id()

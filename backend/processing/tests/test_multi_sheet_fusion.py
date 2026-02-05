@@ -144,7 +144,7 @@ class TestMultiSheetFusion:
         ]
 
         with patch('processing.services.batch_processor.settings') as mock_settings:
-            mock_settings.MEDIA_ROOT = "/tmp"
+            mock_settings.MEDIA_ROOT = "/tmp"  # nosec B108 - Test file path, not used in production
             with patch('processing.services.batch_processor.cv2.imwrite'):
                 copies = processor._segment_by_student(pages, "test_exam")
 
@@ -201,7 +201,7 @@ class TestMultiSheetFusion:
         ]
 
         with patch('processing.services.batch_processor.settings') as mock_settings:
-            mock_settings.MEDIA_ROOT = "/tmp"
+            mock_settings.MEDIA_ROOT = "/tmp"  # nosec B108 - Test file path, not used in production
             with patch('processing.services.batch_processor.cv2.imwrite'):
                 copies = processor._segment_by_student(pages, "test_exam")
 
@@ -271,7 +271,7 @@ class TestMultiSheetFusion:
         ]
 
         with patch('processing.services.batch_processor.settings') as mock_settings:
-            mock_settings.MEDIA_ROOT = "/tmp"
+            mock_settings.MEDIA_ROOT = "/tmp"  # nosec B108 - Test file path, not used in production
             with patch('processing.services.batch_processor.cv2.imwrite'):
                 copies = processor._segment_by_student(pages, "test_exam")
 
@@ -318,7 +318,7 @@ class TestMultiSheetFusion:
                 pages.append(PageInfo(page_num, sheet, pos, np.zeros((100, 100, 3))))
 
         with patch('processing.services.batch_processor.settings') as mock_settings:
-            mock_settings.MEDIA_ROOT = "/tmp"
+            mock_settings.MEDIA_ROOT = "/tmp"  # nosec B108 - Test file path, not used in production
             with patch('processing.services.batch_processor.cv2.imwrite'):
                 copies = processor._segment_by_student(pages, "test_exam")
 
@@ -343,7 +343,7 @@ class TestMultiSheetFusion:
         ]
 
         with patch('processing.services.batch_processor.settings') as mock_settings:
-            mock_settings.MEDIA_ROOT = "/tmp"
+            mock_settings.MEDIA_ROOT = "/tmp"  # nosec B108 - Test file path, not used in production
             with patch('processing.services.batch_processor.cv2.imwrite'):
                 with patch.object(processor, '_detect_header_on_page', return_value=False):
                     copies = processor._segment_by_student(pages, "test_exam")

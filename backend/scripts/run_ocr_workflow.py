@@ -176,7 +176,7 @@ def run_ocr_workflow(pdf_path: str, csv_path: str, dry_run: bool = False) -> dic
     logger.info("STEP 3: Processing PDF")
     logger.info("=" * 60)
     
-    output_dir = f"/tmp/ocr_workflow_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    output_dir = f"/tmp/ocr_workflow_{datetime.now().strftime('%Y%m%d_%H%M%S')}"  # nosec B108 - Script utility for local testing
     page_images = process_pdf(pdf_path, output_dir)
     
     if not page_images:

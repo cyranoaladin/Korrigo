@@ -1,0 +1,14 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0
+django: version: 4.2.27, settings: core.settings_test (from ini)
+rootdir: /home/alaeddine/.zenflow/worktrees/ci-suite-tests-parallele-zenflow-9947/backend
+configfile: pytest.ini
+plugins: cov-4.1.0, xdist-3.8.0, django-4.11.1
+created: 4/4 workers
+4 workers [235 items]
+
+........................................................................ [ 30%]
+........................................................................ [ 61%]
+........................................................................ [ 91%]
+.......s...........                                                      [100%]
+======================= 234 passed, 1 skipped in 10.41s ========================
