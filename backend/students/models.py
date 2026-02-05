@@ -22,6 +22,17 @@ class Student(models.Model):
         related_name='student_profile',
         verbose_name="Utilisateur associé"
     )
+    
+    # Consentement RGPD
+    privacy_charter_accepted = models.BooleanField(
+        default=False,
+        verbose_name="Charte de confidentialité acceptée"
+    )
+    privacy_charter_accepted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Date d'acceptation de la charte"
+    )
 
     def __str__(self):
         return f"{self.full_name} ({self.class_name})"
