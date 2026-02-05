@@ -108,9 +108,10 @@ def test_change_password_clears_must_change_flag(api_client):
     client.force_authenticate(user=user)
     
     response = client.post('/api/change-password/', {
-        'password': 'newpassword123'
+        'current_password': 'testpass123',
+        'new_password': 'NewPassword123!'
     }, format='json')
     
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Change password failed: {response.data}"
     user.refresh_from_db()
     assert user.profile.must_change_password is False
