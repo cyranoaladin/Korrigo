@@ -361,7 +361,8 @@ if not ALLOWED_HOSTS:
 
 ---
 
-### [ ] Step: Restore Procedures Documentation
+### [x] Step: Restore Procedures Documentation
+<!-- chat-id: 2ca8e556-32bd-4755-9a2e-5e338b3f2b09 -->
 <!-- Expected duration: 2-3 hours -->
 
 **Objective**: Document comprehensive restore procedures with safety warnings.
@@ -405,13 +406,44 @@ if not ALLOWED_HOSTS:
    - Corrupted backup files
 
 **Verification**:
-- [ ] Pre-restore checklist complete
-- [ ] Destructive operations clearly marked with ⚠️
-- [ ] Post-restore validation steps clear
-- [ ] Rollback procedures documented
-- [ ] Troubleshooting section comprehensive
+- [x] Pre-restore checklist complete
+- [x] Destructive operations clearly marked with ⚠️
+- [x] Post-restore validation steps clear
+- [x] Rollback procedures documented
+- [x] Troubleshooting section comprehensive
 
 **Output**: Restore section in `runbook_backup_restore.md`
+
+**Status**: ✅ Complete
+- Completed comprehensive section 5 (Procédures de Restore) with 8 subsections:
+  - 5.1: Pre-restore checklist (12 mandatory items + verification commands)
+  - 5.2: Understanding restore methods (comparison table)
+  - 5.3: Method 1 - pg_restore from shell backup (9 step procedure + recommended script)
+  - 5.4: Method 2 - Django command restore (6 step procedure + dry-run mode)
+  - 5.5: Independent media restore procedures
+  - 5.6: Post-restore validation (checklist + automated validation script)
+  - 5.7: Rollback procedures (3 options: full, partial, emergency)
+  - 5.8: Common problems and solutions (7 error scenarios)
+- Completed section 6 (Tests et Validation) with 8 subsections:
+  - 6.1: Testing strategy (4 test types with frequencies)
+  - 6.2: Daily backup tests (automated script)
+  - 6.3: Weekly restore tests in staging
+  - 6.4: Monthly disaster recovery tests (4-phase procedure)
+  - 6.5: Data integrity tests (pre/post comparison, checksums)
+  - 6.6: Performance benchmarks
+  - 6.7: Complete validation checklist
+  - 6.8: Test automation (CI/CD integration, monitoring)
+- Enhanced section 8 (Troubleshooting) with 5 subsections:
+  - 8.1: Common backup errors (3 scenarios)
+  - 8.2: Common restore errors (9 detailed scenarios with solutions)
+  - 8.3: Configuration errors (2 scenarios)
+  - 8.4: Advanced diagnostics (debug mode, logs, DB inspection)
+  - 8.5: Escalation and support (diagnostic script, contact levels)
+- Enhanced section 9.1: Added restore commands to quick reference
+- Updated document status: ✅ COMPLET (from 🟡 Partiel)
+- Updated revision history: Version 2.0
+- Total documentation added: **1,834 lines** (813 + 535 + 486 lines)
+- **Runbook complete**: 2,589 lines of operational documentation ready for production
 
 ---
 
