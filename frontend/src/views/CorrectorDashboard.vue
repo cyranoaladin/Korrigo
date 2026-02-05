@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
 import gradingApi from '../services/gradingApi'
+import api from '../services/api'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -34,15 +35,21 @@ const handleLogout = async () => {
 }
 
 const handleChangePassword = async () => {
-    const newPass = prompt("Nouveau mot de passe (min 6 caractères) :")
+    const currentPass = prompt("Mot de passe actuel :")
+    if (!currentPass) return
+    
+    const newPass = prompt("Nouveau mot de passe (min 8 caractères) :")
     if (!newPass) return
-    if (newPass.length < 6) {
-        alert("Le mot de passe doit faire au moins 6 caractères.")
+    if (newPass.length < 8) {
+        alert("Le mot de passe doit faire au moins 8 caractères.")
         return
     }
     
     try {
-        await api.post('/change-password/', { password: newPass })
+        await api.post('/change-password/', { 
+            current_password: currentPass, 
+            new_password: newPass 
+        })
         alert("Mot de passe mis à jour avec succès.")
     } catch (e) {
         alert("Erreur: " + (e.response?.data?.error || "Echec mise à jour"))
