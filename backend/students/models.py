@@ -9,9 +9,7 @@ class Student(models.Model):
     email = models.EmailField(blank=True, null=True, verbose_name="Email")
     birth_date = models.DateField(
         verbose_name="Date de naissance",
-        help_text="Format: YYYY-MM-DD",
-        null=True,
-        blank=True
+        help_text="Format: YYYY-MM-DD"
     )
 
     # Lien vers utilisateur Django pour authentification

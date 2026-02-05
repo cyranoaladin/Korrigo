@@ -138,12 +138,16 @@ def ensure_admin(username=None, password=None, email="alaeddine.benrhouma@ert.tn
     username = username or E2E_ADMIN_USERNAME
     password = password or E2E_ADMIN_PASSWORD
 
-    # Ensure Admin exists for e2e tests
-    u, created = User.objects.get_or_create(
-        email=email,
-        defaults={"username": username}
-    )
-    u.username = username
+    # Ensure Admin exists for e2e tests - use username as primary identifier
+    try:
+        u = User.objects.get(username=username)
+        created = False
+    except User.DoesNotExist:
+        u = User.objects.create(username=username, email=email)
+        created = True
+    
+    # Update credentials and permissions
+    u.email = email
     u.set_password(password)
     u.is_staff = True
     u.is_superuser = True
@@ -154,7 +158,7 @@ def ensure_admin(username=None, password=None, email="alaeddine.benrhouma@ert.tn
     u.groups.add(admins)
     
     if created:
-        print(f"  ✓ Admin created: {email}")
+        print(f"  ✓ Admin created: {username} ({email})")
     return u
 
 
@@ -211,6 +215,18 @@ def main():
     """Seed principal - idempotent et déterministe."""
     teacher = ensure_teacher()
     ensure_admin()
+    
+    # Test admin with must_change_password for E2E tests
+    test_admin = ensure_admin(
+        username="test_admin_password_change",
+        password="initialpass123",
+        email="test_admin@e2e.local"
+    )
+    from core.models import UserProfile
+    profile, created = UserProfile.objects.get_or_create(user=test_admin)
+    profile.must_change_password = True
+    profile.save()
+    print(f"  ✓ Test admin created with must_change_password=True")
 
     # Clean up old seed data to ensure fresh state
     # Note: Exam.delete() cascade vers Booklet via FK on_delete=CASCADE
@@ -268,18 +284,7 @@ def main():
 
     # 4b. Deterministic "Other Student" for Security Tests (avoid timeouts)
     other_student_user, _ = User.objects.get_or_create(username="other_student", defaults={"email": "other@example.com"})
-    other_student, created_other = Student.objects.get_or_create(
-        ine="987654321", 
-        defaults={
-            "user": other_student_user, 
-            "last_name": "OTHER", 
-            "first_name": "Student",
-            "birth_date": "2005-03-20"
-        }
-    )
-    if not created_other and not other_student.birth_date:
-        other_student.birth_date = "2005-03-20"
-        other_student.save(update_fields=["birth_date"])
+    other_student, _ = Student.objects.get_or_create(ine="987654321", defaults={"user": other_student_user, "last_name": "OTHER", "first_name": "Student"})
     
     other_copy = Copy.objects.create(
         exam=exam,
@@ -293,8 +298,7 @@ def main():
     # 5. Trigger Gate 4 Seed (si disponible)
     try:
         from scripts.seed_gate4 import seed_gate4
-        student_birth_date = os.environ.get("E2E_STUDENT_BIRTH_DATE", "2005-06-15")
-        seed_gate4(student_ine=E2E_STUDENT_INE, student_lastname=E2E_STUDENT_LASTNAME, student_birth_date=student_birth_date)
+        seed_gate4(student_ine=E2E_STUDENT_INE, student_lastname=E2E_STUDENT_LASTNAME)
     except ImportError:
         print("  \u26a0 seed_gate4 not available, skipping")
 
