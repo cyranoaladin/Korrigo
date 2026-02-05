@@ -128,12 +128,9 @@ else:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
 
-# Cookie SameSite (all environments)
-# Use 'None' for cross-site requests (requires Secure=True)
-# This is needed when browser treats same-domain requests as cross-site
-SESSION_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_HTTPONLY = False  # Required for SPAs to read CSRF token from cookie
+# CSRF_COOKIE_HTTPONLY must be False for SPAs to read CSRF token from cookie
+CSRF_COOKIE_HTTPONLY = False
+# SESSION_COOKIE_SAMESITE and CSRF_COOKIE_SAMESITE are set at line ~58 via env vars
 
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = os.environ.get(
@@ -263,7 +260,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 SESSION_COOKIE_AGE = 14400
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
+# SESSION_COOKIE_SAMESITE is set earlier in the file (line ~58) via env var
 
 # Auth URLs
 LOGIN_URL = '/admin/login/'
