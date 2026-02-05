@@ -26,7 +26,7 @@ from celery.result import AsyncResult
 from core.auth import create_user_roles
 from exams.models import Exam, Copy, Booklet
 from students.models import Student
-from grading.models import Annotation, GradingStructure
+from grading.models import Annotation
 from django.utils import timezone
 
 
@@ -65,18 +65,16 @@ class ExamCreationWorkflowTests(TransactionTestCase):
         assert exam.name == 'Midterm Math Exam'
         assert exam.created_by == self.teacher
 
-        # Step 2: Set grading structure
-        grading_structure = GradingStructure.objects.create(
-            exam=exam,
-            structure={
-                'questions': [
-                    {'number': 1, 'max_marks': 5.0},
-                    {'number': 2, 'max_marks': 7.5},
-                    {'number': 3, 'max_marks': 7.5}
-                ]
-            }
-        )
-        assert grading_structure.exam == exam
+        # Step 2: Set grading structure (stored as JSONField in Exam)
+        exam.grading_structure = {
+            'questions': [
+                {'number': 1, 'max_marks': 5.0},
+                {'number': 2, 'max_marks': 7.5},
+                {'number': 3, 'max_marks': 7.5}
+            ]
+        }
+        exam.save()
+        assert exam.grading_structure['questions'][0]['max_marks'] == 5.0
 
         # Step 3: Create mock PDF file
         pdf_content = b'%PDF-1.4\n%Mock PDF content for testing'
@@ -324,16 +322,15 @@ class GradingWorkflowTests(TransactionTestCase):
         )
         self.exam.correctors.add(self.teacher)
 
-        self.grading_structure = GradingStructure.objects.create(
-            exam=self.exam,
-            structure={
-                'questions': [
-                    {'number': 1, 'max_marks': 5.0},
-                    {'number': 2, 'max_marks': 7.5},
-                    {'number': 3, 'max_marks': 7.5}
-                ]
-            }
-        )
+        # Set grading structure (stored as JSONField in Exam)
+        self.exam.grading_structure = {
+            'questions': [
+                {'number': 1, 'max_marks': 5.0},
+                {'number': 2, 'max_marks': 7.5},
+                {'number': 3, 'max_marks': 7.5}
+            ]
+        }
+        self.exam.save()
 
         # Create identified copy
         self.copy = Copy.objects.create(
