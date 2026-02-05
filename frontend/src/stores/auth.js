@@ -58,15 +58,23 @@ export const useAuthStore = defineStore('auth', () => {
             if (!preferStudent) {
                 try {
                     const res = await api.get('/me/')
-                    user.value = res.data
-                    user.value.role = user.value.role || 'Admin'
-                    return
-                } catch {
-                    // Ignore error and fallthrough to student check if not preferred but standard failed
+                    if (res.data && res.data.role) {
+                        user.value = res.data
+                        return // SUCCESS - don't try student endpoint
+                    }
+                } catch (err) {
+                    // Only try student endpoint if /me/ returns 403 or 401
+                    if (err.response && (err.response.status === 403 || err.response.status === 401)) {
+                        // Fallthrough to student check
+                    } else {
+                        // Other error - don't try student endpoint
+                        user.value = null
+                        return
+                    }
                 }
             }
 
-            // If failed or preferStudent, try student endpoint
+            // If preferStudent or /me/ returned 403/401, try student endpoint
             try {
                 const res = await api.get('/students/me/')
                 user.value = { ...res.data, role: 'Student' }
