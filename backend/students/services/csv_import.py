@@ -204,7 +204,12 @@ def import_students_rows(rows: List[Dict[str, str]], student_model) -> ImportRes
     """
     Apply rows to DB. Separated from parsing to keep it testable.
     Uses (full_name, date_of_birth) as unique identifier for students.
+    Creates Django User accounts with secure default passwords.
     """
+    from django.contrib.auth.models import User
+    import secrets
+    import string
+    
     result = ImportResult(delimiter=",")
 
     for i, r in enumerate(rows, start=1):
@@ -224,8 +229,19 @@ def import_students_rows(rows: List[Dict[str, str]], student_model) -> ImportRes
             )
             continue
 
+        if not email:
+            result.errors.append(
+                ImportErrorItem(
+                    row=i,
+                    message="Email is required for student authentication",
+                    data=r,
+                )
+            )
+            continue
+
         try:
             with transaction.atomic():
+                # Create or update student
                 obj, created = student_model.objects.update_or_create(
                     full_name=full_name,
                     date_of_birth=date_of_birth,
@@ -235,6 +251,41 @@ def import_students_rows(rows: List[Dict[str, str]], student_model) -> ImportRes
                         "eds_group": eds_group,
                     },
                 )
+                
+                # Create Django User account if student doesn't have one
+                if not obj.user:
+                    # Generate secure default password (8 chars: letters + digits)
+                    alphabet = string.ascii_letters + string.digits
+                    default_password = ''.join(secrets.choice(alphabet) for _ in range(8))
+                    
+                    # Create username from email (before @)
+                    username = email.split('@')[0]
+                    
+                    # Ensure username is unique
+                    base_username = username
+                    counter = 1
+                    while User.objects.filter(username=username).exists():
+                        username = f"{base_username}{counter}"
+                        counter += 1
+                    
+                    # Create User account
+                    user = User.objects.create_user(
+                        username=username,
+                        email=email,
+                        password=default_password,
+                        first_name=full_name.split()[-1] if full_name else "",  # Prénom (dernier mot)
+                        last_name=full_name.split()[0] if full_name else "",    # Nom (premier mot)
+                    )
+                    
+                    # Link user to student
+                    obj.user = user
+                    obj.save()
+                    
+                    # Store password for export (will be added to result)
+                    if not hasattr(result, 'passwords'):
+                        result.passwords = {}
+                    result.passwords[email] = default_password
+                
             if created:
                 result.created += 1
             else:

@@ -14,7 +14,7 @@ from core.utils.audit import log_authentication_attempt, log_audit
 @method_decorator(csrf_exempt, name='dispatch')
 class StudentLoginView(views.APIView):
     """
-    Login endpoint for students using email + last_name.
+    Login endpoint for students using email + password.
     Rate limited to 5 attempts per 15 minutes per IP.
     CSRF exempt: Public authentication endpoint, protected by rate limiting.
     
@@ -25,27 +25,49 @@ class StudentLoginView(views.APIView):
 
     @method_decorator(maybe_ratelimit(key='ip', rate='5/15m', method='POST', block=True))
     def post(self, request):
-        email = request.data.get('email')
-        last_name = request.data.get('last_name')  # Premier mot du full_name
-
-        if not email or not last_name:
-            return Response({'error': 'Email et Nom sont requis.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Match by email and check if full_name starts with last_name (case insensitive)
-        student = Student.objects.filter(email__iexact=email).first()
+        from django.contrib.auth import authenticate
         
-        if student:
-            # Verify last_name matches the first word of full_name
-            student_last_name = student.full_name.split()[0] if student.full_name else ""
-            if student_last_name.upper() == last_name.upper():
-                request.session['student_id'] = student.id
-                request.session['role'] = 'Student'
-                # Audit trail: Login élève réussi
-                log_authentication_attempt(request, success=True, student_id=student.id)
-                return Response({'message': 'Login successful', 'role': 'Student'})
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if not email or not password:
+            return Response({'error': 'Email et mot de passe sont requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Find student by email
+        try:
+            student = Student.objects.select_related('user').get(email__iexact=email)
+        except Student.DoesNotExist:
+            # Audit trail: Login élève échoué
+            log_authentication_attempt(request, success=False, student_id=None)
+            return Response({'error': 'Identifiants invalides.'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Verify student has a user account
+        if not student.user:
+            log_authentication_attempt(request, success=False, student_id=student.id)
+            return Response({'error': 'Compte utilisateur non configuré. Contactez l\'administrateur.'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Authenticate with Django User
+        user = authenticate(request, username=student.user.username, password=password)
+        
+        if user is not None and user.is_active:
+            request.session['student_id'] = student.id
+            request.session['role'] = 'Student'
+            # Audit trail: Login élève réussi
+            log_authentication_attempt(request, success=True, student_id=student.id)
+            
+            # Check if password needs to be changed (first login)
+            must_change_password = False
+            if hasattr(user, 'profile') and user.profile.must_change_password:
+                must_change_password = True
+            
+            return Response({
+                'message': 'Login successful', 
+                'role': 'Student',
+                'must_change_password': must_change_password
+            })
         
         # Audit trail: Login élève échoué
-        log_authentication_attempt(request, success=False, student_id=None)
+        log_authentication_attempt(request, success=False, student_id=student.id)
         return Response({'error': 'Identifiants invalides.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 class StudentLogoutView(views.APIView):
@@ -140,6 +162,11 @@ class StudentImportView(views.APIView):
                     'total_errors': len(result.errors),
                 }
                 
+                # Add passwords to response if any were generated
+                if hasattr(result, 'passwords') and result.passwords:
+                    response_data['passwords'] = result.passwords
+                    response_data['message'] = 'Import réussi. IMPORTANT: Sauvegardez les mots de passe générés et communiquez-les aux étudiants de manière sécurisée.'
+                
                 return Response(response_data)
                 
             finally:
@@ -155,3 +182,62 @@ class StudentImportView(views.APIView):
                 safe_error_response(e, context="CSV import", user_message="Failed to import students. Please check file format."),
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+class StudentChangePasswordView(views.APIView):
+    """
+    Allow students to change their password.
+    Students must be authenticated via session.
+    """
+    permission_classes = [IsStudent]
+
+    @method_decorator(maybe_ratelimit(key='user', rate='5/h', method='POST', block=True))
+    def post(self, request):
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+        from django.contrib.auth import update_session_auth_hash
+        
+        student_id = request.session.get('student_id')
+        if not student_id:
+            return Response({'error': 'Not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        student = get_object_or_404(Student, id=student_id)
+        
+        if not student.user:
+            return Response({'error': 'No user account associated'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+        
+        if not current_password or not new_password:
+            return Response({'error': 'Current password and new password are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verify current password
+        if not student.user.check_password(current_password):
+            return Response({'error': 'Current password is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate new password
+        try:
+            validate_password(new_password, user=student.user)
+        except ValidationError as e:
+            return Response({'error': e.messages}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Set new password
+        student.user.set_password(new_password)
+        student.user.save()
+        
+        # Clear must_change_password flag if exists
+        try:
+            if hasattr(student.user, 'profile'):
+                student.user.profile.must_change_password = False
+                student.user.profile.save()
+        except Exception:
+            pass
+        
+        # Keep session alive after password change
+        update_session_auth_hash(request, student.user)
+        
+        # Audit trail
+        log_audit(request, 'student.password_changed', 'Student', student.id)
+        
+        return Response({'message': 'Password changed successfully'})
