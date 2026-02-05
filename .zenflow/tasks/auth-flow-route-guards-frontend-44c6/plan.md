@@ -315,7 +315,8 @@ Save to `{@artifacts_path}/plan.md`.
 - `frontend/e2e/tests/multi_tab.spec.ts`
 - `frontend/e2e/tests/back_button.spec.ts`
 
-### [ ] Step: Navigation Specs & Final Verification
+### [x] Step: Navigation Specs & Final Verification
+<!-- chat-id: 9e2a7449-c540-40ea-92c0-2f24f9ee6c60 -->
 
 **Objective**: Document expected navigation flows and verify all acceptance criteria
 

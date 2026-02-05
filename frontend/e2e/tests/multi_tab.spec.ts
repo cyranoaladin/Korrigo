@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin, loginAsTeacher, loginAsStudent } from './helpers/auth';
-import { openNewTab, logout, verifyRedirect } from './helpers/navigation';
+import { openNewTab, logout } from './helpers/navigation';
 
 test.describe('Multi-Tab E2E Tests', () => {
 
