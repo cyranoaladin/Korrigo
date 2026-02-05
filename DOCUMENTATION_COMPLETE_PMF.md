@@ -383,6 +383,11 @@ Pour une mise en production conforme, le Lycée s'engage à :
 
 Tous les documents légaux sont disponibles dans le répertoire `/docs/legal/` :
 
+✅ **Charte de Confidentialité** :
+- `CHARTE_CONFIDENTIALITE.md` (Version complète)
+- `charte_confidentialite_modal.html` (Version condensée pour page de connexion)
+- Affichée sur https://korrigo.labomaths.tn/privacy
+
 ✅ **Formulaires de Consentement** :
 - `consentement_parental_fr.pdf` (Français)
 - `consentement_parental_ar.pdf` (Arabe)
