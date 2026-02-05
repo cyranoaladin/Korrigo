@@ -48,7 +48,7 @@ test.describe('Student Flow (Mission 17)', () => {
         await expect(page).toHaveURL(/student\/login/, { timeout: 15000 });
 
         await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
-        await page.fill('input[placeholder="Votre nom"]', CREDS.student.lastname);
+        await page.fill('input[placeholder="AAAA-MM-JJ"]', CREDS.student.birth_date);
 
         // Wait for login API 200 (more robust than URL-only)
         const loginRespPromise = page.waitForResponse(resp =>
@@ -90,13 +90,13 @@ test.describe('Student Flow (Mission 17)', () => {
 
     test('Security: Student cannot access another student\'s PDF (403)', async ({ browser }) => {
         // HELPER: Robust login function
-        async function loginAs(contextPage: any, ine: string, name: string) {
+        async function loginAs(contextPage: any, ine: string, birth_date: string) {
             // Relative URL to bypass any relative routing ambiguity
             await contextPage.goto('/student/login', { waitUntil: 'domcontentloaded' });
             await expect(contextPage).toHaveURL(/\/student\/login/, { timeout: 15000 });
 
             await contextPage.fill('input[placeholder="ex: 123456789A"]', ine);
-            await contextPage.fill('input[placeholder="Votre nom"]', name);
+            await contextPage.fill('input[placeholder="AAAA-MM-JJ"]', birth_date);
 
             const loginResp = contextPage.waitForResponse((r: any) =>
                 r.url().includes('/api/students/login/') && r.status() === 200
@@ -110,12 +110,12 @@ test.describe('Student Flow (Mission 17)', () => {
         // CONTEXT A: Student 1 (E2E_STUDENT)
         const ctxA = await browser.newContext();
         const pageA = await ctxA.newPage();
-        await loginAs(pageA, CREDS.student.ine, CREDS.student.lastname);
+        await loginAs(pageA, CREDS.student.ine, CREDS.student.birth_date);
 
         // CONTEXT B: Student 2 (OTHER)
         const ctxB = await browser.newContext();
         const pageB = await ctxB.newPage();
-        await loginAs(pageB, '987654321', 'OTHER');
+        await loginAs(pageB, CREDS.other_student.ine, CREDS.other_student.birth_date);
 
         // Get OTHER copy id with user B
         const otherCopiesResp = await pageB.request.get('/api/students/copies/');
@@ -140,7 +140,7 @@ test.describe('Student Flow (Mission 17)', () => {
         await page.goto('/student/login');
         await expect(page).toHaveURL(/\/student\/login/, { timeout: 15000 });
         await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
-        await page.fill('input[placeholder="Votre nom"]', CREDS.student.lastname);
+        await page.fill('input[placeholder="AAAA-MM-JJ"]', CREDS.student.birth_date);
 
         const loginRespPromise = page.waitForResponse(resp =>
             resp.url().includes('/api/students/login/') && resp.status() === 200
@@ -169,5 +169,108 @@ test.describe('Student Flow (Mission 17)', () => {
         const copies = await copiesResp.json();
         const lockedCopy = copies.find((c: any) => c.anonymous_id === 'GATE4-LOCKED');
         expect(lockedCopy).toBeUndefined();
+    });
+
+    test('Login failure: Invalid credentials show generic error', async ({ page }) => {
+        await page.goto('/student/login');
+        await expect(page).toHaveURL(/\/student\/login/, { timeout: 15000 });
+
+        // Try with valid INE but invalid birth_date
+        await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
+        await page.fill('input[placeholder="AAAA-MM-JJ"]', '2000-01-01');
+
+        await page.click('button[type="submit"]');
+
+        // Verify generic error message is displayed
+        const errorMessage = page.locator('text=/identifiants invalides/i');
+        await expect(errorMessage).toBeVisible({ timeout: 5000 });
+
+        // Verify we're still on login page (not redirected)
+        await expect(page).toHaveURL(/\/student\/login/);
+
+        // Try with invalid INE but valid birth_date
+        await page.fill('input[placeholder="ex: 123456789A"]', 'INVALID999');
+        await page.fill('input[placeholder="AAAA-MM-JJ"]', CREDS.student.birth_date);
+
+        await page.click('button[type="submit"]');
+
+        // Verify generic error message again
+        await expect(errorMessage).toBeVisible({ timeout: 5000 });
+        await expect(page).toHaveURL(/\/student\/login/);
+    });
+
+    test('Rate limiting: 5 failed attempts trigger rate limit', async ({ page }) => {
+        await page.goto('/student/login');
+        await expect(page).toHaveURL(/\/student\/login/, { timeout: 15000 });
+
+        // Attempt 5 failed logins with the same INE
+        const testINE = 'RATETEST' + Date.now();
+        for (let i = 0; i < 5; i++) {
+            await page.fill('input[placeholder="ex: 123456789A"]', testINE);
+            await page.fill('input[placeholder="AAAA-MM-JJ"]', '2000-01-01');
+            await page.click('button[type="submit"]');
+            
+            // Wait for error response
+            await page.waitForTimeout(500);
+        }
+
+        // 6th attempt should be rate limited
+        await page.fill('input[placeholder="ex: 123456789A"]', testINE);
+        await page.fill('input[placeholder="AAAA-MM-JJ"]', '2000-01-01');
+        
+        const rateLimitResp = page.waitForResponse(resp =>
+            resp.url().includes('/api/students/login/') && resp.status() === 429
+        );
+        
+        await page.click('button[type="submit"]');
+        await rateLimitResp;
+
+        // Verify rate limit error message
+        const rateLimitMessage = page.locator('text=/trop de tentatives/i');
+        await expect(rateLimitMessage).toBeVisible({ timeout: 5000 });
+    });
+
+    test('Security: Response headers on PDF download', async ({ page }) => {
+        // Login as test student
+        await page.goto('/student/login');
+        await expect(page).toHaveURL(/\/student\/login/, { timeout: 15000 });
+
+        await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
+        await page.fill('input[placeholder="AAAA-MM-JJ"]', CREDS.student.birth_date);
+
+        const loginRespPromise = page.waitForResponse(resp =>
+            resp.url().includes('/api/students/login/') && resp.status() === 200
+        );
+
+        await page.click('button[type="submit"]');
+        await loginRespPromise;
+        await page.waitForURL(/\/student-portal/, { timeout: 15000 });
+
+        // Get copy list
+        await expect(page.locator('.copy-list')).toBeVisible({ timeout: 15000 });
+        const examItem = page.locator('.copy-list li', { hasText: 'Gate 4 Exam' });
+        await examItem.click();
+
+        // Get PDF link
+        const pdfLink = page.locator('a.btn-download');
+        await expect(pdfLink).toBeVisible();
+        const href = await pdfLink.getAttribute('href');
+        expect(href).toBeTruthy();
+
+        // Download PDF and verify security headers
+        const pdfResp = await page.request.get(href!, {
+            headers: { 'Accept': 'application/pdf' }
+        });
+        expect(pdfResp.status()).toBe(200);
+
+        // Verify security headers
+        const headers = pdfResp.headers();
+        expect(headers['cache-control']).toContain('private');
+        expect(headers['cache-control']).toContain('no-store');
+        expect(headers['cache-control']).toContain('no-cache');
+        expect(headers['pragma']).toBe('no-cache');
+        expect(headers['x-content-type-options']).toBe('nosniff');
+        expect(headers['content-disposition']).toContain('attachment');
+        expect(headers['content-type']).toContain('application/pdf');
     });
 });
