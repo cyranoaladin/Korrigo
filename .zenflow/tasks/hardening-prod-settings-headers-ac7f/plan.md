@@ -504,7 +504,8 @@ if not ALLOWED_HOSTS:
 
 ---
 
-### [ ] Step: Production Smoke Tests Enhancement
+### [x] Step: Production Smoke Tests Enhancement
+<!-- chat-id: b9b69ced-0346-4780-85b9-dd69a1619c20 -->
 <!-- Expected duration: 2 hours -->
 
 **Objective**: Enhance existing smoke tests for production validation.
@@ -556,15 +557,31 @@ if not ALLOWED_HOSTS:
 - Read: `backend/tests/test_smoke.py` (Python smoke tests)
 
 **Verification**:
-- [ ] Smoke test script executable
-- [ ] Tests cover health, static, media
-- [ ] Clear output with pass/fail
-- [ ] Exit codes correct
-- [ ] Documented in runbook
+- [x] Smoke test script executable
+- [x] Tests cover health, static, media
+- [x] Clear output with pass/fail
+- [x] Exit codes correct
+- [x] Documented in runbook
 
 **Output**: 
 - New file: `scripts/smoke_prod.sh` (if authorized)
 - Documentation in `runbook_backup_restore.md`
+
+**Status**: ✅ Complete
+- Created comprehensive `scripts/smoke_prod.sh` (257 lines, 7.4K)
+- Script tests 13 scenarios:
+  - **Core functionality** (5 tests): health endpoints (liveness, readiness, combined), API root, admin accessibility
+  - **Static/Media serving** (2 tests): static files availability, media protection
+  - **Security headers** (5 tests): X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy, CSP
+  - **SSL/TLS validation** (conditional): HSTS, certificate validation, HTTP→HTTPS redirect
+- Clear pass/fail/warn output with color coding (green/red/yellow)
+- Proper exit codes (0 = success, 1 = failure)
+- Comprehensive documentation added to `runbook_backup_restore.md`:
+  - Section 6.9: Tests Smoke en Production (205 lines)
+  - Includes usage examples, expected output, troubleshooting, integration with restore procedures
+  - Added to section 9.1: Quick reference commands
+- Script syntax validated with `bash -n`
+- Runbook updated to version 2.1 (2,827 total lines)
 
 ---
 

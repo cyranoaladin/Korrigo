@@ -1928,6 +1928,214 @@ fi
 
 ---
 
+### 6.9 Tests Smoke en Production
+
+#### Objectif
+
+Les smoke tests valident que le système est opérationnel après un restore ou un déploiement. Ils vérifient les fonctionnalités critiques (health checks, serving de fichiers, sécurité) sans nécessiter de données de test complexes.
+
+#### Script: `smoke_prod.sh`
+
+Un script de smoke test amélioré est disponible dans `scripts/smoke_prod.sh`. Il teste:
+
+1. **Fonctionnalité de base**:
+   - Health endpoint (liveness, readiness, combined)
+   - Accessibilité de l'API
+   - Accessibilité de l'admin Django
+
+2. **Fichiers statiques et média**:
+   - Serving de fichiers statiques (CSS admin)
+   - Protection des fichiers média (doit bloquer accès public)
+
+3. **Headers de sécurité**:
+   - X-Frame-Options
+   - X-Content-Type-Options
+   - X-XSS-Protection
+   - Referrer-Policy
+   - Content-Security-Policy
+
+4. **SSL/TLS** (si SSL_ENABLED=true):
+   - HSTS (Strict-Transport-Security)
+   - Validation du certificat SSL
+   - Redirection HTTP → HTTPS
+
+#### Utilisation
+
+**Environnement local (prod-like)**:
+```bash
+./scripts/smoke_prod.sh http://localhost:8080 false
+```
+
+**Production HTTPS**:
+```bash
+./scripts/smoke_prod.sh https://app.example.com true
+```
+
+**Depuis Docker**:
+```bash
+# Test depuis l'intérieur du réseau Docker
+docker compose -f infra/docker/docker-compose.prod.yml exec backend \
+  bash -c "cd /app && ./scripts/smoke_prod.sh http://nginx false"
+```
+
+#### Sortie Attendue
+
+```
+=========================================
+  PRODUCTION SMOKE TEST
+=========================================
+Target:      http://localhost:8080
+SSL Enabled: false
+=========================================
+
+[1] Health Endpoint - Liveness Check
+  -> ✓ PASS: Liveness check returned 200
+
+[2] Health Endpoint - Readiness Check
+  -> ✓ PASS: Readiness check returned 200 (all dependencies ready)
+
+[3] Health Endpoint - Combined Check
+  -> ✓ PASS: Combined health check returned 200
+
+[4] API Root Accessibility
+  -> ✓ PASS: API root accessible (HTTP 403 - no server error)
+
+[5] Admin Accessibility
+  -> ✓ PASS: Admin accessible (HTTP 302)
+
+[6] Static Files Availability - Admin CSS
+  -> ✓ PASS: Static files served correctly (admin CSS accessible)
+
+[7] Media Files Protection - Public Block
+  -> ✓ PASS: Media files blocked correctly (HTTP 403)
+
+[8] Security Headers - X-Frame-Options
+  -> ✓ PASS: X-Frame-Options present: X-Frame-Options: DENY
+
+[9] Security Headers - X-Content-Type-Options
+  -> ✓ PASS: X-Content-Type-Options present: nosniff
+
+[10] Security Headers - X-XSS-Protection
+  -> ✓ PASS: X-XSS-Protection present
+
+[11] Security Headers - Referrer-Policy
+  -> ✓ PASS: Referrer-Policy present: Referrer-Policy: strict-origin-when-cross-origin
+
+[12] SSL/TLS Tests Skipped (SSL_ENABLED=false)
+  -> ⚠ WARN: Running in non-SSL mode (prod-like local environment)
+
+[13] Security Headers - Content-Security-Policy
+  -> ⚠ WARN: CSP header missing (recommended for production)
+
+=========================================
+  SMOKE TEST SUMMARY
+=========================================
+Tests Run:    13
+Tests Passed: 13
+Tests Failed: 0
+=========================================
+
+✓ ALL TESTS PASSED
+```
+
+#### Intégration Post-Restore
+
+Ajouter le smoke test à la fin des procédures de restore:
+
+```bash
+#!/bin/bash
+# restore_with_validation.sh
+
+echo "1. Arrêt des services..."
+docker compose -f infra/docker/docker-compose.prod.yml down
+
+echo "2. Restore database..."
+# ... restore DB ...
+
+echo "3. Restore media..."
+# ... restore media ...
+
+echo "4. Redémarrage des services..."
+docker compose -f infra/docker/docker-compose.prod.yml up -d
+
+echo "5. Attente initialisation (30s)..."
+sleep 30
+
+echo "6. Smoke tests..."
+./scripts/smoke_prod.sh http://localhost:8080 false
+
+if [ $? -eq 0 ]; then
+  echo "✅ Restore validé - Système opérationnel"
+  exit 0
+else
+  echo "❌ Smoke tests échoués - Vérifier les logs"
+  exit 1
+fi
+```
+
+#### Intégration dans Cron (Monitoring Quotidien)
+
+```bash
+# Cron: Smoke test quotidien à 9h du matin
+0 9 * * * cd /opt/korrigo && ./scripts/smoke_prod.sh https://app.example.com true && \
+  curl -fsS --retry 3 https://hc-ping.com/SMOKE-TEST-UUID > /dev/null || \
+  (echo "Smoke test failed" | mail -s "[ALERT] Korrigo Smoke Test Failed" ops@example.com)
+```
+
+#### Interprétation des Résultats
+
+| Résultat | Signification | Action |
+|----------|---------------|--------|
+| ✓ PASS | Test réussi | RAS |
+| ⚠ WARN | Warning non bloquant | Amélioration recommandée mais système fonctionnel |
+| ✗ FAIL | Test échoué | Investigation requise immédiatement |
+
+**Tests critiques (échec = système non opérationnel)**:
+- Health endpoint liveness (test #1)
+- Admin accessibility (test #5)
+- Media protection (test #7)
+
+**Tests importants (échec = configuration sous-optimale)**:
+- Health endpoint readiness (test #2)
+- Static files availability (test #6)
+- Security headers (tests #8-11)
+
+**Tests informatifs (warning = amélioration recommandée)**:
+- CSP header (test #13)
+- HSTS (production HTTPS uniquement)
+
+#### Dépannage Smoke Tests
+
+**Problème: "Health check returned 503"**
+- **Cause**: Base de données ou cache Redis indisponibles
+- **Solution**: Vérifier `docker compose ps` et les logs `docker compose logs backend`
+
+**Problème: "Static files returned 404"**
+- **Cause**: `collectstatic` non exécuté ou volume staticfiles non monté
+- **Solution**: `docker compose exec backend python manage.py collectstatic --noinput`
+
+**Problème: "Media files returned 200 (expected 403/404)"**
+- **Cause**: Configuration nginx incorrecte - média accessible publiquement
+- **Solution**: Vérifier `infra/nginx/nginx.conf` - le location `/media/` doit exister mais Django doit gérer l'authentification
+
+**Problème: "Security headers missing"**
+- **Cause**: nginx non redémarré après modification de configuration
+- **Solution**: `docker compose -f infra/docker/docker-compose.prod.yml restart nginx`
+
+**Problème: "SSL certificate validation failed"**
+- **Cause**: Certificat auto-signé, expiré, ou problème de chaîne
+- **Solution**: Vérifier `openssl s_client -connect app.example.com:443 -showcerts`
+
+#### Smoke Test vs Tests Unitaires
+
+| Type | Objectif | Fréquence | Environnement |
+|------|----------|-----------|---------------|
+| **Smoke Test** | Validation système opérationnel (black-box) | Après déploiement, après restore | Production/Staging |
+| **Tests Unitaires** | Validation logique métier | Avant commit, CI/CD | Dev/CI |
+| **Tests Intégration** | Validation workflows complets | CI/CD, hebdomadaire | CI/Staging |
+
+---
+
 ## 7. Politique de Rétention
 
 ### 7.1 Rétention par Type de Backup
@@ -2546,6 +2754,19 @@ docker compose -f infra/docker/docker-compose.prod.yml exec backend \
 ./scripts/validate_restore.sh
 ```
 
+**Smoke Tests**:
+```bash
+# Smoke test local (prod-like)
+./scripts/smoke_prod.sh http://localhost:8080 false
+
+# Smoke test production HTTPS
+./scripts/smoke_prod.sh https://app.example.com true
+
+# Smoke test depuis Docker
+docker compose -f infra/docker/docker-compose.prod.yml exec backend \
+  bash -c "cd /app && ./scripts/smoke_prod.sh http://nginx false"
+```
+
 ### 9.2 Checklist Backup Quotidien
 
 - [ ] Backup DB exécuté (automatique via cron)
@@ -2579,10 +2800,11 @@ docker compose -f infra/docker/docker-compose.prod.yml exec backend \
 |---------|------|--------|-------------|
 | 1.0 | 2026-02-04 | DevOps | Documentation initiale procédures backup |
 | 2.0 | 2026-02-05 | DevOps | Documentation complète restore, tests et troubleshooting |
+| 2.1 | 2026-02-05 | DevOps | Ajout smoke tests production (section 6.9) |
 
 **Sections complétées**:
 - ✅ Section 5: Procédures de Restore (8 sous-sections, 813 lignes)
-- ✅ Section 6: Tests et Validation (8 sous-sections, 535 lignes)
+- ✅ Section 6: Tests et Validation (9 sous-sections, 740 lignes)
 - ✅ Section 8: Troubleshooting enrichi (5 sous-sections, 486 lignes)
 
 ---
@@ -2596,11 +2818,12 @@ docker compose -f infra/docker/docker-compose.prod.yml exec backend \
 - ✅ Validation post-restore
 - ✅ Procédures de rollback
 - ✅ Tests automatisés (quotidien, hebdomadaire, mensuel)
+- ✅ Smoke tests production (validation post-restore)
 - ✅ Troubleshooting complet (30+ scénarios d'erreurs)
 - ✅ Guide de diagnostic avancé
 - ✅ Référence rapide et contacts
 
-**Lignes totales**: 2,589 lignes de documentation opérationnelle
+**Lignes totales**: 2,827 lignes de documentation opérationnelle
 
 **Prochaines Actions Recommandées**:
 1. Tester les scripts de restore sur environnement staging
