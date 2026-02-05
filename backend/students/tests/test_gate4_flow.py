@@ -14,12 +14,18 @@ class TestGate4StudentFlow(TransactionTestCase):
     def setUp(self):
         super().setUp()
         
-        # 1. Setup Student
+        # 1. Setup Student with User account
+        self.student_user = User.objects.create_user(
+            username="student_e2e",
+            email="student@test.com",
+            password="studentpass123"
+        )
         self.student = Student.objects.create(
             email="student@test.com", 
             full_name="E2E_STUDENT Jean",
             date_of_birth="2008-01-15",
-            class_name="T1"
+            class_name="T1",
+            user=self.student_user
         )
         
         # 2. Setup Exam & Copies
@@ -43,7 +49,18 @@ class TestGate4StudentFlow(TransactionTestCase):
         )
         
         # Other student's copy
-        self.other_student = Student.objects.create(email="other@test.com", full_name="OTHER Other", date_of_birth="2008-02-20", class_name="T2")
+        self.other_student_user = User.objects.create_user(
+            username="student_other",
+            email="other@test.com",
+            password="otherpass123"
+        )
+        self.other_student = Student.objects.create(
+            email="other@test.com", 
+            full_name="OTHER Other", 
+            date_of_birth="2008-02-20", 
+            class_name="T2",
+            user=self.other_student_user
+        )
         self.copy_other = Copy.objects.create(
             exam=self.exam,
             anonymous_id="GATE4-OTHER",
@@ -59,14 +76,14 @@ class TestGate4StudentFlow(TransactionTestCase):
     def test_student_login_success(self):
         resp = self.client.post("/api/students/login/", {
             "email": "student@test.com",
-            "last_name": "E2E_STUDENT" # Case insensitive matching usually expected or exact
+            "password": "studentpass123"
         })
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self.client.session['student_id'], self.student.id)
         
     def test_student_copies_list_permissions(self):
         # Login
-        self.client.post("/api/students/login/", {"email": "student@test.com", "last_name": "E2E_STUDENT"})
+        self.client.post("/api/students/login/", {"email": "student@test.com", "password": "studentpass123"})
         
         # Get List
         resp = self.client.get("/api/students/copies/")
@@ -81,7 +98,7 @@ class TestGate4StudentFlow(TransactionTestCase):
         
     def test_student_pdf_access_security(self):
         # Login
-        self.client.post("/api/students/login/", {"email": "student@test.com", "last_name": "E2E_STUDENT"})
+        self.client.post("/api/students/login/", {"email": "student@test.com", "password": "studentpass123"})
         
         # 1. Access Own Graded -> 200
         # Endpoint: /api/grading/copies/{id}/final-pdf/
