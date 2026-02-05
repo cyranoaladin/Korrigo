@@ -84,7 +84,8 @@ echo "==> [3] Test STAGING → READY"
 READY_RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "$BASE_URL/api/copies/$COPY_ID/ready/" \
   -H "Content-Type: application/json" \
   -H "Cookie: sessionid=$SESSIONID; csrftoken=$CSRFTOKEN" \
-  -H "X-CSRFToken: $CSRFTOKEN")
+  -H "X-CSRFToken: $CSRFTOKEN" \
+  -H "Referer: $BASE_URL/")
 
 READY_CODE=$(echo "$READY_RESPONSE" | tail -1)
 READY_BODY=$(echo "$READY_RESPONSE" | head -n -1)
@@ -105,6 +106,7 @@ ANNOT_RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "$BASE_URL/api/copies/$COP
   -H "Content-Type: application/json" \
   -H "Cookie: sessionid=$SESSIONID; csrftoken=$CSRFTOKEN" \
   -H "X-CSRFToken: $CSRFTOKEN" \
+  -H "Referer: $BASE_URL/" \
   -d '{"page_index":0,"x":0.1,"y":0.1,"w":0.2,"h":0.2,"type":"COMMENT","content":"Good work!","score_delta":5}')
 
 ANNOT_CODE=$(echo "$ANNOT_RESPONSE" | tail -1)
@@ -124,7 +126,8 @@ echo "==> [5] Test READY → LOCKED"
 LOCK_RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "$BASE_URL/api/copies/$COPY_ID/lock/" \
   -H "Content-Type: application/json" \
   -H "Cookie: sessionid=$SESSIONID; csrftoken=$CSRFTOKEN" \
-  -H "X-CSRFToken: $CSRFTOKEN")
+  -H "X-CSRFToken: $CSRFTOKEN" \
+  -H "Referer: $BASE_URL/")
 
 LOCK_CODE=$(echo "$LOCK_RESPONSE" | tail -1)
 
@@ -141,7 +144,8 @@ echo "==> [6] Test LOCKED → GRADED (finalize)"
 FINALIZE_RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST "$BASE_URL/api/copies/$COPY_ID/finalize/" \
   -H "Content-Type: application/json" \
   -H "Cookie: sessionid=$SESSIONID; csrftoken=$CSRFTOKEN" \
-  -H "X-CSRFToken: $CSRFTOKEN")
+  -H "X-CSRFToken: $CSRFTOKEN" \
+  -H "Referer: $BASE_URL/")
 
 FINALIZE_CODE=$(echo "$FINALIZE_RESPONSE" | tail -1)
 FINALIZE_BODY=$(echo "$FINALIZE_RESPONSE" | head -n -1)
