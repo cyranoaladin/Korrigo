@@ -19,18 +19,32 @@ User = get_user_model()
 
 @pytest.fixture
 def setup_students(db):
-    """Create students for testing."""
+    """Create students for testing with associated User accounts."""
+    # Create User accounts for students
+    user1 = User.objects.create_user(
+        username="student_alice",
+        email="alice@test.com",
+        password="alicepass123"
+    )
+    user2 = User.objects.create_user(
+        username="student_bob",
+        email="bob@test.com",
+        password="bobpass123"
+    )
+    
     student1 = Student.objects.create(
         email="alice@test.com",
         full_name="DUPONT Alice",  # Format: LASTNAME Firstname
         date_of_birth="2008-01-15",
-        class_name="3A"
+        class_name="3A",
+        user=user1
     )
     student2 = Student.objects.create(
         email="bob@test.com",
         full_name="MARTIN Bob",
         date_of_birth="2008-02-20",
-        class_name="3B"
+        class_name="3B",
+        user=user2
     )
     return student1, student2
 
@@ -88,30 +102,30 @@ def setup_copies_with_students(db, setup_students):
 
 @pytest.mark.django_db
 class TestStudentLogin:
-    """Test student authentication (email + last_name)."""
+    """Test student authentication (email + password)."""
 
     def test_login_success_with_valid_credentials(self, setup_students):
-        """Valid email + last_name should login successfully."""
+        """Valid email + password should login successfully."""
         student1, _ = setup_students
         
         client = Client()
         response = client.post('/api/students/login/', {
             'email': 'alice@test.com',
-            'last_name': 'DUPONT'
+            'password': 'alicepass123'
         })
         
         assert response.status_code == 200
         assert 'message' in response.json()
         assert client.session.get('student_id') == student1.id
 
-    def test_login_case_insensitive(self, setup_students):
-        """Login should be case insensitive."""
+    def test_login_case_insensitive_email(self, setup_students):
+        """Login email should be case insensitive."""
         student1, _ = setup_students
         
         client = Client()
         response = client.post('/api/students/login/', {
-            'email': 'ALICE@TEST.COM',  # uppercase
-            'last_name': 'dupont'  # lowercase
+            'email': 'ALICE@TEST.COM',  # uppercase email
+            'password': 'alicepass123'
         })
         
         assert response.status_code == 200
@@ -121,17 +135,17 @@ class TestStudentLogin:
         client = Client()
         response = client.post('/api/students/login/', {
             'email': 'wrong@test.com',
-            'last_name': 'DUPONT'
+            'password': 'alicepass123'
         })
         
         assert response.status_code == 401
 
-    def test_login_fails_with_wrong_name(self, setup_students):
-        """Wrong last_name should return 401."""
+    def test_login_fails_with_wrong_password(self, setup_students):
+        """Wrong password should return 401."""
         client = Client()
         response = client.post('/api/students/login/', {
             'email': 'alice@test.com',
-            'last_name': 'WRONGNAME'
+            'password': 'wrongpassword'
         })
         
         assert response.status_code == 401
@@ -140,12 +154,12 @@ class TestStudentLogin:
         """Missing fields should return 400."""
         client = Client()
         
-        # Missing last_name
+        # Missing password
         response = client.post('/api/students/login/', {'email': 'alice@test.com'})
         assert response.status_code == 400
         
         # Missing email
-        response = client.post('/api/students/login/', {'last_name': 'DUPONT'})
+        response = client.post('/api/students/login/', {'password': 'somepassword'})
         assert response.status_code == 400
 
     def test_error_message_does_not_reveal_existence(self, setup_students):
@@ -155,13 +169,13 @@ class TestStudentLogin:
         # Wrong email
         response1 = client.post('/api/students/login/', {
             'email': 'nonexistent@test.com',
-            'last_name': 'DUPONT'
+            'password': 'somepassword'
         })
         
-        # Wrong name for existing email
+        # Wrong password for existing email
         response2 = client.post('/api/students/login/', {
             'email': 'alice@test.com',
-            'last_name': 'WRONGNAME'
+            'password': 'wrongpassword'
         })
         
         # Both should have same generic error
@@ -182,7 +196,7 @@ class TestStudentCopiesAccess:
         # Login as student1
         client.post('/api/students/login/', {
             'email': 'alice@test.com',
-            'last_name': 'DUPONT'
+            'password': 'alicepass123'
         })
         
         response = client.get('/api/exams/student/copies/')
@@ -201,7 +215,7 @@ class TestStudentCopiesAccess:
         client = Client()
         client.post('/api/students/login/', {
             'email': 'alice@test.com',
-            'last_name': 'DUPONT'
+            'password': 'alicepass123'
         })
         
         response = client.get('/api/exams/student/copies/')
@@ -218,7 +232,7 @@ class TestStudentCopiesAccess:
         client = Client()
         client.post('/api/students/login/', {
             'email': 'alice@test.com',
-            'last_name': 'DUPONT'
+            'password': 'alicepass123'
         })
         
         response = client.get('/api/exams/student/copies/')
@@ -248,7 +262,7 @@ class TestPDFDownloadSecurity:
         client = Client()
         client.post('/api/students/login/', {
             'email': 'alice@test.com',
-            'last_name': 'DUPONT'
+            'password': 'alicepass123'
         })
         
         response = client.get(f"/api/grading/copies/{data['copy1_graded'].id}/final-pdf/")
@@ -263,7 +277,7 @@ class TestPDFDownloadSecurity:
         client = Client()
         client.post('/api/students/login/', {
             'email': 'alice@test.com',
-            'last_name': 'DUPONT'
+            'password': 'alicepass123'
         })
         
         # Try to download student2's copy
@@ -278,7 +292,7 @@ class TestPDFDownloadSecurity:
         client = Client()
         client.post('/api/students/login/', {
             'email': 'alice@test.com',
-            'last_name': 'DUPONT'
+            'password': 'alicepass123'
         })
         
         # Try to download READY copy
@@ -303,7 +317,7 @@ class TestPDFDownloadSecurity:
         client = Client()
         client.post('/api/students/login/', {
             'email': 'alice@test.com',
-            'last_name': 'DUPONT'
+            'password': 'alicepass123'
         })
         
         response = client.get(f"/api/grading/copies/{data['copy1_graded'].id}/final-pdf/")
@@ -363,7 +377,7 @@ class TestStudentLogout:
         client = Client()
         client.post('/api/students/login/', {
             'email': 'alice@test.com',
-            'last_name': 'DUPONT'
+            'password': 'alicepass123'
         })
         
         # Verify logged in
@@ -383,7 +397,7 @@ class TestStudentLogout:
         client = Client()
         client.post('/api/students/login/', {
             'email': 'alice@test.com',
-            'last_name': 'DUPONT'
+            'password': 'alicepass123'
         })
         
         # Logout
