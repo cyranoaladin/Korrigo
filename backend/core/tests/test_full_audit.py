@@ -114,9 +114,12 @@ class TestFullSystemAudit:
         """Vérifie le changement de mot de passe"""
         self.client.force_authenticate(user=self.teacher_user)
         
-        new_pass = "newpassword123"
-        res = self.client.post('/api/change-password/', {'password': new_pass})
-        assert res.status_code == 200
+        new_pass = "NewPassword123!"
+        res = self.client.post('/api/change-password/', {
+            'current_password': 'teacherpass',
+            'new_password': new_pass
+        })
+        assert res.status_code == 200, f"Change password failed: {res.data}"
         
         # Logout and try login with new pass
         self.client.logout()

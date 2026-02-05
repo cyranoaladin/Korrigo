@@ -42,11 +42,11 @@ class TestRateLimitingBaseline:
         """Test que 5 tentatives élève échouées retournent 401"""
         client = Client()
 
-        # 5 tentatives avec mauvais identifiants
+        # 5 tentatives avec mauvais identifiants (email + password)
         for i in range(5):
             response = client.post('/api/students/login/', {
                 'email': 'wrong@test.com',
-                'last_name': 'WRONGNAME'
+                'password': 'wrongpassword'
             })
             # Rate limiting désactivé en test: toujours 401
             assert response.status_code == 401, \
