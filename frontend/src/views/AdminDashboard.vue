@@ -3,7 +3,6 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
-import ChangePasswordModal from '../components/ChangePasswordModal.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -168,11 +167,6 @@ const confirmDispatch = async () => {
 const canDispatch = (exam) => {
     console.log(`Exam ${exam.name}: Correctors=`, exam.correctors);
     return exam.correctors && exam.correctors.length > 0
-}
-
-const handlePasswordChangeSuccess = async () => {
-    // Refresh user data to clear must_change_password flag
-    await authStore.fetchUser()
 }
 
 onMounted(() => {
@@ -554,13 +548,6 @@ onMounted(() => {
         </div>
       </div>
     </div>
-
-    <!-- Change Password Modal (forced if must_change_password is true) -->
-    <ChangePasswordModal
-      v-if="authStore.mustChangePassword"
-      :forced="true"
-      @success="handlePasswordChangeSuccess"
-    />
   </div>
 </template>
 
