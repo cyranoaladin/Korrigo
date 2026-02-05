@@ -370,3 +370,47 @@ class CSRFTokenView(APIView):
         from django.middleware.csrf import get_token
         csrf_token = get_token(request)
         return Response({"csrfToken": csrf_token})
+
+
+class TaskStatusView(APIView):
+    """
+    Phase 3: Celery task status endpoint
+
+    GET /api/tasks/<task_id>/status/
+
+    Returns the current status and result of a Celery task.
+    Used by frontend to poll for async task completion.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, task_id):
+        from celery.result import AsyncResult
+
+        # Get task result
+        result = AsyncResult(task_id)
+
+        response_data = {
+            "task_id": task_id,
+            "status": result.state,
+            "ready": result.ready()
+        }
+
+        # Add result if task is complete
+        if result.ready():
+            try:
+                task_result = result.result
+                if isinstance(task_result, dict):
+                    response_data["result"] = task_result
+                else:
+                    response_data["result"] = {"value": str(task_result)}
+            except Exception as e:
+                response_data["result"] = {
+                    "error": str(e),
+                    "status": "error"
+                }
+
+        # Add progress info if available
+        if result.state == 'PROGRESS' and hasattr(result, 'info'):
+            response_data["progress"] = result.info
+
+        return Response(response_data)

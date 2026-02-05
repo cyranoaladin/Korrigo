@@ -156,37 +156,25 @@ class StudentImportView(views.APIView):
             )
         
         try:
-            # Save uploaded file to temp location for csv_import service
+            # Phase 3: Use async task instead of synchronous import
+            from students.tasks import async_import_students
+
+            # Save uploaded file to temp location for async task
             with tempfile.NamedTemporaryFile(mode='wb', suffix='.csv', delete=False) as tmp:
                 for chunk in file_obj.chunks():
                     tmp.write(chunk)
                 tmp_path = tmp.name
-            
-            try:
-                result = import_students_from_csv(tmp_path, Student)
-                
-                response_data = {
-                    'created': result.created,
-                    'updated': result.updated,
-                    'skipped': result.skipped,
-                    'errors': [
-                        {'row': e.row, 'message': e.message}
-                        for e in result.errors[:10]  # Limit errors in response
-                    ],
-                    'total_errors': len(result.errors),
-                }
-                
-                # Add passwords to response if any were generated
-                if hasattr(result, 'passwords') and result.passwords:
-                    response_data['passwords'] = result.passwords
-                    response_data['message'] = 'Import réussi. IMPORTANT: Sauvegardez les mots de passe générés et communiquez-les aux étudiants de manière sécurisée.'
-                
-                return Response(response_data)
-                
-            finally:
-                # Clean up temp file
-                if os.path.exists(tmp_path):
-                    os.unlink(tmp_path)
+
+            # Queue async task for background processing
+            # The task will handle cleanup of tmp_path
+            result = async_import_students.delay(tmp_path, request.user.id)
+
+            return Response({
+                "task_id": result.id,
+                "message": "Student import started. Use task_id to check status and results.",
+                "status_url": f"/api/tasks/{result.id}/status/",
+                "filename": file_obj.name
+            }, status=status.HTTP_202_ACCEPTED)
                     
         except CsvReadError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
