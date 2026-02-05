@@ -92,9 +92,16 @@ class PermissionFlowIntegrationTests(TestCase):
 
     def test_teacher_cannot_delete_others_exam(self):
         """Test: Teacher cannot delete exam they don't own"""
+        # Create a separate exam without copies for deletion test
+        exam_to_delete = Exam.objects.create(
+            name='Exam To Delete',
+            date=timezone.now().date(),
+        )
+        exam_to_delete.correctors.add(self.teacher1)
+        
         self.client.force_authenticate(user=self.teacher2)
 
-        response = self.client.delete(f'/api/exams/{self.exam.id}/')
+        response = self.client.delete(f'/api/exams/{exam_to_delete.id}/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_unidentified_copies_permission_flow(self):
