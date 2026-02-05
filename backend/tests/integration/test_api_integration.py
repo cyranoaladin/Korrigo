@@ -15,7 +15,8 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from unittest.mock import patch, MagicMock
 
-from core.auth import create_user_roles
+from core.auth import create_user_roles, UserRole
+from django.contrib.auth.models import Group
 from exams.models import Exam, Copy
 from students.models import Student
 from grading.models import Annotation
@@ -41,11 +42,16 @@ class PermissionFlowIntegrationTests(TestCase):
             username='teacher1',
             password='TeacherPass123!'
         )
+        # Add teacher1 to Teacher group for permissions
+        teacher_group = Group.objects.get(name=UserRole.TEACHER)
+        self.teacher1.groups.add(teacher_group)
 
         self.teacher2 = User.objects.create_user(
             username='teacher2',
             password='TeacherPass123!'
         )
+        # Add teacher2 to Teacher group for permissions
+        self.teacher2.groups.add(teacher_group)
 
         # Create exam owned by teacher1
         self.exam = Exam.objects.create(
@@ -115,6 +121,9 @@ class CrossResourceIntegrationTests(TestCase):
             username='teacher1',
             password='TeacherPass123!'
         )
+        # Add to Teacher group for permissions
+        teacher_group = Group.objects.get(name=UserRole.TEACHER)
+        self.teacher.groups.add(teacher_group)
         self.client.force_authenticate(user=self.teacher)
 
         # Create student
@@ -159,8 +168,10 @@ class CrossResourceIntegrationTests(TestCase):
         student_copies = Copy.objects.filter(student=self.student)
         assert copy in student_copies
 
-    def test_exam_deletion_cascades_to_copies(self):
-        """Test: Deleting exam cascades to copies"""
+    def test_exam_deletion_protected_by_copies(self):
+        """Test: Deleting exam with copies is protected (PROTECT)"""
+        from django.db.models import ProtectedError
+        
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='CASCADE-001'
@@ -169,21 +180,14 @@ class CrossResourceIntegrationTests(TestCase):
         exam_id = self.exam.id
         copy_id = copy.id
 
-        # Delete exam
-        self.exam.delete()
+        # Delete exam should raise ProtectedError because Copy has on_delete=PROTECT
+        with pytest.raises(ProtectedError):
+            self.exam.delete()
 
-        # Verify cascade (depends on model definition)
-        # If on_delete=CASCADE, copies should be deleted
-        # If on_delete=PROTECT, deletion should fail
-        try:
-            Copy.objects.get(id=copy_id)
-            # If copy still exists, cascade didn't happen (might be PROTECT)
-        except Copy.DoesNotExist:
-            # Copy was cascaded
-            pass
-
-        # Exam should be gone
-        assert not Exam.objects.filter(id=exam_id).exists()
+        # Verify exam still exists (protected)
+        assert Exam.objects.filter(id=exam_id).exists()
+        # Verify copy still exists
+        assert Copy.objects.filter(id=copy_id).exists()
 
     def test_student_results_across_multiple_exams(self):
         """Test: Student can have copies in multiple exams"""
@@ -199,7 +203,6 @@ class CrossResourceIntegrationTests(TestCase):
             anonymous_id='MULTI-001',
             student=self.student,
             is_identified=True,
-            final_score=15.0,
             status=Copy.Status.GRADED
         )
 
@@ -208,7 +211,6 @@ class CrossResourceIntegrationTests(TestCase):
             anonymous_id='MULTI-002',
             student=self.student,
             is_identified=True,
-            final_score=17.5,
             status=Copy.Status.GRADED
         )
 
@@ -234,6 +236,9 @@ class DataConsistencyIntegrationTests(TestCase):
             username='teacher1',
             password='TeacherPass123!'
         )
+        # Add to Teacher group for permissions
+        teacher_group = Group.objects.get(name=UserRole.TEACHER)
+        self.teacher.groups.add(teacher_group)
         self.client.force_authenticate(user=self.teacher)
 
         self.exam = Exam.objects.create(
@@ -256,22 +261,17 @@ class DataConsistencyIntegrationTests(TestCase):
 
         assert copy1.anonymous_id != copy2.anonymous_id
 
-    def test_final_score_within_bounds(self):
-        """Test: Final score cannot exceed exam total marks"""
+    def test_copy_graded_status(self):
+        """Test: Copy can be set to GRADED status"""
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='SCORE-001',
-            status=Copy.Status.GRADED,
-            final_score=18.0
+            status=Copy.Status.GRADED
         )
 
-        # Valid score
-        assert 0 <= copy.final_score <= self.exam.total_marks
-
-        # Setting invalid score (should be validated)
-        copy.final_score = 25.0  # Exceeds total_marks of 20.0
-        # In production, this would trigger validation
-        # For now, just verify the relationship exists
+        # Verify status is GRADED
+        assert copy.status == Copy.Status.GRADED
+        # Verify exam relationship exists
         assert copy.exam.total_marks == 20.0
 
     def test_copy_status_transitions(self):
@@ -309,6 +309,9 @@ class AsyncOperationIntegrationTests(TestCase):
             username='teacher1',
             password='TeacherPass123!'
         )
+        # Add to Teacher group for permissions
+        teacher_group = Group.objects.get(name=UserRole.TEACHER)
+        self.teacher.groups.add(teacher_group)
         self.client.force_authenticate(user=self.teacher)
 
         self.exam = Exam.objects.create(
@@ -390,6 +393,9 @@ class StudentPortalIntegrationTests(TestCase):
             username='teacher1',
             password='TeacherPass123!'
         )
+        # Add to Teacher group for permissions
+        teacher_group = Group.objects.get(name=UserRole.TEACHER)
+        self.teacher.groups.add(teacher_group)
 
         self.exam = Exam.objects.create(
             name='Math Exam',
@@ -413,7 +419,6 @@ class StudentPortalIntegrationTests(TestCase):
             anonymous_id='PORTAL-001',
             student=self.student,
             is_identified=True,
-            final_score=17.5,
             status=Copy.Status.GRADED
         )
 
@@ -440,7 +445,7 @@ class StudentPortalIntegrationTests(TestCase):
             exam=self.exam,
             anonymous_id='ALICE-001',
             student=self.student,
-            final_score=17.5,
+            is_identified=True,
             status=Copy.Status.GRADED
         )
 
@@ -448,7 +453,7 @@ class StudentPortalIntegrationTests(TestCase):
             exam=self.exam,
             anonymous_id='BOB-001',
             student=other_student,
-            final_score=15.0,
+            is_identified=True,
             status=Copy.Status.GRADED
         )
 
