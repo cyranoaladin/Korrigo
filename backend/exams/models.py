@@ -154,9 +154,10 @@ class Copy(models.Model):
         help_text=_("Fichier PDF uniquement. Taille max: 50 MB, 500 pages max")
     )
     status = models.CharField(
-        max_length=20, 
-        choices=Status.choices, 
+        max_length=20,
+        choices=Status.choices,
         default=Status.STAGING,
+        db_index=True,  # Performance optimization for filtering
         verbose_name=_("Statut")
     )
 
@@ -179,6 +180,7 @@ class Copy(models.Model):
     )
     is_identified = models.BooleanField(
         default=False,
+        db_index=True,  # Performance optimization for filtering
         verbose_name=_("Identifié ?"),
         help_text=_("Vrai si la copie a été associée à un élève.")
     )

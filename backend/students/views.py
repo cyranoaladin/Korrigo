@@ -105,6 +105,16 @@ class StudentListView(generics.ListAPIView):
     filter_backends = [filters.SearchFilter]
     search_fields = ['full_name', 'email', 'class_name']
 
+    # Phase 2: Add pagination to prevent loading thousands of students
+    from rest_framework.pagination import PageNumberPagination
+
+    class StudentPagination(PageNumberPagination):
+        page_size = 100
+        page_size_query_param = 'page_size'
+        max_page_size = 1000
+
+    pagination_class = StudentPagination
+
 
 class StudentDetailView(generics.RetrieveAPIView):
     """Récupérer un étudiant par son ID"""

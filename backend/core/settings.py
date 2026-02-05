@@ -70,9 +70,9 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # File Upload Limits (Mission 5.1)
-# Allow large PDF uploads (up to 100MB)
-DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
+# Allow large PDF uploads (up to 1GB for batch imports)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1073741824  # 1 GB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 1073741824  # 1 GB
 
 # E2E Testing Configuration
 E2E_SEED_TOKEN = os.environ.get("E2E_SEED_TOKEN")  # Only set in prod-like environment
@@ -119,6 +119,11 @@ if not DEBUG:
         SECURE_SSL_REDIRECT = False
         SESSION_COOKIE_SECURE = True
         CSRF_COOKIE_SECURE = True
+
+    # CRITICAL FIX: Re-apply SameSite settings from env in production
+    # Without this, the values read at lines 58-59 are not preserved
+    SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
+    CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "Lax")
 
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True

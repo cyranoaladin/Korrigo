@@ -182,6 +182,16 @@ class ExamListView(generics.ListCreateAPIView):
     queryset = Exam.objects.all().order_by('-date')
     serializer_class = ExamSerializer
 
+    # Phase 2: Add pagination
+    from rest_framework.pagination import PageNumberPagination
+
+    class ExamPagination(PageNumberPagination):
+        page_size = 50
+        page_size_query_param = 'page_size'
+        max_page_size = 200
+
+    pagination_class = ExamPagination
+
 class BookletDetailView(generics.RetrieveDestroyAPIView):
     queryset = Booklet.objects.all()
     serializer_class = BookletSerializer
@@ -348,6 +358,16 @@ class CopyListView(generics.ListAPIView):
     """
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     serializer_class = CopySerializer
+
+    # Phase 2: Add pagination for large exams
+    from rest_framework.pagination import PageNumberPagination
+
+    class CopyPagination(PageNumberPagination):
+        page_size = 100
+        page_size_query_param = 'page_size'
+        max_page_size = 500
+
+    pagination_class = CopyPagination
 
     def get_queryset(self):
         exam_id = self.kwargs['exam_id']
@@ -592,6 +612,16 @@ class UnidentifiedCopiesView(APIView):
         # Mission 18: List unidentified copies for Video-Coding
         # Mission 21 Update: Use dynamic header URL
         # ZF-AUD-13: Prefetch to avoid N+1
+        # PHASE 2 SECURITY FIX: Verify user has access to this exam
+        exam = get_object_or_404(Exam, id=id)
+
+        # Check if user is admin or corrector for this exam
+        if not request.user.is_staff and not exam.correctors.filter(id=request.user.id).exists():
+            return Response(
+                {"error": "You don't have access to this exam"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         copies = Copy.objects.filter(exam_id=id, is_identified=False)\
             .prefetch_related('booklets')
         data = []
@@ -736,13 +766,23 @@ class CorrectorCopiesView(generics.ListAPIView):
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = CorrectorCopySerializer
 
+    # Phase 2: Add pagination
+    from rest_framework.pagination import PageNumberPagination
+
+    class CorrectorCopyPagination(PageNumberPagination):
+        page_size = 50
+        page_size_query_param = 'page_size'
+        max_page_size = 200
+
+    pagination_class = CorrectorCopyPagination
+
     def get_queryset(self):
         user = self.request.user
-        
+
         queryset = Copy.objects.filter(
             status__in=[Copy.Status.READY, Copy.Status.LOCKED, Copy.Status.GRADED]
         ).select_related('exam', 'assigned_corrector')\
-         .prefetch_related('annotations')
+         .prefetch_related('booklets', 'annotations')  # PHASE 2 FIX: Added booklets prefetch
         
         # Les admins voient toutes les copies, les enseignants seulement les leurs
         if not (user.is_superuser or user.is_staff or user.groups.filter(name='admin').exists()):
