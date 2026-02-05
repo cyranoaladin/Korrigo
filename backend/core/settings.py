@@ -99,22 +99,26 @@ if DJANGO_ENV == "production" and not METRICS_TOKEN and not DEBUG:
 # SSL_ENABLED: Set to "False" in prod-like (HTTP-only E2E), "True" in real prod
 SSL_ENABLED = os.environ.get("SSL_ENABLED", "False").lower() == "true"
 
+# Always trust X-Forwarded-Proto header from reverse proxy
+# This is required for proper session/CSRF cookie handling behind HTTPS proxy
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
 if not DEBUG:
     # Production Security Headers
     if SSL_ENABLED:
-        # Real production: Force HTTPS
+        # Real production: Force HTTPS redirect and secure cookies
         SECURE_SSL_REDIRECT = True
         SESSION_COOKIE_SECURE = True
         CSRF_COOKIE_SECURE = True
         SECURE_HSTS_SECONDS = 31536000
         SECURE_HSTS_INCLUDE_SUBDOMAINS = True
         SECURE_HSTS_PRELOAD = True
-        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     else:
-        # Prod-like (E2E): HTTP-only, no SSL redirect
+        # Prod-like (E2E): No SSL redirect, but still secure cookies since proxy handles HTTPS
         SECURE_SSL_REDIRECT = False
-        SESSION_COOKIE_SECURE = False
-        CSRF_COOKIE_SECURE = False
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
 
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
