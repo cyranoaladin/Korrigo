@@ -429,23 +429,34 @@ docker-compose -f infra/docker/docker-compose.prod.yml exec -T backend pytest gr
 # Result: 6 passed in 5.09s ✓
 ```
 
-### [ ] Step: Verify Existing Tests Pass
+### [x] Step: Verify Existing Tests Pass
+<!-- chat-id: cc9580e5-670c-4495-a602-9feda061150c -->
 
 **Objective**: Ensure no regressions from instrumentation changes
 
 **Tasks**:
-- [ ] Run existing workflow tests: `test_workflow_complete.py`
-- [ ] Run existing finalize tests: `test_finalize.py`
-- [ ] Run full grading test suite
-- [ ] Fix any test failures caused by new metrics/logging
+- [x] Run existing workflow tests: `test_workflow_complete.py`
+- [x] Run existing finalize tests: `test_finalize.py`
+- [x] Run full grading test suite
+- [x] Fix any test failures caused by new metrics/logging
 
 **References**:
 - Spec: Section 5 Phase 4, Section 6.1 (Unit Tests)
 
+**Findings**:
+- Executed full grading test suite: 117 tests passed ✓
+- Key tests verified:
+  - `test_workflow_complete.py`: 3 tests passed (import rollback, student access, full cycle)
+  - `test_finalize.py`: 6 tests passed (status, PDF field, endpoint, score, event creation)
+  - `test_audit_events.py`: 6 tests passed (new audit and metrics tests)
+  - All other grading tests: 102 tests passed
+- No regressions detected from instrumentation changes
+- Test execution time: 20.78 seconds
+
 **Verification**:
 ```bash
-pytest backend/grading/tests/ -v
-# Expected: All tests pass
+docker-compose -f infra/docker/docker-compose.prod.yml exec -T backend pytest grading/tests/ -v --tb=short
+# Result: 117 passed in 20.78s ✓
 ```
 
 ### [ ] Step: Integration Testing and Verification
