@@ -51,10 +51,6 @@ class PermissionFlowIntegrationTests(TransactionTestCase):
         self.exam = Exam.objects.create(
             name='Math Exam',
             date=timezone.now().date(),
-            duration=120,
-            total_marks=20.0,
-            class_name='T1',
-            created_by=self.teacher1
         )
         self.exam.correctors.add(self.teacher1)
 
@@ -126,17 +122,12 @@ class CrossResourceIntegrationTests(TransactionTestCase):
             email='alice@test.com',
             full_name='Alice Dupont',
             date_of_birth='2005-03-15',
-            class_name='T1'
         )
 
         # Create exam
         self.exam = Exam.objects.create(
             name='Math Exam',
             date=timezone.now().date(),
-            duration=120,
-            total_marks=20.0,
-            class_name='T1',
-            created_by=self.teacher
         )
         self.exam.correctors.add(self.teacher)
 
@@ -200,10 +191,6 @@ class CrossResourceIntegrationTests(TransactionTestCase):
         exam2 = Exam.objects.create(
             name='Physics Exam',
             date=timezone.now().date(),
-            duration=120,
-            total_marks=20.0,
-            class_name='T1',
-            created_by=self.teacher
         )
 
         # Create copies in both exams
@@ -252,10 +239,6 @@ class DataConsistencyIntegrationTests(TransactionTestCase):
         self.exam = Exam.objects.create(
             name='Math Exam',
             date=timezone.now().date(),
-            duration=120,
-            total_marks=20.0,
-            class_name='T1',
-            created_by=self.teacher
         )
 
     def test_copy_number_uniqueness_per_exam(self):
@@ -332,10 +315,6 @@ class AsyncOperationIntegrationTests(TransactionTestCase):
         self.exam = Exam.objects.create(
             name='Math Exam',
             date=timezone.now().date(),
-            duration=120,
-            total_marks=20.0,
-            class_name='T1',
-            created_by=self.teacher
         )
         self.exam.correctors.add(self.teacher)
 
@@ -404,7 +383,6 @@ class StudentPortalIntegrationTests(TransactionTestCase):
             email='alice@test.com',
             full_name='Alice Dupont',
             date_of_birth='2005-03-15',
-            class_name='T1',
             user=self.student_user
         )
 
@@ -417,10 +395,6 @@ class StudentPortalIntegrationTests(TransactionTestCase):
         self.exam = Exam.objects.create(
             name='Math Exam',
             date=timezone.now().date(),
-            duration=120,
-            total_marks=20.0,
-            class_name='T1',
-            created_by=self.teacher
         )
 
     def test_student_login_and_view_results_flow(self):
@@ -460,7 +434,6 @@ class StudentPortalIntegrationTests(TransactionTestCase):
             email='bob@test.com',
             full_name='Bob Martin',
             date_of_birth='2005-05-20',
-            class_name='T1'
         )
 
         # Create copies for both students
