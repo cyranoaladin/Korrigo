@@ -57,7 +57,7 @@ class PermissionFlowIntegrationTests(TestCase):
         # Create copy
         self.copy = Copy.objects.create(
             exam=self.exam,
-            copy_number=1,
+            anonymous_id='PERM-001',
             status=Copy.Status.READY
         )
 
@@ -135,7 +135,7 @@ class CrossResourceIntegrationTests(TestCase):
         """Test: Identifying copy updates both student and copy status"""
         copy = Copy.objects.create(
             exam=self.exam,
-            copy_number=1,
+            anonymous_id='CROSS-001',
             status=Copy.Status.STAGING
         )
 
@@ -163,7 +163,7 @@ class CrossResourceIntegrationTests(TestCase):
         """Test: Deleting exam cascades to copies"""
         copy = Copy.objects.create(
             exam=self.exam,
-            copy_number=1
+            anonymous_id='CASCADE-001'
         )
 
         exam_id = self.exam.id
@@ -196,7 +196,7 @@ class CrossResourceIntegrationTests(TestCase):
         # Create copies in both exams
         copy1 = Copy.objects.create(
             exam=self.exam,
-            copy_number=1,
+            anonymous_id='MULTI-001',
             student=self.student,
             is_identified=True,
             final_score=15.0,
@@ -205,7 +205,7 @@ class CrossResourceIntegrationTests(TestCase):
 
         copy2 = Copy.objects.create(
             exam=exam2,
-            copy_number=1,
+            anonymous_id='MULTI-002',
             student=self.student,
             is_identified=True,
             final_score=17.5,
@@ -241,27 +241,26 @@ class DataConsistencyIntegrationTests(TestCase):
             date=timezone.now().date(),
         )
 
-    def test_copy_number_uniqueness_per_exam(self):
-        """Test: Copy numbers must be unique within an exam"""
+    def test_anonymous_id_uniqueness(self):
+        """Test: Anonymous IDs must be unique"""
         copy1 = Copy.objects.create(
             exam=self.exam,
-            copy_number=1
+            anonymous_id='UNIQUE-001'
         )
 
-        # Creating another copy with same number should work
-        # (no unique constraint on copy_number alone)
+        # Creating another copy with different anonymous_id should work
         copy2 = Copy.objects.create(
             exam=self.exam,
-            copy_number=2
+            anonymous_id='UNIQUE-002'
         )
 
-        assert copy1.copy_number != copy2.copy_number
+        assert copy1.anonymous_id != copy2.anonymous_id
 
     def test_final_score_within_bounds(self):
         """Test: Final score cannot exceed exam total marks"""
         copy = Copy.objects.create(
             exam=self.exam,
-            copy_number=1,
+            anonymous_id='SCORE-001',
             status=Copy.Status.GRADED,
             final_score=18.0
         )
@@ -279,7 +278,7 @@ class DataConsistencyIntegrationTests(TestCase):
         """Test: Copy status follows valid state transitions"""
         copy = Copy.objects.create(
             exam=self.exam,
-            copy_number=1,
+            anonymous_id='STATUS-001',
             status=Copy.Status.STAGING
         )
 
@@ -338,7 +337,7 @@ class AsyncOperationIntegrationTests(TestCase):
         """Test: OCR endpoint returns immediately with task ID"""
         copy = Copy.objects.create(
             exam=self.exam,
-            copy_number=1
+            anonymous_id='OCR-001'
         )
 
         mock_result = MagicMock()
@@ -355,7 +354,7 @@ class AsyncOperationIntegrationTests(TestCase):
         """Test: Multiple async operations can run independently"""
         # Create multiple copies
         copies = [
-            Copy.objects.create(exam=self.exam, copy_number=i)
+            Copy.objects.create(exam=self.exam, anonymous_id=f'ASYNC-{i:03d}')
             for i in range(3)
         ]
 
@@ -411,7 +410,7 @@ class StudentPortalIntegrationTests(TestCase):
         # Step 2: Create graded copy for student
         copy = Copy.objects.create(
             exam=self.exam,
-            copy_number=1,
+            anonymous_id='PORTAL-001',
             student=self.student,
             is_identified=True,
             final_score=17.5,
@@ -439,7 +438,7 @@ class StudentPortalIntegrationTests(TestCase):
         # Create copies for both students
         alice_copy = Copy.objects.create(
             exam=self.exam,
-            copy_number=1,
+            anonymous_id='ALICE-001',
             student=self.student,
             final_score=17.5,
             status=Copy.Status.GRADED
@@ -447,7 +446,7 @@ class StudentPortalIntegrationTests(TestCase):
 
         bob_copy = Copy.objects.create(
             exam=self.exam,
-            copy_number=2,
+            anonymous_id='BOB-001',
             student=other_student,
             final_score=15.0,
             status=Copy.Status.GRADED
