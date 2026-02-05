@@ -129,8 +129,10 @@ else:
     CSRF_COOKIE_SECURE = False
 
 # Cookie SameSite (all environments)
-SESSION_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_SAMESITE = 'Lax'
+# Use 'None' for cross-site requests (requires Secure=True)
+# This is needed when browser treats same-domain requests as cross-site
+SESSION_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_HTTPONLY = False  # Required for SPAs to read CSRF token from cookie
 
 # CSRF Trusted Origins
