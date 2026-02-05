@@ -25,17 +25,29 @@ class AuthSessionsRBACTests(TestCase):
         )
         self.teacher_user.groups.add(self.teacher_group)
 
+        # Create Users for students
+        self.student_a_user = User.objects.create_user(
+            username="student_alice",
+            password="alicepass123",
+        )
+        self.student_b_user = User.objects.create_user(
+            username="student_bob",
+            password="bobpass123",
+        )
+        
         self.student_a = Student.objects.create(
             email="alice@test.com",
             full_name="Student Alice",
             date_of_birth="2008-01-15",
             class_name="T1",
+            user=self.student_a_user,
         )
         self.student_b = Student.objects.create(
             email="bob@test.com",
             full_name="Other Bob",
             date_of_birth="2008-02-20",
             class_name="T2",
+            user=self.student_b_user,
         )
 
         self.exam = Exam.objects.create(
@@ -113,7 +125,7 @@ class AuthSessionsRBACTests(TestCase):
         client = APIClient()
         login_response = client.post(
             "/api/students/login/",
-            {"email": self.student_a.email, "last_name": self.student_a.last_name},
+            {"email": self.student_a.email, "password": "alicepass123"},
             format="json",
         )
         self.assertEqual(login_response.status_code, 200)
@@ -126,7 +138,7 @@ class AuthSessionsRBACTests(TestCase):
         client = APIClient()
         login_response = client.post(
             "/api/students/login/",
-            {"email": self.student_a.email, "last_name": self.student_a.last_name},
+            {"email": self.student_a.email, "password": "alicepass123"},
             format="json",
         )
         self.assertEqual(login_response.status_code, 200)
