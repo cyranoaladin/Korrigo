@@ -446,14 +446,11 @@ if DEBUG:
 else:
     # Production: Explicit origins only
     # Set via environment variable CORS_ALLOWED_ORIGINS (comma-separated)
-    cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "")
-    if cors_origins:
-        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(",")]
-        CORS_ALLOW_CREDENTIALS = True
-    else:
-        # Same-origin only (Nginx serves frontend + backend on same domain)
-        CORS_ALLOWED_ORIGINS = []
-        CORS_ALLOW_CREDENTIALS = False
+    # Default includes the production domain for same-origin requests
+    cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "https://korrigo.labomaths.tn")
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
+    # Always allow credentials in production for session-based auth
+    CORS_ALLOW_CREDENTIALS = True
 
 # CORS Security Headers
 CORS_ALLOW_HEADERS = [
