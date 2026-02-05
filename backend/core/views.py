@@ -163,17 +163,33 @@ class ChangePasswordView(APIView):
         from django.core.exceptions import ValidationError
         
         user = request.user
-        password = request.data.get('password')
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
         
+        # Validate required fields
+        if not current_password or not new_password:
+            return Response({
+                "error": "Current password and new password are required"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verify current password
+        if not user.check_password(current_password):
+            return Response({
+                "error": "Current password is incorrect"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate new password
         try:
-            validate_password(password, user=user)
+            validate_password(new_password, user=user)
         except ValidationError as e:
             return Response({"error": e.messages}, status=status.HTTP_400_BAD_REQUEST)
         
-        user.set_password(password)
+        # Set new password
+        user.set_password(new_password)
         user.save()
         update_session_auth_hash(request, user)
         
+        # Clear must_change_password flag
         try:
             if hasattr(user, 'profile'):
                 user.profile.must_change_password = False
