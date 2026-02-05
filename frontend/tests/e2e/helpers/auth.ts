@@ -15,6 +15,10 @@ export const CREDS = {
   },
   student: {
     ine: process.env.E2E_STUDENT_INE || '123456789',
-    lastname: process.env.E2E_STUDENT_LASTNAME || 'E2E_STUDENT',
+    birth_date: process.env.E2E_STUDENT_BIRTH_DATE || '2005-06-15',
+  },
+  other_student: {
+    ine: '987654321',
+    birth_date: '2005-03-20',
   },
 };
