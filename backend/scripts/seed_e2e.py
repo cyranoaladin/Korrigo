@@ -268,7 +268,18 @@ def main():
 
     # 4b. Deterministic "Other Student" for Security Tests (avoid timeouts)
     other_student_user, _ = User.objects.get_or_create(username="other_student", defaults={"email": "other@example.com"})
-    other_student, _ = Student.objects.get_or_create(ine="987654321", defaults={"user": other_student_user, "last_name": "OTHER", "first_name": "Student"})
+    other_student, created_other = Student.objects.get_or_create(
+        ine="987654321", 
+        defaults={
+            "user": other_student_user, 
+            "last_name": "OTHER", 
+            "first_name": "Student",
+            "birth_date": "2005-03-20"
+        }
+    )
+    if not created_other and not other_student.birth_date:
+        other_student.birth_date = "2005-03-20"
+        other_student.save(update_fields=["birth_date"])
     
     other_copy = Copy.objects.create(
         exam=exam,
@@ -282,7 +293,8 @@ def main():
     # 5. Trigger Gate 4 Seed (si disponible)
     try:
         from scripts.seed_gate4 import seed_gate4
-        seed_gate4(student_ine=E2E_STUDENT_INE, student_lastname=E2E_STUDENT_LASTNAME)
+        student_birth_date = os.environ.get("E2E_STUDENT_BIRTH_DATE", "2005-06-15")
+        seed_gate4(student_ine=E2E_STUDENT_INE, student_lastname=E2E_STUDENT_LASTNAME, student_birth_date=student_birth_date)
     except ImportError:
         print("  \u26a0 seed_gate4 not available, skipping")
 
