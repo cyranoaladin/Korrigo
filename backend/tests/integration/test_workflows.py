@@ -15,7 +15,7 @@ import os
 import tempfile
 from io import BytesIO
 from PIL import Image
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
@@ -30,7 +30,7 @@ from grading.models import Annotation
 from django.utils import timezone
 
 
-class ExamCreationWorkflowTests(TransactionTestCase):
+class ExamCreationWorkflowTests(TestCase):
     """Test complete exam creation and copy import workflow"""
 
     def setUp(self):
@@ -139,7 +139,7 @@ class ExamCreationWorkflowTests(TransactionTestCase):
         assert response.status_code == status.HTTP_200_OK
 
 
-class IdentificationWorkflowTests(TransactionTestCase):
+class IdentificationWorkflowTests(TestCase):
     """Test OCR and student identification workflow"""
 
     def setUp(self):
@@ -276,7 +276,7 @@ class IdentificationWorkflowTests(TransactionTestCase):
         assert self.copy.is_identified is True
 
 
-class GradingWorkflowTests(TransactionTestCase):
+class GradingWorkflowTests(TestCase):
     """Test grading and annotation workflow"""
 
     def setUp(self):
@@ -441,7 +441,7 @@ class GradingWorkflowTests(TransactionTestCase):
         # This would be enforced in the view layer
 
 
-class ExportWorkflowTests(TransactionTestCase):
+class ExportWorkflowTests(TestCase):
     """Test copy export and PDF generation workflow"""
 
     def setUp(self):
@@ -542,7 +542,7 @@ class ExportWorkflowTests(TransactionTestCase):
         mock_flatten_task.assert_called()
 
 
-class StudentImportWorkflowTests(TransactionTestCase):
+class StudentImportWorkflowTests(TestCase):
     """Test student CSV import workflow"""
 
     def setUp(self):
@@ -595,7 +595,7 @@ Durant,Claire,claire@test.com,10/07/2005,T2
         mock_import_task.assert_called_once()
 
 
-class TaskStatusPollingWorkflowTests(TransactionTestCase):
+class TaskStatusPollingWorkflowTests(TestCase):
     """Test async task status polling workflow"""
 
     def setUp(self):
