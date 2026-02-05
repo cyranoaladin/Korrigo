@@ -97,26 +97,36 @@ class TestFullSystemAudit:
     def test_05_student_import_csv(self):
         """Vérifie l'import de fichier CSV (async avec CELERY_TASK_ALWAYS_EAGER)"""
         self.client.force_authenticate(user=self.admin_user)
-        
+
         # CSV format: Élèves (FULL_NAME), Né(e) le (DATE_NAISSANCE), Adresse E-mail (EMAIL)
         csv_content = b"\xc3\x89l\xc3\xa8ves,N\xc3\xa9(e) le,Adresse E-mail,Classe\nTEST User,15/01/2008,test@test.com,T1"
         file = io.BytesIO(csv_content)
         file.name = "import.csv"
-        
+
         response = self.client.post('/api/students/import/', {'file': file}, format='multipart')
-        
+
         # Phase 3: Import is now async, returns 202 with task_id
         assert response.status_code == 202, f"Expected 202 Accepted, got {response.status_code}: {response.data}"
         assert 'task_id' in response.data
-        
+
         # With CELERY_TASK_ALWAYS_EAGER=True, task runs synchronously
         # Check task status endpoint for result
         task_id = response.data['task_id']
         status_response = self.client.get(f'/api/tasks/{task_id}/status/')
         assert status_response.status_code == 200
         assert status_response.data['ready'] is True
-        assert status_response.data['result']['created'] == 1
-        
+
+        # Check result - handle potential errors
+        result = status_response.data.get('result', {})
+
+        # If import failed, show the error
+        if result.get('status') == 'error':
+            pytest.fail(f"CSV import failed: {result.get('detail', 'Unknown error')}")
+
+        # Check import was successful
+        assert result.get('status') == 'success', f"Import status not success: {result}"
+        assert result.get('created', 0) == 1, f"Expected 1 student created, got: {result.get('created', 0)}"
+
         # Verify student exists
         assert Student.objects.filter(email="test@test.com").exists()
 
