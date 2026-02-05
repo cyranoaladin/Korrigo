@@ -144,6 +144,44 @@ CSRF_TRUSTED_ORIGINS = os.environ.get(
 ).split(",")
 
 
+# Phase 4: Sentry Error Tracking and Performance Monitoring
+SENTRY_DSN = os.environ.get('SENTRY_DSN', None)
+
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.redis import RedisIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+            CeleryIntegration(),
+            RedisIntegration(),
+        ],
+        # Performance monitoring: sample 10% of transactions in production
+        traces_sample_rate=0.1 if DJANGO_ENV == "production" else 1.0,
+
+        # Profiling: sample 10% of profiled transactions
+        profiles_sample_rate=0.1 if DJANGO_ENV == "production" else 1.0,
+
+        # Environment tracking
+        environment=DJANGO_ENV,
+
+        # Send PII (Personally Identifiable Information) - disabled for privacy
+        send_default_pii=False,
+
+        # Release tracking (useful for deployment tracking)
+        release=os.environ.get('GIT_COMMIT_SHA', 'unknown'),
+
+        # Before send hook to filter sensitive data
+        before_send=lambda event, hint: event if not any(
+            sensitive in str(event).lower()
+            for sensitive in ['password', 'token', 'secret', 'api_key']
+        ) else None,
+    )
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -359,6 +397,29 @@ LOGGING = {
         'level': 'INFO',
     }
 }
+
+# Phase 4: Structlog Configuration for Enhanced Structured Logging
+import structlog
+
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        # Use JSONRenderer for production, ConsoleRenderer for development
+        structlog.processors.JSONRenderer() if not DEBUG else structlog.dev.ConsoleRenderer(),
+    ],
+    wrapper_class=structlog.stdlib.BoundLogger,
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    cache_logger_on_first_use=True,
+)
 
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'UTC'

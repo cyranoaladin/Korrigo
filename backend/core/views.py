@@ -350,11 +350,56 @@ class UserResetPasswordView(APIView):
             user.id,
             metadata={'reset_by': request.user.username}
         )
-        
-        return Response({
-            "message": "Password reset successfully",
-            "temporary_password": temporary_password
-        })
+
+        # Phase 4 Security Fix: Never expose password in API response
+        # Try to send password via email if configured
+        email_sent = False
+        if user.email:
+            try:
+                from django.core.mail import send_mail
+                from django.conf import settings
+
+                # Only attempt to send if email backend is configured
+                if hasattr(settings, 'EMAIL_HOST') and settings.EMAIL_HOST:
+                    send_mail(
+                        subject='Password Reset - Korrigo',
+                        message=f'Your temporary password is: {temporary_password}\n\nPlease log in and change your password immediately.',
+                        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@korrigo.labomaths.tn'),
+                        recipient_list=[user.email],
+                        fail_silently=False
+                    )
+                    email_sent = True
+            except Exception as e:
+                # Log email failure but don't expose it to client
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to send password reset email to {user.email}: {str(e)}")
+
+        # Return response without password
+        if email_sent:
+            return Response({
+                "message": "Password reset successfully. User will receive the temporary password via email.",
+                "email_sent": True
+            })
+        else:
+            # Email not configured or failed - admin must communicate password manually
+            # Store password in audit log metadata for admin retrieval
+            log_audit(
+                request,
+                'password.reset.manual_delivery_required',
+                'User',
+                user.id,
+                metadata={
+                    'reset_by': request.user.username,
+                    'temporary_password': temporary_password,
+                    'note': 'Password must be communicated to user manually'
+                }
+            )
+            return Response({
+                "message": "Password reset successfully. Check audit logs for the temporary password to communicate to the user.",
+                "email_sent": False,
+                "requires_manual_delivery": True
+            })
 
 
 class CSRFTokenView(APIView):
