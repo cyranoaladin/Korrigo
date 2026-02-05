@@ -9,7 +9,7 @@ This test suite covers cross-component API interactions:
 4. Async Operation Integration
 """
 import pytest
-from django.test import TransactionTestCase
+from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -22,7 +22,7 @@ from grading.models import Annotation
 from django.utils import timezone
 
 
-class PermissionFlowIntegrationTests(TransactionTestCase):
+class PermissionFlowIntegrationTests(TestCase):
     """Test permission and authorization flows across components"""
 
     def setUp(self):
@@ -104,7 +104,7 @@ class PermissionFlowIntegrationTests(TransactionTestCase):
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-class CrossResourceIntegrationTests(TransactionTestCase):
+class CrossResourceIntegrationTests(TestCase):
     """Test operations spanning multiple resources"""
 
     def setUp(self):
@@ -223,7 +223,7 @@ class CrossResourceIntegrationTests(TransactionTestCase):
         assert exam1_copies.count() == 1
 
 
-class DataConsistencyIntegrationTests(TransactionTestCase):
+class DataConsistencyIntegrationTests(TestCase):
     """Test data consistency across operations"""
 
     def setUp(self):
@@ -299,7 +299,7 @@ class DataConsistencyIntegrationTests(TransactionTestCase):
         assert copy.status == Copy.Status.GRADED
 
 
-class AsyncOperationIntegrationTests(TransactionTestCase):
+class AsyncOperationIntegrationTests(TestCase):
     """Test async operations and task integration"""
 
     def setUp(self):
@@ -366,7 +366,7 @@ class AsyncOperationIntegrationTests(TransactionTestCase):
             assert copy.status == Copy.Status.STAGING
 
 
-class StudentPortalIntegrationTests(TransactionTestCase):
+class StudentPortalIntegrationTests(TestCase):
     """Test student portal integration flows"""
 
     def setUp(self):
@@ -459,7 +459,7 @@ class StudentPortalIntegrationTests(TransactionTestCase):
         assert bob_copy not in alice_results
 
 
-class CacheConsistencyIntegrationTests(TransactionTestCase):
+class CacheConsistencyIntegrationTests(TestCase):
     """Test cache consistency across operations"""
 
     def setUp(self):
