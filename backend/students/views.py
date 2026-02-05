@@ -60,10 +60,14 @@ class StudentLoginView(views.APIView):
             if hasattr(user, 'profile') and user.profile.must_change_password:
                 must_change_password = True
             
+            # Check if privacy charter needs to be accepted
+            must_accept_privacy_charter = not student.privacy_charter_accepted
+            
             return Response({
                 'message': 'Login successful', 
                 'role': 'Student',
-                'must_change_password': must_change_password
+                'must_change_password': must_change_password,
+                'must_accept_privacy_charter': must_accept_privacy_charter
             })
         
         # Audit trail: Login élève échoué
@@ -241,3 +245,30 @@ class StudentChangePasswordView(views.APIView):
         log_audit(request, 'student.password_changed', 'Student', student.id)
         
         return Response({'message': 'Password changed successfully'})
+
+
+class StudentAcceptPrivacyCharterView(views.APIView):
+    """
+    Allow students to accept the privacy charter.
+    Students must be authenticated via session.
+    """
+    permission_classes = [IsStudent]
+
+    def post(self, request):
+        from django.utils import timezone
+        
+        student_id = request.session.get('student_id')
+        if not student_id:
+            return Response({'error': 'Not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        student = get_object_or_404(Student, id=student_id)
+        
+        # Mark privacy charter as accepted
+        student.privacy_charter_accepted = True
+        student.privacy_charter_accepted_at = timezone.now()
+        student.save()
+        
+        # Audit trail
+        log_audit(request, 'student.privacy_charter_accepted', 'Student', student.id)
+        
+        return Response({'message': 'Privacy charter accepted successfully'})
