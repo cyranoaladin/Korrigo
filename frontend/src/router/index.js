@@ -147,8 +147,8 @@ router.beforeEach(async (to, from, next) => {
         }
     }
 
-    // 3. Redirect Logged-In Users away from Login Pages
-    const isLoginPage = ['LoginAdmin', 'LoginTeacher', 'StudentLogin', 'Home'].includes(to.name)
+    // 3. Redirect Logged-In Users away from Login Pages (but NOT from Home)
+    const isLoginPage = ['LoginAdmin', 'LoginTeacher', 'StudentLogin'].includes(to.name)
     if (isLoginPage && isAuthenticated) {
         if (userRole === 'Admin') return next('/admin-dashboard')
         if (userRole === 'Teacher') return next('/corrector-dashboard')
