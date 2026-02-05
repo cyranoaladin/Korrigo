@@ -284,7 +284,8 @@ if not ALLOWED_HOSTS:
 
 ---
 
-### [ ] Step: Backup Procedures Documentation
+### [x] Step: Backup Procedures Documentation
+<!-- chat-id: d284ca55-bba2-41f8-92e0-276ab96a3031 -->
 <!-- Expected duration: 2-3 hours -->
 
 **Objective**: Create comprehensive backup/restore runbook.
@@ -328,12 +329,35 @@ if not ALLOWED_HOSTS:
 - Related test files
 
 **Verification**:
-- [ ] Both backup methods documented
-- [ ] Clear step-by-step instructions
-- [ ] Pre-flight checklist included
-- [ ] Verification procedure included
+- [x] Both backup methods documented
+- [x] Clear step-by-step instructions
+- [x] Pre-flight checklist included
+- [x] Verification procedure included
 
 **Output**: Backup section in `runbook_backup_restore.md`
+
+**Status**: ✅ Complete
+- Created comprehensive runbook_backup_restore.md (520 lines)
+- Section 1: Vue d'ensemble (objectives, scope, recommended frequencies)
+- Section 2: Prérequis et accès (access, tools, environment variables)
+- Section 3: Architecture et composants (volumes mapping, sensitive data warnings)
+- Section 4: Procédures de backup (complete documentation):
+  - Pre-backup checklist
+  - Method 1: Shell script (backup_db.sh) - fast DB-only backups
+  - Method 2: Django command - complete backup (DB + media)
+  - Comparison table of both methods
+  - Independent media backup procedures
+  - Cron automation (user crontab + systemd timers)
+  - Storage and archiving strategies (local, external, 3-2-1 rule)
+  - Post-backup validation checklist and scripts
+  - Notifications and alerting (email, Slack, Healthchecks.io)
+- Section 7: Politique de rétention (retention policies, automatic cleanup)
+- Section 8: Troubleshooting (common backup errors)
+- Section 9: Référence rapide (essential commands, checklists, contacts)
+- All backup methods documented with examples, outputs, and verification steps
+- Automation via cron and systemd timers fully documented
+- Off-site backup strategies and 3-2-1 rule explained
+- Total: 520 lines of comprehensive operational documentation
 
 ---
 
