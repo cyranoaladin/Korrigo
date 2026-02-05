@@ -1,0 +1,39 @@
+fix: resolve 403 authentication and 413 upload errors
+
+CRITICAL: Fix SESSION_COOKIE_SAMESITE not reapplied in production
+
+Problem 1 (CRITICAL): 403 Forbidden after page reload
+- Symptom: Login works, but /api/me/ returns 403 after F5 reload
+- Cause: SESSION_COOKIE_SAMESITE read from env at line 58 but never
+  reapplied in production block (lines 107-122)
+- Result: Cookies created with SameSite=Lax instead of SameSite=None
+- Fix: Added SESSION_COOKIE_SAMESITE and CSRF_COOKIE_SAMESITE
+  reassignment in production block (settings.py:119)
+
+Problem 2 (IMPORTANT): 413 Request Entity Too Large
+- Symptom: Upload PDF > 100 MB fails with 413
+- Cause: FILE_UPLOAD_MAX_MEMORY_SIZE limited to 100 MB
+- Fix: Increased to 1 GB (settings.py:74)
+- Note: Nginx external config also requires client_max_body_size 1G
+
+Changes:
+- backend/core/settings.py (lines 74, 119)
+- Added .env.labomaths (production template with SameSite=None)
+- Added documentation: AUDIT_FINAL.md, CORRECTIFS_403.md, README_CORRECTIFS.md
+- Added scripts: check_config.sh, deploy_fixes.sh
+- Added nginx config reference: scripts/nginx_korrigo_config.conf
+
+Testing:
+- Run: bash scripts/check_config.sh
+- Run: bash scripts/deploy_fixes.sh
+- Run: bash scripts/diag_403.sh
+- Manual: Login → F5 → /api/me/ should return 200 OK
+
+Deployment:
+1. Copy .env.labomaths to .env
+2. Edit .env (SECRET_KEY, DB_PASSWORD)
+3. Configure Nginx external (client_max_body_size 1G)
+4. Rebuild backend: docker-compose up -d --build
+5. Reload Nginx: sudo systemctl reload nginx
+
+Co-Authored-By: Claude Code <noreply@anthropic.com>
