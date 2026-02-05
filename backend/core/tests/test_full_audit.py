@@ -95,7 +95,7 @@ class TestFullSystemAudit:
         assert settings.notifications_enabled is False
 
     def test_05_student_import_csv(self):
-        """Vérifie l'import de fichier CSV"""
+        """Vérifie l'import de fichier CSV (async avec CELERY_TASK_ALWAYS_EAGER)"""
         self.client.force_authenticate(user=self.admin_user)
         
         # CSV format: Élèves (FULL_NAME), Né(e) le (DATE_NAISSANCE), Adresse E-mail (EMAIL)
@@ -104,8 +104,18 @@ class TestFullSystemAudit:
         file.name = "import.csv"
         
         response = self.client.post('/api/students/import/', {'file': file}, format='multipart')
-        assert response.status_code == 200
-        assert response.data['created'] == 1
+        
+        # Phase 3: Import is now async, returns 202 with task_id
+        assert response.status_code == 202, f"Expected 202 Accepted, got {response.status_code}: {response.data}"
+        assert 'task_id' in response.data
+        
+        # With CELERY_TASK_ALWAYS_EAGER=True, task runs synchronously
+        # Check task status endpoint for result
+        task_id = response.data['task_id']
+        status_response = self.client.get(f'/api/tasks/{task_id}/status/')
+        assert status_response.status_code == 200
+        assert status_response.data['ready'] is True
+        assert status_response.data['result']['created'] == 1
         
         # Verify student exists
         assert Student.objects.filter(email="test@test.com").exists()
