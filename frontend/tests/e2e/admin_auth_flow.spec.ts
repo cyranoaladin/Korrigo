@@ -119,9 +119,7 @@ test.describe('Admin Authentication Flow', () => {
         console.log('✓ Back button after logout does not restore session');
     });
 
-    // TODO: This test is pending - the ChangePasswordModal component is implemented but needs
-    // additional investigation to ensure it shows when must_change_password is true
-    test.skip('Admin with must_change_password → modal appears → change password → dashboard loads', async ({ page, context }) => {
+    test('Admin with must_change_password → modal appears → change password → dashboard loads', async ({ page, context }) => {
         // Use pre-seeded test admin with must_change_password=True
         // This user is created in seed_e2e.py with the flag already set
         const testAdminUsername = 'test_admin_password_change';

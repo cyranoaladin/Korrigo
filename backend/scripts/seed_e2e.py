@@ -222,8 +222,10 @@ def main():
         password="initialpass123",
         email="test_admin@e2e.local"
     )
-    test_admin.must_change_password = True
-    test_admin.save()
+    from core.models import UserProfile
+    profile, created = UserProfile.objects.get_or_create(user=test_admin)
+    profile.must_change_password = True
+    profile.save()
     print(f"  ✓ Test admin created with must_change_password=True")
 
     # Clean up old seed data to ensure fresh state
@@ -256,9 +258,7 @@ def main():
         exam=exam,
         start_page=1,
         end_page=1,
-        pages_images=[page_image_path],  # Chemin relatif MEDIA_ROOT
-        needs_review=False,  # E2E booklet doesn't need manual review
-        processing_diagnostics={}  # No processing issues for E2E
+        pages_images=[page_image_path]  # Chemin relatif MEDIA_ROOT
     )
     print(f"  ✓ Booklet created: {booklet.id}")
 
