@@ -610,12 +610,12 @@ class CopyIdentificationView(APIView):
 class UnidentifiedCopiesView(APIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
 
-    def get(self, request, id):
+    def get(self, request, exam_id):
         # Mission 18: List unidentified copies for Video-Coding
         # Mission 21 Update: Use dynamic header URL
         # ZF-AUD-13: Prefetch to avoid N+1
         # PHASE 2 SECURITY FIX: Verify user has access to this exam
-        exam = get_object_or_404(Exam, id=id)
+        exam = get_object_or_404(Exam, id=exam_id)
 
         # Check if user is admin or corrector for this exam
         if not request.user.is_staff and not exam.correctors.filter(id=request.user.id).exists():
@@ -624,7 +624,7 @@ class UnidentifiedCopiesView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        copies = Copy.objects.filter(exam_id=id, is_identified=False)\
+        copies = Copy.objects.filter(exam_id=exam_id, is_identified=False)\
             .prefetch_related('booklets')
         data = []
         for c in copies:
