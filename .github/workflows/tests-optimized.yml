@@ -18,8 +18,10 @@ jobs:
           POSTGRES_USER: viatique_user
           POSTGRES_PASSWORD: viatique_password
           POSTGRES_DB: viatique_db
+          # Grant CREATEDB permission for pytest-django test database creation
+          POSTGRES_INITDB_ARGS: "--auth-host=md5"
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U viatique_user -d viatique_db"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -60,6 +62,13 @@ jobs:
         cd backend
         pip install --upgrade pip
         pip install -r requirements.txt
+
+    - name: Grant CREATEDB permission to test user
+      run: |
+        PGPASSWORD=viatique_password psql -h localhost -U viatique_user -d viatique_db -c "SELECT 1" || true
+        # The viatique_user already has superuser-like permissions as the DB owner
+        # Create the test database explicitly to avoid permission issues
+        PGPASSWORD=viatique_password psql -h localhost -U viatique_user -d postgres -c "CREATE DATABASE test_viatique_0 OWNER viatique_user;" || true
 
     - name: Run migrations
       env:

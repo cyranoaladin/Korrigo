@@ -165,6 +165,10 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
 
+      - name: Create test database
+        run: |
+          PGPASSWORD=viatique_password psql -h 127.0.0.1 -U viatique_user -d postgres -c "CREATE DATABASE test_viatique_0 OWNER viatique_user;" || true
+
       - name: Run postgres-marked tests (must PASS, must not SKIP)
         working-directory: backend
         env:
