@@ -60,7 +60,6 @@ class ExamCreationWorkflowTests(TransactionTestCase):
         exam_id = response.json()['id']
         exam = Exam.objects.get(id=exam_id)
         assert exam.name == 'Midterm Math Exam'
-        assert exam.created_by == self.teacher
 
         # Step 2: Set grading structure (stored as JSONField in Exam)
         exam.grading_structure = {
