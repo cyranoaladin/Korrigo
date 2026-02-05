@@ -52,9 +52,6 @@ class ExamCreationWorkflowTests(TransactionTestCase):
         exam_data = {
             'name': 'Midterm Math Exam',
             'date': timezone.now().date().isoformat(),
-            'duration': 120,
-            'total_marks': 20.0,
-            'class_name': 'T1'
         }
 
         response = self.client.post('/api/exams/', exam_data)
@@ -114,10 +111,6 @@ class ExamCreationWorkflowTests(TransactionTestCase):
         exam = Exam.objects.create(
             name='Final Exam',
             date=timezone.now().date(),
-            duration=180,
-            total_marks=20.0,
-            class_name='T2',
-            created_by=self.teacher
         )
 
         # Create additional correctors
@@ -167,7 +160,6 @@ class IdentificationWorkflowTests(TransactionTestCase):
             first_name='Alice',
             last_name='Dupont',
             date_of_birth='2005-03-15',
-            class_name='T1'
         )
         self.student2 = Student.objects.create(
             email='bob@test.com',
@@ -175,17 +167,12 @@ class IdentificationWorkflowTests(TransactionTestCase):
             first_name='Bob',
             last_name='Martin',
             date_of_birth='2005-05-20',
-            class_name='T1'
         )
 
         # Create exam and copy
         self.exam = Exam.objects.create(
             name='Math Exam',
             date=timezone.now().date(),
-            duration=120,
-            total_marks=20.0,
-            class_name='T1',
-            created_by=self.teacher
         )
         self.exam.correctors.add(self.teacher)
 
@@ -308,17 +295,12 @@ class GradingWorkflowTests(TransactionTestCase):
             email='alice@test.com',
             full_name='Alice Dupont',
             date_of_birth='2005-03-15',
-            class_name='T1'
         )
 
         # Create exam with grading structure
         self.exam = Exam.objects.create(
             name='Math Exam',
             date=timezone.now().date(),
-            duration=120,
-            total_marks=20.0,
-            class_name='T1',
-            created_by=self.teacher
         )
         self.exam.correctors.add(self.teacher)
 
@@ -477,10 +459,6 @@ class ExportWorkflowTests(TransactionTestCase):
         self.exam = Exam.objects.create(
             name='Math Exam',
             date=timezone.now().date(),
-            duration=120,
-            total_marks=20.0,
-            class_name='T1',
-            created_by=self.teacher
         )
         self.exam.correctors.add(self.teacher)
 
@@ -490,7 +468,6 @@ class ExportWorkflowTests(TransactionTestCase):
                 email=f'student{i}@test.com',
                 full_name=f'Student {i}',
                 date_of_birth='2005-01-01',
-                class_name='T1'
             )
 
             copy = Copy.objects.create(
