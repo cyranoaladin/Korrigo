@@ -28,6 +28,7 @@ services:
       retries: 5
 
   backend:
+    image: korrigo-backend:local
     build:
       context: ../../backend
       dockerfile: Dockerfile
@@ -83,9 +84,7 @@ services:
       start_period: 30s
 
   celery:
-    build:
-      context: ../../backend
-      dockerfile: Dockerfile
+    image: korrigo-backend:local
     restart: unless-stopped
     command: celery -A core worker -l info
     volumes:
