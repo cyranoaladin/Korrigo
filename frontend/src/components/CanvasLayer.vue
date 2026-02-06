@@ -32,7 +32,9 @@ const canvasHeight = computed(() => Math.round(props.height * dpr))
 // 1. Dessine la couche statique (annotations existantes) dans le buffer
 const updateStaticLayer = () => {
   if (!offscreenCtx) return
-  
+  // Guard: skip rendering when dimensions are 0 (image not yet loaded)
+  if (canvasWidth.value === 0 || canvasHeight.value === 0) return
+
   // Redimensionnement du buffer
   offscreenCanvas.width = canvasWidth.value
   offscreenCanvas.height = canvasHeight.value
@@ -75,10 +77,12 @@ const renderMain = () => {
   if (!canvas) return
   const ctx = canvas.getContext('2d')
   if (!ctx) return
+  // Guard: skip drawImage when offscreen canvas has 0 dimensions
+  if (offscreenCanvas.width === 0 || offscreenCanvas.height === 0) return
 
   ctx.resetTransform()
   ctx.clearRect(0, 0, canvas.width, canvas.height) // Nettoyage en pixels physiques
-  
+
   // Copie instantanée du buffer (très rapide)
   ctx.drawImage(offscreenCanvas, 0, 0)
 
