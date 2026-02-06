@@ -77,7 +77,7 @@ export default {
         if (data && typeof data === 'object' && Array.isArray(data.results)) {
             return data.results;
         }
-        return data;
+        return Array.isArray(data) ? data : [];
     },
 
     async deleteAnnotation(copyId, annotationId, token = null) {
@@ -124,7 +124,7 @@ export default {
         if (data && typeof data === 'object' && Array.isArray(data.results)) {
             return data.results;
         }
-        return data;
+        return Array.isArray(data) ? data : [];
     },
 
     getFinalPdfUrl(id) {
@@ -137,7 +137,8 @@ export default {
         if (data && typeof data === 'object' && Array.isArray(data.results)) {
             return data.results;
         }
-        return data;
+        // Ensure we always return an array
+        return Array.isArray(data) ? data : [];
     },
 
     async saveRemark(copyId, questionId, remark, token = null) {
