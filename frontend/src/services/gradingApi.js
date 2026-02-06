@@ -162,7 +162,13 @@ export default {
 
     async fetchQuestionScores(copyId) {
         const response = await api.get(`/grading/copies/${copyId}/scores/`);
-        return response.data;
+        // Handle DRF pagination: extract results array if paginated response
+        const data = response.data;
+        if (data && typeof data === 'object' && Array.isArray(data.results)) {
+            return data.results;
+        }
+        // Ensure we always return an array
+        return Array.isArray(data) ? data : [];
     },
 
     async fetchGlobalAppreciation(copyId) {
