@@ -215,7 +215,7 @@ for run in 1 2 3; do
   # Lock copy
   lock_resp=\$(curl -s -b \"\$cookies\" -X POST \"\$base/api/grading/copies/\$copy_id/lock/\" \\
     -H \"X-CSRFToken: \$csrf\" \\
-    -H "Referer: $base/" \
+    -H "Referer: \$base/" \
     -H 'Content-Type: application/json' \\
     -d '{}' \\
     -w '\nHTTP_STATUS:%{http_code}')
@@ -232,7 +232,7 @@ for run in 1 2 3; do
     -H 'Content-Type: application/json' \\
     -H \"X-CSRFToken: \$csrf\" \\
     -H \"X-Lock-Token: \$lock_token\" \\
-    -H "Referer: $base/" \
+    -H "Referer: \$base/" \
     -d '{
       \"page_index\": 0,
       \"x\": 0.1,
@@ -263,7 +263,7 @@ for run in 1 2 3; do
   unlock_resp=\$(curl -s -b \"\$cookies\" -X DELETE \"\$base/api/grading/copies/\$copy_id/lock/release/\" \\
     -H \"X-CSRFToken: \$csrf\" \\
     -H \"X-Lock-Token: \$lock_token\" \\
-    -H "Referer: $base/" \
+    -H "Referer: \$base/" \
     -w '\nHTTP_STATUS:%{http_code}')
 
   unlock_code=\$(echo \"\$unlock_resp\" | grep 'HTTP_STATUS' | cut -d: -f2)
