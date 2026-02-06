@@ -197,7 +197,7 @@ jobs:
       - name: Display validation summary
         if: always()
         run: |
-          if [ -n "$RG_DIR" ] && [ -f "$RG_DIR/17_validation_summary.log" ]; then
+          if [ -n "${RG_DIR:-}" ] && [ -f "$RG_DIR/17_validation_summary.log" ]; then
             echo "========================================="
             echo "VALIDATION SUMMARY"
             echo "========================================="
@@ -209,8 +209,10 @@ jobs:
       - name: Check zero-tolerance criteria
         if: always()
         run: |
-          if [ -z "$RG_DIR" ]; then
+          if [ -z "${RG_DIR:-}" ]; then
             echo "❌ No release gate directory found - validation did not complete"
+            echo "   The release gate script likely failed during Docker build/boot."
+            echo "   Check the 'Run Release Gate One-Shot' step for the actual error."
             exit 1
           fi
 
@@ -221,90 +223,87 @@ jobs:
           PYTEST_LOG="$RG_DIR/13_pytest_full.log"
           E2E_LOG="$RG_DIR/12_e2e_3runs.log"
           SEED_LOG="$RG_DIR/08_seed_run1.log"
+          EXIT_CODE=0
 
           # Check pytest results
+          echo ""
+          echo "=== Test Results ==="
           if [ -f "$PYTEST_LOG" ]; then
-            echo ""
-            echo "=== Test Results ==="
-            # Fix: Only match actual pytest failures (lines starting with FAILED/ERROR),
-            # not test names containing "failed" or "error"
             if grep -qE '^FAILED |^ERROR ' "$PYTEST_LOG"; then
               echo "❌ FAILED: Tests have failures or errors"
               echo "Failing test nodeids:"
               grep -E '^(FAILED|ERROR) ' "$PYTEST_LOG" | sed -E 's/^(FAILED|ERROR) +//' | head -20
-              exit 1
-            fi
-
-            # Fix: Only match actual skipped in pytest summary (=== X skipped ===)
-            # Pattern matches pytest summary line with "skipped" word
-            if grep -qE '=.*\d+ skipped' "$PYTEST_LOG"; then
+              EXIT_CODE=1
+            elif grep -qE '=.*[0-9]+ skipped' "$PYTEST_LOG"; then
               echo "❌ FAILED: Tests have skipped tests (zero-tolerance)"
               grep -E '=.*skipped' "$PYTEST_LOG" | head -5
-              exit 1
+              EXIT_CODE=1
+            else
+              PASSED=$(grep -oP '\d+(?= passed)' "$PYTEST_LOG" | tail -1 || echo "?")
+              echo "✅ PASS: $PASSED tests passed, 0 failed, 0 skipped"
             fi
-
-            # Check for XFAIL (expected failures) - optional: decide policy
-            # if grep -qE '\d+ xfailed' "$PYTEST_LOG"; then
-            #   echo "⚠️  WARNING: Tests have expected failures (xfailed)"
-            # fi
-
-            PASSED=$(grep -oP '\d+(?= passed)' "$PYTEST_LOG" | tail -1)
-            echo "✅ PASS: $PASSED tests passed, 0 failed, 0 skipped"
           else
-            echo "❌ FAILED: pytest log not found"
-            exit 1
+            echo "⚠️  pytest log not found (script failed before reaching test phase)"
+            echo "   Available logs in $RG_DIR:"
+            ls -1 "$RG_DIR"/*.log 2>/dev/null || echo "   (none)"
+            echo ""
+            echo "   Last completed phase log:"
+            ls -t "$RG_DIR"/*.log 2>/dev/null | head -1 | xargs tail -20 2>/dev/null || true
+            EXIT_CODE=1
           fi
 
           # Check E2E results
+          echo ""
+          echo "=== E2E Results ==="
           if [ -f "$E2E_LOG" ]; then
-            echo ""
-            echo "=== E2E Results ==="
             if ! grep -q "✅ E2E: 3/3 RUNS PASSED" "$E2E_LOG"; then
               echo "❌ FAILED: E2E runs did not pass 3/3"
               tail -50 "$E2E_LOG"
-              exit 1
-            fi
-
-            # Check annotation POST = 201
-            if ! grep -qE "Annotation created.*201" "$E2E_LOG"; then
+              EXIT_CODE=1
+            elif ! grep -qE "Annotation created.*201" "$E2E_LOG"; then
               echo "❌ FAILED: Annotation POST did not return 201"
-              exit 1
+              EXIT_CODE=1
+            else
+              echo "✅ PASS: E2E 3/3 runs with annotations (POST 201, GET 200)"
             fi
-
-            echo "✅ PASS: E2E 3/3 runs with annotations (POST 201, GET 200)"
           else
-            echo "❌ FAILED: E2E log not found"
-            exit 1
+            echo "⚠️  E2E log not found (script failed before reaching E2E phase)"
+            EXIT_CODE=1
           fi
 
           # Check seed validation (pages > 0)
+          echo ""
+          echo "=== Seed Validation ==="
           if [ -f "$SEED_LOG" ]; then
-            echo ""
-            echo "=== Seed Validation ==="
             if ! grep -qE 'Booklets.*Pages' "$SEED_LOG"; then
               echo "❌ FAILED: Seed did not create copies with pages"
-              exit 1
+              EXIT_CODE=1
+            else
+              PAGES_LINES=$(grep -E 'READY.*Booklets.*Pages' "$SEED_LOG" || true)
+              if echo "$PAGES_LINES" | grep -q "Pages: 0"; then
+                echo "❌ FAILED: Some READY copies have 0 pages"
+                echo "$PAGES_LINES"
+                EXIT_CODE=1
+              else
+                echo "✅ PASS: All READY copies have pages > 0"
+                echo "$PAGES_LINES"
+              fi
             fi
-
-            # Check that all READY copies have pages > 0
-            PAGES_LINES=$(grep -E 'READY.*Booklets.*Pages' "$SEED_LOG" || true)
-            if echo "$PAGES_LINES" | grep -q "Pages: 0"; then
-              echo "❌ FAILED: Some READY copies have 0 pages"
-              echo "$PAGES_LINES"
-              exit 1
-            fi
-
-            echo "✅ PASS: All READY copies have pages > 0"
-            echo "$PAGES_LINES"
           else
-            echo "❌ FAILED: Seed log not found"
-            exit 1
+            echo "⚠️  Seed log not found (script failed before reaching seed phase)"
+            EXIT_CODE=1
           fi
 
           echo ""
           echo "========================================="
-          echo "✅ ZERO-TOLERANCE VALIDATION COMPLETE"
+          if [ "$EXIT_CODE" -eq 0 ]; then
+            echo "✅ ZERO-TOLERANCE VALIDATION COMPLETE"
+          else
+            echo "❌ ZERO-TOLERANCE VALIDATION FAILED"
+            echo "   Review the 'Run Release Gate One-Shot' step for root cause."
+          fi
           echo "========================================="
+          exit $EXIT_CODE
 
       - name: Upload Release Gate logs
         if: always()
