@@ -126,24 +126,33 @@ const gradingStructure = computed(() => {
     return copy.value.exam.grading_structure
 })
 
-const flattenQuestions = (structure, parentId = '') => {
-    let questions = []
+const flattenQuestions = (structure, parentId = '', depth = 0) => {
+    let items = []
     structure.forEach((item, index) => {
         const itemId = item.id || (parentId ? `${parentId}.${index + 1}` : `${index + 1}`)
+        const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0
         // Les questions sont les éléments avec points > 0 et sans enfants (feuilles)
-        const isLeafQuestion = item.points > 0 && (!item.children || item.children.length === 0)
-        if (isLeafQuestion) {
-            questions.push({
+        const isLeafQuestion = item.points > 0 && !hasChildren
+        if (hasChildren) {
+            // Ajouter un header de groupe (exercice)
+            items.push({
+                type: 'group',
+                id: `group-${itemId}`,
+                title: item.label || `Exercice ${index + 1}`,
+                totalPoints: item.points || 0,
+                depth
+            })
+            items = items.concat(flattenQuestions(item.children, item.label || itemId, depth + 1))
+        } else if (isLeafQuestion) {
+            items.push({
+                type: 'question',
                 id: itemId,
                 title: item.label || `Question ${itemId}`,
                 maxScore: item.points || 0
             })
         }
-        if (item.children && Array.isArray(item.children)) {
-            questions = questions.concat(flattenQuestions(item.children, item.label || itemId))
-        }
     })
-    return questions
+    return items
 }
 
 const flatQuestions = computed(() => {
@@ -960,54 +969,68 @@ onUnmounted(() => {
             class="grading-content"
           >
             <div class="questions-list">
-              <div
-                v-for="question in flatQuestions"
-                :key="question.id"
-                class="question-item"
+              <template
+                v-for="item in flatQuestions"
+                :key="item.id"
               >
-                <div class="question-header">
-                  <span class="question-title">{{ question.title }}</span>
-                  <span class="question-score">/ {{ question.maxScore }} pts</span>
+                <!-- Header d'exercice -->
+                <div
+                  v-if="item.type === 'group'"
+                  class="exercise-header"
+                  :class="{ 'exercise-header--nested': item.depth > 0 }"
+                >
+                  <span class="exercise-title">{{ item.title }}</span>
+                  <span v-if="item.totalPoints > 0" class="exercise-points">{{ item.totalPoints }} pts</span>
                 </div>
-                <div class="question-score-field">
-                  <label :for="'score-' + question.id">Note</label>
-                  <input
-                    :id="'score-' + question.id"
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    :max="question.maxScore"
-                    :value="questionScores.get(question.id) ?? ''"
-                    :disabled="isReadOnly"
-                    :placeholder="isReadOnly ? '-' : '0'"
-                    class="score-input"
-                    @input="onScoreChange(question.id, $event.target.value, question.maxScore)"
-                  />
-                  <span
-                    v-if="scoresSaving.get(question.id)"
-                    class="save-indicator small"
-                  >
-                    Enregistrement...
-                  </span>
+                <!-- Question (feuille) -->
+                <div
+                  v-else
+                  class="question-item"
+                >
+                  <div class="question-header">
+                    <span class="question-title">{{ item.title }}</span>
+                    <span class="question-score">/ {{ item.maxScore }} pts</span>
+                  </div>
+                  <div class="question-score-field">
+                    <label :for="'score-' + item.id">Note</label>
+                    <input
+                      :id="'score-' + item.id"
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      :max="item.maxScore"
+                      :value="questionScores.get(item.id) ?? ''"
+                      :disabled="isReadOnly"
+                      :placeholder="isReadOnly ? '-' : '0'"
+                      class="score-input"
+                      @input="onScoreChange(item.id, $event.target.value, item.maxScore)"
+                    />
+                    <span
+                      v-if="scoresSaving.get(item.id)"
+                      class="save-indicator small"
+                    >
+                      Enregistrement...
+                    </span>
+                  </div>
+                  <div class="question-remark-field">
+                    <label :for="'remark-' + item.id">Remarque (facultatif)</label>
+                    <textarea
+                      :id="'remark-' + item.id"
+                      :value="questionRemarks.get(item.id) || ''"
+                      :disabled="isReadOnly"
+                      :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une remarque...'"
+                      rows="2"
+                      @input="onRemarkChange(item.id, $event.target.value)"
+                    />
+                    <span
+                      v-if="remarksSaving.get(item.id)"
+                      class="save-indicator small"
+                    >
+                      Enregistrement...
+                    </span>
+                  </div>
                 </div>
-                <div class="question-remark-field">
-                  <label :for="'remark-' + question.id">Remarque (facultatif)</label>
-                  <textarea
-                    :id="'remark-' + question.id"
-                    :value="questionRemarks.get(question.id) || ''"
-                    :disabled="isReadOnly"
-                    :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une remarque...'"
-                    rows="2"
-                    @input="onRemarkChange(question.id, $event.target.value)"
-                  />
-                  <span
-                    v-if="remarksSaving.get(question.id)"
-                    class="save-indicator small"
-                  >
-                    Enregistrement...
-                  </span>
-                </div>
-              </div>
+              </template>
             </div>
             
             <div class="global-appreciation-section">
@@ -1150,6 +1173,11 @@ onUnmounted(() => {
 .grading-panel { flex: 1; overflow-y: auto; }
 .grading-content { padding: 15px; }
 .questions-list { margin-bottom: 20px; }
+.exercise-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; margin-bottom: 4px; margin-top: 16px; background: #e2e6ea; border-radius: 6px; border-left: 4px solid #007bff; }
+.exercise-header:first-child { margin-top: 0; }
+.exercise-header--nested { background: #edf0f3; border-left-color: #6c757d; padding: 8px 15px; margin-left: 8px; }
+.exercise-title { font-weight: 700; font-size: 1rem; color: #212529; }
+.exercise-points { font-size: 0.85rem; color: #495057; background: #ced4da; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
 .question-item { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6; }
 .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .question-title { font-weight: bold; font-size: 0.95rem; color: #333; }
