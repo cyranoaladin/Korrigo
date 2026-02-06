@@ -115,10 +115,10 @@ if not DEBUG:
         SECURE_HSTS_INCLUDE_SUBDOMAINS = True
         SECURE_HSTS_PRELOAD = True
     else:
-        # Prod-like (E2E): No SSL redirect, but still secure cookies since proxy handles HTTPS
+        # Prod-like (E2E): No SSL redirect, no secure cookies (plain HTTP)
         SECURE_SSL_REDIRECT = False
-        SESSION_COOKIE_SECURE = True
-        CSRF_COOKIE_SECURE = True
+        SESSION_COOKIE_SECURE = False
+        CSRF_COOKIE_SECURE = False
 
     # CRITICAL FIX: Re-apply SameSite settings from env in production
     # Without this, the values read at lines 58-59 are not preserved
