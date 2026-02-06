@@ -16,22 +16,37 @@ jobs:
   release-gate-oneshot:
     name: Release Gate Validation (Zero-Tolerance)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Free up disk space
+      - name: Free up disk space (aggressive)
         run: |
           echo "Disk space before cleanup:"
           df -h
 
-          echo "Removing unnecessary packages and files..."
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          echo "Removing large pre-installed toolchains..."
+          sudo rm -rf /usr/share/dotnet              # ~6GB
+          sudo rm -rf /usr/local/lib/android          # ~10GB
+          sudo rm -rf /opt/ghc                        # ~2GB
+          sudo rm -rf /opt/hostedtoolcache/CodeQL     # ~1GB
+          sudo rm -rf /opt/hostedtoolcache/Python     # ~500MB
+          sudo rm -rf /opt/hostedtoolcache/Ruby       # ~500MB
+          sudo rm -rf /opt/hostedtoolcache/go         # ~500MB
+          sudo rm -rf /opt/hostedtoolcache/Java*      # ~500MB
+          sudo rm -rf /usr/local/share/boost          # ~1GB
+          sudo rm -rf /usr/share/swift                # ~1.5GB
+          sudo rm -rf /usr/local/.ghcup               # ~1GB
+          sudo rm -rf /usr/local/share/chromium       # ~400MB
+          sudo rm -rf /usr/local/share/powershell     # ~400MB
+          sudo rm -rf /usr/share/az_*                 # Azure CLI ~500MB
+          sudo rm -rf /opt/microsoft                  # ~500MB
+          sudo rm -rf /usr/lib/google-cloud-sdk       # ~800MB
+          sudo rm -rf /usr/lib/jvm                    # ~500MB
+          sudo rm -rf /usr/lib/mono                   # ~300MB
+          sudo rm -rf /usr/lib/heroku                 # ~200MB
 
           echo "Cleaning apt cache..."
           sudo apt-get clean
