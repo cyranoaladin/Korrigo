@@ -16,6 +16,8 @@ BACKEND_SVC="${BACKEND_SVC:-backend}"
 LOG_DIR="${LOG_DIR:-/tmp/release_gate_$(date -u +%Y%m%dT%H%M%SZ)}"
 
 # Optional env vars (recommended for "no warnings")
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
 export DJANGO_ENV="${DJANGO_ENV:-production}"
 export DEBUG="${DEBUG:-False}"
 export METRICS_TOKEN="${METRICS_TOKEN:-}"  # empty => public metrics; set to strong secret in real prod
@@ -62,6 +64,12 @@ run_logged "00_compose_down" docker compose -f "$COMPOSE_FILE" down -v --remove-
 # ---- A) Build (no-cache) - strict
 log "Phase A: Build (no-cache)"
 run_logged "01_build_nocache" docker compose -f "$COMPOSE_FILE" build --no-cache
+
+# Clean up build cache and dangling images to reclaim disk space
+log "Cleaning up Docker build cache..."
+docker builder prune -af 2>/dev/null || true
+docker image prune -f 2>/dev/null || true
+log "Disk space after build: $(df -h / | tail -1 | awk '{print $4}') free"
 
 # ---- B) Boot stack
 log "Phase B: Boot & Stability"
