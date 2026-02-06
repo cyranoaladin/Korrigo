@@ -66,6 +66,7 @@ class AnnotationListCreateView(generics.ListCreateAPIView):
     """
     permission_classes = [IsTeacherOrAdmin, IsLockedByOwnerOrReadOnly]
     serializer_class = AnnotationSerializer
+    pagination_class = None  # Per-copy annotations, no pagination needed
 
     def get_queryset(self):
         copy_id = self.kwargs['copy_id']
@@ -282,6 +283,7 @@ class CopyAuditView(generics.ListAPIView):
     """
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = GradingEventSerializer
+    pagination_class = None  # Per-copy audit log, no pagination needed
 
     def get_queryset(self):
         copy_id = self.kwargs['id']
@@ -297,6 +299,7 @@ class QuestionRemarkListCreateView(generics.ListCreateAPIView):
     """
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = QuestionRemarkSerializer
+    pagination_class = None  # Per-copy remarks are always small, no pagination needed
 
     def get_queryset(self):
         copy_id = self.kwargs['copy_id']
@@ -415,6 +418,7 @@ class QuestionScoreListCreateView(generics.ListCreateAPIView):
     """
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = QuestionScoreSerializer
+    pagination_class = None  # Per-copy scores are always small, no pagination needed
 
     def get_queryset(self):
         copy_id = self.kwargs['copy_id']
