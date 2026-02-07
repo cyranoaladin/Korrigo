@@ -281,11 +281,6 @@ def import_students_rows(rows: List[Dict[str, str]], student_model) -> ImportRes
                     obj.user = user
                     obj.save()
                     
-                    # Store password for export (will be added to result)
-                    if not hasattr(result, 'passwords'):
-                        result.passwords = {}
-                    result.passwords[email] = default_password
-                
             if created:
                 result.created += 1
             else:

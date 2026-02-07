@@ -60,14 +60,6 @@ def async_import_students(self, csv_path, user_id=None):
                 'attempt': self.request.retries + 1
             }
 
-            # Include generated passwords if any
-            if hasattr(result, 'passwords') and result.passwords:
-                response['passwords'] = result.passwords
-                response['message'] = (
-                    'Import successful. IMPORTANT: Save generated passwords '
-                    'and communicate them securely to students.'
-                )
-
             return response
 
         except CsvReadError as e:
