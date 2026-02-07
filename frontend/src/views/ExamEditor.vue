@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { API_URL, csrfHeader } from '../services/http'
 
 import GradingScaleBuilder from '../components/GradingScaleBuilder.vue'
 
@@ -33,7 +34,7 @@ const authStore = useAuthStore()
 const fetchExam = async () => {
     isLoading.value = true
     try {
-        const res = await fetch(`${authStore.API_URL}/api/exams/${examId}/`, {
+        const res = await fetch(`${API_URL}/api/exams/${examId}/`, {
             credentials: 'include'
         })
         if (!res.ok) throw new Error("Impossible de récupérer l'examen")
@@ -52,10 +53,10 @@ const saveExam = async () => {
     isSaving.value = true
     saveMessage.value = ''
     try {
-        const res = await fetch(`${authStore.API_URL}/api/exams/${examId}/`, {
+        const res = await fetch(`${API_URL}/api/exams/${examId}/`, {
             method: 'PATCH',
             credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...csrfHeader() },
             body: JSON.stringify({
                 grading_structure: exam.value.grading_structure
             })

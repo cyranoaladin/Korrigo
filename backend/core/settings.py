@@ -85,13 +85,10 @@ E2E_SEED_TOKEN = os.environ.get("E2E_SEED_TOKEN")  # Only set in prod-like envir
 #   - If METRICS_TOKEN not set: Public access (operator's choice, warning logged on startup)
 METRICS_TOKEN = os.environ.get("METRICS_TOKEN")
 
-# Warn if METRICS_TOKEN not set in production
+# Require METRICS_TOKEN in production to prevent public /metrics exposure
 if DJANGO_ENV == "production" and not METRICS_TOKEN and not DEBUG:
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.warning(
-        "METRICS_TOKEN not set in production. /metrics endpoint will be publicly accessible. "
-        "Set METRICS_TOKEN environment variable to secure the endpoint."
+    raise ValueError(
+        "METRICS_TOKEN must be set in production to secure /metrics endpoint."
     )
 
 # Security Settings for Production
@@ -210,7 +207,6 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
@@ -532,37 +528,31 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-lock-token',
 ]
 
 # Content Security Policy (CSP)
+# django-csp expects CSP_* settings
 # Conformité: Phase 3 - Review sécurité frontend
 if not DEBUG:
-    CONTENT_SECURITY_POLICY = {
-        'DIRECTIVES': {
-            'default-src': ["'self'"],
-            'script-src': ["'self'"],
-            'style-src': ["'self'"],
-            'img-src': ["'self'", "data:", "blob:"],
-            'font-src': ["'self'"],
-            'connect-src': ["'self'"],
-            'frame-ancestors': ["'none'"],
-            'base-uri': ["'self'"],
-            'form-action': ["'self'"],
-            'upgrade-insecure-requests': True,
-        }
-    }
+    CSP_DEFAULT_SRC = ("'self'",)
+    CSP_SCRIPT_SRC = ("'self'",)
+    CSP_STYLE_SRC = ("'self'",)
+    CSP_IMG_SRC = ("'self'", "data:", "blob:")
+    CSP_FONT_SRC = ("'self'",)
+    CSP_CONNECT_SRC = ("'self'",)
+    CSP_FRAME_ANCESTORS = ("'none'",)
+    CSP_BASE_URI = ("'self'",)
+    CSP_FORM_ACTION = ("'self'",)
+    CSP_UPGRADE_INSECURE_REQUESTS = True
 else:
     # CSP permissive en développement
-    CONTENT_SECURITY_POLICY = {
-        'DIRECTIVES': {
-            'default-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-            'style-src': ["'self'", "'unsafe-inline'"],
-            'img-src': ["'self'", "data:", "blob:", "http:", "https:"],
-            'connect-src': ["'self'", "http://localhost:*", "ws://localhost:*"],
-            'frame-ancestors': ["'self'"], 
-        }
-    }
+    CSP_DEFAULT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
+    CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
+    CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
+    CSP_IMG_SRC = ("'self'", "data:", "blob:", "http:", "https:")
+    CSP_CONNECT_SRC = ("'self'", "http://localhost:*", "ws://localhost:*")
+    CSP_FRAME_ANCESTORS = ("'self'",)
 
 # DRF Spectacular Configuration
 # OpenAPI 3.0 Schema Generation
