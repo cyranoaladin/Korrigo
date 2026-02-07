@@ -63,7 +63,7 @@ class GPT4VisionOCR:
             model: Model to use. If None, reads from OPENAI_MODEL env var or defaults to gpt-4.1-mini.
         """
         self.api_key = api_key or os.environ.get('OPENAI_API_KEY')
-        self.model = model or os.environ.get('OPENAI_MODEL', 'gpt-4.1-mini-2025-04-14')
+        self.model = model or os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')
         
         if not self.api_key:
             raise ValueError("OpenAI API key required. Set OPENAI_API_KEY or pass api_key parameter.")
