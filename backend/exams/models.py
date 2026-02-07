@@ -280,7 +280,7 @@ class Copy(models.Model):
         Raises ValueError if the transition is not allowed.
         """
         old_status = self.status
-        allowed = self.ALLOWED_TRANSITIONS.get(old_status, set())
+        allowed = Copy.ALLOWED_TRANSITIONS.get(old_status, set())
         if new_status not in allowed:
             raise ValueError(
                 f"Invalid status transition: {old_status} → {new_status}. "
