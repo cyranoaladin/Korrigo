@@ -141,10 +141,32 @@ jobs:
       - name: Ensure .env exists
         run: |
           if [ ! -f .env ]; then
-            echo "Creating minimal .env for docker-compose..."
-            # Don't copy .env.example as it contains DB_HOST=127.0.0.1
-            # which conflicts with docker-compose DATABASE_URL
-            touch .env
+            echo "Creating CI .env for docker-compose..."
+            cat > .env << 'ENVEOF'
+          SECRET_KEY=ci-release-gate-secret-key-not-for-production
+          DJANGO_ENV=production
+          DEBUG=False
+          ALLOWED_HOSTS=localhost,127.0.0.1
+          DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+          POSTGRES_DB=korrigo_ci
+          POSTGRES_USER=korrigo_ci
+          POSTGRES_PASSWORD=korrigo_ci_password
+          DB_NAME=korrigo_ci
+          DB_USER=korrigo_ci
+          DB_PASSWORD=korrigo_ci_password
+          DB_HOST=db
+          DB_PORT=5432
+          CORS_ALLOWED_ORIGINS=http://localhost:8088
+          CSRF_TRUSTED_ORIGINS=http://localhost:8088
+          METRICS_TOKEN=ci-metrics-token
+          SSL_ENABLED=false
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+          REDIS_DB=1
+          CELERY_BROKER_URL=redis://redis:6379/0
+          RATELIMIT_ENABLE=false
+          ENVEOF
+            echo ".env created with CI values"
           else
             echo ".env already exists"
           fi
