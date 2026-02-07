@@ -218,6 +218,10 @@ REST_FRAMEWORK = {
 }
 
 
+# --- Processing thresholds (configurable per institution) ---
+A3_ASPECT_RATIO_THRESHOLD = float(os.environ.get('A3_ASPECT_RATIO_THRESHOLD', '1.2'))
+OCR_CONFIDENCE_THRESHOLD = float(os.environ.get('OCR_CONFIDENCE_THRESHOLD', '0.5'))
+
 MIDDLEWARE = [
     'core.middleware.request_id.RequestIDMiddleware',  # S5-A: Request ID for log correlation
     'core.middleware.metrics.MetricsMiddleware',
