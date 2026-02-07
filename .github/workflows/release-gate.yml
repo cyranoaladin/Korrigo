@@ -184,8 +184,8 @@ jobs:
           DJANGO_ENV: production
           DEBUG: "False"
 
-          # Security: METRICS_TOKEN from GitHub Secrets (or empty = public, with warning)
-          METRICS_TOKEN: "${{ secrets.METRICS_TOKEN || '' }}"
+          # Security: METRICS_TOKEN from GitHub Secrets (CI default if no secret set)
+          METRICS_TOKEN: "${{ secrets.METRICS_TOKEN || 'ci-release-gate-metrics-token' }}"
 
           # Passwords: allow random generation if not set
           # For CI, we can set these or let seed generate random ones
