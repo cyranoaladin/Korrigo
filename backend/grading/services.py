@@ -224,6 +224,39 @@ class GradingService:
         return round(total, 2)
 
     @staticmethod
+    def _find_question_in_structure(structure, question_id):
+        """Recursively find a question node by ID in grading_structure."""
+        for node in (structure or []):
+            if node.get('id') == question_id:
+                return node
+            found = GradingService._find_question_in_structure(node.get('children', []), question_id)
+            if found:
+                return found
+        return None
+
+    @staticmethod
+    def _validate_scores_against_bareme(copy, grading_structure):
+        """
+        Validate all question scores comply with the barème.
+        Returns list of warning strings (non-blocking for finalization).
+        """
+        warnings = []
+        for qs in copy.question_scores.all():
+            node = GradingService._find_question_in_structure(grading_structure, qs.question_id)
+            if node is None:
+                warnings.append(f"Score for unknown question '{qs.question_id}' (orphaned)")
+                continue
+            max_pts = float(node.get('points', 0))
+            score_val = float(qs.score) if qs.score is not None else 0
+            if max_pts > 0 and score_val > max_pts:
+                warnings.append(
+                    f"Score {score_val} exceeds max {max_pts} for question '{qs.question_id}'"
+                )
+            if score_val < 0:
+                warnings.append(f"Negative score {score_val} for question '{qs.question_id}'")
+        return warnings
+
+    @staticmethod
     def _reconcile_lock_state(copy: Copy) -> None:
         now = timezone.now()
 
@@ -573,6 +606,14 @@ class GradingService:
 
         # Compute score AFTER lock release and status transition
         final_score = GradingService.compute_score(copy)
+
+        # Validate score compliance against barème before finalization
+        grading_structure = copy.exam.grading_structure or []
+        if grading_structure:
+            warnings = GradingService._validate_scores_against_bareme(copy, grading_structure)
+            if warnings:
+                for w in warnings:
+                    logger.warning(f"[FINALIZE] {copy.id}: {w}")
 
         # Generate Final PDF with comprehensive error handling
         from processing.services.pdf_flattener import PDFFlattener

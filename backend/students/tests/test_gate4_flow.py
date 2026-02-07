@@ -28,8 +28,12 @@ class TestGate4StudentFlow(TransactionTestCase):
             user=self.student_user
         )
         
-        # 2. Setup Exam & Copies
-        self.exam = Exam.objects.create(name="Gate 4 Exam", date="2025-06-15")
+        # 2. Setup Exam & Copies (results must be released for student visibility)
+        from django.utils import timezone
+        self.exam = Exam.objects.create(
+            name="Gate 4 Exam", date="2025-06-15",
+            results_released_at=timezone.now()
+        )
         
         self.copy_graded = Copy.objects.create(
             exam=self.exam,

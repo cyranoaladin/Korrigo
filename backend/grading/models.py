@@ -1,3 +1,5 @@
+from decimal import Decimal
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.conf import settings
 from exams.models import Copy
@@ -326,7 +328,8 @@ class QuestionScore(models.Model):
         max_digits=5,
         decimal_places=2,
         verbose_name=_("Note"),
-        help_text=_("Note attribuée à cette question")
+        help_text=_("Note attribuée à cette question"),
+        validators=[MinValueValidator(Decimal('0'))],
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

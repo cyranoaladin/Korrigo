@@ -26,10 +26,16 @@ const pdfDimensions = ref({ width: 0, height: 0 })
 const imageError = ref(false)
 
 // Lock State
-// Lock State
 const softLock = ref(null) // { token, owner, expires_at }
 const lockInterval = ref(null)
 const isLockConflict = ref(false) // If true, we are read-only due to other owner
+
+// Lock Countdown UI
+const lockCountdown = ref('')
+const lockWarning = ref(false)
+const lockExpired = ref(false)
+const heartbeatHealth = ref('ok') // 'ok' | 'warning' | 'error'
+const countdownTimer = ref(null)
 
 
 // Autosave State
@@ -401,15 +407,49 @@ const handleMarkReady = async () => {
     finally { isSaving.value = false; }
 }
 
+// Lock Countdown Logic
+const startCountdown = () => {
+    if (countdownTimer.value) clearInterval(countdownTimer.value)
+    countdownTimer.value = setInterval(() => {
+        if (!softLock.value?.expires_at) {
+            lockCountdown.value = ''
+            lockWarning.value = false
+            return
+        }
+        const remainingMs = new Date(softLock.value.expires_at).getTime() - Date.now()
+        if (remainingMs <= 0) {
+            lockCountdown.value = '00:00'
+            lockWarning.value = true
+            lockExpired.value = true
+            clearInterval(countdownTimer.value)
+            return
+        }
+        const totalSec = Math.floor(remainingMs / 1000)
+        const m = String(Math.floor(totalSec / 60)).padStart(2, '0')
+        const s = String(totalSec % 60).padStart(2, '0')
+        lockCountdown.value = `${m}:${s}`
+        lockWarning.value = totalSec < 30
+        lockExpired.value = false
+    }, 1000)
+}
+
+const stopCountdown = () => {
+    if (countdownTimer.value) { clearInterval(countdownTimer.value); countdownTimer.value = null }
+    lockCountdown.value = ''
+    lockWarning.value = false
+    lockExpired.value = false
+}
+
 // Soft Lock Management
 const acquireLock = async () => {
     try {
         const response = await gradingApi.acquireLock(copyId);
-        // Success
         softLock.value = response;
         isLockConflict.value = false;
+        heartbeatHealth.value = 'ok';
         startHeartbeat();
-        checkDrafts(); // Check for draft restoration
+        startCountdown();
+        checkDrafts();
     } catch (err) {
         if (err.response?.status === 409) {
             // Conflict
@@ -535,47 +575,51 @@ watch(draftAnnotation, (newVal) => {
 const startHeartbeat = () => {
     if (lockInterval.value) clearInterval(lockInterval.value);
     let failCount = 0;
-    
+    heartbeatHealth.value = 'ok';
+
     lockInterval.value = setInterval(async () => {
         if (!softLock.value?.token) return;
         try {
             const res = await gradingApi.heartbeatLock(copyId, softLock.value.token);
             softLock.value.expires_at = res.expires_at;
-            failCount = 0; // Reset on success
+            failCount = 0;
+            heartbeatHealth.value = 'ok';
         } catch (err) {
              console.error("Heartbeat failed", err);
              const status = err.response?.status;
-             
+
              if (status === 401) {
-                 // Session Expired
-                 window.location.href = '/login'; // Force login redirect
-                 return; 
-             }
-             
-             if (status === 409 || status === 404 || status === 403) {
-                 // Lock stolen, expired, or forbidden
-                 softLock.value = null;
-                 isLockConflict.value = true;
-                 error.value = "Lock lost (taken by another user or expired). Switching to Read-Only.";
-                 clearInterval(lockInterval.value);
+                 window.location.href = '/login';
                  return;
              }
-             
-             // Network errors or 5xx: Tolerate small failures
+
+             if (status === 409 || status === 404 || status === 403) {
+                 softLock.value = null;
+                 isLockConflict.value = true;
+                 heartbeatHealth.value = 'error';
+                 error.value = "Verrou perdu. Passage en lecture seule.";
+                 clearInterval(lockInterval.value);
+                 stopCountdown();
+                 return;
+             }
+
              failCount++;
+             heartbeatHealth.value = failCount === 1 ? 'warning' : 'error';
              if (failCount > 3) {
                  console.warn("Too many heartbeat failures. Assuming lock lost.");
                  softLock.value = null;
                  isLockConflict.value = true;
-                 error.value = "Connection unstable. Lock maintenance failed. Read-Only.";
+                 error.value = "Connexion instable. Verrou perdu. Lecture seule.";
                  clearInterval(lockInterval.value);
+                 stopCountdown();
              }
         }
-    }, 30000); // 30s
+    }, 30000);
 }
 
 const releaseLock = async () => {
     if (lockInterval.value) clearInterval(lockInterval.value);
+    stopCountdown();
     if (softLock.value?.token) {
         try {
             await gradingApi.releaseLock(copyId, softLock.value.token);
@@ -696,6 +740,7 @@ watch(() => authStore.user, (u) => {
 
 onUnmounted(() => {
     releaseLock();
+    stopCountdown();
     window.removeEventListener('keydown', onGlobalKeydown)
     window.removeEventListener('beforeunload', releaseLock)
     window.removeEventListener('pagehide', releaseLock)
@@ -759,6 +804,36 @@ onUnmounted(() => {
           Download
         </button>
       </div>
+    </div>
+
+    <!-- Lock Status Bar -->
+    <div
+      v-if="softLock"
+      class="lock-status-bar"
+      :class="{ 'lock-warn': lockWarning && !lockExpired, 'lock-expired': lockExpired }"
+    >
+      <div class="lock-left">
+        <span class="lock-icon">&#128274;</span>
+        <span class="lock-label">Verrouille</span>
+      </div>
+      <div class="lock-center">
+        <span class="lock-timer-label">Expire dans:</span>
+        <span class="lock-timer-value">{{ lockCountdown || '--:--' }}</span>
+      </div>
+      <div class="lock-right">
+        <span
+          class="hb-dot"
+          :class="'hb-' + heartbeatHealth"
+          :title="heartbeatHealth === 'ok' ? 'Connexion OK' : heartbeatHealth === 'warning' ? 'Instable' : 'Perdu'"
+        ></span>
+        <span class="hb-label">{{ heartbeatHealth === 'ok' ? 'OK' : heartbeatHealth === 'warning' ? 'Instable' : 'Perdu' }}</span>
+      </div>
+    </div>
+    <div
+      v-if="isLockConflict && !softLock"
+      class="lock-lost-bar"
+    >
+      Verrou perdu — Mode lecture seule
     </div>
 
     <div
@@ -1269,4 +1344,20 @@ onUnmounted(() => {
 .global-score-display { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .global-score-display .label { font-size: 1rem; font-weight: bold; color: #2e7d32; text-transform: uppercase; letter-spacing: 1px; }
 .global-score-display .value { font-size: 2rem; font-weight: 800; color: #1b5e20; }
+
+/* Lock Status Bar */
+.lock-status-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 20px; background: #d4edda; border-bottom: 1px solid #c3e6cb; font-size: 0.85rem; color: #155724; transition: background 0.3s, color 0.3s; }
+.lock-status-bar.lock-warn { background: #fff3cd; border-bottom-color: #ffeeba; color: #856404; }
+.lock-status-bar.lock-expired { background: #f8d7da; border-bottom-color: #f5c6cb; color: #721c24; }
+.lock-left, .lock-center, .lock-right { display: flex; align-items: center; gap: 6px; }
+.lock-left { font-weight: 600; }
+.lock-icon { font-size: 1rem; }
+.lock-timer-label { font-weight: 500; }
+.lock-timer-value { font-family: 'Courier New', monospace; font-size: 1.1rem; font-weight: 700; letter-spacing: 1px; }
+.hb-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.hb-ok { background: #28a745; box-shadow: 0 0 4px rgba(40,167,69,0.5); }
+.hb-warning { background: #ffc107; box-shadow: 0 0 4px rgba(255,193,7,0.5); }
+.hb-error { background: #dc3545; box-shadow: 0 0 4px rgba(220,53,69,0.5); }
+.hb-label { font-size: 0.8rem; font-weight: 500; }
+.lock-lost-bar { padding: 8px 20px; background: #f8d7da; border-bottom: 2px solid #dc3545; color: #721c24; font-weight: 600; text-align: center; font-size: 0.9rem; }
 </style>
