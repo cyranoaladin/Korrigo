@@ -24,8 +24,8 @@ from .splitter import A3Splitter
 
 logger = logging.getLogger(__name__)
 
-# Seuil pour détecter un format A3 (landscape)
-A3_ASPECT_RATIO_THRESHOLD = 1.2
+# Seuil pour détecter un format A3 (landscape) - configurable via settings.py
+A3_ASPECT_RATIO_THRESHOLD = getattr(settings, 'A3_ASPECT_RATIO_THRESHOLD', 1.2)
 
 
 class A3PDFProcessor:

@@ -251,8 +251,9 @@ class BatchA3Processor:
                     ocr_text=ocr_name
                 )
         
-        # Seuil de confiance minimum
-        if best_match and best_match.confidence >= 0.5:
+        # Seuil de confiance minimum (configurable via settings.py)
+        threshold = getattr(settings, 'OCR_CONFIDENCE_THRESHOLD', 0.5)
+        if best_match and best_match.confidence >= threshold:
             return best_match
         
         return None
