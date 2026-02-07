@@ -44,7 +44,13 @@ class Exam(models.Model):
     )
     grading_structure = models.JSONField(default=list, blank=True, verbose_name=_("Barème (Structure JSON)"))
     is_processed = models.BooleanField(default=False, verbose_name=_("Traité ?"))
-    
+    results_released_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Résultats publiés le"),
+        help_text=_("Date de publication des résultats aux élèves. NULL = non publié.")
+    )
+
     # Mission 24: Assigned Correctors
     correctors = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
@@ -81,6 +87,10 @@ class ExamSourcePDF(models.Model):
         A3 = 'A3', 'A3'
         A4 = 'A4', 'A4'
 
+    class PDFType(models.TextChoices):
+        COPY = 'COPY', _("Copie d'examen")
+        ANNEXE = 'ANNEXE', _("Annexe")
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(
         Exam,
@@ -116,6 +126,12 @@ class ExamSourcePDF(models.Model):
     page_count = models.PositiveIntegerField(
         default=0,
         verbose_name=_("Nombre de pages")
+    )
+    pdf_type = models.CharField(
+        max_length=10,
+        choices=PDFType.choices,
+        default=PDFType.COPY,
+        verbose_name=_("Type de PDF")
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)
 

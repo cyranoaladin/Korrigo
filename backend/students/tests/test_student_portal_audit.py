@@ -54,7 +54,11 @@ def setup_copies_with_students(db, setup_students):
     """Create copies with different statuses and student assignments."""
     student1, student2 = setup_students
     
-    exam = Exam.objects.create(name="Student Portal Test", date="2026-01-31")
+    from django.utils import timezone
+    exam = Exam.objects.create(
+        name="Student Portal Test", date="2026-01-31",
+        results_released_at=timezone.now()
+    )
     
     # Student1's GRADED copy
     copy1_graded = Copy.objects.create(

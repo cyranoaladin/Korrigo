@@ -52,6 +52,7 @@ const uploadForm = ref({
     date: new Date().toISOString().split('T')[0],
     pdfFiles: [],
     csvFile: null,
+    annexeFile: null,
 })
 const uploading = ref(false)
 const uploadProgress = ref('')
@@ -62,6 +63,7 @@ const openUploadModal = () => {
         date: new Date().toISOString().split('T')[0],
         pdfFiles: [],
         csvFile: null,
+        annexeFile: null,
     }
     showUploadModal.value = true
 }
@@ -95,6 +97,13 @@ const handleCsvSelect = (event) => {
     }
 }
 
+const handleAnnexeSelect = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+        uploadForm.value.annexeFile = file
+    }
+}
+
 const submitUpload = async () => {
     if (uploadForm.value.pdfFiles.length === 0 || !uploadForm.value.name) {
         alert('Veuillez sélectionner au moins un fichier PDF et entrer un nom.')
@@ -115,6 +124,10 @@ const submitUpload = async () => {
 
     if (uploadForm.value.csvFile) {
         formData.append('students_csv', uploadForm.value.csvFile)
+    }
+
+    if (uploadForm.value.annexeFile) {
+        formData.append('annexe_pdf', uploadForm.value.annexeFile)
     }
 
     uploadProgress.value = 'Traitement des fichiers (détection format, OCR si A3)...'
@@ -275,6 +288,57 @@ const canDispatch = (exam) => {
     return exam.correctors && exam.correctors.length > 0
 }
 
+const generatingPdf = ref(false)
+const releasingExam = ref(null)
+
+const toggleRelease = async (exam) => {
+    const isReleased = !!exam.results_released_at
+    const action = isReleased ? 'unrelease-results' : 'release-results'
+    const confirmMsg = isReleased
+        ? `Depublier les resultats de "${exam.name}" ? Les eleves ne pourront plus voir leurs copies.`
+        : `Publier les resultats de "${exam.name}" ? Les eleves pourront voir leurs copies corrigees.`
+
+    if (!confirm(confirmMsg)) return
+
+    releasingExam.value = exam.id
+    try {
+        await api.post(`/exams/${exam.id}/${action}/`)
+        await fetchExams()
+    } catch (e) {
+        console.error("Release toggle failed", e)
+        alert('Erreur: ' + (e.response?.data?.error || e.message))
+    } finally {
+        releasingExam.value = null
+    }
+}
+
+const generateStudentPDFs = async (exam) => {
+    if (!confirm(`Générer les PDF par élève pour "${exam.name}" ?\nCette opération utilise l\'OCR (GPT-4V) et peut prendre plusieurs minutes.`)) {
+        return
+    }
+
+    generatingPdf.value = true
+    try {
+        const res = await api.post(`/exams/${exam.id}/generate-student-pdfs/`, {}, {
+            timeout: 1800000 // 30 minutes (OCR de toutes les feuilles)
+        })
+        const data = res.data
+        let msg = `Génération terminée !\n\n${data.generated} PDF(s) générés`
+        if (data.annexes_matched) msg += `\n${data.annexes_matched} annexe(s) associée(s)`
+        if (data.annexes_unmatched) msg += `\n${data.annexes_unmatched} annexe(s) non matchée(s)`
+        if (data.missing_students && data.missing_students.length > 0) {
+            msg += `\n\nÉlèves manquants: ${data.missing_students.join(', ')}`
+        }
+        alert(msg)
+        await fetchExams()
+    } catch (e) {
+        console.error("PDF generation failed", e)
+        alert('Erreur: ' + (e.response?.data?.error || e.message))
+    } finally {
+        generatingPdf.value = false
+    }
+}
+
 const handleEscape = (event) => {
     if (event.key === 'Escape' || event.key === 'Esc') {
         showCreateModal.value = false
@@ -420,6 +484,10 @@ onUnmounted(() => {
                   v-else
                   class="badge status-pending"
                 >En création</span>
+                <span
+                  v-if="exam.results_released_at"
+                  class="badge status-released"
+                >Publié</span>
               </td>
               <td>
                 <button
@@ -448,7 +516,7 @@ onUnmounted(() => {
                 >
                   Correcteurs
                 </button>
-                <button 
+                <button
                   class="btn-sm btn-dispatch"
                   :class="{ 'btn-disabled': !canDispatch(exam) }"
                   :disabled="!canDispatch(exam)"
@@ -456,6 +524,23 @@ onUnmounted(() => {
                   @click="openDispatchModal(exam)"
                 >
                   Dispatcher
+                </button>
+                <button
+                  class="btn-sm btn-generate"
+                  :disabled="generatingPdf"
+                  title="Générer un PDF A4 par élève (OCR + annexes)"
+                  @click="generateStudentPDFs(exam)"
+                >
+                  {{ generatingPdf ? '...' : 'Gen. PDF' }}
+                </button>
+                <button
+                  class="btn-sm"
+                  :class="exam.results_released_at ? 'btn-unrelease' : 'btn-release'"
+                  :disabled="releasingExam === exam.id"
+                  :title="exam.results_released_at ? 'Depublier les resultats' : 'Publier les resultats aux eleves'"
+                  @click="toggleRelease(exam)"
+                >
+                  {{ exam.results_released_at ? 'Depublier' : 'Publier' }}
                 </button>
               </td>
             </tr>
@@ -617,6 +702,28 @@ onUnmounted(() => {
           </div>
           <small class="help-text">
             Le CSV améliore l'identification automatique des élèves (colonnes: Nom et Prénom, Date de naissance, Email)
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label>Fichier PDF des annexes (optionnel)</label>
+          <div class="file-input-wrapper">
+            <input
+              type="file"
+              accept="application/pdf"
+              class="file-input"
+              :disabled="uploading"
+              @change="handleAnnexeSelect"
+            >
+            <span v-if="uploadForm.annexeFile" class="file-name">
+              {{ uploadForm.annexeFile.name }}
+            </span>
+            <span v-else class="file-placeholder">
+              Cliquez pour sélectionner le PDF des annexes
+            </span>
+          </div>
+          <small class="help-text">
+            PDF A4 contenant les pages annexes individuelles des élèves (une page par élève avec en-tête)
           </small>
         </div>
 
@@ -938,6 +1045,32 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 }
 
 /* Dispatch Styles */
+.btn-generate {
+  background: #f59e0b;
+  color: white;
+}
+.btn-generate:hover:not(:disabled) {
+  background: #d97706;
+}
+.btn-release {
+  background: #6366f1;
+  color: white;
+}
+.btn-release:hover:not(:disabled) {
+  background: #4f46e5;
+}
+.btn-unrelease {
+  background: #f43f5e;
+  color: white;
+}
+.btn-unrelease:hover:not(:disabled) {
+  background: #e11d48;
+}
+.status-released {
+  background: #dcfce7;
+  color: #166534;
+  margin-left: 4px;
+}
 .btn-dispatch {
   background: #10b981;
   color: white;

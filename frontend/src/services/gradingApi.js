@@ -24,7 +24,7 @@ export default {
         if (data && typeof data === 'object' && Array.isArray(data.results)) {
             return data.results;
         }
-        return data;
+        return Array.isArray(data) ? data : [];
     },
 
     async getCopy(id) {
