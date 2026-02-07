@@ -43,84 +43,88 @@ class ExamUploadView(APIView):
                 with transaction.atomic():
                     exam = serializer.save()
                     
-                    import uuid
                     import logging
-                    import tempfile
                     import os
+                    from core.utils.errors import safe_error_response
+                    
                     logger = logging.getLogger(__name__)
                     
-                    # Vérifier si mode batch avec CSV
-                    students_csv = request.FILES.get('students_csv')
-                    batch_mode = request.data.get('batch_mode', 'false').lower() == 'true'
+                    # 1. Sauvegarder le CSV s'il est fourni
+                    students_csv_file = request.FILES.get('students_csv')
+                    if students_csv_file:
+                        exam.student_csv = students_csv_file
+                        exam.save()
+                        logger.info(f"Student CSV saved for exam {exam.id}")
+
+                    # 2. Détection adaptative du format (A3 vs A4) via BatchA3Processor
+                    # On utilise le PDF source qui vient d'être sauvegardé
+                    from processing.services.batch_processor import BatchA3Processor
                     
-                    if batch_mode and students_csv:
-                        # Mode batch: utiliser BatchA3Processor
-                        logger.info(f"Batch mode enabled for exam {exam.id}")
-                        
-                        # Sauvegarder le CSV temporairement
-                        with tempfile.NamedTemporaryFile(mode='wb', suffix='.csv', delete=False) as f:
-                            for chunk in students_csv.chunks():
-                                f.write(chunk)
-                            csv_path = f.name
-                        
-                        try:
-                            from processing.services.batch_processor import BatchA3Processor
-                            
-                            processor = BatchA3Processor(dpi=200, csv_path=csv_path)
-                            
-                            # Traiter le batch
-                            student_copies = processor.process_batch_pdf(
-                                exam.pdf_source.path, 
-                                str(exam.id)
-                            )
-                            
-                            # Créer les copies en DB
-                            copies = processor.create_copies_from_batch(exam, student_copies)
-                            
-                            # Stats
-                            ready_count = sum(1 for c in copies if c.status == Copy.Status.READY)
-                            staging_count = sum(1 for c in copies if c.status == Copy.Status.STAGING)
-                            
-                            return Response({
-                                **serializer.data,
-                                "copies_created": len(copies),
-                                "ready_count": ready_count,
-                                "needs_review_count": staging_count,
-                                "message": f"{len(copies)} copies created ({ready_count} ready, {staging_count} need review)"
-                            }, status=status.HTTP_201_CREATED)
-                            
-                        finally:
-                            if os.path.exists(csv_path):
-                                os.unlink(csv_path)
+                    # Instancier le processeur (avec CSV si dispo)
+                    csv_path = exam.student_csv.path if exam.student_csv else None
+                    batch_processor = BatchA3Processor(dpi=200, csv_path=csv_path)
                     
-                    else:
-                        # Mode standard: A3PDFProcessor (auto-détecte A3 vs A4)
-                        from processing.services.a3_pdf_processor import A3PDFProcessor
+                    # Vérifier si c'est du A3
+                    is_a3 = batch_processor.is_a3_format(exam.pdf_source.path)
+                    
+                    if is_a3:
+                        # Mode Batch A3: Segmentation par élève
+                        logger.info(f"Detected A3 format for exam {exam.id}. Using BatchA3Processor.")
                         
-                        processor = A3PDFProcessor(dpi=150)
-                        booklets = processor.process_exam(exam)
+                        student_copies = batch_processor.process_batch_pdf(
+                            exam.pdf_source.path, 
+                            str(exam.id)
+                        )
                         
-                        # Créer les copies en statut STAGING (ADR-003)
-                        for booklet in booklets:
-                            copy = Copy.objects.create(
-                                exam=exam,
-                                anonymous_id=str(uuid.uuid4())[:8].upper(),
-                                status=Copy.Status.STAGING,
-                                is_identified=False
-                            )
-                            copy.booklets.add(booklet)
-                            logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
+                        # Créer les copies
+                        copies = batch_processor.create_copies_from_batch(exam, student_copies)
+                        
+                        ready_count = sum(1 for c in copies if c.status == Copy.Status.READY)
+                        staging_count = sum(1 for c in copies if c.status == Copy.Status.STAGING)
                         
                         return Response({
                             **serializer.data,
-                            "booklets_created": len(booklets),
-                            "message": f"{len(booklets)} booklets created successfully"
+                            "copies_created": len(copies),
+                            "ready_count": ready_count,
+                            "needs_review_count": staging_count,
+                            "message": f"A3 Batch processed: {len(copies)} copies created ({ready_count} identified, {staging_count} need review)"
+                        }, status=status.HTTP_201_CREATED)
+                        
+                    else:
+                        # Mode Standard A4: Split simple
+                        logger.info(f"Detected A4 format (or unknown) for exam {exam.id}. Using Standard PDFSplitter.")
+                        
+                        # Utiliser PDFSplitter (ou A3PDFProcessor en mode fallback A4)
+                        from processing.services.pdf_splitter import PDFSplitter
+                        
+                        splitter = PDFSplitter(dpi=150)
+                        booklets = splitter.split_exam(exam)
+                        
+                        # Créer les copies en STAGING
+                        import uuid
+                        created_count = 0
+                        for booklet in booklets: # Fix: split_exam returns booklets
+                             copy = Copy.objects.create(
+                                 exam=exam,
+                                 anonymous_id=str(uuid.uuid4())[:8].upper(),
+                                 status=Copy.Status.STAGING,
+                                 is_identified=False
+                             )
+                             copy.booklets.add(booklet)
+                             created_count += 1
+                        
+                        return Response({
+                            **serializer.data,
+                            "booklets_created": created_count,
+                            "message": f"Standard PDF processed: {created_count} booklets/copies created in STAGING"
                         }, status=status.HTTP_201_CREATED)
 
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 from core.utils.errors import safe_error_response
                 return Response(
-                    safe_error_response(e, context="PDF processing", user_message="PDF upload failed. Please verify the file is valid."),
+                    safe_error_response(e, context="Exam Creation", user_message="Failed to process exam upload."),
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
@@ -799,6 +803,36 @@ class CorrectorCopyDetailView(generics.RetrieveAPIView):
     queryset = Copy.objects.select_related('exam', 'locked_by')\
         .prefetch_related('booklets', 'annotations__created_by')
     serializer_class = CorrectorCopySerializer
+    permission_classes = [IsTeacherOrAdmin]
+    lookup_field = 'id'
+
+class ExamDispatchView(APIView):
+    """
+    Déclenche le dispatch automatique et équitable des copies aux correcteurs assignés.
+    POST /api/exams/<id>/dispatch/
+    """
+    permission_classes = [IsAdminOnly]
+
+    def post(self, request, id):
+        exam = get_object_or_404(Exam, id=id)
+        
+        try:
+            from .services.dispatch import DispatchService
+            assignments = DispatchService.dispatch_copies(exam)
+            return Response({
+                "message": "Dispatch successful", 
+                "assignments": assignments
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            from core.utils.errors import safe_error_response
+            return Response(
+                safe_error_response(e, context="Exam Dispatch", user_message="Failed to dispatch copies."),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    serializer_class = CorrectorCopySerializer
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     lookup_field = 'id'
 
@@ -859,10 +893,12 @@ class ExamDispatchView(APIView):
                 random.shuffle(unassigned_copies)
 
                 # PRD-19: Balance distribution based on current load
-                # Count existing assignments per corrector for this exam
+                # Query inside atomic block to ensure consistency with locked copies
                 from django.db.models import Count
                 current_load = dict(
-                    Copy.objects.filter(exam=exam, assigned_corrector__isnull=False)
+                    Copy.objects.select_for_update().filter(
+                        exam=exam, assigned_corrector__isnull=False
+                    )
                     .values('assigned_corrector')
                     .annotate(count=Count('id'))
                     .values_list('assigned_corrector', 'count')

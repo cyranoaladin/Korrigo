@@ -200,12 +200,28 @@ class GradingService:
     """
 
     @staticmethod
-    def compute_score(copy: Copy) -> int:
-        total = 0
+    def compute_score(copy: Copy) -> float:
+        import math
+        total = 0.0
+        # 1. Add Annotation scores (Bonuses/Maluses)
         for annotation in copy.annotations.all():
             if annotation.score_delta is not None:
-                total += annotation.score_delta
-        return total
+                delta = float(annotation.score_delta)
+                if math.isfinite(delta):
+                    total += delta
+                else:
+                    logger.warning(f"Non-finite score_delta on annotation {annotation.id}, skipped")
+
+        # 2. Add Question scores (Barème)
+        for q_score in copy.question_scores.all():
+            if q_score.score is not None:
+                score_val = float(q_score.score)
+                if math.isfinite(score_val):
+                    total += score_val
+                else:
+                    logger.warning(f"Non-finite score on question {q_score.question_id}, skipped")
+
+        return round(total, 2)
 
     @staticmethod
     def _reconcile_lock_state(copy: Copy) -> None:
@@ -546,9 +562,8 @@ class GradingService:
             elif str(lock.token) != str(lock_token):
                 raise PermissionError("Invalid lock token.")
 
-        final_score = GradingService.compute_score(copy)
-
-        # P0-DI-004 FIX: Set intermediate status during processing
+        # P0-DI-004 FIX: Set intermediate status BEFORE score computation
+        # to narrow the race window for concurrent annotation edits
         copy.status = Copy.Status.GRADING_IN_PROGRESS
         copy.grading_retries += 1
         copy.locked_at = None
@@ -558,6 +573,9 @@ class GradingService:
         # Delete lock immediately after status change
         if lock is not None:
             lock.delete()
+
+        # Compute score AFTER lock release and status transition
+        final_score = GradingService.compute_score(copy)
 
         # Generate Final PDF with comprehensive error handling
         from processing.services.pdf_flattener import PDFFlattener

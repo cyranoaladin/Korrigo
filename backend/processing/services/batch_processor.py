@@ -115,26 +115,39 @@ class BatchA3Processor:
         if csv_path:
             self._load_csv_whitelist(csv_path)
 
-    def _load_csv_whitelist(self, csv_path: str) -> None:
+    def _load_csv_whitelist(self, csv_path: str, max_rows: int = 5000) -> None:
         """Charge le CSV des élèves comme whitelist pour l'OCR."""
         import csv
-        
+
         self.students_whitelist = []
-        
+
         try:
-            with open(csv_path, 'r', encoding='utf-8') as f:
+            # Try UTF-8 first, fall back to latin-1
+            for encoding in ('utf-8-sig', 'utf-8', 'latin-1'):
+                try:
+                    f = open(csv_path, 'r', encoding=encoding)
+                    f.readline()  # test read
+                    f.seek(0)
+                    break
+                except UnicodeDecodeError:
+                    if encoding == 'latin-1':
+                        raise
+                    continue
+
+            with f:
                 reader = csv.DictReader(f)
-                for row in reader:
-                    # Normaliser les noms de colonnes
+                for row_num, row in enumerate(reader, start=1):
+                    if row_num > max_rows:
+                        logger.warning(f"CSV whitelist truncated at {max_rows} rows")
+                        break
                     student = {}
                     for key, value in row.items():
                         if not key or not value:
                             continue
                         key_lower = key.strip().lower()
-                        value = value.strip()
-                        
+                        value = value.strip()[:500]  # Limit field length
+
                         if 'élève' in key_lower or 'eleve' in key_lower:
-                            # Format "NOM PRENOM"
                             parts = value.split(' ', 1)
                             student['last_name'] = parts[0] if parts else ''
                             student['first_name'] = parts[1] if len(parts) > 1 else ''
@@ -145,12 +158,12 @@ class BatchA3Processor:
                             student['email'] = value
                         elif 'classe' in key_lower:
                             student['class_name'] = value
-                    
+
                     if student.get('last_name'):
                         self.students_whitelist.append(student)
-            
+
             logger.info(f"Loaded {len(self.students_whitelist)} students from CSV whitelist")
-            
+
         except Exception as e:
             logger.error(f"Failed to load CSV whitelist: {e}")
 
