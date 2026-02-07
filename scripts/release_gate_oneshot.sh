@@ -114,13 +114,13 @@ run_logged "05_wait_metrics" bash -c "
 log "Stability check: 180s (no restarts expected)…"
 run_logged "06_stability_180s" bash -c "
   set -euo pipefail
-  before=\$(docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps --format json 2>/dev/null | jq -r '.[] | \"\(.Name) \(.Status)\"' | sort || docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps)
+  before=\$(docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps --format '{{json .}}' 2>/dev/null | jq -r 'if type==\"array\" then .[] else . end | \"\(.Name) \(.Status)\"' | sort || docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps)
   echo '--- status(before) ---'
   echo \"\$before\"
 
   sleep 180
 
-  after=\$(docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps --format json 2>/dev/null | jq -r '.[] | \"\(.Name) \(.Status)\"' | sort || docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps)
+  after=\$(docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps --format '{{json .}}' 2>/dev/null | jq -r 'if type==\"array\" then .[] else . end | \"\(.Name) \(.Status)\"' | sort || docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps)
   echo '--- status(after) ---'
   echo \"\$after\"
 
