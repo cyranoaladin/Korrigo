@@ -22,9 +22,10 @@ export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 export DJANGO_ENV="${DJANGO_ENV:-production}"
 export DEBUG="${DEBUG:-False}"
-export METRICS_TOKEN="${METRICS_TOKEN:-}"  # empty => public metrics; set to strong secret in real prod
-export ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"     # if empty, seed should generate/randomize
-export TEACHER_PASSWORD="${TEACHER_PASSWORD:-}" # if empty, seed should generate/randomize
+# Only export if non-empty; empty values override .env file values in docker compose
+[ -n "${METRICS_TOKEN:-}" ] && export METRICS_TOKEN || true
+[ -n "${ADMIN_PASSWORD:-}" ] && export ADMIN_PASSWORD || true
+[ -n "${TEACHER_PASSWORD:-}" ] && export TEACHER_PASSWORD || true
 
 # Test credentials (for E2E validation only; reset after seed)
 TEST_PROF_PASSWORD="${TEST_PROF_PASSWORD:-prof}"
