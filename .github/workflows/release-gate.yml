@@ -142,7 +142,7 @@ jobs:
         run: |
           if [ ! -f .env ]; then
             echo "Creating CI .env for docker-compose..."
-            cat > .env << 'ENVEOF'
+            cat > .env <<'ENVEOF'
           SECRET_KEY=ci-release-gate-secret-key-not-for-production
           DJANGO_ENV=production
           DEBUG=False
@@ -166,7 +166,10 @@ jobs:
           CELERY_BROKER_URL=redis://redis:6379/0
           RATELIMIT_ENABLE=false
           ENVEOF
-            echo ".env created with CI values"
+            # Strip leading whitespace from heredoc (YAML indentation artifact)
+            sed -i 's/^[[:space:]]*//' .env
+            echo ".env created with CI values:"
+            cat .env
           else
             echo ".env already exists"
           fi
