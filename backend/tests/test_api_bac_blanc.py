@@ -251,10 +251,11 @@ class BacBlancE2ETest(TestCase):
         """
         Test that student can access their graded copy
         """
-        # Create a fully processed copy
+        # Create a fully processed copy (results must be released for student visibility)
         exam = Exam.objects.create(
             name='Test Exam for Student',
-            date='2026-01-01'
+            date='2026-01-01',
+            results_released_at=timezone.now(),
         )
         
         booklet = Booklet.objects.create(

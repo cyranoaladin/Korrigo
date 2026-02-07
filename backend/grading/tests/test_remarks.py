@@ -71,10 +71,10 @@ def copy_obj(db, exam_with_structure):
     )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestQuestionRemarks:
     """Test QuestionRemark CRUD operations."""
-    
+
     def test_create_remark(self, teacher_user, copy_obj):
         """Test creating a new remark."""
         client = APIClient()
