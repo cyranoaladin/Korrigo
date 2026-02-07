@@ -109,6 +109,69 @@ class PDFSplitter:
         logger.info(f"PDF split complete for exam {exam.id}: {len(booklets_created)} booklets created")
         return booklets_created
 
+    @transaction.atomic
+    def split_pdf_file(self, exam, pdf_path, source_pdf=None):
+        """
+        Découpe un fichier PDF arbitraire en booklets pour l'examen donné.
+        Contrairement à split_exam(), accepte un chemin PDF au lieu de exam.pdf_source.
+
+        Args:
+            exam: Exam instance parente
+            pdf_path (str): Chemin absolu vers le fichier PDF
+            source_pdf: ExamSourcePDF instance optionnelle (FK de traçabilité)
+
+        Returns:
+            list[Booklet]: Liste des booklets créés
+        """
+        import os
+        if not os.path.exists(pdf_path):
+            raise FileNotFoundError(f"PDF not found: {pdf_path}")
+
+        logger.info(f"Starting PDF split for exam {exam.id} from file: {pdf_path}")
+
+        doc = fitz.open(pdf_path)
+        try:
+            total_pages = doc.page_count
+            ppb = exam.pages_per_booklet or self.pages_per_booklet
+            booklets_count = (total_pages + ppb - 1) // ppb
+
+            logger.info(f"Total pages: {total_pages}, Pages/Booklet: {ppb}, Expected Booklets: {booklets_count}")
+
+            booklets_created = []
+
+            for i in range(booklets_count):
+                start_page = i * ppb + 1
+                end_page = min((i + 1) * ppb, total_pages)
+
+                logger.info(f"Creating booklet {i+1}/{booklets_count}: pages {start_page}-{end_page}")
+
+                booklet = Booklet.objects.create(
+                    exam=exam,
+                    start_page=start_page,
+                    end_page=end_page,
+                    source_pdf=source_pdf,
+                    student_name_guess=f"Booklet {i+1}"
+                )
+
+                actual_count = end_page - start_page + 1
+                if actual_count != ppb:
+                    logger.warning(
+                        f"Booklet {booklet.id} (Index {i}) has {actual_count} pages "
+                        f"instead of {ppb}. Possible orphan/end of scan."
+                    )
+
+                pages_images = self._extract_pages(doc, start_page, end_page, exam.id, booklet.id)
+                booklet.pages_images = pages_images
+                booklet.save()
+
+                booklets_created.append(booklet)
+                logger.info(f"Booklet {booklet.id} created with {len(pages_images)} pages")
+        finally:
+            doc.close()
+
+        logger.info(f"PDF file split complete: {len(booklets_created)} booklets created")
+        return booklets_created
+
     def _extract_pages(self, doc: fitz.Document, start_page: int, end_page: int, exam_id, booklet_id):
         """
         Extrait les pages individuelles d'un booklet en PNG.

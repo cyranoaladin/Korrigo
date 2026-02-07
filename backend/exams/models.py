@@ -71,6 +71,63 @@ class Exam(models.Model):
     def __str__(self):
         return self.name
 
+class ExamSourcePDF(models.Model):
+    """
+    Stocke un fichier PDF source individuel uploadé pour un examen.
+    Un examen peut avoir plusieurs PDFs (ex: lots de scans différents).
+    Chaque PDF est détecté indépendamment comme A3 ou A4.
+    """
+    class Format(models.TextChoices):
+        A3 = 'A3', 'A3'
+        A4 = 'A4', 'A4'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    exam = models.ForeignKey(
+        Exam,
+        on_delete=models.CASCADE,
+        related_name='source_pdfs',
+        verbose_name=_("Examen")
+    )
+    pdf_file = models.FileField(
+        upload_to='exams/source/',
+        verbose_name=_("Fichier PDF"),
+        validators=[
+            FileExtensionValidator(allowed_extensions=['pdf']),
+            validate_pdf_size,
+            validate_pdf_not_empty,
+            validate_pdf_mime_type,
+            validate_pdf_integrity,
+        ],
+    )
+    original_filename = models.CharField(
+        max_length=255,
+        verbose_name=_("Nom du fichier original")
+    )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Ordre d'affichage")
+    )
+    detected_format = models.CharField(
+        max_length=10,
+        choices=Format.choices,
+        default=Format.A4,
+        verbose_name=_("Format détecté")
+    )
+    page_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Nombre de pages")
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("PDF Source")
+        verbose_name_plural = _("PDFs Source")
+        ordering = ['display_order', 'uploaded_at']
+
+    def __str__(self):
+        return f"{self.original_filename} ({self.detected_format}, {self.page_count}p)"
+
+
 class Booklet(models.Model):
     """
     Représente un fascicule (groupe de pages) détecté automatiquement.
@@ -97,6 +154,14 @@ class Booklet(models.Model):
         blank=True, 
         null=True, 
         verbose_name=_("Estimation du nom (OCR)")
+    )
+    source_pdf = models.ForeignKey(
+        'ExamSourcePDF',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='booklets',
+        verbose_name=_("PDF source d'origine")
     )
     pages_images = models.JSONField(
         default=list,

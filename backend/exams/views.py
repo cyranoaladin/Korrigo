@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.utils.decorators import method_decorator
 from core.utils.ratelimit import maybe_ratelimit
-from .models import Exam, Booklet, Copy
+from .models import Exam, Booklet, Copy, ExamSourcePDF
 from .serializers import ExamSerializer, BookletSerializer, CopySerializer, CorrectorCopySerializer
 from processing.services.vision import HeaderDetector
 from grading.services import GradingService
@@ -129,6 +129,253 @@ class ExamUploadView(APIView):
                 )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ExamMultiUploadView(APIView):
+    """
+    Upload d'examen avec support multi-fichiers PDF.
+    POST /api/exams/multi-upload/
+
+    Chaque fichier PDF est validé et traité indépendamment (A3/A4 auto-détecté).
+    Tous les booklets/copies créés appartiennent au même examen.
+
+    Multipart form data:
+    - name (required): Nom de l'examen
+    - date (required): Date de l'examen (YYYY-MM-DD)
+    - pdf_files (required): Un ou plusieurs fichiers PDF
+    - students_csv (optional): Fichier CSV des élèves
+    - pages_per_booklet (optional): Entier, défaut 4
+    """
+    permission_classes = [IsAdminOnly]
+    parser_classes = (MultiPartParser, FormParser)
+
+    @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
+    def post(self, request, *args, **kwargs):
+        import logging
+        import uuid
+        from django.core.exceptions import ValidationError
+        from core.utils.errors import safe_error_response
+        from .validators import (
+            validate_pdf_size, validate_pdf_not_empty,
+            validate_pdf_mime_type, validate_pdf_integrity,
+        )
+
+        logger = logging.getLogger(__name__)
+
+        # 1. Valider les champs obligatoires
+        name = request.data.get('name', '').strip()
+        date_str = request.data.get('date', '').strip()
+
+        if not name:
+            return Response(
+                {"error": _("Le nom de l'examen est obligatoire.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not date_str:
+            return Response(
+                {"error": _("La date de l'examen est obligatoire.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2. Collecter les fichiers PDF
+        pdf_files = request.FILES.getlist('pdf_files')
+        if not pdf_files:
+            # Fallback: clé unique 'pdf_source' pour backward compat
+            single_pdf = request.FILES.get('pdf_source')
+            if single_pdf:
+                pdf_files = [single_pdf]
+
+        if not pdf_files:
+            return Response(
+                {"error": _("Au moins un fichier PDF est requis.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 3. Pré-validation de TOUS les fichiers AVANT toute écriture DB
+        file_errors = {}
+        for pdf_file in pdf_files:
+            errors = []
+            for validator in [validate_pdf_size, validate_pdf_not_empty,
+                              validate_pdf_mime_type, validate_pdf_integrity]:
+                try:
+                    validator(pdf_file)
+                except ValidationError as e:
+                    errors.extend(e.messages if hasattr(e, 'messages') else [str(e.message)])
+            if errors:
+                file_errors[pdf_file.name] = errors
+
+        if file_errors:
+            return Response(
+                {"error": _("Validation échouée pour certains fichiers."),
+                 "file_errors": file_errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 4. Traitement atomique
+        try:
+            with transaction.atomic():
+                # Valider et parser pages_per_booklet
+                try:
+                    pages_per_booklet = int(request.data.get('pages_per_booklet', 4))
+                    if pages_per_booklet < 1:
+                        pages_per_booklet = 4
+                except (ValueError, TypeError):
+                    pages_per_booklet = 4
+
+                # Créer l'examen
+                exam = Exam.objects.create(
+                    name=name,
+                    date=date_str,
+                    pages_per_booklet=pages_per_booklet
+                )
+
+                # Sauvegarder le CSV si fourni
+                students_csv_file = request.FILES.get('students_csv')
+                if students_csv_file:
+                    exam.student_csv = students_csv_file
+                    exam.save()
+                    logger.info(f"Student CSV saved for exam {exam.id}")
+
+                # Instancier le processeur batch (réutilisé pour tous les A3)
+                from processing.services.batch_processor import BatchA3Processor
+                from processing.services.pdf_splitter import PDFSplitter
+
+                csv_path = exam.student_csv.path if exam.student_csv else None
+                batch_processor = BatchA3Processor(dpi=200, csv_path=csv_path)
+                splitter = PDFSplitter(dpi=150)
+
+                per_file_results = []
+                total_copies = 0
+                total_ready = 0
+                total_staging = 0
+                total_booklets = 0
+
+                for i, pdf_file in enumerate(pdf_files):
+                    # Créer le record ExamSourcePDF
+                    source_pdf = ExamSourcePDF.objects.create(
+                        exam=exam,
+                        pdf_file=pdf_file,
+                        original_filename=pdf_file.name,
+                        display_order=i
+                    )
+
+                    result = self._process_single_pdf(
+                        exam, source_pdf, batch_processor, splitter, logger
+                    )
+                    per_file_results.append(result)
+
+                    total_copies += result.get('copies_created', 0)
+                    total_ready += result.get('ready_count', 0)
+                    total_staging += result.get('staging_count', 0)
+                    total_booklets += result.get('booklets_created', 0)
+
+                exam.is_processed = True
+                exam.save()
+
+                return Response({
+                    "id": str(exam.id),
+                    "name": exam.name,
+                    "date": str(exam.date),
+                    "files_processed": len(pdf_files),
+                    "total_copies_created": total_copies,
+                    "total_ready": total_ready,
+                    "total_staging": total_staging,
+                    "total_booklets_created": total_booklets,
+                    "per_file_results": per_file_results,
+                    "message": (
+                        f"{len(pdf_files)} fichier(s) traité(s): "
+                        f"{total_copies} copies créées "
+                        f"({total_ready} identifiées, {total_staging} à vérifier)"
+                    )
+                }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response(
+                safe_error_response(
+                    e, context="Multi-file exam upload",
+                    user_message="Échec du traitement de l'upload multi-fichiers."
+                ),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def _process_single_pdf(self, exam, source_pdf, batch_processor, splitter, logger):
+        """
+        Traite un seul fichier PDF (A3 ou A4 auto-détecté).
+
+        Returns:
+            dict: Statistiques de traitement pour ce fichier
+        """
+        import uuid as uuid_mod
+
+        pdf_path = source_pdf.pdf_file.path
+
+        # Compter les pages
+        doc = fitz.open(pdf_path)
+        source_pdf.page_count = doc.page_count
+        doc.close()
+
+        # Détecter le format
+        is_a3 = batch_processor.is_a3_format(pdf_path)
+        source_pdf.detected_format = ExamSourcePDF.Format.A3 if is_a3 else ExamSourcePDF.Format.A4
+        source_pdf.save()
+
+        if is_a3:
+            logger.info(
+                f"[{source_pdf.original_filename}] Détecté A3 "
+                f"({source_pdf.page_count} pages). BatchA3Processor."
+            )
+
+            student_copies = batch_processor.process_batch_pdf(
+                pdf_path, str(exam.id)
+            )
+            copies = batch_processor.create_copies_from_batch(exam, student_copies)
+
+            # Rattacher les booklets à leur source_pdf
+            for copy in copies:
+                copy.booklets.all().update(source_pdf=source_pdf)
+
+            ready_count = sum(1 for c in copies if c.status == Copy.Status.READY)
+            staging_count = sum(1 for c in copies if c.status == Copy.Status.STAGING)
+
+            return {
+                'filename': source_pdf.original_filename,
+                'format': 'A3',
+                'page_count': source_pdf.page_count,
+                'copies_created': len(copies),
+                'ready_count': ready_count,
+                'staging_count': staging_count,
+            }
+        else:
+            logger.info(
+                f"[{source_pdf.original_filename}] Détecté A4 "
+                f"({source_pdf.page_count} pages). PDFSplitter."
+            )
+
+            booklets = splitter.split_pdf_file(exam, pdf_path, source_pdf=source_pdf)
+
+            created_count = 0
+            for booklet in booklets:
+                copy = Copy.objects.create(
+                    exam=exam,
+                    anonymous_id=str(uuid_mod.uuid4())[:8].upper(),
+                    status=Copy.Status.STAGING,
+                    is_identified=False
+                )
+                copy.booklets.add(booklet)
+                created_count += 1
+
+            return {
+                'filename': source_pdf.original_filename,
+                'format': 'A4',
+                'page_count': source_pdf.page_count,
+                'booklets_created': created_count,
+                'copies_created': created_count,
+                'ready_count': 0,
+                'staging_count': created_count,
+            }
+
 
 class CopyImportView(APIView):
     """
@@ -252,12 +499,13 @@ class BookletHeaderView(APIView):
 
                     return response
         
-        # Fallback: extraire depuis le PDF source
-        if booklet.exam.pdf_source:
+        # Fallback: extraire depuis le PDF source (priorité: source_pdf du booklet, sinon exam.pdf_source)
+        source_file = booklet.source_pdf.pdf_file if booklet.source_pdf else booklet.exam.pdf_source
+        if source_file:
             page_index = booklet.start_page - 1 if booklet.start_page else 0
-            
+
             try:
-                doc = fitz.open(booklet.exam.pdf_source.path)
+                doc = fitz.open(source_file.path)
                 if 0 <= page_index < doc.page_count:
                     page = doc.load_page(page_index)
                     pix = page.get_pixmap(dpi=150)
@@ -306,18 +554,20 @@ class BookletSplitView(APIView):
                  status=status.HTTP_403_FORBIDDEN
              )
 
-        if not booklet.exam.pdf_source:
+        # Priorité: source_pdf du booklet, sinon exam.pdf_source
+        source_file = booklet.source_pdf.pdf_file if booklet.source_pdf else booklet.exam.pdf_source
+        if not source_file:
              return Response({"error": "No PDF source found"}, status=status.HTTP_404_NOT_FOUND)
-        
+
         # Determine source page index
         page_index = booklet.start_page - 1
-        
+
         import tempfile
         import os
         from processing.services.splitter import A3Splitter
 
         try:
-            doc = fitz.open(booklet.exam.pdf_source.path)
+            doc = fitz.open(source_file.path)
             if page_index < 0 or page_index >= doc.page_count:
                 return Response({"error": "Page out of range"}, status=status.HTTP_404_NOT_FOUND)
                 
