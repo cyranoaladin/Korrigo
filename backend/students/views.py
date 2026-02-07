@@ -50,8 +50,19 @@ class StudentLoginView(views.APIView):
         user = authenticate(request, username=student.user.username, password=password)
         
         if user is not None and user.is_active:
+            # Establish Django session auth to enforce CSRF on unsafe methods
+            from django.contrib.auth import login
+            from django.contrib.auth.models import Group
+            from core.auth import UserRole
+
+            login(request, user)
             request.session['student_id'] = student.id
             request.session['role'] = 'Student'
+
+            # Ensure student is in Student group (for permission checks)
+            student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
+            if not user.groups.filter(name=UserRole.STUDENT).exists():
+                user.groups.add(student_group)
             # Audit trail: Login élève réussi
             log_authentication_attempt(request, success=True, student_id=student.id)
             
