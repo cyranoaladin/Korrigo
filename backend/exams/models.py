@@ -29,6 +29,14 @@ class Exam(models.Model):
         ],
         help_text=_("Fichier PDF uniquement. Taille max: 50 MB, 500 pages max")
     )
+    student_csv = models.FileField(
+        upload_to='exams/csv/',
+        verbose_name=_("Fichier CSV des élèves"),
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['csv'])],
+        help_text=_("Fichier CSV pour l'identification des élèves (whitelist).")
+    )
     pages_per_booklet = models.PositiveIntegerField(
         default=4,
         verbose_name=_("Pages par fascicule"),

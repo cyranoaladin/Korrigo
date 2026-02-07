@@ -59,48 +59,48 @@ class PDFSplitter:
         logger.info(f"Starting PDF split for exam {exam.id}: {pdf_path}")
 
         doc = fitz.open(pdf_path)
-        total_pages = doc.page_count
-        ppb = exam.pages_per_booklet or self.pages_per_booklet
-        
-        # Calculate chunks (ceil division)
-        booklets_count = (total_pages + ppb - 1) // ppb
+        try:
+            total_pages = doc.page_count
+            ppb = exam.pages_per_booklet or self.pages_per_booklet
 
-        logger.info(f"Total pages: {total_pages}, Pages/Booklet: {ppb}, Expected Booklets: {booklets_count}")
+            # Calculate chunks (ceil division)
+            booklets_count = (total_pages + ppb - 1) // ppb
 
-        booklets_created = []
+            logger.info(f"Total pages: {total_pages}, Pages/Booklet: {ppb}, Expected Booklets: {booklets_count}")
 
-        for i in range(booklets_count):
-            start_page = i * ppb + 1  # 1-based
-            end_page = min((i + 1) * ppb, total_pages) # Clamp to total
+            booklets_created = []
 
-            logger.info(f"Creating booklet {i+1}/{booklets_count}: pages {start_page}-{end_page}")
+            for i in range(booklets_count):
+                start_page = i * ppb + 1  # 1-based
+                end_page = min((i + 1) * ppb, total_pages) # Clamp to total
 
-            # Créer le booklet
-            booklet = Booklet.objects.create(
-                exam=exam,
-                start_page=start_page,
-                end_page=end_page,
-                student_name_guess=f"Booklet {i+1}"
-            )
+                logger.info(f"Creating booklet {i+1}/{booklets_count}: pages {start_page}-{end_page}")
 
-            # Check for anomaly (orphan pages / partial booklet)
-            actual_count = end_page - start_page + 1
-            if actual_count != ppb:
-                logger.warning(f"Booklet {booklet.id} (Index {i}) has {actual_count} pages instead of {ppb}. Possible orphan/end of scan.")
-                # We could mark it as suspicious if needed, but for now we just log ensuring no data loss.
-            
-            # Extraire les pages
-            pages_images = self._extract_pages(doc, start_page, end_page, exam.id, booklet.id)
+                # Créer le booklet
+                booklet = Booklet.objects.create(
+                    exam=exam,
+                    start_page=start_page,
+                    end_page=end_page,
+                    student_name_guess=f"Booklet {i+1}"
+                )
 
-            # Sauvegarder les chemins
-            booklet.pages_images = pages_images
-            booklet.save()
+                # Check for anomaly (orphan pages / partial booklet)
+                actual_count = end_page - start_page + 1
+                if actual_count != ppb:
+                    logger.warning(f"Booklet {booklet.id} (Index {i}) has {actual_count} pages instead of {ppb}. Possible orphan/end of scan.")
 
-            booklets_created.append(booklet)
+                # Extraire les pages
+                pages_images = self._extract_pages(doc, start_page, end_page, exam.id, booklet.id)
 
-            logger.info(f"Booklet {booklet.id} created with {len(pages_images)} pages")
+                # Sauvegarder les chemins
+                booklet.pages_images = pages_images
+                booklet.save()
 
-        doc.close()
+                booklets_created.append(booklet)
+
+                logger.info(f"Booklet {booklet.id} created with {len(pages_images)} pages")
+        finally:
+            doc.close()
 
         # Marquer l'exam comme traité
         exam.is_processed = True

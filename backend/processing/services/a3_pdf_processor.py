@@ -48,27 +48,28 @@ class A3PDFProcessor:
         Returns:
             True si le PDF est en format A3, False sinon
         """
+        doc = None
         try:
             doc = fitz.open(pdf_path)
             if doc.page_count == 0:
-                doc.close()
                 return False
-            
-            # Vérifier la première page
+
             page = doc.load_page(0)
             rect = page.rect
             width, height = rect.width, rect.height
-            doc.close()
-            
+
             ratio = width / height if height > 0 else 0
             is_a3 = ratio > A3_ASPECT_RATIO_THRESHOLD
-            
+
             logger.info(f"PDF format detection: width={width:.0f}, height={height:.0f}, ratio={ratio:.2f}, is_A3={is_a3}")
             return is_a3
-            
+
         except Exception as e:
             logger.error(f"Error detecting PDF format: {e}")
             return False
+        finally:
+            if doc is not None:
+                doc.close()
 
     @transaction.atomic
     def process_exam(self, exam: Exam, force=False) -> list:
