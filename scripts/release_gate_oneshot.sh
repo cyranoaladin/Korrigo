@@ -11,6 +11,8 @@ set -euo pipefail
 # Use current directory if ROOT not set (for CI compatibility)
 ROOT="${ROOT:-$(pwd)}"
 COMPOSE_FILE="${COMPOSE_FILE:-infra/docker/docker-compose.local-prod.yml}"
+# Explicit env-file to avoid relying on compose file directory resolution
+COMPOSE_ENV_FILE="${COMPOSE_ENV_FILE:-.env}"
 NGINX_BASE_URL="${NGINX_BASE_URL:-http://localhost:8088}"
 BACKEND_SVC="${BACKEND_SVC:-backend}"
 LOG_DIR="${LOG_DIR:-/tmp/release_gate_$(date -u +%Y%m%dT%H%M%SZ)}"
@@ -59,11 +61,11 @@ command -v jq >/dev/null || fail "jq not found (required for E2E tests)"
 
 # ---- Ensure clean slate
 log "Phase 0: Clean environment"
-run_logged "00_compose_down" docker compose -f "$COMPOSE_FILE" down -v --remove-orphans
+run_logged "00_compose_down" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" down -v --remove-orphans
 
 # ---- A) Build (no-cache) - strict
 log "Phase A: Build (no-cache)"
-run_logged "01_build_nocache" docker compose -f "$COMPOSE_FILE" build --no-cache
+run_logged "01_build_nocache" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" build --no-cache
 
 # Clean up build cache and dangling images to reclaim disk space
 log "Cleaning up Docker build cache..."
@@ -73,8 +75,8 @@ log "Disk space after build: $(df -h / | tail -1 | awk '{print $4}') free"
 
 # ---- B) Boot stack
 log "Phase B: Boot & Stability"
-run_logged "02_up" docker compose -f "$COMPOSE_FILE" up -d
-run_logged "03_ps_initial" docker compose -f "$COMPOSE_FILE" ps
+run_logged "02_up" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" up -d
+run_logged "03_ps_initial" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" ps
 
 # Wait for health endpoints (max 120s)
 log "Waiting for /api/health/live/ (max 120s)…"
@@ -111,13 +113,13 @@ run_logged "05_wait_metrics" bash -c "
 log "Stability check: 180s (no restarts expected)…"
 run_logged "06_stability_180s" bash -c "
   set -euo pipefail
-  before=\$(docker compose -f '$COMPOSE_FILE' ps --format json 2>/dev/null | jq -r '.[] | \"\(.Name) \(.Status)\"' | sort || docker compose -f '$COMPOSE_FILE' ps)
+  before=\$(docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps --format json 2>/dev/null | jq -r '.[] | \"\(.Name) \(.Status)\"' | sort || docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps)
   echo '--- status(before) ---'
   echo \"\$before\"
 
   sleep 180
 
-  after=\$(docker compose -f '$COMPOSE_FILE' ps --format json 2>/dev/null | jq -r '.[] | \"\(.Name) \(.Status)\"' | sort || docker compose -f '$COMPOSE_FILE' ps)
+  after=\$(docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps --format json 2>/dev/null | jq -r '.[] | \"\(.Name) \(.Status)\"' | sort || docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps)
   echo '--- status(after) ---'
   echo \"\$after\"
 
@@ -132,16 +134,16 @@ run_logged "06_stability_180s" bash -c "
 
 # ---- C) Migrations
 log "Phase C: Migrations"
-run_logged "07_migrate" docker compose -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python manage.py migrate --noinput
+run_logged "07_migrate" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python manage.py migrate --noinput
 
 # ---- D) Seed (idempotent x2)
 log "Phase D: Seed (idempotent x2)"
-run_logged "08_seed_run1" docker compose -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python seed_prod.py
-run_logged "09_seed_run2" docker compose -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python seed_prod.py
+run_logged "08_seed_run1" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python seed_prod.py
+run_logged "09_seed_run2" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python seed_prod.py
 
 # Reset prof1 password for E2E tests
 log "Setting prof1 password for E2E tests..."
-run_logged "10_reset_prof_password" docker compose -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python manage.py shell -c "
+run_logged "10_reset_prof_password" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python manage.py shell -c "
 from django.contrib.auth import get_user_model
 User = get_user_model()
 prof = User.objects.get(username='prof1')
@@ -152,7 +154,7 @@ print('✓ prof1 password set for E2E tests')
 
 # DB sanity check with pages_images validation
 log "DB sanity check..."
-run_logged "11_db_sanity" docker compose -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python manage.py shell -c "
+run_logged "11_db_sanity" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python manage.py shell -c "
 from exams.models import Exam, Copy
 from django.contrib.auth import get_user_model
 U=get_user_model()
@@ -183,7 +185,7 @@ run_logged "12_e2e_3runs" bash "$E2E_SCRIPT" "$NGINX_BASE_URL" "$TEST_PROF_PASSW
 
 # ---- F) Backend tests (0 fail, 0 error, 0 skipped)
 log "Phase F: Backend Tests"
-run_logged "13_pytest_full" docker compose -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" pytest -v --tb=short
+run_logged "13_pytest_full" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" pytest -v --tb=short
 
 # Extract failing test nodeids if any failures detected
 PYTEST_LOG="$LOG_DIR/13_pytest_full.log"
@@ -211,9 +213,9 @@ fi
 
 # ---- Logs capture (compose + service logs)
 log "Phase G: Logs Capture"
-run_logged "14_compose_logs" docker compose -f "$COMPOSE_FILE" logs --no-color
-run_logged "15_backend_logs_tail" docker compose -f "$COMPOSE_FILE" logs --no-color --tail=500 "$BACKEND_SVC"
-run_logged "16_ps_final" docker compose -f "$COMPOSE_FILE" ps
+run_logged "14_compose_logs" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" logs --no-color
+run_logged "15_backend_logs_tail" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" logs --no-color --tail=500 "$BACKEND_SVC"
+run_logged "16_ps_final" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" ps
 
 # ---- Validation summary from logs
 log "Phase H: Validation Summary"
