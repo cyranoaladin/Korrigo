@@ -76,6 +76,7 @@ class TestRateLimitingGracefulDegradation:
     quand RATELIMIT_ENABLE=False (configuration de test).
     """
 
+    @override_settings(RATELIMIT_ENABLE=False)
     def test_login_degraded_mode_without_redis(self):
         """
         Test du mode test: rate limiting désactivé, app fonctionne normalement.
