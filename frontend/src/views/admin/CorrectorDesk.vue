@@ -126,21 +126,42 @@ const gradingStructure = computed(() => {
     return copy.value.exam.grading_structure
 })
 
+
+
+// Revised flattenQuestions to include children references for groups
 const flattenQuestions = (structure, parentId = '', depth = 0) => {
     let items = []
     structure.forEach((item, index) => {
         const itemId = item.id || (parentId ? `${parentId}.${index + 1}` : `${index + 1}`)
         const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0
-        // Les questions sont les éléments avec points > 0 et sans enfants (feuilles)
         const isLeafQuestion = item.points > 0 && !hasChildren
+        
         if (hasChildren) {
-            // Ajouter un header de groupe (exercice)
+            // Get all descendant question IDs for this group
+            const getDescendantIds = (node, pId) => {
+                let ids = []
+                if (node.children) {
+                    node.children.forEach((child, i) => {
+                        const cId = child.id || (pId ? `${pId}.${i + 1}` : `${i + 1}`)
+                        if (child.children && child.children.length > 0) {
+                            ids = ids.concat(getDescendantIds(child, cId))
+                        } else if (child.points > 0) {
+                            ids.push(cId)
+                        }
+                    })
+                }
+                return ids
+            }
+            
+            const childIds = getDescendantIds(item, itemId)
+            
             items.push({
                 type: 'group',
                 id: `group-${itemId}`,
                 title: item.label || `Exercice ${index + 1}`,
                 totalPoints: item.points || 0,
-                depth
+                depth,
+                childIds: childIds // Store IDs of questions in this group
             })
             items = items.concat(flattenQuestions(item.children, item.label || itemId, depth + 1))
         } else if (isLeafQuestion) {
@@ -157,6 +178,40 @@ const flattenQuestions = (structure, parentId = '', depth = 0) => {
 
 const flatQuestions = computed(() => {
     return flattenQuestions(gradingStructure.value)
+})
+
+const calculateGroupScore = (childIds) => {
+    if (!childIds || childIds.length === 0) return 0
+    let total = 0
+    childIds.forEach(id => {
+        total += (questionScores.value.get(id) || 0)
+    })
+    return total
+}
+
+const globalScore = computed(() => {
+    let total = 0
+    questionScores.value.forEach(score => {
+        total += (score || 0)
+    })
+    return total
+})
+
+const globalMaxScore = computed(() => {
+    // Sum max points of all LEAF questions
+    // structure is hierarchical.
+    const sumMax = (nodes) => {
+        let sum = 0
+        nodes.forEach(node => {
+            if (node.children && node.children.length > 0) {
+                sum += sumMax(node.children)
+            } else {
+                sum += (node.points || 0)
+            }
+        })
+        return sum
+    }
+    return sumMax(gradingStructure.value)
 })
 
 // --- Global Key Handling ---
@@ -980,7 +1035,9 @@ onUnmounted(() => {
                   :class="{ 'exercise-header--nested': item.depth > 0 }"
                 >
                   <span class="exercise-title">{{ item.title }}</span>
-                  <span v-if="item.totalPoints > 0" class="exercise-points">{{ item.totalPoints }} pts</span>
+                  <span v-if="item.totalPoints > 0" class="exercise-points">
+                    {{ calculateGroupScore(item.childIds) }} / {{ item.totalPoints }} pts
+                  </span>
                 </div>
                 <!-- Question (feuille) -->
                 <div
@@ -1004,7 +1061,7 @@ onUnmounted(() => {
                       :placeholder="isReadOnly ? '-' : '0'"
                       class="score-input"
                       @input="onScoreChange(item.id, $event.target.value, item.maxScore)"
-                    />
+                    >
                     <span
                       v-if="scoresSaving.get(item.id)"
                       class="save-indicator small"
@@ -1033,6 +1090,14 @@ onUnmounted(() => {
               </template>
             </div>
             
+            
+            <div class="global-score-section">
+              <div class="global-score-display">
+                <span class="label">Note Globale</span>
+                <span class="value">{{ globalScore }} / {{ globalMaxScore }}</span>
+              </div>
+            </div>
+
             <div class="global-appreciation-section">
               <label for="global-appreciation">Appréciation globale</label>
               <textarea
@@ -1199,4 +1264,9 @@ onUnmounted(() => {
 .global-appreciation-section textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.95rem; font-family: inherit; resize: vertical; }
 .global-appreciation-section textarea:focus { outline: none; border-color: #ffc107; box-shadow: 0 0 0 0.2rem rgba(255,193,7,0.25); }
 .global-appreciation-section textarea:disabled { background: #e9ecef; cursor: not-allowed; }
+
+.global-score-section { margin-top: 20px; padding: 15px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 6px; margin-bottom: 20px; text-align: center; }
+.global-score-display { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.global-score-display .label { font-size: 1rem; font-weight: bold; color: #2e7d32; text-transform: uppercase; letter-spacing: 1px; }
+.global-score-display .value { font-size: 2rem; font-weight: 800; color: #1b5e20; }
 </style>

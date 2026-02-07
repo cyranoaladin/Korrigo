@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '../services/api' // Import Axios instance
+import { API_URL } from '../services/http'
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref(null)
@@ -103,6 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
         loginStudent, 
         logout, 
         fetchUser,
-        clearMustChangePassword
+        clearMustChangePassword,
+        API_URL
     }
 })
