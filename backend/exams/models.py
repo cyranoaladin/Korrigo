@@ -124,6 +124,16 @@ class Copy(models.Model):
         GRADING_FAILED = 'GRADING_FAILED', _("Échec de correction")
         GRADED = 'GRADED', _("Corrigé")
 
+    # Valid status transitions (state machine)
+    ALLOWED_TRANSITIONS = {
+        Status.STAGING: {Status.READY},
+        Status.READY: {Status.LOCKED, Status.STAGING},
+        Status.LOCKED: {Status.GRADING_IN_PROGRESS, Status.READY},
+        Status.GRADING_IN_PROGRESS: {Status.GRADED, Status.GRADING_FAILED},
+        Status.GRADING_FAILED: {Status.GRADING_IN_PROGRESS, Status.LOCKED},
+        Status.GRADED: set(),  # Terminal state
+    }
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(
         Exam, 
@@ -264,6 +274,20 @@ class Copy(models.Model):
         help_text=_("Commentaire global du correcteur pour cette copie")
     )
 
+    def transition_to(self, new_status):
+        """
+        Transition the copy to a new status with state machine validation.
+        Raises ValueError if the transition is not allowed.
+        """
+        old_status = self.status
+        allowed = self.ALLOWED_TRANSITIONS.get(old_status, set())
+        if new_status not in allowed:
+            raise ValueError(
+                f"Invalid status transition: {old_status} → {new_status}. "
+                f"Allowed: {', '.join(sorted(allowed)) or 'none (terminal state)'}"
+            )
+        self.status = new_status
+
     class Meta:
         verbose_name = _("Copie")
         verbose_name_plural = _("Copies")
@@ -272,6 +296,8 @@ class Copy(models.Model):
             models.Index(fields=['exam', 'status'], name='copy_exam_status_idx'),
             models.Index(fields=['assigned_corrector', 'status'], name='copy_corrector_status_idx'),
             models.Index(fields=['student', 'status'], name='copy_student_status_idx'),
+            models.Index(fields=['dispatch_run_id'], name='copy_dispatch_run_idx'),
+            models.Index(fields=['exam', 'is_identified'], name='copy_exam_identified_idx'),
         ]
 
     def __str__(self):

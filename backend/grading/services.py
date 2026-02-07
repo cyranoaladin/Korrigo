@@ -476,15 +476,12 @@ class GradingService:
     @staticmethod
     @transaction.atomic
     def validate_copy(copy: Copy, user):
-        if copy.status != Copy.Status.STAGING:
-             raise ValueError(f"Status mismatch: {copy.status} != STAGING")
-        
         # Ensure pages exist
         has_pages = any(b.pages_images and len(b.pages_images) > 0 for b in copy.booklets.all())
         if not has_pages:
              raise ValueError("No pages found, cannot validate.")
 
-        copy.status = Copy.Status.READY
+        copy.transition_to(Copy.Status.READY)
         copy.validated_at = timezone.now()
         copy.save()
 
@@ -564,7 +561,7 @@ class GradingService:
 
         # P0-DI-004 FIX: Set intermediate status BEFORE score computation
         # to narrow the race window for concurrent annotation edits
-        copy.status = Copy.Status.GRADING_IN_PROGRESS
+        copy.transition_to(Copy.Status.GRADING_IN_PROGRESS)
         copy.grading_retries += 1
         copy.locked_at = None
         copy.locked_by = None
@@ -593,7 +590,7 @@ class GradingService:
                 copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
             
             # P0-DI-004 FIX: Mark as GRADED only after PDF generation succeeds
-            copy.status = Copy.Status.GRADED
+            copy.transition_to(Copy.Status.GRADED)
             copy.graded_at = timezone.now()
             copy.grading_error_message = None  # Clear previous errors
             copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf"])
@@ -609,7 +606,7 @@ class GradingService:
         except Exception as e:
             # P0-DI-004 FIX: Save error state with detailed message
             error_msg = str(e)[:500]  # Limit message length
-            copy.status = Copy.Status.GRADING_FAILED
+            copy.transition_to(Copy.Status.GRADING_FAILED)
             copy.grading_error_message = error_msg
             copy.save(update_fields=["status", "grading_error_message"])
             
