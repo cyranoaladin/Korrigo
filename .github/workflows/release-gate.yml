@@ -173,6 +173,9 @@ jobs:
           else
             echo ".env already exists"
           fi
+          # Docker compose resolves .env from the compose file directory,
+          # not CWD. Create symlink so infra/docker/ finds it too.
+          ln -sf "$(pwd)/.env" infra/docker/.env
 
       - name: Run Release Gate One-Shot (Production-like)
         env:
