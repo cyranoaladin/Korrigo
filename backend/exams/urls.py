@@ -4,7 +4,8 @@ from .views import (
     ExamDetailView, CopyListView, MergeBookletsView, ExportAllView, CSVExportView,
     CopyIdentificationView, UnidentifiedCopiesView, StudentCopiesView,
     CopyImportView, ExamSourceUploadView, BookletSplitView, BookletDetailView,
-    BookletHeaderView, ExamDispatchView
+    BookletHeaderView, ExamDispatchView, GenerateStudentPDFsView,
+    CopyValidationView, ReleaseResultsView, UnreleaseResultsView,
 )
 
 urlpatterns = [
@@ -32,13 +33,21 @@ urlpatterns = [
     path('<uuid:exam_id>/copies/', CopyListView.as_view(), name='copy-list'),
     path('<uuid:exam_id>/merge-booklets/', MergeBookletsView.as_view(), name='merge-booklets'),
     
-    # Export
+    # Export & Generation
+    path('<uuid:exam_id>/generate-student-pdfs/', GenerateStudentPDFsView.as_view(), name='generate-student-pdfs'),
     path('<uuid:id>/export-pdf/', ExportAllView.as_view(), name='export-all-pdf'),
     path('<uuid:id>/export-csv/', CSVExportView.as_view(), name='export-csv'),
     
     # Dispatch
     path('<uuid:exam_id>/dispatch/', ExamDispatchView.as_view(), name='exam-dispatch'),
+
+    # Release / Unrelease results to students
+    path('<uuid:exam_id>/release-results/', ReleaseResultsView.as_view(), name='release-results'),
+    path('<uuid:exam_id>/unrelease-results/', UnreleaseResultsView.as_view(), name='unrelease-results'),
     
+    # Copy Validation (STAGING → READY)
+    path('copies/<uuid:id>/validate/', CopyValidationView.as_view(), name='copy-validate'),
+
     # Student Portal
     path('student/copies/', StudentCopiesView.as_view(), name='student-copies'),
 ]

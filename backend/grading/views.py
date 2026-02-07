@@ -400,8 +400,15 @@ class CopyGlobalAppreciationView(APIView):
 
     def _update(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
+
+        # Cannot modify appreciation after finalization
+        if copy.status == Copy.Status.GRADED:
+            return Response(
+                {"detail": "Cannot modify appreciation of a finalized copy."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         global_appreciation = request.data.get('global_appreciation', '')
-        
         copy.global_appreciation = global_appreciation
         copy.save(update_fields=['global_appreciation'])
 
@@ -424,6 +431,21 @@ class QuestionScoreListCreateView(generics.ListCreateAPIView):
         copy_id = self.kwargs['copy_id']
         copy = get_object_or_404(Copy, id=copy_id)
         return QuestionScore.objects.filter(copy=copy).select_related('created_by').order_by('created_at')
+
+    @staticmethod
+    def _find_question_in_structure(structure, question_id):
+        """Recursively find a question node by ID in grading_structure."""
+        if not structure:
+            return None
+        for node in structure:
+            if node.get('id') == question_id:
+                return node
+            children = node.get('children', [])
+            if children:
+                found = QuestionScoreListCreateView._find_question_in_structure(children, question_id)
+                if found:
+                    return found
+        return None
 
     def create(self, request, *args, **kwargs):
         copy_id = self.kwargs['copy_id']
@@ -450,6 +472,29 @@ class QuestionScoreListCreateView(generics.ListCreateAPIView):
                 {"detail": "score must be a number."},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # Validate score >= 0
+        if score < 0:
+            return Response(
+                {"detail": "score must be >= 0."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate question_id exists in barème and score <= max
+        grading_structure = copy.exam.grading_structure or []
+        if grading_structure:
+            question_node = self._find_question_in_structure(grading_structure, question_id)
+            if question_node is None:
+                return Response(
+                    {"detail": f"question_id '{question_id}' not found in exam grading structure."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            max_points = float(question_node.get('points', 0))
+            if max_points > 0 and score > max_points:
+                return Response(
+                    {"detail": f"score {score} exceeds max {max_points} for question '{question_id}'."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         # Update or create
         obj, created = QuestionScore.objects.update_or_create(

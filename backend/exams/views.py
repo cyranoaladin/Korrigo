@@ -269,6 +269,26 @@ class ExamMultiUploadView(APIView):
                     total_staging += result.get('staging_count', 0)
                     total_booklets += result.get('booklets_created', 0)
 
+                # Sauvegarder le fichier d'annexes si fourni
+                annexe_file = request.FILES.get('annexe_pdf')
+                has_annexe = False
+                if annexe_file:
+                    annexe_source = ExamSourcePDF.objects.create(
+                        exam=exam,
+                        pdf_file=annexe_file,
+                        original_filename=annexe_file.name,
+                        display_order=len(pdf_files),
+                        pdf_type=ExamSourcePDF.PDFType.ANNEXE,
+                        detected_format=ExamSourcePDF.Format.A4,
+                    )
+                    ann_doc = fitz.open(annexe_source.pdf_file.path)
+                    annexe_source.page_count = ann_doc.page_count
+                    ann_doc.close()
+                    annexe_source.save()
+                    has_annexe = True
+                    logger.info(f"Annexe PDF saved: {annexe_file.name} "
+                                f"({annexe_source.page_count} pages)")
+
                 exam.is_processed = True
                 exam.save()
 
@@ -281,6 +301,7 @@ class ExamMultiUploadView(APIView):
                     "total_ready": total_ready,
                     "total_staging": total_staging,
                     "total_booklets_created": total_booklets,
+                    "has_annexe": has_annexe,
                     "per_file_results": per_file_results,
                     "message": (
                         f"{len(pdf_files)} fichier(s) traité(s): "
@@ -608,33 +629,31 @@ class ExamDetailView(generics.RetrieveUpdateDestroyAPIView):
 class CopyListView(generics.ListAPIView):
     """
     Liste les copies d'un examen.
-    Les admins voient toutes les copies, les enseignants ne voient que leurs copies assignées.
+    Les admins voient toutes les copies (CopySerializer avec student info),
+    les enseignants ne voient que leurs copies assignées (CorrectorCopySerializer sans student info).
     """
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
-    serializer_class = CopySerializer
+    permission_classes = [IsTeacherOrAdmin]
 
-    # Phase 2: Add pagination for large exams
-    from rest_framework.pagination import PageNumberPagination
+    def _is_admin(self):
+        user = self.request.user
+        return user.is_superuser or user.is_staff or user.groups.filter(name='admin').exists()
 
-    class CopyPagination(PageNumberPagination):
-        page_size = 100
-        page_size_query_param = 'page_size'
-        max_page_size = 500
-
-    pagination_class = CopyPagination
+    def get_serializer_class(self):
+        if self._is_admin():
+            return CopySerializer
+        return CorrectorCopySerializer
 
     def get_queryset(self):
         exam_id = self.kwargs['exam_id']
-        user = self.request.user
-        
+
         queryset = Copy.objects.filter(exam_id=exam_id)\
             .select_related('exam', 'student', 'locked_by', 'assigned_corrector')\
             .prefetch_related('booklets', 'annotations__created_by')
-        
-        # Les admins voient toutes les copies, les enseignants seulement les leurs
-        if not (user.is_superuser or user.is_staff or user.groups.filter(name='admin').exists()):
-            queryset = queryset.filter(assigned_corrector=user)
-        
+
+        # Enseignants: seulement leurs copies assignées
+        if not self._is_admin():
+            queryset = queryset.filter(assigned_corrector=self.request.user)
+
         return queryset.order_by('anonymous_id')
 
 
@@ -710,6 +729,183 @@ class MergeBookletsView(APIView):
             status=status.HTTP_201_CREATED
         )
 
+class GenerateStudentPDFsView(APIView):
+    """
+    Génère un PDF A4 par élève à partir des scans A3 de l'examen.
+    Optionnellement, ajoute les pages annexes (identifiées par OCR).
+
+    POST /api/exams/<exam_id>/generate-student-pdfs/
+    """
+    permission_classes = [IsAdminOnly]
+
+    @method_decorator(maybe_ratelimit(key='user', rate='5/h', method='POST', block=True))
+    def post(self, request, exam_id):
+        import logging
+        import os
+        from django.conf import settings
+        from django.core.files.base import ContentFile
+        from processing.services.student_pdf_generator import StudentPDFGenerator
+
+        logger = logging.getLogger(__name__)
+        exam = get_object_or_404(Exam, id=exam_id)
+
+        # Collecter les PDFs source (type COPY uniquement)
+        copy_sources = exam.source_pdfs.filter(
+            pdf_type=ExamSourcePDF.PDFType.COPY
+        ).order_by('display_order')
+
+        if not copy_sources.exists():
+            return Response(
+                {"error": _("Aucun PDF source trouvé pour cet examen.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # CSV requis
+        if not exam.student_csv:
+            return Response(
+                {"error": _("Fichier CSV des élèves requis pour la génération.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Annexe optionnelle
+        annexe_source = exam.source_pdfs.filter(
+            pdf_type=ExamSourcePDF.PDFType.ANNEXE
+        ).first()
+
+        pdf_paths = [s.pdf_file.path for s in copy_sources]
+        annexe_path = annexe_source.pdf_file.path if annexe_source else None
+        api_key = getattr(settings, 'OPENAI_API_KEY', None) or os.environ.get('OPENAI_API_KEY')
+
+        if not api_key:
+            return Response(
+                {"error": _("Clé API OpenAI non configurée (OPENAI_API_KEY).")},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        try:
+            generator = StudentPDFGenerator(
+                csv_path=exam.student_csv.path,
+                api_key=api_key,
+            )
+
+            # Générer les PDFs dans un répertoire temporaire
+            import tempfile
+            with tempfile.TemporaryDirectory() as tmpdir:
+                result = generator.generate(
+                    pdf_paths,
+                    annexe_path=annexe_path,
+                    output_dir=tmpdir,
+                )
+
+                # Stocker chaque PDF généré comme Copy.final_pdf
+                import uuid as uuid_mod
+                from students.models import Student
+
+                # Use filename_to_student mapping for accurate name lookup
+                filename_map = result.get('filename_to_student', {})
+
+                stored_count = 0
+                for filename in os.listdir(tmpdir):
+                    if not filename.endswith('.pdf'):
+                        continue
+
+                    filepath = os.path.join(tmpdir, filename)
+                    # Prefer the original name from the mapping (preserves accents)
+                    student_name = filename_map.get(
+                        filename,
+                        filename.replace('.pdf', '').replace('_', ' ').strip()
+                    )
+
+                    with open(filepath, 'rb') as f:
+                        pdf_content = f.read()
+
+                    # Trouver ou créer la Copy pour cet élève
+                    copy = self._find_or_create_copy(exam, student_name)
+                    copy.final_pdf.save(filename, ContentFile(pdf_content), save=True)
+                    stored_count += 1
+                    logger.info(f"Stored PDF for {student_name}: {filename}")
+
+            return Response({
+                "message": (
+                    f"Génération terminée: {result['generated_count']} PDFs "
+                    f"({result['annexes_matched']} annexes matchées)"
+                ),
+                "generated": result['generated_count'],
+                "failed": result['failed_count'],
+                "annexes_matched": result['annexes_matched'],
+                "annexes_unmatched": result['annexes_unmatched'],
+                "missing_students": result['missing_students'],
+                "stored": stored_count,
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            from core.utils.errors import safe_error_response
+            return Response(
+                safe_error_response(
+                    e, context="Student PDF generation",
+                    user_message="Échec de la génération des PDFs par élève."
+                ),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @staticmethod
+    def _find_or_create_copy(exam, student_name):
+        """
+        Trouve une Copy existante pour cet élève, ou en crée une nouvelle.
+        Uses exact match first, then fuzzy matching as fallback.
+        """
+        import re
+        import unicodedata
+        import uuid as uuid_mod
+        from difflib import SequenceMatcher
+        from students.models import Student
+
+        def _normalize(text):
+            """Normalize for fuzzy comparison (strip accents, uppercase)."""
+            if not text:
+                return ''
+            text = text.upper().strip()
+            text = unicodedata.normalize('NFD', text)
+            text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+            return re.sub(r'[^A-Z\s]', '', text).strip()
+
+        # 1. Exact match (case-insensitive)
+        student = Student.objects.filter(full_name__iexact=student_name).first()
+
+        # 2. Fuzzy fallback if exact match fails
+        if not student:
+            best_match = None
+            best_ratio = 0.0
+            norm_name = _normalize(student_name)
+            for s in Student.objects.all():
+                ratio = SequenceMatcher(
+                    None, norm_name, _normalize(s.full_name)
+                ).ratio()
+                if ratio > best_ratio:
+                    best_ratio = ratio
+                    best_match = s
+            if best_match and best_ratio >= 0.80:
+                student = best_match
+
+        if student:
+            # Chercher une Copy existante liée à cet élève
+            copy = Copy.objects.filter(exam=exam, student=student).first()
+            if copy:
+                return copy
+
+        # Créer une nouvelle Copy
+        copy = Copy.objects.create(
+            exam=exam,
+            anonymous_id=str(uuid_mod.uuid4())[:8].upper(),
+            status=Copy.Status.READY,
+            is_identified=bool(student),
+            student=student,
+        )
+        return copy
+
+
 class ExportAllView(APIView):
     permission_classes = [IsAdminOnly]  # Admin only
 
@@ -780,9 +976,12 @@ class CSVExportView(APIView):
                 # Garder la copie avec le meilleur statut
                 if status_priority.get(copy.status, 99) < status_priority.get(existing.status, 99):
                     seen_students[student_id] = copy
-                # Si même statut, garder celle qui est notée (graded_at non null)
-                elif copy.status == existing.status and copy.graded_at and not existing.graded_at:
-                    seen_students[student_id] = copy
+                # Si même statut, garder celle notée le plus récemment
+                elif copy.status == existing.status:
+                    if copy.graded_at and not existing.graded_at:
+                        seen_students[student_id] = copy
+                    elif copy.graded_at and existing.graded_at and copy.graded_at > existing.graded_at:
+                        seen_students[student_id] = copy
         
         # Récupérer aussi les copies non identifiées (pour traçabilité)
         unidentified_copies = exam.copies.filter(
@@ -846,6 +1045,7 @@ class CopyIdentificationView(APIView):
     def post(self, request, id):
         # Mission 17: Identify Copy
         from students.models import Student
+        from grading.models import GradingEvent
 
         copy = get_object_or_404(Copy, id=id)
         student_id = request.data.get('student_id')
@@ -855,9 +1055,33 @@ class CopyIdentificationView(APIView):
 
         student = get_object_or_404(Student, id=student_id)
 
+        # Check for duplicate: is this student already assigned to another copy in same exam?
+        existing = Copy.objects.filter(
+            exam=copy.exam, student=student
+        ).exclude(id=copy.id).first()
+        if existing:
+            return Response(
+                {"error": f"Student already assigned to copy {existing.anonymous_id}."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        old_student = copy.student
         copy.student = student
         copy.is_identified = True
-        copy.save()
+        copy.save(update_fields=['student', 'is_identified'])
+
+        # Audit trail
+        GradingEvent.objects.create(
+            copy=copy,
+            action=GradingEvent.Action.VALIDATE,
+            actor=request.user,
+            metadata={
+                'action_type': 'identification',
+                'student_id': str(student.id),
+                'student_name': student.full_name,
+                'previous_student': str(old_student.id) if old_student else None,
+            }
+        )
 
         return Response({"message": "Identification successful"}, status=status.HTTP_200_OK)
 
@@ -899,48 +1123,86 @@ class UnidentifiedCopiesView(APIView):
 class StudentCopiesView(generics.ListAPIView):
     from .permissions import IsStudent
     permission_classes = [IsStudent]
+    pagination_class = None  # Frontend expects flat array
 
     def get_queryset(self):
-        # Try to get student_id from session (legacy) or from user association (new)
+        # Base filter: GRADED + results released by admin
+        base_filter = dict(
+            status=Copy.Status.GRADED,
+            exam__results_released_at__isnull=False,
+        )
+
+        # Prefer user association over session for security
+        try:
+            from students.models import Student
+            student = Student.objects.get(user=self.request.user)
+            return Copy.objects.filter(
+                student=student, **base_filter
+            ).select_related('exam').prefetch_related('question_scores')
+        except (Student.DoesNotExist, AttributeError):
+            pass
+
+        # Fallback: session-based (legacy)
         student_id = self.request.session.get('student_id')
         if student_id:
-            # Legacy method: using session
-            return Copy.objects.filter(student=student_id, status=Copy.Status.GRADED)
-        else:
-            # New method: get student via user association
-            try:
-                from students.models import Student
-                student = Student.objects.get(user=self.request.user)
-                return Copy.objects.filter(student=student, status=Copy.Status.GRADED)
-            except Student.DoesNotExist:
-                return Copy.objects.none()
+            return Copy.objects.filter(
+                student=student_id, **base_filter
+            ).select_related('exam').prefetch_related('question_scores')
+
+        return Copy.objects.none()
+
+    @staticmethod
+    def _build_label_map(structure, prefix=''):
+        """Build a flat dict mapping question IDs to their labels from grading_structure."""
+        labels = {}
+        for node in (structure or []):
+            node_id = node.get('id')
+            label = node.get('label', node_id or '')
+            if node_id:
+                labels[node_id] = f"{prefix}{label}" if prefix else label
+            for child in node.get('children', []):
+                child_id = child.get('id')
+                child_label = child.get('label', child_id or '')
+                if child_id:
+                    labels[child_id] = child_label
+                # Recurse deeper
+                labels.update(StudentCopiesView._build_label_map(
+                    child.get('children', [])
+                ))
+        return labels
 
     def list(self, request, *args, **kwargs):
         from grading.services import GradingService
         from core.utils.audit import log_data_access
-        
+
         queryset = self.get_queryset()
-        
-        # Audit trail: Accès liste copies élève
+
+        # Audit trail
         student_id = request.session.get('student_id')
         if student_id:
             log_data_access(request, 'Copy', f'student_{student_id}_list', action_detail='list')
-        
+
         data = []
         for copy in queryset:
             total_score = GradingService.compute_score(copy)
-            # Detailed scores not yet implemented in Annotation model linking to Question ID
-            # For MVP, we just show total.
-            scores_data = {} 
-            
+
+            # Build detailed scores with labels from barème
+            scores_data = {}
+            question_labels = self._build_label_map(copy.exam.grading_structure or [])
+            for qs in copy.question_scores.all():
+                label = question_labels.get(qs.question_id, qs.question_id)
+                scores_data[label] = float(qs.score) if qs.score is not None else None
+
             data.append({
                 "id": copy.id,
                 "exam_name": copy.exam.name,
                 "date": copy.exam.date,
                 "total_score": total_score,
+                "graded_at": copy.graded_at.isoformat() if copy.graded_at else None,
                 "status": copy.status,
+                "global_appreciation": copy.global_appreciation or "",
                 "final_pdf_url": f"/api/grading/copies/{copy.id}/final-pdf/" if copy.final_pdf else None,
-                "scores_details": scores_data
+                "scores_details": scores_data,
             })
         return Response(data)
 class ExamSourceUploadView(APIView):
@@ -993,6 +1255,39 @@ class ExamSourceUploadView(APIView):
                 )
         
         return Response({"error": "pdf_source field required"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ReleaseResultsView(APIView):
+    """POST /api/exams/<id>/release-results/ — Publie les résultats aux élèves."""
+    permission_classes = [IsAdminOnly]
+
+    def post(self, request, exam_id):
+        from django.utils import timezone
+        exam = get_object_or_404(Exam, id=exam_id)
+        if exam.results_released_at:
+            return Response(
+                {"message": "Résultats déjà publiés.", "released_at": exam.results_released_at},
+                status=status.HTTP_200_OK
+            )
+        exam.results_released_at = timezone.now()
+        exam.save(update_fields=['results_released_at'])
+        return Response({
+            "message": "Résultats publiés avec succès.",
+            "released_at": exam.results_released_at,
+        }, status=status.HTTP_200_OK)
+
+
+class UnreleaseResultsView(APIView):
+    """POST /api/exams/<id>/unrelease-results/ — Dépublie les résultats."""
+    permission_classes = [IsAdminOnly]
+
+    def post(self, request, exam_id):
+        exam = get_object_or_404(Exam, id=exam_id)
+        exam.results_released_at = None
+        exam.save(update_fields=['results_released_at'])
+        return Response({"message": "Résultats dépubliés."}, status=status.HTTP_200_OK)
+
+
 class CopyValidationView(APIView):
     permission_classes = [IsTeacherOrAdmin]
 
@@ -1021,16 +1316,7 @@ class CorrectorCopiesView(generics.ListAPIView):
     """
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = CorrectorCopySerializer
-
-    # Phase 2: Add pagination
-    from rest_framework.pagination import PageNumberPagination
-
-    class CorrectorCopyPagination(PageNumberPagination):
-        page_size = 50
-        page_size_query_param = 'page_size'
-        max_page_size = 200
-
-    pagination_class = CorrectorCopyPagination
+    pagination_class = None  # Frontend expects flat array, not paginated wrapper
 
     def get_queryset(self):
         user = self.request.user
@@ -1049,12 +1335,22 @@ class CorrectorCopiesView(generics.ListAPIView):
 class CorrectorCopyDetailView(generics.RetrieveAPIView):
     """
     Permet au correcteur de récupérer les détails d'une copie spécifique.
+    Object-level permission: teachers can only access their assigned copies.
     """
     queryset = Copy.objects.select_related('exam', 'locked_by')\
         .prefetch_related('booklets', 'annotations__created_by')
     serializer_class = CorrectorCopySerializer
     permission_classes = [IsTeacherOrAdmin]
     lookup_field = 'id'
+
+    def get_object(self):
+        obj = super().get_object()
+        user = self.request.user
+        is_admin = user.is_superuser or user.is_staff or user.groups.filter(name='admin').exists()
+        if not is_admin and obj.assigned_corrector != user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Vous n'avez pas accès à cette copie.")
+        return obj
 
 class ExamDispatchView(APIView):
     """
