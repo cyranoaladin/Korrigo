@@ -195,6 +195,11 @@ jobs:
           # Test password for E2E (needs to match what seed sets)
           TEST_PROF_PASSWORD: "prof"
 
+          # Database Credentials (from Secrets)
+          POSTGRES_DB: "${{ secrets.POSTGRES_DB || 'korrigo_ci' }}"
+          POSTGRES_USER: "${{ secrets.POSTGRES_USER || 'korrigo_ci' }}"
+          POSTGRES_PASSWORD: "${{ secrets.POSTGRES_PASSWORD || 'korrigo_ci_password' }}"
+
           # Compose file
           COMPOSE_FILE: "infra/docker/docker-compose.local-prod.yml"
         run: |
