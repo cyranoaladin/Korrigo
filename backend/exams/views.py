@@ -893,10 +893,11 @@ class ExamDispatchView(APIView):
                 random.shuffle(unassigned_copies)
 
                 # PRD-19: Balance distribution based on current load
-                # Query inside atomic block to ensure consistency with locked copies
+                # Inside atomic block for read consistency; unassigned copies
+                # are already locked above via select_for_update(skip_locked)
                 from django.db.models import Count
                 current_load = dict(
-                    Copy.objects.select_for_update().filter(
+                    Copy.objects.filter(
                         exam=exam, assigned_corrector__isnull=False
                     )
                     .values('assigned_corrector')
