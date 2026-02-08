@@ -3,8 +3,10 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from .services import OCRService
+from .models import OCRResult
 from exams.models import Copy, Booklet
 from grading.services import GradingService
 from grading.models import GradingEvent
@@ -724,3 +726,145 @@ class GPT4VisionIndexView(APIView):
                 'error': str(e),
                 'traceback': traceback.format_exc()
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class QuarantineResolutionView(APIView):
+    """Unified view: QUARANTINE copies + QUARANTINE annexes + student list."""
+    permission_classes = [IsTeacherOrAdmin]
+
+    def get(self, request, exam_id):
+        from exams.models import Exam, Copy, AnnexePage
+        from students.models import Student
+        exam = get_object_or_404(Exam, id=exam_id)
+
+        quarantine_copies = list(
+            Copy.objects.filter(exam=exam, status='QUARANTINE')
+            .values('id', 'anonymous_id', 'status')
+        )
+
+        # Enrich with OCR data if available
+        for c in quarantine_copies:
+            try:
+                ocr = OCRResult.objects.get(copy_id=c['id'])
+                c['ocr_confidence'] = ocr.confidence
+                c['ocr_tier'] = ocr.ocr_tier
+                c['extracted_last_name'] = ocr.extracted_last_name
+                c['extracted_first_name'] = ocr.extracted_first_name
+                c['top_candidates'] = ocr.top_candidates
+            except OCRResult.DoesNotExist:
+                c['ocr_confidence'] = 0.0
+                c['ocr_tier'] = ''
+                c['extracted_last_name'] = ''
+                c['extracted_first_name'] = ''
+                c['top_candidates'] = []
+
+        quarantine_annexes = list(
+            AnnexePage.objects.filter(exam=exam, status='QUARANTINE')
+            .values('id', 'page_index', 'ocr_extracted_name', 'ocr_confidence', 'ocr_tier')
+        )
+
+        students = list(
+            Student.objects.all().values('id', 'full_name', 'date_of_birth', 'class_name')
+        )
+
+        return Response({
+            'copies': quarantine_copies,
+            'annexes': quarantine_annexes,
+            'students': students,
+        })
+
+
+class ManualAssignCopyView(APIView):
+    """Assign student to a QUARANTINE copy manually."""
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, copy_id):
+        from exams.models import Copy
+        from students.models import Student
+        from grading.models import GradingEvent
+
+        with transaction.atomic():
+            copy = get_object_or_404(
+                Copy.objects.select_for_update(), id=copy_id
+            )
+            if copy.status != 'QUARANTINE':
+                return Response(
+                    {'error': f'Copy status is {copy.status}, expected QUARANTINE'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            student_id = request.data.get('student_id')
+            if not student_id:
+                return Response(
+                    {'error': 'student_id is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            student = get_object_or_404(Student, id=student_id)
+
+            # Anti-duplicate check
+            existing = Copy.objects.filter(
+                exam=copy.exam, student=student
+            ).exclude(id=copy.id).first()
+            if existing:
+                return Response(
+                    {'error': f'Student already assigned to copy {existing.anonymous_id}',
+                     'existing_copy_id': str(existing.id)},
+                    status=status.HTTP_409_CONFLICT
+                )
+
+            copy.student = student
+            copy.is_identified = True
+            copy.status = 'READY'
+            copy.save(update_fields=['student', 'is_identified', 'status'])
+
+            # Update OCR result
+            ocr_result, _ = OCRResult.objects.get_or_create(
+                copy=copy,
+                defaults={'detected_text': '', 'confidence': 0.0}
+            )
+            ocr_result.ocr_mode = 'MANUAL'
+            ocr_result.manual_override = True
+            ocr_result.save(update_fields=['ocr_mode', 'manual_override'])
+
+            GradingEvent.objects.create(
+                copy=copy, action='IMPORT', actor=request.user,
+                metadata={
+                    'type': 'manual_quarantine_resolution',
+                    'student_id': str(student_id),
+                    'student_name': student.full_name,
+                }
+            )
+
+        return Response({'status': 'assigned', 'copy_status': 'READY'})
+
+
+class ManualAssignAnnexeView(APIView):
+    """Assign student to a QUARANTINE annexe manually."""
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, annexe_id):
+        from exams.models import Copy, AnnexePage
+        from students.models import Student
+        from django.utils import timezone
+
+        with transaction.atomic():
+            annexe = get_object_or_404(
+                AnnexePage.objects.select_for_update(), id=annexe_id
+            )
+            student_id = request.data.get('student_id')
+            if not student_id:
+                return Response(
+                    {'error': 'student_id is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            student = get_object_or_404(Student, id=student_id)
+
+            copy = Copy.objects.filter(exam=annexe.exam, student=student).first()
+
+            annexe.student = student
+            annexe.copy = copy
+            annexe.status = 'MANUAL_ASSIGNED'
+            annexe.matched_by = request.user
+            annexe.matched_at = timezone.now()
+            annexe.save()
+
+        return Response({'status': 'assigned'})
