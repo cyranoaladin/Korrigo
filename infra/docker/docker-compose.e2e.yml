@@ -10,11 +10,22 @@ services:
     volumes:
       # Bind mount scripts for E2E - ensures seed_e2e.py is always up-to-date without rebuild
       - ../../backend/scripts:/app/scripts:ro
+      # Bind mount backend code for E2E - ensures latest code without full rebuild
+      - ../../backend:/app
     environment:
+      DJANGO_SETTINGS_MODULE: "core.settings_e2e"
       DJANGO_ENV: "e2e"
       RATELIMIT_ENABLE: "false"
+      DATABASE_URL: "postgres://korrigo_user:s22g4sLKZPviEqXan%2F4wm0yGMaznJIMSf3Xx%2FUsLtY0%3D@db:5432/korrigo_prod"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,backend,korrigo.labomaths.tn"
+      CSRF_TRUSTED_ORIGINS: "http://localhost:8088,http://127.0.0.1:8088"
+      CORS_ALLOWED_ORIGINS: "http://localhost:8088,http://127.0.0.1:8088"
 
   celery:
+    volumes:
+      - ../../backend:/app
     environment:
+      DJANGO_SETTINGS_MODULE: "core.settings_e2e"
       DJANGO_ENV: "e2e"
       RATELIMIT_ENABLE: "false"
+      DATABASE_URL: "postgres://korrigo_user:s22g4sLKZPviEqXan%2F4wm0yGMaznJIMSf3Xx%2FUsLtY0%3D@db:5432/korrigo_prod"

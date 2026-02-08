@@ -1,0 +1,342 @@
+diff --git a/backend/core/settings.py b/backend/core/settings.py
+index c1f5be2..d107632 100644
+--- a/backend/core/settings.py
++++ b/backend/core/settings.py
+@@ -607,3 +607,11 @@ if not DEBUG:
+     LOGGING['loggers']['django']['handlers'].append('mail_admins')
+ else:
+     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
++
++# Google Cloud Document AI (OCR Tier 2)
++DOCUMENT_AI_PROJECT_ID = os.environ.get('DOCUMENT_AI_PROJECT_ID', '')
++DOCUMENT_AI_LOCATION = os.environ.get('DOCUMENT_AI_LOCATION', 'eu')
++DOCUMENT_AI_PROCESSOR_ID = os.environ.get('DOCUMENT_AI_PROCESSOR_ID', '')
++
++# Feature flag: new OCR pipeline (default False for gradual rollout)
++USE_NEW_OCR_PIPELINE = os.environ.get('USE_NEW_OCR_PIPELINE', 'false').lower() == 'true'
+diff --git a/backend/exams/models.py b/backend/exams/models.py
+index 3465a8a..b8afb13 100644
+--- a/backend/exams/models.py
++++ b/backend/exams/models.py
+@@ -59,6 +59,9 @@ class Exam(models.Model):
+         blank=True
+     )
+ 
++    csv_parsed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("CSV parsé le"))
++    csv_student_count = models.IntegerField(default=0, verbose_name=_("Nombre d'élèves CSV"))
++
+     class Meta:
+         verbose_name = _("Examen")
+         verbose_name_plural = _("Examens")
+@@ -199,6 +202,7 @@ class Copy(models.Model):
+     """
+     class Status(models.TextChoices):
+         STAGING = 'STAGING', _("En attente")
++        QUARANTINE = 'QUARANTINE', _("Quarantaine OCR")
+         READY = 'READY', _("Prêt à corriger")
+         LOCKED = 'LOCKED', _("Verrouillé")
+         GRADING_IN_PROGRESS = 'GRADING_IN_PROGRESS', _("Correction en cours")
+@@ -207,7 +211,8 @@ class Copy(models.Model):
+ 
+     # Valid status transitions (state machine)
+     ALLOWED_TRANSITIONS = {
+-        Status.STAGING: {Status.READY},
++        Status.STAGING: {Status.READY, Status.QUARANTINE},
++        Status.QUARANTINE: {Status.READY, Status.STAGING},
+         Status.READY: {Status.LOCKED, Status.STAGING},
+         Status.LOCKED: {Status.GRADING_IN_PROGRESS, Status.READY},
+         Status.GRADING_IN_PROGRESS: {Status.GRADED, Status.GRADING_FAILED},
+@@ -383,3 +388,70 @@ class Copy(models.Model):
+ 
+     def __str__(self):
+         return f"Copie {self.anonymous_id} ({self.get_status_display()})"
++
++
++class AnnexePage(models.Model):
++    """Page d'annexe individuelle, rattachable à un élève via OCR."""
++
++    class Status(models.TextChoices):
++        PENDING = 'PENDING', _("En attente")
++        MATCHED = 'MATCHED', _("Rattachée")
++        QUARANTINE = 'QUARANTINE', _("Quarantaine")
++        MANUAL_ASSIGNED = 'MANUAL_ASSIGNED', _("Assignée manuellement")
++
++    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
++    exam = models.ForeignKey(
++        Exam, on_delete=models.CASCADE, related_name='annexe_pages',
++        verbose_name=_("Examen")
++    )
++    source_pdf = models.ForeignKey(
++        ExamSourcePDF, on_delete=models.SET_NULL, null=True, blank=True,
++        related_name='annexe_pages', verbose_name=_("PDF source")
++    )
++    page_index = models.PositiveIntegerField(verbose_name=_("Index de page dans le PDF"))
++    page_image = models.ImageField(
++        upload_to='annexes/pages/', verbose_name=_("Image de la page"),
++        blank=True, null=True
++    )
++    header_crop = models.ImageField(
++        upload_to='annexes/headers/', verbose_name=_("Crop d\'en-tête"),
++        blank=True, null=True
++    )
++
++    status = models.CharField(
++        max_length=20, choices=Status.choices, default=Status.PENDING,
++        db_index=True, verbose_name=_("Statut")
++    )
++    copy = models.ForeignKey(
++        Copy, on_delete=models.SET_NULL, null=True, blank=True,
++        related_name='annexe_pages', verbose_name=_("Copie rattachée")
++    )
++    student = models.ForeignKey(
++        'students.Student', on_delete=models.SET_NULL, null=True, blank=True,
++        related_name='annexe_pages', verbose_name=_("Élève")
++    )
++
++    ocr_confidence = models.FloatField(default=0.0, verbose_name=_("Confiance OCR"))
++    ocr_extracted_name = models.CharField(
++        max_length=255, blank=True, default='', verbose_name=_("Nom extrait par OCR")
++    )
++    ocr_tier = models.CharField(max_length=10, default='LOCAL', verbose_name=_("Tier OCR"))
++
++    matched_by = models.ForeignKey(
++        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
++        null=True, blank=True, related_name='matched_annexes',
++        verbose_name=_("Assigné par")
++    )
++    matched_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Date d\'assignation"))
++
++    class Meta:
++        verbose_name = _("Page annexe")
++        verbose_name_plural = _("Pages annexes")
++        ordering = ['source_pdf', 'page_index']
++        unique_together = [('source_pdf', 'page_index')]
++        indexes = [
++            models.Index(fields=['exam', 'status'], name='annexe_exam_status_idx'),
++        ]
++
++    def __str__(self):
++        return f"Annexe p.{self.page_index} ({self.get_status_display()})"
+diff --git a/backend/identification/models.py b/backend/identification/models.py
+index 84e37b3..434b18b 100644
+--- a/backend/identification/models.py
++++ b/backend/identification/models.py
+@@ -65,6 +65,39 @@ class OCRResult(models.Model):
+         help_text="True si l'enseignant a remplacé l'identification OCR manuellement"
+     )
+ 
++    # Structured OCR fields
++    extracted_last_name = models.CharField(
++        max_length=255, blank=True, default='',
++        verbose_name="Nom extrait"
++    )
++    extracted_first_name = models.CharField(
++        max_length=255, blank=True, default='',
++        verbose_name="Prénom extrait"
++    )
++    extracted_date_of_birth = models.CharField(
++        max_length=20, blank=True, default='',
++        verbose_name="Date de naissance extraite"
++    )
++    ocr_tier = models.CharField(
++        max_length=10,
++        choices=[('LOCAL', 'Local'), ('CLOUD', 'Cloud'), ('MANUAL', 'Manuel')],
++        default='LOCAL',
++        verbose_name="Tier OCR utilisé"
++    )
++    header_crop = models.ImageField(
++        upload_to='header_crops/',
++        blank=True, null=True,
++        verbose_name="Image d'en-tête recadrée"
++    )
++    cloud_raw_response = models.JSONField(
++        default=dict, blank=True,
++        verbose_name="Réponse brute Document AI"
++    )
++    processing_time_ms = models.IntegerField(
++        default=0,
++        verbose_name="Temps de traitement (ms)"
++    )
++
+     created_at = models.DateTimeField(auto_now_add=True)
+     updated_at = models.DateTimeField(auto_now=True)
+ 
+diff --git a/backend/identification/urls.py b/backend/identification/urls.py
+index 42404a8..66edd21 100644
+--- a/backend/identification/urls.py
++++ b/backend/identification/urls.py
+@@ -19,4 +19,9 @@ urlpatterns = [
+     
+     # GPT-4 Vision indexation automatisée
+     path('gpt4v-index/<uuid:exam_id>/', views.GPT4VisionIndexView.as_view(), name='gpt4v-index'),
++
++    # Quarantine resolution
++    path('quarantine/<uuid:exam_id>/', views.QuarantineResolutionView.as_view(), name='quarantine-list'),
++    path('quarantine/assign-copy/<uuid:copy_id>/', views.ManualAssignCopyView.as_view(), name='quarantine-assign-copy'),
++    path('quarantine/assign-annexe/<uuid:annexe_id>/', views.ManualAssignAnnexeView.as_view(), name='quarantine-assign-annexe'),
+ ]
+\ No newline at end of file
+diff --git a/backend/identification/views.py b/backend/identification/views.py
+index f9db397..ea26c29 100644
+--- a/backend/identification/views.py
++++ b/backend/identification/views.py
+@@ -3,8 +3,10 @@ from rest_framework.decorators import api_view, permission_classes
+ from rest_framework.response import Response
+ from rest_framework.views import APIView
+ from rest_framework.permissions import IsAuthenticated
++from django.db import transaction
+ from django.shortcuts import get_object_or_404
+ from .services import OCRService
++from .models import OCRResult
+ from exams.models import Copy, Booklet
+ from grading.services import GradingService
+ from grading.models import GradingEvent
+@@ -723,4 +725,146 @@ class GPT4VisionIndexView(APIView):
+             return Response({
+                 'error': str(e),
+                 'traceback': traceback.format_exc()
+-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+\ No newline at end of file
++            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
++
++class QuarantineResolutionView(APIView):
++    """Unified view: QUARANTINE copies + QUARANTINE annexes + student list."""
++    permission_classes = [IsTeacherOrAdmin]
++
++    def get(self, request, exam_id):
++        from exams.models import Exam, Copy, AnnexePage
++        from students.models import Student
++        exam = get_object_or_404(Exam, id=exam_id)
++
++        quarantine_copies = list(
++            Copy.objects.filter(exam=exam, status='QUARANTINE')
++            .values('id', 'anonymous_id', 'status')
++        )
++
++        # Enrich with OCR data if available
++        for c in quarantine_copies:
++            try:
++                ocr = OCRResult.objects.get(copy_id=c['id'])
++                c['ocr_confidence'] = ocr.confidence
++                c['ocr_tier'] = ocr.ocr_tier
++                c['extracted_last_name'] = ocr.extracted_last_name
++                c['extracted_first_name'] = ocr.extracted_first_name
++                c['top_candidates'] = ocr.top_candidates
++            except OCRResult.DoesNotExist:
++                c['ocr_confidence'] = 0.0
++                c['ocr_tier'] = ''
++                c['extracted_last_name'] = ''
++                c['extracted_first_name'] = ''
++                c['top_candidates'] = []
++
++        quarantine_annexes = list(
++            AnnexePage.objects.filter(exam=exam, status='QUARANTINE')
++            .values('id', 'page_index', 'ocr_extracted_name', 'ocr_confidence', 'ocr_tier')
++        )
++
++        students = list(
++            Student.objects.all().values('id', 'full_name', 'date_of_birth', 'class_name')
++        )
++
++        return Response({
++            'copies': quarantine_copies,
++            'annexes': quarantine_annexes,
++            'students': students,
++        })
++
++
++class ManualAssignCopyView(APIView):
++    """Assign student to a QUARANTINE copy manually."""
++    permission_classes = [IsTeacherOrAdmin]
++
++    def post(self, request, copy_id):
++        from exams.models import Copy
++        from students.models import Student
++        from grading.models import GradingEvent
++
++        with transaction.atomic():
++            copy = get_object_or_404(
++                Copy.objects.select_for_update(), id=copy_id
++            )
++            if copy.status != 'QUARANTINE':
++                return Response(
++                    {'error': f'Copy status is {copy.status}, expected QUARANTINE'},
++                    status=status.HTTP_400_BAD_REQUEST
++                )
++
++            student_id = request.data.get('student_id')
++            if not student_id:
++                return Response(
++                    {'error': 'student_id is required'},
++                    status=status.HTTP_400_BAD_REQUEST
++                )
++            student = get_object_or_404(Student, id=student_id)
++
++            # Anti-duplicate check
++            existing = Copy.objects.filter(
++                exam=copy.exam, student=student
++            ).exclude(id=copy.id).first()
++            if existing:
++                return Response(
++                    {'error': f'Student already assigned to copy {existing.anonymous_id}',
++                     'existing_copy_id': str(existing.id)},
++                    status=status.HTTP_409_CONFLICT
++                )
++
++            copy.student = student
++            copy.is_identified = True
++            copy.status = 'READY'
++            copy.save(update_fields=['student', 'is_identified', 'status'])
++
++            # Update OCR result
++            ocr_result, _ = OCRResult.objects.get_or_create(
++                copy=copy,
++                defaults={'detected_text': '', 'confidence': 0.0}
++            )
++            ocr_result.ocr_mode = 'MANUAL'
++            ocr_result.manual_override = True
++            ocr_result.save(update_fields=['ocr_mode', 'manual_override'])
++
++            GradingEvent.objects.create(
++                copy=copy, action='IMPORT', actor=request.user,
++                metadata={
++                    'type': 'manual_quarantine_resolution',
++                    'student_id': str(student_id),
++                    'student_name': student.full_name,
++                }
++            )
++
++        return Response({'status': 'assigned', 'copy_status': 'READY'})
++
++
++class ManualAssignAnnexeView(APIView):
++    """Assign student to a QUARANTINE annexe manually."""
++    permission_classes = [IsTeacherOrAdmin]
++
++    def post(self, request, annexe_id):
++        from exams.models import Copy, AnnexePage
++        from students.models import Student
++        from django.utils import timezone
++
++        with transaction.atomic():
++            annexe = get_object_or_404(
++                AnnexePage.objects.select_for_update(), id=annexe_id
++            )
++            student_id = request.data.get('student_id')
++            if not student_id:
++                return Response(
++                    {'error': 'student_id is required'},
++                    status=status.HTTP_400_BAD_REQUEST
++                )
++            student = get_object_or_404(Student, id=student_id)
++
++            copy = Copy.objects.filter(exam=annexe.exam, student=student).first()
++
++            annexe.student = student
++            annexe.copy = copy
++            annexe.status = 'MANUAL_ASSIGNED'
++            annexe.matched_by = request.user
++            annexe.matched_at = timezone.now()
++            annexe.save()
++
++        return Response({'status': 'assigned'})
