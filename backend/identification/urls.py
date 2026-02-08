@@ -19,4 +19,9 @@ urlpatterns = [
     
     # GPT-4 Vision indexation automatisée
     path('gpt4v-index/<uuid:exam_id>/', views.GPT4VisionIndexView.as_view(), name='gpt4v-index'),
+
+    # Quarantine resolution
+    path('quarantine/<uuid:exam_id>/', views.QuarantineResolutionView.as_view(), name='quarantine-list'),
+    path('quarantine/assign-copy/<uuid:copy_id>/', views.ManualAssignCopyView.as_view(), name='quarantine-assign-copy'),
+    path('quarantine/assign-annexe/<uuid:annexe_id>/', views.ManualAssignAnnexeView.as_view(), name='quarantine-assign-annexe'),
 ]
