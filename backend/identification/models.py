@@ -65,6 +65,39 @@ class OCRResult(models.Model):
         help_text="True si l'enseignant a remplacé l'identification OCR manuellement"
     )
 
+    # Structured OCR fields
+    extracted_last_name = models.CharField(
+        max_length=255, blank=True, default='',
+        verbose_name="Nom extrait"
+    )
+    extracted_first_name = models.CharField(
+        max_length=255, blank=True, default='',
+        verbose_name="Prénom extrait"
+    )
+    extracted_date_of_birth = models.CharField(
+        max_length=20, blank=True, default='',
+        verbose_name="Date de naissance extraite"
+    )
+    ocr_tier = models.CharField(
+        max_length=10,
+        choices=[('LOCAL', 'Local'), ('CLOUD', 'Cloud'), ('MANUAL', 'Manuel')],
+        default='LOCAL',
+        verbose_name="Tier OCR utilisé"
+    )
+    header_crop = models.ImageField(
+        upload_to='header_crops/',
+        blank=True, null=True,
+        verbose_name="Image d'en-tête recadrée"
+    )
+    cloud_raw_response = models.JSONField(
+        default=dict, blank=True,
+        verbose_name="Réponse brute Document AI"
+    )
+    processing_time_ms = models.IntegerField(
+        default=0,
+        verbose_name="Temps de traitement (ms)"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

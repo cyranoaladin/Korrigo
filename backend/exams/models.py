@@ -59,6 +59,9 @@ class Exam(models.Model):
         blank=True
     )
 
+    csv_parsed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("CSV parsé le"))
+    csv_student_count = models.IntegerField(default=0, verbose_name=_("Nombre d'élèves CSV"))
+
     class Meta:
         verbose_name = _("Examen")
         verbose_name_plural = _("Examens")
@@ -199,6 +202,7 @@ class Copy(models.Model):
     """
     class Status(models.TextChoices):
         STAGING = 'STAGING', _("En attente")
+        QUARANTINE = 'QUARANTINE', _("Quarantaine OCR")
         READY = 'READY', _("Prêt à corriger")
         LOCKED = 'LOCKED', _("Verrouillé")
         GRADING_IN_PROGRESS = 'GRADING_IN_PROGRESS', _("Correction en cours")
@@ -207,7 +211,8 @@ class Copy(models.Model):
 
     # Valid status transitions (state machine)
     ALLOWED_TRANSITIONS = {
-        Status.STAGING: {Status.READY},
+        Status.STAGING: {Status.READY, Status.QUARANTINE},
+        Status.QUARANTINE: {Status.READY, Status.STAGING},
         Status.READY: {Status.LOCKED, Status.STAGING},
         Status.LOCKED: {Status.GRADING_IN_PROGRESS, Status.READY},
         Status.GRADING_IN_PROGRESS: {Status.GRADED, Status.GRADING_FAILED},
@@ -383,3 +388,70 @@ class Copy(models.Model):
 
     def __str__(self):
         return f"Copie {self.anonymous_id} ({self.get_status_display()})"
+
+
+class AnnexePage(models.Model):
+    """Page d'annexe individuelle, rattachable à un élève via OCR."""
+
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', _("En attente")
+        MATCHED = 'MATCHED', _("Rattachée")
+        QUARANTINE = 'QUARANTINE', _("Quarantaine")
+        MANUAL_ASSIGNED = 'MANUAL_ASSIGNED', _("Assignée manuellement")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    exam = models.ForeignKey(
+        Exam, on_delete=models.CASCADE, related_name='annexe_pages',
+        verbose_name=_("Examen")
+    )
+    source_pdf = models.ForeignKey(
+        ExamSourcePDF, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='annexe_pages', verbose_name=_("PDF source")
+    )
+    page_index = models.PositiveIntegerField(verbose_name=_("Index de page dans le PDF"))
+    page_image = models.ImageField(
+        upload_to='annexes/pages/', verbose_name=_("Image de la page"),
+        blank=True, null=True
+    )
+    header_crop = models.ImageField(
+        upload_to='annexes/headers/', verbose_name=_("Crop d\'en-tête"),
+        blank=True, null=True
+    )
+
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.PENDING,
+        db_index=True, verbose_name=_("Statut")
+    )
+    copy = models.ForeignKey(
+        Copy, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='annexe_pages', verbose_name=_("Copie rattachée")
+    )
+    student = models.ForeignKey(
+        'students.Student', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='annexe_pages', verbose_name=_("Élève")
+    )
+
+    ocr_confidence = models.FloatField(default=0.0, verbose_name=_("Confiance OCR"))
+    ocr_extracted_name = models.CharField(
+        max_length=255, blank=True, default='', verbose_name=_("Nom extrait par OCR")
+    )
+    ocr_tier = models.CharField(max_length=10, default='LOCAL', verbose_name=_("Tier OCR"))
+
+    matched_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='matched_annexes',
+        verbose_name=_("Assigné par")
+    )
+    matched_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Date d\'assignation"))
+
+    class Meta:
+        verbose_name = _("Page annexe")
+        verbose_name_plural = _("Pages annexes")
+        ordering = ['source_pdf', 'page_index']
+        unique_together = [('source_pdf', 'page_index')]
+        indexes = [
+            models.Index(fields=['exam', 'status'], name='annexe_exam_status_idx'),
+        ]
+
+    def __str__(self):
+        return f"Annexe p.{self.page_index} ({self.get_status_display()})"
