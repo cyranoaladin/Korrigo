@@ -825,7 +825,7 @@ onUnmounted(() => {
           class="hb-dot"
           :class="'hb-' + heartbeatHealth"
           :title="heartbeatHealth === 'ok' ? 'Connexion OK' : heartbeatHealth === 'warning' ? 'Instable' : 'Perdu'"
-        ></span>
+        />
         <span class="hb-label">{{ heartbeatHealth === 'ok' ? 'OK' : heartbeatHealth === 'warning' ? 'Instable' : 'Perdu' }}</span>
       </div>
     </div>
@@ -1110,7 +1110,10 @@ onUnmounted(() => {
                   :class="{ 'exercise-header--nested': item.depth > 0 }"
                 >
                   <span class="exercise-title">{{ item.title }}</span>
-                  <span v-if="item.totalPoints > 0" class="exercise-points">
+                  <span
+                    v-if="item.totalPoints > 0"
+                    class="exercise-points"
+                  >
                     {{ calculateGroupScore(item.childIds) }} / {{ item.totalPoints }} pts
                   </span>
                 </div>
