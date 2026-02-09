@@ -682,8 +682,8 @@ onUnmounted(() => {
               <button
                 v-if="!uploading"
                 class="file-list-remove"
-                @click="removePdfFile(index)"
                 title="Retirer ce fichier"
+                @click="removePdfFile(index)"
               >
                 &times;
               </button>
@@ -705,7 +705,10 @@ onUnmounted(() => {
               :disabled="uploading"
               @change="handleCsvSelect"
             >
-            <span v-if="uploadForm.csvFile" class="file-name">
+            <span
+              v-if="uploadForm.csvFile"
+              class="file-name"
+            >
               {{ uploadForm.csvFile.name }}
             </span>
             <span
@@ -730,7 +733,10 @@ onUnmounted(() => {
               :disabled="uploading"
               @change="handleAnnexeSelect"
             >
-            <span v-if="uploadForm.annexeFile" class="file-name">
+            <span
+              v-if="uploadForm.annexeFile"
+              class="file-name"
+            >
               {{ uploadForm.annexeFile.name }}
             </span>
             <span
@@ -745,8 +751,11 @@ onUnmounted(() => {
           </small>
         </div>
 
-        <div v-if="uploading" class="upload-progress">
-          <div class="spinner"></div>
+        <div
+          v-if="uploading"
+          class="upload-progress"
+        >
+          <div class="spinner" />
           <span>{{ uploadProgress }}</span>
         </div>
 
