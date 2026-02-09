@@ -49,9 +49,9 @@ onMounted(() => {
 <template>
   <AdminLayout>
     <div class="settings-view">
-    <header class="page-header">
-      <h2>Paramètres Système</h2>
-    </header>
+      <header class="page-header">
+        <h2>Paramètres Système</h2>
+      </header>
 
     <div class="settings-card">
       <div class="setting-group">

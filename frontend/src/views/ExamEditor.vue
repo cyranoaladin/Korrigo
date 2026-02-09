@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
 import { API_URL, csrfHeader } from '../services/http'
 
 import GradingScaleBuilder from '../components/GradingScaleBuilder.vue'
@@ -28,8 +27,6 @@ const saveMessage = ref('')
 // In `backend/exams/urls.py` we have:
 // path('upload/', ...), path('.../booklets/'), path('.../merge/')
 // We MISS `path('<uuid:pk>/', ...)` for RetrieveUpdateDestroy.
-
-const authStore = useAuthStore()
 
 const fetchExam = async () => {
     isLoading.value = true
