@@ -4,6 +4,12 @@ on:
   push:
     branches: ["main"]
   workflow_dispatch:
+    inputs:
+      reset_db:
+        description: 'Reset PostgreSQL volume (DESTROYS ALL DATA)'
+        required: false
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -219,6 +225,7 @@ jobs:
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
           KORRIGO_SHA: ${{ github.sha }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          RESET_DB: ${{ inputs.reset_db || 'false' }}
         run: |
           ssh -o StrictHostKeyChecking=yes "${VPS_USER}@${VPS_HOST}" bash <<EOSSH
             set -euo pipefail
@@ -229,6 +236,7 @@ jobs:
             export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY_OWNER}"
             export GHCR_USER="${GHCR_USER}"
             export GHCR_PAT="${GHCR_PAT}"
+            export RESET_DB="${RESET_DB}"
             
             # Verify they were passed correctly
             test -n "\${VPS_PATH}" || { echo "❌ VPS_PATH empty after export"; exit 1; }
@@ -284,6 +292,14 @@ jobs:
             echo "  ✅ .env file found"
             
             echo "📥 Pulling latest images (SHA: \${KORRIGO_SHA})..."
+            
+            # Optional: reset DB volume if requested via workflow_dispatch
+            if [ "${RESET_DB}" = "true" ]; then
+              echo "⚠️  RESET_DB requested — destroying PostgreSQL volume..."
+              docker compose --env-file .env -f infra/docker/docker-compose.prod.yml down -v 2>/dev/null || true
+              echo "  ✅ Volumes destroyed"
+            fi
+            
             docker compose --env-file .env -f infra/docker/docker-compose.prod.yml pull || {
               echo "❌ Failed to pull images"
               exit 1
