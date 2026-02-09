@@ -635,7 +635,10 @@ onUnmounted(() => {
         <div class="form-group">
           <label>
             Fichiers PDF des scans *
-            <span v-if="uploadForm.pdfFiles.length > 0" class="file-count-badge">
+            <span
+              v-if="uploadForm.pdfFiles.length > 0"
+              class="file-count-badge"
+            >
               {{ uploadForm.pdfFiles.length }}
             </span>
           </label>
@@ -649,16 +652,25 @@ onUnmounted(() => {
               :disabled="uploading"
               @change="handlePdfSelect"
             >
-            <span v-if="uploadForm.pdfFiles.length === 0" class="file-placeholder">
+            <span
+              v-if="uploadForm.pdfFiles.length === 0"
+              class="file-placeholder"
+            >
               Cliquez ou glissez-déposez un ou plusieurs fichiers PDF (A3 ou A4)
             </span>
-            <span v-else class="file-placeholder">
+            <span
+              v-else
+              class="file-placeholder"
+            >
               Cliquez pour ajouter d'autres fichiers
             </span>
           </div>
 
           <!-- Liste des fichiers sélectionnés -->
-          <ul v-if="uploadForm.pdfFiles.length > 0" class="file-list">
+          <ul
+            v-if="uploadForm.pdfFiles.length > 0"
+            class="file-list"
+          >
             <li
               v-for="(file, index) in uploadForm.pdfFiles"
               :key="index"
@@ -696,7 +708,10 @@ onUnmounted(() => {
             <span v-if="uploadForm.csvFile" class="file-name">
               {{ uploadForm.csvFile.name }}
             </span>
-            <span v-else class="file-placeholder">
+            <span
+              v-else
+              class="file-placeholder"
+            >
               Cliquez pour sélectionner le CSV des élèves
             </span>
           </div>
@@ -718,7 +733,10 @@ onUnmounted(() => {
             <span v-if="uploadForm.annexeFile" class="file-name">
               {{ uploadForm.annexeFile.name }}
             </span>
-            <span v-else class="file-placeholder">
+            <span
+              v-else
+              class="file-placeholder"
+            >
               Cliquez pour sélectionner le PDF des annexes
             </span>
           </div>
