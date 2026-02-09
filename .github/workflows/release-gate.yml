@@ -165,6 +165,8 @@ jobs:
           REDIS_DB=1
           CELERY_BROKER_URL=redis://redis:6379/0
           RATELIMIT_ENABLE=false
+          DATABASE_URL=postgres://korrigo_ci:korrigo_ci_password@db:5432/korrigo_ci
+          E2E_SEED_TOKEN=ci-e2e-seed-token-not-for-production
           ENVEOF
             # Strip leading whitespace from heredoc (YAML indentation artifact)
             sed -i 's/^[[:space:]]*//' .env
