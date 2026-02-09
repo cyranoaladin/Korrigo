@@ -186,7 +186,9 @@ run_logged "12_e2e_3runs" bash "$E2E_SCRIPT" "$NGINX_BASE_URL" "$TEST_PROF_PASSW
 
 # ---- F) Backend tests (0 fail, 0 error, 0 skipped)
 log "Phase F: Backend Tests"
-run_logged "13_pytest_full" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" pytest -v --tb=short
+# Override DJANGO_SETTINGS_MODULE for tests: the container env sets
+# core.settings_prod, but pytest-django respects env over pytest.ini.
+run_logged "13_pytest_full" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T -e DJANGO_SETTINGS_MODULE=core.settings_test "$BACKEND_SVC" pytest -v --tb=short
 
 # Extract failing test nodeids if any failures detected
 PYTEST_LOG="$LOG_DIR/13_pytest_full.log"
