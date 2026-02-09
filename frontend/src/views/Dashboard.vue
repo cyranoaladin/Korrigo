@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
 import { API_URL, csrfHeader } from '../services/http'
 
 const route = useRoute()
@@ -10,8 +9,6 @@ const copies = ref([])
 const exam = ref(null)
 const isLoading = ref(false)
 const message = ref('')
-
-const authStore = useAuthStore()
 
 // Computed Stats
 const totalCopies = computed(() => copies.value.length)
