@@ -610,7 +610,7 @@ else:
 
 # Google Cloud Document AI (OCR Tier 2)
 DOCUMENT_AI_PROJECT_ID = os.environ.get('DOCUMENT_AI_PROJECT_ID', '')
-DOCUMENT_AI_LOCATION = os.environ.get('DOCUMENT_AI_LOCATION', 'eu')
+DOCUMENT_AI_LOCATION = os.environ.get('DOCUMENT_AI_LOCATION', 'us')
 DOCUMENT_AI_PROCESSOR_ID = os.environ.get('DOCUMENT_AI_PROCESSOR_ID', '')
 
 # Feature flag: new OCR pipeline (default False for gradual rollout)
