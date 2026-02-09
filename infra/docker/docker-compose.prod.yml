@@ -48,6 +48,7 @@ services:
       SSL_ENABLED: "${SSL_ENABLED:-False}"
       SECRET_KEY: "${SECRET_KEY:?err}"
       ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
+      DJANGO_ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
       DATABASE_URL: "postgres://${POSTGRES_USER:?err}:${POSTGRES_PASSWORD:?err}@db:5432/${POSTGRES_DB:?err}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:?err}"
