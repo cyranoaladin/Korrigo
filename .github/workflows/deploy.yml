@@ -167,6 +167,51 @@ jobs:
           
           echo "✅ Sync complete"
 
+      - name: Sync production .env to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PATH: ${{ secrets.VPS_PATH }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+          CSRF_TRUSTED_ORIGINS: ${{ secrets.CSRF_TRUSTED_ORIGINS }}
+          METRICS_TOKEN: ${{ secrets.METRICS_TOKEN }}
+          KORRIGO_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          echo "📝 Syncing production .env to VPS..."
+          # Build .env from GitHub Secrets and pass to VPS
+          cat > /tmp/prod.env <<ENVEOF
+          KORRIGO_SHA=${KORRIGO_SHA}
+          GITHUB_REPOSITORY_OWNER=${GITHUB_REPOSITORY_OWNER}
+          SECRET_KEY=${SECRET_KEY}
+          DJANGO_ENV=production
+          DEBUG=False
+          ALLOWED_HOSTS=${ALLOWED_HOSTS}
+          DJANGO_ALLOWED_HOSTS=${ALLOWED_HOSTS}
+          POSTGRES_DB=${POSTGRES_DB}
+          POSTGRES_USER=${POSTGRES_USER}
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+          CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
+          METRICS_TOKEN=${METRICS_TOKEN}
+          SSL_ENABLED=True
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+          REDIS_DB=1
+          CELERY_BROKER_URL=redis://redis:6379/0
+          ENVEOF
+          # Strip leading whitespace from heredoc
+          sed -i 's/^[[:space:]]*//' /tmp/prod.env
+          scp -o StrictHostKeyChecking=yes /tmp/prod.env "${VPS_USER}@${VPS_HOST}:${VPS_PATH}/.env"
+          rm -f /tmp/prod.env
+          echo "  ✅ .env synced to VPS"
+
       - name: Deploy
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -236,31 +281,35 @@ jobs:
             # ═══════════════════════════════════════
             # DEPLOYMENT
             # ═══════════════════════════════════════
+            # Verify .env exists (synced in previous step)
+            test -f .env || { echo "❌ .env file missing — check 'Sync production .env' step"; exit 1; }
+            echo "  ✅ .env file found"
+            
             echo "📥 Pulling latest images (SHA: \${KORRIGO_SHA})..."
-            docker compose -f infra/docker/docker-compose.prod.yml pull || {
+            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml pull || {
               echo "❌ Failed to pull images"
               exit 1
             }
             echo "  ✅ Images pulled"
             
             echo "🔄 Running database migrations..."
-            docker compose -f infra/docker/docker-compose.prod.yml run --rm backend python manage.py migrate || {
+            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm backend python manage.py migrate || {
               echo "❌ Migrations failed"
               exit 1
             }
             echo "  ✅ Migrations complete"
             
             echo "📦 Collecting static files..."
-            docker compose -f infra/docker/docker-compose.prod.yml run --rm backend python manage.py collectstatic --noinput || {
+            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm backend python manage.py collectstatic --noinput || {
               echo "❌ Collectstatic failed"
               exit 1
             }
             echo "  ✅ Static files collected"
             
             echo "🚀 Starting containers..."
-            docker compose -f infra/docker/docker-compose.prod.yml up -d || {
+            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml up -d || {
               echo "❌ Failed to start containers"
-              docker compose -f infra/docker/docker-compose.prod.yml ps
+              docker compose --env-file .env -f infra/docker/docker-compose.prod.yml ps
               exit 1
             }
             echo "  ✅ Containers started"
@@ -273,9 +322,9 @@ jobs:
             if ! curl -sf --max-time 10 http://127.0.0.1:8088/api/health/ >/dev/null; then
               echo "❌ Health check failed"
               echo "Container status:"
-              docker compose -f infra/docker/docker-compose.prod.yml ps
+              docker compose --env-file .env -f infra/docker/docker-compose.prod.yml ps
               echo "Backend logs:"
-              docker compose -f infra/docker/docker-compose.prod.yml logs --tail=30 backend
+              docker compose --env-file .env -f infra/docker/docker-compose.prod.yml logs --tail=30 backend
               exit 1
             fi
             echo "  ✅ Health check passed"
