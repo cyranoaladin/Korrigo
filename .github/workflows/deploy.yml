@@ -293,6 +293,11 @@ jobs:
             
             echo "📥 Pulling latest images (SHA: \${KORRIGO_SHA})..."
             
+            # Stop any running containers to avoid name conflicts
+            echo "🧹 Stopping existing containers..."
+            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml down 2>/dev/null || true
+            echo "  ✅ Existing containers stopped"
+            
             # Optional: reset DB volume if requested via workflow_dispatch
             if [ "${RESET_DB}" = "true" ]; then
               echo "⚠️  RESET_DB requested — destroying PostgreSQL volume..."
