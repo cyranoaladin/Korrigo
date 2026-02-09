@@ -56,7 +56,8 @@ services:
       SSL_ENABLED: "False"
       SECRET_KEY: "${SECRET_KEY?err}"
       ALLOWED_HOSTS: "${ALLOWED_HOSTS?err}"
-      DATABASE_URL: "postgres://${POSTGRES_USER?err}:${POSTGRES_PASSWORD?err}@db:5432/${POSTGRES_DB?err}"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-${ALLOWED_HOSTS}}"
+      DATABASE_URL: "${DATABASE_URL?err}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       REDIS_HOST: "redis"
       REDIS_PORT: "6379"
@@ -93,7 +94,7 @@ services:
       - backend
     environment:
       DEBUG: "False"
-      DATABASE_URL: "postgres://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique_local}"
+      DATABASE_URL: "${DATABASE_URL:-postgres://korrigo_user:s22g4sLKZPviEqXan%2F4wm0yGMaznJIMSf3Xx%2FUsLtY0%3D@db:5432/korrigo_prod}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       # PRD-19: OCR configuration
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
