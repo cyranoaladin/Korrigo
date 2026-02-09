@@ -276,9 +276,20 @@ else:
     
     DATABASES = {'default': db_config}
 
-
-
-
+# Ensure all Django-required database config keys exist regardless of source
+_db = DATABASES['default']
+_db.setdefault('ATOMIC_REQUESTS', False)
+_db.setdefault('AUTOCOMMIT', True)
+_db.setdefault('CONN_MAX_AGE', 0)
+_db.setdefault('CONN_HEALTH_CHECKS', False)
+_db.setdefault('OPTIONS', {})
+_db.setdefault('TIME_ZONE', None)
+for _k in ('USER', 'PASSWORD', 'HOST', 'PORT'):
+    _db.setdefault(_k, '')
+_test = _db.setdefault('TEST', {})
+for _k, _v in [('CHARSET', None), ('COLLATION', None), ('MIGRATE', True),
+               ('MIRROR', None), ('NAME', None), ('TEMPLATE', None)]:
+    _test.setdefault(_k, _v)
 
 
 AUTH_PASSWORD_VALIDATORS = [
