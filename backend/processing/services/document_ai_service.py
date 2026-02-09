@@ -41,7 +41,7 @@ class DocumentAICircuitBreaker:
 class DocumentAIService:
     def __init__(self):
         self.project_id = getattr(settings, 'DOCUMENT_AI_PROJECT_ID', '')
-        self.location = getattr(settings, 'DOCUMENT_AI_LOCATION', 'eu')
+        self.location = getattr(settings, 'DOCUMENT_AI_LOCATION', 'us')
         self.processor_id = getattr(settings, 'DOCUMENT_AI_PROCESSOR_ID', '')
         self._client = None
         self._circuit_breaker = DocumentAICircuitBreaker()

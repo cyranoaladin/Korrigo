@@ -10,11 +10,11 @@ export default defineConfig({
   reporter: 'html',
   timeout: 60000,
 
-  // Global setup for seeding and authentication
-  globalSetup: path.resolve(__dirname, 'global-setup.ts'),
+  // Global setup disabled — each test uses loginAsAdmin() in beforeEach
+  // globalSetup: path.resolve(__dirname, 'global-setup.ts'),
 
   use: {
-    baseURL: process.env.BASE_URL || 'http://127.0.0.1:8090',
+    baseURL: process.env.BASE_URL || 'http://127.0.0.1:8088',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
