@@ -53,62 +53,62 @@ onMounted(() => {
         <h2>Paramètres Système</h2>
       </header>
 
-    <div class="settings-card">
-      <div class="setting-group">
-        <label>Nom de l'établissement</label>
-        <input
-          v-model="settings.institutionName"
-          type="text"
-          class="form-input"
-        >
-      </div>
-
-      <div class="setting-group">
-        <label>Thème par défaut</label>
-        <select
-          v-model="settings.theme"
-          class="form-select"
-        >
-          <option value="light">
-            Clair
-          </option>
-          <option value="dark">
-            Sombre
-          </option>
-          <option value="auto">
-            Système
-          </option>
-        </select>
-      </div>
-
-      <div class="setting-group">
-        <label>Durée d'examen par défaut (min)</label>
-        <input
-          v-model="settings.defaultDuration"
-          type="number"
-          class="form-input"
-        >
-      </div>
-
-      <div class="setting-group">
-        <label class="checkbox-label">
+      <div class="settings-card">
+        <div class="setting-group">
+          <label>Nom de l'établissement</label>
           <input
-            v-model="settings.notifications"
-            type="checkbox"
+            v-model="settings.institutionName"
+            type="text"
+            class="form-input"
           >
-          Activer les notifications email
-        </label>
-      </div>
+        </div>
 
-      <div class="actions">
-        <button
-          class="btn btn-primary"
-          @click="saveSettings"
-        >
-          Enregistrer
-        </button>
+        <div class="setting-group">
+          <label>Thème par défaut</label>
+          <select
+            v-model="settings.theme"
+            class="form-select"
+          >
+            <option value="light">
+              Clair
+            </option>
+            <option value="dark">
+              Sombre
+            </option>
+            <option value="auto">
+              Système
+            </option>
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <label>Durée d'examen par défaut (min)</label>
+          <input
+            v-model="settings.defaultDuration"
+            type="number"
+            class="form-input"
+          >
+        </div>
+
+        <div class="setting-group">
+          <label class="checkbox-label">
+            <input
+              v-model="settings.notifications"
+              type="checkbox"
+            >
+            Activer les notifications email
+          </label>
+        </div>
+
+        <div class="actions">
+          <button
+            class="btn btn-primary"
+            @click="saveSettings"
+          >
+            Enregistrer
+          </button>
+        </div>
       </div>
-    </div>
     </div>
   </AdminLayout>
 </template>
