@@ -57,7 +57,7 @@ services:
       SECRET_KEY: "${SECRET_KEY?err}"
       ALLOWED_HOSTS: "${ALLOWED_HOSTS?err}"
       DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-${ALLOWED_HOSTS}}"
-      DATABASE_URL: "${DATABASE_URL?err}"
+      DATABASE_URL: "${DATABASE_URL:-postgres://${POSTGRES_USER:-korrigo_user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-korrigo_prod}}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       REDIS_HOST: "redis"
       REDIS_PORT: "6379"
