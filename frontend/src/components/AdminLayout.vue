@@ -23,7 +23,10 @@ const isActive = (name) => route.name === name
 <template>
   <div class="admin-layout">
     <nav class="sidebar">
-      <div class="logo" @click="router.push({ name: 'AdminDashboard' })">
+      <div
+        class="logo"
+        @click="router.push({ name: 'AdminDashboard' })"
+      >
         <img
           src="/images/Korrigo.png"
           alt="Korrigo Logo"
@@ -67,7 +70,11 @@ const isActive = (name) => route.name === name
         
     <main class="main-content">
       <header class="top-bar">
-        <button class="back-btn" @click="router.back()" title="Retour">
+        <button
+          class="back-btn"
+          title="Retour"
+          @click="router.back()"
+        >
           ← Retour
         </button>
         <div class="breadcrumb">
