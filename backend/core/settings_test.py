@@ -49,6 +49,29 @@ if database_url and dj_database_url is not None:
         'SERIALIZE': False,
     }
 
+# Ensure all Django-required database config keys exist.
+# dj_database_url.parse() returns a minimal dict missing keys like
+# ATOMIC_REQUESTS, AUTOCOMMIT, etc. Django's ConnectionHandler.configure_settings()
+# adds them lazily, but some code paths (DRF, test setup) may access
+# settings.DATABASES directly before a connection is established.
+_db = DATABASES['default']
+_db.setdefault('ATOMIC_REQUESTS', False)
+_db.setdefault('AUTOCOMMIT', True)
+_db.setdefault('CONN_HEALTH_CHECKS', False)
+_db.setdefault('OPTIONS', {})
+_db.setdefault('TIME_ZONE', None)
+_db.setdefault('USER', '')
+_db.setdefault('PASSWORD', '')
+_db.setdefault('HOST', '')
+_db.setdefault('PORT', '')
+_test = _db.setdefault('TEST', {})
+_test.setdefault('CHARSET', None)
+_test.setdefault('COLLATION', None)
+_test.setdefault('MIGRATE', True)
+_test.setdefault('MIRROR', None)
+_test.setdefault('NAME', f'test_viatique_{DB_SUFFIX}')
+_test.setdefault('TEMPLATE', None)
+
 # Faster password hashing for tests
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.MD5PasswordHasher',
