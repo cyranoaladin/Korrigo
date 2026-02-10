@@ -337,9 +337,11 @@ jobs:
             echo "  ✅ Static files collected"
             
             echo "🚀 Starting containers..."
-            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml up -d || {
+            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml up -d --wait --wait-timeout 180 || {
               echo "❌ Failed to start containers"
               docker compose --env-file .env -f infra/docker/docker-compose.prod.yml ps
+              echo "Backend logs:"
+              docker compose --env-file .env -f infra/docker/docker-compose.prod.yml logs --tail=50 backend
               exit 1
             }
             echo "  ✅ Containers started"

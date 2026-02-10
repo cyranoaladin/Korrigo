@@ -58,10 +58,10 @@ services:
       TEACHER_PASSWORD: "${TEACHER_PASSWORD:-}"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health/" ]
-      interval: 30s
+      interval: 15s
       timeout: 10s
-      retries: 3
-      start_period: 30s
+      retries: 5
+      start_period: 120s
 
   celery:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
