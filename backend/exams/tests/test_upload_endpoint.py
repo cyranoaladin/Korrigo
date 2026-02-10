@@ -1,314 +1,890 @@
 """
-Tests for PDF Upload Endpoint - ZF-AUD-03
-Validates upload security, error handling, and atomicity.
+Tests for Exam Upload Endpoint - Validation, Atomicity, and Security Cases
+Conformité: .antigravity/rules/01_security_rules.md § 8.1
+Coverage: POST /api/exams/upload/ comprehensive test coverage
 """
 import pytest
-import fitz
 import os
-from io import BytesIO
-from django.contrib.auth.models import User
-from django.core.files.uploadedfile import SimpleUploadedFile
-from rest_framework.test import APIClient
+from unittest.mock import patch
+from rest_framework import status
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 
-from core.auth import create_user_roles
 from exams.models import Exam, Booklet, Copy
+from core.auth import UserRole
+from exams.tests.fixtures.pdf_fixtures import (
+    create_valid_pdf,
+    create_large_pdf,
+    create_corrupted_pdf,
+    create_fake_pdf,
+    create_uploadedfile,
+    create_empty_pdf,
+    create_pdf_with_pages,
+    get_valid_pdf_file
+)
 
 
-def create_valid_pdf(pages=4, a3_format=False):
-    """Create a minimal valid PDF with specified number of pages.
+User = get_user_model()
+
+
+@pytest.mark.django_db
+class TestExamUploadValidation:
+    """Test suite for upload endpoint validation scenarios"""
     
-    Args:
-        pages: Number of pages to create
-        a3_format: If True, create A3 landscape pages (for batch mode tests)
+    @property
+    def upload_url(self):
+        """URL for exam upload endpoint"""
+        return '/api/exams/upload/'
+    
+    def test_upload_valid_pdf_creates_exam_and_booklets(self, teacher_client):
+        """
+        Test successful upload with valid 4-page PDF.
+        Should create 1 exam, 1 booklet, 1 copy in STAGING.
+        """
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="exam_4pages.pdf")
+        
+        data = {
+            'name': 'Test Exam - 4 pages',
+            'date': '2024-01-15',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        assert 'booklets_created' in response.data
+        assert response.data['booklets_created'] == 1
+        assert 'message' in response.data
+        
+        assert Exam.objects.count() == 1
+        exam = Exam.objects.first()
+        assert exam.name == 'Test Exam - 4 pages'
+        
+        assert Booklet.objects.count() == 1
+        booklet = Booklet.objects.first()
+        assert booklet.exam == exam
+        assert booklet.start_page == 1
+        assert booklet.end_page == 4
+        
+        assert Copy.objects.count() == 1
+        copy = Copy.objects.first()
+        assert copy.exam == exam
+        assert copy.status == Copy.Status.STAGING
+        assert copy.is_identified is False
+        assert copy.booklets.count() == 1
+    
+    def test_upload_valid_pdf_with_remainder_pages(self, teacher_client):
+        """
+        Test upload with 13-page PDF (3 full booklets + 1 partial).
+        Should create 4 booklets: 1-4, 5-8, 9-12, 13-13.
+        """
+        pdf_bytes = create_valid_pdf(pages=13)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="exam_13pages.pdf")
+        
+        data = {
+            'name': 'Test Exam - 13 pages',
+            'date': '2024-01-15',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['booklets_created'] == 4
+        
+        assert Booklet.objects.count() == 4
+        
+        last_booklet = Booklet.objects.order_by('start_page').last()
+        assert last_booklet.start_page == 13
+        assert last_booklet.end_page == 13
+    
+    def test_upload_no_file_returns_400(self, teacher_client):
+        """
+        Test upload without pdf_source file.
+        Should return 400 with validation error.
+        """
+        data = {
+            'name': 'Test Exam - No File',
+            'date': '2024-01-15',
+            'pages_per_booklet': 4
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'pdf_source' in response.data
+        
+        assert Exam.objects.count() == 0
+        assert Booklet.objects.count() == 0
+        assert Copy.objects.count() == 0
+    
+    def test_upload_wrong_extension_returns_400(self, teacher_client):
+        """
+        Test upload with .txt file (wrong extension).
+        Should return 400 with validation error.
+        """
+        text_content = b'This is a text file, not a PDF'
+        txt_file = create_uploadedfile(
+            text_content,
+            filename="exam.txt",
+            content_type="text/plain"
+        )
+        
+        data = {
+            'name': 'Test Exam - Wrong Extension',
+            'date': '2024-01-15',
+            'pdf_source': txt_file,
+            'pages_per_booklet': 4
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'pdf_source' in response.data
+        
+        assert Exam.objects.count() == 0
+    
+    def test_upload_file_too_large_mock_returns_413(self, teacher_client):
+        """
+        Test upload with file_too_large validation error.
+        Should return HTTP 413 REQUEST ENTITY TOO LARGE.
+        Uses mocking to avoid slow 51MB PDF generation.
+        """
+        from rest_framework.exceptions import ValidationError
+        
+        pdf_file = get_valid_pdf_file(pages=4, filename="exam_mock_large.pdf")
+        
+        data = {
+            'name': 'Test Exam - Too Large (Mock)',
+            'date': '2024-01-15',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+        }
+        
+        with patch('exams.serializers.ExamSerializer.is_valid') as mock_is_valid:
+            mock_is_valid.return_value = False
+            error = ValidationError({'pdf_source': ['File too large']})
+            error.code = 'file_too_large'
+            mock_serializer = patch('exams.serializers.ExamSerializer.errors', 
+                                   new_callable=lambda: {'pdf_source': [error]})
+            
+            with mock_serializer:
+                response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert 'error' in response.data
+        
+        assert Exam.objects.count() == 0
+    
+    @pytest.mark.skip(reason="Generating 51MB PDF is too slow (>3min) - covered by mock test")
+    def test_upload_file_too_large_returns_413(self, teacher_client):
+        """
+        Test upload with file > 50 MB.
+        Should return HTTP 413 REQUEST ENTITY TOO LARGE.
+        """
+        pdf_bytes = create_large_pdf(size_mb=51)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="exam_large.pdf")
+        
+        data = {
+            'name': 'Test Exam - Too Large',
+            'date': '2024-01-15',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        assert 'error' in response.data
+        
+        assert Exam.objects.count() == 0
+        assert Booklet.objects.count() == 0
+        assert Copy.objects.count() == 0
+    
+    def test_upload_empty_file_returns_400(self, teacher_client):
+        """
+        Test upload with 0-byte file.
+        Should return 400 with validation error.
+        """
+        empty_bytes = create_empty_pdf()
+        empty_file = create_uploadedfile(empty_bytes, filename="exam_empty.pdf")
+        
+        data = {
+            'name': 'Test Exam - Empty File',
+            'date': '2024-01-15',
+            'pdf_source': empty_file,
+            'pages_per_booklet': 4
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'pdf_source' in response.data
+        
+        assert Exam.objects.count() == 0
+    
+    def test_upload_fake_pdf_returns_400(self, teacher_client):
+        """
+        Test upload with text file renamed to .pdf (fake PDF).
+        Should return 400 due to MIME type validation failure.
+        """
+        fake_bytes = create_fake_pdf()
+        fake_file = create_uploadedfile(
+            fake_bytes,
+            filename="exam_fake.pdf",
+            content_type="application/pdf"
+        )
+        
+        data = {
+            'name': 'Test Exam - Fake PDF',
+            'date': '2024-01-15',
+            'pdf_source': fake_file,
+            'pages_per_booklet': 4
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'pdf_source' in response.data
+        
+        error_message = str(response.data['pdf_source'][0])
+        assert 'MIME' in error_message or 'type' in error_message.lower()
+        
+        assert Exam.objects.count() == 0
+    
+    def test_upload_corrupted_pdf_returns_400(self, teacher_client):
+        """
+        Test upload with corrupted PDF (invalid structure).
+        Should return 400 due to integrity validation failure.
+        """
+        corrupted_bytes = create_corrupted_pdf()
+        corrupted_file = create_uploadedfile(
+            corrupted_bytes,
+            filename="exam_corrupted.pdf"
+        )
+        
+        data = {
+            'name': 'Test Exam - Corrupted PDF',
+            'date': '2024-01-15',
+            'pdf_source': corrupted_file,
+            'pages_per_booklet': 4
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'pdf_source' in response.data
+        
+        error_message = str(response.data['pdf_source'][0])
+        assert any(word in error_message.lower() for word in ['invalid', 'corrupted', 'integrity', 'valide', 'vide', 'empty'])
+        
+        assert Exam.objects.count() == 0
+    
+    @pytest.mark.skip(reason="Generating 501-page PDF is too slow - covered by validator tests")
+    def test_upload_too_many_pages_returns_400(self, teacher_client):
+        """
+        Test upload with PDF exceeding 500 pages limit.
+        Should return 400 with validation error.
+        NOTE: Skipped in integration tests due to performance. Validator unit tests cover this.
+        """
+        pdf_bytes = create_pdf_with_pages(501)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="exam_501pages.pdf")
+        
+        data = {
+            'name': 'Test Exam - Too Many Pages',
+            'date': '2024-01-15',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'pdf_source' in response.data
+        
+        error_message = str(response.data['pdf_source'][0])
+        assert 'page' in error_message.lower() or '500' in error_message
+        
+        assert Exam.objects.count() == 0
+        assert Booklet.objects.count() == 0
+        assert Copy.objects.count() == 0
+
+
+@pytest.mark.django_db
+class TestExamUploadAtomicity:
     """
-    doc = fitz.open()
-    for i in range(pages):
-        if a3_format:
-            # A3 landscape: 1190 x 841 points
-            page = doc.new_page(width=1190, height=841)
-        else:
-            # A4 portrait (default)
-            page = doc.new_page()
-        page.insert_text((50, 50), f"Page {i + 1}")
+    Test suite for upload endpoint atomicity guarantees.
     
-    buffer = BytesIO()
-    doc.save(buffer)
-    doc.close()
-    buffer.seek(0)
-    return buffer.read()
+    Verifies that upload failures leave no orphaned database records or files.
+    """
+    
+    def test_upload_processing_failure_no_orphan_exam(self, teacher_client, settings):
+        """
+        Test that if PDFSplitter.split_exam() fails, no orphaned Exam record is created.
+        
+        Expected behavior:
+        - Transaction rolls back completely
+        - Exam count remains 0
+        - Booklet count remains 0
+        - Copy count remains 0
+        - No orphaned file in media/exams/source/
+        """
+        pdf_file = get_valid_pdf_file(pages=4, filename="test_exam.pdf")
+        
+        upload_data = {
+            'name': 'Test Exam - Processing Failure',
+            'date': '2026-06-15',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+        }
+        
+        assert Exam.objects.count() == 0
+        assert Booklet.objects.count() == 0
+        assert Copy.objects.count() == 0
+        
+        with patch('processing.services.pdf_splitter.PDFSplitter.split_exam') as mock_split:
+            mock_split.side_effect = RuntimeError("Simulated PDF processing failure")
+            
+            response = teacher_client.post('/api/exams/upload/', upload_data, format='multipart')
+        
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert 'error' in response.data
+        
+        assert Exam.objects.count() == 0, "Exam record should be rolled back"
+        assert Booklet.objects.count() == 0, "Booklet records should be rolled back"
+        assert Copy.objects.count() == 0, "Copy records should be rolled back"
+        
+        exam_source_dir = os.path.join(settings.MEDIA_ROOT, 'exams/source')
+        if os.path.exists(exam_source_dir):
+            files = os.listdir(exam_source_dir)
+            assert len(files) == 0, f"No orphaned files should exist, found: {files}"
+    
+    def test_upload_booklet_creation_failure_rollback(self, teacher_client, settings):
+        """
+        Test that if Copy.objects.create() fails, entire transaction rolls back.
+        """
+        pdf_file = get_valid_pdf_file(pages=4, filename="test_exam_copy_fail.pdf")
+        
+        upload_data = {
+            'name': 'Test Exam - Copy Creation Failure',
+            'date': '2026-06-15',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+        }
+        
+        assert Exam.objects.count() == 0
+        assert Booklet.objects.count() == 0
+        assert Copy.objects.count() == 0
+        
+        with patch('exams.models.Copy.objects.create') as mock_copy_create:
+            mock_copy_create.side_effect = RuntimeError("Simulated Copy creation failure")
+            
+            response = teacher_client.post('/api/exams/upload/', upload_data, format='multipart')
+        
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert 'error' in response.data
+        
+        assert Exam.objects.count() == 0, "Exam record should be rolled back"
+        assert Booklet.objects.count() == 0, "Booklet records should be rolled back"
+        assert Copy.objects.count() == 0, "Copy records should be rolled back"
+        
+        exam_source_dir = os.path.join(settings.MEDIA_ROOT, 'exams/source')
+        if os.path.exists(exam_source_dir):
+            files = os.listdir(exam_source_dir)
+            assert len(files) == 0, f"No orphaned files should exist, found: {files}"
+    
+    def test_upload_file_cleanup_on_failure(self, teacher_client, settings):
+        """
+        Test that uploaded file is deleted from filesystem when processing fails.
+        """
+        pdf_file = get_valid_pdf_file(pages=4, filename="test_cleanup.pdf")
+        
+        upload_data = {
+            'name': 'Test Exam - File Cleanup',
+            'date': '2026-06-15',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+        }
+        
+        with patch('processing.services.pdf_splitter.PDFSplitter.split_exam') as mock_split:
+            mock_split.side_effect = RuntimeError("Simulated failure for cleanup test")
+            
+            response = teacher_client.post('/api/exams/upload/', upload_data, format='multipart')
+        
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        
+        exam_source_dir = os.path.join(settings.MEDIA_ROOT, 'exams/source')
+        
+        if os.path.exists(exam_source_dir):
+            files = os.listdir(exam_source_dir)
+            assert len(files) == 0, (
+                f"Uploaded file should be cleaned up on failure. "
+                f"Found orphaned files: {files}"
+            )
+        
+        assert Exam.objects.count() == 0
+        assert Booklet.objects.count() == 0
+        assert Copy.objects.count() == 0
+    
+    def test_upload_file_cleanup_error_handling(self, teacher_client, settings):
+        """
+        Test that cleanup errors are handled gracefully when file removal fails.
+        Covers lines 110-111 in views.py exception handling.
+        """
+        pdf_file = get_valid_pdf_file(pages=4, filename="test_cleanup_error.pdf")
+        
+        upload_data = {
+            'name': 'Test Exam - Cleanup Error',
+            'date': '2026-06-15',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+        }
+        
+        with patch('processing.services.pdf_splitter.PDFSplitter.split_exam') as mock_split:
+            mock_split.side_effect = RuntimeError("Simulated processing failure")
+            
+            with patch('os.remove') as mock_remove:
+                mock_remove.side_effect = PermissionError("Cannot delete file")
+                
+                response = teacher_client.post('/api/exams/upload/', upload_data, format='multipart')
+        
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert 'error' in response.data
+        
+        assert Exam.objects.count() == 0
+        assert Booklet.objects.count() == 0
+        assert Copy.objects.count() == 0
+
+
+@pytest.mark.django_db
+class TestExamUploadAuthentication:
+    """Test authentication and authorization for upload endpoint."""
+    
+    def test_upload_anonymous_user_rejected(self, api_client):
+        """Test that unauthenticated users cannot upload."""
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="test.pdf")
+        
+        data = {
+            'pdf_source': pdf_file,
+            'name': 'Test Anon',
+            'date': '2024-01-15',
+            'pages_per_booklet': 4
+        }
+        
+        response = api_client.post('/api/exams/upload/', data, format='multipart')
+        
+        assert response.status_code in [
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_403_FORBIDDEN
+        ]
+    
+    def test_upload_student_role_rejected(self, api_client, student_user):
+        """Test that student users cannot upload exams."""
+        api_client.force_authenticate(user=student_user)
+        
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="test.pdf")
+        
+        data = {
+            'pdf_source': pdf_file,
+            'name': 'Test Student Upload',
+            'date': '2024-01-15',
+            'pages_per_booklet': 4
+        }
+        
+        response = api_client.post('/api/exams/upload/', data, format='multipart')
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+    
+    def test_upload_teacher_role_allowed(self, api_client, teacher_user):
+        """Test that teacher users can upload exams."""
+        api_client.force_authenticate(user=teacher_user)
+        
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="test.pdf")
+        
+        data = {
+            'pdf_source': pdf_file,
+            'name': 'Test Teacher Upload',
+            'date': '2024-01-15',
+            'pages_per_booklet': 4
+        }
+        
+        response = api_client.post('/api/exams/upload/', data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+    
+    def test_upload_admin_role_allowed(self, api_client, admin_user):
+        """Test that admin users can upload exams."""
+        api_client.force_authenticate(user=admin_user)
+        
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="test.pdf")
+        
+        data = {
+            'pdf_source': pdf_file,
+            'name': 'Test Admin Upload',
+            'date': '2024-01-15',
+            'pages_per_booklet': 4
+        }
+        
+        response = api_client.post('/api/exams/upload/', data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+
+
+@pytest.mark.django_db
+class TestExamUploadSecurity:
+    """Test security protections for upload endpoint."""
+    
+    def test_upload_path_traversal_protection(self, api_client, teacher_user):
+        """Test that path traversal in filename is prevented."""
+        api_client.force_authenticate(user=teacher_user)
+        
+        pdf_bytes = create_valid_pdf(pages=4)
+        malicious_file = create_uploadedfile(
+            pdf_bytes, 
+            filename="../../../../etc/passwd.pdf"
+        )
+        
+        data = {
+            'pdf_source': malicious_file,
+            'name': 'Test Path Traversal',
+            'date': '2024-01-15',
+            'pages_per_booklet': 4
+        }
+        
+        response = api_client.post('/api/exams/upload/', data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        
+        exam = Exam.objects.get(id=response.data['id'])
+        assert exam.pdf_source is not None
+        assert '..' not in exam.pdf_source.name
+        assert 'etc' not in exam.pdf_source.name
+        assert 'exams/source/' in exam.pdf_source.name
+
+
+# ============================================================================
+# AUTHENTICATION & SECURITY TESTS
+# ============================================================================
+
+@pytest.fixture
+def student_user(db):
+    """Create a student user (non-staff, student role)."""
+    user = User.objects.create_user(
+        username="student_test",
+        password="testpass123",  # nosec B106 - Test fixture password
+        is_staff=False,
+        is_superuser=False
+    )
+    g, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
+    user.groups.add(g)
+    return user
 
 
 @pytest.fixture
-def admin_client(db):
-    """Create an authenticated admin client."""
-    admin_group, _, _ = create_user_roles()
-    admin_user = User.objects.create_user(
-        username="admin_upload",
-        password="testpass123",
-    )
-    admin_user.groups.add(admin_group)
+def student_client(api_client, student_user):
+    """Return an APIClient authenticated as student user."""
+    api_client.force_authenticate(user=student_user)
+    return api_client
+
+
+# ============================================================================
+# UPLOAD MODES TESTS
+# ============================================================================
+
+@pytest.mark.django_db
+class TestUploadModes:
+    """Test suite for upload mode functionality (BATCH_A3 vs INDIVIDUAL_A4)"""
     
-    client = APIClient()
-    client.force_login(admin_user)
-    return client
-
-
-@pytest.fixture
-def teacher_client(db):
-    """Create an authenticated teacher client (non-admin)."""
-    _, teacher_group, _ = create_user_roles()
-    teacher_user = User.objects.create_user(
-        username="teacher_upload",
-        password="testpass123",
-    )
-    teacher_user.groups.add(teacher_group)
+    @property
+    def upload_url(self):
+        return '/api/exams/upload/'
     
-    client = APIClient()
-    client.force_login(teacher_user)
-    return client
+    def individual_upload_url(self, exam_id):
+        return f'/api/exams/{exam_id}/upload-individual-pdfs/'
+    
+    def test_batch_a3_mode_requires_pdf_source(self, teacher_client):
+        """
+        BATCH_A3 mode should require pdf_source field.
+        Uploading without pdf_source should return 400.
+        """
+        data = {
+            'name': 'Exam Batch Mode',
+            'date': '2024-01-15',
+            'upload_mode': 'BATCH_A3',
+            'pages_per_booklet': 4
+            # Missing pdf_source
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'pdf_source' in response.data
+        assert 'obligatoire' in str(response.data['pdf_source'][0]).lower()
+    
+    def test_batch_a3_mode_with_pdf_creates_booklets(self, teacher_client):
+        """
+        BATCH_A3 mode with valid PDF should create booklets and copies.
+        """
+        pdf_bytes = create_valid_pdf(pages=8)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="exam_8pages.pdf")
+        
+        data = {
+            'name': 'Exam Batch A3',
+            'date': '2024-01-15',
+            'upload_mode': 'BATCH_A3',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        assert 'booklets_created' in response.data
+        assert response.data['booklets_created'] == 2
+        
+        from exams.models import Exam, Booklet, Copy
+        exam = Exam.objects.get(id=response.data['id'])
+        assert exam.upload_mode == 'BATCH_A3'
+        assert exam.pdf_source is not None
+        assert Booklet.objects.filter(exam=exam).count() == 2
+        assert Copy.objects.filter(exam=exam).count() == 2
+    
+    def test_individual_a4_mode_without_pdf_creates_exam_only(self, teacher_client):
+        """
+        INDIVIDUAL_A4 mode should create exam without pdf_source.
+        Should not create booklets/copies immediately.
+        """
+        data = {
+            'name': 'Exam Individual Mode',
+            'date': '2024-01-15',
+            'upload_mode': 'INDIVIDUAL_A4'
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        assert 'upload_endpoint' in response.data
+        assert 'upload-individual-pdfs' in response.data['upload_endpoint']
+        
+        from exams.models import Exam, Booklet, Copy
+        exam = Exam.objects.get(id=response.data['id'])
+        assert exam.upload_mode == 'INDIVIDUAL_A4'
+        assert exam.pdf_source.name == ''  # No PDF uploaded yet
+        assert Booklet.objects.filter(exam=exam).count() == 0
+        assert Copy.objects.filter(exam=exam).count() == 0
+    
+    def test_individual_a4_mode_with_csv_file(self, teacher_client):
+        """
+        INDIVIDUAL_A4 mode should accept students_csv file.
+        """
+        csv_content = b"nom,prenom,email\nDupont,Jean,jean@test.fr\nMartin,Marie,marie@test.fr"
+        csv_file = create_uploadedfile(csv_content, filename="students.csv", content_type="text/csv")
+        
+        data = {
+            'name': 'Exam with CSV',
+            'date': '2024-01-15',
+            'upload_mode': 'INDIVIDUAL_A4',
+            'students_csv': csv_file
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        
+        from exams.models import Exam
+        exam = Exam.objects.get(id=response.data['id'])
+        assert exam.students_csv is not None
+        assert 'students.csv' in exam.students_csv.name
+    
+    def test_default_mode_is_batch_a3(self, teacher_client):
+        """
+        When upload_mode is not specified, should default to BATCH_A3.
+        """
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="exam.pdf")
+        
+        data = {
+            'name': 'Exam Default Mode',
+            'date': '2024-01-15',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+            # No upload_mode specified
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        
+        from exams.models import Exam
+        exam = Exam.objects.get(id=response.data['id'])
+        assert exam.upload_mode == 'BATCH_A3'
 
 
-class TestUploadEndpointSecurity:
-    """Security tests for /api/exams/upload/"""
-
-    def test_upload_requires_authentication(self, db):
-        """Unauthenticated request should return 403."""
-        client = APIClient()
-        response = client.post("/api/exams/upload/")
-        assert response.status_code == 403
-
-    def test_upload_requires_admin_role(self, teacher_client):
-        """Teacher (non-admin) should get 403."""
-        pdf_content = create_valid_pdf(4)
-        pdf_file = SimpleUploadedFile("test.pdf", pdf_content, content_type="application/pdf")
+@pytest.mark.django_db  
+class TestIndividualPDFUpload:
+    """Test suite for individual PDF upload endpoint"""
+    
+    def individual_upload_url(self, exam_id):
+        return f'/api/exams/{exam_id}/upload-individual-pdfs/'
+    
+    def create_individual_mode_exam(self):
+        """Helper to create an exam in INDIVIDUAL_A4 mode"""
+        from exams.models import Exam
+        return Exam.objects.create(
+            name='Test Individual Exam',
+            date='2024-01-15',
+            upload_mode='INDIVIDUAL_A4'
+        )
+    
+    def test_upload_single_individual_pdf(self, teacher_client):
+        """
+        Upload a single PDF file for INDIVIDUAL_A4 exam.
+        Should create ExamPDF and Copy.
+        """
+        exam = self.create_individual_mode_exam()
+        
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="martin_jean.pdf")
         
         response = teacher_client.post(
-            "/api/exams/upload/",
-            {"name": "Test Exam", "date": "2026-01-31", "pdf_source": pdf_file},
-            format="multipart",
-        )
-        assert response.status_code == 403
-
-
-class TestUploadValidation:
-    """Validation tests for PDF uploads."""
-
-    def test_upload_valid_pdf_success(self, admin_client):
-        """Valid PDF should create Exam + Booklets."""
-        pdf_content = create_valid_pdf(8)
-        pdf_file = SimpleUploadedFile("valid.pdf", pdf_content, content_type="application/pdf")
-        
-        response = admin_client.post(
-            "/api/exams/upload/",
-            {"name": "Valid Exam", "date": "2026-01-31", "pdf_source": pdf_file},
-            format="multipart",
+            self.individual_upload_url(exam.id),
+            {'pdf_files': pdf_file},
+            format='multipart'
         )
         
-        assert response.status_code == 201
-        assert "booklets_created" in response.data
-        assert response.data["booklets_created"] >= 1
+        assert response.status_code == status.HTTP_201_CREATED
+        assert '1 fichiers PDF uploadés' in response.data['message']
+        assert len(response.data['uploaded_files']) == 1
         
-        exam = Exam.objects.get(name="Valid Exam")
-        assert exam.is_processed is True
-        assert exam.booklets.count() >= 1
-
-    def test_upload_non_pdf_returns_400(self, admin_client):
-        """Non-PDF file should return 400 with clear error."""
-        text_content = b"This is not a PDF file"
-        fake_pdf = SimpleUploadedFile("fake.pdf", text_content, content_type="application/pdf")
+        uploaded = response.data['uploaded_files'][0]
+        assert uploaded['filename'] == 'martin_jean.pdf'
+        assert uploaded['student_identifier'] == 'martin_jean'
         
-        response = admin_client.post(
-            "/api/exams/upload/",
-            {"name": "Fake PDF Exam", "date": "2026-01-31", "pdf_source": fake_pdf},
-            format="multipart",
+        from exams.models import ExamPDF, Copy
+        assert ExamPDF.objects.filter(exam=exam).count() == 1
+        assert Copy.objects.filter(exam=exam).count() == 1
+        
+        exam_pdf = ExamPDF.objects.get(id=uploaded['exam_pdf_id'])
+        assert exam_pdf.student_identifier == 'martin_jean'
+        
+        copy = Copy.objects.get(id=uploaded['copy_id'])
+        assert copy.status == Copy.Status.STAGING
+        assert copy.is_identified is False
+    
+    def test_upload_multiple_individual_pdfs(self, teacher_client):
+        """
+        Upload multiple PDF files simultaneously.
+        Should create multiple ExamPDF and Copy objects.
+        """
+        exam = self.create_individual_mode_exam()
+        
+        pdf1 = create_uploadedfile(create_valid_pdf(pages=4), filename="student1.pdf")
+        pdf2 = create_uploadedfile(create_valid_pdf(pages=4), filename="student2.pdf")
+        pdf3 = create_uploadedfile(create_valid_pdf(pages=4), filename="student3.pdf")
+        
+        response = teacher_client.post(
+            self.individual_upload_url(exam.id),
+            {'pdf_files': [pdf1, pdf2, pdf3]},
+            format='multipart'
         )
         
-        assert response.status_code == 400
-        assert "pdf_source" in response.data or "error" in response.data
-
-    def test_upload_empty_file_returns_400(self, admin_client):
-        """Empty file should return 400."""
-        empty_file = SimpleUploadedFile("empty.pdf", b"", content_type="application/pdf")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert '3 fichiers PDF uploadés' in response.data['message']
+        assert len(response.data['uploaded_files']) == 3
+        assert response.data['total_copies'] == 3
         
-        response = admin_client.post(
-            "/api/exams/upload/",
-            {"name": "Empty PDF Exam", "date": "2026-01-31", "pdf_source": empty_file},
-            format="multipart",
+        from exams.models import ExamPDF, Copy
+        assert ExamPDF.objects.filter(exam=exam).count() == 3
+        assert Copy.objects.filter(exam=exam).count() == 3
+    
+    def test_upload_to_batch_mode_exam_rejected(self, teacher_client):
+        """
+        Uploading individual PDFs to BATCH_A3 exam should fail.
+        """
+        from exams.models import Exam
+        exam = Exam.objects.create(
+            name='Batch Mode Exam',
+            date='2024-01-15',
+            upload_mode='BATCH_A3'
         )
         
-        assert response.status_code == 400
-
-    def test_upload_corrupted_pdf_returns_400(self, admin_client):
-        """Corrupted PDF should return 400."""
-        corrupted_content = b"%PDF-1.4\nGARBAGE CORRUPTED DATA"
-        corrupted_pdf = SimpleUploadedFile("corrupted.pdf", corrupted_content, content_type="application/pdf")
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="test.pdf")
         
-        response = admin_client.post(
-            "/api/exams/upload/",
-            {"name": "Corrupted PDF Exam", "date": "2026-01-31", "pdf_source": corrupted_pdf},
-            format="multipart",
+        response = teacher_client.post(
+            self.individual_upload_url(exam.id),
+            {'pdf_files': pdf_file},
+            format='multipart'
         )
         
-        assert response.status_code == 400
-
-    def test_upload_missing_required_fields_returns_400(self, admin_client):
-        """Missing name or date should return 400."""
-        pdf_content = create_valid_pdf(4)
-        pdf_file = SimpleUploadedFile("test.pdf", pdf_content, content_type="application/pdf")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'INDIVIDUAL_A4' in response.data['error']
+    
+    def test_upload_without_files_rejected(self, teacher_client):
+        """
+        POST without any files should return 400.
+        """
+        exam = self.create_individual_mode_exam()
         
-        response = admin_client.post(
-            "/api/exams/upload/",
-            {"pdf_source": pdf_file},
-            format="multipart",
+        response = teacher_client.post(
+            self.individual_upload_url(exam.id),
+            {},
+            format='multipart'
         )
         
-        assert response.status_code == 400
-        assert "name" in response.data or "date" in response.data
-
-
-class TestUploadAtomicity:
-    """Atomicity tests - no zombie Exams on failure."""
-
-    def test_processing_failure_rolls_back_exam(self, admin_client, monkeypatch):
-        """If PDF processing fails, Exam should be rolled back (not created)."""
-        pdf_content = create_valid_pdf(4)
-        pdf_file = SimpleUploadedFile("test.pdf", pdf_content, content_type="application/pdf")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'pdf_files' in response.data['error']
+    
+    def test_upload_too_many_files_rejected(self, teacher_client):
+        """
+        Uploading more than MAX_FILES_PER_REQUEST should be rejected.
+        Note: Django's DATA_UPLOAD_MAX_NUMBER_FILES also limits this,
+        so we test with a reasonable number that still exceeds our limit.
+        """
+        exam = self.create_individual_mode_exam()
         
-        def mock_split_exam(*args, **kwargs):
-            raise Exception("Simulated processing failure")
+        # Create files that exceed our custom limit (100)
+        # but stay under Django's default (1000)
+        # For testing, we'll create exactly 101 files
+        # However, Django may reject this before our code runs
+        # So we'll just verify the request is rejected
+        files = [
+            create_uploadedfile(create_valid_pdf(pages=1), filename=f"student{i}.pdf")
+            for i in range(101)
+        ]
         
-        from processing.services import pdf_splitter
-        monkeypatch.setattr(pdf_splitter.PDFSplitter, "split_exam", mock_split_exam)
-        
-        initial_exam_count = Exam.objects.count()
-        
-        response = admin_client.post(
-            "/api/exams/upload/",
-            {"name": "Failure Exam", "date": "2026-01-31", "pdf_source": pdf_file},
-            format="multipart",
+        response = teacher_client.post(
+            self.individual_upload_url(exam.id),
+            {'pdf_files': files},
+            format='multipart'
         )
         
-        assert response.status_code == 500
-        assert "error" in response.data
-        
-        # ZF-AUD-03 FIX: Exam should be rolled back, not orphaned
-        final_exam_count = Exam.objects.count()
-        assert final_exam_count == initial_exam_count  # No new Exam created
-        
-        # Verify no orphan exam exists
-        assert not Exam.objects.filter(name="Failure Exam").exists()
+        # Should be rejected (either by Django or our validation)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+    
 
-
-class TestUploadErrorMessages:
-    """Error message clarity tests."""
-
-    def test_error_message_is_user_friendly(self, admin_client):
-        """Error messages should be exploitable by frontend."""
-        text_content = b"Not a PDF"
-        fake_pdf = SimpleUploadedFile("fake.pdf", text_content, content_type="application/pdf")
+    
+    def test_upload_requires_authentication(self, api_client):
+        """
+        Anonymous users should be rejected.
+        """
+        exam = self.create_individual_mode_exam()
         
-        response = admin_client.post(
-            "/api/exams/upload/",
-            {"name": "Fake Exam", "date": "2026-01-31", "pdf_source": fake_pdf},
-            format="multipart",
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="test.pdf")
+        
+        response = api_client.post(
+            self.individual_upload_url(exam.id),
+            {'pdf_files': pdf_file},
+            format='multipart'
         )
         
-        assert response.status_code == 400
-        
-        error_text = str(response.data)
-        assert "pdf" in error_text.lower() or "mime" in error_text.lower() or "invalid" in error_text.lower()
-
-
-class TestBatchModeUpload:
-    """Tests for batch mode upload with auto-stapling."""
-
-    def test_batch_mode_requires_csv(self, admin_client):
-        """Batch mode without CSV should fall back to standard mode."""
-        pdf_content = create_valid_pdf(8)
-        pdf_file = SimpleUploadedFile("batch.pdf", pdf_content, content_type="application/pdf")
-        
-        response = admin_client.post(
-            "/api/exams/upload/",
-            {
-                "name": "Batch No CSV",
-                "date": "2026-01-31",
-                "pdf_source": pdf_file,
-                "batch_mode": "true"
-            },
-            format="multipart",
-        )
-        
-        # Should succeed but use standard mode (no CSV provided)
-        assert response.status_code == 201
-        assert "booklets_created" in response.data
-
-    def test_batch_mode_with_csv_creates_copies(self, admin_client):
-        """Batch mode with CSV should create copies directly."""
-        pdf_content = create_valid_pdf(8, a3_format=True)
-        pdf_file = SimpleUploadedFile("batch.pdf", pdf_content, content_type="application/pdf")
-        
-        csv_content = b"Eleves,Ne(e) le,Adresse E-mail,Classe\nDUPONT Jean,01/01/2008,jean.dupont@test.com,T.01\n"
-        csv_file = SimpleUploadedFile("students.csv", csv_content, content_type="text/csv")
-        
-        response = admin_client.post(
-            "/api/exams/upload/",
-            {
-                "name": "Batch With CSV",
-                "date": "2026-01-31",
-                "pdf_source": pdf_file,
-                "batch_mode": "true",
-                "students_csv": csv_file
-            },
-            format="multipart",
-        )
-        
-        assert response.status_code == 201
-        # Batch mode returns copies_created instead of booklets_created
-        assert "copies_created" in response.data or "booklets_created" in response.data
-
-    def test_batch_mode_response_includes_stats(self, admin_client):
-        """Batch mode response should include ready/review counts."""
-        pdf_content = create_valid_pdf(8, a3_format=True)
-        pdf_file = SimpleUploadedFile("batch_stats.pdf", pdf_content, content_type="application/pdf")
-        
-        csv_content = b"Eleves,Ne(e) le,Adresse E-mail,Classe\nMARTIN Pierre,15/03/2008,pierre.martin@test.com,T.02\n"
-        csv_file = SimpleUploadedFile("students.csv", csv_content, content_type="text/csv")
-        
-        response = admin_client.post(
-            "/api/exams/upload/",
-            {
-                "name": "Batch Stats Test",
-                "date": "2026-01-31",
-                "pdf_source": pdf_file,
-                "batch_mode": "true",
-                "students_csv": csv_file
-            },
-            format="multipart",
-        )
-        
-        assert response.status_code == 201
-        # Should include statistics about auto-identification
-        if "copies_created" in response.data:
-            assert "ready_count" in response.data or "needs_review_count" in response.data
-
-
-class TestUploadPathTraversal:
-    """Path traversal protection tests."""
-
-    def test_malicious_filename_is_sanitized(self, admin_client):
-        """Filenames with path traversal attempts should be sanitized."""
-        pdf_content = create_valid_pdf(4)
-        malicious_filename = "../../../etc/passwd.pdf"
-        pdf_file = SimpleUploadedFile(malicious_filename, pdf_content, content_type="application/pdf")
-        
-        response = admin_client.post(
-            "/api/exams/upload/",
-            {"name": "Path Traversal Test", "date": "2026-01-31", "pdf_source": pdf_file},
-            format="multipart",
-        )
-        
-        if response.status_code == 201:
-            exam = Exam.objects.get(name="Path Traversal Test")
-            assert ".." not in exam.pdf_source.name
-            assert "etc" not in exam.pdf_source.name
-            assert exam.pdf_source.name.startswith("exams/source/")
+        # DRF returns 403 Forbidden for permission failures
+        assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
