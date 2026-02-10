@@ -316,21 +316,21 @@ jobs:
             echo "  ✅ Images pulled"
             
             echo "🔄 Running database migrations..."
-            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm -T backend python manage.py migrate || {
+            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm -T backend python manage.py migrate < /dev/null || {
               echo "❌ Migrations failed"
               exit 1
             }
             echo "  ✅ Migrations complete"
             
             echo "🌱 Seeding production data (idempotent)..."
-            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm -T backend python seed_prod.py || {
+            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm -T backend python seed_prod.py < /dev/null || {
               echo "❌ Seeding failed"
               exit 1
             }
             echo "  ✅ Seeding complete"
             
             echo "📦 Collecting static files..."
-            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm -T backend python manage.py collectstatic --noinput || {
+            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm -T backend python manage.py collectstatic --noinput < /dev/null || {
               echo "❌ Collectstatic failed"
               exit 1
             }
