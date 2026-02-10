@@ -54,6 +54,8 @@ services:
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:?err}"
       CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:?err}"
       METRICS_TOKEN: "${METRICS_TOKEN:?err}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
+      TEACHER_PASSWORD: "${TEACHER_PASSWORD:-}"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health/" ]
       interval: 30s
