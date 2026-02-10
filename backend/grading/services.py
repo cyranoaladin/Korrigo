@@ -481,6 +481,9 @@ class GradingService:
         """
         Internal: Uses PyMuPDF to convert copy.pdf_source into images in media/copies/pages/<id>
         """
+        if not copy.pdf_source:
+            raise ValueError(f"Copy {copy.id} has no pdf_source file")
+        
         copy.pdf_source.open()
         try:
             pdf_bytes = copy.pdf_source.read()
