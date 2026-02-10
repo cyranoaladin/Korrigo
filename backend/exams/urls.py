@@ -4,7 +4,7 @@ from .views import (
     ExamDetailView, CopyListView, MergeBookletsView, ExportAllView, CSVExportView,
     CopyIdentificationView, UnidentifiedCopiesView, StudentCopiesView,
     CopyImportView, ExamSourceUploadView, BookletSplitView, BookletDetailView,
-    ExamDispatchView
+    ExamDispatchView, IndividualPDFUploadView
 )
 
 urlpatterns = [
@@ -14,8 +14,9 @@ urlpatterns = [
     path('<uuid:id>/', ExamDetailView.as_view(), name='exam-detail'),
     path('<uuid:pk>/upload/', ExamSourceUploadView.as_view(), name='exam-source-upload'),
     
-    # New Import Route (Phase 3.9)
+    # New Import Routes
     path('<uuid:exam_id>/copies/import/', CopyImportView.as_view(), name='copy-import'),
+    path('<uuid:exam_id>/upload-individual-pdfs/', IndividualPDFUploadView.as_view(), name='individual-pdf-upload'),
 
     # Mission 16: Booklet Management
     path('<uuid:exam_id>/booklets/', BookletListView.as_view(), name='booklet-list'),

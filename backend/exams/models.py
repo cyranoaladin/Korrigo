@@ -12,9 +12,34 @@ from .validators import (
 )
 
 class Exam(models.Model):
+    class UploadMode(models.TextChoices):
+        BATCH_A3 = 'BATCH_A3', _("Scan par lots (A3) - Découpage automatique")
+        INDIVIDUAL_A4 = 'INDIVIDUAL_A4', _("Fichiers individuels (A4) - Déjà découpés")
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, verbose_name=_("Nom de l'examen"))
     date = models.DateField(verbose_name=_("Date de l'examen"))
+    
+    # Upload mode selection
+    upload_mode = models.CharField(
+        max_length=20,
+        choices=UploadMode.choices,
+        default=UploadMode.BATCH_A3,
+        verbose_name=_("Mode d'upload"),
+        help_text=_("BATCH_A3: scan par lots à découper | INDIVIDUAL_A4: fichiers déjà découpés par élève")
+    )
+    
+    # CSV file for student list
+    students_csv = models.FileField(
+        upload_to='exams/csv/',
+        verbose_name=_("Liste des élèves (CSV)"),
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['csv'])],
+        help_text=_("Fichier CSV contenant la liste des élèves (optionnel)")
+    )
+    
+    # Legacy single PDF field - used for BATCH_A3 mode
     pdf_source = models.FileField(
         upload_to='exams/source/',
         verbose_name=_("Fichier PDF source"),
@@ -260,3 +285,48 @@ class Copy(models.Model):
 
     def __str__(self):
         return f"Copie {self.anonymous_id} ({self.get_status_display()})"
+
+
+class ExamPDF(models.Model):
+    """
+    Représente un fichier PDF individuel uploadé pour un examen.
+    Utilisé dans le mode INDIVIDUAL_A4 où chaque PDF correspond à la copie d'un élève.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    exam = models.ForeignKey(
+        Exam,
+        on_delete=models.CASCADE,
+        related_name='individual_pdfs',
+        verbose_name=_("Examen")
+    )
+    pdf_file = models.FileField(
+        upload_to='exams/individual/',
+        verbose_name=_("Fichier PDF individuel"),
+        validators=[
+            FileExtensionValidator(allowed_extensions=['pdf']),
+            validate_pdf_size,
+            validate_pdf_not_empty,
+            validate_pdf_mime_type,
+            validate_pdf_integrity,
+        ],
+        help_text=_("Fichier PDF d'un élève (A4)")
+    )
+    student_identifier = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_("Identifiant élève"),
+        help_text=_("Nom ou identifiant extrait du nom de fichier (optionnel)")
+    )
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Date d'upload")
+    )
+    
+    class Meta:
+        verbose_name = _("PDF Individuel")
+        verbose_name_plural = _("PDFs Individuels")
+        ordering = ['uploaded_at']
+    
+    def __str__(self):
+        return f"PDF {self.student_identifier or self.id} - {self.exam.name}"

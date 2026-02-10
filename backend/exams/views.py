@@ -12,8 +12,8 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.decorators import method_decorator
 from django.db import transaction
 from core.utils.ratelimit import maybe_ratelimit
-from .models import Exam, Booklet, Copy
-from .serializers import ExamSerializer, BookletSerializer, CopySerializer
+from .models import Exam, Booklet, Copy, ExamPDF
+from .serializers import ExamSerializer, BookletSerializer, CopySerializer, ExamPDFSerializer
 from processing.services.vision import HeaderDetector
 from grading.services import GradingService
 from .permissions import IsTeacherOrAdmin
@@ -51,42 +51,55 @@ class ExamUploadView(APIView):
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
         
         # Log upload initiation
-        logger.info(f"Exam upload initiated by user {request.user.username}")
+        upload_mode = serializer.validated_data.get('upload_mode', Exam.UploadMode.BATCH_A3)
+        logger.info(f"Exam upload initiated by user {request.user.username}, mode: {upload_mode}")
         
         # Wrap entire operation in atomic transaction
         try:
             with transaction.atomic():
                 # Create exam record
                 exam = serializer.save()
-                logger.info(f"Exam {exam.id} created: {exam.name}")
+                logger.info(f"Exam {exam.id} created: {exam.name}, mode: {exam.upload_mode}")
                 
-                # REAL-TIME PROCESSING using PDFSplitter
-                from processing.services.pdf_splitter import PDFSplitter
-                import uuid
+                # Handle based on upload mode
+                if exam.upload_mode == Exam.UploadMode.BATCH_A3:
+                    # BATCH_A3 MODE: Split PDF into booklets and create copies
+                    from processing.services.pdf_splitter import PDFSplitter
+                    import uuid
 
-                splitter = PDFSplitter(dpi=150)
-                booklets = splitter.split_exam(exam)
-                logger.info(f"PDF split into {len(booklets)} booklets for exam {exam.id}")
+                    splitter = PDFSplitter(dpi=150)
+                    booklets = splitter.split_exam(exam)
+                    logger.info(f"PDF split into {len(booklets)} booklets for exam {exam.id}")
 
-                # Créer les copies en statut STAGING (ADR-003)
-                for booklet in booklets:
-                    copy = Copy.objects.create(
-                        exam=exam,
-                        anonymous_id=str(uuid.uuid4())[:8].upper(),
-                        status=Copy.Status.STAGING,
-                        is_identified=False
-                    )
-                    copy.booklets.add(booklet)
-                    logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
+                    # Créer les copies en statut STAGING (ADR-003)
+                    for booklet in booklets:
+                        copy = Copy.objects.create(
+                            exam=exam,
+                            anonymous_id=str(uuid.uuid4())[:8].upper(),
+                            status=Copy.Status.STAGING,
+                            is_identified=False
+                        )
+                        copy.booklets.add(booklet)
+                        logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
 
-                # Log successful completion
-                logger.info(f"Exam upload completed successfully: {exam.id} with {len(booklets)} booklets")
+                    # Log successful completion
+                    logger.info(f"Exam upload completed successfully: {exam.id} with {len(booklets)} booklets")
+                    
+                    return Response({
+                        **serializer.data,
+                        "booklets_created": len(booklets),
+                        "message": f"{len(booklets)} booklets created successfully"
+                    }, status=status.HTTP_201_CREATED)
                 
-                return Response({
-                    **serializer.data,
-                    "booklets_created": len(booklets),
-                    "message": f"{len(booklets)} booklets created successfully"
-                }, status=status.HTTP_201_CREATED)
+                elif exam.upload_mode == Exam.UploadMode.INDIVIDUAL_A4:
+                    # INDIVIDUAL_A4 MODE: Exam created, individual PDFs will be uploaded separately
+                    logger.info(f"Exam {exam.id} created in INDIVIDUAL_A4 mode. Waiting for individual PDF uploads.")
+                    
+                    return Response({
+                        **serializer.data,
+                        "message": _("Examen créé. Vous pouvez maintenant uploader les fichiers PDF individuels."),
+                        "upload_endpoint": f"/api/exams/{exam.id}/upload-individual-pdfs/"
+                    }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             from core.utils.errors import safe_error_response
@@ -119,6 +132,107 @@ class ExamUploadView(APIView):
                 ),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+class IndividualPDFUploadView(APIView):
+    """
+    Upload multiple individual PDF files for an exam in INDIVIDUAL_A4 mode.
+    POST /api/exams/<exam_id>/upload-individual-pdfs/
+    Supports uploading multiple files simultaneously.
+    """
+    permission_classes = [IsTeacherOrAdmin]
+    parser_classes = (MultiPartParser, FormParser)
+
+    @method_decorator(maybe_ratelimit(key='user', rate='50/h', method='POST', block=True))
+    def post(self, request, exam_id):
+        logger = logging.getLogger(__name__)
+        exam = get_object_or_404(Exam, id=exam_id)
+        
+        # Verify exam is in INDIVIDUAL_A4 mode
+        if exam.upload_mode != Exam.UploadMode.INDIVIDUAL_A4:
+            return Response(
+                {"error": _("Cet examen n'est pas en mode INDIVIDUAL_A4. Utilisez l'endpoint d'upload standard.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get all uploaded PDF files (can be multiple)
+        uploaded_files = request.FILES.getlist('pdf_files')
+        
+        if not uploaded_files:
+            return Response(
+                {"error": _("Aucun fichier PDF uploadé. Utilisez le champ 'pdf_files'.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        logger.info(f"Individual PDF upload for exam {exam_id}: {len(uploaded_files)} files by user {request.user.username}")
+        
+        created_pdfs = []
+        errors = []
+        
+        try:
+            with transaction.atomic():
+                import uuid
+                
+                for pdf_file in uploaded_files:
+                    try:
+                        # Extract student identifier from filename (optional)
+                        filename = pdf_file.name
+                        student_identifier = os.path.splitext(filename)[0] if filename else None
+                        
+                        # Create ExamPDF record
+                        exam_pdf = ExamPDF.objects.create(
+                            exam=exam,
+                            pdf_file=pdf_file,
+                            student_identifier=student_identifier
+                        )
+                        
+                        # Create Copy in STAGING status
+                        copy = Copy.objects.create(
+                            exam=exam,
+                            anonymous_id=str(uuid.uuid4())[:8].upper(),
+                            status=Copy.Status.STAGING,
+                            is_identified=False,
+                            pdf_source=pdf_file  # Store the original PDF
+                        )
+                        
+                        created_pdfs.append({
+                            'exam_pdf_id': str(exam_pdf.id),
+                            'copy_id': str(copy.id),
+                            'filename': filename,
+                            'student_identifier': student_identifier
+                        })
+                        
+                        logger.info(f"Created ExamPDF {exam_pdf.id} and Copy {copy.id} for {filename}")
+                        
+                    except Exception as file_error:
+                        error_msg = f"Erreur avec {pdf_file.name}: {str(file_error)}"
+                        errors.append(error_msg)
+                        logger.error(error_msg)
+                
+                # If there were errors, rollback
+                if errors:
+                    raise Exception(f"Errors during upload: {', '.join(errors)}")
+                
+                logger.info(f"Successfully uploaded {len(created_pdfs)} individual PDFs for exam {exam_id}")
+                
+                return Response({
+                    "message": f"{len(created_pdfs)} fichiers PDF uploadés avec succès",
+                    "uploaded_files": created_pdfs,
+                    "total_copies": exam.copies.count()
+                }, status=status.HTTP_201_CREATED)
+        
+        except Exception as e:
+            from core.utils.errors import safe_error_response
+            logger.error(f"Individual PDF upload failed for exam {exam_id}: {str(e)}", exc_info=True)
+            
+            return Response(
+                safe_error_response(
+                    e,
+                    context="Upload de PDFs individuels",
+                    user_message="Échec de l'upload des fichiers PDF. Veuillez vérifier que tous les fichiers sont valides."
+                ),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class CopyImportView(APIView):
     """
