@@ -138,9 +138,13 @@ class IndividualPDFUploadView(APIView):
     Upload multiple individual PDF files for an exam in INDIVIDUAL_A4 mode.
     POST /api/exams/<exam_id>/upload-individual-pdfs/
     Supports uploading multiple files simultaneously.
+    
+    Limits: Max 100 files per request to prevent DoS
     """
     permission_classes = [IsTeacherOrAdmin]
     parser_classes = (MultiPartParser, FormParser)
+    
+    MAX_FILES_PER_REQUEST = 100
 
     @method_decorator(maybe_ratelimit(key='user', rate='50/h', method='POST', block=True))
     def post(self, request, exam_id):
@@ -163,60 +167,57 @@ class IndividualPDFUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Limit number of files per request
+        if len(uploaded_files) > self.MAX_FILES_PER_REQUEST:
+            return Response(
+                {"error": _(f"Trop de fichiers. Maximum {self.MAX_FILES_PER_REQUEST} fichiers par requête.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         logger.info(f"Individual PDF upload for exam {exam_id}: {len(uploaded_files)} files by user {request.user.username}")
         
-        created_pdfs = []
-        errors = []
+        created_copies = []
         
         try:
             with transaction.atomic():
                 import uuid
                 
                 for pdf_file in uploaded_files:
-                    try:
-                        # Extract student identifier from filename (optional)
-                        filename = pdf_file.name
-                        student_identifier = os.path.splitext(filename)[0] if filename else None
-                        
-                        # Create ExamPDF record
-                        exam_pdf = ExamPDF.objects.create(
-                            exam=exam,
-                            pdf_file=pdf_file,
-                            student_identifier=student_identifier
-                        )
-                        
-                        # Create Copy in STAGING status
-                        copy = Copy.objects.create(
-                            exam=exam,
-                            anonymous_id=str(uuid.uuid4())[:8].upper(),
-                            status=Copy.Status.STAGING,
-                            is_identified=False,
-                            pdf_source=pdf_file  # Store the original PDF
-                        )
-                        
-                        created_pdfs.append({
-                            'exam_pdf_id': str(exam_pdf.id),
-                            'copy_id': str(copy.id),
-                            'filename': filename,
-                            'student_identifier': student_identifier
-                        })
-                        
-                        logger.info(f"Created ExamPDF {exam_pdf.id} and Copy {copy.id} for {filename}")
-                        
-                    except Exception as file_error:
-                        error_msg = f"Erreur avec {pdf_file.name}: {str(file_error)}"
-                        errors.append(error_msg)
-                        logger.error(error_msg)
+                    # Extract student identifier from filename (optional)
+                    filename = pdf_file.name
+                    student_identifier = os.path.splitext(filename)[0] if filename else None
+                    
+                    # Create ExamPDF record for tracking
+                    exam_pdf = ExamPDF.objects.create(
+                        exam=exam,
+                        pdf_file=pdf_file,
+                        student_identifier=student_identifier
+                    )
+                    
+                    # Create Copy in STAGING status (using exam_pdf.pdf_file as reference)
+                    # Note: We don't duplicate the file; Copy.pdf_source will reference the same file
+                    copy = Copy.objects.create(
+                        exam=exam,
+                        anonymous_id=str(uuid.uuid4())[:8].upper(),
+                        status=Copy.Status.STAGING,
+                        is_identified=False,
+                        pdf_source=exam_pdf.pdf_file  # Reference the same file
+                    )
+                    
+                    created_copies.append({
+                        'exam_pdf_id': str(exam_pdf.id),
+                        'copy_id': str(copy.id),
+                        'filename': filename,
+                        'student_identifier': student_identifier
+                    })
+                    
+                    logger.info(f"Created ExamPDF {exam_pdf.id} and Copy {copy.id} for {filename}")
                 
-                # If there were errors, rollback
-                if errors:
-                    raise Exception(f"Errors during upload: {', '.join(errors)}")
-                
-                logger.info(f"Successfully uploaded {len(created_pdfs)} individual PDFs for exam {exam_id}")
+                logger.info(f"Successfully uploaded {len(created_copies)} individual PDFs for exam {exam_id}")
                 
                 return Response({
-                    "message": f"{len(created_pdfs)} fichiers PDF uploadés avec succès",
-                    "uploaded_files": created_pdfs,
+                    "message": f"{len(created_copies)} fichiers PDF uploadés avec succès",
+                    "uploaded_files": created_copies,
                     "total_copies": exam.copies.count()
                 }, status=status.HTTP_201_CREATED)
         
