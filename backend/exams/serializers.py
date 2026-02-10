@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.core.validators import FileExtensionValidator
 from django.utils.translation import gettext_lazy as _
-from .models import Exam, Booklet, Copy
+from .models import Exam, Booklet, Copy, ExamPDF
 from .validators import (
     validate_pdf_size,
     validate_pdf_not_empty,
@@ -27,10 +27,23 @@ class BookletSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.header_image.url)
         return None
 
+class ExamPDFSerializer(serializers.ModelSerializer):
+    """Serializer for individual PDF files in INDIVIDUAL_A4 mode"""
+    
+    class Meta:
+        model = ExamPDF
+        fields = ['id', 'pdf_file', 'student_identifier', 'uploaded_at']
+        read_only_fields = ['id', 'uploaded_at']
+
+
 class ExamSerializer(serializers.ModelSerializer):
     booklet_count = serializers.SerializerMethodField()
+    individual_pdfs_count = serializers.SerializerMethodField()
+    
+    # pdf_source is now optional (only required for BATCH_A3 mode)
     pdf_source = serializers.FileField(
-        required=True,
+        required=False,
+        allow_null=True,
         validators=[
             FileExtensionValidator(allowed_extensions=['pdf']),
             validate_pdf_size,
@@ -39,13 +52,46 @@ class ExamSerializer(serializers.ModelSerializer):
             validate_pdf_integrity,
         ]
     )
+    
+    # CSV file for student list (optional for both modes)
+    students_csv = serializers.FileField(
+        required=False,
+        allow_null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['csv'])]
+    )
 
     class Meta:
         model = Exam
-        fields = ['id', 'name', 'date', 'grading_structure', 'is_processed', 'booklet_count', 'pdf_source', 'correctors']
+        fields = [
+            'id', 'name', 'date', 'upload_mode', 'grading_structure', 
+            'is_processed', 'booklet_count', 'individual_pdfs_count',
+            'pdf_source', 'students_csv', 'correctors', 'pages_per_booklet'
+        ]
 
     def get_booklet_count(self, obj):
         return obj.booklets.count()
+    
+    def get_individual_pdfs_count(self, obj):
+        return obj.individual_pdfs.count()
+    
+    def validate(self, data):
+        """
+        Validate that the correct fields are provided based on upload_mode
+        """
+        upload_mode = data.get('upload_mode', Exam.UploadMode.BATCH_A3)
+        pdf_source = data.get('pdf_source')
+        
+        if upload_mode == Exam.UploadMode.BATCH_A3:
+            # BATCH_A3 mode requires pdf_source
+            if not pdf_source:
+                raise serializers.ValidationError({
+                    'pdf_source': _("Le fichier PDF source est obligatoire en mode BATCH_A3")
+                })
+        
+        # INDIVIDUAL_A4 mode: pdf_source is not required
+        # Individual PDFs will be uploaded separately via a different endpoint
+        
+        return data
 
     def validate_grading_structure(self, value):
         """
