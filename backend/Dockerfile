@@ -34,4 +34,4 @@ RUN mkdir -p /app/.cache && chmod 755 /app/.cache
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
+CMD ["gunicorn", "core.wsgi:application", "-c", "gunicorn_config.py"]

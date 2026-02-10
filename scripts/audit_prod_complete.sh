@@ -1,9 +1,21 @@
 #!/bin/bash
 ###############################################################################
-#  KORRIGO — Audit Complet de Production (v4 — Zero False-Positive)
+#  KORRIGO — Audit Complet de Production (v6 — Industrial-Grade)
 #  Date: 2026-02-10
 #  Usage: bash scripts/audit_prod_complete.sh
 #  Execute from /var/www/labomaths/korrigo on VPS
+#
+#  v6 fixes (over v5):
+#  - Django check: handle ENABLE_DJANGO_DEPLOY_CHECK=False (0 warnings expected)
+#  - Workers: detect korrigo-gunicorn proc_name alongside gunicorn/python
+#  - Headers: check for duplicate security headers (proxy_hide_header audit)
+#  - Version bump to v6
+#
+#  v5 fixes (over v4):
+#  - Django check grep pattern: ^[?!] instead of WARNINGS|Warning
+#  - Worker detection: grep -E + wc -l + tail -1 for reliable counting
+#  - Backup file listing with paths
+#  - CI concurrency group added
 #
 #  v4 fixes (over v3):
 #  - Nginx: read nginx.conf (not deleted default.conf) for proxy/SPA detection
@@ -364,8 +376,8 @@ else
   echo "$DJANGO_CHECK" | grep -v "drf_spectacular" | grep -E '^[?!]' | command tail -5 | sed 's/^/     /'
 fi
 
-# Detect gunicorn/python workers serving the app
-WORKERS=$($COMPOSE exec -T backend sh -c 'ps aux 2>/dev/null | grep -E "gunicorn|python" | grep -v grep | wc -l' 2>/dev/null | tail -1 | tr -d '[:space:]' || echo "0")
+# Detect gunicorn/python workers serving the app (proc_name = "korrigo-gunicorn")
+WORKERS=$($COMPOSE exec -T backend sh -c 'ps aux 2>/dev/null | grep -E "korrigo-gunicorn|gunicorn|python" | grep -v grep | wc -l' 2>/dev/null | tail -1 | tr -d '[:space:]' || echo "0")
 nfo "Backend workers: $WORKERS processus"
 [ "${WORKERS:-0}" -ge 2 ] 2>/dev/null && ok "Backend: $WORKERS workers actifs" || \
   ([ "${WORKERS:-0}" -ge 1 ] 2>/dev/null && ok "Backend: $WORKERS worker(s) actif(s)" || wn "Backend: aucun worker détecté")
@@ -406,6 +418,14 @@ echo "$SEC_HEADERS" | grep -qi "X-Content-Type-Options" && ok "X-Content-Type-Op
 echo "$SEC_HEADERS" | grep -qi "Strict-Transport-Security" && ok "HSTS présent" || wn "HSTS manquant"
 echo "$SEC_HEADERS" | grep -qi "Content-Security-Policy" && ok "CSP présent" || wn "CSP manquant"
 echo "$SEC_HEADERS" | grep -qi "Referrer-Policy" && ok "Referrer-Policy présent" || wn "Referrer-Policy manquant"
+
+# Check for duplicate security headers (sign of missing proxy_hide_header)
+for HDR in "X-Frame-Options" "X-Content-Type-Options" "Referrer-Policy"; do
+  DUP_COUNT=$(echo "$SEC_HEADERS" | grep -ci "$HDR" || true)
+  if [ "${DUP_COUNT:-0}" -gt 1 ] 2>/dev/null; then
+    wn "Header $HDR dupliqué ($DUP_COUNT fois) — proxy_hide_header manquant?"
+  fi
+done
 
 # Server header leak — check if version is exposed
 SERVER_HDR=$(echo "$SEC_HEADERS" | grep -i "^Server:" || true)
