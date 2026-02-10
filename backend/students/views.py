@@ -107,7 +107,7 @@ class StudentListView(generics.ListAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['first_name', 'last_name', 'ine']
+    search_fields = ['first_name', 'last_name', 'email']
 
 class StudentImportView(views.APIView):
     permission_classes = [IsAuthenticated] # Teacher/Admin only
