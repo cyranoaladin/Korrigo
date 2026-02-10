@@ -351,7 +351,8 @@ section "11. BACKEND — DJANGO HEALTH"
 ###############################################################################
 DJANGO_CHECK=$($COMPOSE exec -T backend python manage.py check --deploy 2>&1 || echo "FAIL")
 # Filter out drf_spectacular W001/W002 warnings (cosmetic OpenAPI schema hints)
-REAL_ISSUES=$(echo "$DJANGO_CHECK" | grep -v "drf_spectacular" | grep -cE "CRITICAL|ERROR|WARNING|Warning" || true)
+# Count actual issue lines starting with ? (warning) or ! (error/critical), not header keywords
+REAL_ISSUES=$(echo "$DJANGO_CHECK" | grep -v "drf_spectacular" | grep -cE '^[?!]' || true)
 SPECTACULAR_WARNS=$(echo "$DJANGO_CHECK" | grep -c "drf_spectacular" || true)
 
 if echo "$DJANGO_CHECK" | grep -q "System check identified no issues"; then
@@ -360,12 +361,12 @@ elif [ "${REAL_ISSUES:-0}" -eq 0 ] 2>/dev/null; then
   ok "Django check --deploy: OK (${SPECTACULAR_WARNS:-0} avis drf_spectacular cosmétiques filtrés)"
 else
   wn "Django check --deploy: $REAL_ISSUES problème(s) réel(s)"
-  echo "$DJANGO_CHECK" | grep -v "drf_spectacular" | command tail -5 | sed 's/^/     /'
+  echo "$DJANGO_CHECK" | grep -v "drf_spectacular" | grep -E '^[?!]' | command tail -5 | sed 's/^/     /'
 fi
 
-# Detect gunicorn/python workers serving on port 8000
-WORKERS=$($COMPOSE exec -T backend sh -c 'ps aux | grep -c "[p]ython\|[g]unicorn" || echo 0' 2>/dev/null | xargs || echo "0")
-nfo "Backend workers (python/gunicorn): $WORKERS"
+# Detect gunicorn/python workers serving the app
+WORKERS=$($COMPOSE exec -T backend sh -c 'ps aux 2>/dev/null | grep -E "gunicorn|python" | grep -v grep | wc -l' 2>/dev/null | tail -1 | tr -d '[:space:]' || echo "0")
+nfo "Backend workers: $WORKERS processus"
 [ "${WORKERS:-0}" -ge 2 ] 2>/dev/null && ok "Backend: $WORKERS workers actifs" || \
   ([ "${WORKERS:-0}" -ge 1 ] 2>/dev/null && ok "Backend: $WORKERS worker(s) actif(s)" || wn "Backend: aucun worker détecté")
 
@@ -479,8 +480,14 @@ fi
 ###############################################################################
 section "16. NETTOYAGE — FICHIERS PARASITES"
 ###############################################################################
-BACKUPS=$(find . -maxdepth 3 \( -name "*.bak" -o -name "*.backup" -o -name "*.old" -o -name "*~" -o -name "*.orig" -o -name "*.swp" \) 2>/dev/null | wc -l)
-[ "$BACKUPS" -eq 0 ] && ok "Aucun fichier .bak/.backup/.old/.orig/.swp" || wn "$BACKUPS fichier(s) de backup/temp"
+BACKUP_LIST=$(find . -maxdepth 3 \( -name "*.bak" -o -name "*.backup" -o -name "*.old" -o -name "*~" -o -name "*.orig" -o -name "*.swp" \) 2>/dev/null || true)
+BACKUPS=$(echo "$BACKUP_LIST" | grep -c . || true)
+if [ "${BACKUPS:-0}" -eq 0 ] 2>/dev/null; then
+  ok "Aucun fichier .bak/.backup/.old/.orig/.swp"
+else
+  wn "$BACKUPS fichier(s) de backup/temp:"
+  echo "$BACKUP_LIST" | sed 's/^/     /'
+fi
 
 CORES=$(find . -maxdepth 3 \( -name "core" -o -name "core.*" \) -type f -not -path "*/core/*" 2>/dev/null | wc -l)
 [ "$CORES" -eq 0 ] && ok "Aucun core dump" || ko "$CORES core dump(s)"
