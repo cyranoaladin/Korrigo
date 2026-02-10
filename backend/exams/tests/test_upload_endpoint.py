@@ -592,3 +592,299 @@ def student_client(api_client, student_user):
     """Return an APIClient authenticated as student user."""
     api_client.force_authenticate(user=student_user)
     return api_client
+
+
+# ============================================================================
+# UPLOAD MODES TESTS
+# ============================================================================
+
+@pytest.mark.django_db
+class TestUploadModes:
+    """Test suite for upload mode functionality (BATCH_A3 vs INDIVIDUAL_A4)"""
+    
+    @property
+    def upload_url(self):
+        return '/api/exams/upload/'
+    
+    def individual_upload_url(self, exam_id):
+        return f'/api/exams/{exam_id}/upload-individual-pdfs/'
+    
+    def test_batch_a3_mode_requires_pdf_source(self, teacher_client):
+        """
+        BATCH_A3 mode should require pdf_source field.
+        Uploading without pdf_source should return 400.
+        """
+        data = {
+            'name': 'Exam Batch Mode',
+            'date': '2024-01-15',
+            'upload_mode': 'BATCH_A3',
+            'pages_per_booklet': 4
+            # Missing pdf_source
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'pdf_source' in response.data
+        assert 'obligatoire' in str(response.data['pdf_source'][0]).lower()
+    
+    def test_batch_a3_mode_with_pdf_creates_booklets(self, teacher_client):
+        """
+        BATCH_A3 mode with valid PDF should create booklets and copies.
+        """
+        pdf_bytes = create_valid_pdf(pages=8)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="exam_8pages.pdf")
+        
+        data = {
+            'name': 'Exam Batch A3',
+            'date': '2024-01-15',
+            'upload_mode': 'BATCH_A3',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        assert 'booklets_created' in response.data
+        assert response.data['booklets_created'] == 2
+        
+        from exams.models import Exam, Booklet, Copy
+        exam = Exam.objects.get(id=response.data['id'])
+        assert exam.upload_mode == 'BATCH_A3'
+        assert exam.pdf_source is not None
+        assert Booklet.objects.filter(exam=exam).count() == 2
+        assert Copy.objects.filter(exam=exam).count() == 2
+    
+    def test_individual_a4_mode_without_pdf_creates_exam_only(self, teacher_client):
+        """
+        INDIVIDUAL_A4 mode should create exam without pdf_source.
+        Should not create booklets/copies immediately.
+        """
+        data = {
+            'name': 'Exam Individual Mode',
+            'date': '2024-01-15',
+            'upload_mode': 'INDIVIDUAL_A4'
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        assert 'upload_endpoint' in response.data
+        assert 'upload-individual-pdfs' in response.data['upload_endpoint']
+        
+        from exams.models import Exam, Booklet, Copy
+        exam = Exam.objects.get(id=response.data['id'])
+        assert exam.upload_mode == 'INDIVIDUAL_A4'
+        assert exam.pdf_source.name == ''  # No PDF uploaded yet
+        assert Booklet.objects.filter(exam=exam).count() == 0
+        assert Copy.objects.filter(exam=exam).count() == 0
+    
+    def test_individual_a4_mode_with_csv_file(self, teacher_client):
+        """
+        INDIVIDUAL_A4 mode should accept students_csv file.
+        """
+        csv_content = b"nom,prenom,email\nDupont,Jean,jean@test.fr\nMartin,Marie,marie@test.fr"
+        csv_file = create_uploadedfile(csv_content, filename="students.csv", content_type="text/csv")
+        
+        data = {
+            'name': 'Exam with CSV',
+            'date': '2024-01-15',
+            'upload_mode': 'INDIVIDUAL_A4',
+            'students_csv': csv_file
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        
+        from exams.models import Exam
+        exam = Exam.objects.get(id=response.data['id'])
+        assert exam.students_csv is not None
+        assert 'students.csv' in exam.students_csv.name
+    
+    def test_default_mode_is_batch_a3(self, teacher_client):
+        """
+        When upload_mode is not specified, should default to BATCH_A3.
+        """
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="exam.pdf")
+        
+        data = {
+            'name': 'Exam Default Mode',
+            'date': '2024-01-15',
+            'pdf_source': pdf_file,
+            'pages_per_booklet': 4
+            # No upload_mode specified
+        }
+        
+        response = teacher_client.post(self.upload_url, data, format='multipart')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        
+        from exams.models import Exam
+        exam = Exam.objects.get(id=response.data['id'])
+        assert exam.upload_mode == 'BATCH_A3'
+
+
+@pytest.mark.django_db  
+class TestIndividualPDFUpload:
+    """Test suite for individual PDF upload endpoint"""
+    
+    def individual_upload_url(self, exam_id):
+        return f'/api/exams/{exam_id}/upload-individual-pdfs/'
+    
+    def create_individual_mode_exam(self):
+        """Helper to create an exam in INDIVIDUAL_A4 mode"""
+        from exams.models import Exam
+        return Exam.objects.create(
+            name='Test Individual Exam',
+            date='2024-01-15',
+            upload_mode='INDIVIDUAL_A4'
+        )
+    
+    def test_upload_single_individual_pdf(self, teacher_client):
+        """
+        Upload a single PDF file for INDIVIDUAL_A4 exam.
+        Should create ExamPDF and Copy.
+        """
+        exam = self.create_individual_mode_exam()
+        
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="martin_jean.pdf")
+        
+        response = teacher_client.post(
+            self.individual_upload_url(exam.id),
+            {'pdf_files': pdf_file},
+            format='multipart'
+        )
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        assert '1 fichiers PDF uploadés' in response.data['message']
+        assert len(response.data['uploaded_files']) == 1
+        
+        uploaded = response.data['uploaded_files'][0]
+        assert uploaded['filename'] == 'martin_jean.pdf'
+        assert uploaded['student_identifier'] == 'martin_jean'
+        
+        from exams.models import ExamPDF, Copy
+        assert ExamPDF.objects.filter(exam=exam).count() == 1
+        assert Copy.objects.filter(exam=exam).count() == 1
+        
+        exam_pdf = ExamPDF.objects.get(id=uploaded['exam_pdf_id'])
+        assert exam_pdf.student_identifier == 'martin_jean'
+        
+        copy = Copy.objects.get(id=uploaded['copy_id'])
+        assert copy.status == Copy.Status.STAGING
+        assert copy.is_identified is False
+    
+    def test_upload_multiple_individual_pdfs(self, teacher_client):
+        """
+        Upload multiple PDF files simultaneously.
+        Should create multiple ExamPDF and Copy objects.
+        """
+        exam = self.create_individual_mode_exam()
+        
+        pdf1 = create_uploadedfile(create_valid_pdf(pages=4), filename="student1.pdf")
+        pdf2 = create_uploadedfile(create_valid_pdf(pages=4), filename="student2.pdf")
+        pdf3 = create_uploadedfile(create_valid_pdf(pages=4), filename="student3.pdf")
+        
+        response = teacher_client.post(
+            self.individual_upload_url(exam.id),
+            {'pdf_files': [pdf1, pdf2, pdf3]},
+            format='multipart'
+        )
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        assert '3 fichiers PDF uploadés' in response.data['message']
+        assert len(response.data['uploaded_files']) == 3
+        assert response.data['total_copies'] == 3
+        
+        from exams.models import ExamPDF, Copy
+        assert ExamPDF.objects.filter(exam=exam).count() == 3
+        assert Copy.objects.filter(exam=exam).count() == 3
+    
+    def test_upload_to_batch_mode_exam_rejected(self, teacher_client):
+        """
+        Uploading individual PDFs to BATCH_A3 exam should fail.
+        """
+        from exams.models import Exam
+        exam = Exam.objects.create(
+            name='Batch Mode Exam',
+            date='2024-01-15',
+            upload_mode='BATCH_A3'
+        )
+        
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="test.pdf")
+        
+        response = teacher_client.post(
+            self.individual_upload_url(exam.id),
+            {'pdf_files': pdf_file},
+            format='multipart'
+        )
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'INDIVIDUAL_A4' in response.data['error']
+    
+    def test_upload_without_files_rejected(self, teacher_client):
+        """
+        POST without any files should return 400.
+        """
+        exam = self.create_individual_mode_exam()
+        
+        response = teacher_client.post(
+            self.individual_upload_url(exam.id),
+            {},
+            format='multipart'
+        )
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'pdf_files' in response.data['error']
+    
+    def test_upload_too_many_files_rejected(self, teacher_client):
+        """
+        Uploading more than MAX_FILES_PER_REQUEST should be rejected.
+        Note: Django's DATA_UPLOAD_MAX_NUMBER_FILES also limits this,
+        so we test with a reasonable number that still exceeds our limit.
+        """
+        exam = self.create_individual_mode_exam()
+        
+        # Create files that exceed our custom limit (100)
+        # but stay under Django's default (1000)
+        # For testing, we'll create exactly 101 files
+        # However, Django may reject this before our code runs
+        # So we'll just verify the request is rejected
+        files = [
+            create_uploadedfile(create_valid_pdf(pages=1), filename=f"student{i}.pdf")
+            for i in range(101)
+        ]
+        
+        response = teacher_client.post(
+            self.individual_upload_url(exam.id),
+            {'pdf_files': files},
+            format='multipart'
+        )
+        
+        # Should be rejected (either by Django or our validation)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+    
+
+    
+    def test_upload_requires_authentication(self, api_client):
+        """
+        Anonymous users should be rejected.
+        """
+        exam = self.create_individual_mode_exam()
+        
+        pdf_bytes = create_valid_pdf(pages=4)
+        pdf_file = create_uploadedfile(pdf_bytes, filename="test.pdf")
+        
+        response = api_client.post(
+            self.individual_upload_url(exam.id),
+            {'pdf_files': pdf_file},
+            format='multipart'
+        )
+        
+        # DRF returns 403 Forbidden for permission failures
+        assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
