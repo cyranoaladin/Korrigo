@@ -4,6 +4,7 @@ from rest_framework import status
 from exams.models import Exam, Copy
 from students.models import Student
 from django.core.files.base import ContentFile
+from datetime import date
 
 User = get_user_model()
 
@@ -16,9 +17,10 @@ class TestGate4StudentFlow(TransactionTestCase):
         
         # 1. Setup Student
         self.student = Student.objects.create(
-            ine="123456789", 
             last_name="E2E_STUDENT",
-            first_name="Jean"
+            first_name="Jean",
+            date_naissance=date(2005, 3, 15),
+            class_name="TS1"
         )
         
         # 2. Setup Exam & Copies
@@ -42,7 +44,12 @@ class TestGate4StudentFlow(TransactionTestCase):
         )
         
         # Other student's copy
-        self.other_student = Student.objects.create(ine="999", last_name="OTHER")
+        self.other_student = Student.objects.create(
+            last_name="OTHER",
+            first_name="Paul",
+            date_naissance=date(2005, 6, 20),
+            class_name="TS2"
+        )
         self.copy_other = Copy.objects.create(
             exam=self.exam,
             anonymous_id="GATE4-OTHER",
@@ -57,15 +64,20 @@ class TestGate4StudentFlow(TransactionTestCase):
 
     def test_student_login_success(self):
         resp = self.client.post("/api/students/login/", {
-            "ine": "123456789",
-            "last_name": "E2E_STUDENT" # Case insensitive matching usually expected or exact
+            "last_name": "E2E_STUDENT",
+            "first_name": "Jean",
+            "date_naissance": "2005-03-15"
         })
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self.client.session['student_id'], self.student.id)
         
     def test_student_copies_list_permissions(self):
         # Login
-        self.client.post("/api/students/login/", {"ine": "123456789", "last_name": "E2E_STUDENT"})
+        self.client.post("/api/students/login/", {
+            "last_name": "E2E_STUDENT",
+            "first_name": "Jean",
+            "date_naissance": "2005-03-15"
+        })
         
         # Get List
         resp = self.client.get("/api/students/copies/")
@@ -80,7 +92,11 @@ class TestGate4StudentFlow(TransactionTestCase):
         
     def test_student_pdf_access_security(self):
         # Login
-        self.client.post("/api/students/login/", {"ine": "123456789", "last_name": "E2E_STUDENT"})
+        self.client.post("/api/students/login/", {
+            "last_name": "E2E_STUDENT",
+            "first_name": "Jean",
+            "date_naissance": "2005-03-15"
+        })
         
         # 1. Access Own Graded -> 200
         # Endpoint: /api/grading/copies/{id}/final-pdf/

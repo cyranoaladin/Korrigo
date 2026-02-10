@@ -2,11 +2,12 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class Student(models.Model):
-    ine = models.CharField(max_length=50, unique=True, verbose_name="Identifiant National Élève")
     first_name = models.CharField(max_length=100, verbose_name="Prénom")
     last_name = models.CharField(max_length=100, verbose_name="Nom")
-    class_name = models.CharField(max_length=50, verbose_name="Classe")
+    date_naissance = models.DateField(verbose_name="Date de naissance")
     email = models.EmailField(blank=True, null=True, verbose_name="Email")
+    class_name = models.CharField(max_length=50, verbose_name="Classe")
+    groupe = models.CharField(max_length=20, blank=True, null=True, verbose_name="Groupe")
 
     # Lien vers utilisateur Django pour authentification
     user = models.OneToOneField(
@@ -24,3 +25,7 @@ class Student(models.Model):
     class Meta:
         verbose_name = "Élève"
         verbose_name_plural = "Élèves"
+        unique_together = [['last_name', 'first_name', 'date_naissance']]
+        indexes = [
+            models.Index(fields=['last_name', 'first_name', 'date_naissance']),
+        ]
