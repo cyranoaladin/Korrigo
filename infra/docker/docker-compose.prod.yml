@@ -30,7 +30,7 @@ services:
   backend:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
     restart: unless-stopped
-    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
+    command: gunicorn core.wsgi:application -c gunicorn_config.py
     expose:
       - "8000"
     volumes:
