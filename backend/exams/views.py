@@ -704,12 +704,8 @@ class BookletSplitView(APIView):
         from processing.services.splitter import A3Splitter
 
         try:
-            if not booklet.exam.pdf_source:
-                return Response(
-                    {"error": _("Le PDF source n'est pas disponible pour cet examen")},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            doc = fitz.open(booklet.exam.pdf_source.path)
+            # Use the already determined source_file instead of accessing exam.pdf_source directly
+            doc = fitz.open(source_file.path)
             if page_index < 0 or page_index >= doc.page_count:
                 return Response({"error": "Page out of range"}, status=status.HTTP_404_NOT_FOUND)
                 
