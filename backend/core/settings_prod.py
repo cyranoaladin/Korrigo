@@ -64,4 +64,20 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+# ---------------------------------------------------------------------------
+# Django check --deploy: Silence drf_spectacular deploy-time schema check.
+# drf_spectacular runs a full OpenAPI schema generation during `manage.py check --deploy`.
+# This produces ~65 W001/W002 warnings for views/serializers without explicit
+# docstrings or annotations. These are OpenAPI documentation quality hints,
+# NOT security or runtime issues. The API works perfectly without them.
+# Ref: drf_spectacular/checks.py → schema_check()
+# ---------------------------------------------------------------------------
+SPECTACULAR_SETTINGS['ENABLE_DJANGO_DEPLOY_CHECK'] = False
+
+# Belt-and-suspenders: explicitly set SSL redirect for production.
+# In this architecture, TLS is terminated by the host nginx proxy.
+# Django sees HTTP internally but SECURE_PROXY_SSL_HEADER tells it the
+# original request was HTTPS, so no redirect loops occur.
+SECURE_SSL_REDIRECT = True
+
 

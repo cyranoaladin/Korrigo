@@ -122,7 +122,8 @@ if not DEBUG:
     SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
     CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "Lax")
 
-    SECURE_BROWSER_XSS_FILTER = True
+    # Note: SECURE_BROWSER_XSS_FILTER removed — deprecated in Django 4.0,
+    # X-XSS-Protection header is set by nginx instead.
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 else:
