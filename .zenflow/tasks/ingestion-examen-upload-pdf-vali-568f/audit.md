@@ -794,28 +794,110 @@ elif exam.upload_mode == Exam.UploadMode.INDIVIDUAL_A4:
 - ✅ Existing exams continue to work (pdf_source remains populated)
 - ✅ No data migration required for existing records
 
-### 12.9 API Documentation Updates Required
+### 12.9 API Documentation
 
-**New Endpoints**:
-```
-POST /api/exams/upload/
-  - New field: upload_mode (optional, default: BATCH_A3)
-  - New field: students_csv (optional)
-  - Conditional: pdf_source required only for BATCH_A3
+#### Upload Endpoint (Modified)
 
-POST /api/exams/{exam_id}/upload-individual-pdfs/
-  - New endpoint for INDIVIDUAL_A4 mode
-  - Field: pdf_files (multiple files supported)
-  - Max: 100 files per request
+**Endpoint**: `POST /api/exams/upload/`
+
+**BATCH_A3 Mode Request** (multipart/form-data):
 ```
+name: "Examen Final Math"
+date: "2024-01-15"
+upload_mode: "BATCH_A3"  // optional, default
+pdf_source: <binary PDF file>  // required for BATCH_A3
+pages_per_booklet: 4
+students_csv: <binary CSV file>  // optional
+```
+
+**BATCH_A3 Response** (201 Created):
+```json
+{
+  "id": "uuid",
+  "name": "Examen Final Math",
+  "upload_mode": "BATCH_A3",
+  "booklets_created": 25,
+  "message": "25 booklets created successfully"
+}
+```
+
+**INDIVIDUAL_A4 Mode Request** (multipart/form-data):
+```
+name: "Examen Final Math"
+date: "2024-01-15"
+upload_mode: "INDIVIDUAL_A4"
+students_csv: <binary CSV file>  // optional
+```
+
+**INDIVIDUAL_A4 Response** (201 Created):
+```json
+{
+  "id": "uuid",
+  "name": "Examen Final Math",
+  "upload_mode": "INDIVIDUAL_A4",
+  "message": "Examen créé. Vous pouvez maintenant uploader les fichiers PDF individuels.",
+  "upload_endpoint": "/api/exams/{exam_id}/upload-individual-pdfs/"
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Missing fields or validation errors
+- `413 Payload Too Large`: PDF exceeds 50MB
+- `500 Internal Server Error`: Processing failure
+
+---
+
+#### Individual PDF Upload Endpoint (New)
+
+**Endpoint**: `POST /api/exams/{exam_id}/upload-individual-pdfs/`  
+**Authentication**: Required (Teacher or Admin)  
+**Rate Limit**: 50 requests/hour  
+
+**Request** (multipart/form-data):
+```
+pdf_files: <binary PDF 1>
+pdf_files: <binary PDF 2>
+...
+pdf_files: <binary PDF N>  // Max 100 files
+```
+
+**Response** (201 Created):
+```json
+{
+  "message": "3 fichiers PDF uploadés avec succès",
+  "uploaded_files": [
+    {
+      "exam_pdf_id": "uuid-1",
+      "copy_id": "uuid-a",
+      "filename": "martin_jean.pdf",
+      "student_identifier": "martin_jean"
+    }
+  ],
+  "total_copies": 3
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Wrong mode, no files, too many files
+- `404 Not Found`: Exam not found
+- `413 Payload Too Large`: PDF exceeds 50MB
+- `500 Internal Server Error`: Processing failure
+
+**Student Identifier**: Auto-extracted from filename (e.g., `martin_jean.pdf` → `martin_jean`)  
+**Atomicity**: All files processed in single transaction, no partial uploads
 
 ### 12.10 Recommendations
 
-**Immediate Actions**:
+**Completed Actions**:
 1. ✅ Update API documentation to reflect new endpoints and fields
 2. ✅ Coordinate with frontend team for UI changes
-3. ⚠️ Add null checks for `exam.pdf_source` in existing codebase
-4. ⚠️ Consider creating indexes on `ExamPDF.student_identifier` if using for search
+3. ✅ Add null checks for `exam.pdf_source` in existing codebase
+4. ✅ Create ExamUploadModal.vue component for dual-mode upload
+5. ✅ Integrate modal into AdminDashboard.vue
+6. ✅ All tests passing (28 passed, 2 skipped)
+
+**Future Considerations**:
+- ⚠️ Consider creating indexes on `ExamPDF.student_identifier` if using for search
 
 **Future Enhancements**:
 - Consider CSV parsing to auto-match student_identifier with Student records
