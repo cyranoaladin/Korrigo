@@ -18,6 +18,8 @@ class StudentLoginView(views.APIView):
     Rate limited to 5 attempts per 15 minutes per IP.
     CSRF exempt: Public authentication endpoint, protected by rate limiting.
     
+    Authentification par: Nom + Prénom + Date de naissance
+    
     Conformité: .antigravity/rules/01_security_rules.md § 9
     """
     permission_classes = [AllowAny]  # Public endpoint - student authentication
@@ -25,18 +27,53 @@ class StudentLoginView(views.APIView):
 
     @method_decorator(maybe_ratelimit(key='ip', rate='5/15m', method='POST', block=True))
     def post(self, request):
-        from django.contrib.auth import authenticate
+        from datetime import datetime
         
-        email = request.data.get('email')
-        password = request.data.get('password')
+        last_name = request.data.get('last_name')
+        first_name = request.data.get('first_name')
+        date_naissance_str = request.data.get('date_naissance')
 
-        if not email or not password:
-            return Response({'error': 'Email et mot de passe sont requis.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not last_name or not first_name or not date_naissance_str:
+            return Response({
+                'error': 'Nom, Prénom et Date de naissance sont requis.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Find student by email
+        # Parse date de naissance (format attendu: YYYY-MM-DD ou DD/MM/YYYY)
         try:
-            student = Student.objects.select_related('user').get(email__iexact=email)
-        except Student.DoesNotExist:
+            # Try YYYY-MM-DD format first (standard ISO)
+            try:
+                date_naissance = datetime.strptime(date_naissance_str, "%Y-%m-%d").date()
+            except ValueError:
+                # Fallback to DD/MM/YYYY format
+                date_naissance = datetime.strptime(date_naissance_str, "%d/%m/%Y").date()
+        except ValueError:
+            return Response({
+                'error': 'Format de date invalide. Utilisez YYYY-MM-DD ou DD/MM/YYYY.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Case insensitive match
+        student = Student.objects.filter(
+            last_name__iexact=last_name,
+            first_name__iexact=first_name,
+            date_naissance=date_naissance
+        ).first()
+
+        if student:
+            request.session['student_id'] = student.id
+            request.session['role'] = 'Student'
+            # Audit trail: Login élève réussi
+            log_authentication_attempt(request, success=True, student_id=student.id)
+            return Response({
+                'message': 'Login successful',
+                'role': 'Student',
+                'student': {
+                    'id': student.id,
+                    'first_name': student.first_name,
+                    'last_name': student.last_name,
+                    'class_name': student.class_name
+                }
+            })
+        else:
             # Audit trail: Login élève échoué
             log_authentication_attempt(request, success=False, student_id=None)
             return Response({'error': 'Identifiants invalides.'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -114,24 +151,7 @@ class StudentListView(generics.ListAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['full_name', 'email', 'class_name']
-
-    # Phase 2: Add pagination to prevent loading thousands of students
-    from rest_framework.pagination import PageNumberPagination
-
-    class StudentPagination(PageNumberPagination):
-        page_size = 100
-        page_size_query_param = 'page_size'
-        max_page_size = 1000
-
-    pagination_class = StudentPagination
-
-
-class StudentDetailView(generics.RetrieveAPIView):
-    """Récupérer un étudiant par son ID"""
-    permission_classes = [IsAuthenticated]
-    queryset = Student.objects.all()
-    serializer_class = StudentSerializer
+    search_fields = ['first_name', 'last_name', 'email']
 
 class StudentImportView(views.APIView):
     """
@@ -150,45 +170,98 @@ class StudentImportView(views.APIView):
 
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request):
-        import tempfile
-        import os
-        from students.services.csv_import import import_students_from_csv, CsvReadError
+        import csv
+        import io
+        from datetime import datetime
         
         file_obj = request.FILES.get('file')
         if not file_obj:
             return Response({'error': 'File required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Check file extension
-        filename = file_obj.name.lower()
-        if filename.endswith('.xml'):
-            return Response(
-                {'error': "XML Sconet parsing not implemented. Please use CSV format with headers: NOM,PRENOM,EMAIL,DATE_NAISSANCE,CLASSE,GROUPE_EDS"},
-                status=status.HTTP_501_NOT_IMPLEMENTED
-            )
+            
+        results = {"created": 0, "updated": 0, "errors": []}
         
         try:
-            # Phase 3: Use async task instead of synchronous import
-            from students.tasks import async_import_students
-
-            # Save uploaded file to temp location for async task
-            with tempfile.NamedTemporaryFile(mode='wb', suffix='.csv', delete=False) as tmp:
-                for chunk in file_obj.chunks():
-                    tmp.write(chunk)
-                tmp_path = tmp.name
-
-            # Queue async task for background processing
-            # The task will handle cleanup of tmp_path
-            result = async_import_students.delay(tmp_path, request.user.id)
-
-            return Response({
-                "task_id": result.id,
-                "message": "Student import started. Use task_id to check status and results.",
-                "status_url": f"/api/tasks/{result.id}/status/",
-                "filename": file_obj.name
-            }, status=status.HTTP_202_ACCEPTED)
-                    
-        except CsvReadError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            decoded_file = file_obj.read().decode('utf-8')
+            io_string = io.StringIO(decoded_file)
+            
+            # Auto-detect if it looks like XML
+            if decoded_file.strip().startswith('<'):
+                 return Response({'error': "XML Sconet parsing not fully implemented yet, please use CSV format"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+            
+            reader = csv.reader(io_string, delimiter=',')
+            
+            for idx, row in enumerate(reader):
+                line_num = idx + 1
+                
+                # Skip header if detected (Élèves, Né(e) le, Adresse E-mail, Classe, Groupe)
+                if idx == 0 and any(header in row[0].upper() for header in ['ÉLÈVES', 'ELEVES', 'NOM']):
+                    continue
+                
+                # Validate minimum columns: Nom Prénom, Date naissance, Email, Classe, Groupe
+                if len(row) < 5:
+                    results['errors'].append({
+                        "line": line_num,
+                        "error": f"Missing columns (expected 5, got {len(row)})"
+                    })
+                    continue
+                
+                nom_prenom = row[0].strip()
+                date_str = row[1].strip()
+                email = row[2].strip()
+                class_name = row[3].strip()
+                groupe = row[4].strip() if len(row) > 4 else ""
+                
+                # Parse nom et prénom (format: "NOM PRENOM" ou "NOM Prénom")
+                parts = nom_prenom.split()
+                if len(parts) < 2:
+                    results['errors'].append({
+                        "line": line_num,
+                        "error": f"Invalid name format: '{nom_prenom}' (expected 'NOM PRENOM')"
+                    })
+                    continue
+                
+                # Le premier mot est le nom (en majuscules), le reste est le prénom
+                last_name = parts[0].upper()
+                first_name = ' '.join(parts[1:]).capitalize()
+                
+                # Parse date de naissance (format: DD/MM/YYYY)
+                try:
+                    date_naissance = datetime.strptime(date_str, "%d/%m/%Y").date()
+                except ValueError:
+                    results['errors'].append({
+                        "line": line_num,
+                        "error": f"Invalid date format: '{date_str}' (expected DD/MM/YYYY)"
+                    })
+                    continue
+                
+                # Validation des champs obligatoires
+                if not last_name or not first_name:
+                    results['errors'].append({
+                        "line": line_num,
+                        "error": "Last name and first name are required"
+                    })
+                    continue
+                
+                # Create or Update based on unique key: (last_name, first_name, date_naissance)
+                student, created = Student.objects.update_or_create(
+                    last_name=last_name,
+                    first_name=first_name,
+                    date_naissance=date_naissance,
+                    defaults={
+                        'email': email or None,
+                        'class_name': class_name,
+                        'groupe': groupe or None
+                    }
+                )
+                
+                if created:
+                    results['created'] += 1
+                else:
+                    results['updated'] += 1
+                
+            status_code = status.HTTP_200_OK if not results['errors'] else status.HTTP_207_MULTI_STATUS
+            return Response(results, status=status_code)
+            
         except Exception as e:
             from core.utils.errors import safe_error_response
             return Response(

@@ -3,8 +3,9 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 
-const email = ref('')
 const lastName = ref('')
+const firstName = ref('')
+const dateNaissance = ref('')
 const error = ref('')
 const loading = ref(false)
 const authStore = useAuthStore()
@@ -14,7 +15,7 @@ const handleLogin = async () => {
     error.value = ''
     loading.value = true
     try {
-        const success = await authStore.loginStudent(email.value, lastName.value)
+        const success = await authStore.loginStudent(lastName.value, firstName.value, dateNaissance.value)
         if (success) {
             router.push('/student-portal')
         } else {
@@ -38,23 +39,31 @@ const handleLogin = async () => {
             
       <form @submit.prevent="handleLogin">
         <div class="form-group">
-          <label>Email</label>
-          <input
-            v-model="email"
-            data-testid="student-login.email"
-            type="email"
-            placeholder="votre.email@example.com"
-            required
-          >
-        </div>
-                
-        <div class="form-group">
           <label>Nom de Famille</label>
           <input
             v-model="lastName"
             data-testid="student-login.lastname"
             type="text"
-            placeholder="Votre nom"
+            placeholder="ex: DUPONT"
+            required
+          >
+        </div>
+        
+        <div class="form-group">
+          <label>Prénom</label>
+          <input
+            v-model="firstName"
+            type="text"
+            placeholder="ex: Jean"
+            required
+          >
+        </div>
+        
+        <div class="form-group">
+          <label>Date de naissance</label>
+          <input
+            v-model="dateNaissance"
+            type="date"
             required
           >
         </div>

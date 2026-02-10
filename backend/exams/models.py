@@ -12,9 +12,34 @@ from .validators import (
 )
 
 class Exam(models.Model):
+    class UploadMode(models.TextChoices):
+        BATCH_A3 = 'BATCH_A3', _("Scan par lots (A3) - Découpage automatique")
+        INDIVIDUAL_A4 = 'INDIVIDUAL_A4', _("Fichiers individuels (A4) - Déjà découpés")
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, verbose_name=_("Nom de l'examen"))
     date = models.DateField(verbose_name=_("Date de l'examen"))
+    
+    # Upload mode selection
+    upload_mode = models.CharField(
+        max_length=20,
+        choices=UploadMode.choices,
+        default=UploadMode.BATCH_A3,
+        verbose_name=_("Mode d'upload"),
+        help_text=_("BATCH_A3: scan par lots à découper | INDIVIDUAL_A4: fichiers déjà découpés par élève")
+    )
+    
+    # CSV file for student list
+    students_csv = models.FileField(
+        upload_to='exams/csv/',
+        verbose_name=_("Liste des élèves (CSV)"),
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['csv'])],
+        help_text=_("Fichier CSV contenant la liste des élèves (optionnel)")
+    )
+    
+    # Legacy single PDF field - used for BATCH_A3 mode
     pdf_source = models.FileField(
         upload_to='exams/source/',
         verbose_name=_("Fichier PDF source"),
@@ -390,68 +415,46 @@ class Copy(models.Model):
         return f"Copie {self.anonymous_id} ({self.get_status_display()})"
 
 
-class AnnexePage(models.Model):
-    """Page d'annexe individuelle, rattachable à un élève via OCR."""
-
-    class Status(models.TextChoices):
-        PENDING = 'PENDING', _("En attente")
-        MATCHED = 'MATCHED', _("Rattachée")
-        QUARANTINE = 'QUARANTINE', _("Quarantaine")
-        MANUAL_ASSIGNED = 'MANUAL_ASSIGNED', _("Assignée manuellement")
-
+class ExamPDF(models.Model):
+    """
+    Représente un fichier PDF individuel uploadé pour un examen.
+    Utilisé dans le mode INDIVIDUAL_A4 où chaque PDF correspond à la copie d'un élève.
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(
-        Exam, on_delete=models.CASCADE, related_name='annexe_pages',
+        Exam,
+        on_delete=models.CASCADE,
+        related_name='individual_pdfs',
         verbose_name=_("Examen")
     )
-    source_pdf = models.ForeignKey(
-        ExamSourcePDF, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='annexe_pages', verbose_name=_("PDF source")
+    pdf_file = models.FileField(
+        upload_to='exams/individual/',
+        verbose_name=_("Fichier PDF individuel"),
+        validators=[
+            FileExtensionValidator(allowed_extensions=['pdf']),
+            validate_pdf_size,
+            validate_pdf_not_empty,
+            validate_pdf_mime_type,
+            validate_pdf_integrity,
+        ],
+        help_text=_("Fichier PDF d'un élève (A4)")
     )
-    page_index = models.PositiveIntegerField(verbose_name=_("Index de page dans le PDF"))
-    page_image = models.ImageField(
-        upload_to='annexes/pages/', verbose_name=_("Image de la page"),
-        blank=True, null=True
+    student_identifier = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name=_("Identifiant élève"),
+        help_text=_("Nom ou identifiant extrait du nom de fichier (optionnel)")
     )
-    header_crop = models.ImageField(
-        upload_to='annexes/headers/', verbose_name=_("Crop d\'en-tête"),
-        blank=True, null=True
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Date d'upload")
     )
-
-    status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.PENDING,
-        db_index=True, verbose_name=_("Statut")
-    )
-    copy = models.ForeignKey(
-        Copy, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='annexe_pages', verbose_name=_("Copie rattachée")
-    )
-    student = models.ForeignKey(
-        'students.Student', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='annexe_pages', verbose_name=_("Élève")
-    )
-
-    ocr_confidence = models.FloatField(default=0.0, verbose_name=_("Confiance OCR"))
-    ocr_extracted_name = models.CharField(
-        max_length=255, blank=True, default='', verbose_name=_("Nom extrait par OCR")
-    )
-    ocr_tier = models.CharField(max_length=10, default='LOCAL', verbose_name=_("Tier OCR"))
-
-    matched_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='matched_annexes',
-        verbose_name=_("Assigné par")
-    )
-    matched_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Date d\'assignation"))
-
+    
     class Meta:
-        verbose_name = _("Page annexe")
-        verbose_name_plural = _("Pages annexes")
-        ordering = ['source_pdf', 'page_index']
-        unique_together = [('source_pdf', 'page_index')]
-        indexes = [
-            models.Index(fields=['exam', 'status'], name='annexe_exam_status_idx'),
-        ]
-
+        verbose_name = _("PDF Individuel")
+        verbose_name_plural = _("PDFs Individuels")
+        ordering = ['uploaded_at']
+    
     def __str__(self):
-        return f"Annexe p.{self.page_index} ({self.get_status_display()})"
+        return f"PDF {self.student_identifier or self.id} - {self.exam.name}"

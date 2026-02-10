@@ -10,16 +10,18 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.utils.decorators import method_decorator
+from django.db import transaction
 from core.utils.ratelimit import maybe_ratelimit
-from .models import Exam, Booklet, Copy, ExamSourcePDF
-from .serializers import ExamSerializer, BookletSerializer, CopySerializer, CorrectorCopySerializer
+from .models import Exam, Booklet, Copy, ExamPDF
+from .serializers import ExamSerializer, BookletSerializer, CopySerializer, ExamPDFSerializer
 from processing.services.vision import HeaderDetector
 from grading.services import GradingService
 from .permissions import IsTeacherOrAdmin
 from core.auth import IsAdminOnly
 
 import fitz  # PyMuPDF
-from django.db import transaction
+import logging
+import os
 
 class ExamUploadView(APIView):
     """
@@ -37,98 +39,212 @@ class ExamUploadView(APIView):
 
     @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, *args, **kwargs):
+        logger = logging.getLogger(__name__)
         serializer = ExamSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                with transaction.atomic():
-                    exam = serializer.save()
-                    
-                    import logging
-                    import os
-                    from core.utils.errors import safe_error_response
-                    
-                    logger = logging.getLogger(__name__)
-                    
-                    # 1. Sauvegarder le CSV s'il est fourni
-                    students_csv_file = request.FILES.get('students_csv')
-                    if students_csv_file:
-                        exam.student_csv = students_csv_file
-                        exam.save()
-                        logger.info(f"Student CSV saved for exam {exam.id}")
-
-                    # 2. Détection adaptative du format (A3 vs A4) via BatchA3Processor
-                    # On utilise le PDF source qui vient d'être sauvegardé
-                    from processing.services.batch_processor import BatchA3Processor
-                    
-                    # Instancier le processeur (avec CSV si dispo)
-                    csv_path = exam.student_csv.path if exam.student_csv else None
-                    batch_processor = BatchA3Processor(dpi=200, csv_path=csv_path)
-                    
-                    # Vérifier si c'est du A3
-                    is_a3 = batch_processor.is_a3_format(exam.pdf_source.path)
-                    
-                    if is_a3:
-                        # Mode Batch A3: Segmentation par élève
-                        logger.info(f"Detected A3 format for exam {exam.id}. Using BatchA3Processor.")
-                        
-                        student_copies = batch_processor.process_batch_pdf(
-                            exam.pdf_source.path, 
-                            str(exam.id)
+        
+        # Validate serializer and handle errors
+        if not serializer.is_valid():
+            errors = serializer.errors
+            
+            # Check for file_too_large error → return HTTP 413 instead of 400
+            if 'pdf_source' in errors:
+                pdf_errors = errors['pdf_source']
+                for error in pdf_errors:
+                    if hasattr(error, 'code') and error.code == 'file_too_large':
+                        logger.warning(f"Upload rejected: file too large (user: {request.user.username})")
+                        return Response(
+                            {"error": str(error)},
+                            status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
                         )
-                        
-                        # Créer les copies
-                        copies = batch_processor.create_copies_from_batch(exam, student_copies)
-                        
-                        ready_count = sum(1 for c in copies if c.status == Copy.Status.READY)
-                        staging_count = sum(1 for c in copies if c.status == Copy.Status.STAGING)
-                        
-                        return Response({
-                            **serializer.data,
-                            "copies_created": len(copies),
-                            "ready_count": ready_count,
-                            "needs_review_count": staging_count,
-                            "message": f"A3 Batch processed: {len(copies)} copies created ({ready_count} identified, {staging_count} need review)"
-                        }, status=status.HTTP_201_CREATED)
-                        
-                    else:
-                        # Mode Standard A4: Split simple
-                        logger.info(f"Detected A4 format (or unknown) for exam {exam.id}. Using Standard PDFSplitter.")
-                        
-                        # Utiliser PDFSplitter (ou A3PDFProcessor en mode fallback A4)
-                        from processing.services.pdf_splitter import PDFSplitter
-                        
-                        splitter = PDFSplitter(dpi=150)
-                        booklets = splitter.split_exam(exam)
-                        
-                        # Créer les copies en STAGING
-                        import uuid
-                        created_count = 0
-                        for booklet in booklets: # Fix: split_exam returns booklets
-                             copy = Copy.objects.create(
-                                 exam=exam,
-                                 anonymous_id=str(uuid.uuid4())[:8].upper(),
-                                 status=Copy.Status.STAGING,
-                                 is_identified=False
-                             )
-                             copy.booklets.add(booklet)
-                             created_count += 1
-                        
-                        return Response({
-                            **serializer.data,
-                            "booklets_created": created_count,
-                            "message": f"Standard PDF processed: {created_count} booklets/copies created in STAGING"
-                        }, status=status.HTTP_201_CREATED)
+            
+            # Log other validation errors
+            logger.warning(f"Upload validation failed (user: {request.user.username}): {errors}")
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Log upload initiation
+        upload_mode = serializer.validated_data.get('upload_mode', Exam.UploadMode.BATCH_A3)
+        logger.info(f"Exam upload initiated by user {request.user.username}, mode: {upload_mode}")
+        
+        # Wrap entire operation in atomic transaction
+        try:
+            with transaction.atomic():
+                # Create exam record
+                exam = serializer.save()
+                logger.info(f"Exam {exam.id} created: {exam.name}, mode: {exam.upload_mode}")
+                
+                # Handle based on upload mode
+                if exam.upload_mode == Exam.UploadMode.BATCH_A3:
+                    # BATCH_A3 MODE: Split PDF into booklets and create copies
+                    from processing.services.pdf_splitter import PDFSplitter
+                    import uuid
 
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                from core.utils.errors import safe_error_response
-                return Response(
-                    safe_error_response(e, context="Exam Creation", user_message="Failed to process exam upload."),
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
+                    splitter = PDFSplitter(dpi=150)
+                    booklets = splitter.split_exam(exam)
+                    logger.info(f"PDF split into {len(booklets)} booklets for exam {exam.id}")
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    # Créer les copies en statut STAGING (ADR-003)
+                    for booklet in booklets:
+                        copy = Copy.objects.create(
+                            exam=exam,
+                            anonymous_id=str(uuid.uuid4())[:8].upper(),
+                            status=Copy.Status.STAGING,
+                            is_identified=False
+                        )
+                        copy.booklets.add(booklet)
+                        logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
+
+                    # Log successful completion
+                    logger.info(f"Exam upload completed successfully: {exam.id} with {len(booklets)} booklets")
+                    
+                    return Response({
+                        **serializer.data,
+                        "booklets_created": len(booklets),
+                        "message": f"{len(booklets)} booklets created successfully"
+                    }, status=status.HTTP_201_CREATED)
+                
+                elif exam.upload_mode == Exam.UploadMode.INDIVIDUAL_A4:
+                    # INDIVIDUAL_A4 MODE: Exam created, individual PDFs will be uploaded separately
+                    logger.info(f"Exam {exam.id} created in INDIVIDUAL_A4 mode. Waiting for individual PDF uploads.")
+                    
+                    return Response({
+                        **serializer.data,
+                        "message": _("Examen créé. Vous pouvez maintenant uploader les fichiers PDF individuels."),
+                        "upload_endpoint": f"/api/exams/{exam.id}/upload-individual-pdfs/"
+                    }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            from core.utils.errors import safe_error_response
+            
+            # Log error with full context
+            logger.error(
+                f"Exam upload failed for user {request.user.username}, "
+                f"file: {request.FILES.get('pdf_source', 'unknown')}, "
+                f"error: {str(e)}", 
+                exc_info=True
+            )
+            
+            # Cleanup uploaded file if exam was partially created
+            # Note: transaction.atomic() already rolled back DB changes
+            # But we need to clean up the uploaded file from filesystem
+            if 'exam' in locals() and exam.pdf_source and hasattr(exam.pdf_source, 'path'):
+                try:
+                    if os.path.exists(exam.pdf_source.path):
+                        os.remove(exam.pdf_source.path)
+                        logger.info(f"Cleaned up orphaned file: {exam.pdf_source.path}")
+                except Exception as cleanup_error:
+                    logger.error(f"Failed to cleanup file: {cleanup_error}")
+            
+            # Return user-friendly error with safe_error_response
+            return Response(
+                safe_error_response(
+                    e, 
+                    context="Traitement PDF", 
+                    user_message="Échec du traitement du PDF. Veuillez vérifier que le fichier est valide et réessayer."
+                ),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class IndividualPDFUploadView(APIView):
+    """
+    Upload multiple individual PDF files for an exam in INDIVIDUAL_A4 mode.
+    POST /api/exams/<exam_id>/upload-individual-pdfs/
+    Supports uploading multiple files simultaneously.
+    
+    Limits: Max 100 files per request to prevent DoS
+    """
+    permission_classes = [IsTeacherOrAdmin]
+    parser_classes = (MultiPartParser, FormParser)
+    
+    MAX_FILES_PER_REQUEST = 100
+
+    @method_decorator(maybe_ratelimit(key='user', rate='50/h', method='POST', block=True))
+    def post(self, request, exam_id):
+        logger = logging.getLogger(__name__)
+        exam = get_object_or_404(Exam, id=exam_id)
+        
+        # Verify exam is in INDIVIDUAL_A4 mode
+        if exam.upload_mode != Exam.UploadMode.INDIVIDUAL_A4:
+            return Response(
+                {"error": _("Cet examen n'est pas en mode INDIVIDUAL_A4. Utilisez l'endpoint d'upload standard.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get all uploaded PDF files (can be multiple)
+        uploaded_files = request.FILES.getlist('pdf_files')
+        
+        if not uploaded_files:
+            return Response(
+                {"error": _("Aucun fichier PDF uploadé. Utilisez le champ 'pdf_files'.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Limit number of files per request
+        if len(uploaded_files) > self.MAX_FILES_PER_REQUEST:
+            return Response(
+                {"error": _(f"Trop de fichiers. Maximum {self.MAX_FILES_PER_REQUEST} fichiers par requête.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        logger.info(f"Individual PDF upload for exam {exam_id}: {len(uploaded_files)} files by user {request.user.username}")
+        
+        created_copies = []
+        
+        try:
+            with transaction.atomic():
+                import uuid
+                
+                for pdf_file in uploaded_files:
+                    # Extract student identifier from filename (optional)
+                    filename = pdf_file.name
+                    student_identifier = os.path.splitext(filename)[0] if filename else None
+                    
+                    # Create ExamPDF record for tracking
+                    exam_pdf = ExamPDF.objects.create(
+                        exam=exam,
+                        pdf_file=pdf_file,
+                        student_identifier=student_identifier
+                    )
+                    
+                    # Create Copy in STAGING status (using exam_pdf.pdf_file as reference)
+                    # Note: We don't duplicate the file; Copy.pdf_source will reference the same file
+                    copy = Copy.objects.create(
+                        exam=exam,
+                        anonymous_id=str(uuid.uuid4())[:8].upper(),
+                        status=Copy.Status.STAGING,
+                        is_identified=False,
+                        pdf_source=exam_pdf.pdf_file  # Reference the same file
+                    )
+                    
+                    created_copies.append({
+                        'exam_pdf_id': str(exam_pdf.id),
+                        'copy_id': str(copy.id),
+                        'filename': filename,
+                        'student_identifier': student_identifier
+                    })
+                    
+                    logger.info(f"Created ExamPDF {exam_pdf.id} and Copy {copy.id} for {filename}")
+                
+                logger.info(f"Successfully uploaded {len(created_copies)} individual PDFs for exam {exam_id}")
+                
+                return Response({
+                    "message": f"{len(created_copies)} fichiers PDF uploadés avec succès",
+                    "uploaded_files": created_copies,
+                    "total_copies": exam.copies.count()
+                }, status=status.HTTP_201_CREATED)
+        
+        except Exception as e:
+            from core.utils.errors import safe_error_response
+            logger.error(f"Individual PDF upload failed for exam {exam_id}: {str(e)}", exc_info=True)
+            
+            return Response(
+                safe_error_response(
+                    e,
+                    context="Upload de PDFs individuels",
+                    user_message="Échec de l'upload des fichiers PDF. Veuillez vérifier que tous les fichiers sont valides."
+                ),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 
 class ExamMultiUploadView(APIView):
@@ -588,7 +704,12 @@ class BookletSplitView(APIView):
         from processing.services.splitter import A3Splitter
 
         try:
-            doc = fitz.open(source_file.path)
+            if not booklet.exam.pdf_source:
+                return Response(
+                    {"error": _("Le PDF source n'est pas disponible pour cet examen")},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            doc = fitz.open(booklet.exam.pdf_source.path)
             if page_index < 0 or page_index >= doc.page_count:
                 return Response({"error": "Page out of range"}, status=status.HTTP_404_NOT_FOUND)
                 
