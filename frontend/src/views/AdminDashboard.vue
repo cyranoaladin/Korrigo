@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
+import ExamUploadModal from '../components/ExamUploadModal.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -35,37 +36,16 @@ const goToIdentification = (id) => {
     router.push({ name: 'IdentificationDesk', params: { examId: id } })
 }
 
-const fileInput = ref(null)
+// Upload modal
+const showUploadModal = ref(false)
 
-const triggerUpload = () => {
-    fileInput.value.click()
+const openUploadModal = () => {
+    showUploadModal.value = true
 }
 
-const uploadExam = async (event) => {
-    const file = event.target.files[0]
-    if (!file) return
-
-    const examName = prompt("Nom de l'examen :", file.name.replace('.pdf', ''))
-    if (!examName) return
-
-    const formData = new FormData()
-    formData.append('pdf_source', file)
-    formData.append('name', examName)
-    // Default date to today
-    formData.append('date', new Date().toISOString().split('T')[0])
-
-    try {
-        await api.post('/exams/upload/', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' } // Axios auto-sets boundary but good to be explicit
-        })
-        
-        alert('Examen importé avec succès !')
-        await fetchExams()
-    } catch (e) {
-        const errMsg = e.response?.data?.error || 'Erreur technique'
-        console.error("Upload failed", e)
-        alert('Erreur: ' + errMsg)
-    }
+const handleExamUploaded = async (examData) => {
+    console.log('Exam uploaded:', examData)
+    await fetchExams()
 }
 
 const showCreateModal = ref(false)
@@ -239,18 +219,10 @@ onMounted(() => {
           <button
             class="btn btn-outline"
             data-testid="exams.import"
-            @click="triggerUpload"
+            @click="openUploadModal"
           >
-            Importer Scans
+            Importer Examen
           </button>
-          <input 
-            ref="fileInput" 
-            type="file" 
-            style="display: none" 
-            accept="application/pdf"
-            data-testid="exams.fileInput"
-            @change="uploadExam"
-          >
         </div>
                 
         <div
@@ -548,6 +520,13 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Exam Upload Modal -->
+    <ExamUploadModal
+      :show="showUploadModal"
+      @close="showUploadModal = false"
+      @uploaded="handleExamUploaded"
+    />
   </div>
 </template>
 
