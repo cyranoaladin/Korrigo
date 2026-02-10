@@ -32,4 +32,4 @@ max_requests_jitter = 50
 graceful_timeout = 30
 
 # Use /dev/shm for worker heartbeat tmpfiles (faster than disk in Docker)
-worker_tmp_dir = "/dev/shm"
+worker_tmp_dir = "/dev/shm"  # nosec B108 — intentional: gunicorn best practice in Docker
