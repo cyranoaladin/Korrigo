@@ -186,6 +186,8 @@ jobs:
           CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
           CSRF_TRUSTED_ORIGINS: ${{ secrets.CSRF_TRUSTED_ORIGINS }}
           METRICS_TOKEN: ${{ secrets.METRICS_TOKEN }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          TEACHER_PASSWORD: ${{ secrets.TEACHER_PASSWORD }}
           KORRIGO_SHA: ${{ github.sha }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
@@ -211,6 +213,8 @@ jobs:
             printf 'REDIS_PORT=6379\n'
             printf 'REDIS_DB=1\n'
             printf 'CELERY_BROKER_URL=redis://redis:6379/0\n'
+            printf 'ADMIN_PASSWORD=%s\n' "$ADMIN_PASSWORD"
+            printf 'TEACHER_PASSWORD=%s\n' "$TEACHER_PASSWORD"
           } > /tmp/prod.env
           scp -o StrictHostKeyChecking=yes /tmp/prod.env "${VPS_USER}@${VPS_HOST}:${VPS_PATH}/.env"
           rm -f /tmp/prod.env
@@ -317,6 +321,13 @@ jobs:
               exit 1
             }
             echo "  ✅ Migrations complete"
+            
+            echo "🌱 Seeding production data (idempotent)..."
+            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm backend python seed_prod.py || {
+              echo "❌ Seeding failed"
+              exit 1
+            }
+            echo "  ✅ Seeding complete"
             
             echo "📦 Collecting static files..."
             docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm backend python manage.py collectstatic --noinput || {
