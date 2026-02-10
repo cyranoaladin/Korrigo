@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
+import ExamUploadModal from '../components/ExamUploadModal.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -42,145 +43,16 @@ const goToIdentification = (id) => {
     router.push({ name: 'IdentificationDesk', params: { examId: id } })
 }
 
-const fileInput = ref(null)
-const csvInput = ref(null)
-
-// Upload Modal State
+// Upload modal
 const showUploadModal = ref(false)
-const uploadForm = ref({
-    name: '',
-    date: new Date().toISOString().split('T')[0],
-    pdfFiles: [],
-    csvFile: null,
-    annexeFile: null,
-})
-const uploading = ref(false)
-const uploadProgress = ref('')
 
 const openUploadModal = () => {
-    uploadForm.value = {
-        name: '',
-        date: new Date().toISOString().split('T')[0],
-        pdfFiles: [],
-        csvFile: null,
-        annexeFile: null,
-    }
     showUploadModal.value = true
 }
 
-const handlePdfSelect = (event) => {
-    const files = Array.from(event.target.files)
-    if (files.length > 0) {
-        uploadForm.value.pdfFiles = [...uploadForm.value.pdfFiles, ...files]
-        if (!uploadForm.value.name && files[0]) {
-            uploadForm.value.name = files[0].name.replace('.pdf', '')
-        }
-    }
-    // Reset l'input pour permettre de re-sélectionner les mêmes fichiers
-    event.target.value = ''
-}
-
-const removePdfFile = (index) => {
-    uploadForm.value.pdfFiles.splice(index, 1)
-}
-
-const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-}
-
-const handleCsvSelect = (event) => {
-    const file = event.target.files[0]
-    if (file) {
-        uploadForm.value.csvFile = file
-    }
-}
-
-const handleAnnexeSelect = (event) => {
-    const file = event.target.files[0]
-    if (file) {
-        uploadForm.value.annexeFile = file
-    }
-}
-
-const submitUpload = async () => {
-    if (uploadForm.value.pdfFiles.length === 0 || !uploadForm.value.name) {
-        alert('Veuillez sélectionner au moins un fichier PDF et entrer un nom.')
-        return
-    }
-
-    uploading.value = true
-    const fileCount = uploadForm.value.pdfFiles.length
-    uploadProgress.value = `Envoi de ${fileCount} fichier${fileCount > 1 ? 's' : ''}...`
-
-    const formData = new FormData()
-    formData.append('name', uploadForm.value.name)
-    formData.append('date', uploadForm.value.date)
-
-    for (const file of uploadForm.value.pdfFiles) {
-        formData.append('pdf_files', file)
-    }
-
-    if (uploadForm.value.csvFile) {
-        formData.append('students_csv', uploadForm.value.csvFile)
-    }
-
-    if (uploadForm.value.annexeFile) {
-        formData.append('annexe_pdf', uploadForm.value.annexeFile)
-    }
-
-    uploadProgress.value = 'Traitement des fichiers (détection format, OCR si A3)...'
-
-    try {
-        const response = await api.post('/exams/multi-upload/', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-            timeout: 600000 // 10 minutes pour multi-fichiers volumineux
-        })
-
-        const data = response.data
-        let message = `Examen importé avec succès !\n\n${data.files_processed} fichier(s) traité(s)`
-
-        if (data.total_copies_created) {
-            message += `\n${data.total_copies_created} copies créées au total`
-        }
-        if (data.total_ready) {
-            message += `\n- ${data.total_ready} prête(s) (identification automatique)`
-        }
-        if (data.total_staging) {
-            message += `\n- ${data.total_staging} à vérifier manuellement`
-        }
-
-        // Détail par fichier
-        if (data.per_file_results && data.per_file_results.length > 1) {
-            message += '\n\nDétail par fichier :'
-            for (const r of data.per_file_results) {
-                const copies = r.copies_created || r.booklets_created || 0
-                message += `\n  ${r.filename} (${r.format}, ${r.page_count}p) → ${copies} copies`
-            }
-        }
-
-        alert(message)
-        showUploadModal.value = false
-        await fetchExams()
-    } catch (e) {
-        console.error("Upload failed", e)
-        // Gestion des erreurs par fichier
-        if (e.response?.data?.file_errors) {
-            const errors = e.response.data.file_errors
-            let errorMsg = 'Erreurs de validation :\n'
-            for (const [filename, msgs] of Object.entries(errors)) {
-                errorMsg += `\n${filename} :\n  - ${msgs.join('\n  - ')}`
-            }
-            alert(errorMsg)
-        } else {
-            const errMsg = e.response?.data?.error || e.message || 'Erreur technique'
-            alert('Erreur: ' + errMsg)
-        }
-    } finally {
-        uploading.value = false
-        uploadProgress.value = ''
-    }
+const handleExamUploaded = async (examData) => {
+    console.log('Exam uploaded:', examData)
+    await fetchExams()
 }
 
 // Legacy simple upload (kept for backwards compatibility)
@@ -433,18 +305,10 @@ onUnmounted(() => {
           <button
             class="btn btn-outline"
             data-testid="exams.import"
-            @click="triggerUpload"
+            @click="openUploadModal"
           >
-            Importer Scans
+            Importer Examen
           </button>
-          <input 
-            ref="fileInput" 
-            type="file" 
-            style="display: none" 
-            accept="application/pdf"
-            data-testid="exams.fileInput"
-            @change="uploadExam"
-          >
         </div>
                 
         <div
@@ -942,6 +806,13 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Exam Upload Modal -->
+    <ExamUploadModal
+      :show="showUploadModal"
+      @close="showUploadModal = false"
+      @uploaded="handleExamUploaded"
+    />
   </div>
 </template>
 

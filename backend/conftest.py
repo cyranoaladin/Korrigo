@@ -97,6 +97,24 @@ def regular_user(db):
 
 
 @pytest.fixture
+def student_user(db):
+    """
+    Creates and returns a student user (non-staff, in student group).
+    """
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user = User.objects.create_user(
+        username="student_test",
+        password="testpass123",  # nosec B106 - Test fixture password, not used in production
+        is_staff=False,
+        is_superuser=False
+    )
+    g, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
+    user.groups.add(g)
+    return user
+
+
+@pytest.fixture
 def authenticated_client(api_client, admin_user):
     """
     Returns an APIClient authenticated as admin user.
