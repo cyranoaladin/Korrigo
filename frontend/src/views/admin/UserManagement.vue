@@ -3,6 +3,9 @@ import { ref, onMounted, computed, watch } from 'vue'
 import api from '../../services/api'
 import AdminLayout from '../../components/AdminLayout.vue'
 
+/* expose window.alert to template */
+const showAlert = (msg) => window.alert(msg)
+
 const activeTab = ref('students') // 'students', 'teachers', 'admins'
 const items = ref([])
 const loading = ref(true)
@@ -294,7 +297,7 @@ const copyToClipboard = () => {
             <td>
               <button
                 class="btn-sm btn-outline"
-                @click="alert('Détails élève #' + item.id)"
+                @click="showAlert('Détails élève #' + item.id)"
               >
                 Voir
               </button>
