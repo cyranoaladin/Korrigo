@@ -20,6 +20,11 @@ ALLOWED_HOSTS = [h.strip() for h in DJANGO_ALLOWED_HOSTS.split(",") if h.strip()
 if not ALLOWED_HOSTS:
     raise ValueError("DJANGO_ALLOWED_HOSTS must be set (comma-separated)")
 
+# Internal health check hosts (Docker healthcheck uses curl http://localhost:8000)
+for _internal_host in ("localhost", "127.0.0.1"):
+    if _internal_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_internal_host)
+
 
 
 # Redis cache for production (required for login lockout with multiple workers)
