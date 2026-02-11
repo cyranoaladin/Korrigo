@@ -896,7 +896,7 @@ class PronoteExportView(APIView):
     
     Response:
         - 200 OK: CSV file download
-        - 400 Bad Request: Validation errors (ungraded copies, missing INE, etc.)
+        - 400 Bad Request: Validation errors (ungraded copies, unidentified students, etc.)
         - 403 Forbidden: Non-admin user
         - 404 Not Found: Exam not found
         - 429 Too Many Requests: Rate limit exceeded (10/hour)
