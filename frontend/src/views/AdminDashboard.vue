@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import ExamUploadModal from '../components/ExamUploadModal.vue'
+import UploadAnalyticsDashboard from '../components/UploadAnalyticsDashboard.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -38,6 +39,7 @@ const goToIdentification = (id) => {
 
 // Upload modal
 const showUploadModal = ref(false)
+const showAnalytics = ref(false)
 
 const openUploadModal = () => {
     showUploadModal.value = true
@@ -554,6 +556,16 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 .actions-bar { margin-bottom: 1.5rem; display: flex; gap: 1rem; }
 .btn { padding: 0.6rem 1.2rem; border-radius: 6px; border: none; font-weight: 500; cursor: pointer; }
 .btn-primary { background: #2563eb; color: white; }
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-left: 12px;
+}
 .btn-outline { background: white; border: 1px solid #cbd5e1; color: #475569; }
 .btn-sm { padding: 4px 8px; font-size: 0.8rem; margin-right: 5px; cursor: pointer; }
 

@@ -42,3 +42,11 @@ urlpatterns = [
     # Student Portal
     path('student/copies/', StudentCopiesView.as_view(), name='student-copies'),
 ]
+
+# Analytics endpoints
+from exams.views_analytics import UploadAnalyticsView, StorageAnalyticsView
+
+urlpatterns += [
+    path('analytics/uploads/', UploadAnalyticsView.as_view(), name='upload-analytics'),
+    path('analytics/storage/', StorageAnalyticsView.as_view(), name='storage-analytics'),
+]
