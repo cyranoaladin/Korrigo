@@ -110,10 +110,10 @@ class PronoteExportAPIValidationTests(TestCase):
         )
         
         self.student = Student.objects.create(
-            ine='11111111111',
             first_name='Test',
             last_name='Student',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-01-15'
         )
         
         self.user_teacher = User.objects.create_user(
@@ -174,10 +174,10 @@ class PronoteExportAPIValidationTests(TestCase):
     def test_export_fails_with_missing_ine(self):
         """Test export fails when student missing INE"""
         student_no_ine = Student.objects.create(
-            ine='',
             first_name='No',
             last_name='INE',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-02-20'
         )
         
         copy = Copy.objects.create(
@@ -237,17 +237,17 @@ class PronoteExportAPISuccessTests(TestCase):
         )
         
         self.student1 = Student.objects.create(
-            ine='11111111111',
             first_name='Alice',
             last_name='Durand',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-03-10'
         )
         
         self.student2 = Student.objects.create(
-            ine='22222222222',
             first_name='Bob',
             last_name='Martin',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-04-15'
         )
         
         self.user_teacher = User.objects.create_user(
@@ -359,10 +359,10 @@ class PronoteExportAPISuccessTests(TestCase):
     def test_export_with_special_characters(self):
         """Test export handles special characters correctly"""
         student_accent = Student.objects.create(
-            ine='33333333333',
             first_name='François',
             last_name='Müller',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-05-20'
         )
         
         copy = Copy.objects.create(
@@ -447,10 +447,10 @@ class PronoteExportAPIRateLimitTests(TestCase):
         )
         
         self.student = Student.objects.create(
-            ine='99999999999',
             first_name='Rate',
             last_name='Test',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-06-25'
         )
         
         copy = Copy.objects.create(
@@ -542,10 +542,10 @@ class PronoteExportAPIAuditTests(TestCase):
         )
         
         self.student = Student.objects.create(
-            ine='88888888888',
             first_name='Audit',
             last_name='Test',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-07-30'
         )
         
         self.url = f'/api/exams/{self.exam.id}/export-pronote/'

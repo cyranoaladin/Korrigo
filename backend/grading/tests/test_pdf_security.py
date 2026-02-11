@@ -31,19 +31,17 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         
         # Create test students
         self.student_a = Student.objects.create(
-            ine="1111111111A",
             first_name="Alice",
             last_name="Martin",
             class_name="TG1",
-            birth_date=date(2005, 1, 15)
+            date_naissance=date(2005, 1, 15)
         )
         
         self.student_b = Student.objects.create(
-            ine="2222222222B",
             first_name="Bob",
             last_name="Durant",
             class_name="TG2",
-            birth_date=date(2005, 2, 20)
+            date_naissance=date(2005, 2, 20)
         )
         
         # Create teacher user

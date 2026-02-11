@@ -4,7 +4,7 @@ Validates all critical corrections applied to the exam creation workflow.
 """
 import pytest
 import uuid
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -221,9 +221,12 @@ class TestExamSourceUploadProtection:
         pdf_file = create_uploadedfile(pdf_bytes, filename="reupload.pdf")
         
         with patch('processing.services.pdf_splitter.PDFSplitter.split_exam') as mock_split:
-            mock_booklet = MagicMock()
-            mock_booklet.pages_images = ['page1.png']
-            mock_split.return_value = [mock_booklet]
+            # Create a real Booklet so ManyToMany add() works with valid UUID
+            real_booklet = Booklet.objects.create(
+                exam=exam, start_page=1, end_page=4,
+                pages_images=['page1.png', 'page2.png']
+            )
+            mock_split.return_value = [real_booklet]
             
             response = teacher_client.post(
                 f'/api/exams/{exam.id}/upload/',
