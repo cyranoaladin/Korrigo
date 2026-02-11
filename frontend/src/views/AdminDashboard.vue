@@ -211,7 +211,7 @@ const saveSubjectVariants = async () => {
 const autoDetectSubjects = async () => {
     subjectDetecting.value = true
     try {
-        const res = await api.post(`/exams/${subjectExam.value.id}/auto-detect-subject/`)
+        const res = await api.post(`/exams/${subjectExam.value.id}/auto-detect-subject/`, {}, { timeout: 120000 })
         const data = res.data
         // Refresh copies list with updated variants
         const refreshRes = await api.get(`/exams/${subjectExam.value.id}/bulk-subject-variant/`)
