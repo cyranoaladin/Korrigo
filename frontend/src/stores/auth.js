@@ -63,27 +63,27 @@ export const useAuthStore = defineStore('auth', () => {
     async function fetchUser(preferStudent = false) {
         isChecking.value = true
         try {
-            // Strategy: Try /me/ (Standard User) first, UNLESS preferStudent is true
-            // Axios automatically uses baseURL (e.g. /api) and sends credentials
+            // Run both checks in parallel to avoid sequential 403 delays
+            const [adminResult, studentResult] = await Promise.allSettled([
+                preferStudent ? Promise.reject('skipped') : api.get('/me/'),
+                api.get('/students/me/')
+            ])
 
-            if (!preferStudent) {
-                try {
-                    const res = await api.get('/me/')
-                    user.value = res.data
-                    user.value.role = user.value.role || 'Admin'
-                    return
-                } catch {
-                    // Ignore error and fallthrough to student check if not preferred but standard failed
-                }
+            // Prefer admin/teacher result unless preferStudent
+            if (!preferStudent && adminResult.status === 'fulfilled') {
+                user.value = adminResult.value.data
+                user.value.role = user.value.role || 'Admin'
+                return
             }
 
-            // If failed or preferStudent, try student endpoint
-            try {
-                const res = await api.get('/students/me/')
-                user.value = { ...res.data, role: 'Student' }
-            } catch {
-                user.value = null
+            // Fallback to student
+            if (studentResult.status === 'fulfilled') {
+                user.value = { ...studentResult.value.data, role: 'Student' }
+                return
             }
+
+            // Both failed — not authenticated
+            user.value = null
         } catch (e) {
             user.value = null
         } finally {
