@@ -171,19 +171,12 @@ class PronoteExportAPIValidationTests(TestCase):
         data = response.json()
         self.assertIn('non identifiée', data['details'][0])
     
-    def test_export_fails_with_missing_ine(self):
-        """Test export fails when student missing INE"""
-        student_no_ine = Student.objects.create(
-            first_name='No',
-            last_name='INE',
-            class_name='TS1',
-            date_naissance='2005-02-20'
-        )
-        
+    def test_export_fails_with_missing_student(self):
+        """Test export fails when copy is identified but has no linked student."""
         copy = Copy.objects.create(
             exam=self.exam,
-            anonymous_id='MISSING_INE',
-            student=student_no_ine,
+            anonymous_id='MISSING_STUDENT',
+            student=None,
             is_identified=True,
             status=Copy.Status.GRADED
         )
@@ -202,7 +195,7 @@ class PronoteExportAPIValidationTests(TestCase):
         
         self.assertEqual(response.status_code, 400)
         data = response.json()
-        self.assertIn('sans INE', data['details'][0])
+        self.assertIn('sans élève', data['details'][0])
     
     def test_export_fails_with_invalid_coefficient(self):
         """Test export fails with invalid coefficient"""

@@ -101,7 +101,7 @@ class TestFullSystemAudit:
         """Vérifie l'import de fichier CSV"""
         self.client.force_authenticate(user=self.admin_user)
         
-        csv_content = b"first_name,last_name,date_naissance,class_name,email\nUser,TEST,2005-05-15,TG3,test@test.com"
+        csv_content = b"\xc3\x89l\xc3\xa8ves,N\xc3\xa9(e) le,Email,Classe,Groupe\nTEST User,15/05/2005,test@test.com,TG3,G1"
         file = io.BytesIO(csv_content)
         file.name = "import.csv"
         
@@ -109,7 +109,7 @@ class TestFullSystemAudit:
         assert response.status_code == 200
         assert response.data['created'] == 1
         
-        # Verify student exists
+        # Verify student exists (importer splits "TEST User" → last_name=TEST, first_name=User)
         assert Student.objects.filter(
             first_name="User",
             last_name="TEST",
