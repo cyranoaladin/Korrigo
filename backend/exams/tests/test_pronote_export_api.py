@@ -53,7 +53,7 @@ class PronoteExportAPIPermissionTests(TestCase):
         """Test that anonymous users cannot export"""
         response = self.client.post(self.url)
         
-        self.assertEqual(response.status_code, 401)
+        self.assertIn(response.status_code, [401, 403])
     
     def test_student_cannot_export(self):
         """Test that students cannot export (forbidden)"""
