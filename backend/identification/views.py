@@ -96,7 +96,6 @@ class ManualIdentifyView(APIView):
             actor=request.user if request.user.is_authenticated else None,
             metadata={
                 'student_id': str(student.id),
-                'student_name': f"{student.first_name} {student.last_name}",
                 'method': 'manual_identification'
             }
         )
@@ -140,7 +139,6 @@ class OCRIdentifyView(APIView):
                 actor=request.user if request.user.is_authenticated else None,
                 metadata={
                     'student_id': str(student.id),
-                    'student_name': f"{student.first_name} {student.last_name}",
                     'method': 'ocr_assisted_identification'
                 }
             )
