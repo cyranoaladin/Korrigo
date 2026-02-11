@@ -24,6 +24,7 @@ const scale = ref(1.0)
 const currentPage = ref(1) 
 const pdfDimensions = ref({ width: 0, height: 0 }) 
 const imageError = ref(false)
+const imageLoaded = ref(false)
 
 // Lock State
 // Lock State
@@ -119,15 +120,15 @@ const flattenQuestions = (structure, parentId = '') => {
     let questions = []
     structure.forEach((item, index) => {
         const itemId = parentId ? `${parentId}.${index + 1}` : `${index + 1}`
-        if (item.type === 'question') {
+        const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0
+        if (hasChildren) {
+            questions = questions.concat(flattenQuestions(item.children, itemId))
+        } else {
             questions.push({
                 id: itemId,
-                title: item.title || `Question ${itemId}`,
-                maxScore: item.maxScore || 0
+                title: item.label || item.title || `Question ${itemId}`,
+                maxScore: item.points ?? item.maxScore ?? 0
             })
-        }
-        if (item.children && Array.isArray(item.children)) {
-            questions = questions.concat(flattenQuestions(item.children, itemId))
         }
     })
     return questions
@@ -186,6 +187,10 @@ const onGlobalKeydown = (e) => {
 }
 
 // --- Watchers ---
+watch(currentPage, () => {
+    imageLoaded.value = false
+})
+
 watch(pages, (newPages) => {
     if (newPages.length === 0) {
         currentPage.value = 1
@@ -586,6 +591,7 @@ const handleDownload = () => {
 
 const handleImageLoad = (e) => {
     imageError.value = false
+    imageLoaded.value = true
     pdfDimensions.value = { width: e.target.naturalWidth, height: e.target.naturalHeight }
 }
 
@@ -830,14 +836,7 @@ onUnmounted(() => {
             class="canvas-wrapper" 
             :style="{ width: displayWidth + 'px', height: displayHeight + 'px' }"
           >
-            <img
-              :src="currentPageImageUrl"
-              class="page-image"
-              draggable="false"
-              @load="handleImageLoad"
-              @error="handleImageError"
-            >
-            <!-- Anonymization overlay: covers student identity zone on header pages -->
+            <!-- Anonymization overlay: covers student identity zone on header pages (rendered BEFORE img to prevent flash) -->
             <div
               v-if="isHeaderPage && !showIdentity"
               class="anonymization-overlay"
@@ -854,6 +853,13 @@ onUnmounted(() => {
                 Révéler l'identité (Admin)
               </button>
             </div>
+            <img
+              :src="currentPageImageUrl"
+              class="page-image"
+              draggable="false"
+              @load="handleImageLoad"
+              @error="handleImageError"
+            >
             <CanvasLayer
               :width="displayWidth"
               :height="displayHeight"
@@ -1177,13 +1183,14 @@ onUnmounted(() => {
 
 .canvas-wrapper { position: relative; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); }
 .page-image { width: 100%; height: 100%; display: block; }
+.page-image--loading { visibility: hidden; }
 
 .anonymization-overlay {
     position: absolute;
     top: 0;
     left: 0;
     background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    z-index: 10;
+    z-index: 20;
     display: flex;
     flex-direction: column;
     justify-content: center;
