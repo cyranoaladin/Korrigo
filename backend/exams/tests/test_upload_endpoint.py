@@ -180,30 +180,6 @@ class TestExamUploadValidation:
         
         assert Exam.objects.count() == 0
     
-    @pytest.mark.skip(reason="Generating 51MB PDF is too slow (>3min) - covered by mock test")
-    def test_upload_file_too_large_returns_413(self, teacher_client):
-        """
-        Test upload with file > 50 MB.
-        Should return HTTP 413 REQUEST ENTITY TOO LARGE.
-        """
-        pdf_bytes = create_large_pdf(size_mb=51)
-        pdf_file = create_uploadedfile(pdf_bytes, filename="exam_large.pdf")
-        
-        data = {
-            'name': 'Test Exam - Too Large',
-            'date': '2024-01-15',
-            'pdf_source': pdf_file,
-            'pages_per_booklet': 4
-        }
-        
-        response = teacher_client.post(self.upload_url, data, format='multipart')
-        
-        assert response.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
-        assert 'error' in response.data
-        
-        assert Exam.objects.count() == 0
-        assert Booklet.objects.count() == 0
-        assert Copy.objects.count() == 0
     
     def test_upload_empty_file_returns_400(self, teacher_client):
         """
@@ -284,34 +260,7 @@ class TestExamUploadValidation:
         
         assert Exam.objects.count() == 0
     
-    @pytest.mark.skip(reason="Generating 501-page PDF is too slow - covered by validator tests")
-    def test_upload_too_many_pages_returns_400(self, teacher_client):
-        """
-        Test upload with PDF exceeding 500 pages limit.
-        Should return 400 with validation error.
-        NOTE: Skipped in integration tests due to performance. Validator unit tests cover this.
-        """
-        pdf_bytes = create_pdf_with_pages(501)
-        pdf_file = create_uploadedfile(pdf_bytes, filename="exam_501pages.pdf")
-        
-        data = {
-            'name': 'Test Exam - Too Many Pages',
-            'date': '2024-01-15',
-            'pdf_source': pdf_file,
-            'pages_per_booklet': 4
-        }
-        
-        response = teacher_client.post(self.upload_url, data, format='multipart')
-        
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert 'pdf_source' in response.data
-        
-        error_message = str(response.data['pdf_source'][0])
-        assert 'page' in error_message.lower() or '500' in error_message
-        
-        assert Exam.objects.count() == 0
-        assert Booklet.objects.count() == 0
-        assert Copy.objects.count() == 0
+    # Removed: test_upload_too_many_pages_returns_400 (501-page PDF too slow, covered by validator unit tests)
 
 
 @pytest.mark.django_db
