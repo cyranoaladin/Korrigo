@@ -1,0 +1,2483 @@
+============================= test session starts ==============================
+platform linux -- Python 3.9.25, pytest-8.4.2, pluggy-1.6.0 -- /usr/local/bin/python3.9
+cachedir: .pytest_cache
+django: version: 4.2.27, settings: core.settings (from env)
+rootdir: /app
+configfile: pytest.ini
+plugins: cov-4.1.0, django-4.11.1
+collecting ... collected 235 items
+
+core/test_auth_rbac.py::RBACPermissionsTest::test_admin_or_teacher_permissions ERROR [  0%]
+core/test_auth_rbac.py::RBACPermissionsTest::test_admin_permissions ERROR [  0%]
+core/test_auth_rbac.py::RBACPermissionsTest::test_is_teacher_or_admin_permission ERROR [  1%]
+core/test_auth_rbac.py::RBACPermissionsTest::test_student_permissions ERROR [  1%]
+core/test_auth_rbac.py::RBACPermissionsTest::test_teacher_permissions ERROR [  2%]
+core/test_auth_rbac.py::RBACPermissionsTest::test_unauthenticated_user_permissions ERROR [  2%]
+core/test_auth_rbac.py::APIEndpointSecurityTest::test_api_endpoints_require_authentication ERROR [  2%]
+core/test_auth_rbac.py::APIEndpointSecurityTest::test_role_based_access_control ERROR [  3%]
+core/tests/test_audit_trail.py::TestAuditLog::test_create_audit_log ERROR [  3%]
+core/tests/test_audit_trail.py::TestAuditLog::test_audit_log_ordering ERROR [  4%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_get_client_ip_direct ERROR [  4%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_get_client_ip_forwarded ERROR [  5%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_log_audit ERROR   [  5%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_log_authentication_attempt_success ERROR [  5%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_log_authentication_attempt_failed ERROR [  6%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_log_data_access ERROR [  6%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_log_workflow_action ERROR [  7%]
+core/tests/test_audit_trail.py::TestAuditHelpers::test_audit_log_student_session ERROR [  7%]
+core/tests/test_email_login_reset.py::EmailLoginTest::test_login_with_email_works ERROR [  8%]
+core/tests/test_email_login_reset.py::EmailLoginTest::test_login_with_username_works ERROR [  8%]
+core/tests/test_email_login_reset.py::EmailLoginTest::test_login_with_wrong_email_fails ERROR [  8%]
+core/tests/test_email_login_reset.py::PasswordResetTest::test_admin_can_reset_user_password ERROR [  9%]
+core/tests/test_email_login_reset.py::PasswordResetTest::test_admin_cannot_reset_own_password ERROR [  9%]
+core/tests/test_email_login_reset.py::PasswordResetTest::test_non_admin_cannot_reset_password ERROR [ 10%]
+core/tests/test_email_login_reset.py::PasswordResetTest::test_reset_sets_must_change_password_flag ERROR [ 10%]
+core/tests/test_email_login_reset.py::EmailUniquenessTest::test_duplicate_email_rejected ERROR [ 11%]
+core/tests/test_email_login_reset.py::EmailUniquenessTest::test_duplicate_email_rejected_on_update ERROR [ 11%]
+core/tests/test_email_login_reset.py::EmailUniquenessTest::test_unique_email_accepted ERROR [ 11%]
+core/tests/test_ensure_admin_command.py::test_ensure_admin_creates_admin_user ERROR [ 12%]
+core/tests/test_ensure_admin_command.py::test_ensure_admin_sets_must_change_password ERROR [ 12%]
+core/tests/test_ensure_admin_command.py::test_ensure_admin_idempotent ERROR [ 13%]
+core/tests/test_ensure_admin_command.py::test_ensure_admin_with_existing_admin_without_profile ERROR [ 13%]
+core/tests/test_full_audit.py::TestFullSystemAudit::test_01_authentication_admin ERROR [ 14%]
+core/tests/test_full_audit.py::TestFullSystemAudit::test_02_authentication_teacher ERROR [ 14%]
+core/tests/test_full_audit.py::TestFullSystemAudit::test_03_authentication_student ERROR [ 14%]
+core/tests/test_full_audit.py::TestFullSystemAudit::test_04_global_settings_persistence ERROR [ 15%]
+core/tests/test_full_audit.py::TestFullSystemAudit::test_05_student_import_csv ERROR [ 15%]
+core/tests/test_full_audit.py::TestFullSystemAudit::test_06_change_password ERROR [ 16%]
+core/tests/test_logging.py::JSONFormatterTest::test_json_formatter_handles_exceptions ERROR [ 16%]
+core/tests/test_logging.py::JSONFormatterTest::test_json_formatter_includes_extra_fields ERROR [ 17%]
+core/tests/test_logging.py::JSONFormatterTest::test_json_formatter_produces_valid_json ERROR [ 17%]
+core/tests/test_logging.py::RequestIDMiddlewareTest::test_client_request_id_preserved ERROR [ 17%]
+core/tests/test_logging.py::RequestIDMiddlewareTest::test_request_id_added_to_response_header ERROR [ 18%]
+core/tests/test_logging.py::RequestIDMiddlewareTest::test_request_id_generated ERROR [ 18%]
+core/tests/test_logging.py::RequestContextLogFilterTest::test_authenticated_user_id_in_logs ERROR [ 19%]
+core/tests/test_logging.py::RequestContextLogFilterTest::test_request_context_added_to_logs ERROR [ 19%]
+core/tests/test_logging.py::IntegrationTest::test_api_health_returns_request_id ERROR [ 20%]
+core/tests/test_logging.py::IntegrationTest::test_custom_request_id_preserved ERROR [ 20%]
+core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_aggregation_multiple_requests ERROR [ 20%]
+core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_initial_state ERROR [ 21%]
+core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_path_normalization_integer ERROR [ 21%]
+core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_path_normalization_uuid ERROR [ 22%]
+core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_record_error_increments_error_count ERROR [ 22%]
+core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_record_request_creates_endpoint_entry ERROR [ 22%]
+core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_reset_clears_metrics ERROR [ 23%]
+core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_thread_safety ERROR [ 23%]
+core/tests/test_metrics_middleware.py::MetricsMiddlewareTests::test_middleware_normalizes_paths ERROR [ 24%]
+core/tests/test_metrics_middleware.py::MetricsMiddlewareTests::test_middleware_records_errors ERROR [ 24%]
+core/tests/test_metrics_middleware.py::MetricsMiddlewareTests::test_middleware_records_request ERROR [ 25%]
+core/tests/test_metrics_middleware.py::MetricsMiddlewareTests::test_response_time_header ERROR [ 25%]
+core/tests/test_metrics_middleware.py::MetricsMiddlewareTests::test_slow_request_logging ERROR [ 25%]
+core/tests/test_prometheus.py::PrometheusMetricsTest::test_generate_metrics_returns_valid_format ERROR [ 26%]
+core/tests/test_prometheus.py::PrometheusMetricsTest::test_get_content_type_returns_prometheus_format ERROR [ 26%]
+core/tests/test_prometheus.py::PrometheusMetricsTest::test_record_request_metrics_handles_errors_gracefully ERROR [ 27%]
+core/tests/test_prometheus.py::PrometheusMetricsTest::test_record_request_metrics_increments_counter ERROR [ 27%]
+core/tests/test_prometheus.py::PrometheusMetricsTest::test_record_request_metrics_records_duration ERROR [ 28%]
+core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_accepts_header_token ERROR [ 28%]
+core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_accepts_query_token ERROR [ 28%]
+core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_accessible_in_development ERROR [ 29%]
+core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_contains_process_metrics ERROR [ 29%]
+core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_public_without_token_setting ERROR [ 30%]
+core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_rejects_invalid_token ERROR [ 30%]
+core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_requires_token_in_production ERROR [ 31%]
+core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_returns_prometheus_format ERROR [ 31%]
+core/tests/test_prometheus.py::PrometheusIntegrationTest::test_error_requests_recorded ERROR [ 31%]
+core/tests/test_prometheus.py::PrometheusIntegrationTest::test_multiple_requests_increment_counter ERROR [ 32%]
+core/tests/test_prometheus.py::PrometheusIntegrationTest::test_request_records_metrics ERROR [ 32%]
+core/tests/test_rate_limiting.py::TestRateLimitingBaseline::test_login_attempts_under_threshold_always_401 ERROR [ 33%]
+core/tests/test_rate_limiting.py::TestRateLimitingBaseline::test_student_login_attempts_under_threshold_always_401 ERROR [ 33%]
+core/tests/test_rate_limiting.py::TestRateLimitingBaseline::test_successful_login_not_rate_limited ERROR [ 34%]
+core/tests/test_rate_limiting.py::TestRateLimitingGracefulDegradation::test_login_degraded_mode_without_redis ERROR [ 34%]
+core/tests/test_user_profile.py::test_user_profile_created_automatically ERROR [ 34%]
+core/tests/test_user_profile.py::test_must_change_password_default ERROR [ 35%]
+core/tests/test_user_profile.py::test_set_must_change_password ERROR     [ 35%]
+core/tests/test_user_profile.py::test_login_returns_must_change_password ERROR [ 36%]
+core/tests/test_user_profile.py::test_login_returns_false_when_not_set ERROR [ 36%]
+core/tests/test_user_profile.py::test_user_detail_includes_must_change_password ERROR [ 37%]
+core/tests/test_user_profile.py::test_change_password_clears_must_change_flag ERROR [ 37%]
+exams/tests/test_pdf_validators.py::TestPDFValidatorsIntegration::test_exam_pdf_source_with_invalid_extension ERROR [ 37%]
+exams/tests/test_pdf_validators.py::TestPDFValidatorsIntegration::test_exam_pdf_source_with_valid_pdf ERROR [ 38%]
+exams/tests/test_pdf_validators.py::TestPDFValidatorsIntegration::test_copy_pdf_source_with_too_large_file ERROR [ 38%]
+grading/tests/test_anti_loss.py::TestAntiLoss::test_finalize_idempotency_or_safety ERROR [ 39%]
+grading/tests/test_anti_loss.py::TestAntiLoss::test_lock_idempotency ERROR [ 39%]
+grading/tests/test_anti_loss.py::TestAntiLoss::test_annotation_create_atomicity ERROR [ 40%]
+grading/tests/test_anti_loss.py::TestAntiLoss::test_import_transaction_atomicity ERROR [ 40%]
+grading/tests/test_api_error_contract_runtime.py::test_annotation_create_missing_token_returns_403_detail ERROR [ 40%]
+grading/tests/test_api_error_contract_runtime.py::test_annotation_delete_missing_token_returns_403_detail ERROR [ 41%]
+grading/tests/test_api_error_contract_runtime.py::test_finalize_missing_token_returns_403_detail ERROR [ 41%]
+grading/tests/test_api_error_contract_runtime.py::test_finalize_expired_lock_returns_409_detail ERROR [ 42%]
+grading/tests/test_api_error_contract_runtime.py::test_lock_heartbeat_missing_token_returns_403_detail ERROR [ 42%]
+grading/tests/test_api_error_contract_runtime.py::test_lock_release_bad_token_returns_403_detail ERROR [ 42%]
+grading/tests/test_async_views.py::TaskStatusViewTests::test_admin_sees_full_traceback ERROR [ 43%]
+grading/tests/test_async_views.py::TaskStatusViewTests::test_task_cancel ERROR [ 43%]
+grading/tests/test_async_views.py::TaskStatusViewTests::test_task_cancel_completed_task_fails ERROR [ 44%]
+grading/tests/test_async_views.py::TaskStatusViewTests::test_task_status_failure ERROR [ 44%]
+grading/tests/test_async_views.py::TaskStatusViewTests::test_task_status_pending ERROR [ 45%]
+grading/tests/test_async_views.py::TaskStatusViewTests::test_task_status_requires_authentication ERROR [ 45%]
+grading/tests/test_async_views.py::TaskStatusViewTests::test_task_status_success ERROR [ 45%]
+grading/tests/test_error_handling.py::test_value_error_returns_400_detail ERROR [ 46%]
+grading/tests/test_error_handling.py::test_permission_error_returns_403_detail ERROR [ 46%]
+grading/tests/test_error_handling.py::test_unexpected_error_returns_500_generic_detail ERROR [ 47%]
+grading/tests/test_error_handling.py::test_all_workflow_endpoints_use_detail_format ERROR [ 47%]
+grading/tests/test_error_handling.py::test_missing_required_field_returns_400_detail ERROR [ 48%]
+grading/tests/test_error_handling.py::test_unauthenticated_request_returns_403 ERROR [ 48%]
+grading/tests/test_error_handling.py::test_non_staff_user_returns_403 ERROR [ 48%]
+grading/tests/test_finalize.py::test_finalize_sets_status_graded ERROR   [ 49%]
+grading/tests/test_finalize.py::test_finalize_sets_final_pdf_field ERROR [ 49%]
+grading/tests/test_finalize.py::test_final_pdf_endpoint_404_when_missing ERROR [ 50%]
+grading/tests/test_finalize.py::test_final_pdf_endpoint_200_when_present ERROR [ 50%]
+grading/tests/test_finalize.py::test_finalize_computes_score_from_annotations ERROR [ 51%]
+grading/tests/test_finalize.py::test_finalize_creates_grading_event ERROR [ 51%]
+grading/tests/test_integration_real.py::TestIntegrationReal::test_full_import_flow_real_fs ERROR [ 51%]
+grading/tests/test_integration_real.py::TestIntegrationReal::test_security_gates_real ERROR [ 52%]
+grading/tests/test_integration_real.py::TestIntegrationReal::test_student_block_real ERROR [ 52%]
+grading/tests/test_lock_endpoints.py::test_lock_acquire_ttl_invalid_returns_400_detail ERROR [ 53%]
+grading/tests/test_lock_endpoints.py::test_lock_acquire_ttl_negative_returns_400_detail ERROR [ 53%]
+grading/tests/test_lock_endpoints.py::test_lock_acquire_ttl_too_big_is_clamped_to_3600 ERROR [ 54%]
+grading/tests/test_lock_endpoints.py::test_lock_release_missing_token_returns_403_detail ERROR [ 54%]
+grading/tests/test_lock_endpoints.py::test_lock_release_absent_lock_returns_204 ERROR [ 54%]
+grading/tests/test_lock_endpoints.py::test_lock_heartbeat_owner_mismatch_returns_409_detail ERROR [ 55%]
+grading/tests/test_optimistic_locking.py::OptimisticLockingTests::test_annotation_has_version_field ERROR [ 55%]
+grading/tests/test_optimistic_locking.py::OptimisticLockingTests::test_concurrent_updates_prevented ERROR [ 56%]
+grading/tests/test_optimistic_locking.py::OptimisticLockingTests::test_update_increments_version ERROR [ 56%]
+grading/tests/test_optimistic_locking.py::OptimisticLockingTests::test_update_without_version_check_works ERROR [ 57%]
+grading/tests/test_optimistic_locking.py::OptimisticLockingTests::test_version_mismatch_raises_error ERROR [ 57%]
+grading/tests/test_remarks.py::TestQuestionRemarks::test_create_remark ERROR [ 57%]
+grading/tests/test_remarks.py::TestQuestionRemarks::test_update_remark ERROR [ 58%]
+grading/tests/test_remarks.py::TestQuestionRemarks::test_list_remarks ERROR [ 58%]
+grading/tests/test_remarks.py::TestQuestionRemarks::test_delete_remark ERROR [ 59%]
+grading/tests/test_remarks.py::TestQuestionRemarks::test_duplicate_remark_prevented ERROR [ 59%]
+grading/tests/test_remarks.py::TestQuestionRemarks::test_only_creator_can_edit_remark ERROR [ 60%]
+grading/tests/test_remarks.py::TestGlobalAppreciation::test_save_global_appreciation ERROR [ 60%]
+grading/tests/test_remarks.py::TestGlobalAppreciation::test_get_global_appreciation ERROR [ 60%]
+grading/tests/test_remarks.py::TestGlobalAppreciation::test_empty_appreciation_returns_empty_string ERROR [ 61%]
+grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_rasterize_pdf_handles_resources_strictly ERROR [ 61%]
+grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_rasterize_pdf_raises_value_error_on_empty_pdf ERROR [ 62%]
+grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_import_pdf_rollback_on_raster_failure ERROR [ 62%]
+grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_validate_copy_invariants ERROR [ 62%]
+grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_lock_copy_invariants ERROR [ 63%]
+grading/tests/test_tasks.py::AsyncFinalizeCopyTests::test_async_finalize_copy_not_found ERROR [ 63%]
+grading/tests/test_tasks.py::AsyncFinalizeCopyTests::test_async_finalize_handles_errors ERROR [ 64%]
+grading/tests/test_tasks.py::AsyncFinalizeCopyTests::test_async_finalize_success ERROR [ 64%]
+grading/tests/test_tasks.py::AsyncImportPDFTests::test_async_import_handles_errors ERROR [ 65%]
+grading/tests/test_tasks.py::AsyncImportPDFTests::test_async_import_success ERROR [ 65%]
+grading/tests/test_tasks.py::CleanupOrphanedFilesTests::test_cleanup_handles_missing_directory ERROR [ 65%]
+grading/tests/test_tasks.py::CleanupOrphanedFilesTests::test_cleanup_removes_old_files ERROR [ 66%]
+grading/tests/test_validation.py::test_reject_annotation_with_w_zero ERROR [ 66%]
+grading/tests/test_validation.py::test_reject_annotation_with_overflow_x_plus_w ERROR [ 67%]
+grading/tests/test_validation.py::test_reject_annotation_with_overflow_y_plus_h ERROR [ 67%]
+grading/tests/test_validation.py::test_reject_annotation_with_negative_values ERROR [ 68%]
+grading/tests/test_validation.py::test_reject_page_index_out_of_bounds ERROR [ 68%]
+grading/tests/test_validation.py::test_accept_page_index_as_string_int ERROR [ 68%]
+grading/tests/test_workflow.py::test_ready_transition_requires_pages ERROR [ 69%]
+grading/tests/test_workflow.py::test_ready_transition_changes_status_and_creates_event ERROR [ 69%]
+grading/tests/test_workflow.py::test_finalize_works_from_ready ERROR     [ 70%]
+grading/tests/test_workflow.py::test_lock_transition_success ERROR       [ 70%]
+grading/tests/test_workflow.py::test_unlock_transition_success ERROR     [ 71%]
+identification/test_e2e_bac_blanc.py::BacBlancSecurityTest::test_student_can_only_access_own_copies ERROR [ 71%]
+identification/test_ocr_assisted.py::OCRAssistedIdentificationTest::test_human_validation_required_after_ocr ERROR [ 71%]
+identification/test_ocr_assisted.py::OCRAssistedIdentificationTest::test_ocr_assisted_workflow ERROR [ 72%]
+identification/test_ocr_assisted.py::OCRAssistedIdentificationTest::test_ocr_low_confidence_still_works ERROR [ 72%]
+identification/test_ocr_assisted.py::OCRAssistedIdentificationTest::test_ocr_no_matches ERROR [ 73%]
+identification/test_workflow.py::IdentificationWorkflowTest::test_identification_prevents_invalid_transitions ERROR [ 73%]
+identification/test_workflow.py::IdentificationWorkflowTest::test_multiple_identification_attempts ERROR [ 74%]
+identification/test_workflow.py::IdentificationWorkflowTest::test_state_transition_staging_to_ready_manual ERROR [ 74%]
+students/tests/test_import_students_csv.py::test_read_csv_nominal ERROR  [ 74%]
+students/tests/test_import_students_csv.py::test_read_csv_bom ERROR      [ 75%]
+students/tests/test_import_students_csv.py::test_read_csv_missing_header ERROR [ 75%]
+students/tests/test_import_students_csv.py::test_read_csv_file_not_found ERROR [ 76%]
+students/tests/test_import_students_csv.py::test_import_integration ERROR [ 76%]
+tests/test_api_bac_blanc.py::BacBlancE2ETest::test_complete_bac_blanc_workflow ERROR [ 77%]
+tests/test_api_bac_blanc.py::BacBlancE2ETest::test_identification_through_api ERROR [ 77%]
+tests/test_api_bac_blanc.py::BacBlancE2ETest::test_student_access_to_graded_copy ERROR [ 77%]
+tests/test_backup_restore.py::BackupRestoreTest::test_backup_process ERROR [ 78%]
+tests/test_backup_restore.py::BackupRestoreTest::test_backup_restore_cycle ERROR [ 78%]
+tests/test_smoke.py::test_authentication_flow ERROR                      [ 79%]
+tests/test_smoke.py::test_exam_creation_flow ERROR                       [ 79%]
+tests/test_smoke.py::test_copy_list_flow ERROR                           [ 80%]
+tests/test_smoke.py::test_database_connection ERROR                      [ 80%]
+grading/tests/test_concurrency.py::TestConcurrency::test_concurrent_annotation_updates_sequential_lww ERROR [ 80%]
+grading/tests/test_concurrency.py::TestConcurrency::test_double_finalize_race ERROR [ 81%]
+grading/tests/test_concurrency.py::TestConcurrency::test_finalize_uses_select_for_update_on_copy_and_lock ERROR [ 81%]
+grading/tests/test_concurrency_postgres.py::test_finalize_concurrent_requests_flatten_called_once_postgres ERROR [ 82%]
+grading/tests/test_phase39_hardening.py::TestPhase39Hardening::test_audit_endpoint_requires_staff ERROR [ 82%]
+grading/tests/test_phase39_hardening.py::TestPhase39Hardening::test_final_pdf_security_gate ERROR [ 82%]
+grading/tests/test_phase39_hardening.py::TestPhase39Hardening::test_import_permissions_forbidden_for_non_staff ERROR [ 83%]
+grading/tests/test_phase39_hardening.py::TestPhase39Hardening::test_import_success_for_teacher_creates_copy_booklet_and_audit ERROR [ 83%]
+grading/tests/test_workflow_complete.py::TestWorkflowComplete::test_workflow_import_corrupted_rollback ERROR [ 84%]
+grading/tests/test_workflow_complete.py::TestWorkflowComplete::test_workflow_student_access_denied ERROR [ 84%]
+grading/tests/test_workflow_complete.py::TestWorkflowComplete::test_workflow_teacher_full_cycle_success ERROR [ 85%]
+identification/test_backup_restore_full.py::BackupRestoreDestroyRecoverTest::test_backup_restore_destroy_recover_full_cycle ERROR [ 85%]
+identification/test_e2e_bac_blanc.py::BacBlancE2EWorkflowTest::test_bac_blanc_complete_workflow ERROR [ 85%]
+identification/test_e2e_bac_blanc.py::BacBlancE2EWorkflowTest::test_bac_blanc_state_transitions ERROR [ 86%]
+students/tests/test_gate4_flow.py::TestGate4StudentFlow::test_student_copies_list_permissions ERROR [ 86%]
+students/tests/test_gate4_flow.py::TestGate4StudentFlow::test_student_login_success ERROR [ 87%]
+students/tests/test_gate4_flow.py::TestGate4StudentFlow::test_student_pdf_access_security ERROR [ 87%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_size_valid PASSED [ 88%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_size_too_large PASSED [ 88%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_size_exactly_50mb PASSED [ 88%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_not_empty_valid PASSED [ 89%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_not_empty_zero_bytes PASSED [ 89%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_mime_type_valid PASSED [ 90%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_mime_type_fake_pdf PASSED [ 90%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_integrity_valid PASSED [ 91%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_integrity_corrupted PASSED [ 91%]
+exams/tests/test_pdf_validators.py::TestPDFValidators::test_validate_pdf_integrity_too_many_pages PASSED [ 91%]
+grading/tests/test_api_error_contract_scanner.py::test_no_error_key_in_grading_code PASSED [ 92%]
+grading/tests/test_fixtures_advanced.py::test_advanced_fixtures_existence PASSED [ 92%]
+grading/tests/test_fixtures_advanced.py::test_scan_like_properties PASSED [ 93%]
+grading/tests/test_fixtures_advanced.py::test_multi_booklet_properties PASSED [ 93%]
+grading/tests/test_fixtures_advanced.py::test_heavy_properties PASSED    [ 94%]
+grading/tests/test_fixtures_advanced.py::test_mixed_orientation_properties PASSED [ 94%]
+grading/tests/test_fixtures_advanced.py::test_corrupted_truncated_fails_gracefully PASSED [ 94%]
+grading/tests/test_fixtures_p1.py::test_fixtures_existence PASSED        [ 95%]
+grading/tests/test_fixtures_p1.py::test_simple_pdf_properties PASSED     [ 95%]
+grading/tests/test_fixtures_p1.py::test_heavy_pdf_properties PASSED      [ 96%]
+grading/tests/test_fixtures_p1.py::test_corrupted_pdf_raises_error PASSED [ 96%]
+grading/tests/test_serializers_strict.py::TestSerializersStrict::test_booklet_serializer_integrity PASSED [ 97%]
+grading/tests/test_serializers_strict.py::TestSerializersStrict::test_copy_serializer_embedding PASSED [ 97%]
+processing/tests/test_splitter.py::test_process_scan_recto PASSED        [ 97%]
+processing/tests/test_splitter.py::test_process_scan_verso PASSED        [ 98%]
+tests/test_smoke.py::test_health_endpoints FAILED                        [ 98%]
+tests/test_smoke.py::test_admin_accessible FAILED                        [ 99%]
+tests/test_smoke.py::test_static_files_configuration PASSED              [ 99%]
+tests/test_smoke.py::test_critical_models_importable PASSED              [100%]
+
+==================================== ERRORS ====================================
+___ ERROR at setup of RBACPermissionsTest.test_admin_or_teacher_permissions ____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_________ ERROR at setup of RBACPermissionsTest.test_admin_permissions _________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of RBACPermissionsTest.test_is_teacher_or_admin_permission ___
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________ ERROR at setup of RBACPermissionsTest.test_student_permissions ________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________ ERROR at setup of RBACPermissionsTest.test_teacher_permissions ________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of RBACPermissionsTest.test_unauthenticated_user_permissions __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of APIEndpointSecurityTest.test_api_endpoints_require_authentication _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of APIEndpointSecurityTest.test_role_based_access_control ___
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____________ ERROR at setup of TestAuditLog.test_create_audit_log _____________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____________ ERROR at setup of TestAuditLog.test_audit_log_ordering ____________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_________ ERROR at setup of TestAuditHelpers.test_get_client_ip_direct _________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of TestAuditHelpers.test_get_client_ip_forwarded ________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______________ ERROR at setup of TestAuditHelpers.test_log_audit _______________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of TestAuditHelpers.test_log_authentication_attempt_success __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of TestAuditHelpers.test_log_authentication_attempt_failed ___
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___________ ERROR at setup of TestAuditHelpers.test_log_data_access ____________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_________ ERROR at setup of TestAuditHelpers.test_log_workflow_action __________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of TestAuditHelpers.test_audit_log_student_session _______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_________ ERROR at setup of EmailLoginTest.test_login_with_email_works _________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of EmailLoginTest.test_login_with_username_works ________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of EmailLoginTest.test_login_with_wrong_email_fails ______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____ ERROR at setup of PasswordResetTest.test_admin_can_reset_user_password ____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of PasswordResetTest.test_admin_cannot_reset_own_password ___
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of PasswordResetTest.test_non_admin_cannot_reset_password ___
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PasswordResetTest.test_reset_sets_must_change_password_flag _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of EmailUniquenessTest.test_duplicate_email_rejected ______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of EmailUniquenessTest.test_duplicate_email_rejected_on_update _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of EmailUniquenessTest.test_unique_email_accepted _______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____________ ERROR at setup of test_ensure_admin_creates_admin_user ____________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________ ERROR at setup of test_ensure_admin_sets_must_change_password _________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________________ ERROR at setup of test_ensure_admin_idempotent ________________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of test_ensure_admin_with_existing_admin_without_profile ____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of TestFullSystemAudit.test_01_authentication_admin ______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of TestFullSystemAudit.test_02_authentication_teacher _____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of TestFullSystemAudit.test_03_authentication_student _____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of TestFullSystemAudit.test_04_global_settings_persistence ___
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of TestFullSystemAudit.test_05_student_import_csv _______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________ ERROR at setup of TestFullSystemAudit.test_06_change_password _________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of JSONFormatterTest.test_json_formatter_handles_exceptions __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of JSONFormatterTest.test_json_formatter_includes_extra_fields _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of JSONFormatterTest.test_json_formatter_produces_valid_json __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of RequestIDMiddlewareTest.test_client_request_id_preserved __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of RequestIDMiddlewareTest.test_request_id_added_to_response_header _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of RequestIDMiddlewareTest.test_request_id_generated ______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of RequestContextLogFilterTest.test_authenticated_user_id_in_logs _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of RequestContextLogFilterTest.test_request_context_added_to_logs _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of IntegrationTest.test_api_health_returns_request_id _____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of IntegrationTest.test_custom_request_id_preserved ______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of MetricsCollectorTests.test_aggregation_multiple_requests __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__________ ERROR at setup of MetricsCollectorTests.test_initial_state __________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of MetricsCollectorTests.test_path_normalization_integer ____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of MetricsCollectorTests.test_path_normalization_uuid _____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of MetricsCollectorTests.test_record_error_increments_error_count _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of MetricsCollectorTests.test_record_request_creates_endpoint_entry _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of MetricsCollectorTests.test_reset_clears_metrics _______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__________ ERROR at setup of MetricsCollectorTests.test_thread_safety __________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of MetricsMiddlewareTests.test_middleware_normalizes_paths ___
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of MetricsMiddlewareTests.test_middleware_records_errors ____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of MetricsMiddlewareTests.test_middleware_records_request ___
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of MetricsMiddlewareTests.test_response_time_header ______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of MetricsMiddlewareTests.test_slow_request_logging ______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusMetricsTest.test_generate_metrics_returns_valid_format _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusMetricsTest.test_get_content_type_returns_prometheus_format _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusMetricsTest.test_record_request_metrics_handles_errors_gracefully _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusMetricsTest.test_record_request_metrics_increments_counter _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusMetricsTest.test_record_request_metrics_records_duration _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusEndpointTest.test_metrics_endpoint_accepts_header_token _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusEndpointTest.test_metrics_endpoint_accepts_query_token _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusEndpointTest.test_metrics_endpoint_accessible_in_development _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusEndpointTest.test_metrics_endpoint_contains_process_metrics _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusEndpointTest.test_metrics_endpoint_public_without_token_setting _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusEndpointTest.test_metrics_endpoint_rejects_invalid_token _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusEndpointTest.test_metrics_endpoint_requires_token_in_production _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusEndpointTest.test_metrics_endpoint_returns_prometheus_format _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of PrometheusIntegrationTest.test_error_requests_recorded ___
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of PrometheusIntegrationTest.test_multiple_requests_increment_counter _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of PrometheusIntegrationTest.test_request_records_metrics ___
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestRateLimitingBaseline.test_login_attempts_under_threshold_always_401 _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestRateLimitingBaseline.test_student_login_attempts_under_threshold_always_401 _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestRateLimitingBaseline.test_successful_login_not_rate_limited _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestRateLimitingGracefulDegradation.test_login_degraded_mode_without_redis _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__________ ERROR at setup of test_user_profile_created_automatically ___________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____________ ERROR at setup of test_must_change_password_default ______________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______________ ERROR at setup of test_set_must_change_password ________________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__________ ERROR at setup of test_login_returns_must_change_password ___________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___________ ERROR at setup of test_login_returns_false_when_not_set ____________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of test_user_detail_includes_must_change_password _______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________ ERROR at setup of test_change_password_clears_must_change_flag ________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestPDFValidatorsIntegration.test_exam_pdf_source_with_invalid_extension _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestPDFValidatorsIntegration.test_exam_pdf_source_with_valid_pdf _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestPDFValidatorsIntegration.test_copy_pdf_source_with_too_large_file _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of TestAntiLoss.test_finalize_idempotency_or_safety ______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____________ ERROR at setup of TestAntiLoss.test_lock_idempotency _____________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of TestAntiLoss.test_annotation_create_atomicity ________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of TestAntiLoss.test_import_transaction_atomicity _______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of test_annotation_create_missing_token_returns_403_detail ___
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of test_annotation_delete_missing_token_returns_403_detail ___
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of test_finalize_missing_token_returns_403_detail _______
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of test_finalize_expired_lock_returns_409_detail ________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____ ERROR at setup of test_lock_heartbeat_missing_token_returns_403_detail ____
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of test_lock_release_bad_token_returns_403_detail _______
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of TaskStatusViewTests.test_admin_sees_full_traceback _____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____________ ERROR at setup of TaskStatusViewTests.test_task_cancel ____________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TaskStatusViewTests.test_task_cancel_completed_task_fails __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________ ERROR at setup of TaskStatusViewTests.test_task_status_failure ________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________ ERROR at setup of TaskStatusViewTests.test_task_status_pending ________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TaskStatusViewTests.test_task_status_requires_authentication _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________ ERROR at setup of TaskStatusViewTests.test_task_status_success ________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____________ ERROR at setup of test_value_error_returns_400_detail _____________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__________ ERROR at setup of test_permission_error_returns_403_detail __________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of test_unexpected_error_returns_500_generic_detail ______
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of test_all_workflow_endpoints_use_detail_format ________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of test_missing_required_field_returns_400_detail _______
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__________ ERROR at setup of test_unauthenticated_request_returns_403 __________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______________ ERROR at setup of test_non_staff_user_returns_403 _______________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______________ ERROR at setup of test_finalize_sets_status_graded ______________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____________ ERROR at setup of test_finalize_sets_final_pdf_field _____________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__________ ERROR at setup of test_final_pdf_endpoint_404_when_missing __________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__________ ERROR at setup of test_final_pdf_endpoint_200_when_present __________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of test_finalize_computes_score_from_annotations ________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____________ ERROR at setup of test_finalize_creates_grading_event _____________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of TestIntegrationReal.test_full_import_flow_real_fs ______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________ ERROR at setup of TestIntegrationReal.test_security_gates_real ________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________ ERROR at setup of TestIntegrationReal.test_student_block_real _________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of test_lock_acquire_ttl_invalid_returns_400_detail ______
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of test_lock_acquire_ttl_negative_returns_400_detail ______
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of test_lock_acquire_ttl_too_big_is_clamped_to_3600 ______
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of test_lock_release_missing_token_returns_403_detail _____
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_________ ERROR at setup of test_lock_release_absent_lock_returns_204 __________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of test_lock_heartbeat_owner_mismatch_returns_409_detail ____
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of OptimisticLockingTests.test_annotation_has_version_field __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of OptimisticLockingTests.test_concurrent_updates_prevented __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of OptimisticLockingTests.test_update_increments_version ____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of OptimisticLockingTests.test_update_without_version_check_works _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of OptimisticLockingTests.test_version_mismatch_raises_error __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___________ ERROR at setup of TestQuestionRemarks.test_create_remark ___________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___________ ERROR at setup of TestQuestionRemarks.test_update_remark ___________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___________ ERROR at setup of TestQuestionRemarks.test_list_remarks ____________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___________ ERROR at setup of TestQuestionRemarks.test_delete_remark ___________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____ ERROR at setup of TestQuestionRemarks.test_duplicate_remark_prevented _____
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of TestQuestionRemarks.test_only_creator_can_edit_remark ____
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____ ERROR at setup of TestGlobalAppreciation.test_save_global_appreciation ____
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____ ERROR at setup of TestGlobalAppreciation.test_get_global_appreciation _____
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestGlobalAppreciation.test_empty_appreciation_returns_empty_string _
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestGradingServiceStrictUnit.test_rasterize_pdf_handles_resources_strictly _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestGradingServiceStrictUnit.test_rasterize_pdf_raises_value_error_on_empty_pdf _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestGradingServiceStrictUnit.test_import_pdf_rollback_on_raster_failure _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestGradingServiceStrictUnit.test_validate_copy_invariants _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of TestGradingServiceStrictUnit.test_lock_copy_invariants ___
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of AsyncFinalizeCopyTests.test_async_finalize_copy_not_found __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of AsyncFinalizeCopyTests.test_async_finalize_handles_errors __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of AsyncFinalizeCopyTests.test_async_finalize_success _____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____ ERROR at setup of AsyncImportPDFTests.test_async_import_handles_errors ____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of AsyncImportPDFTests.test_async_import_success ________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of CleanupOrphanedFilesTests.test_cleanup_handles_missing_directory _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of CleanupOrphanedFilesTests.test_cleanup_removes_old_files __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____________ ERROR at setup of test_reject_annotation_with_w_zero _____________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of test_reject_annotation_with_overflow_x_plus_w ________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______ ERROR at setup of test_reject_annotation_with_overflow_y_plus_h ________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________ ERROR at setup of test_reject_annotation_with_negative_values _________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____________ ERROR at setup of test_reject_page_index_out_of_bounds ____________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____________ ERROR at setup of test_accept_page_index_as_string_int ____________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____________ ERROR at setup of test_ready_transition_requires_pages ____________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of test_ready_transition_changes_status_and_creates_event ___
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______________ ERROR at setup of test_finalize_works_from_ready _______________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________________ ERROR at setup of test_lock_transition_success ________________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_______________ ERROR at setup of test_unlock_transition_success _______________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of BacBlancSecurityTest.test_student_can_only_access_own_copies _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of OCRAssistedIdentificationTest.test_human_validation_required_after_ocr _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of OCRAssistedIdentificationTest.test_ocr_assisted_workflow __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of OCRAssistedIdentificationTest.test_ocr_low_confidence_still_works _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of OCRAssistedIdentificationTest.test_ocr_no_matches ______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of IdentificationWorkflowTest.test_identification_prevents_invalid_transitions _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of IdentificationWorkflowTest.test_multiple_identification_attempts _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of IdentificationWorkflowTest.test_state_transition_staging_to_ready_manual _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___________________ ERROR at setup of test_read_csv_nominal ____________________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____________________ ERROR at setup of test_read_csv_bom ______________________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________________ ERROR at setup of test_read_csv_missing_header ________________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________________ ERROR at setup of test_read_csv_file_not_found ________________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__________________ ERROR at setup of test_import_integration ___________________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of BacBlancE2ETest.test_complete_bac_blanc_workflow ______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of BacBlancE2ETest.test_identification_through_api _______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of BacBlancE2ETest.test_student_access_to_graded_copy _____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___________ ERROR at setup of BackupRestoreTest.test_backup_process ____________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+________ ERROR at setup of BackupRestoreTest.test_backup_restore_cycle _________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__________________ ERROR at setup of test_authentication_flow __________________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__________________ ERROR at setup of test_exam_creation_flow ___________________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+____________________ ERROR at setup of test_copy_list_flow _____________________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__________________ ERROR at setup of test_database_connection __________________
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestConcurrency.test_concurrent_annotation_updates_sequential_lww _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_________ ERROR at setup of TestConcurrency.test_double_finalize_race __________
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestConcurrency.test_finalize_uses_select_for_update_on_copy_and_lock _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:552: in _django_db_marker
+    request.getfixturevalue("_django_db_helper")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of test_finalize_concurrent_requests_flatten_called_once_postgres _
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of TestPhase39Hardening.test_audit_endpoint_requires_staff ___
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_____ ERROR at setup of TestPhase39Hardening.test_final_pdf_security_gate ______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestPhase39Hardening.test_import_permissions_forbidden_for_non_staff _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestPhase39Hardening.test_import_success_for_teacher_creates_copy_booklet_and_audit _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestWorkflowComplete.test_workflow_import_corrupted_rollback _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of TestWorkflowComplete.test_workflow_student_access_denied __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestWorkflowComplete.test_workflow_teacher_full_cycle_success _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of BackupRestoreDestroyRecoverTest.test_backup_restore_destroy_recover_full_cycle _
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of BacBlancE2EWorkflowTest.test_bac_blanc_complete_workflow __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+__ ERROR at setup of BacBlancE2EWorkflowTest.test_bac_blanc_state_transitions __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+_ ERROR at setup of TestGate4StudentFlow.test_student_copies_list_permissions __
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+______ ERROR at setup of TestGate4StudentFlow.test_student_login_success _______
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+___ ERROR at setup of TestGate4StudentFlow.test_student_pdf_access_security ____
+/usr/local/lib/python3.9/site-packages/pytest_django/plugin.py:584: in _django_setup_unittest
+    request.getfixturevalue("django_db_setup")
+/usr/local/lib/python3.9/site-packages/pytest_django/fixtures.py:198: in django_db_setup
+    db_cfg = setup_databases(
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:187: in setup_databases
+    test_databases, mirrored_aliases = get_unique_databases_and_mirrors(aliases)
+/usr/local/lib/python3.9/site-packages/django/test/utils.py:340: in get_unique_databases_and_mirrors
+    if test_settings["MIRROR"]:
+E   KeyError: 'MIRROR'
+=================================== FAILURES ===================================
+____________________________ test_health_endpoints _____________________________
+tests/test_smoke.py:23: in test_health_endpoints
+    response = client.get('/api/health/live/')
+/usr/local/lib/python3.9/site-packages/django/test/client.py:927: in get
+    response = super().get(path, data=data, secure=secure, headers=headers, **extra)
+/usr/local/lib/python3.9/site-packages/django/test/client.py:457: in get
+    return self.generic(
+/usr/local/lib/python3.9/site-packages/django/test/client.py:609: in generic
+    return self.request(**r)
+/usr/local/lib/python3.9/site-packages/django/test/client.py:891: in request
+    self.check_exception(response)
+/usr/local/lib/python3.9/site-packages/django/test/client.py:738: in check_exception
+    raise exc_value
+/usr/local/lib/python3.9/site-packages/django/core/handlers/exception.py:55: in inner
+    response = get_response(request)
+/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py:192: in _get_response
+    wrapped_callback = self.make_view_atomic(callback)
+/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py:348: in make_view_atomic
+    if settings_dict["ATOMIC_REQUESTS"] and alias not in non_atomic_requests:
+E   KeyError: 'ATOMIC_REQUESTS'
+----------------------------- Captured stderr call -----------------------------
+{"timestamp": "2026-02-04 12:22:07,014", "level": "ERROR", "logger": "django.request", "message": "Internal Server Error: /api/health/live/", "exc_info": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.9/site-packages/django/core/handlers/exception.py\", line 55, in inner\n    response = get_response(request)\n  File \"/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py\", line 192, in _get_response\n    wrapped_callback = self.make_view_atomic(callback)\n  File \"/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py\", line 348, in make_view_atomic\n    if settings_dict[\"ATOMIC_REQUESTS\"] and alias not in non_atomic_requests:\nKeyError: 'ATOMIC_REQUESTS'", "status_code": 500, "request": "<WSGIRequest: GET '/api/health/live/'>", "request_id": "ccc89fba-8e44-40b5-a082-bd8e76aa3c5c", "path": "/api/health/live/", "method": "GET", "user_id": null, "module": "log", "function": "log_response", "line": 246}
+{"timestamp": "2026-02-04 12:22:07,014", "level": "ERROR", "logger": "django.request", "message": "Internal Server Error: /api/health/live/", "exc_info": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.9/site-packages/django/core/handlers/exception.py\", line 55, in inner\n    response = get_response(request)\n  File \"/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py\", line 192, in _get_response\n    wrapped_callback = self.make_view_atomic(callback)\n  File \"/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py\", line 348, in make_view_atomic\n    if settings_dict[\"ATOMIC_REQUESTS\"] and alias not in non_atomic_requests:\nKeyError: 'ATOMIC_REQUESTS'", "status_code": 500, "request": "<WSGIRequest: GET '/api/health/live/'>", "request_id": "ccc89fba-8e44-40b5-a082-bd8e76aa3c5c", "path": "/api/health/live/", "method": "GET", "user_id": null, "module": "log", "function": "log_response", "line": 246}
+------------------------------ Captured log call -------------------------------
+ERROR    django.request:log.py:246 Internal Server Error: /api/health/live/
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py", line 192, in _get_response
+    wrapped_callback = self.make_view_atomic(callback)
+  File "/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py", line 348, in make_view_atomic
+    if settings_dict["ATOMIC_REQUESTS"] and alias not in non_atomic_requests:
+KeyError: 'ATOMIC_REQUESTS'
+____________________________ test_admin_accessible _____________________________
+tests/test_smoke.py:96: in test_admin_accessible
+    response = client.get('/admin/')
+/usr/local/lib/python3.9/site-packages/django/test/client.py:927: in get
+    response = super().get(path, data=data, secure=secure, headers=headers, **extra)
+/usr/local/lib/python3.9/site-packages/django/test/client.py:457: in get
+    return self.generic(
+/usr/local/lib/python3.9/site-packages/django/test/client.py:609: in generic
+    return self.request(**r)
+/usr/local/lib/python3.9/site-packages/django/test/client.py:891: in request
+    self.check_exception(response)
+/usr/local/lib/python3.9/site-packages/django/test/client.py:738: in check_exception
+    raise exc_value
+/usr/local/lib/python3.9/site-packages/django/core/handlers/exception.py:55: in inner
+    response = get_response(request)
+/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py:192: in _get_response
+    wrapped_callback = self.make_view_atomic(callback)
+/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py:348: in make_view_atomic
+    if settings_dict["ATOMIC_REQUESTS"] and alias not in non_atomic_requests:
+E   KeyError: 'ATOMIC_REQUESTS'
+----------------------------- Captured stderr call -----------------------------
+{"timestamp": "2026-02-04 12:22:07,089", "level": "ERROR", "logger": "django.request", "message": "Internal Server Error: /admin/", "exc_info": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.9/site-packages/django/core/handlers/exception.py\", line 55, in inner\n    response = get_response(request)\n  File \"/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py\", line 192, in _get_response\n    wrapped_callback = self.make_view_atomic(callback)\n  File \"/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py\", line 348, in make_view_atomic\n    if settings_dict[\"ATOMIC_REQUESTS\"] and alias not in non_atomic_requests:\nKeyError: 'ATOMIC_REQUESTS'", "status_code": 500, "request": "<WSGIRequest: GET '/admin/'>", "request_id": "6c29d084-4f81-483a-9d78-47f9ffe449be", "path": "/admin/", "method": "GET", "user_id": null, "module": "log", "function": "log_response", "line": 246}
+{"timestamp": "2026-02-04 12:22:07,089", "level": "ERROR", "logger": "django.request", "message": "Internal Server Error: /admin/", "exc_info": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.9/site-packages/django/core/handlers/exception.py\", line 55, in inner\n    response = get_response(request)\n  File \"/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py\", line 192, in _get_response\n    wrapped_callback = self.make_view_atomic(callback)\n  File \"/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py\", line 348, in make_view_atomic\n    if settings_dict[\"ATOMIC_REQUESTS\"] and alias not in non_atomic_requests:\nKeyError: 'ATOMIC_REQUESTS'", "status_code": 500, "request": "<WSGIRequest: GET '/admin/'>", "request_id": "6c29d084-4f81-483a-9d78-47f9ffe449be", "path": "/admin/", "method": "GET", "user_id": null, "module": "log", "function": "log_response", "line": 246}
+------------------------------ Captured log call -------------------------------
+ERROR    django.request:log.py:246 Internal Server Error: /admin/
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py", line 192, in _get_response
+    wrapped_callback = self.make_view_atomic(callback)
+  File "/usr/local/lib/python3.9/site-packages/django/core/handlers/base.py", line 348, in make_view_atomic
+    if settings_dict["ATOMIC_REQUESTS"] and alias not in non_atomic_requests:
+KeyError: 'ATOMIC_REQUESTS'
+=========================== short test summary info ============================
+FAILED tests/test_smoke.py::test_health_endpoints - KeyError: 'ATOMIC_REQUESTS'
+FAILED tests/test_smoke.py::test_admin_accessible - KeyError: 'ATOMIC_REQUESTS'
+ERROR core/test_auth_rbac.py::RBACPermissionsTest::test_admin_or_teacher_permissions - KeyError: 'MIRROR'
+ERROR core/test_auth_rbac.py::RBACPermissionsTest::test_admin_permissions - KeyError: 'MIRROR'
+ERROR core/test_auth_rbac.py::RBACPermissionsTest::test_is_teacher_or_admin_permission - KeyError: 'MIRROR'
+ERROR core/test_auth_rbac.py::RBACPermissionsTest::test_student_permissions - KeyError: 'MIRROR'
+ERROR core/test_auth_rbac.py::RBACPermissionsTest::test_teacher_permissions - KeyError: 'MIRROR'
+ERROR core/test_auth_rbac.py::RBACPermissionsTest::test_unauthenticated_user_permissions - KeyError: 'MIRROR'
+ERROR core/test_auth_rbac.py::APIEndpointSecurityTest::test_api_endpoints_require_authentication - KeyError: 'MIRROR'
+ERROR core/test_auth_rbac.py::APIEndpointSecurityTest::test_role_based_access_control - KeyError: 'MIRROR'
+ERROR core/tests/test_audit_trail.py::TestAuditLog::test_create_audit_log - KeyError: 'MIRROR'
+ERROR core/tests/test_audit_trail.py::TestAuditLog::test_audit_log_ordering - KeyError: 'MIRROR'
+ERROR core/tests/test_audit_trail.py::TestAuditHelpers::test_get_client_ip_direct - KeyError: 'MIRROR'
+ERROR core/tests/test_audit_trail.py::TestAuditHelpers::test_get_client_ip_forwarded - KeyError: 'MIRROR'
+ERROR core/tests/test_audit_trail.py::TestAuditHelpers::test_log_audit - KeyError: 'MIRROR'
+ERROR core/tests/test_audit_trail.py::TestAuditHelpers::test_log_authentication_attempt_success - KeyError: 'MIRROR'
+ERROR core/tests/test_audit_trail.py::TestAuditHelpers::test_log_authentication_attempt_failed - KeyError: 'MIRROR'
+ERROR core/tests/test_audit_trail.py::TestAuditHelpers::test_log_data_access - KeyError: 'MIRROR'
+ERROR core/tests/test_audit_trail.py::TestAuditHelpers::test_log_workflow_action - KeyError: 'MIRROR'
+ERROR core/tests/test_audit_trail.py::TestAuditHelpers::test_audit_log_student_session - KeyError: 'MIRROR'
+ERROR core/tests/test_email_login_reset.py::EmailLoginTest::test_login_with_email_works - KeyError: 'MIRROR'
+ERROR core/tests/test_email_login_reset.py::EmailLoginTest::test_login_with_username_works - KeyError: 'MIRROR'
+ERROR core/tests/test_email_login_reset.py::EmailLoginTest::test_login_with_wrong_email_fails - KeyError: 'MIRROR'
+ERROR core/tests/test_email_login_reset.py::PasswordResetTest::test_admin_can_reset_user_password - KeyError: 'MIRROR'
+ERROR core/tests/test_email_login_reset.py::PasswordResetTest::test_admin_cannot_reset_own_password - KeyError: 'MIRROR'
+ERROR core/tests/test_email_login_reset.py::PasswordResetTest::test_non_admin_cannot_reset_password - KeyError: 'MIRROR'
+ERROR core/tests/test_email_login_reset.py::PasswordResetTest::test_reset_sets_must_change_password_flag - KeyError: 'MIRROR'
+ERROR core/tests/test_email_login_reset.py::EmailUniquenessTest::test_duplicate_email_rejected - KeyError: 'MIRROR'
+ERROR core/tests/test_email_login_reset.py::EmailUniquenessTest::test_duplicate_email_rejected_on_update - KeyError: 'MIRROR'
+ERROR core/tests/test_email_login_reset.py::EmailUniquenessTest::test_unique_email_accepted - KeyError: 'MIRROR'
+ERROR core/tests/test_ensure_admin_command.py::test_ensure_admin_creates_admin_user - KeyError: 'MIRROR'
+ERROR core/tests/test_ensure_admin_command.py::test_ensure_admin_sets_must_change_password - KeyError: 'MIRROR'
+ERROR core/tests/test_ensure_admin_command.py::test_ensure_admin_idempotent - KeyError: 'MIRROR'
+ERROR core/tests/test_ensure_admin_command.py::test_ensure_admin_with_existing_admin_without_profile - KeyError: 'MIRROR'
+ERROR core/tests/test_full_audit.py::TestFullSystemAudit::test_01_authentication_admin - KeyError: 'MIRROR'
+ERROR core/tests/test_full_audit.py::TestFullSystemAudit::test_02_authentication_teacher - KeyError: 'MIRROR'
+ERROR core/tests/test_full_audit.py::TestFullSystemAudit::test_03_authentication_student - KeyError: 'MIRROR'
+ERROR core/tests/test_full_audit.py::TestFullSystemAudit::test_04_global_settings_persistence - KeyError: 'MIRROR'
+ERROR core/tests/test_full_audit.py::TestFullSystemAudit::test_05_student_import_csv - KeyError: 'MIRROR'
+ERROR core/tests/test_full_audit.py::TestFullSystemAudit::test_06_change_password - KeyError: 'MIRROR'
+ERROR core/tests/test_logging.py::JSONFormatterTest::test_json_formatter_handles_exceptions - KeyError: 'MIRROR'
+ERROR core/tests/test_logging.py::JSONFormatterTest::test_json_formatter_includes_extra_fields - KeyError: 'MIRROR'
+ERROR core/tests/test_logging.py::JSONFormatterTest::test_json_formatter_produces_valid_json - KeyError: 'MIRROR'
+ERROR core/tests/test_logging.py::RequestIDMiddlewareTest::test_client_request_id_preserved - KeyError: 'MIRROR'
+ERROR core/tests/test_logging.py::RequestIDMiddlewareTest::test_request_id_added_to_response_header - KeyError: 'MIRROR'
+ERROR core/tests/test_logging.py::RequestIDMiddlewareTest::test_request_id_generated - KeyError: 'MIRROR'
+ERROR core/tests/test_logging.py::RequestContextLogFilterTest::test_authenticated_user_id_in_logs - KeyError: 'MIRROR'
+ERROR core/tests/test_logging.py::RequestContextLogFilterTest::test_request_context_added_to_logs - KeyError: 'MIRROR'
+ERROR core/tests/test_logging.py::IntegrationTest::test_api_health_returns_request_id - KeyError: 'MIRROR'
+ERROR core/tests/test_logging.py::IntegrationTest::test_custom_request_id_preserved - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_aggregation_multiple_requests - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_initial_state - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_path_normalization_integer - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_path_normalization_uuid - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_record_error_increments_error_count - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_record_request_creates_endpoint_entry - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_reset_clears_metrics - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsCollectorTests::test_thread_safety - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsMiddlewareTests::test_middleware_normalizes_paths - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsMiddlewareTests::test_middleware_records_errors - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsMiddlewareTests::test_middleware_records_request - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsMiddlewareTests::test_response_time_header - KeyError: 'MIRROR'
+ERROR core/tests/test_metrics_middleware.py::MetricsMiddlewareTests::test_slow_request_logging - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusMetricsTest::test_generate_metrics_returns_valid_format - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusMetricsTest::test_get_content_type_returns_prometheus_format - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusMetricsTest::test_record_request_metrics_handles_errors_gracefully - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusMetricsTest::test_record_request_metrics_increments_counter - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusMetricsTest::test_record_request_metrics_records_duration - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_accepts_header_token - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_accepts_query_token - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_accessible_in_development - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_contains_process_metrics - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_public_without_token_setting - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_rejects_invalid_token - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_requires_token_in_production - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusEndpointTest::test_metrics_endpoint_returns_prometheus_format - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusIntegrationTest::test_error_requests_recorded - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusIntegrationTest::test_multiple_requests_increment_counter - KeyError: 'MIRROR'
+ERROR core/tests/test_prometheus.py::PrometheusIntegrationTest::test_request_records_metrics - KeyError: 'MIRROR'
+ERROR core/tests/test_rate_limiting.py::TestRateLimitingBaseline::test_login_attempts_under_threshold_always_401 - KeyError: 'MIRROR'
+ERROR core/tests/test_rate_limiting.py::TestRateLimitingBaseline::test_student_login_attempts_under_threshold_always_401 - KeyError: 'MIRROR'
+ERROR core/tests/test_rate_limiting.py::TestRateLimitingBaseline::test_successful_login_not_rate_limited - KeyError: 'MIRROR'
+ERROR core/tests/test_rate_limiting.py::TestRateLimitingGracefulDegradation::test_login_degraded_mode_without_redis - KeyError: 'MIRROR'
+ERROR core/tests/test_user_profile.py::test_user_profile_created_automatically - KeyError: 'MIRROR'
+ERROR core/tests/test_user_profile.py::test_must_change_password_default - KeyError: 'MIRROR'
+ERROR core/tests/test_user_profile.py::test_set_must_change_password - KeyError: 'MIRROR'
+ERROR core/tests/test_user_profile.py::test_login_returns_must_change_password - KeyError: 'MIRROR'
+ERROR core/tests/test_user_profile.py::test_login_returns_false_when_not_set - KeyError: 'MIRROR'
+ERROR core/tests/test_user_profile.py::test_user_detail_includes_must_change_password - KeyError: 'MIRROR'
+ERROR core/tests/test_user_profile.py::test_change_password_clears_must_change_flag - KeyError: 'MIRROR'
+ERROR exams/tests/test_pdf_validators.py::TestPDFValidatorsIntegration::test_exam_pdf_source_with_invalid_extension - KeyError: 'MIRROR'
+ERROR exams/tests/test_pdf_validators.py::TestPDFValidatorsIntegration::test_exam_pdf_source_with_valid_pdf - KeyError: 'MIRROR'
+ERROR exams/tests/test_pdf_validators.py::TestPDFValidatorsIntegration::test_copy_pdf_source_with_too_large_file - KeyError: 'MIRROR'
+ERROR grading/tests/test_anti_loss.py::TestAntiLoss::test_finalize_idempotency_or_safety - KeyError: 'MIRROR'
+ERROR grading/tests/test_anti_loss.py::TestAntiLoss::test_lock_idempotency - KeyError: 'MIRROR'
+ERROR grading/tests/test_anti_loss.py::TestAntiLoss::test_annotation_create_atomicity - KeyError: 'MIRROR'
+ERROR grading/tests/test_anti_loss.py::TestAntiLoss::test_import_transaction_atomicity - KeyError: 'MIRROR'
+ERROR grading/tests/test_api_error_contract_runtime.py::test_annotation_create_missing_token_returns_403_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_api_error_contract_runtime.py::test_annotation_delete_missing_token_returns_403_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_api_error_contract_runtime.py::test_finalize_missing_token_returns_403_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_api_error_contract_runtime.py::test_finalize_expired_lock_returns_409_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_api_error_contract_runtime.py::test_lock_heartbeat_missing_token_returns_403_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_api_error_contract_runtime.py::test_lock_release_bad_token_returns_403_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_async_views.py::TaskStatusViewTests::test_admin_sees_full_traceback - KeyError: 'MIRROR'
+ERROR grading/tests/test_async_views.py::TaskStatusViewTests::test_task_cancel - KeyError: 'MIRROR'
+ERROR grading/tests/test_async_views.py::TaskStatusViewTests::test_task_cancel_completed_task_fails - KeyError: 'MIRROR'
+ERROR grading/tests/test_async_views.py::TaskStatusViewTests::test_task_status_failure - KeyError: 'MIRROR'
+ERROR grading/tests/test_async_views.py::TaskStatusViewTests::test_task_status_pending - KeyError: 'MIRROR'
+ERROR grading/tests/test_async_views.py::TaskStatusViewTests::test_task_status_requires_authentication - KeyError: 'MIRROR'
+ERROR grading/tests/test_async_views.py::TaskStatusViewTests::test_task_status_success - KeyError: 'MIRROR'
+ERROR grading/tests/test_error_handling.py::test_value_error_returns_400_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_error_handling.py::test_permission_error_returns_403_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_error_handling.py::test_unexpected_error_returns_500_generic_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_error_handling.py::test_all_workflow_endpoints_use_detail_format - KeyError: 'MIRROR'
+ERROR grading/tests/test_error_handling.py::test_missing_required_field_returns_400_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_error_handling.py::test_unauthenticated_request_returns_403 - KeyError: 'MIRROR'
+ERROR grading/tests/test_error_handling.py::test_non_staff_user_returns_403 - KeyError: 'MIRROR'
+ERROR grading/tests/test_finalize.py::test_finalize_sets_status_graded - KeyError: 'MIRROR'
+ERROR grading/tests/test_finalize.py::test_finalize_sets_final_pdf_field - KeyError: 'MIRROR'
+ERROR grading/tests/test_finalize.py::test_final_pdf_endpoint_404_when_missing - KeyError: 'MIRROR'
+ERROR grading/tests/test_finalize.py::test_final_pdf_endpoint_200_when_present - KeyError: 'MIRROR'
+ERROR grading/tests/test_finalize.py::test_finalize_computes_score_from_annotations - KeyError: 'MIRROR'
+ERROR grading/tests/test_finalize.py::test_finalize_creates_grading_event - KeyError: 'MIRROR'
+ERROR grading/tests/test_integration_real.py::TestIntegrationReal::test_full_import_flow_real_fs - KeyError: 'MIRROR'
+ERROR grading/tests/test_integration_real.py::TestIntegrationReal::test_security_gates_real - KeyError: 'MIRROR'
+ERROR grading/tests/test_integration_real.py::TestIntegrationReal::test_student_block_real - KeyError: 'MIRROR'
+ERROR grading/tests/test_lock_endpoints.py::test_lock_acquire_ttl_invalid_returns_400_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_lock_endpoints.py::test_lock_acquire_ttl_negative_returns_400_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_lock_endpoints.py::test_lock_acquire_ttl_too_big_is_clamped_to_3600 - KeyError: 'MIRROR'
+ERROR grading/tests/test_lock_endpoints.py::test_lock_release_missing_token_returns_403_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_lock_endpoints.py::test_lock_release_absent_lock_returns_204 - KeyError: 'MIRROR'
+ERROR grading/tests/test_lock_endpoints.py::test_lock_heartbeat_owner_mismatch_returns_409_detail - KeyError: 'MIRROR'
+ERROR grading/tests/test_optimistic_locking.py::OptimisticLockingTests::test_annotation_has_version_field - KeyError: 'MIRROR'
+ERROR grading/tests/test_optimistic_locking.py::OptimisticLockingTests::test_concurrent_updates_prevented - KeyError: 'MIRROR'
+ERROR grading/tests/test_optimistic_locking.py::OptimisticLockingTests::test_update_increments_version - KeyError: 'MIRROR'
+ERROR grading/tests/test_optimistic_locking.py::OptimisticLockingTests::test_update_without_version_check_works - KeyError: 'MIRROR'
+ERROR grading/tests/test_optimistic_locking.py::OptimisticLockingTests::test_version_mismatch_raises_error - KeyError: 'MIRROR'
+ERROR grading/tests/test_remarks.py::TestQuestionRemarks::test_create_remark - KeyError: 'MIRROR'
+ERROR grading/tests/test_remarks.py::TestQuestionRemarks::test_update_remark - KeyError: 'MIRROR'
+ERROR grading/tests/test_remarks.py::TestQuestionRemarks::test_list_remarks - KeyError: 'MIRROR'
+ERROR grading/tests/test_remarks.py::TestQuestionRemarks::test_delete_remark - KeyError: 'MIRROR'
+ERROR grading/tests/test_remarks.py::TestQuestionRemarks::test_duplicate_remark_prevented - KeyError: 'MIRROR'
+ERROR grading/tests/test_remarks.py::TestQuestionRemarks::test_only_creator_can_edit_remark - KeyError: 'MIRROR'
+ERROR grading/tests/test_remarks.py::TestGlobalAppreciation::test_save_global_appreciation - KeyError: 'MIRROR'
+ERROR grading/tests/test_remarks.py::TestGlobalAppreciation::test_get_global_appreciation - KeyError: 'MIRROR'
+ERROR grading/tests/test_remarks.py::TestGlobalAppreciation::test_empty_appreciation_returns_empty_string - KeyError: 'MIRROR'
+ERROR grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_rasterize_pdf_handles_resources_strictly - KeyError: 'MIRROR'
+ERROR grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_rasterize_pdf_raises_value_error_on_empty_pdf - KeyError: 'MIRROR'
+ERROR grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_import_pdf_rollback_on_raster_failure - KeyError: 'MIRROR'
+ERROR grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_validate_copy_invariants - KeyError: 'MIRROR'
+ERROR grading/tests/test_services_strict_unit.py::TestGradingServiceStrictUnit::test_lock_copy_invariants - KeyError: 'MIRROR'
+ERROR grading/tests/test_tasks.py::AsyncFinalizeCopyTests::test_async_finalize_copy_not_found - KeyError: 'MIRROR'
+ERROR grading/tests/test_tasks.py::AsyncFinalizeCopyTests::test_async_finalize_handles_errors - KeyError: 'MIRROR'
+ERROR grading/tests/test_tasks.py::AsyncFinalizeCopyTests::test_async_finalize_success - KeyError: 'MIRROR'
+ERROR grading/tests/test_tasks.py::AsyncImportPDFTests::test_async_import_handles_errors - KeyError: 'MIRROR'
+ERROR grading/tests/test_tasks.py::AsyncImportPDFTests::test_async_import_success - KeyError: 'MIRROR'
+ERROR grading/tests/test_tasks.py::CleanupOrphanedFilesTests::test_cleanup_handles_missing_directory - KeyError: 'MIRROR'
+ERROR grading/tests/test_tasks.py::CleanupOrphanedFilesTests::test_cleanup_removes_old_files - KeyError: 'MIRROR'
+ERROR grading/tests/test_validation.py::test_reject_annotation_with_w_zero - KeyError: 'MIRROR'
+ERROR grading/tests/test_validation.py::test_reject_annotation_with_overflow_x_plus_w - KeyError: 'MIRROR'
+ERROR grading/tests/test_validation.py::test_reject_annotation_with_overflow_y_plus_h - KeyError: 'MIRROR'
+ERROR grading/tests/test_validation.py::test_reject_annotation_with_negative_values - KeyError: 'MIRROR'
+ERROR grading/tests/test_validation.py::test_reject_page_index_out_of_bounds - KeyError: 'MIRROR'
+ERROR grading/tests/test_validation.py::test_accept_page_index_as_string_int - KeyError: 'MIRROR'
+ERROR grading/tests/test_workflow.py::test_ready_transition_requires_pages - KeyError: 'MIRROR'
+ERROR grading/tests/test_workflow.py::test_ready_transition_changes_status_and_creates_event - KeyError: 'MIRROR'
+ERROR grading/tests/test_workflow.py::test_finalize_works_from_ready - KeyError: 'MIRROR'
+ERROR grading/tests/test_workflow.py::test_lock_transition_success - KeyError: 'MIRROR'
+ERROR grading/tests/test_workflow.py::test_unlock_transition_success - KeyError: 'MIRROR'
+ERROR identification/test_e2e_bac_blanc.py::BacBlancSecurityTest::test_student_can_only_access_own_copies - KeyError: 'MIRROR'
+ERROR identification/test_ocr_assisted.py::OCRAssistedIdentificationTest::test_human_validation_required_after_ocr - KeyError: 'MIRROR'
+ERROR identification/test_ocr_assisted.py::OCRAssistedIdentificationTest::test_ocr_assisted_workflow - KeyError: 'MIRROR'
+ERROR identification/test_ocr_assisted.py::OCRAssistedIdentificationTest::test_ocr_low_confidence_still_works - KeyError: 'MIRROR'
+ERROR identification/test_ocr_assisted.py::OCRAssistedIdentificationTest::test_ocr_no_matches - KeyError: 'MIRROR'
+ERROR identification/test_workflow.py::IdentificationWorkflowTest::test_identification_prevents_invalid_transitions - KeyError: 'MIRROR'
+ERROR identification/test_workflow.py::IdentificationWorkflowTest::test_multiple_identification_attempts - KeyError: 'MIRROR'
+ERROR identification/test_workflow.py::IdentificationWorkflowTest::test_state_transition_staging_to_ready_manual - KeyError: 'MIRROR'
+ERROR students/tests/test_import_students_csv.py::test_read_csv_nominal - KeyError: 'MIRROR'
+ERROR students/tests/test_import_students_csv.py::test_read_csv_bom - KeyError: 'MIRROR'
+ERROR students/tests/test_import_students_csv.py::test_read_csv_missing_header - KeyError: 'MIRROR'
+ERROR students/tests/test_import_students_csv.py::test_read_csv_file_not_found - KeyError: 'MIRROR'
+ERROR students/tests/test_import_students_csv.py::test_import_integration - KeyError: 'MIRROR'
+ERROR tests/test_api_bac_blanc.py::BacBlancE2ETest::test_complete_bac_blanc_workflow - KeyError: 'MIRROR'
+ERROR tests/test_api_bac_blanc.py::BacBlancE2ETest::test_identification_through_api - KeyError: 'MIRROR'
+ERROR tests/test_api_bac_blanc.py::BacBlancE2ETest::test_student_access_to_graded_copy - KeyError: 'MIRROR'
+ERROR tests/test_backup_restore.py::BackupRestoreTest::test_backup_process - KeyError: 'MIRROR'
+ERROR tests/test_backup_restore.py::BackupRestoreTest::test_backup_restore_cycle - KeyError: 'MIRROR'
+ERROR tests/test_smoke.py::test_authentication_flow - KeyError: 'MIRROR'
+ERROR tests/test_smoke.py::test_exam_creation_flow - KeyError: 'MIRROR'
+ERROR tests/test_smoke.py::test_copy_list_flow - KeyError: 'MIRROR'
+ERROR tests/test_smoke.py::test_database_connection - KeyError: 'MIRROR'
+ERROR grading/tests/test_concurrency.py::TestConcurrency::test_concurrent_annotation_updates_sequential_lww - KeyError: 'MIRROR'
+ERROR grading/tests/test_concurrency.py::TestConcurrency::test_double_finalize_race - KeyError: 'MIRROR'
+ERROR grading/tests/test_concurrency.py::TestConcurrency::test_finalize_uses_select_for_update_on_copy_and_lock - KeyError: 'MIRROR'
+ERROR grading/tests/test_concurrency_postgres.py::test_finalize_concurrent_requests_flatten_called_once_postgres - KeyError: 'MIRROR'
+ERROR grading/tests/test_phase39_hardening.py::TestPhase39Hardening::test_audit_endpoint_requires_staff - KeyError: 'MIRROR'
+ERROR grading/tests/test_phase39_hardening.py::TestPhase39Hardening::test_final_pdf_security_gate - KeyError: 'MIRROR'
+ERROR grading/tests/test_phase39_hardening.py::TestPhase39Hardening::test_import_permissions_forbidden_for_non_staff - KeyError: 'MIRROR'
+ERROR grading/tests/test_phase39_hardening.py::TestPhase39Hardening::test_import_success_for_teacher_creates_copy_booklet_and_audit - KeyError: 'MIRROR'
+ERROR grading/tests/test_workflow_complete.py::TestWorkflowComplete::test_workflow_import_corrupted_rollback - KeyError: 'MIRROR'
+ERROR grading/tests/test_workflow_complete.py::TestWorkflowComplete::test_workflow_student_access_denied - KeyError: 'MIRROR'
+ERROR grading/tests/test_workflow_complete.py::TestWorkflowComplete::test_workflow_teacher_full_cycle_success - KeyError: 'MIRROR'
+ERROR identification/test_backup_restore_full.py::BackupRestoreDestroyRecoverTest::test_backup_restore_destroy_recover_full_cycle - KeyError: 'MIRROR'
+ERROR identification/test_e2e_bac_blanc.py::BacBlancE2EWorkflowTest::test_bac_blanc_complete_workflow - KeyError: 'MIRROR'
+ERROR identification/test_e2e_bac_blanc.py::BacBlancE2EWorkflowTest::test_bac_blanc_state_transitions - KeyError: 'MIRROR'
+ERROR students/tests/test_gate4_flow.py::TestGate4StudentFlow::test_student_copies_list_permissions - KeyError: 'MIRROR'
+ERROR students/tests/test_gate4_flow.py::TestGate4StudentFlow::test_student_login_success - KeyError: 'MIRROR'
+ERROR students/tests/test_gate4_flow.py::TestGate4StudentFlow::test_student_pdf_access_security - KeyError: 'MIRROR'
+=================== 2 failed, 27 passed, 206 errors in 8.53s ===================

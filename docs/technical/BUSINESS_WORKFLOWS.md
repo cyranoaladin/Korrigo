@@ -365,7 +365,7 @@ flowchart TD
 
 #### Autosave
 
-- **Fréquence**: Toutes les 30 secondes
+- **Fréquence**: 2s server + 300ms localStorage (dual-layer)
 - **Stockage**: `DraftState` en DB + `localStorage`
 - **Récupération**: Automatique au rechargement page
 
