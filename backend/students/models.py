@@ -7,7 +7,7 @@ class Student(models.Model):
     date_naissance = models.DateField(verbose_name="Date de naissance")
     email = models.EmailField(blank=True, null=True, verbose_name="Email")
     class_name = models.CharField(max_length=50, verbose_name="Classe")
-    groupe = models.CharField(max_length=20, blank=True, null=True, verbose_name="Groupe")
+    groupe = models.CharField(max_length=50, blank=True, null=True, verbose_name="Groupe")
 
     # Lien vers utilisateur Django pour authentification
     user = models.OneToOneField(

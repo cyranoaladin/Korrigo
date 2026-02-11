@@ -889,7 +889,7 @@ onUnmounted(() => {
             <div
               v-if="isHeaderPage && !showIdentity"
               class="anonymization-overlay"
-              :style="{ width: displayWidth + 'px', height: (displayHeight * 0.09) + 'px' }"
+              :style="{ width: displayWidth + 'px', height: (displayHeight * 0.27) + 'px' }"
             >
               <div class="anonymization-label">
                 🔒 Zone d'identification masquée

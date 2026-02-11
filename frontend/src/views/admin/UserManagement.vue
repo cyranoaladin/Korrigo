@@ -12,9 +12,21 @@ const fetchItems = async () => {
     items.value = []
     try {
         if (activeTab.value === 'students') {
-            const res = await api.get('/students/')
-            // Handle DRF pagination: { results: [...] } or flat array
-            items.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
+            // Fetch all pages from DRF paginated endpoint
+            let allStudents = []
+            let url = '/students/'
+            while (url) {
+                const res = await api.get(url)
+                if (Array.isArray(res.data)) {
+                    allStudents = res.data
+                    break
+                }
+                allStudents = allStudents.concat(res.data.results || [])
+                // next is full URL like https://host/api/students/?page=2
+                // Strip domain + /api prefix since axios baseURL already includes /api
+                url = res.data.next ? res.data.next.replace(/^https?:\/\/[^/]+\/api/, '') : null
+            }
+            items.value = allStudents
         } else if (activeTab.value === 'teachers') {
             const res = await api.get('/users/', { params: { role: 'Teacher' } })
             items.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
@@ -43,8 +55,7 @@ const filteredItems = computed(() => {
         if (!item) return false
         if (activeTab.value === 'students') {
             return (item.last_name?.toLowerCase() || '').includes(lower) || 
-                   (item.first_name?.toLowerCase() || '').includes(lower) || 
-                   (item.ine?.toLowerCase() || '').includes(lower)
+                   (item.first_name?.toLowerCase() || '').includes(lower)
         } else {
             return (item.username?.toLowerCase() || '').includes(lower) || 
                    (item.email?.toLowerCase() || '').includes(lower) ||
@@ -56,6 +67,18 @@ const filteredItems = computed(() => {
 onMounted(() => {
     fetchItems()
 })
+
+const expandedStudentId = ref(null)
+
+const toggleStudentDetail = (item) => {
+    expandedStudentId.value = expandedStudentId.value === item.id ? null : item.id
+}
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return '-'
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('fr-FR')
+}
 
 const fileInput = ref(null)
 const importing = ref(false)
@@ -263,9 +286,7 @@ const copyToClipboard = () => {
     >
       <thead>
         <tr v-if="activeTab === 'students'">
-          <th>INE</th>
-          <th>Nom</th>
-          <th>Prénom</th>
+          <th>Élève</th>
           <th>Classe</th>
           <th>Actions</th>
         </tr>
@@ -284,21 +305,33 @@ const copyToClipboard = () => {
         >
           <!-- Student Row -->
           <template v-if="activeTab === 'students'">
-            <td>{{ item.ine }}</td>
             <td class="font-bold">
-              {{ item.last_name }}
+              {{ item.last_name }} {{ item.first_name }}
             </td>
-            <td>{{ item.first_name }}</td>
             <td>{{ item.class_name }}</td>
             <td>
               <button
                 class="btn-sm btn-outline"
-                @click="alert('Détails élève #' + item.id)"
+                @click="toggleStudentDetail(item)"
               >
-                Voir
+                {{ expandedStudentId === item.id ? 'Masquer' : 'Voir' }}
               </button>
             </td>
           </template>
+
+          <!-- Student Detail Expanded Row -->
+          <tr
+            v-if="activeTab === 'students' && expandedStudentId === item.id"
+            class="detail-row"
+          >
+            <td colspan="3">
+              <div class="student-detail">
+                <span><strong>Date de naissance :</strong> {{ formatDate(item.date_naissance) }}</span>
+                <span><strong>Email :</strong> {{ item.email || '-' }}</span>
+                <span><strong>Groupe :</strong> {{ item.groupe || '-' }}</span>
+              </div>
+            </td>
+          </tr>
 
           <!-- User Row -->
           <template v-else>
@@ -339,7 +372,7 @@ const copyToClipboard = () => {
         </tr>
         <tr v-if="filteredItems.length === 0">
           <td
-            colspan="5"
+            :colspan="activeTab === 'students' ? 3 : 5"
             class="empty-cell"
           >
             Aucun résultat trouvé.
@@ -541,4 +574,6 @@ const copyToClipboard = () => {
   color: #dc2626; 
   font-weight: 500; 
 }
+.detail-row td { background: #f8fafc; padding: 0.75rem 1rem; }
+.student-detail { display: flex; gap: 2rem; flex-wrap: wrap; font-size: 0.9rem; color: #475569; }
 </style>
