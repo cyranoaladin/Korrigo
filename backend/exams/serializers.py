@@ -77,20 +77,21 @@ class ExamSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """
-        Validate that the correct fields are provided based on upload_mode
+        Validate that the correct fields are provided based on upload_mode.
+        Only enforce pdf_source requirement on creation, not on partial updates (PATCH).
         """
+        # Skip pdf_source validation on update (instance already exists)
+        if self.instance is not None:
+            return data
+
         upload_mode = data.get('upload_mode', Exam.UploadMode.BATCH_A3)
         pdf_source = data.get('pdf_source')
         
         if upload_mode == Exam.UploadMode.BATCH_A3:
-            # BATCH_A3 mode requires pdf_source
             if not pdf_source:
                 raise serializers.ValidationError({
                     'pdf_source': _("Le fichier PDF source est obligatoire en mode BATCH_A3")
                 })
-        
-        # INDIVIDUAL_A4 mode: pdf_source is not required
-        # Individual PDFs will be uploaded separately via a different endpoint
         
         return data
 
