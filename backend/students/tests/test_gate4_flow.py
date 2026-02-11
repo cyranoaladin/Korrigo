@@ -1,5 +1,6 @@
 from django.test import TransactionTestCase, Client
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework import status
 from exams.models import Exam, Copy
 from students.models import Student
@@ -24,7 +25,7 @@ class TestGate4StudentFlow(TransactionTestCase):
         )
         
         # 2. Setup Exam & Copies
-        self.exam = Exam.objects.create(name="Gate 4 Exam", date="2025-06-15")
+        self.exam = Exam.objects.create(name="Gate 4 Exam", date="2025-06-15", results_released_at=timezone.now())
         
         self.copy_graded = Copy.objects.create(
             exam=self.exam,
