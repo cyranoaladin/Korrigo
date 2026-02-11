@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
@@ -19,6 +19,12 @@ const error = ref('')
 const isLoading = ref(false)
 const passwordVisible = ref(false)
 
+watch(() => authStore.lastError, (newError) => {
+    if (newError) {
+        error.value = newError
+    }
+})
+
 const title = computed(() => {
     if (props.roleContext === 'Admin') return 'Administration'
     if (props.roleContext === 'Teacher') return 'Espace Enseignant'
@@ -28,23 +34,22 @@ const title = computed(() => {
 const handleLogin = async () => {
     isLoading.value = true
     error.value = ''
+    authStore.clearError()
     
     const success = await authStore.login(username.value, password.value)
     
     isLoading.value = false
     
     if (success) {
-        // Redirect based on ACTUAL role from backend
         if (authStore.user?.role === 'Admin') {
             router.push('/admin-dashboard')
         } else if (authStore.user?.role === 'Teacher') {
             router.push('/corrector-dashboard')
         } else {
-             // Fallback
              router.push('/')
         }
     } else {
-        error.value = "Identifiants incorrects."
+        error.value = authStore.lastError || "Identifiants incorrects."
     }
 }
 </script>
