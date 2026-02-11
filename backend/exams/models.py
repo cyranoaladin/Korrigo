@@ -69,20 +69,31 @@ class Exam(models.Model):
         verbose_name=_("Correcteurs assignés"),
         blank=True
     )
+    
+    # P7 FIX: Timestamps for audit trail
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_("Date de création"),
+        null=True
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name=_("Date de modification"),
+        null=True
+    )
 
     class Meta:
         verbose_name = _("Examen")
         verbose_name_plural = _("Examens")
 
     def __init__(self, *args, **kwargs):
-        if "title" in kwargs and "name" not in kwargs:
-            kwargs["name"] = kwargs.pop("title")
-        kwargs.pop("created_by", None)
-        # P0-DI-006 FIX: Only set default date if not loading from DB
-        # When loading from DB, Django passes field values via *args
-        # Adding date to kwargs would cause "positional and keyword" conflict
-        if not args and "date" not in kwargs:
-            kwargs["date"] = timezone.now().date()
+        # P14 FIX: Safely handle legacy aliases only when creating via kwargs (not from DB)
+        if not args:
+            if "title" in kwargs and "name" not in kwargs:
+                kwargs["name"] = kwargs.pop("title")
+            kwargs.pop("created_by", None)
+            if "date" not in kwargs:
+                kwargs["date"] = timezone.now().date()
         super().__init__(*args, **kwargs)
 
     def __str__(self):

@@ -11,6 +11,15 @@ const router = useRouter()
 const exams = ref([])
 const loading = ref(true)
 
+// P9 FIX: Toast notification system (replaces native alert())
+const toast = ref({ show: false, message: '', type: 'success' })
+let toastTimer = null
+const showToast = (message, type = 'success') => {
+    if (toastTimer) clearTimeout(toastTimer)
+    toast.value = { show: true, message, type }
+    toastTimer = setTimeout(() => { toast.value.show = false }, 4000)
+}
+
 const fetchExams = async () => {
     loading.value = true
     try {
@@ -63,12 +72,12 @@ const createExam = async () => {
     
     try {
         await api.post('/exams/', newExam.value)
-        alert('Examen créé avec succès')
+        showToast('Examen créé avec succès')
         showCreateModal.value = false
         fetchExams()
     } catch (e) {
         console.error("Create exam failed", e)
-        alert("Erreur: " + (e.response?.data?.error || e.message))
+        showToast(e.response?.data?.error || e.message, 'error')
     }
 }
 
@@ -113,12 +122,12 @@ const saveCorrectors = async () => {
         await api.patch(`/exams/${selectedExamId.value}/`, {
             correctors: selectedCorrectors.value
         })
-        alert("Correcteurs assignés avec succès")
+        showToast('Correcteurs assignés avec succès')
         showCorrectorModal.value = false
         fetchExams()
     } catch (e) {
         console.error("Save correctors failed", e)
-        alert("Erreur lors de l'enregistrement")
+        showToast("Erreur lors de l'enregistrement", 'error')
     }
 }
 
@@ -140,7 +149,7 @@ const confirmDispatch = async () => {
     } catch (e) {
         console.error("Dispatch failed", e)
         const errMsg = e.response?.data?.error || e.response?.data?.detail || 'Erreur lors de la distribution'
-        alert(errMsg)
+        showToast(errMsg, 'error')
     } finally {
         isDispatching.value = false
     }
@@ -529,6 +538,18 @@ onMounted(() => {
       @close="showUploadModal = false"
       @uploaded="handleExamUploaded"
     />
+
+    <!-- Toast Notification -->
+    <Transition name="toast">
+      <div 
+        v-if="toast.show" 
+        class="toast-notification"
+        :class="'toast-' + toast.type"
+        @click="toast.show = false"
+      >
+        {{ toast.message }}
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -711,4 +732,33 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
   width: 600px;
   max-width: 90vw;
 }
+
+/* Toast Notification */
+.toast-notification {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  z-index: 2000;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  max-width: 400px;
+}
+.toast-success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.toast-error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.toast-enter-active { transition: all 0.3s ease; }
+.toast-leave-active { transition: all 0.3s ease; }
+.toast-enter-from { opacity: 0; transform: translateY(-20px); }
+.toast-leave-to { opacity: 0; transform: translateX(20px); }
 </style>

@@ -7,8 +7,11 @@ const api = axios.create({
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     },
-    timeout: 10000,
+    timeout: 30000,
 });
+
+// P4 FIX: Extended timeout for upload requests (120s)
+const UPLOAD_TIMEOUT = 120000;
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
@@ -18,6 +21,13 @@ function shouldRetry(error, config) {
         return false;
     }
 
+    // P5 FIX: NEVER retry mutating requests (POST/PUT/PATCH/DELETE) to prevent duplicates
+    const method = (config.method || 'get').toLowerCase();
+    if (method !== 'get') {
+        return false;
+    }
+
+    // Only retry GET requests on network errors or 5xx
     if (!error.response) {
         return true;
     }
@@ -25,14 +35,6 @@ function shouldRetry(error, config) {
     const status = error.response.status;
     if (status >= 500 && status < 600) {
         return true;
-    }
-
-    if (status >= 400 && status < 500) {
-        return false;
-    }
-
-    if (config.method && config.method.toLowerCase() !== 'get' && error.response) {
-        return false;
     }
 
     return false;
@@ -110,4 +112,5 @@ api.interceptors.response.use(
     }
 );
 
+export { UPLOAD_TIMEOUT };
 export default api;

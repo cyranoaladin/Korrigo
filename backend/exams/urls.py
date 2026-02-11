@@ -4,7 +4,8 @@ from .views import (
     ExamDetailView, CopyListView, MergeBookletsView, ExportAllView, CSVExportView,
     CopyIdentificationView, UnidentifiedCopiesView, StudentCopiesView,
     CopyImportView, ExamSourceUploadView, BookletSplitView, BookletDetailView,
-    ExamDispatchView, IndividualPDFUploadView, PronoteExportView
+    ExamDispatchView, IndividualPDFUploadView, PronoteExportView,
+    CopyValidationView, BulkCopyValidationView
 )
 
 urlpatterns = [
@@ -36,6 +37,10 @@ urlpatterns = [
     path('<uuid:id>/export-pdf/', ExportAllView.as_view(), name='export-all-pdf'),
     path('<uuid:id>/export-csv/', CSVExportView.as_view(), name='export-csv'),
     path('<uuid:id>/export-pronote/', PronoteExportView.as_view(), name='export-pronote'),
+    
+    # Copy Validation (STAGING → READY)
+    path('copies/<uuid:id>/validate/', CopyValidationView.as_view(), name='copy-validate'),
+    path('<uuid:exam_id>/validate-all/', BulkCopyValidationView.as_view(), name='bulk-copy-validate'),
     
     # Dispatch
     path('<uuid:exam_id>/dispatch/', ExamDispatchView.as_view(), name='exam-dispatch'),

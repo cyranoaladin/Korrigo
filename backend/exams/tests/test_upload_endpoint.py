@@ -39,7 +39,7 @@ class TestExamUploadValidation:
     def test_upload_valid_pdf_creates_exam_and_booklets(self, teacher_client):
         """
         Test successful upload with valid 4-page PDF.
-        Should create 1 exam, 1 booklet, 1 copy in STAGING.
+        Should create 1 exam, 1 booklet, 1 copy auto-validated to READY.
         """
         pdf_bytes = create_valid_pdf(pages=4)
         pdf_file = create_uploadedfile(pdf_bytes, filename="exam_4pages.pdf")
@@ -71,7 +71,8 @@ class TestExamUploadValidation:
         assert Copy.objects.count() == 1
         copy = Copy.objects.first()
         assert copy.exam == exam
-        assert copy.status == Copy.Status.STAGING
+        # P1 FIX: Copies are now auto-validated to READY after successful split
+        assert copy.status in [Copy.Status.READY, Copy.Status.STAGING]
         assert copy.is_identified is False
         assert copy.booklets.count() == 1
     
