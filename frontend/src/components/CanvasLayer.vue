@@ -80,7 +80,8 @@ const redraw = (ctx) => {
 // Watchers
 watch(
     [() => props.width, () => props.height, () => props.scale, () => props.initialAnnotations], 
-    () =>  requestAnimationFrame(() => setupCanvas())
+    () =>  requestAnimationFrame(() => setupCanvas()),
+    { deep: true }
 )
 
 onMounted(() => {
