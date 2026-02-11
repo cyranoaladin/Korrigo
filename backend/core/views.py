@@ -7,9 +7,22 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
 from core.utils.ratelimit import maybe_ratelimit
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from core.utils.audit import log_authentication_attempt
 from core.auth import UserRole
+
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class CSRFTokenView(APIView):
+    """
+    Sets the CSRF cookie so the SPA can read it for subsequent POST requests.
+    GET /api/csrf/
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        return Response({"detail": "CSRF cookie set"})
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):

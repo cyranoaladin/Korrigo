@@ -124,16 +124,8 @@ else:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
 
-# Cookie SameSite (all environments)
-SESSION_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_HTTPONLY = False  # Required for SPAs to read CSRF token from cookie
-
-# CSRF Trusted Origins
-CSRF_TRUSTED_ORIGINS = os.environ.get(
-    "CSRF_TRUSTED_ORIGINS",
-    "http://localhost:8088,http://127.0.0.1:8088,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
-).split(",")
+# CSRF_COOKIE_HTTPONLY must be False for SPAs to read CSRF token from cookie
+CSRF_COOKIE_HTTPONLY = False
 
 
 
@@ -257,7 +249,6 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 SESSION_COOKIE_AGE = 14400
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
 
 # P1.1 FIX: Ensure logs directory exists before configuring logging
 LOGS_DIR = os.path.join(BASE_DIR, 'logs')
@@ -434,14 +425,13 @@ if not DEBUG:
         'DIRECTIVES': {
             'default-src': ["'self'"],
             'script-src': ["'self'"],
-            'style-src': ["'self'"],
+            'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             'img-src': ["'self'", "data:", "blob:"],
-            'font-src': ["'self'"],
+            'font-src': ["'self'", "https://fonts.gstatic.com"],
             'connect-src': ["'self'"],
             'frame-ancestors': ["'none'"],
             'base-uri': ["'self'"],
             'form-action': ["'self'"],
-            'upgrade-insecure-requests': True,
         }
     }
 else:
