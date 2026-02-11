@@ -458,10 +458,10 @@ class PronoteExporterCSVGenerationTests(TestCase):
         
         # Check header
         lines = csv_content.split('\r\n')
-        self.assertIn('INE;MATIERE;NOTE;COEFF;COMMENTAIRE', lines[0])
+        self.assertIn('NOM;PRENOM;DATE_NAISSANCE;MATIERE;NOTE;COEFF;COMMENTAIRE', lines[0])
         
         # Check data row
-        self.assertIn('Durand Alice;MATHEMATIQUES;16,00;1,0;Excellent travail', lines[1])
+        self.assertIn('Durand;Alice;01/04/2005;MATHEMATIQUES;16,00;1,0;Excellent travail', lines[1])
     
     def test_generate_csv_multiple_copies(self):
         """Test CSV with multiple copies"""

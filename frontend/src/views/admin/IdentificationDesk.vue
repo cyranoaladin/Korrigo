@@ -67,7 +67,7 @@
         
         <div v-if="currentCopy">
           <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Rechercher (Nom, Prénom, INE)</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Rechercher (Nom, Prénom)</label>
             <input 
               ref="searchInput"
               v-model="searchQuery" 
