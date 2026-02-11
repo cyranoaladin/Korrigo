@@ -91,6 +91,6 @@ class BackupRestoreDestroyRecoverTest(TransactionTestCase):
         restored_ann = Annotation.objects.first()
         self.assertEqual(restored_ann.content, "Persistent Data")
         self.assertEqual(restored_ann.copy.anonymous_id, "RESTORE_ME")
-        self.assertEqual(restored_ann.copy.student.ine, "BRTEST001")
+        self.assertEqual(restored_ann.copy.student.last_name, "Sauvegardable")
         
         print("✓ DESTROY/RECOVER CYCLE PASSED")

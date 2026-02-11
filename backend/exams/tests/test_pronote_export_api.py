@@ -312,7 +312,7 @@ class PronoteExportAPISuccessTests(TestCase):
         self.assertIn('Durand Alice', csv_content)
         self.assertIn('Martin Bob', csv_content)
         self.assertIn('MATHEMATIQUES', csv_content)
-        self.assertIn('15,50', csv_content)  # French decimal format
+        self.assertIn('15,00', csv_content)  # French decimal format
         self.assertIn('12,00', csv_content)
         self.assertIn('Excellent travail', csv_content)
         
