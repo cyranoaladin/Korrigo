@@ -166,6 +166,7 @@ const subjectExam = ref(null)
 const subjectCopies = ref([])
 const subjectLoading = ref(false)
 const subjectSaving = ref(false)
+const subjectDetecting = ref(false)
 
 const openSubjectModal = async (exam) => {
     subjectExam.value = exam
@@ -205,6 +206,23 @@ const saveSubjectVariants = async () => {
         showToast('Erreur lors de la sauvegarde', 'error')
     } finally {
         subjectSaving.value = false
+    }
+}
+
+const autoDetectSubjects = async () => {
+    subjectDetecting.value = true
+    try {
+        const res = await api.post(`/exams/${subjectExam.value.id}/auto-detect-subject/`)
+        const data = res.data
+        // Refresh copies list with updated variants
+        const refreshRes = await api.get(`/exams/${subjectExam.value.id}/bulk-subject-variant/`)
+        subjectCopies.value = refreshRes.data
+        showToast(`OCR termin\u00e9 : ${data.detected} d\u00e9tect\u00e9(s), ${data.failed} \u00e9chec(s)`)
+    } catch (e) {
+        console.error('Auto-detect failed', e)
+        showToast('Erreur lors de la d\u00e9tection automatique', 'error')
+    } finally {
+        subjectDetecting.value = false
     }
 }
 
@@ -621,6 +639,13 @@ onMounted(() => {
             <button class="btn btn-sm btn-outline" @click="clearAllVariants">
               Réinitialiser
             </button>
+            <button 
+              class="btn btn-sm btn-ocr" 
+              :disabled="subjectDetecting"
+              @click="autoDetectSubjects"
+            >
+              {{ subjectDetecting ? 'Détection en cours...' : 'Auto-détecter (OCR)' }}
+            </button>
             <span class="subject-stats">
               <span class="badge-a">A: {{ subjectStats().a }}</span>
               <span class="badge-b">B: {{ subjectStats().b }}</span>
@@ -925,4 +950,7 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 .variant-select { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem; cursor: pointer; min-width: 100px; }
 .variant-a { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; font-weight: 600; }
 .variant-b { background: #ecfdf5; border-color: #10b981; color: #065f46; font-weight: 600; }
+.btn-ocr { background: #f59e0b; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+.btn-ocr:hover:not(:disabled) { background: #d97706; }
+.btn-ocr:disabled { opacity: 0.6; cursor: wait; }
 </style>
