@@ -99,7 +99,7 @@ class ExportPronoteCommandTests(TestCase):
         self.assertIn('Mode validation uniquement', output)
         
         # Should not have CSV data
-        self.assertNotIn('INE;MATIERE;NOTE', output)
+        self.assertNotIn('NOM;PRENOM;DATE_NAISSANCE;MATIERE;NOTE', output)
     
     def test_command_validation_fails_unidentified_copies(self):
         """Test command fails validation with unidentified copies"""
@@ -187,10 +187,11 @@ class ExportPronoteCommandTests(TestCase):
             self.assertTrue(content.startswith('\ufeff'))
             
             # Check header
-            self.assertIn('INE;MATIERE;NOTE;COEFF;COMMENTAIRE', content)
+            self.assertIn('NOM;PRENOM;DATE_NAISSANCE;MATIERE;NOTE;COEFF;COMMENTAIRE', content)
             
             # Check data
-            self.assertIn('Durand Alice', content)
+            self.assertIn('Durand', content)
+            self.assertIn('Alice', content)
             self.assertIn('MATHEMATIQUES', content)
             self.assertIn('15,00', content)
             self.assertIn('Excellent', content)
@@ -235,8 +236,9 @@ class ExportPronoteCommandTests(TestCase):
         output = out.getvalue()
         
         # Should have CSV in stdout
-        self.assertIn('INE;MATIERE;NOTE;COEFF;COMMENTAIRE', output)
-        self.assertIn('Durand Alice', output)
+        self.assertIn('NOM;PRENOM;DATE_NAISSANCE;MATIERE;NOTE;COEFF;COMMENTAIRE', output)
+        self.assertIn('Durand', output)
+        self.assertIn('Alice', output)
         self.assertIn('16,00', output)
     
     def test_command_custom_coefficient(self):

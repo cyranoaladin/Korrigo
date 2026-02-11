@@ -306,11 +306,13 @@ class PronoteExportAPISuccessTests(TestCase):
         self.assertTrue(csv_content.startswith('\ufeff'))
         
         # Check header
-        self.assertIn('INE;MATIERE;NOTE;COEFF;COMMENTAIRE', csv_content)
+        self.assertIn('NOM;PRENOM;DATE_NAISSANCE;MATIERE;NOTE;COEFF;COMMENTAIRE', csv_content)
         
         # Check data rows
-        self.assertIn('Durand Alice', csv_content)
-        self.assertIn('Martin Bob', csv_content)
+        self.assertIn('Durand', csv_content)
+        self.assertIn('Alice', csv_content)
+        self.assertIn('Martin', csv_content)
+        self.assertIn('Bob', csv_content)
         self.assertIn('MATHEMATIQUES', csv_content)
         self.assertIn('15,00', csv_content)  # French decimal format
         self.assertIn('12,00', csv_content)
