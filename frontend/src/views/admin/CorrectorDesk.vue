@@ -137,6 +137,40 @@ const flatQuestions = computed(() => {
     return flattenQuestions(gradingStructure.value)
 })
 
+// Collapsible exercises: track which exercises are collapsed
+const collapsedExercises = ref(new Set())
+const toggleExercise = (exerciseId) => {
+    const newSet = new Set(collapsedExercises.value)
+    if (newSet.has(exerciseId)) {
+        newSet.delete(exerciseId)
+    } else {
+        newSet.add(exerciseId)
+    }
+    collapsedExercises.value = newSet
+}
+
+// Hierarchical structure: exercises with their sub-questions
+const exercisesWithQuestions = computed(() => {
+    const structure = gradingStructure.value
+    if (!structure || structure.length === 0) return []
+    return structure.map((item, index) => {
+        const exerciseId = `${index + 1}`
+        const subQuestions = item.children && item.children.length > 0
+            ? flattenQuestions(item.children, exerciseId)
+            : [{ id: exerciseId, title: item.label || item.title || `Question ${exerciseId}`, maxScore: item.points || 0 }]
+        const totalPoints = item.children && item.children.length > 0
+            ? subQuestions.reduce((sum, q) => sum + (q.maxScore || 0), 0)
+            : (item.points || 0)
+        return {
+            id: exerciseId,
+            label: item.label || `Exercice ${exerciseId}`,
+            totalPoints,
+            questions: subQuestions,
+            isLeaf: !item.children || item.children.length === 0
+        }
+    })
+})
+
 // --- Global Key Handling ---
 const onGlobalKeydown = (e) => {
     if (showEditor.value) {
@@ -974,7 +1008,7 @@ onUnmounted(() => {
           class="tab-content grading-panel"
         >
           <div
-            v-if="flatQuestions.length === 0"
+            v-if="exercisesWithQuestions.length === 0"
             class="empty-list"
           >
             Aucun barème disponible pour cet examen.
@@ -983,48 +1017,68 @@ onUnmounted(() => {
             v-else
             class="grading-content"
           >
-            <div class="questions-list">
+            <div class="exercises-list">
               <div
-                v-for="question in flatQuestions"
-                :key="question.id"
-                class="question-item"
+                v-for="exercise in exercisesWithQuestions"
+                :key="exercise.id"
+                class="exercise-block"
               >
-                <div class="question-header">
-                  <span class="question-title">{{ question.title }}</span>
-                  <span class="question-max-score">/ {{ question.maxScore }} pts</span>
+                <div
+                  class="exercise-header"
+                  :class="{ collapsed: collapsedExercises.has(exercise.id) }"
+                  @click="toggleExercise(exercise.id)"
+                >
+                  <span class="exercise-toggle">{{ collapsedExercises.has(exercise.id) ? '▶' : '▼' }}</span>
+                  <span class="exercise-label">{{ exercise.label }}</span>
+                  <span class="exercise-points">{{ exercise.totalPoints }} pts</span>
                 </div>
-                <div class="question-score-field">
-                  <label :for="'score-' + question.id">Note</label>
-                  <input
-                    :id="'score-' + question.id"
-                    type="number"
-                    step="0.25"
-                    min="0"
-                    :max="question.maxScore"
-                    :value="questionScores.get(question.id) ?? ''"
-                    :disabled="isReadOnly"
-                    :placeholder="isReadOnly ? '-' : '0'"
-                    class="score-input"
-                    :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
-                    @input="onScoreChange(question.id, $event.target.value)"
-                  />
-                </div>
-                <div class="question-remark-field">
-                  <label :for="'remark-' + question.id">Remarque (facultatif)</label>
-                  <textarea
-                    :id="'remark-' + question.id"
-                    :value="questionRemarks.get(question.id) || ''"
-                    :disabled="isReadOnly"
-                    :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une remarque...'"
-                    rows="2"
-                    @input="onRemarkChange(question.id, $event.target.value)"
-                  />
-                  <span
-                    v-if="remarksSaving.get(question.id)"
-                    class="save-indicator small"
+                <div
+                  v-show="!collapsedExercises.has(exercise.id)"
+                  class="exercise-questions"
+                >
+                  <div
+                    v-for="question in exercise.questions"
+                    :key="question.id"
+                    class="question-item"
                   >
-                    Enregistrement...
-                  </span>
+                    <div class="question-header">
+                      <span class="question-title">{{ question.title }}</span>
+                      <span class="question-max-score">/ {{ question.maxScore }} pts</span>
+                    </div>
+                    <div class="question-score-field">
+                      <label :for="'score-' + question.id">Note</label>
+                      <input
+                        :id="'score-' + question.id"
+                        type="number"
+                        step="0.25"
+                        min="0"
+                        :max="question.maxScore"
+                        :value="questionScores.get(question.id) ?? ''"
+                        :disabled="isReadOnly"
+                        :placeholder="isReadOnly ? '-' : '0'"
+                        class="score-input"
+                        :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
+                        @input="onScoreChange(question.id, $event.target.value)"
+                      />
+                    </div>
+                    <div class="question-remark-field">
+                      <label :for="'remark-' + question.id">Remarque (facultatif)</label>
+                      <textarea
+                        :id="'remark-' + question.id"
+                        :value="questionRemarks.get(question.id) || ''"
+                        :disabled="isReadOnly"
+                        :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une remarque...'"
+                        rows="2"
+                        @input="onRemarkChange(question.id, $event.target.value)"
+                      />
+                      <span
+                        v-if="remarksSaving.get(question.id)"
+                        class="save-indicator small"
+                      >
+                        Enregistrement...
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div
@@ -1192,7 +1246,15 @@ onUnmounted(() => {
 
 .grading-panel { flex: 1; overflow-y: auto; }
 .grading-content { padding: 15px; }
-.questions-list { margin-bottom: 20px; }
+.exercises-list { margin-bottom: 20px; }
+.exercise-block { margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.exercise-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f1f5f9; cursor: pointer; user-select: none; transition: background 0.15s; }
+.exercise-header:hover { background: #e2e8f0; }
+.exercise-header.collapsed { border-bottom: none; }
+.exercise-toggle { font-size: 0.7rem; color: #64748b; width: 14px; }
+.exercise-label { flex: 1; font-weight: 700; font-size: 0.95rem; color: #1e293b; }
+.exercise-points { font-size: 0.85rem; font-weight: 600; color: #3b82f6; background: #eff6ff; padding: 2px 8px; border-radius: 4px; }
+.exercise-questions { padding: 4px 8px 8px; }
 .question-item { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6; }
 .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .question-title { font-weight: bold; font-size: 0.95rem; color: #333; }
