@@ -68,7 +68,8 @@ jobs:
         PGPASSWORD=viatique_password psql -h localhost -U viatique_user -d viatique_db -c "SELECT 1" || true
         # The viatique_user already has superuser-like permissions as the DB owner
         # Create the test database explicitly to avoid permission issues
-        PGPASSWORD=viatique_password psql -h localhost -U viatique_user -d postgres -c "CREATE DATABASE test_viatique_0 OWNER viatique_user;" || true
+        PGPASSWORD=viatique_password psql -h localhost -U viatique_user -d postgres -c "DROP DATABASE IF EXISTS test_viatique_0;"
+        PGPASSWORD=viatique_password psql -h localhost -U viatique_user -d postgres -c "CREATE DATABASE test_viatique_0 OWNER viatique_user;"
 
     - name: Run migrations
       env:
