@@ -42,35 +42,4 @@ api.interceptors.response.use(
     }
 );
 
-// PRD-19: Multi-layer OCR API methods
-export const ocrApi = {
-    /**
-     * Get top-k OCR candidates for a copy
-     * @param {string} copyId - UUID of the copy
-     * @returns {Promise} Array of top-5 student candidates with confidence scores
-     */
-    getCandidates: (copyId) => {
-        return api.get(`/identification/copies/${copyId}/ocr-candidates/`);
-    },
-
-    /**
-     * Select a candidate from the top-k list
-     * @param {string} copyId - UUID of the copy
-     * @param {number} rank - Rank of selected candidate (1-5)
-     * @returns {Promise} Success response with assigned student
-     */
-    selectCandidate: (copyId, rank) => {
-        return api.post(`/identification/copies/${copyId}/select-candidate/`, { rank });
-    },
-
-    /**
-     * Perform OCR on a copy
-     * @param {string} copyId - UUID of the copy
-     * @returns {Promise} OCR result with suggestions
-     */
-    performOCR: (copyId) => {
-        return api.post(`/identification/perform-ocr/${copyId}/`);
-    }
-};
-
 export default api;

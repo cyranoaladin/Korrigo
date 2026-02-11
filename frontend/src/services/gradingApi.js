@@ -24,7 +24,7 @@ export default {
         if (data && typeof data === 'object' && Array.isArray(data.results)) {
             return data.results;
         }
-        return Array.isArray(data) ? data : [];
+        return data;
     },
 
     async getCopy(id) {
@@ -77,7 +77,7 @@ export default {
         if (data && typeof data === 'object' && Array.isArray(data.results)) {
             return data.results;
         }
-        return Array.isArray(data) ? data : [];
+        return data;
     },
 
     async deleteAnnotation(copyId, annotationId, token = null) {
@@ -124,7 +124,7 @@ export default {
         if (data && typeof data === 'object' && Array.isArray(data.results)) {
             return data.results;
         }
-        return Array.isArray(data) ? data : [];
+        return data;
     },
 
     getFinalPdfUrl(id) {
@@ -137,8 +137,7 @@ export default {
         if (data && typeof data === 'object' && Array.isArray(data.results)) {
             return data.results;
         }
-        // Ensure we always return an array
-        return Array.isArray(data) ? data : [];
+        return data;
     },
 
     async saveRemark(copyId, questionId, remark, token = null) {
@@ -149,27 +148,6 @@ export default {
             config
         );
         return response.data;
-    },
-
-    async saveQuestionScore(copyId, questionId, score, token = null) {
-        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
-        const response = await api.post(
-            `/grading/copies/${copyId}/scores/`,
-            { question_id: questionId, score },
-            config
-        );
-        return response.data;
-    },
-
-    async fetchQuestionScores(copyId) {
-        const response = await api.get(`/grading/copies/${copyId}/scores/`);
-        // Handle DRF pagination: extract results array if paginated response
-        const data = response.data;
-        if (data && typeof data === 'object' && Array.isArray(data.results)) {
-            return data.results;
-        }
-        // Ensure we always return an array
-        return Array.isArray(data) ? data : [];
     },
 
     async fetchGlobalAppreciation(copyId) {

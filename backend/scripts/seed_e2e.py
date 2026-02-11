@@ -31,7 +31,7 @@ E2E_ADMIN_PASSWORD = os.environ.get("E2E_ADMIN_PASSWORD", "admin")
 E2E_TEACHER_USERNAME = os.environ.get("E2E_TEACHER_USERNAME", "prof1")
 E2E_TEACHER_PASSWORD = os.environ.get("E2E_TEACHER_PASSWORD", "password")
 
-E2E_STUDENT_EMAIL = os.environ.get("E2E_STUDENT_EMAIL", "e2e.student@test.com")
+E2E_STUDENT_INE = os.environ.get("E2E_STUDENT_INE", "123456789")
 E2E_STUDENT_LASTNAME = os.environ.get("E2E_STUDENT_LASTNAME", "E2E_STUDENT")
 
 # Image dimensions for E2E (A4 ratio ~0.707)
@@ -268,7 +268,7 @@ def main():
 
     # 4b. Deterministic "Other Student" for Security Tests (avoid timeouts)
     other_student_user, _ = User.objects.get_or_create(username="other_student", defaults={"email": "other@example.com"})
-    other_student, _ = Student.objects.get_or_create(email="other.student@test.com", defaults={"user": other_student_user, "last_name": "OTHER", "first_name": "Student", "class_name": "TG2"})
+    other_student, _ = Student.objects.get_or_create(ine="987654321", defaults={"user": other_student_user, "last_name": "OTHER", "first_name": "Student"})
     
     other_copy = Copy.objects.create(
         exam=exam,
@@ -277,12 +277,12 @@ def main():
         is_identified=True,
         student=other_student
     )
-    print(f"  ✓ Other Copy created: {other_copy.id} (student={other_student.email})")
+    print(f"  ✓ Other Copy created: {other_copy.id} (student={other_student.ine})")
 
     # 5. Trigger Gate 4 Seed (si disponible)
     try:
         from scripts.seed_gate4 import seed_gate4
-        seed_gate4(student_email=E2E_STUDENT_EMAIL, student_lastname=E2E_STUDENT_LASTNAME)
+        seed_gate4(student_ine=E2E_STUDENT_INE, student_lastname=E2E_STUDENT_LASTNAME)
     except ImportError:
         print("  \u26a0 seed_gate4 not available, skipping")
 

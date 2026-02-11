@@ -20,24 +20,14 @@
         "strict": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "noFallthroughCasesInSwitch": true,
-        "baseUrl": ".",
-        "paths": {
-            "@/*": [
-                "src/*"
-            ]
-        },
-        "types": [
-            "node"
-        ]
+        "noFallthroughCasesInSwitch": true
     },
     "include": [
         "src/**/*.ts",
         "src/**/*.d.ts",
         "src/**/*.tsx",
         "src/**/*.vue",
-        "playwright.config.ts",
-        "tests/e2e/**/*.ts"
+        "e2e/**/*.ts"
     ],
     "references": [
         {

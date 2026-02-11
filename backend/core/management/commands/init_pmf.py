@@ -1,5 +1,5 @@
 import os
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ObjectDoesNotExist
 from core.auth import UserRole
@@ -21,14 +21,11 @@ class Command(BaseCommand):
         admin_email = 'alaeddine.benrhouma@ert.tn'
         # Security: Use environment variable for admin password
         admin_pass = os.environ.get('ADMIN_DEFAULT_PASSWORD', 'CHANGE_ME_ADMIN')
-        django_env = os.environ.get('DJANGO_ENV', 'development')
-        allow_defaults = os.environ.get('ALLOW_DEFAULT_PASSWORDS', 'false').lower() == 'true'
 
-        if admin_pass == 'CHANGE_ME_ADMIN' and (django_env == 'production' or not allow_defaults):
-            raise CommandError(
-                "ADMIN_DEFAULT_PASSWORD must be set (non-default). "
-                "Set ALLOW_DEFAULT_PASSWORDS=true only for non-production dev/test."
-            )
+        if admin_pass == 'CHANGE_ME_ADMIN':  # nosec B105 - Checking for default value, not hardcoding
+            self.stdout.write(self.style.WARNING(
+                'WARNING: Using default admin password. Set ADMIN_DEFAULT_PASSWORD environment variable.'
+            ))
 
         try:
             admin_user = User.objects.get(username=admin_email)
@@ -62,11 +59,10 @@ class Command(BaseCommand):
         # Security: Use environment variable for teacher default password
         default_pass = os.environ.get('TEACHER_DEFAULT_PASSWORD', 'CHANGE_ME_TEACHER')
 
-        if default_pass == 'CHANGE_ME_TEACHER' and (django_env == 'production' or not allow_defaults):
-            raise CommandError(
-                "TEACHER_DEFAULT_PASSWORD must be set (non-default). "
-                "Set ALLOW_DEFAULT_PASSWORDS=true only for non-production dev/test."
-            )
+        if default_pass == 'CHANGE_ME_TEACHER':  # nosec B105 - Checking for default value, not hardcoding
+            self.stdout.write(self.style.WARNING(
+                'WARNING: Using default teacher password. Set TEACHER_DEFAULT_PASSWORD environment variable.'
+            ))
 
         for email in teachers_data:
             try:

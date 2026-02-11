@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { API_URL, csrfHeader } from '../services/http'
+import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
 const examId = route.params.examId
@@ -9,6 +9,8 @@ const copies = ref([])
 const exam = ref(null)
 const isLoading = ref(false)
 const message = ref('')
+
+const authStore = useAuthStore()
 
 // Computed Stats
 const totalCopies = computed(() => copies.value.length)
@@ -24,7 +26,7 @@ const averageScore = computed(() => {
 const fetchCopies = async () => {
   isLoading.value = true
   try {
-      const res = await fetch(`${API_URL}/api/exams/${examId}/`, {
+      const res = await fetch(`${authStore.API_URL}/api/exams/${examId}/`, {
           credentials: 'include'
       })
       if (!res.ok) throw new Error("Failed to fetch exam")
@@ -52,10 +54,9 @@ const triggerExport = async () => {
     isLoading.value = true
     message.value = "Génération des PDF en cours..."
     try {
-        const res = await fetch(`${API_URL}/api/exams/${examId}/export_all/`, {
+        const res = await fetch(`${authStore.API_URL}/api/exams/${examId}/export_all/`, {
             method: 'POST',
-            credentials: 'include',
-            headers: { ...csrfHeader() }
+            credentials: 'include'
         })
         if (res.ok) {
             const data = await res.json()
@@ -72,7 +73,7 @@ const triggerExport = async () => {
 }
 
 const downloadCSV = () => {
-    window.open(`${API_URL}/api/exams/${examId}/csv/`, '_blank')
+    window.open(`${authStore.API_URL}/api/exams/${examId}/csv/`, '_blank')
 }
 
 onMounted(() => {

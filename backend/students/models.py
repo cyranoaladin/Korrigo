@@ -18,26 +18,9 @@ class Student(models.Model):
         related_name='student_profile',
         verbose_name="Utilisateur associé"
     )
-    
-    # Consentement RGPD
-    privacy_charter_accepted = models.BooleanField(
-        default=False,
-        verbose_name="Charte de confidentialité acceptée"
-    )
-    privacy_charter_accepted_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name="Date d'acceptation de la charte"
-    )
 
     def __str__(self):
-        return f"{self.full_name} ({self.class_name})"
-
-    @property
-    def last_name(self):
-        """Extrait le nom de famille (premier mot) pour compatibilité login."""
-        parts = self.full_name.split(maxsplit=1)
-        return parts[0] if parts else ""
+        return f"{self.last_name} {self.first_name} ({self.class_name})"
 
     class Meta:
         verbose_name = "Élève"

@@ -26,16 +26,10 @@ const pdfDimensions = ref({ width: 0, height: 0 })
 const imageError = ref(false)
 
 // Lock State
+// Lock State
 const softLock = ref(null) // { token, owner, expires_at }
 const lockInterval = ref(null)
 const isLockConflict = ref(false) // If true, we are read-only due to other owner
-
-// Lock Countdown UI
-const lockCountdown = ref('')
-const lockWarning = ref(false)
-const lockExpired = ref(false)
-const heartbeatHealth = ref('ok') // 'ok' | 'warning' | 'error'
-const countdownTimer = ref(null)
 
 
 // Autosave State
@@ -54,15 +48,12 @@ const showEditor = ref(false) // Overlay editor
 const draftAnnotation = ref(null) // { normalizedRect, type, content }
 const editorInputRef = ref(null)
 
-// Grading / Remarks / Scores
+// Grading / Remarks
 const questionRemarks = ref(new Map()) // Map<question_id, remark_text>
-const questionScores = ref(new Map()) // Map<question_id, score>
 const globalAppreciation = ref('')
 const remarksSaving = ref(new Map()) // Map<question_id, boolean> for save indicators
-const scoresSaving = ref(new Map()) // Map<question_id, boolean> for save indicators
 const appreciationSaving = ref(false)
 const remarkTimers = ref(new Map()) // Map<question_id, timerId> for debouncing
-const scoreTimers = ref(new Map()) // Map<question_id, timerId> for debouncing
 const appreciationTimer = ref(null)
 
 // --- Computed ---
@@ -72,7 +63,7 @@ const isLocked = computed(() => copy.value?.status === 'LOCKED')
 const isGraded = computed(() => copy.value?.status === 'GRADED')
 
 const isReadOnly = computed(() => isGraded.value || isLockConflict.value)
-const canAnnotate = computed(() => (isReady.value || isLocked.value) && !isReadOnly.value)
+const canAnnotate = computed(() => isReady.value && !isReadOnly.value)
 
 const pages = computed(() => {
     if (!copy.value || !copy.value.booklets) return []
@@ -85,33 +76,7 @@ const pages = computed(() => {
     return allPages
 })
 
-// Calculer les indices des premières pages de chaque fascicule (pour masquer les en-têtes)
-const firstPageIndices = computed(() => {
-    if (!copy.value || !copy.value.booklets) return new Set([0])
-    const indices = new Set()
-    let pageIndex = 0
-    copy.value.booklets.forEach(booklet => {
-        if (booklet.pages_images && booklet.pages_images.length > 0) {
-            indices.add(pageIndex) // Première page de ce fascicule
-            pageIndex += booklet.pages_images.length
-        }
-    })
-    return indices
-})
-
 const hasPages = computed(() => pages.value.length > 0)
-
-// Masquer l'en-tête (zone nominative) sur la première page de CHAQUE fascicule
-const isFirstPageOfBooklet = computed(() => {
-    // currentPage est 1-indexed, firstPageIndices est 0-indexed
-    return firstPageIndices.value.has(currentPage.value - 1)
-})
-
-const headerMaskHeight = computed(() => {
-    // Masquer environ 20% de la hauteur pour couvrir l'en-tête CMEN
-    if (!isFirstPageOfBooklet.value) return 0
-    return Math.round(pdfDimensions.value.height * 0.20 * scale.value)
-})
 
 const currentPageImageUrl = computed(() => {
     if (!hasPages.value) return null;
@@ -132,92 +97,26 @@ const gradingStructure = computed(() => {
     return copy.value.exam.grading_structure
 })
 
-
-
-// Revised flattenQuestions to include children references for groups
-const flattenQuestions = (structure, parentId = '', depth = 0) => {
-    let items = []
+const flattenQuestions = (structure, parentId = '') => {
+    let questions = []
     structure.forEach((item, index) => {
-        const itemId = item.id || (parentId ? `${parentId}.${index + 1}` : `${index + 1}`)
-        const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0
-        const isLeafQuestion = item.points > 0 && !hasChildren
-        
-        if (hasChildren) {
-            // Get all descendant question IDs for this group
-            const getDescendantIds = (node, pId) => {
-                let ids = []
-                if (node.children) {
-                    node.children.forEach((child, i) => {
-                        const cId = child.id || (pId ? `${pId}.${i + 1}` : `${i + 1}`)
-                        if (child.children && child.children.length > 0) {
-                            ids = ids.concat(getDescendantIds(child, cId))
-                        } else if (child.points > 0) {
-                            ids.push(cId)
-                        }
-                    })
-                }
-                return ids
-            }
-            
-            const childIds = getDescendantIds(item, itemId)
-            
-            items.push({
-                type: 'group',
-                id: `group-${itemId}`,
-                title: item.label || `Exercice ${index + 1}`,
-                totalPoints: item.points || 0,
-                depth,
-                childIds: childIds // Store IDs of questions in this group
-            })
-            items = items.concat(flattenQuestions(item.children, item.label || itemId, depth + 1))
-        } else if (isLeafQuestion) {
-            items.push({
-                type: 'question',
+        const itemId = parentId ? `${parentId}.${index + 1}` : `${index + 1}`
+        if (item.type === 'question') {
+            questions.push({
                 id: itemId,
-                title: item.label || `Question ${itemId}`,
-                maxScore: item.points || 0
+                title: item.title || `Question ${itemId}`,
+                maxScore: item.maxScore || 0
             })
         }
+        if (item.children && Array.isArray(item.children)) {
+            questions = questions.concat(flattenQuestions(item.children, itemId))
+        }
     })
-    return items
+    return questions
 }
 
 const flatQuestions = computed(() => {
     return flattenQuestions(gradingStructure.value)
-})
-
-const calculateGroupScore = (childIds) => {
-    if (!childIds || childIds.length === 0) return 0
-    let total = 0
-    childIds.forEach(id => {
-        total += (questionScores.value.get(id) || 0)
-    })
-    return total
-}
-
-const globalScore = computed(() => {
-    let total = 0
-    questionScores.value.forEach(score => {
-        total += (score || 0)
-    })
-    return total
-})
-
-const globalMaxScore = computed(() => {
-    // Sum max points of all LEAF questions
-    // structure is hierarchical.
-    const sumMax = (nodes) => {
-        let sum = 0
-        nodes.forEach(node => {
-            if (node.children && node.children.length > 0) {
-                sum += sumMax(node.children)
-            } else {
-                sum += (node.points || 0)
-            }
-        })
-        return sum
-    }
-    return sumMax(gradingStructure.value)
 })
 
 // --- Global Key Handling ---
@@ -260,7 +159,6 @@ const fetchCopy = async () => {
     await refreshAnnotations()
     await fetchHistory()
     await fetchRemarks()
-    await fetchScores()
     await fetchGlobalAppreciation()
   } catch (err) {
     if (err.response?.status === 403) {
@@ -294,17 +192,6 @@ const fetchRemarks = async () => {
         })
         questionRemarks.value = remarksMap
     } catch (err) { console.error("Failed to load remarks", err) }
-}
-
-const fetchScores = async () => {
-    try {
-        const scores = await gradingApi.fetchQuestionScores(copyId)
-        const scoresMap = new Map()
-        scores.forEach(s => {
-            scoresMap.set(s.question_id, parseFloat(s.score))
-        })
-        questionScores.value = scoresMap
-    } catch (err) { console.error("Failed to load scores", err) }
 }
 
 const fetchGlobalAppreciation = async () => {
@@ -352,37 +239,6 @@ const onRemarkChange = (questionId, value) => {
     remarkTimers.value.set(questionId, timerId)
 }
 
-const onScoreChange = (questionId, value, maxScore) => {
-    const numValue = parseFloat(value)
-    if (isNaN(numValue) || numValue < 0 || numValue > maxScore) {
-        return
-    }
-    
-    questionScores.value.set(questionId, numValue)
-    
-    if (scoreTimers.value.has(questionId)) {
-        clearTimeout(scoreTimers.value.get(questionId))
-    }
-    
-    const timerId = setTimeout(() => {
-        saveScore(questionId, numValue)
-    }, 1000)
-    
-    scoreTimers.value.set(questionId, timerId)
-}
-
-const saveScore = async (questionId, score) => {
-    scoresSaving.value.set(questionId, true)
-    try {
-        await gradingApi.saveQuestionScore(copyId, questionId, score, softLock.value?.token)
-    } catch (err) {
-        console.error('Failed to save score:', err)
-        error.value = err.response?.data?.detail || 'Échec de la sauvegarde de la note'
-    } finally {
-        scoresSaving.value.set(questionId, false)
-    }
-}
-
 const onAppreciationChange = (value) => {
     globalAppreciation.value = value
     
@@ -407,49 +263,15 @@ const handleMarkReady = async () => {
     finally { isSaving.value = false; }
 }
 
-// Lock Countdown Logic
-const startCountdown = () => {
-    if (countdownTimer.value) clearInterval(countdownTimer.value)
-    countdownTimer.value = setInterval(() => {
-        if (!softLock.value?.expires_at) {
-            lockCountdown.value = ''
-            lockWarning.value = false
-            return
-        }
-        const remainingMs = new Date(softLock.value.expires_at).getTime() - Date.now()
-        if (remainingMs <= 0) {
-            lockCountdown.value = '00:00'
-            lockWarning.value = true
-            lockExpired.value = true
-            clearInterval(countdownTimer.value)
-            return
-        }
-        const totalSec = Math.floor(remainingMs / 1000)
-        const m = String(Math.floor(totalSec / 60)).padStart(2, '0')
-        const s = String(totalSec % 60).padStart(2, '0')
-        lockCountdown.value = `${m}:${s}`
-        lockWarning.value = totalSec < 30
-        lockExpired.value = false
-    }, 1000)
-}
-
-const stopCountdown = () => {
-    if (countdownTimer.value) { clearInterval(countdownTimer.value); countdownTimer.value = null }
-    lockCountdown.value = ''
-    lockWarning.value = false
-    lockExpired.value = false
-}
-
 // Soft Lock Management
 const acquireLock = async () => {
     try {
         const response = await gradingApi.acquireLock(copyId);
+        // Success
         softLock.value = response;
         isLockConflict.value = false;
-        heartbeatHealth.value = 'ok';
         startHeartbeat();
-        startCountdown();
-        checkDrafts();
+        checkDrafts(); // Check for draft restoration
     } catch (err) {
         if (err.response?.status === 409) {
             // Conflict
@@ -575,51 +397,47 @@ watch(draftAnnotation, (newVal) => {
 const startHeartbeat = () => {
     if (lockInterval.value) clearInterval(lockInterval.value);
     let failCount = 0;
-    heartbeatHealth.value = 'ok';
-
+    
     lockInterval.value = setInterval(async () => {
         if (!softLock.value?.token) return;
         try {
             const res = await gradingApi.heartbeatLock(copyId, softLock.value.token);
             softLock.value.expires_at = res.expires_at;
-            failCount = 0;
-            heartbeatHealth.value = 'ok';
+            failCount = 0; // Reset on success
         } catch (err) {
              console.error("Heartbeat failed", err);
              const status = err.response?.status;
-
+             
              if (status === 401) {
-                 window.location.href = '/login';
-                 return;
+                 // Session Expired
+                 window.location.href = '/login'; // Force login redirect
+                 return; 
              }
-
+             
              if (status === 409 || status === 404 || status === 403) {
+                 // Lock stolen, expired, or forbidden
                  softLock.value = null;
                  isLockConflict.value = true;
-                 heartbeatHealth.value = 'error';
-                 error.value = "Verrou perdu. Passage en lecture seule.";
+                 error.value = "Lock lost (taken by another user or expired). Switching to Read-Only.";
                  clearInterval(lockInterval.value);
-                 stopCountdown();
                  return;
              }
-
+             
+             // Network errors or 5xx: Tolerate small failures
              failCount++;
-             heartbeatHealth.value = failCount === 1 ? 'warning' : 'error';
              if (failCount > 3) {
                  console.warn("Too many heartbeat failures. Assuming lock lost.");
                  softLock.value = null;
                  isLockConflict.value = true;
-                 error.value = "Connexion instable. Verrou perdu. Lecture seule.";
+                 error.value = "Connection unstable. Lock maintenance failed. Read-Only.";
                  clearInterval(lockInterval.value);
-                 stopCountdown();
              }
         }
-    }, 30000);
+    }, 30000); // 30s
 }
 
 const releaseLock = async () => {
     if (lockInterval.value) clearInterval(lockInterval.value);
-    stopCountdown();
     if (softLock.value?.token) {
         try {
             await gradingApi.releaseLock(copyId, softLock.value.token);
@@ -740,7 +558,6 @@ watch(() => authStore.user, (u) => {
 
 onUnmounted(() => {
     releaseLock();
-    stopCountdown();
     window.removeEventListener('keydown', onGlobalKeydown)
     window.removeEventListener('beforeunload', releaseLock)
     window.removeEventListener('pagehide', releaseLock)
@@ -804,36 +621,6 @@ onUnmounted(() => {
           Download
         </button>
       </div>
-    </div>
-
-    <!-- Lock Status Bar -->
-    <div
-      v-if="softLock"
-      class="lock-status-bar"
-      :class="{ 'lock-warn': lockWarning && !lockExpired, 'lock-expired': lockExpired }"
-    >
-      <div class="lock-left">
-        <span class="lock-icon">&#128274;</span>
-        <span class="lock-label">Verrouille</span>
-      </div>
-      <div class="lock-center">
-        <span class="lock-timer-label">Expire dans:</span>
-        <span class="lock-timer-value">{{ lockCountdown || '--:--' }}</span>
-      </div>
-      <div class="lock-right">
-        <span
-          class="hb-dot"
-          :class="'hb-' + heartbeatHealth"
-          :title="heartbeatHealth === 'ok' ? 'Connexion OK' : heartbeatHealth === 'warning' ? 'Instable' : 'Perdu'"
-        />
-        <span class="hb-label">{{ heartbeatHealth === 'ok' ? 'OK' : heartbeatHealth === 'warning' ? 'Instable' : 'Perdu' }}</span>
-      </div>
-    </div>
-    <div
-      v-if="isLockConflict && !softLock"
-      class="lock-lost-bar"
-    >
-      Verrou perdu — Mode lecture seule
     </div>
 
     <div
@@ -919,14 +706,6 @@ onUnmounted(() => {
             class="canvas-wrapper" 
             :style="{ width: displayWidth + 'px', height: displayHeight + 'px' }"
           >
-            <!-- Masque d'anonymisation de l'en-tête (première page uniquement) -->
-            <div
-              v-if="headerMaskHeight > 0"
-              class="header-mask"
-              :style="{ height: headerMaskHeight + 'px', width: displayWidth + 'px' }"
-            >
-              <span class="mask-label">Zone d'identification masquée</span>
-            </div>
             <img
               :src="currentPageImageUrl"
               class="page-image"
@@ -1037,7 +816,6 @@ onUnmounted(() => {
               </button>
               <button
                 class="btn-sm btn-primary"
-                data-testid="save-annotation-btn"
                 @click="saveAnnotation"
               >
                 Save
@@ -1099,83 +877,35 @@ onUnmounted(() => {
             class="grading-content"
           >
             <div class="questions-list">
-              <template
-                v-for="item in flatQuestions"
-                :key="item.id"
+              <div
+                v-for="question in flatQuestions"
+                :key="question.id"
+                class="question-item"
               >
-                <!-- Header d'exercice -->
-                <div
-                  v-if="item.type === 'group'"
-                  class="exercise-header"
-                  :class="{ 'exercise-header--nested': item.depth > 0 }"
-                >
-                  <span class="exercise-title">{{ item.title }}</span>
+                <div class="question-header">
+                  <span class="question-title">{{ question.title }}</span>
+                  <span class="question-score">{{ question.maxScore }} pts</span>
+                </div>
+                <div class="question-remark-field">
+                  <label :for="'remark-' + question.id">Remarque (facultatif)</label>
+                  <textarea
+                    :id="'remark-' + question.id"
+                    :value="questionRemarks.get(question.id) || ''"
+                    :disabled="isReadOnly"
+                    :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une remarque...'"
+                    rows="3"
+                    @input="onRemarkChange(question.id, $event.target.value)"
+                  />
                   <span
-                    v-if="item.totalPoints > 0"
-                    class="exercise-points"
+                    v-if="remarksSaving.get(question.id)"
+                    class="save-indicator small"
                   >
-                    {{ calculateGroupScore(item.childIds) }} / {{ item.totalPoints }} pts
+                    Enregistrement...
                   </span>
                 </div>
-                <!-- Question (feuille) -->
-                <div
-                  v-else
-                  class="question-item"
-                >
-                  <div class="question-header">
-                    <span class="question-title">{{ item.title }}</span>
-                    <span class="question-score">/ {{ item.maxScore }} pts</span>
-                  </div>
-                  <div class="question-score-field">
-                    <label :for="'score-' + item.id">Note</label>
-                    <input
-                      :id="'score-' + item.id"
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      :max="item.maxScore"
-                      :value="questionScores.get(item.id) ?? ''"
-                      :disabled="isReadOnly"
-                      :placeholder="isReadOnly ? '-' : '0'"
-                      class="score-input"
-                      @input="onScoreChange(item.id, $event.target.value, item.maxScore)"
-                    >
-                    <span
-                      v-if="scoresSaving.get(item.id)"
-                      class="save-indicator small"
-                    >
-                      Enregistrement...
-                    </span>
-                  </div>
-                  <div class="question-remark-field">
-                    <label :for="'remark-' + item.id">Remarque (facultatif)</label>
-                    <textarea
-                      :id="'remark-' + item.id"
-                      :value="questionRemarks.get(item.id) || ''"
-                      :disabled="isReadOnly"
-                      :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une remarque...'"
-                      rows="2"
-                      @input="onRemarkChange(item.id, $event.target.value)"
-                    />
-                    <span
-                      v-if="remarksSaving.get(item.id)"
-                      class="save-indicator small"
-                    >
-                      Enregistrement...
-                    </span>
-                  </div>
-                </div>
-              </template>
-            </div>
-            
-            
-            <div class="global-score-section">
-              <div class="global-score-display">
-                <span class="label">Note Globale</span>
-                <span class="value">{{ globalScore }} / {{ globalMaxScore }}</span>
               </div>
             </div>
-
+            
             <div class="global-appreciation-section">
               <label for="global-appreciation">Appréciation globale</label>
               <textarea
@@ -1258,27 +988,6 @@ onUnmounted(() => {
 .canvas-wrapper { position: relative; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); }
 .page-image { width: 100%; height: 100%; display: block; }
 
-/* Masque d'anonymisation de l'en-tête */
-.header-mask {
-    position: absolute;
-    top: 0;
-    left: 0;
-    background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 3px solid #e74c3c;
-}
-.mask-label {
-    color: #ecf0f1;
-    font-size: 0.9rem;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    opacity: 0.8;
-}
-
 .inspector-panel { width: 320px; background: white; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; }
 .inspector-tabs { display: flex; border-bottom: 1px solid #dee2e6; }
 .inspector-tabs button { flex: 1; padding: 10px; border: none; background: #f8f9fa; cursor: pointer; font-weight: bold; color: #666; }
@@ -1316,20 +1025,10 @@ onUnmounted(() => {
 .grading-panel { flex: 1; overflow-y: auto; }
 .grading-content { padding: 15px; }
 .questions-list { margin-bottom: 20px; }
-.exercise-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; margin-bottom: 4px; margin-top: 16px; background: #e2e6ea; border-radius: 6px; border-left: 4px solid #007bff; }
-.exercise-header:first-child { margin-top: 0; }
-.exercise-header--nested { background: #edf0f3; border-left-color: #6c757d; padding: 8px 15px; margin-left: 8px; }
-.exercise-title { font-weight: 700; font-size: 1rem; color: #212529; }
-.exercise-points { font-size: 0.85rem; color: #495057; background: #ced4da; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
 .question-item { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6; }
 .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .question-title { font-weight: bold; font-size: 0.95rem; color: #333; }
 .question-score { font-size: 0.85rem; color: #666; background: #e9ecef; padding: 2px 8px; border-radius: 4px; }
-.question-score-field { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.question-score-field label { font-size: 0.85rem; color: #666; min-width: 40px; }
-.score-input { width: 80px; padding: 8px; border: 2px solid #007bff; border-radius: 4px; font-size: 1rem; font-weight: bold; text-align: center; }
-.score-input:focus { outline: none; border-color: #0056b3; box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25); }
-.score-input:disabled { background: #e9ecef; border-color: #ced4da; cursor: not-allowed; }
 .question-remark-field { display: flex; flex-direction: column; }
 .question-remark-field label { font-size: 0.85rem; color: #666; margin-bottom: 5px; }
 .question-remark-field textarea { padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9rem; font-family: inherit; resize: vertical; }
@@ -1342,25 +1041,4 @@ onUnmounted(() => {
 .global-appreciation-section textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.95rem; font-family: inherit; resize: vertical; }
 .global-appreciation-section textarea:focus { outline: none; border-color: #ffc107; box-shadow: 0 0 0 0.2rem rgba(255,193,7,0.25); }
 .global-appreciation-section textarea:disabled { background: #e9ecef; cursor: not-allowed; }
-
-.global-score-section { margin-top: 20px; padding: 15px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 6px; margin-bottom: 20px; text-align: center; }
-.global-score-display { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.global-score-display .label { font-size: 1rem; font-weight: bold; color: #2e7d32; text-transform: uppercase; letter-spacing: 1px; }
-.global-score-display .value { font-size: 2rem; font-weight: 800; color: #1b5e20; }
-
-/* Lock Status Bar */
-.lock-status-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 20px; background: #d4edda; border-bottom: 1px solid #c3e6cb; font-size: 0.85rem; color: #155724; transition: background 0.3s, color 0.3s; }
-.lock-status-bar.lock-warn { background: #fff3cd; border-bottom-color: #ffeeba; color: #856404; }
-.lock-status-bar.lock-expired { background: #f8d7da; border-bottom-color: #f5c6cb; color: #721c24; }
-.lock-left, .lock-center, .lock-right { display: flex; align-items: center; gap: 6px; }
-.lock-left { font-weight: 600; }
-.lock-icon { font-size: 1rem; }
-.lock-timer-label { font-weight: 500; }
-.lock-timer-value { font-family: 'Courier New', monospace; font-size: 1.1rem; font-weight: 700; letter-spacing: 1px; }
-.hb-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.hb-ok { background: #28a745; box-shadow: 0 0 4px rgba(40,167,69,0.5); }
-.hb-warning { background: #ffc107; box-shadow: 0 0 4px rgba(255,193,7,0.5); }
-.hb-error { background: #dc3545; box-shadow: 0 0 4px rgba(220,53,69,0.5); }
-.hb-label { font-size: 0.8rem; font-weight: 500; }
-.lock-lost-bar { padding: 8px 20px; background: #f8d7da; border-bottom: 2px solid #dc3545; color: #721c24; font-weight: 600; text-align: center; font-size: 0.9rem; }
 </style>

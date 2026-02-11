@@ -32,7 +32,7 @@ class BackupRestoreDestroyRecoverTest(TransactionTestCase):
     def test_backup_restore_destroy_recover_full_cycle(self):
         # 1. SETUP DATA
         print("Creating Data...")
-        student = Student.objects.create(email="brtest@test.com", full_name="Sauvegardable Jean", date_of_birth="2008-01-15", class_name="TG1")
+        student = Student.objects.create(ine="BRTEST001", last_name="Sauvegardable", first_name="Jean")
         exam = Exam.objects.create(name="Backup Exam", date="2026-06-01")
         copy = Copy.objects.create(exam=exam, anonymous_id="RESTORE_ME", student=student)
         booklet = Booklet.objects.create(exam=exam, start_page=1, end_page=2)
@@ -86,6 +86,6 @@ class BackupRestoreDestroyRecoverTest(TransactionTestCase):
         restored_ann = Annotation.objects.first()
         self.assertEqual(restored_ann.content, "Persistent Data")
         self.assertEqual(restored_ann.copy.anonymous_id, "RESTORE_ME")
-        self.assertEqual(restored_ann.copy.student.email, "brtest@test.com")
+        self.assertEqual(restored_ann.copy.student.ine, "BRTEST001")
         
         print("✓ DESTROY/RECOVER CYCLE PASSED")

@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { API_URL, csrfHeader } from '../services/http'
 
 export const useExamStore = defineStore('exam', () => {
     const currentExam = ref(null)
     const booklets = ref([])
     const isLoading = ref(false)
     const error = ref(null)
+
+    // API Base URL from env or default
+    const API_URL = import.meta.env.VITE_API_URL || ''
 
     async function uploadExam(file) {
         isLoading.value = true
@@ -20,7 +22,6 @@ export const useExamStore = defineStore('exam', () => {
             const response = await fetch(`${API_URL}/api/exams/upload/`, {
                 method: 'POST',
                 credentials: 'include',
-                headers: { ...csrfHeader() },
                 body: formData,
             })
 
@@ -64,7 +65,6 @@ export const useExamStore = defineStore('exam', () => {
                 credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...csrfHeader(),
                 },
                 body: JSON.stringify({ booklet_ids: bookletIds }),
             })
