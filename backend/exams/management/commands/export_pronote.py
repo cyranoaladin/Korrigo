@@ -15,11 +15,12 @@ Examples:
     python manage.py export_pronote abc123def456 --validate-only
 """
 
+import uuid as uuid_lib
+
 from django.core.management.base import BaseCommand, CommandError
 from exams.models import Exam
 from exams.services import PronoteExporter
 from exams.services.pronote_export import ValidationError
-import sys
 
 
 class Command(BaseCommand):
@@ -53,6 +54,12 @@ class Command(BaseCommand):
         coefficient = options['coefficient']
         output_path = options.get('output')
         validate_only = options['validate_only']
+
+        # Validate UUID format
+        try:
+            uuid_lib.UUID(exam_id)
+        except (ValueError, AttributeError):
+            raise CommandError(f"Exam with ID '{exam_id}' not found (invalid UUID format)")
 
         # Get exam
         try:
@@ -103,19 +110,18 @@ class Command(BaseCommand):
         
         # Write to file or stdout
         if output_path:
-            # Write to file with UTF-8 encoding (BOM already in content)
+            # Write to file in binary mode to preserve CRLF line endings
             try:
-                with open(output_path, 'w', encoding='utf-8') as f:
-                    f.write(csv_content)
+                with open(output_path, 'wb') as f:
+                    f.write(csv_content.encode('utf-8'))
                 self.stdout.write(
                     self.style.SUCCESS(f"\n✅ Export réussi: {export_count} notes exportées vers {output_path}")
                 )
             except IOError as e:
                 raise CommandError(f"Erreur d'écriture du fichier: {e}")
         else:
-            # Write to stdout (for piping)
-            # Note: csv_content already has UTF-8 BOM
-            sys.stdout.write(csv_content)
+            # Write CSV to self.stdout so Django test framework can capture it
+            self.stdout.write(csv_content)
             # Success message goes to stderr to not interfere with CSV output
             self.stderr.write(
                 self.style.SUCCESS(f"Exported {export_count} grades")
