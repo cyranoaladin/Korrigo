@@ -760,10 +760,11 @@ class TestIndividualPDFUpload:
         )
         
         assert response.status_code == status.HTTP_201_CREATED
-        assert '1 fichiers PDF uploadés' in response.data['message']
-        assert len(response.data['uploaded_files']) == 1
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['summary']['success_count'] == 1
+        assert len(response.data['successful_uploads']) == 1
         
-        uploaded = response.data['uploaded_files'][0]
+        uploaded = response.data['successful_uploads'][0]
         assert uploaded['filename'] == 'martin_jean.pdf'
         assert uploaded['student_identifier'] == 'martin_jean'
         
@@ -796,8 +797,8 @@ class TestIndividualPDFUpload:
         )
         
         assert response.status_code == status.HTTP_201_CREATED
-        assert '3 fichiers PDF uploadés' in response.data['message']
-        assert len(response.data['uploaded_files']) == 3
+        assert response.data['summary']['success_count'] == 3
+        assert len(response.data['successful_uploads']) == 3
         assert response.data['total_copies'] == 3
         
         from exams.models import ExamPDF, Copy
