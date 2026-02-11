@@ -36,8 +36,9 @@ class TestRateLimitingBaseline:
         # 5 tentatives avec mauvais identifiants
         for i in range(5):
             response = client.post('/api/students/login/', {
-                'ine': 'WRONGINE',
-                'last_name': 'WRONGNAME'
+                'first_name': 'WRONGFIRST',
+                'last_name': 'WRONGNAME',
+                'date_naissance': '2000-01-01'
             })
             # Devrait retourner 401 mais pas 429
             assert response.status_code == 401, \

@@ -47,7 +47,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         
         # Create student
         self.student = Student.objects.create(
-            ine="E2E123456789A",
+            date_naissance="2005-03-15",
             first_name="Jean",
             last_name="BacBlanc",
             class_name="TG2",
@@ -309,7 +309,7 @@ class BacBlancSecurityTest(TestCase):
         
         # Créer étudiants
         self.student1 = Student.objects.create(
-            ine="SEC123456789A",
+            date_naissance="2005-03-15",
             first_name="Jean",
             last_name="Sécurité",
             class_name="TG2",
@@ -317,7 +317,7 @@ class BacBlancSecurityTest(TestCase):
         )
         
         self.student2 = Student.objects.create(
-            ine="SEC987654321B",
+            date_naissance="2005-05-20",
             first_name="Marie",
             last_name="Sécurité",
             class_name="TG2"

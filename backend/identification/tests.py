@@ -21,7 +21,7 @@ class OCRServiceTest(TestCase):
         
         # Create test student
         self.student = Student.objects.create(
-            ine="1234567890A",
+            date_naissance="2005-03-15",
             first_name="Jean",
             last_name="Dupont",
             class_name="TG2"

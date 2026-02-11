@@ -40,18 +40,18 @@ def run():
 
     # 3. Élève
     student, created = Student.objects.get_or_create(
-        ine="1234567890A",
+        first_name="Jean",
+        last_name="DUPONT",
+        date_naissance="2005-03-15",
         defaults={
-            "first_name": "Jean",
-            "last_name": "DUPONT",
             "class_name": "TG2",
             "email": "jean.dupont@test.com"
         }
     )
     if created:
-        print(f"✅ Élève créé: {student.first_name} {student.last_name} (INE: {student.ine})")
+        print(f"✅ Élève créé: {student.first_name} {student.last_name} ({student.date_naissance})")
     else:
-        print(f"ℹ️ Élève existe déjà: {student. ine}")
+        print(f"ℹ️ Élève existe déjà: {student.first_name} {student.last_name}")
 
     # 4. Données de Test (Copie pour l'élève)
     exam, _ = Exam.objects.get_or_create(

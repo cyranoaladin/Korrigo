@@ -166,10 +166,10 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
 
-      - name: Create test database
+      - name: Grant CREATEDB permission
         run: |
-          PGPASSWORD=viatique_password psql -h 127.0.0.1 -U viatique_user -d postgres -c "DROP DATABASE IF EXISTS test_viatique_0;"
-          PGPASSWORD=viatique_password psql -h 127.0.0.1 -U viatique_user -d postgres -c "CREATE DATABASE test_viatique_0 OWNER viatique_user;"
+          # Grant CREATEDB permission so Django test runner can create and drop test databases
+          PGPASSWORD=viatique_password psql -h 127.0.0.1 -U postgres -d postgres -c "ALTER USER viatique_user CREATEDB;"
 
       - name: Run postgres-marked tests (must PASS, must not SKIP)
         working-directory: backend
