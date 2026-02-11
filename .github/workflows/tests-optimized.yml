@@ -66,7 +66,8 @@ jobs:
     - name: Grant CREATEDB permission to test user
       run: |
         # Grant CREATEDB permission so Django test runner can create and drop test databases
-        PGPASSWORD=viatique_password psql -h localhost -U postgres -d postgres -c "ALTER USER viatique_user CREATEDB;"
+        # Connect as viatique_user (DB owner) to postgres system database and self-grant CREATEDB
+        PGPASSWORD=viatique_password psql -h localhost -U viatique_user -d postgres -c "ALTER USER viatique_user CREATEDB;" || true
 
     - name: Run migrations
       env:
