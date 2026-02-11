@@ -10,7 +10,7 @@ services:
       - POSTGRES_USER=viatique_user
       - POSTGRES_PASSWORD=viatique_password
     ports:
-      - "5435:5432"
+      - "5436:5432"
 
   backend:
     build: ../../backend

@@ -43,7 +43,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="result-view">
+  <div
+    class="result-view"
+    data-testid="student-portal"
+  >
     <header class="navbar">
       <div class="brand">
         Korrigo — Espace Élève <span
