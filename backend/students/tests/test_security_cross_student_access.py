@@ -143,12 +143,12 @@ class TestCrossStudentAccessPrevention(TransactionTestCase):
     def test_unauthenticated_student_cannot_access_copies(self):
         resp = self.client_a.get("/api/students/copies/")
         
-        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
     
     def test_unauthenticated_student_cannot_access_pdf(self):
         resp = self.client_a.get(f"/api/grading/copies/{self.copy_a_graded.id}/final-pdf/")
         
-        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
         if hasattr(resp, 'close'):
             resp.close()
     

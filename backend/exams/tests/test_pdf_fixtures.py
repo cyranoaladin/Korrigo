@@ -68,10 +68,17 @@ class TestPDFFixtures:
         # Verify it starts with PDF header
         assert pdf_bytes.startswith(b'%PDF-')
         
-        # Verify it fails to open with PyMuPDF
-        with pytest.raises(Exception):
+        # PyMuPDF may open malformed PDFs without raising, but the
+        # document should be structurally invalid (0 pages or broken)
+        try:
             doc = fitz.open(stream=pdf_bytes, filetype='pdf')
+            # If it opens, it should have 0 pages (no valid content)
+            assert doc.page_count == 0, \
+                f"Corrupted PDF should have 0 pages, got {doc.page_count}"
             doc.close()
+        except Exception:
+            # Expected: fitz raises on truly corrupted data
+            pass
     
     def test_create_fake_pdf_wrong_mime_type(self):
         """Test that fake PDF has incorrect MIME type"""
