@@ -180,6 +180,13 @@ export default {
         return response.data;
     },
 
+    // --- Subject Variant (Sujet A/B) ---
+
+    async updateSubjectVariant(copyId, variant) {
+        const response = await api.patch(`/copies/${copyId}/`, { subject_variant: variant });
+        return response.data;
+    },
+
     // --- Corrector Stats ---
 
     async fetchExamStats(examId) {

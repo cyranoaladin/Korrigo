@@ -25,6 +25,7 @@ class Student(models.Model):
     class Meta:
         verbose_name = "Élève"
         verbose_name_plural = "Élèves"
+        ordering = ['last_name', 'first_name']
         unique_together = [['last_name', 'first_name', 'date_naissance']]
         indexes = [
             models.Index(fields=['last_name', 'first_name', 'date_naissance']),
