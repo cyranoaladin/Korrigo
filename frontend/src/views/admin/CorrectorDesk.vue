@@ -48,13 +48,17 @@ const showEditor = ref(false) // Overlay editor
 const draftAnnotation = ref(null) // { normalizedRect, type, content }
 const editorInputRef = ref(null)
 
-// Grading / Remarks
+// Grading / Remarks / Scores
 const questionRemarks = ref(new Map()) // Map<question_id, remark_text>
+const questionScores = ref(new Map()) // Map<question_id, score_value>
 const globalAppreciation = ref('')
 const remarksSaving = ref(new Map()) // Map<question_id, boolean> for save indicators
+const scoresSaving = ref(false)
 const appreciationSaving = ref(false)
 const remarkTimers = ref(new Map()) // Map<question_id, timerId> for debouncing
+const scoresTimer = ref(null)
 const appreciationTimer = ref(null)
+const lastScoresSaveStatus = ref(null) // { time: Date, success: boolean }
 
 // --- Computed ---
 const isStaging = computed(() => copy.value?.status === 'STAGING')
@@ -159,6 +163,7 @@ const fetchCopy = async () => {
     await refreshAnnotations()
     await fetchHistory()
     await fetchRemarks()
+    await fetchScores()
     await fetchGlobalAppreciation()
   } catch (err) {
     if (err.response?.status === 403) {
@@ -192,6 +197,19 @@ const fetchRemarks = async () => {
         })
         questionRemarks.value = remarksMap
     } catch (err) { console.error("Failed to load remarks", err) }
+}
+
+const fetchScores = async () => {
+    try {
+        const response = await gradingApi.fetchScores(copyId)
+        const scoresMap = new Map()
+        if (response.scores_data) {
+            Object.entries(response.scores_data).forEach(([qid, val]) => {
+                scoresMap.set(qid, val)
+            })
+        }
+        questionScores.value = scoresMap
+    } catch (err) { console.error("Failed to load scores", err) }
 }
 
 const fetchGlobalAppreciation = async () => {
@@ -241,15 +259,62 @@ const onRemarkChange = (questionId, value) => {
 
 const onAppreciationChange = (value) => {
     globalAppreciation.value = value
-    
+
     if (appreciationTimer.value) {
         clearTimeout(appreciationTimer.value)
     }
-    
+
     appreciationTimer.value = setTimeout(() => {
         saveGlobalAppreciationToServer()
     }, 1000)
 }
+
+const saveScoresToServer = async () => {
+    scoresSaving.value = true
+    try {
+        const scoresObj = {}
+        questionScores.value.forEach((val, key) => {
+            scoresObj[key] = val
+        })
+        await gradingApi.saveScores(copyId, scoresObj)
+        lastScoresSaveStatus.value = { time: new Date(), success: true }
+    } catch (err) {
+        console.error("Failed to save scores", err)
+        lastScoresSaveStatus.value = { time: new Date(), success: false }
+    } finally {
+        scoresSaving.value = false
+    }
+}
+
+const onScoreChange = (questionId, value) => {
+    questionScores.value.set(questionId, value === '' ? null : parseFloat(value))
+    // Also save to localStorage as fallback
+    try {
+        const scoresObj = {}
+        questionScores.value.forEach((val, key) => { scoresObj[key] = val })
+        localStorage.setItem(`korrigo_scores_${copyId}`, JSON.stringify(scoresObj))
+    } catch(e) { /* localStorage full, ignore */ }
+
+    if (scoresTimer.value) {
+        clearTimeout(scoresTimer.value)
+    }
+    scoresTimer.value = setTimeout(() => {
+        saveScoresToServer()
+    }, 800)
+}
+
+// Check if copy can be finalized (all scores filled + appreciation)
+const canFinalize = computed(() => {
+    if (flatQuestions.value.length === 0) return false
+    // All questions must have a score
+    for (const q of flatQuestions.value) {
+        const score = questionScores.value.get(q.id)
+        if (score === null || score === undefined || score === '') return false
+    }
+    // Appreciation must be filled
+    if (!globalAppreciation.value || globalAppreciation.value.trim() === '') return false
+    return true
+})
 
 const handleMarkReady = async () => {
     if (isSaving.value) return; isSaving.value = true;
@@ -447,10 +512,19 @@ const releaseLock = async () => {
 }
 
 const handleFinalize = async () => {
-    if (isSaving.value) return; isSaving.value = true;
-    try { 
-        await gradingApi.finalizeCopy(copyId, softLock.value?.token); 
-        await fetchCopy(); 
+    if (isSaving.value) return;
+    // Validate all scores + appreciation before finalizing
+    if (!canFinalize.value) {
+        error.value = "Impossible de finaliser : toutes les notes doivent être remplies ET une appréciation générale est requise."
+        return
+    }
+    if (!confirm('Êtes-vous sûr de vouloir finaliser cette copie ? Cette action est irréversible.')) return
+    isSaving.value = true;
+    try {
+        // Save scores one last time before finalize
+        await saveScoresToServer()
+        await gradingApi.finalizeCopy(copyId, softLock.value?.token);
+        await fetchCopy();
     }
     catch (err) { error.value = err.response?.data?.detail || "Action failed"; }
     finally { isSaving.value = false; }
@@ -607,11 +681,12 @@ onUnmounted(() => {
 
         <button
           v-if="(isReady && softLock) || isLocked"
-          :disabled="isSaving || isReadOnly"
-          class="btn-success"
+          :disabled="isSaving || isReadOnly || !canFinalize"
+          :class="['btn-success', { 'btn-disabled': !canFinalize }]"
+          :title="!canFinalize ? 'Toutes les notes + appréciation requises' : 'Finaliser la correction'"
           @click="handleFinalize"
         >
-          Finalize
+          Finaliser
         </button>
         <button
           v-if="isGraded"
@@ -884,7 +959,23 @@ onUnmounted(() => {
               >
                 <div class="question-header">
                   <span class="question-title">{{ question.title }}</span>
-                  <span class="question-score">{{ question.maxScore }} pts</span>
+                  <span class="question-max-score">/ {{ question.maxScore }} pts</span>
+                </div>
+                <div class="question-score-field">
+                  <label :for="'score-' + question.id">Note</label>
+                  <input
+                    :id="'score-' + question.id"
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    :max="question.maxScore"
+                    :value="questionScores.get(question.id) ?? ''"
+                    :disabled="isReadOnly"
+                    :placeholder="isReadOnly ? '-' : '0'"
+                    class="score-input"
+                    :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
+                    @input="onScoreChange(question.id, $event.target.value)"
+                  />
                 </div>
                 <div class="question-remark-field">
                   <label :for="'remark-' + question.id">Remarque (facultatif)</label>
@@ -893,7 +984,7 @@ onUnmounted(() => {
                     :value="questionRemarks.get(question.id) || ''"
                     :disabled="isReadOnly"
                     :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une remarque...'"
-                    rows="3"
+                    rows="2"
                     @input="onRemarkChange(question.id, $event.target.value)"
                   />
                   <span
@@ -903,6 +994,19 @@ onUnmounted(() => {
                     Enregistrement...
                   </span>
                 </div>
+              </div>
+              <div
+                v-if="scoresSaving"
+                class="scores-save-status"
+              >
+                Sauvegarde des notes...
+              </div>
+              <div
+                v-else-if="lastScoresSaveStatus"
+                class="scores-save-status"
+                :class="{ 'save-ok': lastScoresSaveStatus.success, 'save-err': !lastScoresSaveStatus.success }"
+              >
+                {{ lastScoresSaveStatus.success ? 'Notes sauvegardées' : 'Erreur sauvegarde notes' }}
               </div>
             </div>
             
@@ -1028,13 +1132,23 @@ onUnmounted(() => {
 .question-item { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6; }
 .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .question-title { font-weight: bold; font-size: 0.95rem; color: #333; }
-.question-score { font-size: 0.85rem; color: #666; background: #e9ecef; padding: 2px 8px; border-radius: 4px; }
+.question-max-score { font-size: 0.85rem; color: #666; background: #e9ecef; padding: 2px 8px; border-radius: 4px; }
+.question-score-field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.question-score-field label { font-size: 0.85rem; color: #333; font-weight: 600; min-width: 40px; }
+.score-input { width: 80px; padding: 6px 8px; border: 2px solid #ced4da; border-radius: 4px; font-size: 1rem; font-weight: 600; text-align: center; transition: border-color 0.2s; }
+.score-input:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25); }
+.score-input.score-filled { border-color: #28a745; background: #f0fff4; }
+.score-input:disabled { background: #e9ecef; cursor: not-allowed; }
 .question-remark-field { display: flex; flex-direction: column; }
 .question-remark-field label { font-size: 0.85rem; color: #666; margin-bottom: 5px; }
 .question-remark-field textarea { padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9rem; font-family: inherit; resize: vertical; }
 .question-remark-field textarea:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25); }
 .question-remark-field textarea:disabled { background: #e9ecef; cursor: not-allowed; }
 .save-indicator.small { font-size: 0.75rem; color: #28a745; margin-top: 3px; font-style: italic; }
+.scores-save-status { text-align: center; padding: 6px; font-size: 0.8rem; font-style: italic; margin-top: 8px; }
+.scores-save-status.save-ok { color: #28a745; }
+.scores-save-status.save-err { color: #dc3545; }
+.btn-disabled { opacity: 0.5; cursor: not-allowed; }
 
 .global-appreciation-section { padding: 20px; background: #fff3cd; border-radius: 6px; border: 1px solid #ffeeba; }
 .global-appreciation-section label { font-weight: bold; font-size: 1rem; color: #333; margin-bottom: 10px; display: block; }

@@ -575,36 +575,47 @@ class StudentCopiesView(generics.ListAPIView):
     def get_queryset(self):
         # Try to get student_id from session (legacy) or from user association (new)
         student_id = self.request.session.get('student_id')
+        base_filter = {
+            'status': Copy.Status.GRADED,
+            'exam__results_released_at__isnull': False,
+        }
         if student_id:
-            # Legacy method: using session
-            return Copy.objects.filter(student=student_id, status=Copy.Status.GRADED)
+            return Copy.objects.filter(student=student_id, **base_filter)
         else:
-            # New method: get student via user association
             try:
                 from students.models import Student
                 student = Student.objects.get(user=self.request.user)
-                return Copy.objects.filter(student=student, status=Copy.Status.GRADED)
+                return Copy.objects.filter(student=student, **base_filter)
             except Student.DoesNotExist:
                 return Copy.objects.none()
 
     def list(self, request, *args, **kwargs):
+        from grading.models import Score, QuestionRemark
         from grading.services import GradingService
         from core.utils.audit import log_data_access
-        
+
         queryset = self.get_queryset()
-        
-        # Audit trail: Accès liste copies élève
+
+        # Audit trail
         student_id = request.session.get('student_id')
         if student_id:
             log_data_access(request, 'Copy', f'student_{student_id}_list', action_detail='list')
-        
+
         data = []
         for copy in queryset:
             total_score = GradingService.compute_score(copy)
-            # Detailed scores not yet implemented in Annotation model linking to Question ID
-            # For MVP, we just show total.
-            scores_data = {} 
-            
+
+            # Get detailed scores from Score model
+            scores_data = {}
+            score_obj = Score.objects.filter(copy=copy).first()
+            if score_obj and score_obj.scores_data:
+                scores_data = score_obj.scores_data
+
+            # Get question remarks
+            remarks = {}
+            for remark in QuestionRemark.objects.filter(copy=copy):
+                remarks[remark.question_id] = remark.remark
+
             data.append({
                 "id": copy.id,
                 "exam_name": copy.exam.name,
@@ -612,7 +623,9 @@ class StudentCopiesView(generics.ListAPIView):
                 "total_score": total_score,
                 "status": copy.status,
                 "final_pdf_url": f"/api/grading/copies/{copy.id}/final-pdf/" if copy.final_pdf else None,
-                "scores_details": scores_data
+                "scores_details": scores_data,
+                "remarks": remarks,
+                "global_appreciation": copy.global_appreciation or '',
             })
         return Response(data)
 class ExamSourceUploadView(APIView):
@@ -744,17 +757,25 @@ class BulkCopyValidationView(APIView):
 
 class CorrectorCopiesView(generics.ListAPIView):
     """
-    List all copies available for correction (Global List).
+    List copies assigned to the current corrector.
     GET /api/copies/
+    Admin sees all copies; teachers see only their assigned ones.
     """
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = CopySerializer
+    pagination_class = None  # Frontend expects flat array
 
     def get_queryset(self):
-        # MVP: Return all copies that are ready/locked/graded
-        return Copy.objects.filter(
-            status__in=[Copy.Status.READY, Copy.Status.LOCKED, Copy.Status.GRADED]
+        user = self.request.user
+        base_qs = Copy.objects.filter(
+            status__in=[Copy.Status.READY, Copy.Status.LOCKED, Copy.Status.GRADED,
+                        Copy.Status.GRADING_IN_PROGRESS]
         ).select_related('exam').order_by('exam__date', 'anonymous_id')
+
+        # Admin sees all; teacher sees only assigned
+        if user.is_superuser:
+            return base_qs
+        return base_qs.filter(assigned_corrector=user)
 
 class CorrectorCopyDetailView(generics.RetrieveAPIView):
     """
