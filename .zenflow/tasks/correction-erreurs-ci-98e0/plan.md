@@ -79,15 +79,16 @@ Update GitHub Actions workflows to properly clean and recreate the test database
 
 **Reference:** Spec section 2.2 (Test Database Cleanup Strategy)
 
-### [ ] Step: Verify Migration State
+### [x] Step: Verify Migration State
+<!-- chat-id: d0d60ca3-9388-4ff1-ac22-340673a3f847 -->
 
 Validate that the current migration state in main branch is correct and has no conflicts.
 
 **Tasks:**
-- [ ] Run `python manage.py makemigrations --check --dry-run` to verify no pending migrations
-- [ ] Run `python manage.py migrate --check` to validate migration graph
-- [ ] Inspect migration files to confirm single linear path
-- [ ] Verify `students/models.py` matches the final migration state
+- [x] Run `python manage.py makemigrations --check --dry-run` to verify no pending migrations
+- [x] Run `python manage.py migrate --check` to validate migration graph
+- [x] Inspect migration files to confirm single linear path
+- [x] Verify `students/models.py` matches the final migration state
 
 **Expected outcomes:**
 - No pending migrations detected
@@ -235,7 +236,9 @@ Watch CI workflows execute and verify all jobs pass successfully.
 
 ## Notes
 
-- **No migration merge needed:** Main branch already has correct final state via `0003_remove_ine_add_date_naissance.py`
+- **Migration 0004 generated:** During verification, Django auto-generated `0004_rename_students_st_last_na_idx_students_st_last_na_b34e19_idx.py` to standardize index naming. This must be committed along with CI workflow changes.
 - **Focus is CI infrastructure:** The issue is test database cleanup, not application code
-- **All changes are in `.github/workflows/` directory:** No backend code modifications required
+- **Changes needed:**
+  - `.github/workflows/` directory for CI fixes
+  - `backend/students/migrations/0004_*.py` for migration consistency
 - **Verification commands are documented** in spec section 7 for reference
