@@ -54,14 +54,6 @@ class Exam(models.Model):
         ],
         help_text=_("Fichier PDF uniquement. Taille max: 50 MB, 500 pages max")
     )
-    student_csv = models.FileField(
-        upload_to='exams/csv/',
-        verbose_name=_("Fichier CSV des élèves"),
-        blank=True,
-        null=True,
-        validators=[FileExtensionValidator(allowed_extensions=['csv'])],
-        help_text=_("Fichier CSV pour l'identification des élèves (whitelist).")
-    )
     pages_per_booklet = models.PositiveIntegerField(
         default=4,
         verbose_name=_("Pages par fascicule"),
@@ -69,13 +61,7 @@ class Exam(models.Model):
     )
     grading_structure = models.JSONField(default=list, blank=True, verbose_name=_("Barème (Structure JSON)"))
     is_processed = models.BooleanField(default=False, verbose_name=_("Traité ?"))
-    results_released_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name=_("Résultats publiés le"),
-        help_text=_("Date de publication des résultats aux élèves. NULL = non publié.")
-    )
-
+    
     # Mission 24: Assigned Correctors
     correctors = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
@@ -83,9 +69,6 @@ class Exam(models.Model):
         verbose_name=_("Correcteurs assignés"),
         blank=True
     )
-
-    csv_parsed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("CSV parsé le"))
-    csv_student_count = models.IntegerField(default=0, verbose_name=_("Nombre d'élèves CSV"))
 
     class Meta:
         verbose_name = _("Examen")
@@ -104,73 +87,6 @@ class Exam(models.Model):
 
     def __str__(self):
         return self.name
-
-class ExamSourcePDF(models.Model):
-    """
-    Stocke un fichier PDF source individuel uploadé pour un examen.
-    Un examen peut avoir plusieurs PDFs (ex: lots de scans différents).
-    Chaque PDF est détecté indépendamment comme A3 ou A4.
-    """
-    class Format(models.TextChoices):
-        A3 = 'A3', 'A3'
-        A4 = 'A4', 'A4'
-
-    class PDFType(models.TextChoices):
-        COPY = 'COPY', _("Copie d'examen")
-        ANNEXE = 'ANNEXE', _("Annexe")
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    exam = models.ForeignKey(
-        Exam,
-        on_delete=models.CASCADE,
-        related_name='source_pdfs',
-        verbose_name=_("Examen")
-    )
-    pdf_file = models.FileField(
-        upload_to='exams/source/',
-        verbose_name=_("Fichier PDF"),
-        validators=[
-            FileExtensionValidator(allowed_extensions=['pdf']),
-            validate_pdf_size,
-            validate_pdf_not_empty,
-            validate_pdf_mime_type,
-            validate_pdf_integrity,
-        ],
-    )
-    original_filename = models.CharField(
-        max_length=255,
-        verbose_name=_("Nom du fichier original")
-    )
-    display_order = models.PositiveIntegerField(
-        default=0,
-        verbose_name=_("Ordre d'affichage")
-    )
-    detected_format = models.CharField(
-        max_length=10,
-        choices=Format.choices,
-        default=Format.A4,
-        verbose_name=_("Format détecté")
-    )
-    page_count = models.PositiveIntegerField(
-        default=0,
-        verbose_name=_("Nombre de pages")
-    )
-    pdf_type = models.CharField(
-        max_length=10,
-        choices=PDFType.choices,
-        default=PDFType.COPY,
-        verbose_name=_("Type de PDF")
-    )
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = _("PDF Source")
-        verbose_name_plural = _("PDFs Source")
-        ordering = ['display_order', 'uploaded_at']
-
-    def __str__(self):
-        return f"{self.original_filename} ({self.detected_format}, {self.page_count}p)"
-
 
 class Booklet(models.Model):
     """
@@ -199,14 +115,6 @@ class Booklet(models.Model):
         null=True, 
         verbose_name=_("Estimation du nom (OCR)")
     )
-    source_pdf = models.ForeignKey(
-        'ExamSourcePDF',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='booklets',
-        verbose_name=_("PDF source d'origine")
-    )
     pages_images = models.JSONField(
         default=list,
         blank=True,
@@ -227,23 +135,11 @@ class Copy(models.Model):
     """
     class Status(models.TextChoices):
         STAGING = 'STAGING', _("En attente")
-        QUARANTINE = 'QUARANTINE', _("Quarantaine OCR")
         READY = 'READY', _("Prêt à corriger")
         LOCKED = 'LOCKED', _("Verrouillé")
         GRADING_IN_PROGRESS = 'GRADING_IN_PROGRESS', _("Correction en cours")
         GRADING_FAILED = 'GRADING_FAILED', _("Échec de correction")
         GRADED = 'GRADED', _("Corrigé")
-
-    # Valid status transitions (state machine)
-    ALLOWED_TRANSITIONS = {
-        Status.STAGING: {Status.READY, Status.QUARANTINE},
-        Status.QUARANTINE: {Status.READY, Status.STAGING},
-        Status.READY: {Status.LOCKED, Status.STAGING},
-        Status.LOCKED: {Status.GRADING_IN_PROGRESS, Status.READY},
-        Status.GRADING_IN_PROGRESS: {Status.GRADED, Status.GRADING_FAILED},
-        Status.GRADING_FAILED: {Status.GRADING_IN_PROGRESS, Status.LOCKED},
-        Status.GRADED: set(),  # Terminal state
-    }
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(
@@ -283,10 +179,9 @@ class Copy(models.Model):
         help_text=_("Fichier PDF uniquement. Taille max: 50 MB, 500 pages max")
     )
     status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
+        max_length=20, 
+        choices=Status.choices, 
         default=Status.STAGING,
-        db_index=True,  # Performance optimization for filtering
         verbose_name=_("Statut")
     )
 
@@ -296,17 +191,6 @@ class Copy(models.Model):
         related_name='assigned_copy',
         verbose_name=_("Fascicules composants"),
         blank=True
-    )
-    
-    # Reference to ExamPDF (for INDIVIDUAL_A4 mode) to avoid duplicate storage
-    source_exam_pdf = models.ForeignKey(
-        'ExamPDF',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='copies',
-        verbose_name=_("PDF Source (Mode INDIVIDUAL_A4)"),
-        help_text=_("Référence vers ExamPDF pour éviter le stockage dupliqué en mode INDIVIDUAL_A4")
     )
 
     # Link to Student (Mission 17)
@@ -320,7 +204,6 @@ class Copy(models.Model):
     )
     is_identified = models.BooleanField(
         default=False,
-        db_index=True,  # Performance optimization for filtering
         verbose_name=_("Identifié ?"),
         help_text=_("Vrai si la copie a été associée à un élève.")
     )
@@ -396,53 +279,9 @@ class Copy(models.Model):
         help_text=_("Commentaire global du correcteur pour cette copie")
     )
 
-    def transition_to(self, new_status):
-        """
-        Transition the copy to a new status with state machine validation.
-        Raises ValueError if the transition is not allowed.
-        """
-        old_status = self.status
-        allowed = Copy.ALLOWED_TRANSITIONS.get(old_status, set())
-        if new_status not in allowed:
-            raise ValueError(
-                f"Invalid status transition: {old_status} → {new_status}. "
-                f"Allowed: {', '.join(sorted(allowed)) or 'none (terminal state)'}"
-            )
-        self.status = new_status
-
-    
-    def get_pdf_source_file(self):
-        """
-        Retourne le fichier PDF source de la copie.
-        - Pour BATCH_A3: retourne pdf_source (FileField direct)
-        - Pour INDIVIDUAL_A4: retourne source_exam_pdf.pdf_file (référence)
-        """
-        if self.source_exam_pdf:
-            return self.source_exam_pdf.pdf_file
-        return self.pdf_source
-    
-    @property
-    def pdf_source_path(self):
-        """Property pour accéder au chemin du fichier PDF source."""
-        pdf_file = self.get_pdf_source_file()
-        return pdf_file.path if pdf_file else None
-    
-    @property
-    def pdf_source_url(self):
-        """Property pour accéder à l'URL du fichier PDF source."""
-        pdf_file = self.get_pdf_source_file()
-        return pdf_file.url if pdf_file else None
     class Meta:
         verbose_name = _("Copie")
         verbose_name_plural = _("Copies")
-        # ZF-AUD-13: Performance indexes for common queries
-        indexes = [
-            models.Index(fields=['exam', 'status'], name='copy_exam_status_idx'),
-            models.Index(fields=['assigned_corrector', 'status'], name='copy_corrector_status_idx'),
-            models.Index(fields=['student', 'status'], name='copy_student_status_idx'),
-            models.Index(fields=['dispatch_run_id'], name='copy_dispatch_run_idx'),
-            models.Index(fields=['exam', 'is_identified'], name='copy_exam_identified_idx'),
-        ]
 
     def __str__(self):
         return f"Copie {self.anonymous_id} ({self.get_status_display()})"

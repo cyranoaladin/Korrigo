@@ -18,7 +18,6 @@ const singlePdfFile = ref(null)
 const isUploading = ref(false)
 const uploadError = ref(null)
 const uploadProgress = ref(null)
-const isDragging = ref(false)
 
 const fileInputSingle = ref(null)
 const fileInputMultiple = ref(null)
@@ -73,42 +72,6 @@ const handleCsvFileSelect = (event) => {
 
 const removeFile = (index) => {
   pdfFiles.value = pdfFiles.value.filter((_, i) => i !== index)
-
-const handleDragEnter = (event) => {
-  event.preventDefault()
-  isDragging.value = true
-}
-
-const handleDragOver = (event) => {
-  event.preventDefault()
-}
-
-const handleDragLeave = (event) => {
-  event.preventDefault()
-  if (event.target.classList.contains('file-drop-zone')) {
-    isDragging.value = false
-  }
-}
-
-const handleDrop = (event) => {
-  event.preventDefault()
-  isDragging.value = false
-  
-  const files = Array.from(event.dataTransfer.files)
-  const pdfFilesFiltered = files.filter(file => file.type === 'application/pdf' || file.name.endsWith('.pdf'))
-  
-  if (pdfFilesFiltered.length === 0) {
-    uploadError.value = 'Aucun fichier PDF trouvé'
-    return
-  }
-  
-  if (pdfFilesFiltered.length > 100) {
-    uploadError.value = 'Maximum 100 fichiers par upload'
-    return
-  }
-  
-  pdfFiles.value = pdfFilesFiltered
-  uploadError.value = null
 }
 
 const triggerFileInput = (inputRef) => {
@@ -322,42 +285,14 @@ const uploadExam = async () => {
         <template v-if="uploadMode === 'INDIVIDUAL_A4'">
           <div class="form-group">
             <label class="form-label">Fichiers PDF individuels (max 100)</label>
-            <div 
-              class="file-upload-zone file-drop-zone"
-              :class="{ 'dragging': isDragging }"
-              @dragenter="handleDragEnter"
-              @dragover="handleDragOver"
-              @dragleave="handleDragLeave"
-              @drop="handleDrop"
-            >
-              <div class="drop-zone-content">
-                <svg 
-                  class="upload-icon" 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
-                >
-                  <path 
-                    stroke-linecap="round" 
-                    stroke-linejoin="round" 
-                    stroke-width="2" 
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" 
-                  />
-                </svg>
-                <p class="drop-zone-text">
-                  <span v-if="isDragging" class="highlight">Déposez les fichiers ici</span>
-                  <span v-else>Glissez-déposez des PDFs ou</span>
-                </p>
-                <button 
-                  class="btn-file-select"
-                  :disabled="isUploading"
-                  @click.stop="triggerFileInput(fileInputMultiple)"
-                >
-                  Sélectionner des PDFs
-                </button>
-                <p class="drop-zone-hint">Maximum 100 fichiers PDF</p>
-              </div>
+            <div class="file-upload-zone">
+              <button 
+                class="btn-file-select"
+                :disabled="isUploading"
+                @click="triggerFileInput(fileInputMultiple)"
+              >
+                Sélectionner des PDFs
+              </button>
               <input 
                 ref="fileInputMultiple"
                 type="file" 
@@ -710,64 +645,5 @@ const uploadExam = async () => {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-/* Drag and Drop Styles */
-.file-drop-zone {
-  position: relative;
-  border: 2px dashed #cbd5e1;
-  border-radius: 12px;
-  padding: 2rem;
-  text-align: center;
-  transition: all 0.3s;
-  background: #f9fafb;
-}
-
-.file-drop-zone:hover {
-  border-color: #3b82f6;
-  background: #eff6ff;
-}
-
-.file-drop-zone.dragging {
-  border-color: #2563eb;
-  background: #dbeafe;
-  border-style: solid;
-}
-
-.drop-zone-content {
-  pointer-events: none;
-}
-
-.btn-file-select {
-  pointer-events: auto;
-}
-
-.upload-icon {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 1rem;
-  color: #6b7280;
-}
-
-.file-drop-zone.dragging .upload-icon {
-  color: #2563eb;
-}
-
-.drop-zone-text {
-  font-size: 1rem;
-  color: #4b5563;
-  margin-bottom: 1rem;
-}
-
-.drop-zone-text .highlight {
-  color: #2563eb;
-  font-weight: 600;
-}
-
-.drop-zone-hint {
-  font-size: 0.875rem;
-  color: #9ca3af;
-  margin-top: 0.5rem;
-  margin-bottom: 0;
 }
 </style>

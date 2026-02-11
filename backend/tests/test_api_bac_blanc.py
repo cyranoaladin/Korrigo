@@ -50,10 +50,11 @@ class BacBlancE2ETest(TestCase):
         
         # Create test student
         self.student = Student.objects.create(
-            email="jean.dupont@example.com",
-            full_name="Dupont Jean",
-            date_of_birth="2008-01-15",
+            ine="1234567890A",
+            first_name="Jean",
+            last_name="Dupont",
             class_name="TG2",
+            email="jean.dupont@example.com",
             user=self.student_user
         )
 
@@ -225,7 +226,7 @@ class BacBlancE2ETest(TestCase):
         copy = Copy.objects.create(
             exam=exam,
             anonymous_id="TEST456",
-            status=Copy.Status.READY  # Must be READY for identification
+            status=Copy.Status.STAGING
         )
         copy.booklets.add(booklet)
         
@@ -251,11 +252,10 @@ class BacBlancE2ETest(TestCase):
         """
         Test that student can access their graded copy
         """
-        # Create a fully processed copy (results must be released for student visibility)
+        # Create a fully processed copy
         exam = Exam.objects.create(
             name='Test Exam for Student',
-            date='2026-01-01',
-            results_released_at=timezone.now(),
+            date='2026-01-01'
         )
         
         booklet = Booklet.objects.create(

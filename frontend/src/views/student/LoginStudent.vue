@@ -42,7 +42,6 @@ const handleLogin = async () => {
           <label>Nom de Famille</label>
           <input
             v-model="lastName"
-            data-testid="student-login.lastname"
             type="text"
             placeholder="ex: DUPONT"
             required
@@ -71,7 +70,6 @@ const handleLogin = async () => {
         <div
           v-if="error"
           class="error-msg"
-          data-testid="student-login.error"
         >
           {{ error }}
         </div>
@@ -80,7 +78,6 @@ const handleLogin = async () => {
           type="submit"
           :disabled="loading"
           class="btn-login"
-          data-testid="student-login.submit"
         >
           {{ loading ? 'Connexion...' : 'Accéder à mes copies' }}
         </button>

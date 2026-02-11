@@ -4,7 +4,6 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.core.cache import cache
 
 class GlobalSettings(models.Model):
     """
@@ -15,44 +14,15 @@ class GlobalSettings(models.Model):
     default_exam_duration = models.PositiveIntegerField(default=60, verbose_name=_("Durée par défaut (min)"))
     notifications_enabled = models.BooleanField(default=True, verbose_name=_("Notifications Email"))
     
-    # Singleton pattern helper with caching
-    CACHE_KEY = 'global_settings'
-    CACHE_TIMEOUT = 300  # 5 minutes
-
+    # Singleton pattern helper
     @classmethod
     def load(cls):
-        """
-        Load global settings with Redis caching.
-        Phase 4: Performance optimization - cache for 5 minutes.
-        """
-        # Try to get from cache first
-        cached = cache.get(cls.CACHE_KEY)
-        if cached:
-            return cached
-
-        # Not in cache, fetch from database
         obj, created = cls.objects.get_or_create(pk=1)
-
-        # Store in cache
-        cache.set(cls.CACHE_KEY, obj, cls.CACHE_TIMEOUT)
-
         return obj
 
     def save(self, *args, **kwargs):
-        """Save and invalidate cache."""
         self.pk = 1
         super(GlobalSettings, self).save(*args, **kwargs)
-
-        # Phase 4: Invalidate cache on save
-        cache.delete(self.CACHE_KEY)
-
-    @classmethod
-    def clear_cache(cls):
-        """
-        Manually clear the settings cache.
-        Useful for debugging or after bulk updates.
-        """
-        cache.delete(cls.CACHE_KEY)
 
     class Meta:
         verbose_name = _("Configuration Système")

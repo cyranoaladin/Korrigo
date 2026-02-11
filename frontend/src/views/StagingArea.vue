@@ -1,9 +1,10 @@
 <script setup>
 import { ref } from 'vue'
 import { useExamStore } from '../stores/examStore'
-import { API_URL, csrfHeader } from '../services/http'
+import { useAuthStore } from '../stores/auth' // Need auth for direct calls if store lacks methods
 
 const store = useExamStore()
+const authStore = useAuthStore()
 const fileInput = ref(null)
 const selectedBookletIds = ref([])
 const splitMode = ref(null) // Booklet ID being split
@@ -37,10 +38,9 @@ const deleteBooklet = async (id, e) => {
     e.stopPropagation()
     if(!confirm("Supprimer ce fascicule définitivement ?")) return
     try {
-        await fetch(`${API_URL}/api/exams/booklets/${id}/`, {
+        await fetch(`${authStore.API_URL}/api/exams/booklets/${id}/`, {
             method: 'DELETE',
-            headers: { ...csrfHeader() },
-            credentials: 'include'
+            headers: authStore.authHeaders
         })
         store.fetchBooklets(store.currentExam.id)
     } catch {
@@ -57,10 +57,9 @@ const openSplit = (booklet, e) => {
 const performSplit = async () => {
     if (!splitMode.value) return
     try {
-        const res = await fetch(`${API_URL}/api/exams/booklets/${splitMode.value.id}/split/`, {
+        const res = await fetch(`${authStore.API_URL}/api/exams/booklets/${splitMode.value.id}/split/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...csrfHeader() },
-            credentials: 'include',
+            headers: { ...authStore.authHeaders, 'Content-Type': 'application/json' },
             body: JSON.stringify({ split_at: splitIndex.value })
         })
         if (res.ok) {

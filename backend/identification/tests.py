@@ -3,7 +3,7 @@ from django.contrib.auth.models import User, Group
 from exams.models import Exam, Copy, Booklet
 from students.models import Student
 from identification.models import OCRResult
-from identification.services.ocr_service import OCRService
+from identification.services import OCRService
 from unittest.mock import patch, MagicMock
 import tempfile
 import os
@@ -11,8 +11,6 @@ from PIL import Image
 
 
 class OCRServiceTest(TestCase):
-    """Tests for OCR Service with pytesseract."""
-    
     def setUp(self):
         # Create test user and groups
         self.admin_group = Group.objects.create(name='admin')
@@ -23,9 +21,9 @@ class OCRServiceTest(TestCase):
         
         # Create test student
         self.student = Student.objects.create(
-            email="jean.dupont@test.com",
-            full_name="Dupont Jean",
-            date_of_birth="2008-01-15",
+            ine="1234567890A",
+            first_name="Jean",
+            last_name="Dupont",
             class_name="TG2"
         )
         
@@ -42,60 +40,58 @@ class OCRServiceTest(TestCase):
         )
 
     def test_perform_ocr_on_header_with_mock(self):
-        """Test OCR with mocked pytesseract."""
         # Create a mock image for testing
         image = Image.new('RGB', (100, 50), color='white')
         temp_image = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
         image.save(temp_image.name)
         
-        try:
-            # Mock the pytesseract functionality at the correct module path
-            with patch('identification.services.ocr_service.pytesseract.image_to_string') as mock_ocr:
-                mock_ocr.return_value = "JEAN DUPONT"
+        # Mock the pytesseract functionality
+        with patch('identification.services.pytesseract.image_to_string') as mock_ocr:
+            mock_ocr.return_value = "JEAN DUPONT"
+            
+            with patch('identification.services.pytesseract.image_to_data') as mock_data:
+                mock_data.return_value = {'conf': [90, 85, 95]}
                 
-                with patch('identification.services.ocr_service.pytesseract.image_to_data') as mock_data:
-                    mock_data.return_value = {'conf': [90, 85, 95]}
+                with open(temp_image.name, 'rb') as img_file:
+                    result = OCRService.perform_ocr_on_header(img_file)
                     
-                    with open(temp_image.name, 'rb') as img_file:
-                        result = OCRService.perform_ocr_on_header(img_file)
-                        
-                        self.assertEqual(result['text'], "JEAN DUPONT")
-                        self.assertGreaterEqual(result['confidence'], 0.0)
-        finally:
-            # Clean up
-            os.unlink(temp_image.name)
+                    self.assertEqual(result['text'], "JEAN DUPONT")
+                    self.assertGreaterEqual(result['confidence'], 0.0)
+        
+        # Clean up
+        os.unlink(temp_image.name)
 
     def test_find_matching_students(self):
-        """Test the student matching functionality."""
-        ocr_text = "DUPONT JEAN"  # Match full_name format
+        # Test the student matching functionality
+        ocr_text = "JEAN DUPONT"
         suggestions = OCRService.find_matching_students(ocr_text)
         
         # Should find our test student
         self.assertIn(self.student, suggestions)
 
     def test_perform_ocr_on_header_error_handling(self):
-        """Test error handling in OCR service."""
-        # Mock Image.open at the correct module path
-        with patch('identification.services.ocr_service.Image.open') as mock_open:
+        # Test error handling in OCR service
+        with patch('identification.services.Image.open') as mock_open:
             mock_open.side_effect = Exception("Invalid image")
             
             # Create a dummy file-like object
-            with tempfile.NamedTemporaryFile() as dummy_file:
-                result = OCRService.perform_ocr_on_header(dummy_file)
-                
-                # Should return error information
-                self.assertIn('error', result)
-                self.assertEqual(result['text'], '')
-                self.assertEqual(result['confidence'], 0.0)
+            dummy_file = tempfile.NamedTemporaryFile()
+            
+            result = OCRService.perform_ocr_on_header(dummy_file)
+            
+            # Should return error information
+            self.assertIn('error', result)
+            self.assertEqual(result['text'], '')
+            self.assertEqual(result['confidence'], 0.0)
 
 
 class OCRViewsTest(TestCase):
     def setUp(self):
         # Create test data
         self.student = Student.objects.create(
-            email="jean.dupont@test.com",
-            full_name="Dupont Jean",
-            date_of_birth="2008-01-15",
+            ine="1234567890A",
+            first_name="Jean",
+            last_name="Dupont",
             class_name="TG2"
         )
 
@@ -154,9 +150,9 @@ class OCRViewsTest(TestCase):
 class OCRModelTest(TestCase):
     def setUp(self):
         self.student = Student.objects.create(
-            email="jean.dupont@test.com",
-            full_name="Dupont Jean",
-            date_of_birth="2008-01-15",
+            ine="1234567890A",
+            first_name="Jean",
+            last_name="Dupont",
             class_name="TG2"
         )
         

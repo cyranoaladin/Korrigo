@@ -1,5 +1,3 @@
-from decimal import Decimal
-from django.core.validators import MinValueValidator
 from django.db import models
 from django.conf import settings
 from exams.models import Copy
@@ -86,10 +84,8 @@ class Annotation(models.Model):
         verbose_name = _("Annotation")
         verbose_name_plural = _("Annotations")
         ordering = ['page_index', 'created_at']
-        # ZF-AUD-13: Performance indexes
         indexes = [
-            models.Index(fields=['copy', 'page_index'], name='ann_copy_page_idx'),
-            models.Index(fields=['created_by', 'created_at'], name='ann_creator_time_idx'),
+            models.Index(fields=['copy', 'page_index']),
         ]
 
     def __init__(self, *args, **kwargs):
@@ -160,10 +156,8 @@ class GradingEvent(models.Model):
         verbose_name = _("Événement de correction")
         verbose_name_plural = _("Événements de correction")
         ordering = ['-timestamp']
-        # ZF-AUD-13: Performance indexes
         indexes = [
-            models.Index(fields=['copy', 'timestamp'], name='event_copy_time_idx'),
-            models.Index(fields=['actor', 'action'], name='event_actor_action_idx'),
+            models.Index(fields=['copy', 'timestamp']),
         ]
 
     def __str__(self):
@@ -305,48 +299,3 @@ class QuestionRemark(models.Model):
 
     def __str__(self):
         return f"Remarque {self.question_id} - {self.copy.anonymous_id}"
-
-
-class QuestionScore(models.Model):
-    """
-    Note attribuée à une question spécifique d'une copie.
-    Permet de stocker les notes par question du barème.
-    """
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    copy = models.ForeignKey(
-        Copy,
-        on_delete=models.CASCADE,
-        related_name='question_scores',
-        verbose_name=_("Copie")
-    )
-    question_id = models.CharField(
-        max_length=255,
-        verbose_name=_("ID de la question"),
-        help_text=_("Identifiant de la question dans le barème")
-    )
-    score = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        verbose_name=_("Note"),
-        help_text=_("Note attribuée à cette question"),
-        validators=[MinValueValidator(Decimal('0'))],
-    )
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name='question_scores_created',
-        verbose_name=_("Créé par")
-    )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
-
-    class Meta:
-        verbose_name = _("Note de question")
-        verbose_name_plural = _("Notes de questions")
-        unique_together = ['copy', 'question_id']
-        indexes = [
-            models.Index(fields=['copy', 'question_id']),
-        ]
-
-    def __str__(self):
-        return f"Note {self.question_id}: {self.score} - {self.copy.anonymous_id}"
