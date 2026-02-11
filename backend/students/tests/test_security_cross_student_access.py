@@ -12,19 +12,17 @@ class TestCrossStudentAccessPrevention(TransactionTestCase):
         super().setUp()
         
         self.student_a = Student.objects.create(
-            ine="1111111111A",
             first_name="Alice",
             last_name="Martin",
             class_name="TG1",
-            birth_date=date(2005, 1, 15)
+            date_naissance=date(2005, 1, 15)
         )
         
         self.student_b = Student.objects.create(
-            ine="2222222222B",
             first_name="Bob",
             last_name="Durant",
             class_name="TG2",
-            birth_date=date(2005, 2, 20)
+            date_naissance=date(2005, 2, 20)
         )
         
         self.exam = Exam.objects.create(name="Security Test Exam", date="2026-01-15")
@@ -68,14 +66,16 @@ class TestCrossStudentAccessPrevention(TransactionTestCase):
     
     def login_student_a(self):
         self.client_a.post("/api/students/login/", {
-            "ine": "1111111111A",
-            "birth_date": "2005-01-15"
+            "last_name": "Martin",
+            "first_name": "Alice",
+            "date_naissance": "2005-01-15"
         }, content_type="application/json")
     
     def login_student_b(self):
         self.client_b.post("/api/students/login/", {
-            "ine": "2222222222B",
-            "birth_date": "2005-02-20"
+            "last_name": "Durant",
+            "first_name": "Bob",
+            "date_naissance": "2005-02-20"
         }, content_type="application/json")
     
     def test_student_sees_only_own_graded_copies(self):

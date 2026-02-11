@@ -27,17 +27,17 @@ class ExportPronoteCommandTests(TestCase):
         )
         
         self.student1 = Student.objects.create(
-            ine='11111111111',
             first_name='Alice',
             last_name='Durand',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-01-15'
         )
         
         self.student2 = Student.objects.create(
-            ine='22222222222',
             first_name='Bob',
             last_name='Martin',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-02-20'
         )
         
         self.user = User.objects.create_user(
@@ -118,10 +118,10 @@ class ExportPronoteCommandTests(TestCase):
     def test_command_validation_fails_missing_ine(self):
         """Test command fails validation with missing INE"""
         student_no_ine = Student.objects.create(
-            ine='',
             first_name='No',
             last_name='INE',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-03-10'
         )
         
         copy = Copy.objects.create(
@@ -380,10 +380,10 @@ class ExportPronoteCommandTests(TestCase):
     def test_command_handles_special_characters(self):
         """Test command handles accents and special chars"""
         student_accent = Student.objects.create(
-            ine='33333333333',
             first_name='François',
             last_name='Müller',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-04-01'
         )
         
         copy = Copy.objects.create(

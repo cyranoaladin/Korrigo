@@ -186,22 +186,22 @@ class PronoteExportTests(TestCase):
         self.teacher.groups.add(self.teacher_group)
         
         self.student1 = Student.objects.create(
-            ine='12345678901',
             first_name='Jean',
             last_name='Dupont',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-01-15'
         )
         self.student2 = Student.objects.create(
-            ine='98765432102',
             first_name='Sophie',
             last_name='Martin',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-02-20'
         )
         self.student3 = Student.objects.create(
-            ine='11223344503',
             first_name='Pierre',
             last_name='Durand',
-            class_name='TS2'
+            class_name='TS2',
+            date_naissance='2005-03-10'
         )
 
     def test_admin_only_permission(self):
@@ -338,10 +338,10 @@ class PronoteExportTests(TestCase):
 
     def test_export_reject_missing_ine(self):
         student_no_ine = Student.objects.create(
-            ine='',
             first_name='Test',
             last_name='NoINE',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-06-01'
         )
         copy = Copy.objects.create(
             exam=self.exam,
