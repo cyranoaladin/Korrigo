@@ -13,13 +13,14 @@ const fetchItems = async () => {
     try {
         if (activeTab.value === 'students') {
             const res = await api.get('/students/')
-            items.value = res.data
+            // Handle DRF pagination: { results: [...] } or flat array
+            items.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
         } else if (activeTab.value === 'teachers') {
             const res = await api.get('/users/', { params: { role: 'Teacher' } })
-            items.value = res.data
+            items.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
         } else if (activeTab.value === 'admins') {
             const res = await api.get('/users/', { params: { role: 'Admin' } })
-            items.value = res.data
+            items.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
         }
     } catch (e) {
         console.error("Failed to fetch items", e)
@@ -39,6 +40,7 @@ const filteredItems = computed(() => {
     const lower = searchQuery.value.toLowerCase()
     
     return items.value.filter(item => {
+        if (!item) return false
         if (activeTab.value === 'students') {
             return (item.last_name?.toLowerCase() || '').includes(lower) || 
                    (item.first_name?.toLowerCase() || '').includes(lower) || 

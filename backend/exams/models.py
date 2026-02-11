@@ -160,6 +160,10 @@ class Copy(models.Model):
         GRADING_FAILED = 'GRADING_FAILED', _("Échec de correction")
         GRADED = 'GRADED', _("Corrigé")
 
+    class SubjectVariant(models.TextChoices):
+        A = 'A', _("Sujet A")
+        B = 'B', _("Sujet B")
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(
         Exam, 
@@ -296,6 +300,16 @@ class Copy(models.Model):
         null=True,
         verbose_name=_("Appréciation globale"),
         help_text=_("Commentaire global du correcteur pour cette copie")
+    )
+
+    # Subject variant (Sujet A / Sujet B) — set manually by corrector
+    subject_variant = models.CharField(
+        max_length=1,
+        choices=SubjectVariant.choices,
+        null=True,
+        blank=True,
+        verbose_name=_("Variante du sujet"),
+        help_text=_("Sujet A ou B, identifié par le correcteur via la référence en bas de l'annexe")
     )
 
     class Meta:

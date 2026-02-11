@@ -145,7 +145,8 @@ class CopySerializer(serializers.ModelSerializer):
             'id', 'exam', 'exam_name', 'anonymous_id', 'final_pdf',
             'final_pdf_url', 'status', 'is_identified', 'student',
             'booklet_ids', 'assigned_corrector', 'assigned_corrector_username',
-            'dispatch_run_id', 'assigned_at', 'global_appreciation'
+            'dispatch_run_id', 'assigned_at', 'global_appreciation',
+            'subject_variant'
         ]
         read_only_fields = [
             'id', 'exam_name', 'final_pdf_url', 'booklet_ids',

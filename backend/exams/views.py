@@ -777,9 +777,11 @@ class CorrectorCopiesView(generics.ListAPIView):
             return base_qs
         return base_qs.filter(assigned_corrector=user)
 
-class CorrectorCopyDetailView(generics.RetrieveAPIView):
+class CorrectorCopyDetailView(generics.RetrieveUpdateAPIView):
     """
-    Permet au correcteur de récupérer les détails d'une copie spécifique.
+    Permet au correcteur de récupérer et mettre à jour les détails d'une copie.
+    GET  /api/copies/<id>/  → détails complets
+    PATCH /api/copies/<id>/ → mise à jour partielle (ex: subject_variant)
     """
     queryset = Copy.objects.select_related('exam', 'student', 'locked_by')\
         .prefetch_related('booklets', 'annotations__created_by')

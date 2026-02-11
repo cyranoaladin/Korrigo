@@ -2,7 +2,6 @@ import threading
 import datetime
 
 import pytest
-from django.db import connection
 from django.utils import timezone
 
 
@@ -10,10 +9,6 @@ pytestmark = pytest.mark.django_db(transaction=True)
 
 
 @pytest.mark.postgres
-@pytest.mark.skipif(
-    connection.vendor != "postgresql",
-    reason="PostgreSQL required for real row-level locking semantics.",
-)
 def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user):
     """Postgres-only: two concurrent finalize attempts on same Copy.
 
