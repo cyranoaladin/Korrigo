@@ -70,6 +70,14 @@ class Exam(models.Model):
         blank=True
     )
     
+    # Result release control
+    results_released_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Date de publication des résultats"),
+        help_text=_("Quand non-null, les élèves peuvent voir leurs résultats")
+    )
+
     # P7 FIX: Timestamps for audit trail
     created_at = models.DateTimeField(
         auto_now_add=True,

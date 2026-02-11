@@ -163,5 +163,39 @@ export default {
             config
         );
         return response.data;
-    }
+    },
+
+    // --- Per-question Scores ---
+
+    async fetchScores(copyId) {
+        const response = await api.get(`/grading/copies/${copyId}/scores/`);
+        return response.data;
+    },
+
+    async saveScores(copyId, scoresData, finalComment = '') {
+        const response = await api.put(`/grading/copies/${copyId}/scores/`, {
+            scores_data: scoresData,
+            final_comment: finalComment,
+        });
+        return response.data;
+    },
+
+    // --- Corrector Stats ---
+
+    async fetchExamStats(examId) {
+        const response = await api.get(`/grading/exams/${examId}/stats/`);
+        return response.data;
+    },
+
+    // --- Release Results ---
+
+    async releaseResults(examId) {
+        const response = await api.post(`/grading/exams/${examId}/release-results/`);
+        return response.data;
+    },
+
+    async unreleaseResults(examId) {
+        const response = await api.post(`/grading/exams/${examId}/unrelease-results/`);
+        return response.data;
+    },
 };

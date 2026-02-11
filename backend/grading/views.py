@@ -4,14 +4,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.http import FileResponse
 from rest_framework.permissions import IsAuthenticated
-from .models import Annotation, GradingEvent, QuestionRemark
-from exams.models import Copy
+from .models import Annotation, GradingEvent, QuestionRemark, Score
+from exams.models import Copy, Exam
 from .serializers import AnnotationSerializer, GradingEventSerializer, QuestionRemarkSerializer
 from exams.permissions import IsTeacherOrAdmin
 from .permissions import IsLockedByOwnerOrReadOnly
 from django.shortcuts import get_object_or_404
 from grading.services import AnnotationService, GradingService, LockConflictError
 from core.auth import UserRole
+from django.db.models import Avg, StdDev, Min, Max, Count
+import statistics
 import logging
 
 logger = logging.getLogger(__name__)
@@ -398,7 +400,7 @@ class CopyGlobalAppreciationView(APIView):
     def _update(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
         global_appreciation = request.data.get('global_appreciation', '')
-        
+
         copy.global_appreciation = global_appreciation
         copy.save(update_fields=['global_appreciation'])
 
@@ -406,3 +408,222 @@ class CopyGlobalAppreciationView(APIView):
             'copy_id': str(copy.id),
             'global_appreciation': copy.global_appreciation or ''
         })
+
+
+class CopyScoresView(APIView):
+    """
+    GET/PUT /api/grading/copies/<uuid>/scores/
+    Save and retrieve per-question scores for a copy.
+    scores_data format: {"question_id": score_value, ...}
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def get(self, request, copy_id):
+        copy = get_object_or_404(Copy, id=copy_id)
+        score = Score.objects.filter(copy=copy).first()
+        if not score:
+            return Response({
+                'copy_id': str(copy.id),
+                'scores_data': {},
+                'final_comment': '',
+            })
+        return Response({
+            'copy_id': str(copy.id),
+            'scores_data': score.scores_data or {},
+            'final_comment': score.final_comment or '',
+        })
+
+    def put(self, request, copy_id):
+        copy = get_object_or_404(Copy, id=copy_id)
+
+        if copy.status == Copy.Status.GRADED:
+            return Response(
+                {"detail": "Cannot modify scores of a graded copy."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        scores_data = request.data.get('scores_data', {})
+        final_comment = request.data.get('final_comment', '')
+
+        if not isinstance(scores_data, dict):
+            return Response(
+                {"detail": "scores_data must be a dict."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate score values are numeric
+        for qid, val in scores_data.items():
+            if val is not None and val != '':
+                try:
+                    float(val)
+                except (TypeError, ValueError):
+                    return Response(
+                        {"detail": f"Score for '{qid}' must be numeric, got '{val}'."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+        score, created = Score.objects.update_or_create(
+            copy=copy,
+            defaults={
+                'scores_data': scores_data,
+                'final_comment': final_comment,
+            }
+        )
+
+        return Response({
+            'copy_id': str(copy.id),
+            'scores_data': score.scores_data,
+            'final_comment': score.final_comment or '',
+            'updated': True,
+        })
+
+
+class CorrectorStatsView(APIView):
+    """
+    GET /api/grading/exams/<uuid>/stats/
+    Returns grading statistics for the corrector's lot and the global exam.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, exam_id):
+        exam = get_object_or_404(Exam, id=exam_id)
+
+        # Determine if current user is a corrector for this exam
+        is_corrector = exam.correctors.filter(id=request.user.id).exists()
+        is_admin = request.user.is_superuser or request.user.groups.filter(name=UserRole.ADMIN).exists()
+
+        if not is_corrector and not is_admin:
+            return Response(
+                {"detail": "Not authorized for this exam."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Get all graded copies for this exam
+        all_graded = Copy.objects.filter(
+            exam=exam, status=Copy.Status.GRADED
+        ).select_related('assigned_corrector')
+
+        # Get all copies for this exam
+        total_copies = Copy.objects.filter(exam=exam).count()
+        graded_count = all_graded.count()
+
+        # Calculate global scores
+        global_scores = self._get_scores_for_copies(all_graded)
+
+        result = {
+            'exam_id': str(exam.id),
+            'exam_name': exam.name,
+            'total_copies': total_copies,
+            'graded_copies': graded_count,
+            'all_graded': graded_count == total_copies and total_copies > 0,
+            'global_stats': self._compute_stats(global_scores),
+            'global_distribution': self._compute_distribution(global_scores),
+        }
+
+        # If corrector, add lot-specific stats
+        if is_corrector:
+            lot_graded = all_graded.filter(assigned_corrector=request.user)
+            lot_total = Copy.objects.filter(
+                exam=exam, assigned_corrector=request.user
+            ).count()
+            lot_scores = self._get_scores_for_copies(lot_graded)
+
+            result['lot_stats'] = {
+                'total': lot_total,
+                'graded': lot_graded.count(),
+                'all_graded': lot_graded.count() == lot_total and lot_total > 0,
+                **self._compute_stats(lot_scores),
+            }
+            result['lot_distribution'] = self._compute_distribution(lot_scores)
+
+        return Response(result)
+
+    def _get_scores_for_copies(self, copies_qs):
+        """Extract total scores from Score objects for given copies."""
+        scores = []
+        for copy in copies_qs:
+            score_obj = Score.objects.filter(copy=copy).first()
+            if score_obj and score_obj.scores_data:
+                total = 0
+                for val in score_obj.scores_data.values():
+                    try:
+                        total += float(val) if val is not None and val != '' else 0
+                    except (TypeError, ValueError):
+                        pass
+                scores.append(total)
+        return scores
+
+    def _compute_stats(self, scores):
+        """Compute statistical indicators."""
+        if not scores:
+            return {
+                'mean': None, 'median': None, 'std_dev': None,
+                'min': None, 'max': None, 'count': 0,
+            }
+        return {
+            'mean': round(statistics.mean(scores), 2),
+            'median': round(statistics.median(scores), 2),
+            'std_dev': round(statistics.stdev(scores), 2) if len(scores) > 1 else 0,
+            'min': round(min(scores), 2),
+            'max': round(max(scores), 2),
+            'count': len(scores),
+        }
+
+    def _compute_distribution(self, scores):
+        """Compute histogram distribution (bins of 2 points)."""
+        if not scores:
+            return []
+        max_score = max(scores) if scores else 20
+        bin_size = 2
+        bins = []
+        for start in range(0, int(max_score) + bin_size, bin_size):
+            end = start + bin_size
+            count = sum(1 for s in scores if start <= s < end)
+            bins.append({
+                'range': f"{start}-{end}",
+                'start': start,
+                'end': end,
+                'count': count,
+            })
+        return bins
+
+
+class ExamReleaseResultsView(APIView):
+    """
+    POST /api/exams/<uuid>/release-results/
+    Mark exam results as released (students can see their grades).
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, exam_id):
+        exam = get_object_or_404(Exam, id=exam_id)
+
+        if exam.results_released_at:
+            return Response({
+                'message': 'Results already released.',
+                'released_at': exam.results_released_at.isoformat(),
+            })
+
+        from django.utils import timezone
+        exam.results_released_at = timezone.now()
+        exam.save(update_fields=['results_released_at'])
+
+        return Response({
+            'message': 'Results released successfully.',
+            'released_at': exam.results_released_at.isoformat(),
+        })
+
+
+class ExamUnreleaseResultsView(APIView):
+    """
+    POST /api/exams/<uuid>/unrelease-results/
+    Revoke result visibility for students.
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, exam_id):
+        exam = get_object_or_404(Exam, id=exam_id)
+        exam.results_released_at = None
+        exam.save(update_fields=['results_released_at'])
+
+        return Response({'message': 'Results unreleased.'})

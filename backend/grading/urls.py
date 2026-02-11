@@ -11,7 +11,11 @@ from grading.views import (
     CopyAuditView,
     QuestionRemarkListCreateView,
     QuestionRemarkDetailView,
-    CopyGlobalAppreciationView
+    CopyGlobalAppreciationView,
+    CopyScoresView,
+    CorrectorStatsView,
+    ExamReleaseResultsView,
+    ExamUnreleaseResultsView,
 )
 from grading.views_lock import (
     LockAcquireView,
@@ -52,4 +56,14 @@ urlpatterns = [
     
     # Global Appreciation
     path('copies/<uuid:copy_id>/global-appreciation/', CopyGlobalAppreciationView.as_view(), name='copy-global-appreciation'),
+
+    # Per-question Scores
+    path('copies/<uuid:copy_id>/scores/', CopyScoresView.as_view(), name='copy-scores'),
+
+    # Corrector Stats
+    path('exams/<uuid:exam_id>/stats/', CorrectorStatsView.as_view(), name='corrector-stats'),
+
+    # Release/Unrelease Results
+    path('exams/<uuid:exam_id>/release-results/', ExamReleaseResultsView.as_view(), name='exam-release-results'),
+    path('exams/<uuid:exam_id>/unrelease-results/', ExamUnreleaseResultsView.as_view(), name='exam-unrelease-results'),
 ]

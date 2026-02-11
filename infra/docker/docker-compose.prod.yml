@@ -36,6 +36,7 @@ services:
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
+      - seed_data:/app/seed_data:ro
     depends_on:
       db:
         condition: service_healthy
@@ -56,6 +57,9 @@ services:
       METRICS_TOKEN: "${METRICS_TOKEN:?err}"
       ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
       TEACHER_PASSWORD: "${TEACHER_PASSWORD:-}"
+      SEED_ON_START: "${SEED_ON_START:-false}"
+      DEFAULT_PASSWORD: "${DEFAULT_PASSWORD:-passe123}"
+      SEED_DATA_DIR: "/app/seed_data"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health/" ]
       interval: 15s
@@ -123,3 +127,9 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
+  seed_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${SEED_DATA_HOST_PATH:-./seed_data}
