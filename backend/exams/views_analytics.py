@@ -7,7 +7,7 @@ from rest_framework import status
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
 from datetime import timedelta
-from core.permissions import IsAdminOnly
+from core.auth import IsAdminOnly
 from exams.models import UploadMetrics, Exam
 
 
