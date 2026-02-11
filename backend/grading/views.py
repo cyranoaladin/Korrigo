@@ -4,9 +4,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.http import FileResponse
 from rest_framework.permissions import IsAuthenticated
-from .models import Annotation, GradingEvent, QuestionRemark, QuestionScore
+from .models import Annotation, GradingEvent, QuestionRemark
 from exams.models import Copy
-from .serializers import AnnotationSerializer, GradingEventSerializer, QuestionRemarkSerializer, QuestionScoreSerializer
+from .serializers import AnnotationSerializer, GradingEventSerializer, QuestionRemarkSerializer
 from exams.permissions import IsTeacherOrAdmin
 from .permissions import IsLockedByOwnerOrReadOnly
 from django.shortcuts import get_object_or_404
@@ -66,7 +66,6 @@ class AnnotationListCreateView(generics.ListCreateAPIView):
     """
     permission_classes = [IsTeacherOrAdmin, IsLockedByOwnerOrReadOnly]
     serializer_class = AnnotationSerializer
-    pagination_class = None  # Per-copy annotations, no pagination needed
 
     def get_queryset(self):
         copy_id = self.kwargs['copy_id']
@@ -283,7 +282,6 @@ class CopyAuditView(generics.ListAPIView):
     """
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = GradingEventSerializer
-    pagination_class = None  # Per-copy audit log, no pagination needed
 
     def get_queryset(self):
         copy_id = self.kwargs['id']
@@ -299,7 +297,6 @@ class QuestionRemarkListCreateView(generics.ListCreateAPIView):
     """
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = QuestionRemarkSerializer
-    pagination_class = None  # Per-copy remarks are always small, no pagination needed
 
     def get_queryset(self):
         copy_id = self.kwargs['copy_id']
@@ -400,15 +397,8 @@ class CopyGlobalAppreciationView(APIView):
 
     def _update(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
-
-        # Cannot modify appreciation after finalization
-        if copy.status == Copy.Status.GRADED:
-            return Response(
-                {"detail": "Cannot modify appreciation of a finalized copy."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         global_appreciation = request.data.get('global_appreciation', '')
+        
         copy.global_appreciation = global_appreciation
         copy.save(update_fields=['global_appreciation'])
 
@@ -416,98 +406,3 @@ class CopyGlobalAppreciationView(APIView):
             'copy_id': str(copy.id),
             'global_appreciation': copy.global_appreciation or ''
         })
-
-
-class QuestionScoreListCreateView(generics.ListCreateAPIView):
-    """
-    GET: Liste les notes d'une copie.
-    POST: Crée ou met à jour une note sur une question.
-    """
-    permission_classes = [IsTeacherOrAdmin]
-    serializer_class = QuestionScoreSerializer
-    pagination_class = None  # Per-copy scores are always small, no pagination needed
-
-    def get_queryset(self):
-        copy_id = self.kwargs['copy_id']
-        copy = get_object_or_404(Copy, id=copy_id)
-        return QuestionScore.objects.filter(copy=copy).select_related('created_by').order_by('created_at')
-
-    @staticmethod
-    def _find_question_in_structure(structure, question_id):
-        """Recursively find a question node by ID in grading_structure."""
-        if not structure:
-            return None
-        for node in structure:
-            if node.get('id') == question_id:
-                return node
-            children = node.get('children', [])
-            if children:
-                found = QuestionScoreListCreateView._find_question_in_structure(children, question_id)
-                if found:
-                    return found
-        return None
-
-    def create(self, request, *args, **kwargs):
-        copy_id = self.kwargs['copy_id']
-        copy = get_object_or_404(Copy, id=copy_id)
-        question_id = request.data.get('question_id')
-        score = request.data.get('score')
-
-        if not question_id:
-            return Response(
-                {"detail": "question_id is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if score is None:
-            return Response(
-                {"detail": "score is required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            score = float(score)
-        except (ValueError, TypeError):
-            return Response(
-                {"detail": "score must be a number."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Validate score >= 0
-        if score < 0:
-            return Response(
-                {"detail": "score must be >= 0."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Validate question_id exists in barème and score <= max
-        grading_structure = copy.exam.grading_structure or []
-        if grading_structure:
-            question_node = self._find_question_in_structure(grading_structure, question_id)
-            if question_node is None:
-                return Response(
-                    {"detail": f"question_id '{question_id}' not found in exam grading structure."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            max_points = float(question_node.get('points', 0))
-            if max_points > 0 and score > max_points:
-                return Response(
-                    {"detail": f"score {score} exceeds max {max_points} for question '{question_id}'."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-        # Update or create
-        obj, created = QuestionScore.objects.update_or_create(
-            copy=copy,
-            question_id=question_id,
-            defaults={
-                'score': score,
-                'created_by': request.user
-            }
-        )
-
-        serializer = self.get_serializer(obj)
-        return Response(
-            serializer.data,
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
-        )

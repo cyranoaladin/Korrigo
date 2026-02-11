@@ -12,26 +12,27 @@ from django.core.files.base import ContentFile
 from exams.models import Exam, Copy
 from students.models import Student
 
-def seed_gate4(student_email=None, student_lastname=None):
+def seed_gate4(student_ine=None, student_lastname=None):
     """Seed Gate 4 data with parameterizable student credentials."""
     print("Seeding Gate 4 Data...")
 
     # Use env vars if not provided
-    if student_email is None:
-        student_email = os.environ.get("E2E_STUDENT_EMAIL", "e2e.student@test.com")
+    if student_ine is None:
+        student_ine = os.environ.get("E2E_STUDENT_INE", "123456789")
     if student_lastname is None:
         student_lastname = os.environ.get("E2E_STUDENT_LASTNAME", "E2E_STUDENT")
 
     # 1. Create Student
     student, created = Student.objects.get_or_create(
-        email=student_email,
+        ine=student_ine,
         defaults={
-            "full_name": f"{student_lastname} Jean",
-            "date_of_birth": "2008-01-15",
-            "class_name": "TG2",
+            "first_name": "Jean",
+            "last_name": student_lastname,
+            "class_name": "Terminale S",
+            "email": "jean.e2e@example.com"
         }
     )
-    print(f"Gate4: student_id={student.id} email={student.email} last={student.last_name} created={created}")
+    print(f"Gate4: student_id={student.id} ine={student.ine} last={student.last_name} created={created}")
     
     # 2. Create Exam
     exam, _ = Exam.objects.get_or_create(name="Gate 4 Exam", date="2025-06-15")
@@ -84,12 +85,9 @@ def seed_gate4(student_email=None, student_lastname=None):
     
     # C) Graded & Other (Should NOT be visible/downloadable)
     other_student, _ = Student.objects.get_or_create(
-        email="other.student@test.com",
-        defaults={
-            "last_name": "OTHER",
-            "first_name": "Student",
-            "class_name": "TG2"
-        }
+        ine="987654321",
+        last_name="OTHER",
+        first_name="Student"
     )
     copy_other, _ = Copy.objects.get_or_create(
         exam=exam,

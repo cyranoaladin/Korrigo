@@ -11,8 +11,7 @@ from grading.views import (
     CopyAuditView,
     QuestionRemarkListCreateView,
     QuestionRemarkDetailView,
-    CopyGlobalAppreciationView,
-    QuestionScoreListCreateView
+    CopyGlobalAppreciationView
 )
 from grading.views_lock import (
     LockAcquireView,
@@ -50,9 +49,6 @@ urlpatterns = [
     # Question Remarks
     path('copies/<uuid:copy_id>/remarks/', QuestionRemarkListCreateView.as_view(), name='question-remark-list-create'),
     path('remarks/<uuid:pk>/', QuestionRemarkDetailView.as_view(), name='question-remark-detail'),
-    
-    # Question Scores
-    path('copies/<uuid:copy_id>/scores/', QuestionScoreListCreateView.as_view(), name='question-score-list-create'),
     
     # Global Appreciation
     path('copies/<uuid:copy_id>/global-appreciation/', CopyGlobalAppreciationView.as_view(), name='copy-global-appreciation'),

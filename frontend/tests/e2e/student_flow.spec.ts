@@ -47,16 +47,15 @@ test.describe('Student Flow (Mission 17)', () => {
         await page.goto('/student/login');
         await expect(page).toHaveURL(/student\/login/, { timeout: 15000 });
 
-        // Use data-testid selectors with fallback to placeholder
-        await page.fill('[data-testid="student-login.email"], input[placeholder="votre.email@example.com"]', CREDS.student.email);
-        await page.fill('[data-testid="student-login.lastname"], input[placeholder="Votre nom"]', CREDS.student.lastname);
+        await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
+        await page.fill('input[placeholder="Votre nom"]', CREDS.student.lastname);
 
         // Wait for login API 200 (more robust than URL-only)
         const loginRespPromise = page.waitForResponse(resp =>
             resp.url().includes('/api/students/login/') && resp.status() === 200
         );
 
-        await page.click('[data-testid="student-login.submit"], button[type="submit"]');
+        await page.click('button[type="submit"]');
         await loginRespPromise;
 
         // 2) REDIRECT TO PORTAL
@@ -70,46 +69,40 @@ test.describe('Student Flow (Mission 17)', () => {
 
         await examItem.click();
 
-        // 4) PDF LINK (optional - may not be available in E2E seed)
+        // 4) PDF LINK
         const pdfLink = page.locator('a.btn-download');
-        const hasPdfLink = await pdfLink.isVisible().catch(() => false);
-        
-        if (hasPdfLink) {
-            const href = await pdfLink.getAttribute('href');
-            expect(href).toBeTruthy();
-            expect(href || '').toContain('/api/grading/copies/');
-            expect(href || '').toContain('/final-pdf/');
+        await expect(pdfLink).toBeVisible();
 
-            // 5) Verify PDF is accessible (robust: avoid race with iframe auto-load)
-            const pdfResp = await page.request.get(href!, {
-                headers: { 'Accept': 'application/pdf' }
-            });
-            expect(pdfResp.status()).toBe(200);
-            const ct = (pdfResp.headers()['content-type'] || '').toLowerCase();
-            expect(ct).toContain('application/pdf');
-        } else {
-            // PDF not available in E2E seed - verify score is displayed instead
-            const scoreValue = page.locator('.score-value');
-            await expect(scoreValue).toBeVisible({ timeout: 5000 });
-            console.log('[e2e] PDF link not available, but score is visible - test passes');
-        }
+        const href = await pdfLink.getAttribute('href');
+        expect(href).toBeTruthy();
+        expect(href || '').toContain('/api/grading/copies/');
+        expect(href || '').toContain('/final-pdf/');
+
+        // 5) Verify PDF is accessible (robust: avoid race with iframe auto-load)
+        // Use page.request to reuse the browser session cookies (student session).
+        const pdfResp = await page.request.get(href!, {
+            headers: { 'Accept': 'application/pdf' }
+        });
+        expect(pdfResp.status()).toBe(200);
+        const ct = (pdfResp.headers()['content-type'] || '').toLowerCase();
+        expect(ct).toContain('application/pdf');
     });
 
     test('Security: Student cannot access another student\'s PDF (403)', async ({ browser }) => {
         // HELPER: Robust login function
-        async function loginAs(contextPage: any, email: string, name: string) {
+        async function loginAs(contextPage: any, ine: string, name: string) {
             // Relative URL to bypass any relative routing ambiguity
             await contextPage.goto('/student/login', { waitUntil: 'domcontentloaded' });
             await expect(contextPage).toHaveURL(/\/student\/login/, { timeout: 15000 });
 
-            await contextPage.fill('[data-testid="student-login.email"], input[placeholder="votre.email@example.com"]', email);
-            await contextPage.fill('[data-testid="student-login.lastname"], input[placeholder="Votre nom"]', name);
+            await contextPage.fill('input[placeholder="ex: 123456789A"]', ine);
+            await contextPage.fill('input[placeholder="Votre nom"]', name);
 
             const loginResp = contextPage.waitForResponse((r: any) =>
                 r.url().includes('/api/students/login/') && r.status() === 200
             );
 
-            await contextPage.click('[data-testid="student-login.submit"], button[type="submit"]');
+            await contextPage.click('button[type="submit"]');
             await loginResp;
             await contextPage.waitForURL(/\/student-portal/, { timeout: 15000 });
         }
@@ -117,12 +110,12 @@ test.describe('Student Flow (Mission 17)', () => {
         // CONTEXT A: Student 1 (E2E_STUDENT)
         const ctxA = await browser.newContext();
         const pageA = await ctxA.newPage();
-        await loginAs(pageA, CREDS.student.email, CREDS.student.lastname);
+        await loginAs(pageA, CREDS.student.ine, CREDS.student.lastname);
 
-        // CONTEXT B: Student 2 (OTHER_STUDENT - first word of full_name)
+        // CONTEXT B: Student 2 (OTHER)
         const ctxB = await browser.newContext();
         const pageB = await ctxB.newPage();
-        await loginAs(pageB, 'other.student@test.com', 'OTHER_STUDENT');
+        await loginAs(pageB, '987654321', 'OTHER');
 
         // Get OTHER copy id with user B
         const otherCopiesResp = await pageB.request.get('/api/students/copies/');
@@ -146,13 +139,13 @@ test.describe('Student Flow (Mission 17)', () => {
         // Login as the test student
         await page.goto('/student/login');
         await expect(page).toHaveURL(/\/student\/login/, { timeout: 15000 });
-        await page.fill('[data-testid="student-login.email"], input[placeholder="votre.email@example.com"]', CREDS.student.email);
-        await page.fill('[data-testid="student-login.lastname"], input[placeholder="Votre nom"]', CREDS.student.lastname);
+        await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
+        await page.fill('input[placeholder="Votre nom"]', CREDS.student.lastname);
 
         const loginRespPromise = page.waitForResponse(resp =>
             resp.url().includes('/api/students/login/') && resp.status() === 200
         );
-        await page.click('[data-testid="student-login.submit"], button[type="submit"]');
+        await page.click('button[type="submit"]');
         await loginRespPromise;
 
         await page.waitForURL(/\/student-portal/, { timeout: 15000 });

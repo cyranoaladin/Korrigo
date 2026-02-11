@@ -1,10 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import api from '../../services/api'
-import AdminLayout from '../../components/AdminLayout.vue'
-
-/* expose window.alert to template */
-const showAlert = (msg) => window.alert(msg)
 
 const activeTab = ref('students') // 'students', 'teachers', 'admins'
 const items = ref([])
@@ -17,14 +13,13 @@ const fetchItems = async () => {
     try {
         if (activeTab.value === 'students') {
             const res = await api.get('/students/')
-            // Handle paginated response (results array) or direct array
-            items.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
+            items.value = res.data
         } else if (activeTab.value === 'teachers') {
             const res = await api.get('/users/', { params: { role: 'Teacher' } })
-            items.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
+            items.value = res.data
         } else if (activeTab.value === 'admins') {
             const res = await api.get('/users/', { params: { role: 'Admin' } })
-            items.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
+            items.value = res.data
         }
     } catch (e) {
         console.error("Failed to fetch items", e)
@@ -40,20 +35,18 @@ watch(activeTab, () => {
 })
 
 const filteredItems = computed(() => {
-    // Filter out null/undefined items and ensure each item has an id
-    const validItems = (items.value || []).filter(item => item && item.id)
-    
-    if (!searchQuery.value) return validItems
+    if (!searchQuery.value) return items.value
     const lower = searchQuery.value.toLowerCase()
     
-    return validItems.filter(item => {
+    return items.value.filter(item => {
         if (activeTab.value === 'students') {
-            return (item.full_name?.toLowerCase() || '').includes(lower) || 
-                   (item.email?.toLowerCase() || '').includes(lower) ||
-                   (item.class_name?.toLowerCase() || '').includes(lower)
+            return (item.last_name?.toLowerCase() || '').includes(lower) || 
+                   (item.first_name?.toLowerCase() || '').includes(lower) || 
+                   (item.ine?.toLowerCase() || '').includes(lower)
         } else {
             return (item.username?.toLowerCase() || '').includes(lower) || 
-                   (item.email?.toLowerCase() || '').includes(lower)
+                   (item.email?.toLowerCase() || '').includes(lower) ||
+                   (item.last_name?.toLowerCase() || '').includes(lower)
         }
     })
 })
@@ -192,11 +185,10 @@ const copyToClipboard = () => {
 </script>
 
 <template>
-  <AdminLayout>
-    <div class="user-management">
-      <header class="page-header">
-        <h2>Gestion des Utilisateurs</h2>
-        <div class="actions">
+  <div class="user-management">
+    <header class="page-header">
+      <h2>Gestion des Utilisateurs</h2>
+      <div class="actions">
         <input 
           v-model="searchQuery" 
           type="text" 
@@ -269,9 +261,9 @@ const copyToClipboard = () => {
     >
       <thead>
         <tr v-if="activeTab === 'students'">
-          <th>Nom et Prénom</th>
-          <th>Date de Naissance</th>
-          <th>Email</th>
+          <th>INE</th>
+          <th>Nom</th>
+          <th>Prénom</th>
           <th>Classe</th>
           <th>Actions</th>
         </tr>
@@ -290,14 +282,16 @@ const copyToClipboard = () => {
         >
           <!-- Student Row -->
           <template v-if="activeTab === 'students'">
-            <td class="font-bold">{{ item.full_name }}</td>
-            <td>{{ item.date_of_birth ? new Date(item.date_of_birth).toLocaleDateString('fr-FR') : '-' }}</td>
-            <td>{{ item.email || '-' }}</td>
-            <td>{{ item.class_name || '-' }}</td>
+            <td>{{ item.ine }}</td>
+            <td class="font-bold">
+              {{ item.last_name }}
+            </td>
+            <td>{{ item.first_name }}</td>
+            <td>{{ item.class_name }}</td>
             <td>
               <button
                 class="btn-sm btn-outline"
-                @click="showAlert('Détails élève #' + item.id)"
+                @click="alert('Détails élève #' + item.id)"
               >
                 Voir
               </button>
@@ -469,8 +463,7 @@ const copyToClipboard = () => {
         </div>
       </div>
     </div>
-    </div>
-  </AdminLayout>
+  </div>
 </template>
 
 <style scoped>

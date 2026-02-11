@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '../services/api' // Import Axios instance
-import { API_URL } from '../services/http'
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref(null)
@@ -63,23 +62,15 @@ export const useAuthStore = defineStore('auth', () => {
             if (!preferStudent) {
                 try {
                     const res = await api.get('/me/')
-                    if (res.data && res.data.role) {
-                        user.value = res.data
-                        return // SUCCESS - don't try student endpoint
-                    }
-                } catch (err) {
-                    // Only try student endpoint if /me/ returns 403 or 401
-                    if (err.response && (err.response.status === 403 || err.response.status === 401)) {
-                        // Fallthrough to student check
-                    } else {
-                        // Other error - don't try student endpoint
-                        user.value = null
-                        return
-                    }
+                    user.value = res.data
+                    user.value.role = user.value.role || 'Admin'
+                    return
+                } catch {
+                    // Ignore error and fallthrough to student check if not preferred but standard failed
                 }
             }
 
-            // If preferStudent or /me/ returned 403/401, try student endpoint
+            // If failed or preferStudent, try student endpoint
             try {
                 const res = await api.get('/students/me/')
                 user.value = { ...res.data, role: 'Student' }
@@ -108,7 +99,6 @@ export const useAuthStore = defineStore('auth', () => {
         loginStudent, 
         logout, 
         fetchUser,
-        clearMustChangePassword,
-        API_URL
+        clearMustChangePassword
     }
 })

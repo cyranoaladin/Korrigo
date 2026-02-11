@@ -13,9 +13,8 @@ const loading = ref(true)
 const fetchCopies = async () => {
     loading.value = true
     try {
-        const res = await api.get('/exams/student/copies/')
-        const data = res.data
-        copies.value = Array.isArray(data) ? data : (data.results || [])
+        const res = await api.get('/students/copies/')
+        copies.value = res.data
         if (copies.value.length > 0) {
             selectedCopy.value = copies.value[0]
         }
@@ -91,7 +90,7 @@ onMounted(() => {
               <span class="exam-date">{{ copy.date }}</span>
             </div>
             <div class="copy-score">
-              Note: <span class="score-value">{{ copy.total_score ? copy.total_score.toFixed(2) : 'N/A' }}</span> / 20
+              Note: <span class="score-value">{{ copy.total_score.toFixed(2) }}</span> / 20
             </div>
           </li>
         </ul>
@@ -118,40 +117,15 @@ onMounted(() => {
           <!-- Tabs or Split vertical? Let's do TOP: Breakdown, BOTTOM: PDF -->
                     
           <div class="score-breakdown">
-            <div class="score-total">
-              Note totale: <b>{{ selectedCopy.total_score ? selectedCopy.total_score.toFixed(2) : 'N/A' }}</b>
-              <span
-                v-if="selectedCopy.graded_at"
-                class="graded-date"
-              >
-                — Corrige le {{ new Date(selectedCopy.graded_at).toLocaleDateString('fr-FR') }}
-              </span>
-            </div>
-            <h4>Detail des points</h4>
-            <div
-              v-if="selectedCopy.scores_details && Object.keys(selectedCopy.scores_details).length > 0"
-              class="tags"
-            >
+            <h4>Détail des points</h4>
+            <div class="tags">
               <span
                 v-for="(val, key) in selectedCopy.scores_details"
                 :key="key"
                 class="tag"
               >
-                {{ key }}: <b>{{ val != null ? val : '-' }}</b>
+                {{ key }}: <b>{{ val }}</b>
               </span>
-            </div>
-            <div
-              v-else
-              class="no-details"
-            >
-              Pas de detail disponible.
-            </div>
-            <div
-              v-if="selectedCopy.global_appreciation"
-              class="appreciation"
-            >
-              <h4>Appreciation</h4>
-              <p>{{ selectedCopy.global_appreciation }}</p>
             </div>
           </div>
                     
@@ -217,12 +191,6 @@ onMounted(() => {
 .score-breakdown h4 { margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
 .tags { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .tag { background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; color: #374151; border: 1px solid #e5e7eb; }
-
-.score-total { font-size: 1.1rem; color: #1f2937; margin-bottom: 0.75rem; }
-.graded-date { font-size: 0.85rem; color: #6b7280; font-weight: 400; }
-.no-details { color: #9ca3af; font-size: 0.85rem; font-style: italic; }
-.appreciation { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; }
-.appreciation p { margin: 0.25rem 0 0; color: #374151; font-size: 0.95rem; white-space: pre-wrap; }
 
 .pdf-wrapper { flex: 1; background: #e5e7eb; border-radius: 8px; overflow: hidden; position: relative; }
 .no-pdf { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #6b7280; font-weight: 500; }

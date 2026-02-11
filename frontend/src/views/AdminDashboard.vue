@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import ExamUploadModal from '../components/ExamUploadModal.vue'
+import UploadAnalyticsDashboard from '../components/UploadAnalyticsDashboard.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -15,16 +16,9 @@ const fetchExams = async () => {
     try {
         const res = await api.get('/exams/')
         // Handle pagination (DRF default) or flat list
-        const data = Array.isArray(res.data) ? res.data : (res.data.results || [])
-        // Ensure correctors is always an array for each exam
-        exams.value = data.map(exam => ({
-            ...exam,
-            correctors: Array.isArray(exam.correctors) ? exam.correctors : []
-        }))
+        exams.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
     } catch (e) {
         console.error("Failed to fetch exams", e)
-        exams.value = []
-        alert("Erreur lors du chargement des examens: " + (e.response?.data?.error || e.message))
     } finally {
         loading.value = false
     }
@@ -45,6 +39,7 @@ const goToIdentification = (id) => {
 
 // Upload modal
 const showUploadModal = ref(false)
+const showAnalytics = ref(false)
 
 const openUploadModal = () => {
     showUploadModal.value = true
@@ -53,11 +48,6 @@ const openUploadModal = () => {
 const handleExamUploaded = async (examData) => {
     console.log('Exam uploaded:', examData)
     await fetchExams()
-}
-
-// Legacy simple upload (kept for backwards compatibility)
-const triggerUpload = () => {
-    openUploadModal()
 }
 
 const showCreateModal = ref(false)
@@ -157,86 +147,12 @@ const confirmDispatch = async () => {
 }
 
 const canDispatch = (exam) => {
+    console.log(`Exam ${exam.name}: Correctors=`, exam.correctors);
     return exam.correctors && exam.correctors.length > 0
 }
 
-const generatingPdf = ref(false)
-const releasingExam = ref(null)
-
-const toggleRelease = async (exam) => {
-    const isReleased = !!exam.results_released_at
-    const action = isReleased ? 'unrelease-results' : 'release-results'
-    const confirmMsg = isReleased
-        ? `Depublier les resultats de "${exam.name}" ? Les eleves ne pourront plus voir leurs copies.`
-        : `Publier les resultats de "${exam.name}" ? Les eleves pourront voir leurs copies corrigees.`
-
-    if (!confirm(confirmMsg)) return
-
-    releasingExam.value = exam.id
-    try {
-        await api.post(`/exams/${exam.id}/${action}/`)
-        await fetchExams()
-    } catch (e) {
-        console.error("Release toggle failed", e)
-        alert('Erreur: ' + (e.response?.data?.error || e.message))
-    } finally {
-        releasingExam.value = null
-    }
-}
-
-const generateStudentPDFs = async (exam) => {
-    if (!confirm(`Générer les PDF par élève pour "${exam.name}" ?\nCette opération utilise l\'OCR (GPT-4V) et peut prendre plusieurs minutes.`)) {
-        return
-    }
-
-    generatingPdf.value = true
-    try {
-        const res = await api.post(`/exams/${exam.id}/generate-student-pdfs/`, {}, {
-            timeout: 1800000 // 30 minutes (OCR de toutes les feuilles)
-        })
-        const data = res.data
-        let msg = `Génération terminée !\n\n${data.generated} PDF(s) générés`
-        if (data.annexes_matched) msg += `\n${data.annexes_matched} annexe(s) associée(s)`
-        if (data.annexes_unmatched) msg += `\n${data.annexes_unmatched} annexe(s) non matchée(s)`
-        if (data.missing_students && data.missing_students.length > 0) {
-            msg += `\n\nÉlèves manquants: ${data.missing_students.join(', ')}`
-        }
-        alert(msg)
-        await fetchExams()
-    } catch (e) {
-        console.error("PDF generation failed", e)
-        alert('Erreur: ' + (e.response?.data?.error || e.message))
-    } finally {
-        generatingPdf.value = false
-    }
-}
-
-const handleEscape = (event) => {
-    if (event.key === 'Escape' || event.key === 'Esc') {
-        showCreateModal.value = false
-        showCorrectorModal.value = false
-        showDispatchModal.value = false
-        showDispatchResultsModal.value = false
-        if (!uploading.value) showUploadModal.value = false
-    }
-}
-
 onMounted(() => {
-    // Reset all modal states to ensure no modal is stuck open
-    showCreateModal.value = false
-    showCorrectorModal.value = false
-    showDispatchModal.value = false
-    showDispatchResultsModal.value = false
-    showUploadModal.value = false
-
-    // Add escape key listener
-    window.addEventListener('keydown', handleEscape)
-
     fetchExams()
-})
-
-onUnmounted(() => {
-    window.removeEventListener('keydown', handleEscape)
 })
 </script>
 
@@ -326,7 +242,6 @@ onUnmounted(() => {
           <thead>
             <tr>
               <th>Nom</th>
-              <th>Mode</th>
               <th>Date</th>
               <th>État</th>
               <th>Actions</th>
@@ -339,14 +254,6 @@ onUnmounted(() => {
               :data-testid="exam ? `exam.row.${exam.id}` : ''"
             >
               <td>{{ exam?.name }}</td>
-              <td>
-                <span 
-                  class="mode-badge" 
-                  :class="exam.upload_mode === 'INDIVIDUAL_A4' ? 'badge-individual' : 'badge-batch'"
-                >
-                  {{ exam.upload_mode === 'INDIVIDUAL_A4' ? 'INDIVIDUAL' : 'BATCH' }}
-                </span>
-              </td>
               <td>{{ exam?.date }}</td>
               <td>
                 <span
@@ -357,10 +264,6 @@ onUnmounted(() => {
                   v-else
                   class="badge status-pending"
                 >En création</span>
-                <span
-                  v-if="exam.results_released_at"
-                  class="badge status-released"
-                >Publié</span>
               </td>
               <td>
                 <button
@@ -389,7 +292,7 @@ onUnmounted(() => {
                 >
                   Correcteurs
                 </button>
-                <button
+                <button 
                   class="btn-sm btn-dispatch"
                   :class="{ 'btn-disabled': !canDispatch(exam) }"
                   :disabled="!canDispatch(exam)"
@@ -397,23 +300,6 @@ onUnmounted(() => {
                   @click="openDispatchModal(exam)"
                 >
                   Dispatcher
-                </button>
-                <button
-                  class="btn-sm btn-generate"
-                  :disabled="generatingPdf"
-                  title="Générer un PDF A4 par élève (OCR + annexes)"
-                  @click="generateStudentPDFs(exam)"
-                >
-                  {{ generatingPdf ? '...' : 'Gen. PDF' }}
-                </button>
-                <button
-                  class="btn-sm"
-                  :class="exam.results_released_at ? 'btn-unrelease' : 'btn-release'"
-                  :disabled="releasingExam === exam.id"
-                  :title="exam.results_released_at ? 'Depublier les resultats' : 'Publier les resultats aux eleves'"
-                  @click="toggleRelease(exam)"
-                >
-                  {{ exam.results_released_at ? 'Depublier' : 'Publier' }}
                 </button>
               </td>
             </tr>
@@ -475,187 +361,10 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Upload Scans Modal (Multi-fichiers) -->
-    <div
-      v-if="showUploadModal"
-      class="modal-overlay"
-      @click.self="!uploading && (showUploadModal = false)"
-    >
-      <div class="modal-card modal-large">
-        <h3>Importer des Scans</h3>
-
-        <div class="form-group">
-          <label>Nom de l'examen *</label>
-          <input
-            v-model="uploadForm.name"
-            type="text"
-            placeholder="Ex: Bac Blanc Maths 2026"
-            class="form-input"
-            :disabled="uploading"
-          >
-        </div>
-
-        <div class="form-group">
-          <label>Date</label>
-          <input
-            v-model="uploadForm.date"
-            type="date"
-            class="form-input"
-            :disabled="uploading"
-          >
-        </div>
-
-        <div class="form-group">
-          <label>
-            Fichiers PDF des scans *
-            <span
-              v-if="uploadForm.pdfFiles.length > 0"
-              class="file-count-badge"
-            >
-              {{ uploadForm.pdfFiles.length }}
-            </span>
-          </label>
-          <div class="file-input-wrapper">
-            <input
-              ref="fileInput"
-              type="file"
-              accept="application/pdf"
-              multiple
-              class="file-input"
-              :disabled="uploading"
-              @change="handlePdfSelect"
-            >
-            <span
-              v-if="uploadForm.pdfFiles.length === 0"
-              class="file-placeholder"
-            >
-              Cliquez ou glissez-déposez un ou plusieurs fichiers PDF (A3 ou A4)
-            </span>
-            <span
-              v-else
-              class="file-placeholder"
-            >
-              Cliquez pour ajouter d'autres fichiers
-            </span>
-          </div>
-
-          <!-- Liste des fichiers sélectionnés -->
-          <ul
-            v-if="uploadForm.pdfFiles.length > 0"
-            class="file-list"
-          >
-            <li
-              v-for="(file, index) in uploadForm.pdfFiles"
-              :key="index"
-              class="file-list-item"
-            >
-              <span class="file-list-icon">PDF</span>
-              <span class="file-list-name">{{ file.name }}</span>
-              <span class="file-list-size">{{ formatFileSize(file.size) }}</span>
-              <button
-                v-if="!uploading"
-                class="file-list-remove"
-                title="Retirer ce fichier"
-                @click="removePdfFile(index)"
-              >
-                &times;
-              </button>
-            </li>
-          </ul>
-          <small class="help-text">
-            Chaque fichier est analysé indépendamment. Les formats A3 et A4 sont détectés automatiquement.
-          </small>
-        </div>
-
-        <div class="form-group">
-          <label>Fichier CSV des élèves (optionnel)</label>
-          <div class="file-input-wrapper">
-            <input
-              ref="csvInput"
-              type="file"
-              accept=".csv,text/csv"
-              class="file-input"
-              :disabled="uploading"
-              @change="handleCsvSelect"
-            >
-            <span
-              v-if="uploadForm.csvFile"
-              class="file-name"
-            >
-              {{ uploadForm.csvFile.name }}
-            </span>
-            <span
-              v-else
-              class="file-placeholder"
-            >
-              Cliquez pour sélectionner le CSV des élèves
-            </span>
-          </div>
-          <small class="help-text">
-            Le CSV améliore l'identification automatique des élèves (colonnes: Nom et Prénom, Date de naissance, Email)
-          </small>
-        </div>
-
-        <div class="form-group">
-          <label>Fichier PDF des annexes (optionnel)</label>
-          <div class="file-input-wrapper">
-            <input
-              type="file"
-              accept="application/pdf"
-              class="file-input"
-              :disabled="uploading"
-              @change="handleAnnexeSelect"
-            >
-            <span
-              v-if="uploadForm.annexeFile"
-              class="file-name"
-            >
-              {{ uploadForm.annexeFile.name }}
-            </span>
-            <span
-              v-else
-              class="file-placeholder"
-            >
-              Cliquez pour sélectionner le PDF des annexes
-            </span>
-          </div>
-          <small class="help-text">
-            PDF A4 contenant les pages annexes individuelles des élèves (une page par élève avec en-tête)
-          </small>
-        </div>
-
-        <div
-          v-if="uploading"
-          class="upload-progress"
-        >
-          <div class="spinner" />
-          <span>{{ uploadProgress }}</span>
-        </div>
-
-        <div class="modal-actions">
-          <button
-            class="btn btn-outline"
-            :disabled="uploading"
-            @click="showUploadModal = false"
-          >
-            Annuler
-          </button>
-          <button
-            class="btn btn-primary"
-            :disabled="uploading || uploadForm.pdfFiles.length === 0 || !uploadForm.name"
-            @click="submitUpload"
-          >
-            {{ uploading ? 'Import en cours...' : `Importer ${uploadForm.pdfFiles.length > 0 ? uploadForm.pdfFiles.length + ' fichier' + (uploadForm.pdfFiles.length > 1 ? 's' : '') : ''}` }}
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Assign Correctors Modal -->
-    <div
-      v-if="showCorrectorModal"
+    <div 
+      v-if="showCorrectorModal" 
       class="modal-overlay"
-      @click.self="showCorrectorModal = false"
     >
       <div class="modal-card">
         <h3>Assigner Correcteurs</h3>
@@ -710,10 +419,9 @@ onUnmounted(() => {
     </div>
 
     <!-- Dispatch Confirmation Modal -->
-    <div
-      v-if="showDispatchModal"
+    <div 
+      v-if="showDispatchModal" 
       class="modal-overlay"
-      @click.self="showDispatchModal = false"
     >
       <div class="modal-card">
         <h3>Dispatcher les Copies</h3>
@@ -750,10 +458,9 @@ onUnmounted(() => {
     </div>
 
     <!-- Dispatch Results Modal -->
-    <div
-      v-if="showDispatchResultsModal"
+    <div 
+      v-if="showDispatchResultsModal" 
       class="modal-overlay"
-      @click.self="showDispatchResultsModal = false"
     >
       <div class="modal-card modal-card-wide">
         <h3>Distribution Terminée</h3>
@@ -849,73 +556,26 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 .actions-bar { margin-bottom: 1.5rem; display: flex; gap: 1rem; }
 .btn { padding: 0.6rem 1.2rem; border-radius: 6px; border: none; font-weight: 500; cursor: pointer; }
 .btn-primary { background: #2563eb; color: white; }
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-left: 12px;
+}
 .btn-outline { background: white; border: 1px solid #cbd5e1; color: #475569; }
 .btn-sm { padding: 4px 8px; font-size: 0.8rem; margin-right: 5px; cursor: pointer; }
 
 .data-table { width: 100%; background: white; border-radius: 8px; border-collapse: collapse; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 .data-table th, .data-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
 .badge { padding: 4px 8px; border-radius: 999px; font-size: 0.75rem; background: #e0e7ff; color: #3730a3; }
-.mode-badge { padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-.badge-batch { background: #dbeafe; color: #1e40af; }
-.badge-individual { background: #fef3c7; color: #92400e; }
 
 /* Modal Styles */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
 .modal-card { background: white; padding: 2rem; border-radius: 12px; width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-.modal-large { width: 560px; max-height: 90vh; overflow-y: auto; }
-
-/* File Input Styles */
-.file-input-wrapper { position: relative; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s; }
-.file-input-wrapper:hover { border-color: #2563eb; background: #f8fafc; }
-.file-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10; }
-.file-name { color: #2563eb; font-weight: 500; }
-.file-placeholder { color: #94a3b8; }
-.help-text { display: block; margin-top: 0.5rem; color: #64748b; font-size: 0.8rem; }
-
-/* File count badge */
-.file-count-badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  background: #2563eb; color: white; font-size: 0.7rem; font-weight: 700;
-  min-width: 20px; height: 20px; border-radius: 10px; padding: 0 6px;
-  margin-left: 0.5rem; vertical-align: middle;
-}
-
-/* File list */
-.file-list {
-  list-style: none; padding: 0; margin: 0.75rem 0 0 0;
-  border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;
-}
-.file-list-item {
-  display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.6rem 0.75rem; border-bottom: 1px solid #f1f5f9;
-  font-size: 0.85rem; background: white;
-}
-.file-list-item:last-child { border-bottom: none; }
-.file-list-item:hover { background: #f8fafc; }
-.file-list-icon {
-  display: inline-flex; align-items: center; justify-content: center;
-  background: #ef4444; color: white; font-size: 0.6rem; font-weight: 800;
-  width: 28px; height: 28px; border-radius: 4px; flex-shrink: 0;
-}
-.file-list-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1e293b; }
-.file-list-size { color: #94a3b8; font-size: 0.8rem; flex-shrink: 0; }
-.file-list-remove {
-  background: none; border: none; color: #94a3b8; font-size: 1.2rem;
-  cursor: pointer; padding: 0 4px; line-height: 1; flex-shrink: 0;
-}
-.file-list-remove:hover { color: #ef4444; }
-
-/* Checkbox Label for Auto-Staple */
-.checkbox-label { display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
-.checkbox-label:hover { background: #f1f5f9; }
-.checkbox-label input[type="checkbox"] { margin-top: 0.25rem; width: 18px; height: 18px; }
-.checkbox-text { flex: 1; }
-.checkbox-text small { color: #64748b; }
-
-/* Upload Progress */
-.upload-progress { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #eff6ff; border-radius: 8px; color: #1e40af; }
-.spinner { width: 20px; height: 20px; border: 2px solid #93c5fd; border-top-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
 .modal-card h3 { margin-top: 0; margin-bottom: 1.5rem; color: #1e293b; }
 .form-group { margin-bottom: 1rem; }
 .form-group label { display: block; margin-bottom: 0.5rem; color: #475569; font-size: 0.9rem; }
@@ -955,32 +615,6 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 }
 
 /* Dispatch Styles */
-.btn-generate {
-  background: #f59e0b;
-  color: white;
-}
-.btn-generate:hover:not(:disabled) {
-  background: #d97706;
-}
-.btn-release {
-  background: #6366f1;
-  color: white;
-}
-.btn-release:hover:not(:disabled) {
-  background: #4f46e5;
-}
-.btn-unrelease {
-  background: #f43f5e;
-  color: white;
-}
-.btn-unrelease:hover:not(:disabled) {
-  background: #e11d48;
-}
-.status-released {
-  background: #dcfce7;
-  color: #166534;
-  margin-left: 4px;
-}
 .btn-dispatch {
   background: #10b981;
   color: white;

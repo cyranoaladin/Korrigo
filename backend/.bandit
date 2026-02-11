@@ -14,8 +14,6 @@ exclude_dirs:
   - __pycache__
   - migrations  # Django migrations are auto-generated
   - .pytest_cache
-  - tests  # Test files use /tmp for mocking, not production code
-  - "*/tests"  # Exclude all test directories
 
 # Tests to skip globally (use sparingly - prefer targeted # nosec)
 # Currently: None - we suppress false positives via targeted # nosec comments

@@ -4,7 +4,7 @@ from students.services.csv_import import import_students_from_csv, CsvReadError,
 import os
 
 class Command(BaseCommand):
-    help = 'Imports students from a CSV file (Format: NOM,PRENOM,EMAIL,DATE_NAISSANCE,CLASSE,GROUPE_EDS)'
+    help = 'Imports students from a CSV file (Format: INE,NOM,PRENOM,CLASSE,EMAIL)'
 
     def add_arguments(self, parser):
         parser.add_argument('csv_file', type=str, help='Path to the CSV file')

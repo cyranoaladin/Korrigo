@@ -20,9 +20,7 @@ const fetchBooklets = async () => {
             api.get(`/exams/${examId}/booklets/`)
         ])
         examName.value = examRes.data.name
-        // Handle paginated response and filter out null/invalid items
-        const data = Array.isArray(bookletRes.data) ? bookletRes.data : (bookletRes.data.results || [])
-        booklets.value = data.filter(b => b && b.id)
+        booklets.value = bookletRes.data
     } catch (e) {
         console.error("Failed to fetch data", e)
     } finally {
@@ -111,17 +109,16 @@ onMounted(() => {
             <!-- If we had a thumbnail, display it here. Using header view for now -->
             <img 
               v-if="booklet.id"
-              :src="`/api/exams/booklets/${booklet.id}/header/`" 
+              :src="`/api/booklets/${booklet.id}/header/`" 
               loading="lazy"
               alt="Aperçu"
-              @error="(e) => e.target.style.display = 'none'"
             >
-            <div class="no-preview">
-              Pages {{ booklet.start_page }}-{{ booklet.end_page }}
+            <div v-else>
+              Pas d'aperçu
             </div>
           </div>
           <div class="card-info">
-            ID: {{ booklet.id ? booklet.id.substring(0, 6) + '...' : 'N/A' }}
+            ID: {{ booklet.id.substring(0, 6) }}...
           </div>
         </div>
         

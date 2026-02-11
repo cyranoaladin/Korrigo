@@ -8,41 +8,8 @@ import os
 from django.db import transaction
 
 
-# Format CSV attendu: Élèves, Né(e) le, Adresse E-mail, Classe, EDS, Groupe
-# Clé primaire logique: (FULL_NAME, DATE_NAISSANCE)
-REQUIRED_FIELDS = ("FULL_NAME", "DATE_NAISSANCE")
-OPTIONAL_FIELDS = ("EMAIL", "CLASSE", "GROUPE_EDS")
-
-# Mapping of alternative column names to standard names
-COLUMN_ALIASES = {
-    # FULL_NAME alternatives (Nom et Prénom ensemble)
-    "ÉLÈVES": "FULL_NAME",
-    "ELEVES": "FULL_NAME",
-    "NOM ET PRÉNOM": "FULL_NAME",
-    "NOM ET PRENOM": "FULL_NAME",
-    "NOM PRÉNOM": "FULL_NAME",
-    "NOM PRENOM": "FULL_NAME",
-    "STUDENT": "FULL_NAME",
-    "NAME": "FULL_NAME",
-    # EMAIL alternatives
-    "ADRESSE E-MAIL": "EMAIL",
-    "ADRESSE EMAIL": "EMAIL",
-    "E-MAIL": "EMAIL",
-    "MAIL": "EMAIL",
-    "COURRIEL": "EMAIL",
-    # DATE_NAISSANCE alternatives
-    "NÉ(E) LE": "DATE_NAISSANCE",
-    "NE(E) LE": "DATE_NAISSANCE",
-    "DATE DE NAISSANCE": "DATE_NAISSANCE",
-    "BIRTH_DATE": "DATE_NAISSANCE",
-    "BIRTHDATE": "DATE_NAISSANCE",
-    # CLASSE alternatives
-    "CLASS": "CLASSE",
-    # GROUPE_EDS alternatives
-    "GROUPE": "GROUPE_EDS",
-    "EDS": "EDS_INFO",  # Additional EDS info
-    "EDS ": "EDS_INFO",
-}
+REQUIRED_FIELDS = ("INE", "NOM", "PRENOM")
+OPTIONAL_FIELDS = ("CLASSE", "EMAIL")
 
 
 @dataclass
@@ -62,10 +29,7 @@ class ImportResult:
 
 
 def _normalize_key(key: str) -> str:
-    """Normalize column key and apply aliases."""
-    normalized = (key or "").strip().upper()
-    # Apply alias mapping
-    return COLUMN_ALIASES.get(normalized, normalized)
+    return (key or "").strip().upper()
 
 
 def _normalize_value(value: Optional[str]) -> str:
@@ -152,7 +116,7 @@ def parse_students_csv(path: str, delimiter: str = ",") -> Tuple[ImportResult, L
                         continue
                     normalized[nk] = _normalize_value(v)
 
-                # Validate required fields (FULL_NAME, DATE_NAISSANCE)
+                # Validate required fields
                 missing = [k for k in REQUIRED_FIELDS if not normalized.get(k)]
                 if missing:
                     result.skipped += 1
@@ -165,13 +129,13 @@ def parse_students_csv(path: str, delimiter: str = ",") -> Tuple[ImportResult, L
                     )
                     continue
 
-                # Keep only known fields
+                # Keep only known fields + required
                 cleaned = {
-                    "FULL_NAME": normalized.get("FULL_NAME", ""),
-                    "DATE_NAISSANCE": normalized.get("DATE_NAISSANCE", ""),
-                    "EMAIL": normalized.get("EMAIL", ""),
+                    "INE": normalized.get("INE", ""),
+                    "NOM": normalized.get("NOM", ""),
+                    "PRENOM": normalized.get("PRENOM", ""),
                     "CLASSE": normalized.get("CLASSE", ""),
-                    "GROUPE_EDS": normalized.get("GROUPE_EDS", ""),
+                    "EMAIL": normalized.get("EMAIL", ""),
                 }
                 rows.append(cleaned)
                 
@@ -185,102 +149,30 @@ def parse_students_csv(path: str, delimiter: str = ",") -> Tuple[ImportResult, L
     return result, rows
 
 
-def _parse_date(date_str: str):
-    """Parse date from various formats (DD/MM/YYYY, YYYY-MM-DD, etc.)"""
-    if not date_str:
-        return None
-    
-    from datetime import datetime
-    formats = ["%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d.%m.%Y"]
-    for fmt in formats:
-        try:
-            return datetime.strptime(date_str.strip(), fmt).date()
-        except ValueError:
-            continue
-    return None
-
-
 def import_students_rows(rows: List[Dict[str, str]], student_model) -> ImportResult:
     """
     Apply rows to DB. Separated from parsing to keep it testable.
-    Uses (full_name, date_of_birth) as unique identifier for students.
-    Creates Django User accounts with secure default passwords.
     """
-    from django.contrib.auth.models import User
-    import secrets
-    import string
-    
     result = ImportResult(delimiter=",")
 
     for i, r in enumerate(rows, start=1):
-        full_name = r["FULL_NAME"]
-        date_of_birth = _parse_date(r.get("DATE_NAISSANCE", ""))
-        email = r.get("EMAIL", "")
+        ine = r["INE"]
+        last_name = r["NOM"]
+        first_name = r["PRENOM"]
         class_name = r.get("CLASSE", "")
-        eds_group = r.get("GROUPE_EDS", "")
-
-        if not date_of_birth:
-            result.errors.append(
-                ImportErrorItem(
-                    row=i,
-                    message="Invalid or missing date of birth",
-                    data=r,
-                )
-            )
-            continue
-
-        if not email:
-            result.errors.append(
-                ImportErrorItem(
-                    row=i,
-                    message="Email is required for student authentication",
-                    data=r,
-                )
-            )
-            continue
+        email = r.get("EMAIL", "")
 
         try:
             with transaction.atomic():
-                # Create or update student
                 obj, created = student_model.objects.update_or_create(
-                    full_name=full_name,
-                    date_of_birth=date_of_birth,
+                    ine=ine,
                     defaults={
-                        "email": email,
+                        "first_name": first_name,
+                        "last_name": last_name,
                         "class_name": class_name,
-                        "eds_group": eds_group,
+                        "email": email,
                     },
                 )
-                
-                # Create Django User account if student doesn't have one
-                if not obj.user:
-                    # Generate secure default password (8 chars: letters + digits)
-                    alphabet = string.ascii_letters + string.digits
-                    default_password = ''.join(secrets.choice(alphabet) for _ in range(8))
-                    
-                    # Create username from email (before @)
-                    username = email.split('@')[0]
-                    
-                    # Ensure username is unique
-                    base_username = username
-                    counter = 1
-                    while User.objects.filter(username=username).exists():
-                        username = f"{base_username}{counter}"
-                        counter += 1
-                    
-                    # Create User account
-                    user = User.objects.create_user(
-                        username=username,
-                        email=email,
-                        password=default_password,
-                        first_name=full_name.split()[-1] if full_name else "",  # Prénom (dernier mot)
-                        last_name=full_name.split()[0] if full_name else "",    # Nom (premier mot)
-                    )
-                    
-                    # Link user to student
-                    obj.user = user
-                    obj.save()
-                    
             if created:
                 result.created += 1
             else:

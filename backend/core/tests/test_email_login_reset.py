@@ -60,14 +60,8 @@ class PasswordResetTest(TestCase):
     def test_admin_can_reset_user_password(self):
         response = self.client.post(f'/api/users/{self.user.id}/reset-password/')
         self.assertEqual(response.status_code, 200)
-        # Phase 4A: Password is no longer exposed in API response for security
-        self.assertNotIn('temporary_password', response.data)
-        self.assertIn('message', response.data)
-        # Either email_sent or manual_delivery_required message
-        self.assertTrue(
-            'email_sent' in response.data or
-            'manual delivery' in response.data['message'].lower()
-        )
+        self.assertIn('temporary_password', response.data)
+        self.assertEqual(len(response.data['temporary_password']), 12)
     
     def test_reset_sets_must_change_password_flag(self):
         response = self.client.post(f'/api/users/{self.user.id}/reset-password/')

@@ -25,12 +25,8 @@ class TestPhase39Hardening(TransactionTestCase):
         self.teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
         self.admin_group, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
 
-        # Admin user for import (requires IsAdminOnly permission)
-        self.admin_user = User.objects.create_user(username='admin_p39', password='password123', is_staff=True)
-        self.admin_user.groups.add(self.admin_group)
-
         self.teacher_user = User.objects.create_user(username='teacher', password='password123')
-        self.teacher_user.groups.add(self.teacher_group)
+        self.teacher_user.groups.add(self.teacher_group)  # Add to teacher group instead of is_staff
 
         self.student_user = User.objects.create_user(username='student_user', password='password123')
         # Student user has no special group permissions - should be denied access
@@ -52,8 +48,7 @@ class TestPhase39Hardening(TransactionTestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_import_success_for_teacher_creates_copy_booklet_and_audit(self):
-        # Use admin for import (requires IsAdminOnly permission)
-        self.client.force_login(self.admin_user)
+        self.client.force_login(self.teacher_user)
         url = f"/api/exams/{self.exam.id}/copies/import/"
 
         # Mocking simpler via monkeypatching not easy in TestCase methods without pytest fixture injection
@@ -80,9 +75,9 @@ class TestPhase39Hardening(TransactionTestCase):
             # Check Audit
             event = GradingEvent.objects.filter(copy=copy, action=GradingEvent.Action.IMPORT).first()
             self.assertIsNotNone(event)
-            # Note: Using self.admin_user for import (IsAdminOnly permission)
+            # Note: Using self.teacher_user instead of self.teacher_user as actor might not match due to force_login
             # The event.actor should be the logged in user
-            self.assertEqual(str(event.actor.id), str(self.admin_user.id))
+            self.assertEqual(str(event.actor.id), str(self.teacher_user.id))
 
             # Cleanup
             copy.delete()

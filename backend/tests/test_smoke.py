@@ -92,12 +92,12 @@ def test_copy_list_flow(authenticated_client, admin_user, db):
 
 @pytest.mark.smoke
 def test_admin_accessible(client):
-    """Verify Django admin is accessible or intentionally disabled"""
+    """Verify Django admin is accessible (without auth, should redirect)"""
     response = client.get('/admin/')
 
-    # In production, admin might be disabled (404) or require login (200/302)
-    assert response.status_code in [200, 302, 404], \
-        f"Admin accessibility check failed with unexpected status: {response.status_code}"
+    # Should redirect to login (302) or return login page (200)
+    assert response.status_code in [200, 302], \
+        f"Admin accessibility check failed: {response.status_code}"
 
 
 @pytest.mark.smoke
