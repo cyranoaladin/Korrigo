@@ -54,7 +54,10 @@ const goToDesk = (copyId) => {
 </script>
 
 <template>
-  <div class="corrector-dashboard">
+  <div
+    class="corrector-dashboard"
+    data-testid="corrector-dashboard"
+  >
     <header class="top-nav">
       <div class="brand">
         Korrigo — Correcteur

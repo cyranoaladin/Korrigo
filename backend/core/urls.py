@@ -6,7 +6,7 @@ from core import views
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('django-admin/', admin.site.urls),
     path('api/exams/', include('exams.urls')),
     path('api/copies/', include('exams.urls_copies')), # Mission 17
     path('api/students/', include('students.urls')), # Mission 18

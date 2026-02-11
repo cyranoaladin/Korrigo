@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
+import { getErrorMessage } from '../../utils/errorMessages'
 
 const lastName = ref('')
 const firstName = ref('')
@@ -11,18 +12,26 @@ const loading = ref(false)
 const authStore = useAuthStore()
 const router = useRouter()
 
+watch(() => authStore.lastError, (newError) => {
+    if (newError) {
+        error.value = newError
+    }
+})
+
 const handleLogin = async () => {
     error.value = ''
     loading.value = true
+    authStore.clearError()
+    
     try {
         const success = await authStore.loginStudent(lastName.value, firstName.value, dateNaissance.value)
         if (success) {
             router.push('/student-portal')
         } else {
-            error.value = "Identifiants invalides."
+            error.value = authStore.lastError || "Identifiants invalides."
         }
-    } catch {
-        error.value = "Erreur de connexion."
+    } catch (err) {
+        error.value = getErrorMessage(err)
     } finally {
         loading.value = false
     }
