@@ -160,6 +160,61 @@ const canDispatch = (exam) => {
     return exam.correctors && exam.correctors.length > 0
 }
 
+// --- Subject Variant (Sujets A/B) ---
+const showSubjectModal = ref(false)
+const subjectExam = ref(null)
+const subjectCopies = ref([])
+const subjectLoading = ref(false)
+const subjectSaving = ref(false)
+
+const openSubjectModal = async (exam) => {
+    subjectExam.value = exam
+    showSubjectModal.value = true
+    subjectLoading.value = true
+    try {
+        const res = await api.get(`/exams/${exam.id}/bulk-subject-variant/`)
+        subjectCopies.value = res.data
+    } catch (e) {
+        console.error('Failed to load copies for subject assignment', e)
+        showToast('Erreur lors du chargement des copies', 'error')
+    } finally {
+        subjectLoading.value = false
+    }
+}
+
+const setAllVariant = (variant) => {
+    subjectCopies.value.forEach(c => { c.subject_variant = variant })
+}
+
+const clearAllVariants = () => {
+    subjectCopies.value.forEach(c => { c.subject_variant = null })
+}
+
+const saveSubjectVariants = async () => {
+    subjectSaving.value = true
+    try {
+        const assignments = {}
+        subjectCopies.value.forEach(c => {
+            assignments[c.id] = c.subject_variant || ''
+        })
+        const res = await api.post(`/exams/${subjectExam.value.id}/bulk-subject-variant/`, { assignments })
+        showToast(`${res.data.updated} copie(s) mise(s) à jour`)
+        showSubjectModal.value = false
+    } catch (e) {
+        console.error('Failed to save subject variants', e)
+        showToast('Erreur lors de la sauvegarde', 'error')
+    } finally {
+        subjectSaving.value = false
+    }
+}
+
+const subjectStats = () => {
+    const a = subjectCopies.value.filter(c => c.subject_variant === 'A').length
+    const b = subjectCopies.value.filter(c => c.subject_variant === 'B').length
+    const none = subjectCopies.value.length - a - b
+    return { a, b, none, total: subjectCopies.value.length }
+}
+
 onMounted(() => {
     fetchExams()
 })
@@ -300,6 +355,13 @@ onMounted(() => {
                   @click="openCorrectorModal(exam)"
                 >
                   Correcteurs
+                </button>
+                <button 
+                  class="btn-sm btn-subject"
+                  title="Assigner Sujet A / Sujet B"
+                  @click="openSubjectModal(exam)"
+                >
+                  Sujets A/B
                 </button>
                 <button 
                   class="btn-sm btn-dispatch"
@@ -527,6 +589,93 @@ onMounted(() => {
             @click="showDispatchResultsModal = false" 
           >
             Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subject Variant (Sujets A/B) Modal -->
+    <div 
+      v-if="showSubjectModal" 
+      class="modal-overlay"
+    >
+      <div class="modal-card modal-card-wide">
+        <h3>Assigner Sujets A / B</h3>
+        <p class="modal-subtitle">
+          Pour : {{ subjectExam?.name }}
+        </p>
+
+        <div v-if="subjectLoading" class="loading">
+          Chargement des copies...
+        </div>
+
+        <template v-else>
+          <!-- Bulk actions -->
+          <div class="subject-bulk-actions">
+            <button class="btn btn-sm btn-subject-a" @click="setAllVariant('A')">
+              Tout → Sujet A
+            </button>
+            <button class="btn btn-sm btn-subject-b" @click="setAllVariant('B')">
+              Tout → Sujet B
+            </button>
+            <button class="btn btn-sm btn-outline" @click="clearAllVariants">
+              Réinitialiser
+            </button>
+            <span class="subject-stats">
+              <span class="badge-a">A: {{ subjectStats().a }}</span>
+              <span class="badge-b">B: {{ subjectStats().b }}</span>
+              <span class="badge-none">Non assigné: {{ subjectStats().none }}</span>
+            </span>
+          </div>
+
+          <!-- Copies table -->
+          <div class="subject-table-wrapper">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Copie</th>
+                  <th>Élève</th>
+                  <th>Sujet</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="copy in subjectCopies" :key="copy.id">
+                  <td>{{ copy.anonymous_id || '—' }}</td>
+                  <td>{{ copy.student_name || 'Non identifié' }}</td>
+                  <td>
+                    <select
+                      v-model="copy.subject_variant"
+                      class="variant-select"
+                      :class="{
+                        'variant-a': copy.subject_variant === 'A',
+                        'variant-b': copy.subject_variant === 'B'
+                      }"
+                    >
+                      <option :value="null">—</option>
+                      <option value="A">Sujet A</option>
+                      <option value="B">Sujet B</option>
+                    </select>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
+        <div class="modal-actions">
+          <button 
+            class="btn btn-outline"
+            :disabled="subjectSaving"
+            @click="showSubjectModal = false" 
+          >
+            Annuler
+          </button>
+          <button 
+            class="btn btn-primary"
+            :disabled="subjectSaving || subjectLoading"
+            @click="saveSubjectVariants" 
+          >
+            {{ subjectSaving ? 'Sauvegarde...' : 'Sauvegarder' }}
           </button>
         </div>
       </div>
@@ -761,4 +910,19 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 .toast-leave-active { transition: all 0.3s ease; }
 .toast-enter-from { opacity: 0; transform: translateY(-20px); }
 .toast-leave-to { opacity: 0; transform: translateX(20px); }
+
+/* Subject Variant Modal */
+.btn-subject { background: #8b5cf6; color: white; }
+.btn-subject:hover { background: #7c3aed; }
+.subject-bulk-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+.btn-subject-a { background: #3b82f6; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+.btn-subject-b { background: #10b981; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+.subject-stats { margin-left: auto; display: flex; gap: 0.75rem; font-size: 0.8rem; font-weight: 600; }
+.badge-a { color: #3b82f6; }
+.badge-b { color: #10b981; }
+.badge-none { color: #9ca3af; }
+.subject-table-wrapper { max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; }
+.variant-select { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem; cursor: pointer; min-width: 100px; }
+.variant-a { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; font-weight: 600; }
+.variant-b { background: #ecfdf5; border-color: #10b981; color: #065f46; font-weight: 600; }
 </style>
