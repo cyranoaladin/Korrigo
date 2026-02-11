@@ -156,7 +156,8 @@ class StudentImportView(views.APIView):
                 class_name = row[3].strip()
                 groupe = row[4].strip() if len(row) > 4 else ""
                 
-                # Parse nom et prénom (format: "NOM PRENOM" ou "NOM Prénom")
+                # Parse nom et prénom (format: "NOM PRENOM" ou "BEN AMEUR MOHAMED-YOUSSEF")
+                # Convention Pronote: les mots entièrement en MAJUSCULES = nom de famille
                 parts = nom_prenom.split()
                 if len(parts) < 2:
                     results['errors'].append({
@@ -165,9 +166,22 @@ class StudentImportView(views.APIView):
                     })
                     continue
                 
-                # Le premier mot est le nom (en majuscules), le reste est le prénom
-                last_name = parts[0].upper()
-                first_name = ' '.join(parts[1:]).capitalize()
+                # Split: uppercase words = last_name, remaining = first_name
+                last_parts = []
+                first_parts = []
+                for p in parts:
+                    if p == p.upper() and not first_parts:
+                        last_parts.append(p)
+                    else:
+                        first_parts.append(p)
+                
+                # Fallback: if all words are uppercase, first word = last, rest = first
+                if not first_parts:
+                    last_parts = [parts[0]]
+                    first_parts = parts[1:]
+                
+                last_name = ' '.join(last_parts).upper()
+                first_name = ' '.join(first_parts).title()
                 
                 # Parse date de naissance (format: DD/MM/YYYY)
                 try:
@@ -187,22 +201,34 @@ class StudentImportView(views.APIView):
                     })
                     continue
                 
+                # Truncate fields to model max_length to prevent DB errors
+                last_name = last_name[:100]
+                first_name = first_name[:100]
+                class_name = class_name[:50]
+                groupe = groupe[:50] if groupe else ""
+
                 # Create or Update based on unique key: (last_name, first_name, date_naissance)
-                student, created = Student.objects.update_or_create(
-                    last_name=last_name,
-                    first_name=first_name,
-                    date_naissance=date_naissance,
-                    defaults={
-                        'email': email or None,
-                        'class_name': class_name,
-                        'groupe': groupe or None
-                    }
-                )
-                
-                if created:
-                    results['created'] += 1
-                else:
-                    results['updated'] += 1
+                try:
+                    student, created = Student.objects.update_or_create(
+                        last_name=last_name,
+                        first_name=first_name,
+                        date_naissance=date_naissance,
+                        defaults={
+                            'email': email or None,
+                            'class_name': class_name,
+                            'groupe': groupe or None
+                        }
+                    )
+                    
+                    if created:
+                        results['created'] += 1
+                    else:
+                        results['updated'] += 1
+                except Exception as row_err:
+                    results['errors'].append({
+                        "line": line_num,
+                        "error": str(row_err)[:200]
+                    })
                 
             status_code = status.HTTP_200_OK if not results['errors'] else status.HTTP_207_MULTI_STATUS
             return Response(results, status=status_code)
