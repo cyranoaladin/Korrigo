@@ -15,6 +15,13 @@ from exams.models import Copy, Booklet, Exam
 import logging
 import datetime
 
+from grading.metrics import (
+    track_import_duration,
+    track_finalize_duration,
+    grading_ocr_errors_total,
+    grading_lock_conflicts_total,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -67,18 +74,22 @@ class AnnotationService:
         try:
             lock = CopyLock.objects.select_related("owner").get(copy=copy)
         except CopyLock.DoesNotExist:
+            grading_lock_conflicts_total.labels(conflict_type='missing').inc()
             raise LockConflictError("Lock required.")
 
         if lock.expires_at < now:
             lock.delete()
+            grading_lock_conflicts_total.labels(conflict_type='expired').inc()
             raise LockConflictError("Lock expired.")
 
         if lock.owner != user:
+            grading_lock_conflicts_total.labels(conflict_type='owner_mismatch').inc()
             raise LockConflictError("Copy is locked by another user.")
 
         if not lock_token:
             raise PermissionError("Missing lock token.")
         if str(lock.token) != str(lock_token):
+            grading_lock_conflicts_total.labels(conflict_type='token_mismatch').inc()
             raise PermissionError("Invalid lock token.")
 
         return lock
@@ -269,6 +280,7 @@ class GradingService:
         if not created:
             # Lock already exists, check ownership
             if lock.owner != user:
+                grading_lock_conflicts_total.labels(conflict_type='already_locked').inc()
                 raise LockConflictError("Copy is locked by another user.")
             
             # Refresh expiration for the existing lock owned by requester
@@ -303,19 +315,23 @@ class GradingService:
                 .get(copy=copy)
             )
         except CopyLock.DoesNotExist:
+            grading_lock_conflicts_total.labels(conflict_type='missing').inc()
             raise LockConflictError("Lock not found or expired.")
 
         if lock.expires_at < now:
             lock.delete()
             GradingService._reconcile_lock_state(copy)
+            grading_lock_conflicts_total.labels(conflict_type='expired').inc()
             raise LockConflictError("Lock expired.")
 
         if lock.owner != user:
+            grading_lock_conflicts_total.labels(conflict_type='owner_mismatch').inc()
             raise LockConflictError("Lock owner mismatch.")
 
         if not lock_token:
             raise PermissionError("Missing lock token.")
         if str(lock.token) != str(lock_token):
+            grading_lock_conflicts_total.labels(conflict_type='token_mismatch').inc()
             raise PermissionError("Invalid lock token.")
 
         ttl = max(int(ttl_seconds), 1)
@@ -336,9 +352,11 @@ class GradingService:
         if not lock_token:
             raise PermissionError("Missing lock token.")
         if str(lock.token) != str(lock_token):
+            grading_lock_conflicts_total.labels(conflict_type='token_mismatch').inc()
             raise PermissionError("Invalid lock token.")
 
         if lock.owner != user:
+            grading_lock_conflicts_total.labels(conflict_type='owner_mismatch').inc()
             raise LockConflictError("Lock owner mismatch.")
 
         GradingEvent.objects.create(
@@ -390,38 +408,46 @@ class GradingService:
         copy.pdf_source.save(f"copy_{copy_uuid}.pdf", pdf_file, save=True)
 
         # 3. Rasterize (Sync for P0)
-        # 3. Rasterize (Sync for P0)
         try:
             pages_images = GradingService._rasterize_pdf(copy)
             
             if not pages_images:
                 raise ValueError("No pages produced by rasterization.")
 
-            # 4. Create Booklet
-            booklet = Booklet.objects.create(
-                exam=exam,
-                # 1-indexed to match BookletHeaderView (start_page - 1)
-                start_page=1,
-                end_page=len(pages_images),
-                pages_images=pages_images
-            )
-            # Link via ManyToMany
-            copy.booklets.add(booklet)
-            
-            # Check availability
-            if len(pages_images) > 0:
-                 pass # Remains in STAGING until manual validation
-                 
-            # AUDIT
-            GradingEvent.objects.create(
-                copy=copy,
-                action=GradingEvent.Action.IMPORT,
-                actor=user,
-                metadata={'filename': pdf_file.name, 'pages': len(pages_images)}
-            )
+            # Track import duration with success
+            with track_import_duration(pages=len(pages_images), status='success'):
+                # 4. Create Booklet
+                booklet = Booklet.objects.create(
+                    exam=exam,
+                    # 1-indexed to match BookletHeaderView (start_page - 1)
+                    start_page=1,
+                    end_page=len(pages_images),
+                    pages_images=pages_images
+                )
+                # Link via ManyToMany
+                copy.booklets.add(booklet)
+                
+                # Check availability
+                if len(pages_images) > 0:
+                     pass # Remains in STAGING until manual validation
+                     
+                # AUDIT
+                GradingEvent.objects.create(
+                    copy=copy,
+                    action=GradingEvent.Action.IMPORT,
+                    actor=user,
+                    metadata={'filename': pdf_file.name, 'pages': len(pages_images)}
+                )
             
         except Exception as e:
-            logger.error(f"Import failed for copy {copy.id}: {e}")
+            # Record OCR error metric
+            error_type = type(e).__name__
+            try:
+                grading_ocr_errors_total.labels(error_type=error_type).inc()
+            except Exception as metric_error:
+                logger.warning(f"Failed to record OCR error metric: {metric_error}")
+            
+            logger.error(f"Import failed for copy {copy.id}: {e}", exc_info=True)
             # Could set status to ERROR if model supported it, or just fail transaction
             raise ValueError(f"Rasterization failed: {str(e)}")
             
@@ -509,6 +535,7 @@ class GradingService:
                 f"Copy {copy.id} already graded (concurrent finalization detected) - "
                 f"rejecting duplicate request"
             )
+            grading_lock_conflicts_total.labels(conflict_type='already_graded').inc()
             raise LockConflictError("Copy already finalized by another request")
 
         # P0-DI-004 FIX: Handle GRADING_FAILED - allow retry
@@ -531,26 +558,31 @@ class GradingService:
             if copy.locked_by == user:
                 lock = None
             else:
+                grading_lock_conflicts_total.labels(conflict_type='missing').inc()
                 raise LockConflictError("Lock required.")
 
         if lock is not None:
             if lock.expires_at < now:
                 lock.delete()
+                grading_lock_conflicts_total.labels(conflict_type='expired').inc()
                 raise LockConflictError("Lock expired.")
 
             if lock.owner != user:
+                grading_lock_conflicts_total.labels(conflict_type='owner_mismatch').inc()
                 raise LockConflictError("Copy is locked by another user.")
 
             if not lock_token:
                 raise PermissionError("Missing lock token.")
             elif str(lock.token) != str(lock_token):
+                grading_lock_conflicts_total.labels(conflict_type='token_mismatch').inc()
                 raise PermissionError("Invalid lock token.")
 
         final_score = GradingService.compute_score(copy)
+        retry_attempt = copy.grading_retries + 1
 
         # P0-DI-004 FIX: Set intermediate status during processing
         copy.status = Copy.Status.GRADING_IN_PROGRESS
-        copy.grading_retries += 1
+        copy.grading_retries = retry_attempt
         copy.locked_at = None
         copy.locked_by = None
         copy.save(update_fields=["status", "grading_retries", "locked_at", "locked_by"])
@@ -563,57 +595,59 @@ class GradingService:
         from processing.services.pdf_flattener import PDFFlattener
         flattener = PDFFlattener()
         
-        try:
-            # Check if PDF already exists (additional idempotency check)
-            if not copy.final_pdf:
-                pdf_bytes = flattener.flatten_copy(copy)
-                if pdf_bytes is None:
-                    pdf_bytes = b""
-                output_filename = f"copy_{copy.id}_corrected.pdf"
+        # Track finalization duration
+        with track_finalize_duration(retry_attempt=retry_attempt, status='success'):
+            try:
+                # Check if PDF already exists (additional idempotency check)
+                if not copy.final_pdf:
+                    pdf_bytes = flattener.flatten_copy(copy)
+                    if pdf_bytes is None:
+                        pdf_bytes = b""
+                    output_filename = f"copy_{copy.id}_corrected.pdf"
+                    
+                    # Save PDF first
+                    copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
                 
-                # Save PDF first
-                copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
-            
-            # P0-DI-004 FIX: Mark as GRADED only after PDF generation succeeds
-            copy.status = Copy.Status.GRADED
-            copy.graded_at = timezone.now()
-            copy.grading_error_message = None  # Clear previous errors
-            copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf"])
-            
-            # P0-DI-007 FIX: Audit event for success (idempotent with get_or_create)
-            GradingEvent.objects.get_or_create(
-                copy=copy,
-                action=GradingEvent.Action.FINALIZE,
-                actor=user,
-                defaults={'metadata': {'final_score': final_score, 'retries': copy.grading_retries}}
-            )
-            
-        except Exception as e:
-            # P0-DI-004 FIX: Save error state with detailed message
-            error_msg = str(e)[:500]  # Limit message length
-            copy.status = Copy.Status.GRADING_FAILED
-            copy.grading_error_message = error_msg
-            copy.save(update_fields=["status", "grading_error_message"])
-            
-            # P0-DI-007 FIX: Audit event for failure
-            GradingEvent.objects.create(
-                copy=copy,
-                action=GradingEvent.Action.FINALIZE,
-                actor=user,
-                metadata={
-                    'detail': error_msg,
-                    'retries': copy.grading_retries,
-                    'success': False
-                }
-            )
-            
-            logger.error(f"PDF generation failed for copy {copy.id} (attempt {copy.grading_retries}): {e}", exc_info=True)
-            
-            # Alert if max retries exceeded
-            if copy.grading_retries >= 3:
-                logger.critical(f"Copy {copy.id} failed {copy.grading_retries} times - manual intervention required")
-                # TODO: Send email notification to admins
-            
-            raise ValueError(f"Failed to generate final PDF: {error_msg}")
+                # P0-DI-004 FIX: Mark as GRADED only after PDF generation succeeds
+                copy.status = Copy.Status.GRADED
+                copy.graded_at = timezone.now()
+                copy.grading_error_message = None  # Clear previous errors
+                copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf"])
+                
+                # P0-DI-007 FIX: Audit event for success (idempotent with get_or_create)
+                GradingEvent.objects.get_or_create(
+                    copy=copy,
+                    action=GradingEvent.Action.FINALIZE,
+                    actor=user,
+                    defaults={'metadata': {'final_score': final_score, 'retries': retry_attempt}}
+                )
+                
+            except Exception as e:
+                # P0-DI-004 FIX: Save error state with detailed message
+                error_msg = str(e)[:500]  # Limit message length
+                copy.status = Copy.Status.GRADING_FAILED
+                copy.grading_error_message = error_msg
+                copy.save(update_fields=["status", "grading_error_message"])
+                
+                # P0-DI-007 FIX: Audit event for failure
+                GradingEvent.objects.create(
+                    copy=copy,
+                    action=GradingEvent.Action.FINALIZE,
+                    actor=user,
+                    metadata={
+                        'detail': error_msg,
+                        'retries': retry_attempt,
+                        'success': False
+                    }
+                )
+                
+                logger.error(f"PDF generation failed for copy {copy.id} (attempt {retry_attempt}): {e}", exc_info=True)
+                
+                # Alert if max retries exceeded
+                if retry_attempt >= 3:
+                    logger.critical(f"Copy {copy.id} failed {retry_attempt} times - manual intervention required")
+                    # TODO: Send email notification to admins
+                
+                raise ValueError(f"Failed to generate final PDF: {error_msg}")
 
         return copy
