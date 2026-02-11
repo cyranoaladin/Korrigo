@@ -461,7 +461,7 @@ class PronoteExporterCSVGenerationTests(TestCase):
         self.assertIn('INE;MATIERE;NOTE;COEFF;COMMENTAIRE', lines[0])
         
         # Check data row
-        self.assertIn('11111111111;MATHEMATIQUES;16,00;1,0;Excellent travail', lines[1])
+        self.assertIn('Durand Alice;MATHEMATIQUES;16,00;1,0;Excellent travail', lines[1])
     
     def test_generate_csv_multiple_copies(self):
         """Test CSV with multiple copies"""
