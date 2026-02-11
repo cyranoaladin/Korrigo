@@ -66,6 +66,11 @@ const isReady = computed(() => copy.value?.status === 'READY')
 const isLocked = computed(() => copy.value?.status === 'LOCKED')
 const isGraded = computed(() => copy.value?.status === 'GRADED')
 
+// Anonymization: hide student identity on page 1
+const isAdmin = computed(() => authStore.user?.is_superuser || authStore.user?.role === 'Admin')
+const showIdentity = ref(false) // Only admin can toggle this
+const isFirstPage = computed(() => currentPage.value === 1)
+
 const isReadOnly = computed(() => isGraded.value || isLockConflict.value)
 const canAnnotate = computed(() => isReady.value && !isReadOnly.value)
 
@@ -158,6 +163,7 @@ const fetchCopy = async () => {
   isLoading.value = true
   error.value = null
   imageError.value = false
+  showIdentity.value = false
   try {
     copy.value = await gradingApi.getCopy(copyId)
     await refreshAnnotations()
@@ -788,6 +794,23 @@ onUnmounted(() => {
               @load="handleImageLoad"
               @error="handleImageError"
             >
+            <!-- Anonymization overlay: covers student identity zone on page 1 -->
+            <div
+              v-if="isFirstPage && !showIdentity"
+              class="anonymization-overlay"
+              :style="{ width: displayWidth + 'px', height: (displayHeight * 0.35) + 'px' }"
+            >
+              <div class="anonymization-label">
+                🔒 Zone d'identification masquée
+              </div>
+              <button
+                v-if="isAdmin"
+                class="btn-sm btn-reveal"
+                @click="showIdentity = true"
+              >
+                Révéler l'identité (Admin)
+              </button>
+            </div>
             <CanvasLayer
               :width="displayWidth"
               :height="displayHeight"
@@ -1091,6 +1114,38 @@ onUnmounted(() => {
 
 .canvas-wrapper { position: relative; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); }
 .page-image { width: 100%; height: 100%; display: block; }
+
+.anonymization-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 3px solid #f59e0b;
+}
+.anonymization-label {
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.btn-reveal {
+    background: rgba(255,255,255,0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(251,191,36,0.4);
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.2s;
+}
+.btn-reveal:hover { background: rgba(255,255,255,0.25); }
 
 .inspector-panel { width: 320px; background: white; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; }
 .inspector-tabs { display: flex; border-bottom: 1px solid #dee2e6; }
