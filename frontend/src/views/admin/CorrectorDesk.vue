@@ -66,13 +66,18 @@ const isReady = computed(() => copy.value?.status === 'READY')
 const isLocked = computed(() => copy.value?.status === 'LOCKED')
 const isGraded = computed(() => copy.value?.status === 'GRADED')
 
-// Anonymization: hide student identity on header pages (every N pages where N = pages_per_booklet)
+// Anonymization: hide student identity on header pages (1+4*N) and last page (annexe)
 const isAdmin = computed(() => authStore.user?.is_superuser || authStore.user?.role === 'Admin')
 const showIdentity = ref(false) // Only admin can toggle this
 const isHeaderPage = computed(() => {
     const ppb = copy.value?.exam?.pages_per_booklet || 4
-    // Pages 1, ppb+1, 2*ppb+1, ... are header pages (1-based)
-    return ((currentPage.value - 1) % ppb) === 0
+    const page = currentPage.value
+    const total = pages.value.length
+    // Pages 1, 5, 9, 13... (formula: 1 + 4*N) have identity headers
+    const isPeriodicHeader = ((page - 1) % ppb) === 0
+    // Last page is the annexe, also has an identity header
+    const isLastPage = total > 0 && page === total
+    return isPeriodicHeader || isLastPage
 })
 
 const isReadOnly = computed(() => isGraded.value || isLockConflict.value)
