@@ -120,7 +120,7 @@ onMounted(() => {
           <!-- Tabs or Split vertical? Let's do TOP: Breakdown, BOTTOM: PDF -->
                     
           <div class="score-breakdown">
-            <h4>Détail des points</h4>
+            <h4>Détail des notes</h4>
             <div class="tags">
               <span
                 v-for="(val, key) in selectedCopy.scores_details"
@@ -129,7 +129,40 @@ onMounted(() => {
               >
                 {{ key }}: <b>{{ val }}</b>
               </span>
+              <span
+                v-if="Object.keys(selectedCopy.scores_details || {}).length === 0"
+                class="no-scores"
+              >
+                Pas de détail disponible.
+              </span>
             </div>
+          </div>
+
+          <!-- Remarks per question -->
+          <div
+            v-if="selectedCopy.remarks && Object.keys(selectedCopy.remarks).length > 0"
+            class="remarks-section"
+          >
+            <h4>Remarques par question</h4>
+            <div
+              v-for="(remark, qid) in selectedCopy.remarks"
+              :key="'remark-' + qid"
+              class="remark-item"
+            >
+              <span class="remark-qid">{{ qid }}</span>
+              <span class="remark-text">{{ remark }}</span>
+            </div>
+          </div>
+
+          <!-- Global Appreciation -->
+          <div
+            v-if="selectedCopy.global_appreciation"
+            class="appreciation-section"
+          >
+            <h4>Appréciation générale</h4>
+            <p class="appreciation-text">
+              {{ selectedCopy.global_appreciation }}
+            </p>
           </div>
                     
           <div class="pdf-wrapper">
@@ -194,6 +227,18 @@ onMounted(() => {
 .score-breakdown h4 { margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
 .tags { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .tag { background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; color: #374151; border: 1px solid #e5e7eb; }
+
+.no-scores { color: #9ca3af; font-style: italic; }
+
+.remarks-section { background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.remarks-section h4 { margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+.remark-item { display: flex; gap: 0.5rem; padding: 0.4rem 0; border-bottom: 1px solid #f3f4f6; }
+.remark-qid { font-weight: 600; color: #667eea; min-width: 60px; }
+.remark-text { color: #374151; }
+
+.appreciation-section { background: #fef3c7; padding: 1rem; border-radius: 8px; border: 1px solid #fde68a; }
+.appreciation-section h4 { margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #92400e; text-transform: uppercase; letter-spacing: 0.05em; }
+.appreciation-text { color: #78350f; line-height: 1.6; margin: 0; }
 
 .pdf-wrapper { flex: 1; background: #e5e7eb; border-radius: 8px; overflow: hidden; position: relative; }
 .no-pdf { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #6b7280; font-weight: 500; }
