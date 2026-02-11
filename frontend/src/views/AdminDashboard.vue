@@ -326,6 +326,7 @@ onUnmounted(() => {
           <thead>
             <tr>
               <th>Nom</th>
+              <th>Mode</th>
               <th>Date</th>
               <th>État</th>
               <th>Actions</th>
@@ -338,6 +339,14 @@ onUnmounted(() => {
               :data-testid="exam ? `exam.row.${exam.id}` : ''"
             >
               <td>{{ exam?.name }}</td>
+              <td>
+                <span 
+                  class="mode-badge" 
+                  :class="exam.upload_mode === 'INDIVIDUAL_A4' ? 'badge-individual' : 'badge-batch'"
+                >
+                  {{ exam.upload_mode === 'INDIVIDUAL_A4' ? 'INDIVIDUAL' : 'BATCH' }}
+                </span>
+              </td>
               <td>{{ exam?.date }}</td>
               <td>
                 <span
@@ -846,6 +855,9 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 .data-table { width: 100%; background: white; border-radius: 8px; border-collapse: collapse; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 .data-table th, .data-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
 .badge { padding: 4px 8px; border-radius: 999px; font-size: 0.75rem; background: #e0e7ff; color: #3730a3; }
+.mode-badge { padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.badge-batch { background: #dbeafe; color: #1e40af; }
+.badge-individual { background: #fef3c7; color: #92400e; }
 
 /* Modal Styles */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }

@@ -297,6 +297,17 @@ class Copy(models.Model):
         verbose_name=_("Fascicules composants"),
         blank=True
     )
+    
+    # Reference to ExamPDF (for INDIVIDUAL_A4 mode) to avoid duplicate storage
+    source_exam_pdf = models.ForeignKey(
+        'ExamPDF',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='copies',
+        verbose_name=_("PDF Source (Mode INDIVIDUAL_A4)"),
+        help_text=_("Référence vers ExamPDF pour éviter le stockage dupliqué en mode INDIVIDUAL_A4")
+    )
 
     # Link to Student (Mission 17)
     student = models.ForeignKey(
@@ -399,6 +410,28 @@ class Copy(models.Model):
             )
         self.status = new_status
 
+    
+    def get_pdf_source_file(self):
+        """
+        Retourne le fichier PDF source de la copie.
+        - Pour BATCH_A3: retourne pdf_source (FileField direct)
+        - Pour INDIVIDUAL_A4: retourne source_exam_pdf.pdf_file (référence)
+        """
+        if self.source_exam_pdf:
+            return self.source_exam_pdf.pdf_file
+        return self.pdf_source
+    
+    @property
+    def pdf_source_path(self):
+        """Property pour accéder au chemin du fichier PDF source."""
+        pdf_file = self.get_pdf_source_file()
+        return pdf_file.path if pdf_file else None
+    
+    @property
+    def pdf_source_url(self):
+        """Property pour accéder à l'URL du fichier PDF source."""
+        pdf_file = self.get_pdf_source_file()
+        return pdf_file.url if pdf_file else None
     class Meta:
         verbose_name = _("Copie")
         verbose_name_plural = _("Copies")
