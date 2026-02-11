@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import api from '../services/api'
+import api, { UPLOAD_TIMEOUT } from '../services/api'
 
 const props = defineProps({
   show: Boolean
@@ -18,6 +18,7 @@ const singlePdfFile = ref(null)
 const isUploading = ref(false)
 const uploadError = ref(null)
 const uploadProgress = ref(null)
+const uploadPercent = ref(0)
 
 const fileInputSingle = ref(null)
 const fileInputMultiple = ref(null)
@@ -39,6 +40,7 @@ const resetForm = () => {
   singlePdfFile.value = null
   uploadError.value = null
   uploadProgress.value = null
+  uploadPercent.value = 0
 }
 
 const handleClose = () => {
@@ -114,7 +116,14 @@ const uploadExam = async () => {
     }
     
     const examResponse = await api.post('/exams/upload/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: UPLOAD_TIMEOUT,
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          uploadPercent.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          uploadProgress.value = `Upload: ${uploadPercent.value}%${uploadPercent.value >= 100 ? ' — Traitement en cours...' : ''}`
+        }
+      }
     })
     
     const examId = examResponse.data.id
@@ -129,7 +138,14 @@ const uploadExam = async () => {
       })
       
       await api.post(`/exams/${examId}/upload-individual-pdfs/`, individualFormData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: UPLOAD_TIMEOUT,
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            uploadPercent.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            uploadProgress.value = `Upload fichiers: ${uploadPercent.value}%${uploadPercent.value >= 100 ? ' — Traitement en cours...' : ''}`
+          }
+        }
       })
     }
     
@@ -348,7 +364,13 @@ const uploadExam = async () => {
           v-if="uploadProgress" 
           class="progress-message"
         >
-          {{ uploadProgress }}
+          <div class="progress-text">{{ uploadProgress }}</div>
+          <div v-if="uploadPercent > 0" class="progress-bar-container">
+            <div 
+              class="progress-bar-fill" 
+              :style="{ width: uploadPercent + '%' }"
+            />
+          </div>
         </div>
       </div>
 
@@ -604,6 +626,26 @@ const uploadExam = async () => {
   color: #0066cc;
   margin-top: 12px;
   text-align: center;
+}
+
+.progress-text {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background: #e0e7ff;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  border-radius: 4px;
+  transition: width 0.3s ease;
 }
 
 .modal-footer {

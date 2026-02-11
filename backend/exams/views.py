@@ -21,6 +21,23 @@ from .permissions import IsTeacherOrAdmin
 import fitz  # PyMuPDF
 import logging
 import os
+import uuid
+
+
+def generate_anonymous_id(exam, index: int) -> str:
+    """
+    Generate a collision-free sequential anonymous ID for a copy within an exam.
+    Format: XXXX-NNN where XXXX = first 4 chars of exam UUID, NNN = sequential number.
+    Falls back to longer UUID segment if collision detected.
+    """
+    prefix = str(exam.id).replace('-', '')[:4].upper()
+    existing_count = Copy.objects.filter(exam=exam).count()
+    seq = existing_count + index + 1
+    candidate = f"{prefix}-{seq:03d}"
+    # Safety: check uniqueness, extend if collision
+    if Copy.objects.filter(anonymous_id=candidate).exists():
+        candidate = f"{prefix}-{str(uuid.uuid4()).replace('-', '')[:6].upper()}"
+    return candidate
 
 class ExamUploadView(APIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
@@ -65,22 +82,24 @@ class ExamUploadView(APIView):
                 if exam.upload_mode == Exam.UploadMode.BATCH_A3:
                     # BATCH_A3 MODE: Split PDF into booklets and create copies
                     from processing.services.pdf_splitter import PDFSplitter
-                    import uuid
+                    from django.utils import timezone
 
                     splitter = PDFSplitter(dpi=150)
                     booklets = splitter.split_exam(exam)
                     logger.info(f"PDF split into {len(booklets)} booklets for exam {exam.id}")
 
-                    # Créer les copies en statut STAGING (ADR-003)
-                    for booklet in booklets:
+                    # Create copies and auto-validate (STAGING→READY) since pages exist after split
+                    for i, booklet in enumerate(booklets):
+                        has_pages = booklet.pages_images and len(booklet.pages_images) > 0
                         copy = Copy.objects.create(
                             exam=exam,
-                            anonymous_id=str(uuid.uuid4())[:8].upper(),
-                            status=Copy.Status.STAGING,
-                            is_identified=False
+                            anonymous_id=generate_anonymous_id(exam, i),
+                            status=Copy.Status.READY if has_pages else Copy.Status.STAGING,
+                            is_identified=False,
+                            validated_at=timezone.now() if has_pages else None
                         )
                         copy.booklets.add(booklet)
-                        logger.info(f"Copy {copy.id} created in STAGING for booklet {booklet.id}")
+                        logger.info(f"Copy {copy.id} ({copy.anonymous_id}) created as {copy.status} for booklet {booklet.id}")
 
                     # Log successful completion
                     logger.info(f"Exam upload completed successfully: {exam.id} with {len(booklets)} booklets")
@@ -88,7 +107,7 @@ class ExamUploadView(APIView):
                     return Response({
                         **serializer.data,
                         "booklets_created": len(booklets),
-                        "message": f"{len(booklets)} booklets created successfully"
+                        "message": f"{len(booklets)} copies créées et prêtes à corriger"
                     }, status=status.HTTP_201_CREATED)
                 
                 elif exam.upload_mode == Exam.UploadMode.INDIVIDUAL_A4:
@@ -115,13 +134,26 @@ class ExamUploadView(APIView):
             # Cleanup uploaded file if exam was partially created
             # Note: transaction.atomic() already rolled back DB changes
             # But we need to clean up the uploaded file from filesystem
-            if 'exam' in locals() and exam.pdf_source and hasattr(exam.pdf_source, 'path'):
-                try:
-                    if os.path.exists(exam.pdf_source.path):
-                        os.remove(exam.pdf_source.path)
-                        logger.info(f"Cleaned up orphaned file: {exam.pdf_source.path}")
-                except Exception as cleanup_error:
-                    logger.error(f"Failed to cleanup file: {cleanup_error}")
+            if 'exam' in locals():
+                # Clean up PDF source
+                if exam.pdf_source and hasattr(exam.pdf_source, 'path'):
+                    try:
+                        if os.path.exists(exam.pdf_source.path):
+                            os.remove(exam.pdf_source.path)
+                            logger.info(f"Cleaned up orphaned file: {exam.pdf_source.path}")
+                    except Exception as cleanup_error:
+                        logger.error(f"Failed to cleanup PDF file: {cleanup_error}")
+                
+                # P11 FIX: Clean up extracted PNG images
+                import shutil
+                from django.conf import settings as django_settings
+                booklet_dir = os.path.join(django_settings.MEDIA_ROOT, 'booklets', str(exam.id))
+                if os.path.exists(booklet_dir):
+                    try:
+                        shutil.rmtree(booklet_dir)
+                        logger.info(f"Cleaned up orphaned booklet images: {booklet_dir}")
+                    except Exception as cleanup_error:
+                        logger.error(f"Failed to cleanup booklet images: {cleanup_error}")
             
             # Return user-friendly error with safe_error_response
             return Response(
@@ -180,9 +212,7 @@ class IndividualPDFUploadView(APIView):
         
         try:
             with transaction.atomic():
-                import uuid
-                
-                for pdf_file in uploaded_files:
+                for i, pdf_file in enumerate(uploaded_files):
                     # Extract student identifier from filename (optional)
                     filename = pdf_file.name
                     student_identifier = os.path.splitext(filename)[0] if filename else None
@@ -195,13 +225,12 @@ class IndividualPDFUploadView(APIView):
                     )
                     
                     # Create Copy in STAGING status (using exam_pdf.pdf_file as reference)
-                    # Note: We don't duplicate the file; Copy.pdf_source will reference the same file
                     copy = Copy.objects.create(
                         exam=exam,
-                        anonymous_id=str(uuid.uuid4())[:8].upper(),
+                        anonymous_id=generate_anonymous_id(exam, i),
                         status=Copy.Status.STAGING,
                         is_identified=False,
-                        pdf_source=exam_pdf.pdf_file  # Reference the same file
+                        pdf_source=exam_pdf.pdf_file
                     )
                     
                     created_copies.append({
@@ -279,6 +308,16 @@ class ExamListView(generics.ListCreateAPIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
     queryset = Exam.objects.all().order_by('-date')
     serializer_class = ExamSerializer
+    
+    # P10 FIX: Add pagination (returns all if no page param, paginated otherwise)
+    from rest_framework.pagination import PageNumberPagination
+    
+    class ExamPagination(PageNumberPagination):
+        page_size = 50
+        page_size_query_param = 'page_size'
+        max_page_size = 200
+    
+    pagination_class = ExamPagination
 
 class BookletDetailView(generics.RetrieveDestroyAPIView):
     queryset = Booklet.objects.all()
@@ -308,21 +347,18 @@ class BookletSplitView(APIView):
              )
 
         if not booklet.exam.pdf_source:
-             return Response({"error": "No PDF source found"}, status=status.HTTP_404_NOT_FOUND)
+             return Response(
+                 {"error": _("Le PDF source n'est pas disponible pour cet examen")},
+                 status=status.HTTP_404_NOT_FOUND
+             )
         
         # Determine source page index
         page_index = booklet.start_page - 1
         
         import tempfile
-        import os
         from processing.services.splitter import A3Splitter
 
         try:
-            if not booklet.exam.pdf_source:
-                return Response(
-                    {"error": _("Le PDF source n'est pas disponible pour cet examen")},
-                    status=status.HTTP_404_NOT_FOUND
-                )
             doc = fitz.open(booklet.exam.pdf_source.path)
             if page_index < 0 or page_index >= doc.page_count:
                 return Response({"error": "Page out of range"}, status=status.HTTP_404_NOT_FOUND)
@@ -398,9 +434,9 @@ class MergeBookletsView(APIView):
         # Since Copy <-> Booklet relationship is via Booklet.assigned_copy (ManyToMany defined in Copy),
         # we create the Copy and add booklets.
         
-        # Generate generic anonymous ID
-        import uuid
-        anon_id = str(uuid.uuid4())[:8].upper()
+        # Generate collision-free anonymous ID
+        exam = get_object_or_404(Exam, id=exam_id)
+        anon_id = generate_anonymous_id(exam, 0)
         
         copy = Copy.objects.create(
             exam_id=exam_id,
@@ -585,50 +621,69 @@ class ExamSourceUploadView(APIView):
 
     @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, pk):
+        logger = logging.getLogger(__name__)
         exam = get_object_or_404(Exam, pk=pk)
         
-        # Update PDF
-        if 'pdf_source' in request.FILES:
-            exam.pdf_source = request.FILES['pdf_source']
-            exam.save()
-            
-            # Trigger Processing
-            try:
+        if 'pdf_source' not in request.FILES:
+            return Response({"error": "pdf_source field required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # P3 FIX: Block re-upload if non-STAGING copies exist (already being corrected)
+        non_staging_copies = exam.copies.exclude(status=Copy.Status.STAGING).count()
+        if non_staging_copies > 0:
+            return Response(
+                {"error": _(f"Impossible de re-uploader: {non_staging_copies} copie(s) sont déjà en cours de traitement ou corrigées.")},
+                status=status.HTTP_409_CONFLICT
+            )
+        
+        try:
+            with transaction.atomic():
+                # P3 FIX: Clean up existing STAGING copies and booklets before re-processing
+                existing_staging = exam.copies.filter(status=Copy.Status.STAGING)
+                if existing_staging.exists():
+                    logger.info(f"Cleaning up {existing_staging.count()} existing STAGING copies for exam {exam.id}")
+                    existing_staging.delete()
+                
+                # Clean up existing booklets (PDFSplitter idempotence uses force=True)
+                exam.booklets.all().delete()
+                
+                exam.pdf_source = request.FILES['pdf_source']
+                exam.is_processed = False
+                exam.save()
+                
                 from processing.services.pdf_splitter import PDFSplitter
+                from django.utils import timezone
+                
                 splitter = PDFSplitter(dpi=150)
-                booklets = splitter.split_exam(exam)
+                booklets = splitter.split_exam(exam, force=True)
                 
-                # Create Copies (Staging)
-                import uuid
-                import logging
-                logger = logging.getLogger(__name__)
-                
+                # Create copies with auto-validation
                 created_count = 0
-                for booklet in booklets:
-                    # Avoid duplicates if reprocessing?
-                    # For MVP, just create new copies.
+                for i, booklet in enumerate(booklets):
+                    has_pages = booklet.pages_images and len(booklet.pages_images) > 0
                     copy = Copy.objects.create(
                         exam=exam,
-                        anonymous_id=str(uuid.uuid4())[:8].upper(),
-                        status=Copy.Status.STAGING,
-                        is_identified=False
+                        anonymous_id=generate_anonymous_id(exam, i),
+                        status=Copy.Status.READY if has_pages else Copy.Status.STAGING,
+                        is_identified=False,
+                        validated_at=timezone.now() if has_pages else None
                     )
                     copy.booklets.add(booklet)
                     created_count += 1
                 
+                logger.info(f"Re-upload completed for exam {exam.id}: {created_count} copies created")
+                
                 return Response({
-                    "message": f"PDF uploaded and processed. {created_count} booklets created.",
+                    "message": f"PDF uploadé et traité. {created_count} copies créées.",
                     "booklets_created": created_count
                 }, status=status.HTTP_201_CREATED)
                 
-            except Exception as e:
-                from core.utils.errors import safe_error_response
-                return Response(
-                    safe_error_response(e, context="PDF upload", user_message="Failed to process PDF upload."),
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-        
-        return Response({"error": "pdf_source field required"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            from core.utils.errors import safe_error_response
+            logger.error(f"PDF re-upload failed for exam {exam.id}: {str(e)}", exc_info=True)
+            return Response(
+                safe_error_response(e, context="PDF upload", user_message="Échec du traitement du PDF."),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 class CopyValidationView(APIView):
     permission_classes = [IsTeacherOrAdmin]
 
@@ -648,6 +703,44 @@ class CopyValidationView(APIView):
                  safe_error_response(e, context="Copy validation", user_message="Failed to validate copy."),
                  status=status.HTTP_500_INTERNAL_SERVER_ERROR
              )
+
+class BulkCopyValidationView(APIView):
+    """
+    Validate all STAGING copies for an exam (STAGING → READY).
+    POST /api/exams/<exam_id>/validate-all/
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, exam_id):
+        logger = logging.getLogger(__name__)
+        exam = get_object_or_404(Exam, id=exam_id)
+        
+        staging_copies = Copy.objects.filter(exam=exam, status=Copy.Status.STAGING)
+        
+        if not staging_copies.exists():
+            return Response(
+                {"message": _("Aucune copie en attente de validation.")},
+                status=status.HTTP_200_OK
+            )
+        
+        validated_count = 0
+        errors = []
+        
+        for copy in staging_copies:
+            try:
+                GradingService.validate_copy(copy, request.user)
+                validated_count += 1
+            except ValueError as e:
+                errors.append({"copy_id": str(copy.id), "error": str(e)})
+        
+        logger.info(f"Bulk validation for exam {exam_id}: {validated_count} validated, {len(errors)} errors")
+        
+        return Response({
+            "validated": validated_count,
+            "errors": errors,
+            "message": f"{validated_count} copie(s) validée(s) avec succès."
+        }, status=status.HTTP_200_OK)
+
 
 class CorrectorCopiesView(generics.ListAPIView):
     """
@@ -699,10 +792,12 @@ class ExamDispatchView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # P12 FIX: Only dispatch READY copies (not STAGING or already processed)
         unassigned_copies = list(
             Copy.objects.filter(
                 exam=exam,
-                assigned_corrector__isnull=True
+                assigned_corrector__isnull=True,
+                status__in=[Copy.Status.READY, Copy.Status.STAGING]
             ).order_by('anonymous_id')
         )
 
