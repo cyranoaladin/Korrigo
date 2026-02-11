@@ -4,20 +4,27 @@ import api from '../services/api' // Import Axios instance
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref(null)
+    const lastError = ref('')
     const isAuthenticated = computed(() => !!user.value)
     const mustChangePassword = computed(() => user.value?.must_change_password || false)
 
     // Check if we are checking auth status
     const isChecking = ref(false)
 
+    function clearError() {
+        lastError.value = ''
+    }
+
     // Note: api.defaults.baseURL handles the prefix now
 
     async function login(username, password) {
         try {
+            lastError.value = ''
             await api.post('/login/', { username, password })
             await fetchUser() // Get User Data
             return true
         } catch (e) {
+            lastError.value = e.response?.data?.error || 'Identifiants incorrects.'
             console.error(e)
             return false
         }
@@ -92,6 +99,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     return { 
         user, 
+        lastError,
         isAuthenticated, 
         mustChangePassword, 
         isChecking, 
@@ -99,6 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
         loginStudent, 
         logout, 
         fetchUser,
+        clearError,
         clearMustChangePassword
     }
 })
