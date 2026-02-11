@@ -8,6 +8,9 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from core.auth import UserRole
 
+# Exclude standalone scripts from pytest collection
+collect_ignore = ['test_new_student_structure.py']
+
 
 @pytest.fixture
 def api_client():
