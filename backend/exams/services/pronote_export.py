@@ -263,20 +263,17 @@ class PronoteExporter:
                 f"Toutes les copies doivent être associées à un élève."
             )
         
-        # Check INE validity
-        missing_ine = graded_copies.filter(
+        # Check student validity (must have a linked student)
+        missing_student = graded_copies.filter(
             is_identified=True, 
-            student__ine__isnull=True
-        ) | graded_copies.filter(
-            is_identified=True,
-            student__ine__exact=''
+            student__isnull=True
         )
         
-        if missing_ine.exists():
-            count = missing_ine.count()
+        if missing_student.exists():
+            count = missing_student.count()
             result.add_error(
-                f"{count} élève(s) sans INE valide. "
-                f"Tous les élèves doivent avoir un INE pour l'export PRONOTE."
+                f"{count} copie(s) identifiée(s) sans élève associé. "
+                f"Tous les élèves doivent être renseignés pour l'export PRONOTE."
             )
         
         # Warn about comments with delimiters
@@ -341,8 +338,8 @@ class PronoteExporter:
         
         # Generate rows
         for copy in copies:
-            # Get student INE
-            ine = copy.student.ine if copy.student else ''
+            # Get student identifier (last_name first_name as fallback since INE removed)
+            ine = f"{copy.student.last_name} {copy.student.first_name}" if copy.student else ''
             
             # Get exam name as MATIERE
             matiere = self.exam.name.upper()

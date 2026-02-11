@@ -340,19 +340,12 @@ class PronoteExporterValidationTests(TestCase):
         self.assertFalse(result.is_valid)
         self.assertIn("non identifiée", result.errors[0])
     
-    def test_validation_missing_ine(self):
-        """Test validation fails when students missing INE"""
-        student_no_ine = Student.objects.create(
-            first_name='Test',
-            last_name='NoINE',
-            class_name='TS1',
-            date_naissance='2005-03-10'
-        )
-        
+    def test_validation_missing_student(self):
+        """Test validation fails when copy is identified but has no linked student."""
         Copy.objects.create(
             exam=self.exam,
-            anonymous_id='COPY_NO_INE',
-            student=student_no_ine,
+            anonymous_id='COPY_NO_STUDENT',
+            student=None,
             is_identified=True,
             status=Copy.Status.GRADED
         )
@@ -360,7 +353,7 @@ class PronoteExporterValidationTests(TestCase):
         result = self.exporter.validate_export_eligibility()
         
         self.assertFalse(result.is_valid)
-        self.assertIn("sans INE valide", result.errors[0])
+        self.assertIn("sans élève", result.errors[0])
     
     def test_validation_success(self):
         """Test validation passes with valid graded copies"""

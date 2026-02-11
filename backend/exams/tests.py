@@ -258,8 +258,8 @@ class PronoteExportTests(TestCase):
         lines = content.strip().split('\n')
         
         self.assertEqual(lines[0], 'INE;MATIERE;NOTE;COEFF;COMMENTAIRE')
-        self.assertIn('12345678901;MATHÉMATIQUES;15,50;1,0;Bon travail', lines)
-        self.assertIn('98765432102;MATHÉMATIQUES;12,25;1,0;', lines)
+        self.assertIn('Dupont Jean;MATHÉMATIQUES;15,50;1,0;Bon travail', lines)
+        self.assertIn('Martin Sophie;MATHÉMATIQUES;12,25;1,0;', lines)
 
     def test_export_rounding_logic(self):
         copy = Copy.objects.create(
@@ -336,19 +336,14 @@ class PronoteExportTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('non identifiée', response.data['error'])
 
-    def test_export_reject_missing_ine(self):
-        student_no_ine = Student.objects.create(
-            first_name='Test',
-            last_name='NoINE',
-            class_name='TS1',
-            date_naissance='2005-06-01'
-        )
+    def test_export_reject_missing_student(self):
+        """Test export fails when copy is identified but has no linked student."""
         copy = Copy.objects.create(
             exam=self.exam,
-            anonymous_id='NOINE001',
+            anonymous_id='NOSTUDENT001',
             status=Copy.Status.GRADED,
             is_identified=True,
-            student=student_no_ine
+            student=None
         )
         Score.objects.create(
             copy=copy,
@@ -360,7 +355,7 @@ class PronoteExportTests(TestCase):
         response = self.client.post(url)
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('INE manquant', response.data['error'])
+        self.assertIn('sans élève', response.data['error'])
 
     def test_export_reject_no_copies(self):
         self.client.force_login(self.admin)
