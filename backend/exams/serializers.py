@@ -165,7 +165,13 @@ class CopySerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         # Include full booklet data for frontend pages computation
-        # BookletSerializer is already defined above, no need for inline import
         representation['booklets'] = BookletSerializer(instance.booklets.all(), many=True, context=self.context).data
+        # Include exam metadata needed by frontend (anonymization, grading)
+        representation['exam'] = {
+            'id': str(instance.exam.id),
+            'name': instance.exam.name,
+            'pages_per_booklet': instance.exam.pages_per_booklet,
+            'grading_structure': instance.exam.grading_structure,
+        }
         return representation
 

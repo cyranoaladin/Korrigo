@@ -66,20 +66,14 @@ const isReady = computed(() => copy.value?.status === 'READY')
 const isLocked = computed(() => copy.value?.status === 'LOCKED')
 const isGraded = computed(() => copy.value?.status === 'GRADED')
 
-// Anonymization: hide student identity on first page of each booklet
+// Anonymization: hide student identity on header pages (every N pages where N = pages_per_booklet)
 const isAdmin = computed(() => authStore.user?.is_superuser || authStore.user?.role === 'Admin')
 const showIdentity = ref(false) // Only admin can toggle this
-const bookletFirstPages = computed(() => {
-    if (!copy.value || !copy.value.booklets) return new Set()
-    const firstPages = new Set()
-    let offset = 0
-    copy.value.booklets.forEach(booklet => {
-        firstPages.add(offset + 1) // 1-based page index
-        offset += (booklet.pages_images || []).length
-    })
-    return firstPages
+const isHeaderPage = computed(() => {
+    const ppb = copy.value?.exam?.pages_per_booklet || 4
+    // Pages 1, ppb+1, 2*ppb+1, ... are header pages (1-based)
+    return ((currentPage.value - 1) % ppb) === 0
 })
-const isBookletFirstPage = computed(() => bookletFirstPages.value.has(currentPage.value))
 
 const isReadOnly = computed(() => isGraded.value || isLockConflict.value)
 const canAnnotate = computed(() => isReady.value && !isReadOnly.value)
@@ -804,9 +798,9 @@ onUnmounted(() => {
               @load="handleImageLoad"
               @error="handleImageError"
             >
-            <!-- Anonymization overlay: covers student identity zone on first page of each booklet -->
+            <!-- Anonymization overlay: covers student identity zone on header pages -->
             <div
-              v-if="isBookletFirstPage && !showIdentity"
+              v-if="isHeaderPage && !showIdentity"
               class="anonymization-overlay"
               :style="{ width: displayWidth + 'px', height: (displayHeight * 0.35) + 'px' }"
             >
