@@ -1,4 +1,5 @@
 from django.test import TransactionTestCase, Client
+from django.utils import timezone
 from rest_framework import status
 from students.models import Student
 from exams.models import Exam, Copy
@@ -25,7 +26,7 @@ class TestCrossStudentAccessPrevention(TransactionTestCase):
             date_naissance=date(2005, 2, 20)
         )
         
-        self.exam = Exam.objects.create(name="Security Test Exam", date="2026-01-15")
+        self.exam = Exam.objects.create(name="Security Test Exam", date="2026-01-15", results_released_at=timezone.now())
         
         self.copy_a_graded = Copy.objects.create(
             exam=self.exam,

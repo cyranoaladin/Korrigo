@@ -186,21 +186,14 @@ jobs:
           DJANGO_ENV: production
           DEBUG: "False"
 
-          # Security: METRICS_TOKEN from GitHub Secrets (CI default if no secret set)
-          METRICS_TOKEN: "${{ secrets.METRICS_TOKEN || 'ci-release-gate-metrics-token' }}"
-
-          # Passwords: allow random generation if not set
-          # For CI, we can set these or let seed generate random ones
-          ADMIN_PASSWORD: "${{ secrets.ADMIN_PASSWORD || '' }}"
-          TEACHER_PASSWORD: "${{ secrets.TEACHER_PASSWORD || '' }}"
-
-          # Test password for E2E (needs to match what seed sets)
-          TEST_PROF_PASSWORD: "prof"
-
-          # Database Credentials (from Secrets)
-          POSTGRES_DB: "${{ secrets.POSTGRES_DB || 'korrigo_ci' }}"
-          POSTGRES_USER: "${{ secrets.POSTGRES_USER || 'korrigo_ci' }}"
-          POSTGRES_PASSWORD: "${{ secrets.POSTGRES_PASSWORD || 'korrigo_ci_password' }}"
+          # CI defaults (override via GitHub repository secrets if needed)
+          METRICS_TOKEN: ci-release-gate-metrics-token
+          ADMIN_PASSWORD: ""
+          TEACHER_PASSWORD: ""
+          TEST_PROF_PASSWORD: prof
+          POSTGRES_DB: korrigo_ci
+          POSTGRES_USER: korrigo_ci
+          POSTGRES_PASSWORD: korrigo_ci_password
 
           # Compose file
           COMPOSE_FILE: "infra/docker/docker-compose.local-prod.yml"

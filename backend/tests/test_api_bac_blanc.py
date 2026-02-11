@@ -12,10 +12,10 @@ from identification.models import OCRResult
 from core.auth import UserRole
 from django.utils import timezone
 import datetime
+import json
 import tempfile
 import os
 from PIL import Image
-import json
 
 
 class BacBlancE2ETest(TestCase):
@@ -255,7 +255,8 @@ class BacBlancE2ETest(TestCase):
         # Create a fully processed copy
         exam = Exam.objects.create(
             name='Test Exam for Student',
-            date='2026-01-01'
+            date='2026-01-01',
+            results_released_at=timezone.now()
         )
         
         booklet = Booklet.objects.create(
@@ -269,7 +270,8 @@ class BacBlancE2ETest(TestCase):
             exam=exam,
             anonymous_id="STU789",
             status=Copy.Status.GRADED,  # Already graded
-            student=self.student
+            student=self.student,
+            is_identified=True
         )
         copy.booklets.add(booklet)
         
