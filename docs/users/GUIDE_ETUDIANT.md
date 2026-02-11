@@ -66,11 +66,13 @@ graph LR
 
 Vos identifiants de connexion sont :
 - **Identifiant (INE)** : Votre Identifiant National Élève (11 caractères)
-  - Exemple : `1234567890AB`
+  - Exemple : `1234567890A`
   - Vous pouvez le trouver sur votre **bulletin scolaire** ou demander au **secrétariat**
 
-- **Nom de famille** : Votre nom tel qu'enregistré dans Pronote
-  - ⚠️ **Attention** : Respectez les majuscules/minuscules
+- **Date de naissance** : Votre date de naissance au format AAAA-MM-JJ
+  - Exemple : `2005-03-15` pour le 15 mars 2005
+  - Format : Année-Mois-Jour (4 chiffres, tiret, 2 chiffres, tiret, 2 chiffres)
+  - Utilisez la date enregistrée dans les fichiers administratifs du lycée
 
 ### Se Connecter
 
@@ -91,10 +93,10 @@ Sur la page de connexion :
 ├─────────────────────────────────────────┤
 │                                         │
 │  INE (Identifiant National Élève) :    │
-│  [1234567890AB_____________]            │
+│  [1234567890A______________]            │
 │                                         │
-│  Nom de famille :                       │
-│  [DUPONT____________________]           │
+│  Date de naissance (AAAA-MM-JJ) :      │
+│  [2005-03-15_______________]            │
 │                                         │
 │  [Se connecter]                         │
 │                                         │
@@ -105,7 +107,9 @@ Sur la page de connexion :
 ```
 
 1. **Saisissez votre INE** (11 caractères, chiffres et lettres)
-2. **Saisissez votre nom de famille** (en majuscules si c'est comme ça dans Pronote)
+2. **Saisissez votre date de naissance** au format AAAA-MM-JJ
+   - Exemple : `2005-03-15` pour le 15 mars 2005
+   - ⚠️ **Attention** : Respectez le format exact (tirets obligatoires)
 3. Cliquez sur **« Se connecter »**
 
 #### Étape 3 : Accès au Tableau de Bord
@@ -400,19 +404,28 @@ Vos données sont conservées pendant :
 
 ### Connexion et Accès
 
-#### Q1 : J'ai oublié mon INE, que faire ?
+#### Q1 : J'ai oublié mon INE ou ma date de naissance, que faire ?
 
-**Réponse** : Votre INE (Identifiant National Élève) se trouve sur :
-- Votre **bulletin scolaire** (en haut à droite généralement)
-- Votre **relevé de notes**
-- Vous pouvez aussi demander au **secrétariat** du lycée
+**Réponse** : 
+
+**Pour votre INE** (Identifiant National Élève) :
+- Consultez votre **bulletin scolaire** (en haut à droite généralement)
+- Consultez votre **relevé de notes**
+- Demandez au **secrétariat** du lycée
+
+**Pour votre date de naissance** :
+- Utilisez le format AAAA-MM-JJ (exemple : `2005-03-15`)
+- Si vous avez un doute sur la date enregistrée, contactez le **secrétariat**
 
 #### Q2 : « Identifiants incorrects », que faire ?
 
 **Réponse** : Vérifiez que :
 - Votre INE est correct (11 caractères, chiffres et lettres)
-- Votre nom est écrit **exactement comme dans Pronote** (majuscules/minuscules)
+- Votre date de naissance est au **bon format** : AAAA-MM-JJ
+  - ✅ Correct : `2005-03-15`
+  - ❌ Incorrect : `15/03/2005`, `15-03-2005`, `2005/03/15`
 - Vous n'avez pas ajouté d'espaces avant/après
+- Votre date de naissance correspond à celle dans les fichiers administratifs du lycée
 
 Si le problème persiste, contactez le **secrétariat**.
 
@@ -619,6 +632,7 @@ Pour toute question sur :
 
 | Version | Date | Changements |
 |---------|------|-------------|
+| **1.1.0** | 01/02/2026 | 🔒 **Sécurité** : Connexion avec INE + Date de naissance (au lieu de nom de famille) |
 | **1.0.0** | 30/01/2026 | Version initiale du guide élève |
 
 ---
