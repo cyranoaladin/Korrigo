@@ -1115,3 +1115,97 @@ class BulkSubjectVariantView(APIView):
         
         return Response({'error': 'Provide assignments or (variant + copy_ids)'}, status=status.HTTP_400_BAD_REQUEST)
 
+
+class AutoDetectSubjectVariantView(APIView):
+    """
+    OCR auto-detect subject variant from the reference at the bottom of the last page (annexe).
+    POST /api/exams/<exam_id>/auto-detect-subject/
+    Convention: BBMATHS... = Sujet A, BBMATH... (no S) = Sujet B
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, exam_id):
+        import fitz
+        import io
+        import os
+        import re
+        from PIL import Image
+        import pytesseract
+        import logging
+
+        logger = logging.getLogger(__name__)
+        exam = get_object_or_404(Exam, id=exam_id)
+
+        # Media root: try standard path first, then Docker volume
+        media_paths = [
+            settings.MEDIA_ROOT,
+            '/var/lib/docker/volumes/docker_media_volume/_data',
+        ]
+
+        copies = Copy.objects.filter(exam=exam).order_by('anonymous_id')
+        results = {'detected': 0, 'failed': 0, 'errors': [], 'copies': []}
+
+        for copy in copies:
+            if not copy.pdf_source:
+                results['errors'].append({'id': str(copy.id), 'error': 'No PDF source'})
+                results['failed'] += 1
+                continue
+
+            # Find the actual file
+            pdf_path = None
+            for base in media_paths:
+                candidate = os.path.join(base, copy.pdf_source.name)
+                if os.path.exists(candidate):
+                    pdf_path = candidate
+                    break
+
+            if not pdf_path:
+                results['errors'].append({'id': str(copy.id), 'error': 'PDF file not found'})
+                results['failed'] += 1
+                continue
+
+            try:
+                doc = fitz.open(pdf_path)
+                last_page = doc[-1]
+                # Render bottom 15% at 150 DPI for OCR
+                pix = last_page.get_pixmap(dpi=150)
+                img = Image.open(io.BytesIO(pix.tobytes("png")))
+                w, h = img.size
+                bottom = img.crop((0, int(h * 0.85), w, h))
+                text = pytesseract.image_to_string(bottom, lang="eng")
+                doc.close()
+
+                # Detect reference pattern
+                text_clean = text.upper().replace(' ', '').replace('\n', '')
+                variant = None
+                if re.search(r'BBMATHS', text_clean):
+                    variant = 'A'
+                elif re.search(r'BBMATH', text_clean):
+                    variant = 'B'
+
+                if variant:
+                    copy.subject_variant = variant
+                    copy.save(update_fields=['subject_variant'])
+                    results['detected'] += 1
+                else:
+                    results['errors'].append({
+                        'id': str(copy.id),
+                        'anonymous_id': copy.anonymous_id,
+                        'error': f'No reference found in OCR text: {text.strip()[:100]}'
+                    })
+                    results['failed'] += 1
+
+                results['copies'].append({
+                    'id': str(copy.id),
+                    'anonymous_id': copy.anonymous_id,
+                    'subject_variant': variant,
+                    'ocr_text': text.strip()[:100],
+                })
+
+            except Exception as e:
+                logger.error(f"OCR failed for copy {copy.id}: {e}")
+                results['errors'].append({'id': str(copy.id), 'error': str(e)[:200]})
+                results['failed'] += 1
+
+        return Response(results)
+

@@ -6,7 +6,7 @@ from .views import (
     CopyImportView, ExamSourceUploadView, BookletSplitView, BookletDetailView,
     ExamDispatchView, IndividualPDFUploadView, PronoteExportView,
     CopyValidationView, BulkCopyValidationView,
-    BulkSubjectVariantView
+    BulkSubjectVariantView, AutoDetectSubjectVariantView
 )
 
 urlpatterns = [
@@ -45,6 +45,7 @@ urlpatterns = [
     
     # Subject Variant (bulk assign A/B)
     path('<uuid:exam_id>/bulk-subject-variant/', BulkSubjectVariantView.as_view(), name='bulk-subject-variant'),
+    path('<uuid:exam_id>/auto-detect-subject/', AutoDetectSubjectVariantView.as_view(), name='auto-detect-subject'),
     
     # Dispatch
     path('<uuid:exam_id>/dispatch/', ExamDispatchView.as_view(), name='exam-dispatch'),
