@@ -5,7 +5,8 @@ from .views import (
     CopyIdentificationView, UnidentifiedCopiesView, StudentCopiesView,
     CopyImportView, ExamSourceUploadView, BookletSplitView, BookletDetailView,
     ExamDispatchView, IndividualPDFUploadView, PronoteExportView,
-    CopyValidationView, BulkCopyValidationView
+    CopyValidationView, BulkCopyValidationView,
+    BulkSubjectVariantView
 )
 
 urlpatterns = [
@@ -41,6 +42,9 @@ urlpatterns = [
     # Copy Validation (STAGING → READY)
     path('copies/<uuid:id>/validate/', CopyValidationView.as_view(), name='copy-validate'),
     path('<uuid:exam_id>/validate-all/', BulkCopyValidationView.as_view(), name='bulk-copy-validate'),
+    
+    # Subject Variant (bulk assign A/B)
+    path('<uuid:exam_id>/bulk-subject-variant/', BulkSubjectVariantView.as_view(), name='bulk-subject-variant'),
     
     # Dispatch
     path('<uuid:exam_id>/dispatch/', ExamDispatchView.as_view(), name='exam-dispatch'),

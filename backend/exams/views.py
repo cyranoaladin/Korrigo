@@ -1058,3 +1058,60 @@ class PronoteExportView(APIView):
         
         return response
 
+
+class BulkSubjectVariantView(APIView):
+    """
+    Assign subject_variant (A/B) to multiple copies of an exam at once.
+    POST /api/exams/<exam_id>/bulk-subject-variant/
+    Body: { "assignments": { "<copy_id>": "A", "<copy_id>": "B", ... } }
+    Or:   { "variant": "A", "copy_ids": ["id1", "id2", ...] }
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def get(self, request, exam_id):
+        """Return all copies for this exam with their current subject_variant."""
+        exam = get_object_or_404(Exam, id=exam_id)
+        copies = Copy.objects.filter(exam=exam).select_related('student').order_by('anonymous_id')
+        data = []
+        for c in copies:
+            data.append({
+                'id': str(c.id),
+                'anonymous_id': c.anonymous_id,
+                'student_name': f"{c.student.last_name} {c.student.first_name}" if c.student else None,
+                'subject_variant': c.subject_variant,
+                'status': c.status,
+            })
+        return Response(data)
+
+    def post(self, request, exam_id):
+        exam = get_object_or_404(Exam, id=exam_id)
+        
+        assignments = request.data.get('assignments', {})
+        variant = request.data.get('variant')
+        copy_ids = request.data.get('copy_ids', [])
+        
+        # Mode 1: bulk assign same variant to list of copy_ids
+        if variant and copy_ids:
+            if variant not in ('A', 'B'):
+                return Response({'error': 'variant must be A or B'}, status=status.HTTP_400_BAD_REQUEST)
+            updated = Copy.objects.filter(exam=exam, id__in=copy_ids).update(subject_variant=variant)
+            return Response({'updated': updated, 'variant': variant})
+        
+        # Mode 2: individual assignments dict
+        if assignments:
+            updated = 0
+            errors = []
+            for copy_id, var in assignments.items():
+                if var not in ('A', 'B', None, ''):
+                    errors.append(f"Invalid variant '{var}' for copy {copy_id}")
+                    continue
+                val = var if var in ('A', 'B') else None
+                count = Copy.objects.filter(exam=exam, id=copy_id).update(subject_variant=val)
+                updated += count
+            result = {'updated': updated}
+            if errors:
+                result['errors'] = errors
+            return Response(result)
+        
+        return Response({'error': 'Provide assignments or (variant + copy_ids)'}, status=status.HTTP_400_BAD_REQUEST)
+
