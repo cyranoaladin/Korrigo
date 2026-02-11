@@ -132,7 +132,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         """Authenticate student A via session-based login."""
         self.client_student_a.post(
             "/api/students/login/",
-            {"ine": "1111111111A", "birth_date": "2005-01-15"},
+            {"last_name": "Martin", "first_name": "Alice", "date_naissance": "2005-01-15"},
             content_type="application/json"
         )
     
@@ -140,7 +140,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         """Authenticate student B via session-based login."""
         self.client_student_b.post(
             "/api/students/login/",
-            {"ine": "2222222222B", "birth_date": "2005-02-20"},
+            {"last_name": "Durant", "first_name": "Bob", "date_naissance": "2005-02-20"},
             content_type="application/json"
         )
     
