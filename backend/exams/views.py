@@ -1177,7 +1177,7 @@ class AutoDetectSubjectVariantView(APIView):
                 doc.close()
 
                 # Detect reference pattern
-                text_clean = text.upper().replace(' ', '').replace('\n', '')
+                text_clean = re.sub(r'[^A-Z0-9]', '', text.upper())
                 variant = None
                 if re.search(r'BBMATHS', text_clean):
                     variant = 'A'
