@@ -148,18 +148,18 @@ def seed_prod():
     students = []
     for i in range(1, 11):  # 10 students
         student, created = Student.objects.get_or_create(
-            ine=f"INE{i:03d}PROD",
+            first_name=f'Élève{i}',
+            last_name=f'Dupont{i}',
+            date_naissance=date(2005, 1, i),
             defaults={
-                'first_name': f'Élève{i}',
-                'last_name': f'Dupont{i}',
                 'class_name': 'Terminale S',
                 'email': f'eleve{i}@viatique.local',
             }
         )
         if created:
-            print(f"  ✓ Created student: {student.ine} - {student.first_name} {student.last_name}")
+            print(f"  ✓ Created student: {student.first_name} {student.last_name} ({student.date_naissance})")
         else:
-            print(f"  ↻ Student already exists: {student.ine}")
+            print(f"  ↻ Student already exists: {student.first_name} {student.last_name}")
         students.append(student)
 
     # 4. Create Exam

@@ -19,7 +19,12 @@ class TestFullSystemAudit:
         # Create Teacher
         self.teacher_user = User.objects.create_user('teacher', 'teacher@example.com', 'teacherpass')
         # Create Student
-        self.student = Student.objects.create(ine="123456789", last_name="BEN ALI", first_name="Amine")
+        self.student = Student.objects.create(
+            date_naissance="2005-03-15",
+            last_name="BEN ALI",
+            first_name="Amine",
+            class_name="TG1"
+        )
 
     def test_01_authentication_admin(self):
         """Vérifie le login/logout ADMIN et l'accès aux infos (ME)"""
@@ -55,7 +60,11 @@ class TestFullSystemAudit:
 
     def test_03_authentication_student(self):
         """Vérifie le login Élève via endpoint dédié"""
-        response = self.client.post('/api/students/login/', {'ine': '123456789', 'last_name': 'BEN ALI'})
+        response = self.client.post('/api/students/login/', {
+            'first_name': 'Amine',
+            'last_name': 'BEN ALI',
+            'date_naissance': '2005-03-15'
+        })
         assert response.status_code == 200, "Student Login Failed"
         
         # Access Student Me
@@ -65,7 +74,8 @@ class TestFullSystemAudit:
              # If 403, it means IsStudent failed. We fixed IsStudent to check session.
              pass
         assert response.status_code == 200
-        assert str(response.data['ine']) == '123456789'
+        assert response.data['first_name'] == 'Amine'
+        assert response.data['last_name'] == 'BEN ALI'
 
     def test_04_global_settings_persistence(self):
         """Vérifie que les settings sont bien sauvegardés en DB"""
@@ -91,7 +101,7 @@ class TestFullSystemAudit:
         """Vérifie l'import de fichier CSV"""
         self.client.force_authenticate(user=self.admin_user)
         
-        csv_content = b"ine,last_name,first_name,email\n999888777,TEST,User,test@test.com"
+        csv_content = b"first_name,last_name,date_naissance,class_name,email\nUser,TEST,2005-05-15,TG3,test@test.com"
         file = io.BytesIO(csv_content)
         file.name = "import.csv"
         
@@ -100,7 +110,11 @@ class TestFullSystemAudit:
         assert response.data['created'] == 1
         
         # Verify student exists
-        assert Student.objects.filter(ine="999888777").exists()
+        assert Student.objects.filter(
+            first_name="User",
+            last_name="TEST",
+            date_naissance="2005-05-15"
+        ).exists()
 
     def test_06_change_password(self):
         """Vérifie le changement de mot de passe"""

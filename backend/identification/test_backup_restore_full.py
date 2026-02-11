@@ -32,7 +32,12 @@ class BackupRestoreDestroyRecoverTest(TransactionTestCase):
     def test_backup_restore_destroy_recover_full_cycle(self):
         # 1. SETUP DATA
         print("Creating Data...")
-        student = Student.objects.create(ine="BRTEST001", last_name="Sauvegardable", first_name="Jean")
+        student = Student.objects.create(
+            date_naissance="2005-03-15",
+            last_name="Sauvegardable",
+            first_name="Jean",
+            class_name="TG1"
+        )
         exam = Exam.objects.create(name="Backup Exam", date="2026-06-01")
         copy = Copy.objects.create(exam=exam, anonymous_id="RESTORE_ME", student=student)
         booklet = Booklet.objects.create(exam=exam, start_page=1, end_page=2)
