@@ -764,3 +764,179 @@ class ExamDispatchView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
+class PronoteExportView(APIView):
+    """
+    Export exam grades in PRONOTE CSV format (admin only).
+    
+    POST /api/exams/<id>/export-pronote/
+    
+    Request body (optional):
+        {
+            "coefficient": 1.0  // Override default coefficient
+        }
+    
+    Response:
+        - 200 OK: CSV file download
+        - 400 Bad Request: Validation errors (ungraded copies, missing INE, etc.)
+        - 403 Forbidden: Non-admin user
+        - 404 Not Found: Exam not found
+        - 429 Too Many Requests: Rate limit exceeded (10/hour)
+    
+    Audit:
+        Logs all export attempts (success/failure) with user, exam, timestamp
+    """
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
+    def post(self, request, id):
+        from core.auth import IsAdminOnly
+        from django.http import HttpResponse
+        from core.utils.audit import log_audit
+        from exams.services import PronoteExporter
+        from exams.services.pronote_export import ValidationError
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        # Admin-only permission check
+        if not IsAdminOnly().has_permission(request, self):
+            log_audit(
+                request,
+                'export.pronote.forbidden',
+                'Exam',
+                id,
+                {'reason': 'Non-admin user attempted PRONOTE export'}
+            )
+            return Response(
+                {"error": _("Accès refusé. Seuls les administrateurs peuvent exporter vers PRONOTE.")},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get exam
+        exam = get_object_or_404(Exam, id=id)
+        
+        # Get optional coefficient from request
+        coefficient = request.data.get('coefficient', 1.0)
+        try:
+            coefficient = float(coefficient)
+        except (ValueError, TypeError):
+            return Response(
+                {"error": _("Coefficient invalide. Doit être un nombre décimal.")},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create exporter
+        exporter = PronoteExporter(exam, coefficient=coefficient)
+        
+        # Validate export eligibility
+        validation = exporter.validate_export_eligibility()
+        if not validation.is_valid:
+            # Log failed attempt
+            log_audit(
+                request,
+                'export.pronote.failed',
+                'Exam',
+                exam.id,
+                {
+                    'exam_name': exam.name,
+                    'errors': validation.errors,
+                    'coefficient': coefficient
+                }
+            )
+            
+            return Response(
+                {
+                    "error": _("Export impossible"),
+                    "details": validation.errors
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Generate CSV
+        try:
+            csv_content, warnings = exporter.generate_csv()
+        except ValidationError as e:
+            # Log failed attempt
+            log_audit(
+                request,
+                'export.pronote.failed',
+                'Exam',
+                exam.id,
+                {
+                    'exam_name': exam.name,
+                    'error': str(e),
+                    'coefficient': coefficient
+                }
+            )
+            
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            # Log unexpected error
+            logger.error(f"Unexpected error during PRONOTE export for exam {exam.id}: {e}", exc_info=True)
+            log_audit(
+                request,
+                'export.pronote.error',
+                'Exam',
+                exam.id,
+                {
+                    'exam_name': exam.name,
+                    'error': str(e),
+                    'coefficient': coefficient
+                }
+            )
+            
+            from core.utils.errors import safe_error_response
+            return Response(
+                safe_error_response(
+                    e,
+                    context="PRONOTE export",
+                    user_message="Erreur lors de l'export. Veuillez réessayer ou contacter le support."
+                ),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        # Count exported grades
+        export_count = csv_content.count('\n') - 1  # Minus header
+        
+        # Log successful export
+        log_audit(
+            request,
+            'export.pronote.success',
+            'Exam',
+            exam.id,
+            {
+                'exam_name': exam.name,
+                'export_count': export_count,
+                'coefficient': coefficient,
+                'warnings': warnings
+            }
+        )
+        
+        logger.info(
+            f"PRONOTE export for exam {exam.id} ({exam.name}) by user {request.user.username}: "
+            f"{export_count} grades exported. Warnings: {len(warnings)}"
+        )
+        
+        # Create HTTP response with proper headers
+        # Note: csv_content already has UTF-8 BOM from exporter
+        response = HttpResponse(
+            csv_content.encode('utf-8'),  # Don't re-add BOM
+            content_type='text/csv; charset=utf-8'
+        )
+        
+        # Generate safe filename
+        safe_filename = exam.name.replace(' ', '_').replace('/', '_')[:50]  # Limit length
+        response['Content-Disposition'] = (
+            f'attachment; filename="export_pronote_{safe_filename}_{exam.date}.csv"'
+        )
+        
+        # Add warnings to response headers if any (for debugging)
+        if warnings:
+            response['X-Export-Warnings'] = f"{len(warnings)} warning(s)"
+        
+        return response
+
