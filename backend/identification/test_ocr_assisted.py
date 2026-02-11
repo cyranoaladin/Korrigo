@@ -150,7 +150,7 @@ class OCRAssistedIdentificationTest(TestCase):
         
         # Créer un deuxième étudiant pour tester la sélection
         other_student = Student.objects.create(
-            ine="0987654321B",
+            date_naissance="2005-05-20",
             first_name="Marie",
             last_name="Martin",
             class_name="TG3"

@@ -89,7 +89,7 @@ class OCRViewsTest(TestCase):
     def setUp(self):
         # Create test data
         self.student = Student.objects.create(
-            ine="1234567890A",
+            date_naissance="2005-03-15",
             first_name="Jean",
             last_name="Dupont",
             class_name="TG2"
@@ -150,7 +150,7 @@ class OCRViewsTest(TestCase):
 class OCRModelTest(TestCase):
     def setUp(self):
         self.student = Student.objects.create(
-            ine="1234567890A",
+            date_naissance="2005-03-15",
             first_name="Jean",
             last_name="Dupont",
             class_name="TG2"
