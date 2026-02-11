@@ -299,12 +299,12 @@ const copyToClipboard = () => {
         </tr>
       </thead>
       <tbody>
-        <tr
+        <template
           v-for="item in filteredItems"
           :key="item.id"
         >
           <!-- Student Row -->
-          <template v-if="activeTab === 'students'">
+          <tr v-if="activeTab === 'students'">
             <td class="font-bold">
               {{ item.last_name }} {{ item.first_name }}
             </td>
@@ -317,7 +317,7 @@ const copyToClipboard = () => {
                 {{ expandedStudentId === item.id ? 'Masquer' : 'Voir' }}
               </button>
             </td>
-          </template>
+          </tr>
 
           <!-- Student Detail Expanded Row -->
           <tr
@@ -333,8 +333,8 @@ const copyToClipboard = () => {
             </td>
           </tr>
 
-          <!-- User Row -->
-          <template v-else>
+          <!-- User Row (Teachers / Admins) -->
+          <tr v-if="activeTab !== 'students'">
             <td class="font-bold">
               {{ item.username }}
             </td>
@@ -368,8 +368,8 @@ const copyToClipboard = () => {
                 </button>
               </div>
             </td>
-          </template>
-        </tr>
+          </tr>
+        </template>
         <tr v-if="filteredItems.length === 0">
           <td
             :colspan="activeTab === 'students' ? 3 : 5"
