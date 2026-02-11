@@ -123,10 +123,10 @@ class PronoteExporterGradeCalculationTests(TestCase):
         self.exporter = PronoteExporter(self.exam)
         
         self.student = Student.objects.create(
-            ine='12345678901',
             first_name='Jean',
             last_name='Dupont',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-01-15'
         )
         
         self.copy = Copy.objects.create(
@@ -294,10 +294,10 @@ class PronoteExporterValidationTests(TestCase):
         self.exporter = PronoteExporter(self.exam)
         
         self.student = Student.objects.create(
-            ine='98765432101',
             first_name='Marie',
             last_name='Martin',
-            class_name='TS2'
+            class_name='TS2',
+            date_naissance='2005-02-20'
         )
         
         self.user = User.objects.create_user(
@@ -343,10 +343,10 @@ class PronoteExporterValidationTests(TestCase):
     def test_validation_missing_ine(self):
         """Test validation fails when students missing INE"""
         student_no_ine = Student.objects.create(
-            ine='',  # Empty INE
             first_name='Test',
             last_name='NoINE',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-03-10'
         )
         
         Copy.objects.create(
@@ -423,16 +423,16 @@ class PronoteExporterCSVGenerationTests(TestCase):
         self.exporter = PronoteExporter(self.exam, coefficient=1.0)
         
         self.student1 = Student.objects.create(
-            ine='11111111111',
             first_name='Alice',
             last_name='Durand',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-04-01'
         )
         self.student2 = Student.objects.create(
-            ine='22222222222',
             first_name='Bob',
             last_name='Lefebvre',
-            class_name='TS1'
+            class_name='TS1',
+            date_naissance='2005-05-02'
         )
         
         self.user = User.objects.create_user(
