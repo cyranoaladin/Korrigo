@@ -758,7 +758,7 @@ class ExamDispatchView(APIView):
 
         except Exception as e:
             from core.utils.errors import safe_error_response
-            logger.error(f"Dispatch failed for exam {exam_id}: {str(e)}")
+            logger.error(f"Dispatch failed for exam {exam_id}: {str(e)}", exc_info=True)
             return Response(
                 safe_error_response(e, context="Copy dispatch", user_message="Failed to dispatch copies."),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
