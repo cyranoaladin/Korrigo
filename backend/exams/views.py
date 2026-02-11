@@ -1132,6 +1132,7 @@ class AutoDetectSubjectVariantView(APIView):
         from PIL import Image
         import pytesseract
         import logging
+        from django.conf import settings
 
         logger = logging.getLogger(__name__)
         exam = get_object_or_404(Exam, id=exam_id)
