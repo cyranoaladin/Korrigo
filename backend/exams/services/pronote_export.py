@@ -2,7 +2,7 @@
 PRONOTE CSV Export Service
 
 Generates PRONOTE-compatible CSV files for grade import.
-Format: INE;MATIERE;NOTE;COEFF;COMMENTAIRE
+Format: NOM;PRENOM;DATE_NAISSANCE;MATIERE;NOTE;COEFF;COMMENTAIRE
 
 Specification:
 - Encoding: UTF-8 with BOM
@@ -231,7 +231,7 @@ class PronoteExporter:
         Checks:
         - At least one graded copy exists
         - All graded copies are identified
-        - All identified students have valid INE
+        - All identified students have valid identity (nom, prénom, date_naissance)
         - Warns about comments with delimiters
         
         Returns:
@@ -293,8 +293,8 @@ class PronoteExporter:
         Generate PRONOTE CSV export.
         
         Format:
-            INE;MATIERE;NOTE;COEFF;COMMENTAIRE
-            12345678901;MATHS;15,50;1,0;Bon travail
+            NOM;PRENOM;DATE_NAISSANCE;MATIERE;NOTE;COEFF;COMMENTAIRE
+            DUPONT;Jean;15/03/2005;MATHS;15,50;1,0;Bon travail
         
         Returns:
             Tuple of (csv_content, warnings)
@@ -326,7 +326,7 @@ class PronoteExporter:
         )
         
         # Write header
-        writer.writerow(['INE', 'MATIERE', 'NOTE', 'COEFF', 'COMMENTAIRE'])
+        writer.writerow(['NOM', 'PRENOM', 'DATE_NAISSANCE', 'MATIERE', 'NOTE', 'COEFF', 'COMMENTAIRE'])
         
         # Query graded and identified copies with proper optimization
         from exams.models import Copy
@@ -338,8 +338,13 @@ class PronoteExporter:
         
         # Generate rows
         for copy in copies:
-            # Get student identifier (last_name first_name as fallback since INE removed)
-            ine = f"{copy.student.last_name} {copy.student.first_name}" if copy.student else ''
+            # Get student identity triplet (nom, prénom, date_naissance)
+            if copy.student:
+                nom = copy.student.last_name or ''
+                prenom = copy.student.first_name or ''
+                date_naiss = copy.student.date_naissance.strftime('%d/%m/%Y') if copy.student.date_naissance else ''
+            else:
+                nom, prenom, date_naiss = '', '', ''
             
             # Get exam name as MATIERE
             matiere = self.exam.name.upper()
@@ -364,7 +369,7 @@ class PronoteExporter:
             comment = self.sanitize_comment(copy.global_appreciation)
             
             # Write row
-            writer.writerow([ine, matiere, note, coeff, comment])
+            writer.writerow([nom, prenom, date_naiss, matiere, note, coeff, comment])
         
         # Get CSV content
         csv_content = output.getvalue()

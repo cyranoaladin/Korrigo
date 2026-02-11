@@ -257,9 +257,9 @@ class PronoteExportTests(TestCase):
         content = response.content.decode('utf-8-sig')
         lines = content.strip().split('\n')
         
-        self.assertEqual(lines[0], 'INE;MATIERE;NOTE;COEFF;COMMENTAIRE')
-        self.assertIn('Dupont Jean;MATHÉMATIQUES;15,50;1,0;Bon travail', lines)
-        self.assertIn('Martin Sophie;MATHÉMATIQUES;12,25;1,0;', lines)
+        self.assertEqual(lines[0], 'NOM;PRENOM;DATE_NAISSANCE;MATIERE;NOTE;COEFF;COMMENTAIRE')
+        self.assertIn('Dupont;Jean;15/01/2005;MATHÉMATIQUES;15,50;1,0;Bon travail', lines)
+        self.assertIn('Martin;Sophie;20/02/2005;MATHÉMATIQUES;12,25;1,0;', lines)
 
     def test_export_rounding_logic(self):
         copy = Copy.objects.create(
