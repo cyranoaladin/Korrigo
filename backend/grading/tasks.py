@@ -232,4 +232,4 @@ def update_copy_status_metrics():
         
     except Exception as exc:
         logger.error(f"Failed to update copy status metrics: {exc}", exc_info=True)
-        return {'error': str(exc)}
+        return {'detail': str(exc)}

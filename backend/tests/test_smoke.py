@@ -93,7 +93,7 @@ def test_copy_list_flow(authenticated_client, admin_user, db):
 @pytest.mark.smoke
 def test_admin_accessible(client):
     """Verify Django admin is accessible (without auth, should redirect)"""
-    response = client.get('/admin/')
+    response = client.get('/django-admin/')
 
     # Should redirect to login (302) or return login page (200)
     assert response.status_code in [200, 302], \

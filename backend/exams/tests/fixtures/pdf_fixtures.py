@@ -30,6 +30,9 @@ def create_valid_pdf(pages=4, page_width=595, page_height=842):
     
     for i in range(pages):
         page = doc.new_page(width=page_width, height=page_height)
+        # Add booklet header every 4 pages (simulates exam booklet structure)
+        if i % 4 == 0:
+            page.insert_text((50, 30), "EXAMEN - Copie d'examen", fontsize=14)
         # Add some text to make pages distinguishable
         text = f"Page {i + 1} of {pages}"
         page.insert_text((50, 50), text, fontsize=12)
