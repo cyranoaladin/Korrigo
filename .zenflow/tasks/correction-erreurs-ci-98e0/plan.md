@@ -57,7 +57,8 @@ Save to `{@artifacts_path}/plan.md`.
 
 ## Implementation Tasks
 
-### [ ] Step: Fix CI Test Database Creation
+### [x] Step: Fix CI Test Database Creation
+<!-- chat-id: dac771d3-5570-4ddf-8d4d-26cf51177557 -->
 
 Update GitHub Actions workflows to properly clean and recreate the test database on each CI run.
 

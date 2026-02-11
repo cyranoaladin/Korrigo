@@ -168,7 +168,8 @@ jobs:
 
       - name: Create test database
         run: |
-          PGPASSWORD=viatique_password psql -h 127.0.0.1 -U viatique_user -d postgres -c "CREATE DATABASE test_viatique_0 OWNER viatique_user;" || true
+          PGPASSWORD=viatique_password psql -h 127.0.0.1 -U viatique_user -d postgres -c "DROP DATABASE IF EXISTS test_viatique_0;"
+          PGPASSWORD=viatique_password psql -h 127.0.0.1 -U viatique_user -d postgres -c "CREATE DATABASE test_viatique_0 OWNER viatique_user;"
 
       - name: Run postgres-marked tests (must PASS, must not SKIP)
         working-directory: backend
