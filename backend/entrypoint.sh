@@ -12,6 +12,12 @@ fi
 echo "--> Collecting static files..."
 python manage.py collectstatic --noinput
 
+# Seed production data if SEED_ON_START is enabled
+if [ "${SEED_ON_START:-false}" = "true" ]; then
+    echo "--> Running seed_initial_exams (idempotent)..."
+    python manage.py seed_initial_exams || echo "WARNING: seed_initial_exams failed (non-blocking)"
+fi
+
 echo "Args passed: $@"
 echo "Arg count: $#"
 
