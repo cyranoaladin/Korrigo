@@ -220,14 +220,15 @@ class TestExamSourceUploadProtection:
         
         pdf_file = create_uploadedfile(pdf_bytes, filename="reupload.pdf")
         
-        with patch('processing.services.pdf_splitter.PDFSplitter.split_exam') as mock_split:
-            # Create a real Booklet so ManyToMany add() works with valid UUID
-            real_booklet = Booklet.objects.create(
-                exam=exam, start_page=1, end_page=4,
+        def mock_split_fn(exam_obj, force=False):
+            """Create booklet inside mock so it's created after cleanup."""
+            booklet = Booklet.objects.create(
+                exam=exam_obj, start_page=1, end_page=4,
                 pages_images=['page1.png', 'page2.png']
             )
-            mock_split.return_value = [real_booklet]
-            
+            return [booklet]
+        
+        with patch('processing.services.pdf_splitter.PDFSplitter.split_exam', side_effect=mock_split_fn):
             response = teacher_client.post(
                 f'/api/exams/{exam.id}/upload/',
                 {'pdf_source': pdf_file},

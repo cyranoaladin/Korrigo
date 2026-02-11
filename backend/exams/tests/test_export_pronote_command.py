@@ -115,19 +115,12 @@ class ExportPronoteCommandTests(TestCase):
         
         self.assertIn('Export impossible', str(cm.exception))
     
-    def test_command_validation_fails_missing_ine(self):
-        """Test command fails validation with missing INE"""
-        student_no_ine = Student.objects.create(
-            first_name='No',
-            last_name='INE',
-            class_name='TS1',
-            date_naissance='2005-03-10'
-        )
-        
+    def test_command_validation_fails_missing_student(self):
+        """Test command fails validation when copy has no linked student."""
         copy = Copy.objects.create(
             exam=self.exam,
-            anonymous_id='NOINE001',
-            student=student_no_ine,
+            anonymous_id='NOSTUDENT001',
+            student=None,
             is_identified=True,
             status=Copy.Status.GRADED
         )
