@@ -30,20 +30,16 @@ raw_suffix = os.environ.get("CI_NODE_INDEX") or os.environ.get("PYTEST_XDIST_WOR
 # Normalize suffix for CI/xdist (e.g., "gw0") and avoid unexpected chars
 DB_SUFFIX = "".join(ch for ch in str(raw_suffix) if ch.isalnum() or ch in "_").lower() or "0"
 
-DATABASES['default']['CONN_MAX_AGE'] = 0
-DATABASES['default']['TEST'] = {
-    'NAME': f'test_viatique_{DB_SUFFIX}',
-    'SERIALIZE': False, # Prevent IntegrityErrors in django_content_type
-}
-
-database_url = os.environ.get("DATABASE_URL")
-if database_url and dj_database_url is not None:
-    DATABASES['default'] = dj_database_url.parse(database_url)
-    DATABASES['default']['CONN_MAX_AGE'] = 0
-    DATABASES['default']['TEST'] = {
-        'NAME': f'test_viatique_{DB_SUFFIX}',
-        'SERIALIZE': False,
+# Force SQLite in-memory for local tests (no Docker PostgreSQL dependency)
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+        'TEST': {
+            'NAME': ':memory:',
+        },
     }
+}
 
 # Faster password hashing for tests
 PASSWORD_HASHERS = [
@@ -53,6 +49,15 @@ PASSWORD_HASHERS = [
 # Ensure we are in test mode
 DEBUG = False
 CELERY_TASK_ALWAYS_EAGER = True
+
+# Disable security redirects that break test client (HTTP → HTTPS redirect causes 301)
+SECURE_SSL_REDIRECT = False
+SECURE_HSTS_SECONDS = 0
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+
+# Allow test client host
+ALLOWED_HOSTS = ['*']
 
 # Disable rate limiting in tests (django-ratelimit)
 # This allows login tests to work without Redis and without hitting rate limits
