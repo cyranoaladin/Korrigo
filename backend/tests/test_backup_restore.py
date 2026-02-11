@@ -29,7 +29,7 @@ class BackupRestoreTest(TestCase):
         self.admin_user.groups.add(self.admin_group)
         
         self.student = Student.objects.create(
-            ine="1234567890A",
+            date_naissance="2005-03-15",
             first_name="Jean",
             last_name="Dupont",
             class_name="TG2",

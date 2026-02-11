@@ -12,27 +12,29 @@ from django.core.files.base import ContentFile
 from exams.models import Exam, Copy
 from students.models import Student
 
-def seed_gate4(student_ine=None, student_lastname=None):
+def seed_gate4(student_date_naissance=None, student_lastname=None, student_firstname=None):
     """Seed Gate 4 data with parameterizable student credentials."""
     print("Seeding Gate 4 Data...")
 
     # Use env vars if not provided
-    if student_ine is None:
-        student_ine = os.environ.get("E2E_STUDENT_INE", "123456789")
+    if student_date_naissance is None:
+        student_date_naissance = os.environ.get("E2E_STUDENT_DOB", "2005-03-15")
     if student_lastname is None:
         student_lastname = os.environ.get("E2E_STUDENT_LASTNAME", "E2E_STUDENT")
+    if student_firstname is None:
+        student_firstname = os.environ.get("E2E_STUDENT_FIRSTNAME", "Jean")
 
     # 1. Create Student
     student, created = Student.objects.get_or_create(
-        ine=student_ine,
+        first_name=student_firstname,
+        last_name=student_lastname,
+        date_naissance=student_date_naissance,
         defaults={
-            "first_name": "Jean",
-            "last_name": student_lastname,
             "class_name": "Terminale S",
             "email": "jean.e2e@example.com"
         }
     )
-    print(f"Gate4: student_id={student.id} ine={student.ine} last={student.last_name} created={created}")
+    print(f"Gate4: student_id={student.id} name={student.first_name} {student.last_name} dob={student.date_naissance} created={created}")
     
     # 2. Create Exam
     exam, _ = Exam.objects.get_or_create(name="Gate 4 Exam", date="2025-06-15")
@@ -85,9 +87,12 @@ def seed_gate4(student_ine=None, student_lastname=None):
     
     # C) Graded & Other (Should NOT be visible/downloadable)
     other_student, _ = Student.objects.get_or_create(
-        ine="987654321",
+        first_name="Student",
         last_name="OTHER",
-        first_name="Student"
+        date_naissance="2005-05-20",
+        defaults={
+            "class_name": "Terminale S"
+        }
     )
     copy_other, _ = Copy.objects.get_or_create(
         exam=exam,
