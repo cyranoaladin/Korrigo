@@ -5,8 +5,11 @@ from rest_framework import status
 from .models import Exam, Booklet, Copy
 from django.contrib.auth.models import User, Group
 from core.auth import UserRole
+from students.models import Student
+from grading.models import Score
 import json
 from datetime import date
+from decimal import Decimal
 
 class ExamTests(TestCase):
     def setUp(self):
@@ -166,3 +169,309 @@ class DispatchTests(TestCase):
         )
         
         self.assertEqual(len(run_ids), 1)
+
+
+class PronoteExportTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.exam = Exam.objects.create(name='Mathématiques', date='2026-03-15')
+        
+        self.admin = User.objects.create_user(username='admin', password='admin123')
+        self.teacher = User.objects.create_user(username='teacher', password='teacher123')
+        
+        self.admin_group, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
+        self.teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        
+        self.admin.groups.add(self.admin_group)
+        self.teacher.groups.add(self.teacher_group)
+        
+        self.student1 = Student.objects.create(
+            ine='12345678901',
+            first_name='Jean',
+            last_name='Dupont',
+            class_name='TS1'
+        )
+        self.student2 = Student.objects.create(
+            ine='98765432102',
+            first_name='Sophie',
+            last_name='Martin',
+            class_name='TS1'
+        )
+        self.student3 = Student.objects.create(
+            ine='11223344503',
+            first_name='Pierre',
+            last_name='Durand',
+            class_name='TS2'
+        )
+
+    def test_admin_only_permission(self):
+        copy = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='TEST001',
+            status=Copy.Status.GRADED,
+            is_identified=True,
+            student=self.student1
+        )
+        
+        self.client.force_login(self.teacher)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn('error', response.data)
+
+    def test_export_with_valid_data(self):
+        copy1 = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='COPY001',
+            status=Copy.Status.GRADED,
+            is_identified=True,
+            student=self.student1,
+            global_appreciation='Bon travail'
+        )
+        Score.objects.create(
+            copy=copy1,
+            scores_data={'ex1': 10.5, 'ex2': 5.0}
+        )
+        
+        copy2 = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='COPY002',
+            status=Copy.Status.GRADED,
+            is_identified=True,
+            student=self.student2
+        )
+        Score.objects.create(
+            copy=copy2,
+            scores_data={'ex1': 8.25, 'ex2': 4.0}
+        )
+        
+        self.client.force_login(self.admin)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response['Content-Type'], 'text/csv; charset=utf-8')
+        self.assertIn('attachment', response['Content-Disposition'])
+        
+        content = response.content.decode('utf-8-sig')
+        lines = content.strip().split('\n')
+        
+        self.assertEqual(lines[0], 'INE;MATIERE;NOTE;COEFF;COMMENTAIRE')
+        self.assertIn('12345678901;MATHÉMATIQUES;15,50;1,0;Bon travail', lines)
+        self.assertIn('98765432102;MATHÉMATIQUES;12,25;1,0;', lines)
+
+    def test_export_rounding_logic(self):
+        copy = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='ROUND001',
+            status=Copy.Status.GRADED,
+            is_identified=True,
+            student=self.student1
+        )
+        Score.objects.create(
+            copy=copy,
+            scores_data={'ex1': 15.555, 'ex2': 3.0}
+        )
+        
+        self.client.force_login(self.admin)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        content = response.content.decode('utf-8-sig')
+        self.assertIn('18,56', content)
+
+    def test_export_whole_numbers(self):
+        copy = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='WHOLE001',
+            status=Copy.Status.GRADED,
+            is_identified=True,
+            student=self.student1
+        )
+        Score.objects.create(
+            copy=copy,
+            scores_data={'ex1': 15, 'ex2': 5}
+        )
+        
+        self.client.force_login(self.admin)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        content = response.content.decode('utf-8-sig')
+        self.assertIn('20,00', content)
+
+    def test_export_reject_ungraded_copies(self):
+        Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='UNGRADED001',
+            status=Copy.Status.READY,
+            is_identified=True,
+            student=self.student1
+        )
+        
+        self.client.force_login(self.admin)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('non corrigée', response.data['error'])
+
+    def test_export_reject_unidentified_copies(self):
+        copy = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='UNIDENT001',
+            status=Copy.Status.GRADED,
+            is_identified=False
+        )
+        Score.objects.create(
+            copy=copy,
+            scores_data={'ex1': 10}
+        )
+        
+        self.client.force_login(self.admin)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('non identifiée', response.data['error'])
+
+    def test_export_reject_missing_ine(self):
+        student_no_ine = Student.objects.create(
+            ine='',
+            first_name='Test',
+            last_name='NoINE',
+            class_name='TS1'
+        )
+        copy = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='NOINE001',
+            status=Copy.Status.GRADED,
+            is_identified=True,
+            student=student_no_ine
+        )
+        Score.objects.create(
+            copy=copy,
+            scores_data={'ex1': 10}
+        )
+        
+        self.client.force_login(self.admin)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('INE manquant', response.data['error'])
+
+    def test_export_reject_no_copies(self):
+        self.client.force_login(self.admin)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('Aucune copie', response.data['error'])
+
+    def test_export_semicolon_delimiter(self):
+        copy = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='DELIM001',
+            status=Copy.Status.GRADED,
+            is_identified=True,
+            student=self.student1
+        )
+        Score.objects.create(
+            copy=copy,
+            scores_data={'ex1': 10}
+        )
+        
+        self.client.force_login(self.admin)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        content = response.content.decode('utf-8-sig')
+        lines = content.strip().split('\n')
+        
+        for line in lines:
+            if line:
+                self.assertIn(';', line)
+
+    def test_export_comment_sanitization(self):
+        copy = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='COMMENT001',
+            status=Copy.Status.GRADED,
+            is_identified=True,
+            student=self.student1,
+            global_appreciation='Commentaire avec\nnouvelle ligne\ret tabulation'
+        )
+        Score.objects.create(
+            copy=copy,
+            scores_data={'ex1': 10}
+        )
+        
+        self.client.force_login(self.admin)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        content = response.content.decode('utf-8-sig')
+        self.assertNotIn('\n12345678901', content.split('\n')[1])
+        self.assertIn('Commentaire avec nouvelle ligne et tabulation', content)
+
+    def test_export_filename_format(self):
+        copy = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='FILE001',
+            status=Copy.Status.GRADED,
+            is_identified=True,
+            student=self.student1
+        )
+        Score.objects.create(
+            copy=copy,
+            scores_data={'ex1': 10}
+        )
+        
+        self.client.force_login(self.admin)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        content_disposition = response['Content-Disposition']
+        self.assertIn('export_pronote_Mathématiques_2026-03-15.csv', content_disposition)
+
+    def test_export_edge_case_zero_score(self):
+        copy = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='ZERO001',
+            status=Copy.Status.GRADED,
+            is_identified=True,
+            student=self.student1
+        )
+        Score.objects.create(
+            copy=copy,
+            scores_data={'ex1': 0, 'ex2': 0}
+        )
+        
+        self.client.force_login(self.admin)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        content = response.content.decode('utf-8-sig')
+        self.assertIn('0,00', content)
+
+    def test_export_edge_case_max_score(self):
+        copy = Copy.objects.create(
+            exam=self.exam,
+            anonymous_id='MAX001',
+            status=Copy.Status.GRADED,
+            is_identified=True,
+            student=self.student1
+        )
+        Score.objects.create(
+            copy=copy,
+            scores_data={'ex1': 10, 'ex2': 10}
+        )
+        
+        self.client.force_login(self.admin)
+        url = reverse('export-pronote', kwargs={'id': self.exam.id})
+        response = self.client.post(url)
+        
+        content = response.content.decode('utf-8-sig')
+        self.assertIn('20,00', content)

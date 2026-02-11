@@ -299,3 +299,33 @@ class QuestionRemark(models.Model):
 
     def __str__(self):
         return f"Remarque {self.question_id} - {self.copy.anonymous_id}"
+
+
+class Score(models.Model):
+    """
+    Score détaillé d'une copie avec données JSON.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    copy = models.ForeignKey(
+        Copy,
+        on_delete=models.CASCADE,
+        related_name='scores',
+        verbose_name=_("Copie")
+    )
+    scores_data = models.JSONField(
+        verbose_name=_("Détail des notes"),
+        help_text=_("Structure JSON contenant les scores par question")
+    )
+    final_comment = models.TextField(
+        blank=True,
+        verbose_name=_("Appréciation Générale")
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+
+    class Meta:
+        verbose_name = _("Score")
+        verbose_name_plural = _("Scores")
+
+    def __str__(self):
+        return f"Score - {self.copy.anonymous_id}"
