@@ -309,8 +309,8 @@ class PronoteExportAPISuccessTests(TestCase):
         self.assertIn('INE;MATIERE;NOTE;COEFF;COMMENTAIRE', csv_content)
         
         # Check data rows
-        self.assertIn('11111111111', csv_content)
-        self.assertIn('22222222222', csv_content)
+        self.assertIn('Durand Alice', csv_content)
+        self.assertIn('Martin Bob', csv_content)
         self.assertIn('MATHEMATIQUES', csv_content)
         self.assertIn('15,50', csv_content)  # French decimal format
         self.assertIn('12,00', csv_content)
@@ -384,7 +384,7 @@ class PronoteExportAPISuccessTests(TestCase):
         csv_content = response.content.decode('utf-8')
         
         # Check accents are preserved
-        self.assertIn('33333333333', csv_content)
+        self.assertIn('M\u00fcller Fran\u00e7ois', csv_content)
         
         # Comment with semicolon should be properly quoted
         self.assertIn('Très bien', csv_content)
@@ -579,7 +579,7 @@ class PronoteExportAPIAuditTests(TestCase):
             self.assertGreater(final_count, initial_count)
             
             # Check audit log contains expected action
-            recent_log = AuditLog.objects.latest('created_at')
+            recent_log = AuditLog.objects.latest('timestamp')
             self.assertIn('pronote', recent_log.action.lower())
             self.assertEqual(recent_log.user, self.admin_user)
             
