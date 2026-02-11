@@ -187,17 +187,13 @@ class IndividualPDFUploadView(APIView):
         
         logger.info(f"Individual PDF upload for exam {exam_id}: {len(uploaded_files)} files by user {request.user.username}")
         
+        created_copies = []
         
-        
-        # Collections for partial success tracking
-        successful_uploads = []
-        failed_uploads = []
-        import uuid
-        
-        # Process each file independently (partial success mode)
-        for pdf_file in uploaded_files:
-            try:
-                with transaction.atomic():  # Each file in its own transaction
+        try:
+            with transaction.atomic():
+                import uuid
+                
+                for pdf_file in uploaded_files:
                     # Extract student identifier from filename (optional)
                     filename = pdf_file.name
                     student_identifier = os.path.splitext(filename)[0] if filename else None
@@ -209,7 +205,8 @@ class IndividualPDFUploadView(APIView):
                         student_identifier=student_identifier
                     )
                     
-                    # Create Copy in STAGING status (referencing ExamPDF, no duplicate storage)
+                    # Create Copy in STAGING status (using exam_pdf.pdf_file as reference)
+                    # Note: We don't duplicate the file; Copy.pdf_source will reference the same file
                     copy = Copy.objects.create(
                         exam=exam,
                         anonymous_id=str(uuid.uuid4())[:8].upper(),
@@ -218,65 +215,23 @@ class IndividualPDFUploadView(APIView):
                         source_exam_pdf=exam_pdf,  # Reference to ExamPDF instead of duplicating file
                     )
                     
-                    successful_uploads.append({
+                    created_copies.append({
                         'exam_pdf_id': str(exam_pdf.id),
                         'copy_id': str(copy.id),
                         'filename': filename,
-                        'student_identifier': student_identifier,
-                        'status': 'success'
+                        'student_identifier': student_identifier
                     })
                     
                     logger.info(f"Created ExamPDF {exam_pdf.id} and Copy {copy.id} for {filename}")
-            
-            except Exception as file_error:
-                # Log error but continue with next file
-                error_detail = str(file_error)
-                logger.error(f"Failed to process {pdf_file.name}: {error_detail}")
                 
-                failed_uploads.append({
-                    'filename': pdf_file.name,
-                    'error': error_detail,
-                    'status': 'failed'
-                })
+                logger.info(f"Successfully uploaded {len(created_copies)} individual PDFs for exam {exam_id}")
+                
+                return Response({
+                    "message": f"{len(created_copies)} fichiers PDF uploadés avec succès",
+                    "uploaded_files": created_copies,
+                    "total_copies": exam.copies.count()
+                }, status=status.HTTP_201_CREATED)
         
-        # Determine HTTP status code based on results
-        total_files = len(uploaded_files)
-        success_count = len(successful_uploads)
-        failed_count = len(failed_uploads)
-        
-        if failed_count == 0:
-            # All succeeded -> HTTP 201 Created
-            status_code = status.HTTP_201_CREATED
-            message = f"{success_count} fichiers PDF uploadés avec succès"
-        elif success_count == 0:
-            # All failed -> HTTP 400 Bad Request
-            status_code = status.HTTP_400_BAD_REQUEST
-            message = f"Échec de l'upload de tous les {failed_count} fichiers"
-        else:
-            # Partial success -> HTTP 207 Multi-Status
-            status_code = status.HTTP_207_MULTI_STATUS
-            message = f"{success_count}/{total_files} fichiers uploadés avec succès, {failed_count} échecs"
-        
-        logger.info(f"Upload summary for exam {exam_id}: {success_count} success, {failed_count} failed")
-        
-        response_data = {
-            "message": message,
-            "total_files": total_files,
-            "successful_uploads": successful_uploads,
-            "failed_uploads": failed_uploads,
-            "summary": {
-                "success_count": success_count,
-                "failed_count": failed_count,
-                "total_count": total_files
-            }
-        }
-        
-        # Add total copies count if any succeeded
-        if success_count > 0:
-            response_data["total_copies"] = exam.copies.count()
-        
-        return Response(response_data, status=status_code)
-
         except Exception as e:
             from core.utils.errors import safe_error_response
             logger.error(f"Individual PDF upload failed for exam {exam_id}: {str(e)}", exc_info=True)
