@@ -24,28 +24,11 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 RUN echo 'server { \
     listen 80; \
     server_name localhost; \
-    client_max_body_size 1G; \
-    \
-    # Proxy API requests to backend \
-    location /api/ { \
-        proxy_pass http://backend:8000; \
-        proxy_set_header Host $http_host; \
-        proxy_set_header X-Forwarded-Host $http_host; \
-        proxy_set_header X-Real-IP $remote_addr; \
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
-        proxy_set_header X-Forwarded-Proto https; \
-        proxy_connect_timeout 3600; \
-        proxy_send_timeout 3600; \
-        proxy_read_timeout 3600; \
-        send_timeout 3600; \
-    } \
-    \
-    # Serve frontend static files \
     location / { \
-        root /usr/share/nginx/html; \
-        index index.html; \
-        try_files $uri $uri/ /index.html; \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    try_files $uri $uri/ /index.html; \
     } \
-}' > /etc/nginx/conf.d/default.conf
+    }' > /etc/nginx/conf.d/default.conf
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

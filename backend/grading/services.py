@@ -200,61 +200,12 @@ class GradingService:
     """
 
     @staticmethod
-    def compute_score(copy: Copy) -> float:
-        import math
-        total = 0.0
-        # 1. Add Annotation scores (Bonuses/Maluses)
+    def compute_score(copy: Copy) -> int:
+        total = 0
         for annotation in copy.annotations.all():
             if annotation.score_delta is not None:
-                delta = float(annotation.score_delta)
-                if math.isfinite(delta):
-                    total += delta
-                else:
-                    logger.warning(f"Non-finite score_delta on annotation {annotation.id}, skipped")
-
-        # 2. Add Question scores (Barème)
-        for q_score in copy.question_scores.all():
-            if q_score.score is not None:
-                score_val = float(q_score.score)
-                if math.isfinite(score_val):
-                    total += score_val
-                else:
-                    logger.warning(f"Non-finite score on question {q_score.question_id}, skipped")
-
-        return round(total, 2)
-
-    @staticmethod
-    def _find_question_in_structure(structure, question_id):
-        """Recursively find a question node by ID in grading_structure."""
-        for node in (structure or []):
-            if node.get('id') == question_id:
-                return node
-            found = GradingService._find_question_in_structure(node.get('children', []), question_id)
-            if found:
-                return found
-        return None
-
-    @staticmethod
-    def _validate_scores_against_bareme(copy, grading_structure):
-        """
-        Validate all question scores comply with the barème.
-        Returns list of warning strings (non-blocking for finalization).
-        """
-        warnings = []
-        for qs in copy.question_scores.all():
-            node = GradingService._find_question_in_structure(grading_structure, qs.question_id)
-            if node is None:
-                warnings.append(f"Score for unknown question '{qs.question_id}' (orphaned)")
-                continue
-            max_pts = float(node.get('points', 0))
-            score_val = float(qs.score) if qs.score is not None else 0
-            if max_pts > 0 and score_val > max_pts:
-                warnings.append(
-                    f"Score {score_val} exceeds max {max_pts} for question '{qs.question_id}'"
-                )
-            if score_val < 0:
-                warnings.append(f"Negative score {score_val} for question '{qs.question_id}'")
-        return warnings
+                total += annotation.score_delta
+        return total
 
     @staticmethod
     def _reconcile_lock_state(copy: Copy) -> None:
@@ -481,9 +432,6 @@ class GradingService:
         """
         Internal: Uses PyMuPDF to convert copy.pdf_source into images in media/copies/pages/<id>
         """
-        if not copy.pdf_source:
-            raise ValueError(f"Copy {copy.id} has no pdf_source file")
-        
         copy.pdf_source.open()
         try:
             pdf_bytes = copy.pdf_source.read()
@@ -512,12 +460,15 @@ class GradingService:
     @staticmethod
     @transaction.atomic
     def validate_copy(copy: Copy, user):
+        if copy.status != Copy.Status.STAGING:
+             raise ValueError(f"Status mismatch: {copy.status} != STAGING")
+        
         # Ensure pages exist
         has_pages = any(b.pages_images and len(b.pages_images) > 0 for b in copy.booklets.all())
         if not has_pages:
              raise ValueError("No pages found, cannot validate.")
 
-        copy.transition_to(Copy.Status.READY)
+        copy.status = Copy.Status.READY
         copy.validated_at = timezone.now()
         copy.save()
 
@@ -595,9 +546,10 @@ class GradingService:
             elif str(lock.token) != str(lock_token):
                 raise PermissionError("Invalid lock token.")
 
-        # P0-DI-004 FIX: Set intermediate status BEFORE score computation
-        # to narrow the race window for concurrent annotation edits
-        copy.transition_to(Copy.Status.GRADING_IN_PROGRESS)
+        final_score = GradingService.compute_score(copy)
+
+        # P0-DI-004 FIX: Set intermediate status during processing
+        copy.status = Copy.Status.GRADING_IN_PROGRESS
         copy.grading_retries += 1
         copy.locked_at = None
         copy.locked_by = None
@@ -606,17 +558,6 @@ class GradingService:
         # Delete lock immediately after status change
         if lock is not None:
             lock.delete()
-
-        # Compute score AFTER lock release and status transition
-        final_score = GradingService.compute_score(copy)
-
-        # Validate score compliance against barème before finalization
-        grading_structure = copy.exam.grading_structure or []
-        if grading_structure:
-            warnings = GradingService._validate_scores_against_bareme(copy, grading_structure)
-            if warnings:
-                for w in warnings:
-                    logger.warning(f"[FINALIZE] {copy.id}: {w}")
 
         # Generate Final PDF with comprehensive error handling
         from processing.services.pdf_flattener import PDFFlattener
@@ -634,7 +575,7 @@ class GradingService:
                 copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
             
             # P0-DI-004 FIX: Mark as GRADED only after PDF generation succeeds
-            copy.transition_to(Copy.Status.GRADED)
+            copy.status = Copy.Status.GRADED
             copy.graded_at = timezone.now()
             copy.grading_error_message = None  # Clear previous errors
             copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf"])
@@ -650,7 +591,7 @@ class GradingService:
         except Exception as e:
             # P0-DI-004 FIX: Save error state with detailed message
             error_msg = str(e)[:500]  # Limit message length
-            copy.transition_to(Copy.Status.GRADING_FAILED)
+            copy.status = Copy.Status.GRADING_FAILED
             copy.grading_error_message = error_msg
             copy.save(update_fields=["status", "grading_error_message"])
             

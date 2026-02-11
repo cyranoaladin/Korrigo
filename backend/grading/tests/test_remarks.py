@@ -71,10 +71,10 @@ def copy_obj(db, exam_with_structure):
     )
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db
 class TestQuestionRemarks:
     """Test QuestionRemark CRUD operations."""
-
+    
     def test_create_remark(self, teacher_user, copy_obj):
         """Test creating a new remark."""
         client = APIClient()
@@ -134,7 +134,8 @@ class TestQuestionRemarks:
         response = client.get(f'/api/grading/copies/{copy_obj.id}/remarks/')
         
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 2
+        assert response.data['count'] == 2
+        assert len(response.data['results']) == 2
     
     def test_delete_remark(self, teacher_user, copy_obj):
         """Test deleting a remark."""

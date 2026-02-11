@@ -104,19 +104,17 @@ class TestGradingServiceStrictUnit:
         copy = MagicMock(spec=Copy)
         copy.status = Copy.Status.STAGING
         copy._state = MagicMock()
-        # Wire real transition_to so state machine validation runs
-        copy.transition_to = lambda new_status: Copy.transition_to(copy, new_status)
-
+        
         # Mock Booklet with pages
         booklet = MagicMock(spec=Booklet)
         booklet.pages_images = ["p1.png"]
         copy.booklets.all.return_value = [booklet]
-
+        
         # Action
         # Mock GradingEvent.objects.create to bypass strict User type check
         with patch('grading.models.GradingEvent.objects.create') as mock_ge_create:
             GradingService.validate_copy(copy, user=MagicMock())
-
+        
         # Assert
         assert copy.status == Copy.Status.READY
         copy.save.assert_called_once()

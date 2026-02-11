@@ -14,47 +14,78 @@ export default async function globalSetup() {
     const context = await browser.newContext();
     const page = await context.newPage();
 
+    // Diagnostic logging for failures
     page.on('console', (msg) => console.log(`[browser:${msg.type()}]`, msg.text()));
     page.on('pageerror', (err) => console.log('[pageerror]', err));
 
     try {
-        // Step 1: Get CSRF token via context request (proper cookie handling)
-        const csrfResponse = await context.request.get(`${baseURL}/api/csrf/`);
-        const csrfData = await csrfResponse.json();
-        const csrfToken = csrfData.csrfToken || '';
-        console.log(`  ✓ CSRF token obtained`);
+        // Navigate to login page to establish session/cookies
+        await page.goto(`${baseURL}/login`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        console.log('  ✓ Login page loaded');
 
-        // Step 2: Login via context request (cookies auto-managed by Playwright)
-        const loginResponse = await context.request.post(`${baseURL}/api/login/`, {
-            data: { username: 'admin', password: 'admin' },
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-            },
-        });
+        // Perform login via direct API call (matches frontend auth.js behavior)
+        const loginResult = await page.evaluate(async (url) => {
+            try {
+                const res = await fetch(`${url}/api/login/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin' }),
+                    credentials: 'include'  // Important: include cookies
+                });
 
-        if (!loginResponse.ok()) {
-            const body = await loginResponse.text();
-            throw new Error(`Login API failed: HTTP ${loginResponse.status()}\nBody:\n${body}`);
+                return {
+                    ok: res.ok,
+                    status: res.status,
+                    body: await res.text()
+                };
+            } catch (e) {
+                return {
+                    ok: false,
+                    status: 0,
+                    body: (e as Error).toString()
+                };
+            }
+        }, baseURL);
+
+        if (!loginResult.ok) {
+            throw new Error(`Login API failed: HTTP ${loginResult.status}\nBody:\n${loginResult.body}`);
         }
-        console.log(`  ✓ Login API responded: HTTP ${loginResponse.status()}`);
+        console.log(`  ✓ Login API responded: HTTP ${loginResult.status}`);
 
-        // Step 3: Verify session via /api/me/
-        const meResponse = await context.request.get(`${baseURL}/api/me/`);
-        if (!meResponse.ok()) {
-            const body = await meResponse.text();
-            throw new Error(`/api/me/ failed: HTTP ${meResponse.status()}\nBody:\n${body}`);
+        // Fetch user data to complete auth flow (matches frontend)
+        const userResult = await page.evaluate(async (url) => {
+            try {
+                const res = await fetch(`${url}/api/me/`, {
+                    credentials: 'include'
+                });
+                return {
+                    ok: res.ok,
+                    status: res.status,
+                    body: await res.text()
+                };
+            } catch (e) {
+                return {
+                    ok: false,
+                    status: 0,
+                    body: (e as Error).toString()
+                };
+            }
+        }, baseURL);
+
+        if (!userResult.ok) {
+            throw new Error(`/api/me/ failed: HTTP ${userResult.status}\nBody:\n${userResult.body}`);
         }
-        console.log(`  ✓ User data fetched: HTTP ${meResponse.status()}`);
+        console.log(`  ✓ User data fetched: HTTP ${userResult.status}`);
 
-        // Step 4: Navigate to dashboard (cookies already in context)
+        // Navigate to dashboard to verify auth works (protected route)
+        // This triggers the real app hydration via router guard
         await page.goto(`${baseURL}/admin-dashboard`, { waitUntil: 'networkidle', timeout: 30000 });
 
-        // Verify dashboard is visible
+        // Verify dashboard UI is visible, confirming real code hydration
         await expect(page.getByTestId('admin-dashboard')).toBeVisible({ timeout: 15000 });
         console.log('  ✓ Dashboard visible (Hydration confirmed via real app flow)');
 
-        // Save authenticated state
+        // Save authenticated state (cookies)
         const authDir = path.dirname(STORAGE_STATE);
         if (!fs.existsSync(authDir)) {
             fs.mkdirSync(authDir, { recursive: true });
@@ -65,6 +96,7 @@ export default async function globalSetup() {
     } catch (error) {
         console.error('  ✗ Global setup failed:', error);
 
+        // Capture diagnostic artifacts
         const proofDir = path.resolve(process.cwd(), 'PROOF_PACK_FINAL');
         if (!fs.existsSync(proofDir)) {
             fs.mkdirSync(proofDir, { recursive: true });

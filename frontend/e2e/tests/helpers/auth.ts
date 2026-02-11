@@ -1,28 +1,52 @@
 import { expect, Page } from '@playwright/test';
 
 /**
- * Login as admin user via the real SPA login form.
+ * Login as admin user via direct API calls and hydrate the auth store
  * 
- * Uses /admin/login which renders the Login.vue component with roleContext=Admin.
- * Fills username + password, clicks submit, and waits for redirect to /admin-dashboard.
- * This ensures cookies (sessionid, csrftoken) are properly set via the real app flow.
+ * The auth store (Pinia) keeps user in memory (ref), not localStorage.
+ * After API login, we must call fetchUser() to hydrate the store,
+ * otherwise the router guard will see user=null and redirect to /login.
  */
 export async function loginAsAdmin(page: Page) {
+    // 1) Navigate to login page to establish origin and cookie jar
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+
+    // 2) Perform login via API (same format as frontend auth.js)
     const username = process.env.E2E_ADMIN_USERNAME || 'admin';
     const password = process.env.E2E_ADMIN_PASSWORD || 'admin';
 
-    // 1) Navigate to the admin login page (NOT /login which redirects to /)
-    await page.goto('/admin/login', { waitUntil: 'networkidle' });
+    const loginResult = await page.evaluate(async ({ username, password }) => {
+        try {
+            const res = await fetch('/api/login/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ username, password }),
+            });
+            return {
+                ok: res.ok,
+                status: res.status,
+                body: await res.text()
+            };
+        } catch (e) {
+            return {
+                ok: false,
+                status: 0,
+                body: (e as Error).toString()
+            };
+        }
+    }, { username, password });
 
-    // 2) Fill the login form using data-testid attributes
-    await page.getByTestId('login.username').fill(username);
-    await page.getByTestId('login.password').fill(password);
+    expect(loginResult.ok, `Login API failed: HTTP ${loginResult.status}\nBody: ${loginResult.body}`).toBeTruthy();
 
-    // 3) Click submit and wait for navigation to admin-dashboard
-    await page.getByTestId('login.submit').click();
+    // 3) Navigate to a protected route to trigger the router guard's hydration
+    // Since cookies are now set, the app's router guard will call fetchUser() 
+    // when it sees a protected route is requested with user=null.
+    await page.goto('/admin-dashboard', { waitUntil: 'networkidle' });
 
-    // 4) Wait for the admin dashboard to appear (login → fetchUser → redirect)
-    await expect(page.getByTestId('admin-dashboard')).toBeVisible({ timeout: 15000 });
+    // Verify hydration by waiting for a UI element that requires a logged-in user
+    // e.g. the admin dashboard main element
+    await expect(page.getByTestId('admin-dashboard')).toBeVisible({ timeout: 10000 });
 
-    console.log('✓ Login successful via real form flow');
+    console.log('✓ Login successful and hydrated via real app flow');
 }

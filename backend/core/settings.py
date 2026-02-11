@@ -70,9 +70,9 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # File Upload Limits (Mission 5.1)
-# Allow large PDF uploads (up to 1GB for batch imports)
-DATA_UPLOAD_MAX_MEMORY_SIZE = 1073741824  # 1 GB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 1073741824  # 1 GB
+# Allow large PDF uploads (up to 100MB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
 
 # E2E Testing Configuration
 E2E_SEED_TOKEN = os.environ.get("E2E_SEED_TOKEN")  # Only set in prod-like environment
@@ -85,10 +85,13 @@ E2E_SEED_TOKEN = os.environ.get("E2E_SEED_TOKEN")  # Only set in prod-like envir
 #   - If METRICS_TOKEN not set: Public access (operator's choice, warning logged on startup)
 METRICS_TOKEN = os.environ.get("METRICS_TOKEN")
 
-# Require METRICS_TOKEN in production to prevent public /metrics exposure
+# Warn if METRICS_TOKEN not set in production
 if DJANGO_ENV == "production" and not METRICS_TOKEN and not DEBUG:
-    raise ValueError(
-        "METRICS_TOKEN must be set in production to secure /metrics endpoint."
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(
+        "METRICS_TOKEN not set in production. /metrics endpoint will be publicly accessible. "
+        "Set METRICS_TOKEN environment variable to secure the endpoint."
     )
 
 # Security Settings for Production
@@ -96,34 +99,24 @@ if DJANGO_ENV == "production" and not METRICS_TOKEN and not DEBUG:
 # SSL_ENABLED: Set to "False" in prod-like (HTTP-only E2E), "True" in real prod
 SSL_ENABLED = os.environ.get("SSL_ENABLED", "False").lower() == "true"
 
-# Always trust X-Forwarded-Proto header from reverse proxy
-# This is required for proper session/CSRF cookie handling behind HTTPS proxy
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-USE_X_FORWARDED_HOST = True
-
 if not DEBUG:
     # Production Security Headers
     if SSL_ENABLED:
-        # Real production: Force HTTPS redirect and secure cookies
+        # Real production: Force HTTPS
         SECURE_SSL_REDIRECT = True
         SESSION_COOKIE_SECURE = True
         CSRF_COOKIE_SECURE = True
         SECURE_HSTS_SECONDS = 31536000
         SECURE_HSTS_INCLUDE_SUBDOMAINS = True
         SECURE_HSTS_PRELOAD = True
+        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     else:
-        # Prod-like (E2E): No SSL redirect, no secure cookies (plain HTTP)
+        # Prod-like (E2E): HTTP-only, no SSL redirect
         SECURE_SSL_REDIRECT = False
         SESSION_COOKIE_SECURE = False
         CSRF_COOKIE_SECURE = False
 
-    # CRITICAL FIX: Re-apply SameSite settings from env in production
-    # Without this, the values read at lines 58-59 are not preserved
-    SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
-    CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "Lax")
-
-    # Note: SECURE_BROWSER_XSS_FILTER removed — deprecated in Django 4.0,
-    # X-XSS-Protection header is set by nginx instead.
+    SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 else:
@@ -131,9 +124,10 @@ else:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
 
-# CSRF_COOKIE_HTTPONLY must be False for SPAs to read CSRF token from cookie
-CSRF_COOKIE_HTTPONLY = False
-# SESSION_COOKIE_SAMESITE and CSRF_COOKIE_SAMESITE are set at line ~58 via env vars
+# Cookie SameSite (all environments)
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False  # Required for SPAs to read CSRF token from cookie
 
 # CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = os.environ.get(
@@ -141,44 +135,6 @@ CSRF_TRUSTED_ORIGINS = os.environ.get(
     "http://localhost:8088,http://127.0.0.1:8088,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
 ).split(",")
 
-
-# Phase 4: Sentry Error Tracking and Performance Monitoring
-SENTRY_DSN = os.environ.get('SENTRY_DSN', None)
-
-if SENTRY_DSN:
-    import sentry_sdk
-    from sentry_sdk.integrations.django import DjangoIntegration
-    from sentry_sdk.integrations.celery import CeleryIntegration
-    from sentry_sdk.integrations.redis import RedisIntegration
-
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        integrations=[
-            DjangoIntegration(),
-            CeleryIntegration(),
-            RedisIntegration(),
-        ],
-        # Performance monitoring: sample 10% of transactions in production
-        traces_sample_rate=0.1 if DJANGO_ENV == "production" else 1.0,
-
-        # Profiling: sample 10% of profiled transactions
-        profiles_sample_rate=0.1 if DJANGO_ENV == "production" else 1.0,
-
-        # Environment tracking
-        environment=DJANGO_ENV,
-
-        # Send PII (Personally Identifiable Information) - disabled for privacy
-        send_default_pii=False,
-
-        # Release tracking (useful for deployment tracking)
-        release=os.environ.get('GIT_COMMIT_SHA', 'unknown'),
-
-        # Before send hook to filter sensitive data
-        before_send=lambda event, hint: event if not any(
-            sensitive in str(event).lower()
-            for sensitive in ['password', 'token', 'secret', 'api_key']
-        ) else None,
-    )
 
 
 INSTALLED_APPS = [
@@ -208,16 +164,13 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-
-# --- Processing thresholds (configurable per institution) ---
-A3_ASPECT_RATIO_THRESHOLD = float(os.environ.get('A3_ASPECT_RATIO_THRESHOLD', '1.2'))
-OCR_CONFIDENCE_THRESHOLD = float(os.environ.get('OCR_CONFIDENCE_THRESHOLD', '0.5'))
 
 MIDDLEWARE = [
     'core.middleware.request_id.RequestIDMiddleware',  # S5-A: Request ID for log correlation
@@ -277,20 +230,9 @@ else:
     
     DATABASES = {'default': db_config}
 
-# Ensure all Django-required database config keys exist regardless of source
-_db = DATABASES['default']
-_db.setdefault('ATOMIC_REQUESTS', False)
-_db.setdefault('AUTOCOMMIT', True)
-_db.setdefault('CONN_MAX_AGE', 0)
-_db.setdefault('CONN_HEALTH_CHECKS', False)
-_db.setdefault('OPTIONS', {})
-_db.setdefault('TIME_ZONE', None)
-for _k in ('USER', 'PASSWORD', 'HOST', 'PORT'):
-    _db.setdefault(_k, '')
-_test = _db.setdefault('TEST', {})
-for _k, _v in [('CHARSET', None), ('COLLATION', None), ('MIGRATE', True),
-               ('MIRROR', None), ('NAME', None), ('TEMPLATE', None)]:
-    _test.setdefault(_k, _v)
+
+
+
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -315,12 +257,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 SESSION_COOKIE_AGE = 14400
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_HTTPONLY = True
-# SESSION_COOKIE_SAMESITE is set earlier in the file (line ~58) via env var
-
-# Auth URLs
-LOGIN_URL = '/admin/login/'
-LOGIN_REDIRECT_URL = '/admin-dashboard'
-LOGOUT_REDIRECT_URL = '/'
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 # P1.1 FIX: Ensure logs directory exists before configuring logging
 LOGS_DIR = os.path.join(BASE_DIR, 'logs')
@@ -410,29 +347,6 @@ LOGGING = {
     }
 }
 
-# Phase 4: Structlog Configuration for Enhanced Structured Logging
-import structlog
-
-structlog.configure(
-    processors=[
-        structlog.contextvars.merge_contextvars,
-        structlog.stdlib.filter_by_level,
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.PositionalArgumentsFormatter(),
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.processors.UnicodeDecoder(),
-        # Use JSONRenderer for production, ConsoleRenderer for development
-        structlog.processors.JSONRenderer() if not DEBUG else structlog.dev.ConsoleRenderer(),
-    ],
-    wrapper_class=structlog.stdlib.BoundLogger,
-    context_class=dict,
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    cache_logger_on_first_use=True,
-)
-
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'UTC'
 USE_I18N = True
@@ -450,47 +364,15 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300
 CELERY_TASK_SOFT_TIME_LIMIT = 270
 
-# ZF-AUD-13: Dedicated queues for performance optimization
-# Separate heavy tasks (import, finalize) from light tasks (default)
-CELERY_TASK_ROUTES = {
-    'grading.tasks.async_import_pdf': {'queue': 'import'},
-    'grading.tasks.async_batch_import': {'queue': 'import'},
-    'grading.tasks.async_finalize_copy': {'queue': 'finalize'},
-    'grading.tasks.cleanup_orphaned_files': {'queue': 'maintenance'},
-}
-
-# ZF-AUD-13: Rate limiting to prevent overload
-CELERY_TASK_ANNOTATIONS = {
-    'grading.tasks.async_import_pdf': {'rate_limit': '10/m'},
-    'grading.tasks.async_finalize_copy': {'rate_limit': '5/m'},
-}
-
-# ZF-AUD-13: Prefetch multiplier (1 for long tasks to avoid blocking)
-CELERY_WORKER_PREFETCH_MULTIPLIER = 1
-
-# Cache Configuration (required for django-ratelimit and login lockout)
-# Use Redis if available (production/Docker), otherwise LocMemCache (dev)
-REDIS_HOST = os.environ.get('REDIS_HOST', '')
-if REDIS_HOST:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django_redis.cache.RedisCache',
-            'LOCATION': f'redis://{REDIS_HOST}:{os.environ.get("REDIS_PORT", "6379")}/{os.environ.get("REDIS_DB", "1")}',
-            'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            },
-            'KEY_PREFIX': 'viatique',
-            'TIMEOUT': 300,
-        }
+# Cache Configuration (required for django-ratelimit)
+# Cache Configuration (required for django-ratelimit)
+# Use LocMemCache for testing/dev without Redis
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
     }
-else:
-    # Development: LocMemCache (WARNING: does not work with multiple workers)
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'unique-snowflake',
-        }
-    }
+}
 
 # Rate limiting configuration
 RATELIMIT_USE_CACHE = 'default'
@@ -523,11 +405,14 @@ if DEBUG:
 else:
     # Production: Explicit origins only
     # Set via environment variable CORS_ALLOWED_ORIGINS (comma-separated)
-    # Default includes the production domain for same-origin requests
-    cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "https://korrigo.labomaths.tn")
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
-    # Always allow credentials in production for session-based auth
-    CORS_ALLOW_CREDENTIALS = True
+    cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "")
+    if cors_origins:
+        CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(",")]
+        CORS_ALLOW_CREDENTIALS = True
+    else:
+        # Same-origin only (Nginx serves frontend + backend on same domain)
+        CORS_ALLOWED_ORIGINS = []
+        CORS_ALLOW_CREDENTIALS = False
 
 # CORS Security Headers
 CORS_ALLOW_HEADERS = [
@@ -540,31 +425,37 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
-    'x-lock-token',
 ]
 
 # Content Security Policy (CSP)
-# django-csp expects CSP_* settings
 # Conformité: Phase 3 - Review sécurité frontend
 if not DEBUG:
-    CSP_DEFAULT_SRC = ("'self'",)
-    CSP_SCRIPT_SRC = ("'self'",)
-    CSP_STYLE_SRC = ("'self'",)
-    CSP_IMG_SRC = ("'self'", "data:", "blob:")
-    CSP_FONT_SRC = ("'self'",)
-    CSP_CONNECT_SRC = ("'self'",)
-    CSP_FRAME_ANCESTORS = ("'none'",)
-    CSP_BASE_URI = ("'self'",)
-    CSP_FORM_ACTION = ("'self'",)
-    CSP_UPGRADE_INSECURE_REQUESTS = True
+    CONTENT_SECURITY_POLICY = {
+        'DIRECTIVES': {
+            'default-src': ["'self'"],
+            'script-src': ["'self'"],
+            'style-src': ["'self'"],
+            'img-src': ["'self'", "data:", "blob:"],
+            'font-src': ["'self'"],
+            'connect-src': ["'self'"],
+            'frame-ancestors': ["'none'"],
+            'base-uri': ["'self'"],
+            'form-action': ["'self'"],
+            'upgrade-insecure-requests': True,
+        }
+    }
 else:
     # CSP permissive en développement
-    CSP_DEFAULT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
-    CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'")
-    CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
-    CSP_IMG_SRC = ("'self'", "data:", "blob:", "http:", "https:")
-    CSP_CONNECT_SRC = ("'self'", "http://localhost:*", "ws://localhost:*")
-    CSP_FRAME_ANCESTORS = ("'self'",)
+    CONTENT_SECURITY_POLICY = {
+        'DIRECTIVES': {
+            'default-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            'style-src': ["'self'", "'unsafe-inline'"],
+            'img-src': ["'self'", "data:", "blob:", "http:", "https:"],
+            'connect-src': ["'self'", "http://localhost:*", "ws://localhost:*"],
+            'frame-ancestors': ["'self'"], 
+        }
+    }
 
 # DRF Spectacular Configuration
 # OpenAPI 3.0 Schema Generation
@@ -619,11 +510,3 @@ if not DEBUG:
     LOGGING['loggers']['django']['handlers'].append('mail_admins')
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-# Google Cloud Document AI (OCR Tier 2)
-DOCUMENT_AI_PROJECT_ID = os.environ.get('DOCUMENT_AI_PROJECT_ID', '')
-DOCUMENT_AI_LOCATION = os.environ.get('DOCUMENT_AI_LOCATION', 'us')
-DOCUMENT_AI_PROCESSOR_ID = os.environ.get('DOCUMENT_AI_PROCESSOR_ID', '')
-
-# Feature flag: new OCR pipeline (default False for gradual rollout)
-USE_NEW_OCR_PIPELINE = os.environ.get('USE_NEW_OCR_PIPELINE', 'false').lower() == 'true'
