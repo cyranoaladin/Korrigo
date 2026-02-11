@@ -97,10 +97,11 @@ class TestParseStudentCSV(TestCase):
 
     def test_utf8_bom(self):
         """Handle UTF-8 BOM correctly."""
-        content = '\ufeffÉlèves,Né(e) le,Adresse E-mail,Classe,EDS,Groupe\nDUPONT JEAN,01/01/2008,test@t.tn,T.01,"",G1\n'
+        content = 'Élèves,Né(e) le,Adresse E-mail,Classe,EDS,Groupe\nDUPONT JEAN,01/01/2008,test@t.tn,T.01,"",G1\n'
         tmp = tempfile.NamedTemporaryFile(
             mode='wb', suffix='.csv', delete=False
         )
+        # utf-8-sig adds BOM automatically
         tmp.write(content.encode('utf-8-sig'))
         tmp.close()
         students = parse_student_csv(tmp.name)
