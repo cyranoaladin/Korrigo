@@ -67,7 +67,7 @@ class TestWorkflowComplete(TransactionTestCase):
         ann_data = {
             "page_index": 0,
             "x": 0.1, "y": 0.1, "w": 0.2, "h": 0.1,
-            "type": Annotation.Type.COMMENT,
+            "type": Annotation.Type.COMMENTAIRE,
             "content": "Good job",
             "score_delta": 2
         }
@@ -84,7 +84,7 @@ class TestWorkflowComplete(TransactionTestCase):
         ann_data2 = {
             "page_index": 1,
             "x": 0.5, "y": 0.5, "w": 0.1, "h": 0.1,
-            "type": Annotation.Type.ERROR,
+            "type": Annotation.Type.ERREUR,
             "content": "Typo",
             "score_delta": -1
         }
@@ -217,7 +217,7 @@ class TestWorkflowComplete(TransactionTestCase):
         # 2. ANNOTATE denied
         ann_data = {
             "page_index": 0, "x": 0.1, "y": 0.1, "w": 0.1, "h": 0.1,
-            "type": Annotation.Type.COMMENT, "content": "Hacker"
+            "type": Annotation.Type.COMMENTAIRE, "content": "Hacker"
         }
         resp = self.client.post(f"/api/grading/copies/{copy.id}/annotations/", ann_data, format='json')
         self.assertEqual(resp.status_code, 403)

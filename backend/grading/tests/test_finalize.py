@@ -52,7 +52,7 @@ def locked_copy_with_annotation(exam, booklet_with_pages, admin_user):
         y=0.1,
         w=0.2,
         h=0.2,
-        type=Annotation.Type.COMMENT,
+        type=Annotation.Type.COMMENTAIRE,
         content="Good work",
         score_delta=5,
         created_by=admin_user
@@ -197,7 +197,7 @@ def test_finalize_computes_score_from_annotations(authenticated_client, locked_c
         y=0.2,
         w=0.1,
         h=0.1,
-        type=Annotation.Type.ERROR,
+        type=Annotation.Type.ERREUR,
         content="Error here",
         score_delta=-2,
         created_by=admin_user
