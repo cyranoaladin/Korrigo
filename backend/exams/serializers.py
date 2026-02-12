@@ -126,6 +126,20 @@ class ExamSerializer(serializers.ModelSerializer):
         for item in value:
             validate_node(item)
 
+        # Validate total points = 20
+        def get_node_points(node):
+            children = node.get('children', [])
+            if children and isinstance(children, list) and len(children) > 0:
+                return sum(get_node_points(child) for child in children)
+            return float(node.get('points', 0) or 0)
+
+        if len(value) > 0:
+            total = sum(get_node_points(item) for item in value)
+            if total != 20.0:
+                raise serializers.ValidationError(
+                    _("Le total du barème doit être exactement 20 points (actuellement %(total)s pts).") % {'total': total}
+                )
+
         return value
 
 

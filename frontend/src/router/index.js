@@ -63,7 +63,7 @@ const routes = [
         path: '/corrector/desk/:copyId',
         name: 'CorrectorDesk',
         component: () => import('../views/admin/CorrectorDesk.vue'),
-        meta: { requiresAuth: true, role: 'Teacher' }
+        meta: { requiresAuth: true, role: ['Teacher', 'Admin'] }
     },
     {
         path: '/exam/:examId/identification',
@@ -157,7 +157,8 @@ router.beforeEach(async (to, from, next) => {
             return next({ path: '/', replace: true })
         }
 
-        if (to.meta.role && userRole !== to.meta.role && userRole !== 'Admin') {
+        const allowedRoles = Array.isArray(to.meta.role) ? to.meta.role : [to.meta.role]
+        if (to.meta.role && !allowedRoles.includes(userRole) && userRole !== 'Admin') {
             const dashboardPath = getDashboardForRole(userRole)
             redirectCount++
             return next({ path: dashboardPath, replace: true })
