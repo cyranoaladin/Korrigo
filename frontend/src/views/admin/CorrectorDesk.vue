@@ -25,6 +25,8 @@ const currentPage = ref(1)
 const pdfDimensions = ref({ width: 0, height: 0 }) 
 const imageError = ref(false)
 const imageLoaded = ref(false)
+const scrollAreaRef = ref(null)
+const wheelCooldown = ref(false)
 
 // Lock State
 // Lock State
@@ -189,8 +191,48 @@ const exercisesWithQuestions = computed(() => {
     })
 })
 
+// --- Page Navigation Helpers ---
+const goNextPage = () => {
+    if (currentPage.value < pages.value.length) currentPage.value++
+}
+const goPrevPage = () => {
+    if (currentPage.value > 1) currentPage.value--
+}
+
+// --- Scroll-wheel page change (fires when at scroll boundary) ---
+const onScrollAreaWheel = (e) => {
+    const el = scrollAreaRef.value
+    if (!el || wheelCooldown.value) return
+
+    const atTop = el.scrollTop <= 1
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
+
+    if (e.deltaY < 0 && atTop) {
+        // Scrolling up at top edge → previous page
+        e.preventDefault()
+        goPrevPage()
+        // Cooldown prevents rapid multi-page skips
+        wheelCooldown.value = true
+        setTimeout(() => { wheelCooldown.value = false }, 400)
+        // Scroll to bottom of new page so user continues scrolling up naturally
+        nextTick(() => { if (el) el.scrollTop = el.scrollHeight })
+    } else if (e.deltaY > 0 && atBottom) {
+        // Scrolling down at bottom edge → next page
+        e.preventDefault()
+        goNextPage()
+        wheelCooldown.value = true
+        setTimeout(() => { wheelCooldown.value = false }, 400)
+        // Scroll to top of new page
+        nextTick(() => { if (el) el.scrollTop = 0 })
+    }
+}
+
 // --- Global Key Handling ---
 const onGlobalKeydown = (e) => {
+    // Skip navigation shortcuts when typing in an input/textarea
+    const tag = e.target?.tagName
+    const isTyping = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+
     if (showEditor.value) {
         if (e.key === 'Escape') {
             e.preventDefault()
@@ -201,6 +243,17 @@ const onGlobalKeydown = (e) => {
             saveAnnotation()
         }
     }
+
+    // Page navigation: ←→ arrows and PageUp/PageDown
+    if (!isTyping && !showEditor.value) {
+        if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+            e.preventDefault()
+            goPrevPage()
+        } else if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+            e.preventDefault()
+            goNextPage()
+        }
+    }
 }
 
 // --- Watchers ---
@@ -208,6 +261,10 @@ watch(currentPage, () => {
     imageLoaded.value = false
     imageError.value = false
     showIdentity.value = false
+    // Reset scroll to top of new page (wheel handler overrides with its own positioning)
+    nextTick(() => {
+        if (scrollAreaRef.value) scrollAreaRef.value.scrollTop = 0
+    })
 })
 
 watch(pages, (newPages) => {
@@ -724,6 +781,13 @@ onMounted(async () => {
     // Robust Release
     window.addEventListener('beforeunload', releaseLock)
     window.addEventListener('pagehide', releaseLock)
+
+    // Scroll-wheel page navigation on viewer
+    nextTick(() => {
+        if (scrollAreaRef.value) {
+            scrollAreaRef.value.addEventListener('wheel', onScrollAreaWheel, { passive: false })
+        }
+    })
 })
 
 // Watch for Auth Hydration to load drafts
@@ -736,6 +800,9 @@ onUnmounted(() => {
     window.removeEventListener('keydown', onGlobalKeydown)
     window.removeEventListener('beforeunload', releaseLock)
     window.removeEventListener('pagehide', releaseLock)
+    if (scrollAreaRef.value) {
+        scrollAreaRef.value.removeEventListener('wheel', onScrollAreaWheel)
+    }
 })
 </script>
 
@@ -880,16 +947,18 @@ onUnmounted(() => {
           >
             <button
               :disabled="currentPage <= 1"
-              @click="currentPage--"
+              @click="goPrevPage"
+              title="Page précédente (← ou PageUp)"
             >
-              Prev
+              ← Prev
             </button>
             <span>Page {{ currentPage }} / {{ pages.length }}</span>
             <button
               :disabled="currentPage >= pages.length"
-              @click="currentPage++"
+              @click="goNextPage"
+              title="Page suivante (→ ou PageDown)"
             >
-              Next
+              Next →
             </button>
           </div>
           <div
@@ -908,7 +977,10 @@ onUnmounted(() => {
             </button>
           </div>
         </div>
-        <div class="scroll-area">
+        <div
+          ref="scrollAreaRef"
+          class="scroll-area"
+        >
           <div
             v-if="currentPageImageUrl && !imageError"
             class="canvas-wrapper" 
