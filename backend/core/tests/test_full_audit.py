@@ -1,8 +1,9 @@
 import pytest
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from rest_framework.test import APIClient
 from rest_framework import status
 from core.models import GlobalSettings
+from core.auth import UserRole
 from students.models import Student
 import io
 
@@ -18,12 +19,21 @@ class TestFullSystemAudit:
         self.admin_user = User.objects.create_superuser('admin', 'admin@example.com', 'adminpass')
         # Create Teacher
         self.teacher_user = User.objects.create_user('teacher', 'teacher@example.com', 'teacherpass')
-        # Create Student
+        # Create Student with Django User
+        student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
+        self.student_user = User.objects.create_user(
+            username='amine.benali-e@ert.tn',
+            email='amine.benali-e@ert.tn',
+            password='passe123',
+        )
+        self.student_user.groups.add(student_group)
         self.student = Student.objects.create(
             date_naissance="2005-03-15",
             last_name="BEN ALI",
             first_name="Amine",
-            class_name="TG1"
+            class_name="TG1",
+            email="amine.benali-e@ert.tn",
+            user=self.student_user,
         )
 
     def test_01_authentication_admin(self):
@@ -61,10 +71,9 @@ class TestFullSystemAudit:
     def test_03_authentication_student(self):
         """Vérifie le login Élève via endpoint dédié"""
         response = self.client.post('/api/students/login/', {
-            'first_name': 'Amine',
-            'last_name': 'BEN ALI',
-            'date_naissance': '2005-03-15'
-        })
+            'email': 'amine.benali-e@ert.tn',
+            'password': 'passe123'
+        }, format='json')
         assert response.status_code == 200, "Student Login Failed"
         
         # Access Student Me
