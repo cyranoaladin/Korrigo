@@ -16,7 +16,7 @@ services:
       REDIS_HOST: ${REDIS_HOST:-redis}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini-2025-04-14}
 
   celery:
     environment:

@@ -33,7 +33,7 @@ class IdentificationDeskView(APIView):
             header_url = None
             if booklet:
                 # Use the same format as the original endpoint
-                header_url = f"/api/booklets/{booklet.id}/header/"
+                header_url = f"/api/exams/booklets/{booklet.id}/header/"
 
             data.append({
                 "id": copy.id,
