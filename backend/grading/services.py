@@ -6,7 +6,7 @@ Traçabilité complète via GradingEvent (Audit).
 import os
 import uuid
 import fitz  # PyMuPDF
-from django.db import transaction
+from django.db import transaction, OperationalError
 from django.utils import timezone
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -526,7 +526,13 @@ class GradingService:
     @transaction.atomic
     def finalize_copy(copy: Copy, user, lock_token=None):
         # P0-DI-003 FIX: Lock the Copy object to prevent race conditions
-        copy = Copy.objects.select_for_update().get(id=copy.id)
+        # Translate DB-level contention (deadlock/lock timeout) into business error
+        try:
+            copy = Copy.objects.select_for_update().get(id=copy.id)
+        except OperationalError as e:
+            logger.warning(f"DB contention on finalize_copy({copy.id}): {e}")
+            grading_lock_conflicts_total.labels(conflict_type='db_contention').inc()
+            raise LockConflictError("Concurrent finalization detected, please retry") from e
 
         # P0-DI-003 FIX: Detect concurrent finalization (single-winner enforcement)
         # If status is already GRADED, another request won the race - reject duplicate
