@@ -59,6 +59,17 @@ CSRF_COOKIE_SECURE = False
 # Allow test client host
 ALLOWED_HOSTS = ['*']
 
+# Force LocMemCache in tests (base settings uses Redis when REDIS_HOST is set)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'test-cache',
+    }
+}
+
+# Force simple DB session engine (cached_db requires working cache backend)
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
 # Disable rate limiting in tests (django-ratelimit)
 # This allows login tests to work without Redis and without hitting rate limits
 RATELIMIT_ENABLE = False
