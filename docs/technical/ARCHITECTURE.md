@@ -226,19 +226,19 @@ graph LR
         subgraph "Apps Django"
             Exams[exams/<br/>Gestion Examens]
             Grading[grading/<br/>Correction]
-            Processing[processing/<br/>Traitement PDF]
+            Identification[identification/<br/>OCR & Identification]
             Students[students/<br/>Gestion Élèves]
         end
     end
     
     Core --> Exams
     Core --> Grading
-    Core --> Processing
+    Core --> Identification
     Core --> Students
     
     Exams -.->|ForeignKey| Grading
     Exams -.->|ForeignKey| Students
-    Grading -.->|Services| Processing
+    Identification -.->|Service| Grading
 ```
 
 ---
