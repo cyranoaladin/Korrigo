@@ -65,6 +65,7 @@ services:
       - backend
     environment:
       VITE_API_TARGET: http://backend:8000
+      VITE_API_URL: /api
 
   celery:
     build: ../../backend
