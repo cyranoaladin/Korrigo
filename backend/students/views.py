@@ -18,7 +18,7 @@ class StudentLoginView(views.APIView):
     Rate limited to 5 attempts per 15 minutes per IP.
     CSRF exempt: Public authentication endpoint, protected by rate limiting.
     
-    Authentification par: Nom + Prénom + Date de naissance
+    Authentification par: Email + Mot de passe
     
     Conformité: .antigravity/rules/01_security_rules.md § 9
     """
@@ -27,56 +27,61 @@ class StudentLoginView(views.APIView):
 
     @method_decorator(maybe_ratelimit(key='ip', rate='5/15m', method='POST', block=True))
     def post(self, request):
-        from datetime import datetime
-        
-        last_name = request.data.get('last_name')
-        first_name = request.data.get('first_name')
-        date_naissance_str = request.data.get('date_naissance')
+        from django.contrib.auth import authenticate, login as auth_login
+        from django.contrib.auth.models import User
 
-        if not last_name or not first_name or not date_naissance_str:
+        email = request.data.get('email', '').strip().lower()
+        password = request.data.get('password', '')
+
+        if not email or not password:
             return Response({
-                'error': 'Nom, Prénom et Date de naissance sont requis.'
+                'error': 'Email et mot de passe sont requis.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Parse date de naissance (format attendu: YYYY-MM-DD ou DD/MM/YYYY)
-        try:
-            # Try YYYY-MM-DD format first (standard ISO)
+        # Authenticate: try email as username first, then lookup by email field
+        user = authenticate(request, username=email, password=password)
+        if user is None:
             try:
-                date_naissance = datetime.strptime(date_naissance_str, "%Y-%m-%d").date()
-            except ValueError:
-                # Fallback to DD/MM/YYYY format
-                date_naissance = datetime.strptime(date_naissance_str, "%d/%m/%Y").date()
-        except ValueError:
-            return Response({
-                'error': 'Format de date invalide. Utilisez YYYY-MM-DD ou DD/MM/YYYY.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+                user_obj = User.objects.get(email=email)
+                user = authenticate(request, username=user_obj.username, password=password)
+            except User.DoesNotExist:
+                pass
 
-        # Case insensitive match
-        student = Student.objects.filter(
-            last_name__iexact=last_name,
-            first_name__iexact=first_name,
-            date_naissance=date_naissance
-        ).first()
-
-        if student:
-            request.session['student_id'] = student.id
-            request.session['role'] = 'Student'
-            # Audit trail: Login élève réussi
-            log_authentication_attempt(request, success=True, student_id=student.id)
-            return Response({
-                'message': 'Login successful',
-                'role': 'Student',
-                'student': {
-                    'id': student.id,
-                    'first_name': student.first_name,
-                    'last_name': student.last_name,
-                    'class_name': student.class_name
-                }
-            })
-        else:
-            # Audit trail: Login élève échoué
+        if user is None or not user.is_active:
             log_authentication_attempt(request, success=False, student_id=None)
-            return Response({'error': 'Identifiants invalides.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({
+                'error': 'Email ou mot de passe incorrect.'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Verify this user is linked to a student
+        student = Student.objects.filter(user=user).first()
+        if not student:
+            log_authentication_attempt(request, success=False, student_id=None)
+            return Response({
+                'error': 'Aucun profil élève associé à ce compte.'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Django auth login (creates proper session)
+        auth_login(request, user)
+        request.session['student_id'] = student.id
+        request.session['role'] = 'Student'
+
+        # Check if must change default password
+        must_change_password = not user.has_usable_password() or user.check_password('passe123')
+
+        log_authentication_attempt(request, success=True, student_id=student.id)
+        return Response({
+            'message': 'Login successful',
+            'role': 'Student',
+            'must_change_password': must_change_password,
+            'student': {
+                'id': student.id,
+                'first_name': student.first_name,
+                'last_name': student.last_name,
+                'class_name': student.class_name,
+                'email': student.email,
+            }
+        })
 
 class StudentLogoutView(views.APIView):
     permission_classes = [AllowAny]  # Public endpoint - allow logout even if session expired
@@ -100,6 +105,66 @@ class StudentMeView(views.APIView):
         student = get_object_or_404(Student, id=student_id)
         serializer = StudentSerializer(student)
         return Response(serializer.data)
+
+
+class StudentChangePasswordView(views.APIView):
+    """
+    Change password endpoint for students.
+    Requires current session authentication (IsStudent).
+    Rate limited to 5 attempts per hour.
+    """
+    permission_classes = [IsStudent]
+
+    @method_decorator(maybe_ratelimit(key='ip', rate='5/h', method='POST', block=True))
+    def post(self, request):
+        from django.contrib.auth import update_session_auth_hash
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError
+
+        current_password = request.data.get('current_password', '')
+        new_password = request.data.get('new_password', '')
+
+        if not current_password or not new_password:
+            return Response({
+                'error': 'Mot de passe actuel et nouveau mot de passe sont requis.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        if not user or not user.is_authenticated:
+            return Response({
+                'error': 'Non authentifié.'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Verify current password
+        if not user.check_password(current_password):
+            return Response({
+                'error': 'Mot de passe actuel incorrect.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate new password strength
+        try:
+            validate_password(new_password, user=user)
+        except ValidationError as e:
+            return Response({
+                'error': e.messages
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Prevent reusing the default password
+        if new_password == 'passe123':
+            return Response({
+                'error': 'Veuillez choisir un mot de passe différent du mot de passe par défaut.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+        update_session_auth_hash(request, user)
+
+        log_audit(request, 'student.password_change', 'Student',
+                  request.session.get('student_id'))
+
+        return Response({
+            'message': 'Mot de passe modifié avec succès.'
+        })
 
 
 class StudentListView(generics.ListAPIView):
@@ -220,6 +285,28 @@ class StudentImportView(views.APIView):
                         }
                     )
                     
+                    # Provision Django User for authentication if email present and no user linked
+                    if email and not student.user:
+                        from django.contrib.auth.models import User as AuthUser, Group
+                        from core.auth import UserRole
+                        email_lower = email.strip().lower()
+                        user_obj = AuthUser.objects.filter(email=email_lower).first()
+                        if not user_obj:
+                            user_obj = AuthUser.objects.filter(username=email_lower).first()
+                        if not user_obj:
+                            user_obj = AuthUser.objects.create_user(
+                                username=email_lower,
+                                email=email_lower,
+                                password='passe123',
+                                first_name=first_name[:30],
+                                last_name=last_name[:30],
+                                is_active=True,
+                            )
+                        student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
+                        user_obj.groups.add(student_group)
+                        student.user = user_obj
+                        student.save(update_fields=['user'])
+
                     if created:
                         results['created'] += 1
                     else:

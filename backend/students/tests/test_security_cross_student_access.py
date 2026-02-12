@@ -1,9 +1,11 @@
 from django.test import TransactionTestCase, Client
+from django.contrib.auth.models import User, Group
 from django.utils import timezone
 from rest_framework import status
 from students.models import Student
 from exams.models import Exam, Copy
 from django.core.files.base import ContentFile
+from core.auth import UserRole
 from datetime import date
 
 
@@ -12,18 +14,38 @@ class TestCrossStudentAccessPrevention(TransactionTestCase):
     def setUp(self):
         super().setUp()
         
+        student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
+        
+        self.user_a = User.objects.create_user(
+            username='alice.martin-e@ert.tn',
+            email='alice.martin-e@ert.tn',
+            password='passe123',
+        )
+        self.user_a.groups.add(student_group)
+        
         self.student_a = Student.objects.create(
             first_name="Alice",
             last_name="Martin",
             class_name="TG1",
-            date_naissance=date(2005, 1, 15)
+            date_naissance=date(2005, 1, 15),
+            email="alice.martin-e@ert.tn",
+            user=self.user_a,
         )
+        
+        self.user_b = User.objects.create_user(
+            username='bob.durant-e@ert.tn',
+            email='bob.durant-e@ert.tn',
+            password='passe123',
+        )
+        self.user_b.groups.add(student_group)
         
         self.student_b = Student.objects.create(
             first_name="Bob",
             last_name="Durant",
             class_name="TG2",
-            date_naissance=date(2005, 2, 20)
+            date_naissance=date(2005, 2, 20),
+            email="bob.durant-e@ert.tn",
+            user=self.user_b,
         )
         
         self.exam = Exam.objects.create(name="Security Test Exam", date="2026-01-15", results_released_at=timezone.now())
@@ -67,16 +89,14 @@ class TestCrossStudentAccessPrevention(TransactionTestCase):
     
     def login_student_a(self):
         self.client_a.post("/api/students/login/", {
-            "last_name": "Martin",
-            "first_name": "Alice",
-            "date_naissance": "2005-01-15"
+            "email": "alice.martin-e@ert.tn",
+            "password": "passe123"
         }, content_type="application/json")
     
     def login_student_b(self):
         self.client_b.post("/api/students/login/", {
-            "last_name": "Durant",
-            "first_name": "Bob",
-            "date_naissance": "2005-02-20"
+            "email": "bob.durant-e@ert.tn",
+            "password": "passe123"
         }, content_type="application/json")
     
     def test_student_sees_only_own_graded_copies(self):
