@@ -523,16 +523,27 @@ class GradingService:
         raise ValueError("Use release_lock with token.")
 
     @staticmethod
-    @transaction.atomic
     def finalize_copy(copy: Copy, user, lock_token=None):
-        # P0-DI-003 FIX: Lock the Copy object to prevent race conditions
-        # Translate DB-level contention (deadlock/lock timeout) into business error
+        # Top-level guard: translate any DB-level contention (deadlock, lock
+        # timeout, serialization failure) into a business-level error so that
+        # callers never see a raw OperationalError.
+        # IMPORTANT: this try/except MUST sit outside @transaction.atomic,
+        # because Django's atomic __exit__ intercepts OperationalError for
+        # rollback and re-raises it before an inner except can translate it.
         try:
-            copy = Copy.objects.select_for_update().get(id=copy.id)
+            return GradingService._finalize_copy_inner(copy, user, lock_token)
         except OperationalError as e:
             logger.warning(f"DB contention on finalize_copy({copy.id}): {e}")
             grading_lock_conflicts_total.labels(conflict_type='db_contention').inc()
-            raise LockConflictError("Concurrent finalization detected, please retry") from e
+            raise LockConflictError(
+                "Database contention: finalize_copy must only be called once concurrently."
+            ) from e
+
+    @staticmethod
+    @transaction.atomic
+    def _finalize_copy_inner(copy: Copy, user, lock_token=None):
+        # P0-DI-003 FIX: Lock the Copy object to prevent race conditions
+        copy = Copy.objects.select_for_update().get(id=copy.id)
 
         # P0-DI-003 FIX: Detect concurrent finalization (single-winner enforcement)
         # If status is already GRADED, another request won the race - reject duplicate
@@ -628,6 +639,8 @@ class GradingService:
                     defaults={'metadata': {'final_score': final_score, 'retries': retry_attempt}}
                 )
                 
+            except OperationalError:
+                raise  # Let the top-level handler translate this
             except Exception as e:
                 # P0-DI-004 FIX: Save error state with detailed message
                 error_msg = str(e)[:500]  # Limit message length
