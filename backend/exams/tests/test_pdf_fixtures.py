@@ -42,6 +42,7 @@ class TestPDFFixtures:
             assert doc.page_count == page_count, f"Expected {page_count} pages, got {doc.page_count}"
             doc.close()
     
+    @pytest.mark.slow
     def test_create_large_pdf_exceeds_size_limit(self):
         """Test creating a large PDF that exceeds 50 MB limit"""
         pdf_bytes = create_large_pdf(size_mb=51)
@@ -50,6 +51,7 @@ class TestPDFFixtures:
         size_mb = len(pdf_bytes) / (1024 * 1024)
         assert size_mb >= 51, f"Expected >= 51 MB, got {size_mb:.2f} MB"
     
+    @pytest.mark.slow
     def test_create_large_pdf_custom_size(self):
         """Test creating a large PDF with custom size"""
         pdf_bytes = create_large_pdf(size_mb=60)

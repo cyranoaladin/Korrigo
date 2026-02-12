@@ -184,10 +184,10 @@ class PronoteExporter:
     
     def calculate_copy_grade(self, copy) -> float:
         """
-        Calculate final grade for a copy from annotations and Score model.
+        Calculate final grade for a copy from Score model or annotations.
         
         Priority:
-        1. Use Score.scores_data if available (summed)
+        1. Use Score.scores_data if available (summed) — primary source from CorrectorDesk
         2. Fall back to annotation score_delta sum
         3. Scale to /20 if exam uses different scale
         
@@ -200,15 +200,36 @@ class PronoteExporter:
         Raises:
             ValueError: If no grade data available
         """
-        # Calculate grade from annotations
-        annotations = copy.annotations.filter(score_delta__isnull=False)
-        if not annotations.exists():
-            raise ValueError(f"No grade data found for copy {copy.anonymous_id}")
+        from grading.models import Score
         
-        raw_score = sum(
-            ann.score_delta for ann in annotations 
-            if ann.score_delta is not None
-        )
+        raw_score = None
+        
+        # Priority 1: Score model (per-question scores from CorrectorDesk)
+        score_obj = Score.objects.filter(copy=copy).first()
+        if score_obj and score_obj.scores_data:
+            total = 0.0
+            has_data = False
+            for val in score_obj.scores_data.values():
+                if val is not None and val != '':
+                    try:
+                        total += float(val)
+                        has_data = True
+                    except (TypeError, ValueError):
+                        pass
+            if has_data:
+                raw_score = total
+        
+        # Priority 2: Annotation score_delta fallback
+        if raw_score is None:
+            annotations = copy.annotations.filter(score_delta__isnull=False)
+            if annotations.exists():
+                raw_score = sum(
+                    ann.score_delta for ann in annotations
+                    if ann.score_delta is not None
+                )
+        
+        if raw_score is None:
+            raise ValueError(f"No grade data found for copy {copy.anonymous_id}")
         
         # Get max score from exam structure
         max_score = self._calculate_max_score(self.exam.grading_structure)
