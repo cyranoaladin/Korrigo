@@ -358,7 +358,17 @@ const saveScoresToServer = async () => {
 }
 
 const onScoreChange = (questionId, value) => {
-    questionScores.value.set(questionId, value === '' ? null : parseFloat(value))
+    if (value === '' || value === null || value === undefined) {
+        questionScores.value.set(questionId, null)
+    } else {
+        let parsed = parseFloat(value)
+        // Clamp: score must be >= 0
+        if (parsed < 0) parsed = 0
+        // Clamp: score must not exceed question maxScore
+        const question = flatQuestions.value.find(q => q.id === questionId)
+        if (question && parsed > question.maxScore) parsed = question.maxScore
+        questionScores.value.set(questionId, parsed)
+    }
     // Also save to localStorage as fallback
     try {
         const scoresObj = {}
@@ -374,7 +384,22 @@ const onScoreChange = (questionId, value) => {
     }, 800)
 }
 
-// Check if copy can be finalized (all scores filled + appreciation)
+// Total score computed from all question scores
+const totalScore = computed(() => {
+    let sum = 0
+    for (const q of flatQuestions.value) {
+        const score = questionScores.value.get(q.id)
+        if (score !== null && score !== undefined && score !== '') {
+            sum += parseFloat(score) || 0
+        }
+    }
+    return Math.round(sum * 100) / 100
+})
+
+// Score validation: total must not exceed 20
+const scoreExceeds20 = computed(() => totalScore.value > 20)
+
+// Check if copy can be finalized (all scores filled + total <= 20 + appreciation)
 const canFinalize = computed(() => {
     if (flatQuestions.value.length === 0) return false
     // All questions must have a score
@@ -382,6 +407,8 @@ const canFinalize = computed(() => {
         const score = questionScores.value.get(q.id)
         if (score === null || score === undefined || score === '') return false
     }
+    // Total must not exceed 20
+    if (scoreExceeds20.value) return false
     // Appreciation must be filled
     if (!globalAppreciation.value || globalAppreciation.value.trim() === '') return false
     return true
@@ -546,7 +573,7 @@ const startHeartbeat = () => {
              
              if (status === 401) {
                  // Session Expired
-                 window.location.href = '/login'; // Force login redirect
+                 window.location.href = '/'; // Force login redirect
                  return; 
              }
              
@@ -1136,6 +1163,18 @@ onUnmounted(() => {
                   </div>
                 </div>
               </div>
+              <!-- Total score indicator -->
+              <div
+                class="total-score-bar"
+                :class="{ 'score-overflow': scoreExceeds20 }"
+              >
+                <span class="total-label">Note totale :</span>
+                <strong>{{ totalScore }}</strong> / 20
+                <span v-if="scoreExceeds20" class="overflow-warning">
+                  ⚠ La note dépasse 20 !
+                </span>
+              </div>
+
               <div
                 v-if="scoresSaving"
                 class="scores-save-status"
@@ -1327,6 +1366,10 @@ onUnmounted(() => {
 .question-remark-field textarea:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25); }
 .question-remark-field textarea:disabled { background: #e9ecef; cursor: not-allowed; }
 .save-indicator.small { font-size: 0.75rem; color: #28a745; margin-top: 3px; font-style: italic; }
+.total-score-bar { display: flex; align-items: center; gap: 6px; padding: 10px 12px; margin-top: 12px; border-radius: 6px; font-size: 1rem; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.total-score-bar.score-overflow { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+.total-label { font-weight: 500; }
+.overflow-warning { font-size: 0.85rem; font-weight: 400; margin-left: auto; }
 .scores-save-status { text-align: center; padding: 6px; font-size: 0.8rem; font-style: italic; margin-top: 8px; }
 .scores-save-status.save-ok { color: #28a745; }
 .scores-save-status.save-err { color: #dc3545; }
