@@ -114,3 +114,19 @@ reports/
 .zenflow/tasks/test-*/
 .zenflow/.zenflow/
 .gemini/
+
+# Scan data & student copies (large PDFs)
+scan_J1_BB_maths/
+scan_J2_BB_maths/
+*.pdf
+
+# Student CSV data
+eleves_*.csv
+G3_EDS_MATHS.csv
+
+# Temporary production rebuild scripts
+backend/rebuild_production.py
+backend/import_j1_copies.py
+backend/fix_matching*.py
+backend/ocr_matching.py
+arborescence_complete.txt
