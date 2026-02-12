@@ -319,6 +319,62 @@ class ExamListView(generics.ListCreateAPIView):
     
     pagination_class = ExamPagination
 
+class BookletHeaderView(APIView):
+    """
+    Serve the header image for a booklet.
+    If header_image exists, serve it directly.
+    Otherwise, crop the top ~25% of the first page image as header.
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def get(self, request, id):
+        from django.http import FileResponse, HttpResponse
+        from PIL import Image as PILImage
+        from io import BytesIO
+        from django.conf import settings
+
+        booklet = get_object_or_404(Booklet, id=id)
+
+        # Case 1: header_image exists
+        if booklet.header_image:
+            try:
+                return FileResponse(
+                    booklet.header_image.open('rb'),
+                    content_type='image/jpeg'
+                )
+            except Exception:
+                pass
+
+        # Case 2: Crop top of first page
+        if booklet.pages_images:
+            first_page = booklet.pages_images[0]
+            # Try media root
+            full_path = os.path.join(settings.MEDIA_ROOT, first_page)
+            if not os.path.exists(full_path):
+                full_path = first_page  # absolute path fallback
+
+            if os.path.exists(full_path):
+                try:
+                    with PILImage.open(full_path) as img:
+                        w, h = img.size
+                        # Crop top 25% of the page (where student name typically is)
+                        crop_box = (0, 0, w, int(h * 0.25))
+                        header_crop = img.crop(crop_box)
+
+                        buffer = BytesIO()
+                        header_crop.save(buffer, format='JPEG', quality=85)
+                        buffer.seek(0)
+
+                        return HttpResponse(
+                            buffer.read(),
+                            content_type='image/jpeg'
+                        )
+                except Exception as e:
+                    logger.error(f"BookletHeaderView crop failed: {e}")
+
+        return HttpResponse(status=404)
+
+
 class BookletDetailView(generics.RetrieveDestroyAPIView):
     queryset = Booklet.objects.all()
     serializer_class = BookletSerializer
