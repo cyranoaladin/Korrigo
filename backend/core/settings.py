@@ -110,6 +110,8 @@ if not DEBUG:
         SECURE_HSTS_INCLUDE_SUBDOMAINS = True
         SECURE_HSTS_PRELOAD = True
         SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+        # Exempt health check paths from SSL redirect (Docker internal probes use HTTP)
+        SECURE_REDIRECT_EXEMPT = [r'^api/health/']
     else:
         # Prod-like (E2E): HTTP-only, no SSL redirect
         SECURE_SSL_REDIRECT = False
