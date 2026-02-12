@@ -4,11 +4,8 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
         <!-- Brand / Identity -->
         <div class="col-span-1 md:col-span-1">
-          <div class="flex items-center gap-2 mb-4">
-            <div class="w-7 h-7 bg-primary-800 text-white flex items-center justify-center rounded-lg text-xs font-bold">
-              K
-            </div>
-            <span class="font-bold text-primary-900 tracking-tight">KORRIGO PMF</span>
+          <div class="mb-4">
+            <img src="/images/logo_korrigo_pmf.svg" alt="Korrigo PMF" class="h-10 w-auto" />
           </div>
           <p class="text-sm text-gray-500 leading-relaxed">
             Plateforme institutionnelle de correction numérique des examens.
@@ -24,7 +21,7 @@
           <ul class="space-y-2.5 text-sm text-gray-600">
             <li>
               <router-link
-                to="/"
+                to="/korrigo"
                 class="hover:text-primary-600 transition"
                 @click="scrollToFeatures"
               >
@@ -33,7 +30,7 @@
             </li>
             <li>
               <router-link
-                to="/guide-enseignant"
+                to="/korrigo/guide-enseignant"
                 class="hover:text-primary-600 transition"
               >
                 Guide enseignant
@@ -41,7 +38,7 @@
             </li>
             <li>
               <router-link
-                to="/guide-eleve"
+                to="/korrigo/guide-eleve"
                 class="hover:text-primary-600 transition"
               >
                 Guide élève
@@ -57,7 +54,7 @@
           <ul class="space-y-2.5 text-sm text-gray-600">
             <li>
               <router-link
-                to="/direction"
+                to="/korrigo/direction"
                 class="hover:text-primary-600 transition"
               >
                 RGPD & Protection des données
@@ -65,7 +62,7 @@
             </li>
             <li>
               <router-link
-                to="/direction"
+                to="/korrigo/direction"
                 class="hover:text-primary-600 transition"
               >
                 Architecture & Sécurité
