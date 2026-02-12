@@ -44,7 +44,7 @@ Les modules suivants sont présents dans le code (`backend/`) :
 *   Endpoint `POST /api/copies/{id}/identify/`.
 
 #### E. Module `students`
-*   Import CSV des élèves (INE, Nom, Prénom, Classe).
+*   Import CSV des élèves (Date de Naissance, Nom, Prénom, Classe).
 *   Gestion de base des utilisateurs élèves.
 
 ### 2.3 Sécurité & Permissions (RBAC)
