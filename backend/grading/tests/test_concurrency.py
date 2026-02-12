@@ -42,7 +42,7 @@ class TestConcurrency:
         """
         # Create initial annotation
         ann = Annotation.objects.create(
-            copy=copy, page_index=0, type=Annotation.Type.COMMENT, 
+            copy=copy, page_index=0, type=Annotation.Type.COMMENTAIRE, 
             content="Init", x=0.1, y=0.1, w=0.1, h=0.1, created_by=teacher
         )
         

@@ -98,7 +98,7 @@ class TestAntiLoss:
         
         ann_data = {
             "page_index": 0, "x": 0.1, "y": 0.1, "w": 0.1, "h": 0.1,
-            "type": Annotation.Type.COMMENT, "content": "Atomic"
+            "type": Annotation.Type.COMMENTAIRE, "content": "Atomic"
         }
         
         # Simulate DB error during save
