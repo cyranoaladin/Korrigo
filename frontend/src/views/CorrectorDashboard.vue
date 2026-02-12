@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
 import gradingApi from '../services/gradingApi'
@@ -108,6 +108,17 @@ const toggleStats = async () => {
         await fetchStats()
     }
 }
+
+const scrollToStats = async () => {
+    showStats.value = true
+    if (!examStats.value) {
+        await fetchStats()
+    }
+    nextTick(() => {
+        const el = document.getElementById('stats-section')
+        if (el) el.scrollIntoView({ behavior: 'smooth' })
+    })
+}
 </script>
 
 <template>
@@ -126,6 +137,13 @@ const toggleStats = async () => {
           @click="handleChangePassword"
         >
           Modifier mot de passe
+        </button>
+        <button
+          v-if="basicStats.graded > 0"
+          class="btn-nav-stats"
+          @click="scrollToStats"
+        >
+          📊 Statistiques
         </button>
         <button
           class="btn-logout"
@@ -174,6 +192,7 @@ const toggleStats = async () => {
       <!-- Charts Section -->
       <div
         v-if="showStats"
+        id="stats-section"
         class="charts-section"
       >
         <div
@@ -350,6 +369,8 @@ const toggleStats = async () => {
 .brand { font-weight: 700; color: #0f172a; font-size: 1.1rem; }
 .user-menu { display: flex; gap: 1rem; align-items: center; font-size: 0.9rem; }
 .btn-text { background: none; border: none; color: #64748b; cursor: pointer; text-decoration: underline; font-size: 0.85rem; }
+.btn-nav-stats { background: #6366f1; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
+.btn-nav-stats:hover { background: #4f46e5; }
 .btn-logout { border: 1px solid #ef4444; background: white; color: #ef4444; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; }
 .btn-logout:hover { background: #ef4444; color: white; }
 
