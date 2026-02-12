@@ -59,7 +59,7 @@
 | [**MANUEL_SECURITE**](security/MANUEL_SECURITE.md) | Manuel technique de sécurité | ~27 KB | Administrateurs |
 | [**GESTION_DONNEES**](security/GESTION_DONNEES.md) | Guide de gestion du cycle de vie des données | ~22 KB | Administrateurs |
 | [**AUDIT_CONFORMITE**](security/AUDIT_CONFORMITE.md) | Procédures d'audit de conformité | ~14 KB | DPO, Auditeurs |
-| [**SECURITY_PERMISSIONS_INVENTORY**](../SECURITY_PERMISSIONS_INVENTORY.md) | Inventaire technique des permissions | ~29 KB | Développeurs |
+| [**SECURITY_PERMISSIONS_INVENTORY**](security/SECURITY_PERMISSIONS_INVENTORY.md) | Inventaire technique des permissions | ~29 KB | Développeurs |
 
 **📂 Accès rapide**: [Index Sécurité](security/README.md)
 
