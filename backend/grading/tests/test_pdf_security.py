@@ -16,6 +16,7 @@ from rest_framework import status
 from students.models import Student
 from exams.models import Exam, Copy
 from django.core.files.base import ContentFile
+from core.auth import UserRole
 from datetime import date
 
 
@@ -29,19 +30,39 @@ class TestPDFDownloadSecurity(TransactionTestCase):
     def setUp(self):
         super().setUp()
         
-        # Create test students
+        # Create student group and Django Users
+        student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
+        
+        self.user_a = User.objects.create_user(
+            username='alice.martin-e@ert.tn',
+            email='alice.martin-e@ert.tn',
+            password='passe123',
+        )
+        self.user_a.groups.add(student_group)
+        
         self.student_a = Student.objects.create(
             first_name="Alice",
             last_name="Martin",
             class_name="TG1",
-            date_naissance=date(2005, 1, 15)
+            date_naissance=date(2005, 1, 15),
+            email="alice.martin-e@ert.tn",
+            user=self.user_a,
         )
+        
+        self.user_b = User.objects.create_user(
+            username='bob.durant-e@ert.tn',
+            email='bob.durant-e@ert.tn',
+            password='passe123',
+        )
+        self.user_b.groups.add(student_group)
         
         self.student_b = Student.objects.create(
             first_name="Bob",
             last_name="Durant",
             class_name="TG2",
-            date_naissance=date(2005, 2, 20)
+            date_naissance=date(2005, 2, 20),
+            email="bob.durant-e@ert.tn",
+            user=self.user_b,
         )
         
         # Create teacher user
@@ -129,18 +150,18 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         self.client_anonymous = Client()
     
     def login_student_a(self):
-        """Authenticate student A via session-based login."""
+        """Authenticate student A via email+password login."""
         self.client_student_a.post(
             "/api/students/login/",
-            {"last_name": "Martin", "first_name": "Alice", "date_naissance": "2005-01-15"},
+            {"email": "alice.martin-e@ert.tn", "password": "passe123"},
             content_type="application/json"
         )
     
     def login_student_b(self):
-        """Authenticate student B via session-based login."""
+        """Authenticate student B via email+password login."""
         self.client_student_b.post(
             "/api/students/login/",
-            {"last_name": "Durant", "first_name": "Bob", "date_naissance": "2005-02-20"},
+            {"email": "bob.durant-e@ert.tn", "password": "passe123"},
             content_type="application/json"
         )
     

@@ -36,10 +36,9 @@ class TestRateLimitingBaseline:
         # 5 tentatives avec mauvais identifiants
         for i in range(5):
             response = client.post('/api/students/login/', {
-                'first_name': 'WRONGFIRST',
-                'last_name': 'WRONGNAME',
-                'date_naissance': '2000-01-01'
-            })
+                'email': 'wrong@ert.tn',
+                'password': 'wrongpassword'
+            }, content_type='application/json')
             # Devrait retourner 401 mais pas 429
             assert response.status_code == 401, \
                 f"Attempt {i+1}: Expected 401, got {response.status_code}"

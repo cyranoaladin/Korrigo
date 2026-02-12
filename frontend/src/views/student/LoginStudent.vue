@@ -4,9 +4,9 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { getErrorMessage } from '../../utils/errorMessages'
 
-const lastName = ref('')
-const firstName = ref('')
-const dateNaissance = ref('')
+const email = ref('')
+const password = ref('')
+const passwordVisible = ref(false)
 const error = ref('')
 const loading = ref(false)
 const authStore = useAuthStore()
@@ -24,11 +24,15 @@ const handleLogin = async () => {
     authStore.clearError()
     
     try {
-        const success = await authStore.loginStudent(lastName.value, firstName.value, dateNaissance.value)
+        const success = await authStore.loginStudent(email.value, password.value)
         if (success) {
-            router.push('/student-portal')
+            if (authStore.mustChangePassword) {
+                router.push('/student/change-password')
+            } else {
+                router.push('/student-portal')
+            }
         } else {
-            error.value = authStore.lastError || "Identifiants invalides."
+            error.value = authStore.lastError || "Email ou mot de passe incorrect."
         }
     } catch (err) {
         error.value = getErrorMessage(err)
@@ -48,32 +52,34 @@ const handleLogin = async () => {
             
       <form @submit.prevent="handleLogin">
         <div class="form-group">
-          <label>Nom de Famille</label>
+          <label>Adresse email</label>
           <input
-            v-model="lastName"
-            type="text"
-            placeholder="ex: DUPONT"
+            v-model="email"
+            type="email"
+            placeholder="prenom.nom-e@ert.tn"
             required
+            autocomplete="email"
           >
         </div>
         
         <div class="form-group">
-          <label>Prénom</label>
-          <input
-            v-model="firstName"
-            type="text"
-            placeholder="ex: Jean"
-            required
-          >
-        </div>
-        
-        <div class="form-group">
-          <label>Date de naissance</label>
-          <input
-            v-model="dateNaissance"
-            type="date"
-            required
-          >
+          <label>Mot de passe</label>
+          <div class="password-field">
+            <input
+              v-model="password"
+              :type="passwordVisible ? 'text' : 'password'"
+              placeholder="Entrez votre mot de passe"
+              required
+              autocomplete="current-password"
+            >
+            <button
+              type="button"
+              class="btn-toggle-password"
+              @click="passwordVisible = !passwordVisible"
+            >
+              {{ passwordVisible ? '🙈' : '👁️' }}
+            </button>
+          </div>
         </div>
                 
         <div
@@ -91,6 +97,11 @@ const handleLogin = async () => {
           {{ loading ? 'Connexion...' : 'Accéder à mes copies' }}
         </button>
       </form>
+
+      <p class="hint-text">
+        Mot de passe par défaut : <strong>passe123</strong><br>
+        Vous serez invité à le changer à la première connexion.
+      </p>
             
       <div class="footer-links">
         <router-link to="/">
@@ -148,7 +159,31 @@ input:focus { border-color: #667eea; box-shadow: 0 0 0 2px #667eea; outline: non
     transition: background 0.2s;
 }
 .btn-login:hover { background: #5a67d8; }
+.btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
 .error-msg { color: #e53e3e; text-align: center; margin-bottom: 1rem; font-size: 0.9rem; }
+
+.password-field { position: relative; display: flex; align-items: center; }
+.password-field input { padding-right: 3rem; }
+.btn-toggle-password {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 4px;
+    line-height: 1;
+}
+
+.hint-text {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #a0aec0;
+    margin-top: 1rem;
+    line-height: 1.5;
+}
+.hint-text strong { color: #718096; }
+
 .footer-links { text-align: center; margin-top: 1.5rem; font-size: 0.9rem; }
 .footer-links a { color: #718096; text-decoration: none; }
 .footer-links a:hover { text-decoration: underline; }

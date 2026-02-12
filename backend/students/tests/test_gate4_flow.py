@@ -1,10 +1,12 @@
 from django.test import TransactionTestCase, Client
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.utils import timezone
 from rest_framework import status
 from exams.models import Exam, Copy
 from students.models import Student
 from django.core.files.base import ContentFile
+from core.auth import UserRole
 from datetime import date
 
 User = get_user_model()
@@ -16,12 +18,23 @@ class TestGate4StudentFlow(TransactionTestCase):
     def setUp(self):
         super().setUp()
         
-        # 1. Setup Student
+        # 1. Setup Student with Django User
+        student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
+        
+        self.user = User.objects.create_user(
+            username='jean.e2e-e@ert.tn',
+            email='jean.e2e-e@ert.tn',
+            password='passe123',
+        )
+        self.user.groups.add(student_group)
+        
         self.student = Student.objects.create(
             last_name="E2E_STUDENT",
             first_name="Jean",
             date_naissance=date(2005, 3, 15),
-            class_name="TS1"
+            class_name="TS1",
+            email="jean.e2e-e@ert.tn",
+            user=self.user,
         )
         
         # 2. Setup Exam & Copies
@@ -45,11 +58,20 @@ class TestGate4StudentFlow(TransactionTestCase):
         )
         
         # Other student's copy
+        self.other_user = User.objects.create_user(
+            username='paul.other-e@ert.tn',
+            email='paul.other-e@ert.tn',
+            password='passe123',
+        )
+        self.other_user.groups.add(student_group)
+        
         self.other_student = Student.objects.create(
             last_name="OTHER",
             first_name="Paul",
             date_naissance=date(2005, 6, 20),
-            class_name="TS2"
+            class_name="TS2",
+            email="paul.other-e@ert.tn",
+            user=self.other_user,
         )
         self.copy_other = Copy.objects.create(
             exam=self.exam,
@@ -65,20 +87,18 @@ class TestGate4StudentFlow(TransactionTestCase):
 
     def test_student_login_success(self):
         resp = self.client.post("/api/students/login/", {
-            "last_name": "E2E_STUDENT",
-            "first_name": "Jean",
-            "date_naissance": "2005-03-15"
-        })
+            "email": "jean.e2e-e@ert.tn",
+            "password": "passe123"
+        }, content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self.client.session['student_id'], self.student.id)
         
     def test_student_copies_list_permissions(self):
         # Login
         self.client.post("/api/students/login/", {
-            "last_name": "E2E_STUDENT",
-            "first_name": "Jean",
-            "date_naissance": "2005-03-15"
-        })
+            "email": "jean.e2e-e@ert.tn",
+            "password": "passe123"
+        }, content_type="application/json")
         
         # Get List
         resp = self.client.get("/api/students/copies/")
@@ -94,10 +114,9 @@ class TestGate4StudentFlow(TransactionTestCase):
     def test_student_pdf_access_security(self):
         # Login
         self.client.post("/api/students/login/", {
-            "last_name": "E2E_STUDENT",
-            "first_name": "Jean",
-            "date_naissance": "2005-03-15"
-        })
+            "email": "jean.e2e-e@ert.tn",
+            "password": "passe123"
+        }, content_type="application/json")
         
         # 1. Access Own Graded -> 200
         # Endpoint: /api/grading/copies/{id}/final-pdf/

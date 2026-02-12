@@ -77,6 +77,12 @@ const routes = [
         component: LoginStudent
     },
     {
+        path: '/student/change-password',
+        name: 'StudentChangePassword',
+        component: () => import('../views/student/ChangePasswordStudent.vue'),
+        meta: { requiresAuth: true, role: 'Student' }
+    },
+    {
         path: '/student-portal',
         name: 'StudentPortal',
         component: () => import('../views/student/ResultView.vue'),
