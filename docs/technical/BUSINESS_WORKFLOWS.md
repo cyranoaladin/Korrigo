@@ -392,7 +392,7 @@ flowchart TD
     I --> J{Autres copies?}
     J -->|Oui| F
     J -->|Non| K[Exporter CSV Pronote]
-    K --> L[Format: INE;MATIERE;NOTE;COEFF]
+    K --> L[Format: DATE_NAISSANCE;MATIERE;NOTE;COEFF]
     L --> M[Télécharger CSV]
     M --> N[Activer portail élève]
     N --> O[Fin]
@@ -401,7 +401,7 @@ flowchart TD
 #### Format Export CSV
 
 ```csv
-INE,MATIERE,NOTE,COEFF
+DATE_NAISSANCE,MATIERE,NOTE,COEFF
 1234567890A,MATHS,15.5,7
 1234567891B,MATHS,12.0,7
 1234567892C,MATHS,18.5,7
@@ -426,7 +426,7 @@ INE,MATIERE,NOTE,COEFF
 
 ```mermaid
 flowchart TD
-    A[Élève accède portail] --> B[Login INE + Date naissance]
+    A[Élève accède portail] --> B[Login Email + Mot de passe]
     B --> C{Authentification?}
     C -->|Échec| D[Erreur: Identifiants invalides]
     C -->|Succès| E[Lister mes copies GRADED]
