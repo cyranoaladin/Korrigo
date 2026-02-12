@@ -17,8 +17,12 @@
         {{ step }}
       </span>
     </div>
-    <h3 class="font-semibold text-neutralDark mb-1">{{ title }}</h3>
-    <p class="text-sm text-gray-500 leading-relaxed max-w-[200px]">{{ text }}</p>
+    <h3 class="font-semibold text-neutralDark mb-1">
+      {{ title }}
+    </h3>
+    <p class="text-sm text-gray-500 leading-relaxed max-w-[200px]">
+      {{ text }}
+    </p>
   </div>
 </template>
 
