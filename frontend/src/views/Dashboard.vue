@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import api from '../services/api'
 
 const route = useRoute()
 const examId = route.params.examId
@@ -9,8 +9,6 @@ const copies = ref([])
 const exam = ref(null)
 const isLoading = ref(false)
 const message = ref('')
-
-const authStore = useAuthStore()
 
 // Computed Stats
 const totalCopies = computed(() => copies.value.length)
@@ -26,11 +24,8 @@ const averageScore = computed(() => {
 const fetchCopies = async () => {
   isLoading.value = true
   try {
-      const res = await fetch(`${authStore.API_URL}/api/exams/${examId}/`, {
-          credentials: 'include'
-      })
-      if (!res.ok) throw new Error("Failed to fetch exam")
-      exam.value = await res.json()
+      const res = await api.get(`/exams/${examId}/`)
+      exam.value = res.data
       
       // Mock data until Copy Listing endpoint is ready
       // This allows UI validation without backend changes yet
@@ -54,26 +49,18 @@ const triggerExport = async () => {
     isLoading.value = true
     message.value = "Génération des PDF en cours..."
     try {
-        const res = await fetch(`${authStore.API_URL}/api/exams/${examId}/export_all/`, {
-            method: 'POST',
-            credentials: 'include'
-        })
-        if (res.ok) {
-            const data = await res.json()
-            message.value = `Succès: ${data.message}`
-        } else {
-            message.value = "Erreur lors de l'export."
-        }
+        const res = await api.post(`/exams/${examId}/export_all/`)
+        message.value = `Succès: ${res.data.message}`
     } catch (e) {
         console.error(e)
-        message.value = "Erreur réseau."
+        message.value = "Erreur lors de l'export."
     } finally {
         isLoading.value = false
     }
 }
 
 const downloadCSV = () => {
-    window.open(`${authStore.API_URL}/api/exams/${examId}/csv/`, '_blank')
+    window.open(`/api/exams/${examId}/csv/`, '_blank')
 }
 
 onMounted(() => {
