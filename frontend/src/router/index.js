@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import MainLayout from '../layouts/MainLayout.vue'
 import HomeView from '../views/HomeView.vue'
+import Home from '../views/Home.vue'
 import GuideEnseignant from '../views/GuideEnseignant.vue'
 import GuideEtudiant from '../views/GuideEtudiant.vue'
 import DirectionConformite from '../views/DirectionConformite.vue'
@@ -19,20 +20,28 @@ function getDashboardForRole(role) {
 }
 
 function isLoginPage(routeName) {
-    return ['LoginAdmin', 'LoginTeacher', 'StudentLogin', 'Home'].includes(routeName)
+    return ['LoginAdmin', 'LoginTeacher', 'StudentLogin', 'Portal'].includes(routeName)
 }
 
 const routes = [
-    // ── Public landing pages (MainLayout with Navbar + Footer) ──
+    // ── Main portal (login cards) ──
     {
         path: '/',
+        name: 'Portal',
+        component: Home,
+        meta: { title: 'Korrigo PMF', public: true }
+    },
+
+    // ── Landing / documentation pages (MainLayout with Navbar + Footer) ──
+    {
+        path: '/korrigo',
         component: MainLayout,
         children: [
             {
                 path: '',
-                name: 'Home',
+                name: 'Landing',
                 component: HomeView,
-                meta: { title: 'Accueil - Korrigo PMF', public: true }
+                meta: { title: 'Korrigo PMF - Correction Numérique', public: true }
             },
             {
                 path: 'guide-enseignant',
@@ -73,6 +82,19 @@ const routes = [
     {
         path: '/login',
         redirect: '/'
+    },
+    // Legacy routes redirect to /korrigo/*
+    {
+        path: '/guide-enseignant',
+        redirect: '/korrigo/guide-enseignant'
+    },
+    {
+        path: '/guide-eleve',
+        redirect: '/korrigo/guide-eleve'
+    },
+    {
+        path: '/direction',
+        redirect: '/korrigo/direction'
     },
     {
         path: '/student/login',

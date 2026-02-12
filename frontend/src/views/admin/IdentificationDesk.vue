@@ -4,8 +4,8 @@
     <header class="bg-white shadow z-10 p-4 flex justify-between items-center">
       <h1 class="text-xl font-bold text-gray-800 flex items-center gap-3">
         <img
-          src="/images/Korrigo.png"
-          alt="Logo"
+          src="/images/logo_korrigo_pmf.svg"
+          alt="Korrigo PMF"
           class="h-8 w-auto"
         >
         Korrigo — Identification

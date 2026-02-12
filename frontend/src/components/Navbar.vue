@@ -5,38 +5,35 @@
         <!-- Logo & Branding -->
         <div class="flex items-center">
           <router-link
-            to="/"
+            to="/korrigo"
             class="flex-shrink-0 flex items-center gap-3"
           >
-            <div class="w-8 h-8 bg-primary-700 text-white flex items-center justify-center rounded-lg font-bold text-lg">
-              K
-            </div>
-            <span class="font-bold text-xl text-primary-900 tracking-tight">KORRIGO <span class="text-primary-500 font-medium">PMF</span></span>
+            <img src="/images/logo_korrigo_pmf.svg" alt="Korrigo PMF" class="h-9 w-auto" />
           </router-link>
         </div>
 
         <!-- Desktop Navigation -->
         <nav class="hidden md:flex items-center space-x-6">
           <router-link
-            to="/"
+            to="/korrigo"
             class="text-gray-600 hover:text-primary-700 font-medium transition"
           >
             Accueil
           </router-link>
           <router-link
-            to="/guide-enseignant"
+            to="/korrigo/guide-enseignant"
             class="text-gray-600 hover:text-primary-700 font-medium transition"
           >
             Guide Enseignant
           </router-link>
           <router-link
-            to="/guide-eleve"
+            to="/korrigo/guide-eleve"
             class="text-gray-600 hover:text-primary-700 font-medium transition"
           >
             Guide Élève
           </router-link>
           <router-link
-            to="/direction"
+            to="/korrigo/direction"
             class="text-gray-600 hover:text-primary-700 font-medium transition"
           >
             Conformité
@@ -131,25 +128,25 @@
     >
       <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
         <router-link
-          to="/"
+          to="/korrigo"
           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
         >
           Accueil
         </router-link>
         <router-link
-          to="/guide-enseignant"
+          to="/korrigo/guide-enseignant"
           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
         >
           Guide Enseignant
         </router-link>
         <router-link
-          to="/guide-eleve"
+          to="/korrigo/guide-eleve"
           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
         >
           Guide Élève
         </router-link>
         <router-link
-          to="/direction"
+          to="/korrigo/direction"
           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
         >
           Conformité
