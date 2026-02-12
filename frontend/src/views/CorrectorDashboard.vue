@@ -52,13 +52,28 @@ const fetchStats = async () => {
     }
 }
 
-// Compute max bar height for chart
+// Merge lot + global distributions into aligned bins for the combined chart
+const mergedBins = computed(() => {
+    const lot = examStats.value?.lot_distribution || []
+    const global = examStats.value?.global_distribution || []
+    const rangeMap = new Map()
+    for (const b of global) {
+        rangeMap.set(b.range, { range: b.range, start: b.start, lotCount: 0, globalCount: b.count })
+    }
+    for (const b of lot) {
+        if (rangeMap.has(b.range)) {
+            rangeMap.get(b.range).lotCount = b.count
+        } else {
+            rangeMap.set(b.range, { range: b.range, start: b.start, lotCount: b.count, globalCount: 0 })
+        }
+    }
+    return [...rangeMap.values()].sort((a, b) => a.start - b.start)
+})
+
+// Compute max bar height for chart (across both series)
 const maxDistCount = computed(() => {
-    if (!examStats.value?.lot_distribution) return 1
-    const lotMax = Math.max(...examStats.value.lot_distribution.map(b => b.count), 1)
-    const globalMax = examStats.value.global_distribution
-        ? Math.max(...examStats.value.global_distribution.map(b => b.count), 1) : 1
-    return Math.max(lotMax, globalMax)
+    if (!mergedBins.value.length) return 1
+    return Math.max(...mergedBins.value.map(b => Math.max(b.lotCount, b.globalCount)), 1)
 })
 
 onMounted(fetchCopies)
@@ -221,56 +236,61 @@ const toggleStats = async () => {
             </table>
           </div>
 
-          <!-- Lot Distribution Chart -->
+          <!-- Combined Distribution Chart -->
           <div
-            v-if="examStats.lot_distribution?.length"
+            v-if="mergedBins.length"
             class="chart-container"
           >
-            <h3>Distribution - Mon Lot</h3>
-            <div class="bar-chart">
-              <div
-                v-for="bin in examStats.lot_distribution"
-                :key="'lot-' + bin.range"
-                class="bar-group"
-              >
-                <div
-                  class="bar lot-bar"
-                  :style="{ height: (bin.count / maxDistCount * 120) + 'px' }"
-                  :title="`${bin.range}: ${bin.count} copies`"
-                >
-                  <span
-                    v-if="bin.count > 0"
-                    class="bar-label"
-                  >{{ bin.count }}</span>
-                </div>
-                <span class="bar-range">{{ bin.range }}</span>
+            <div class="chart-header">
+              <h3>
+                Répartition des Notes{{ !examStats.all_graded ? ' (global partiel)' : '' }}
+              </h3>
+              <div class="chart-legend">
+                <span class="legend-item">
+                  <span class="legend-dot lot-dot" />
+                  Mon Lot
+                </span>
+                <span class="legend-item">
+                  <span class="legend-dot global-dot" />
+                  Global
+                </span>
               </div>
             </div>
-          </div>
-
-          <!-- Global Distribution Chart -->
-          <div
-            v-if="examStats.global_distribution?.length"
-            class="chart-container"
-          >
-            <h3>Distribution - Globale{{ !examStats.all_graded ? ' (partiel)' : '' }}</h3>
             <div class="bar-chart">
               <div
-                v-for="bin in examStats.global_distribution"
-                :key="'global-' + bin.range"
+                v-for="bin in mergedBins"
+                :key="bin.range"
                 class="bar-group"
               >
-                <div
-                  class="bar global-bar"
-                  :style="{ height: (bin.count / maxDistCount * 120) + 'px' }"
-                  :title="`${bin.range}: ${bin.count} copies`"
-                >
-                  <span
-                    v-if="bin.count > 0"
-                    class="bar-label"
-                  >{{ bin.count }}</span>
+                <div class="bar-pair">
+                  <div
+                    class="bar lot-bar"
+                    :style="{ height: (bin.lotCount / maxDistCount * 140) + 'px' }"
+                    :title="`Mon lot ${bin.range}: ${bin.lotCount} copies`"
+                  >
+                    <span
+                      v-if="bin.lotCount > 0"
+                      class="bar-label lot-label"
+                    >
+                      {{ bin.lotCount }}
+                    </span>
+                  </div>
+                  <div
+                    class="bar global-bar"
+                    :style="{ height: (bin.globalCount / maxDistCount * 140) + 'px' }"
+                    :title="`Global ${bin.range}: ${bin.globalCount} copies`"
+                  >
+                    <span
+                      v-if="bin.globalCount > 0"
+                      class="bar-label global-label"
+                    >
+                      {{ bin.globalCount }}
+                    </span>
+                  </div>
                 </div>
-                <span class="bar-range">{{ bin.range }}</span>
+                <span class="bar-range">
+                  {{ bin.range }}
+                </span>
               </div>
             </div>
           </div>
@@ -356,13 +376,22 @@ const toggleStats = async () => {
 .stats-table td:first-child { text-align: left; font-weight: 500; }
 
 .chart-container { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-.chart-container h3 { margin: 0 0 1rem 0; font-size: 1rem; color: #1e293b; }
-.bar-chart { display: flex; align-items: flex-end; gap: 4px; padding: 10px 0; min-height: 150px; border-bottom: 2px solid #e2e8f0; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+.chart-header h3 { margin: 0; font-size: 1rem; color: #1e293b; }
+.chart-legend { display: flex; gap: 1rem; align-items: center; }
+.legend-item { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: #475569; font-weight: 500; }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+.lot-dot { background: #6366f1; }
+.global-dot { background: #10b981; }
+.bar-chart { display: flex; align-items: flex-end; gap: 6px; padding: 10px 0; min-height: 180px; border-bottom: 2px solid #e2e8f0; }
 .bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; }
-.bar { min-width: 20px; border-radius: 3px 3px 0 0; position: relative; transition: height 0.3s ease; min-height: 2px; }
+.bar-pair { display: flex; align-items: flex-end; gap: 2px; }
+.bar { min-width: 16px; border-radius: 3px 3px 0 0; position: relative; transition: height 0.3s ease; min-height: 2px; }
 .lot-bar { background: #6366f1; }
 .global-bar { background: #10b981; }
-.bar-label { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-weight: 600; color: #333; }
+.bar-label { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.65rem; font-weight: 600; white-space: nowrap; }
+.lot-label { color: #6366f1; }
+.global-label { color: #059669; }
 .bar-range { font-size: 0.65rem; color: #64748b; margin-top: 4px; white-space: nowrap; }
 
 .task-list h2 { font-size: 1.25rem; color: #1e293b; margin-bottom: 1rem; }
