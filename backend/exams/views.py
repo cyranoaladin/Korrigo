@@ -23,6 +23,8 @@ import logging
 import os
 import uuid
 
+logger = logging.getLogger(__name__)
+
 
 def generate_anonymous_id(exam, index: int) -> str:
     """
