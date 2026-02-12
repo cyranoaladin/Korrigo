@@ -832,30 +832,35 @@ Content-Type: application/json
 **Payload**:
 ```json
 {
-  "ine": "1234567890A",
-  "birth_date": "2005-03-15"
+  "email": "jean.dupont@eleve.lycee.fr",
+  "password": "password123"
 }
 ```
 
 **Validations**:
-- `ine`: Requis, 11 caractères (case-insensitive)
-- `birth_date`: Requis, format ISO 8601 (YYYY-MM-DD)
-  - Plage valide: 1990-01-01 à (date_actuelle - 10 ans)
-  - Exemples valides: `2005-03-15`, `2004-12-25`
-  - Exemples invalides: `15/03/2005`, `2005/03/15`, `15-03-2005`
+- `email`: Requis, adresse email de l'élève
+- `password`: Requis, mot de passe du compte utilisateur
 
 **Response** (200 OK):
 ```json
 {
   "message": "Login successful",
-  "role": "Student"
+  "role": "Student",
+  "must_change_password": false,
+  "student": {
+    "id": 123,
+    "first_name": "Jean",
+    "last_name": "Dupont",
+    "class_name": "TG2",
+    "email": "jean.dupont@eleve.lycee.fr"
+  }
 }
 ```
 
 **Response** (401 Unauthorized):
 ```json
 {
-  "error": "Identifiants invalides."
+  "error": "Email ou mot de passe incorrect."
 }
 ```
 
@@ -869,7 +874,7 @@ Content-Type: application/json
 **Session**: `student_id` et `role='Student'` stockés dans session Django
 
 **Sécurité**:
-- Rate limiting: 5 tentatives par 15 minutes (composite key: IP + INE)
+- Rate limiting: 5 tentatives par 15 minutes (par IP)
 - Messages d'erreur génériques (prévention user enumeration)
 - Audit logging: tous les succès/échecs enregistrés
 
@@ -914,7 +919,7 @@ Content-Type: application/json
 | Endpoint | Limite | Fenêtre |
 |----------|--------|---------|
 | `POST /api/auth/login/` | 5 requêtes | 5 minutes |
-| `POST /api/students/login/` | 5 requêtes | 15 minutes (par IP + INE) |
+| `POST /api/students/login/` | 5 requêtes | 15 minutes (par IP) |
 | `POST /api/exams/upload/` | 10 requêtes | 1 heure |
 | Autres endpoints | 100 requêtes | 1 minute |
 
@@ -1027,7 +1032,7 @@ curl -X POST http://localhost:8088/api/exams/{exam_id}/merge/ \
 # Login élève
 curl -X POST http://localhost:8088/api/students/login/ \
   -H "Content-Type: application/json" \
-  -d '{"ine": "1234567890A", "birth_date": "2005-03-15"}' \
+  -d '{"email": "jean.dupont@eleve.lycee.fr", "password": "passe123"}' \
   -c student_cookies.txt
 
 # Lister mes copies

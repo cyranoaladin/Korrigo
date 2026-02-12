@@ -63,25 +63,25 @@ graph LR
 ## Accès au Portail
 
 ### Obtenir Vos Identifiants
-    
-    Vos identifiants de connexion sont :
-    - **Email** : Votre adresse email scolaire (ex: `prenom.nom@ecole.fr`)
-    - **Mot de passe** : Un mot de passe provisoire vous est fourni à la rentrée.
-    
-    > 💡 **Important** : Si vous n'avez pas vos identifiants, contactez le professeur principal ou le secrétariat.
+
+Vos identifiants de connexion sont :
+- **Email** : Votre adresse email scolaire (ex: `prenom.nom@ecole.fr`)
+- **Mot de passe** : Un mot de passe provisoire vous est fourni à la rentrée.
+
+> 💡 **Important** : Si vous n'avez pas vos identifiants, contactez le professeur principal ou le secrétariat.
 
 ### Se Connecter
-    
-    #### Étape 1 : Accéder au Portail
-    
-    1. Ouvrez votre navigateur web (Chrome, Firefox, Safari, Edge)
-    2. Accédez à l'URL du portail élève :
-       - **Exemple** : `https://korrigo.votre-lycee.fr/student/login`
-       - Cette adresse vous est fournie par votre lycée.
-    
-    #### Étape 2 : Saisir Vos Identifiants
-    
-    Sur la page de connexion :
+
+#### Étape 1 : Accéder au Portail
+
+1. Ouvrez votre navigateur web (Chrome, Firefox, Safari, Edge)
+2. Accédez à l'URL du portail élève :
+   - **Exemple** : `https://korrigo.votre-lycee.fr/student/login`
+   - Cette adresse vous est fournie par votre lycée.
+
+#### Étape 2 : Saisir Vos Identifiants
+
+Sur la page de connexion :
     
     ```
     ┌─────────────────────────────────────────┐
@@ -401,20 +401,20 @@ Vos données sont conservées pendant :
 ### Connexion et Accès
 
 #### Q1 : J'ai oublié mon mot de passe, que faire ?
-    
-    **Réponse** : 
-    - Vérifiez si vous avez reçu un email avec vos identifiants.
-    - Contactez le **secrétariat** ou votre professeur principal pour qu'ils réinitialisent votre mot de passe.
-    - Il n'y a pas encore de lien "Mot de passe oublié" automatique sur le site.
+
+**Réponse** :
+- Vérifiez si vous avez reçu un email avec vos identifiants.
+- Contactez le **secrétariat** ou votre professeur principal pour qu'ils réinitialisent votre mot de passe.
+- Il n'y a pas encore de lien "Mot de passe oublié" automatique sur le site.
 
 #### Q2 : « Email ou mot de passe incorrect », que faire ?
-    
-    **Réponse** : Vérifiez que :
-    - Vous avez bien saisi votre **email complet**
-    - Vous respectez les majuscules/minuscules pour le mot de passe
-    - Vous n'avez pas ajouté d'espaces avant/après
-    
-    Si le problème persiste, contactez le **secrétariat**.
+
+**Réponse** : Vérifiez que :
+- Vous avez bien saisi votre **email complet**
+- Vous respectez les majuscules/minuscules pour le mot de passe
+- Vous n'avez pas ajouté d'espaces avant/après
+
+Si le problème persiste, contactez le **secrétariat**.
 
 #### Q3 : Je n'ai pas encore de copies corrigées, est-ce normal ?
 
@@ -605,7 +605,6 @@ Pour toute question sur :
 
 | Terme | Explication Simple |
 |-------|-------------------|
-
 | **PDF** | Format de fichier pour lire des documents (comme tes copies) |
 | **Télécharger** | Copier un fichier depuis internet sur ton ordinateur |
 | **Annotation** | Commentaire ou marque ajoutée par ton professeur sur ta copie |
