@@ -32,25 +32,25 @@ const routes = [
                 path: '',
                 name: 'Home',
                 component: HomeView,
-                meta: { title: 'Accueil - Korrigo PMF' }
+                meta: { title: 'Accueil - Korrigo PMF', public: true }
             },
             {
                 path: 'guide-enseignant',
                 name: 'GuideEnseignant',
                 component: GuideEnseignant,
-                meta: { title: 'Guide Enseignant' }
+                meta: { title: 'Guide Enseignant', public: true }
             },
             {
                 path: 'guide-eleve',
                 name: 'GuideEleve',
                 component: GuideEtudiant,
-                meta: { title: 'Guide Élève' }
+                meta: { title: 'Guide Élève', public: true }
             },
             {
                 path: 'direction',
                 name: 'Direction',
                 component: DirectionConformite,
-                meta: { title: 'Direction & Conformité' }
+                meta: { title: 'Direction & Conformité', public: true }
             }
         ]
     },
@@ -60,13 +60,15 @@ const routes = [
         path: '/admin/login',
         name: 'LoginAdmin',
         component: Login,
-        props: { roleContext: 'Admin' }
+        props: { roleContext: 'Admin' },
+        meta: { public: true }
     },
     {
         path: '/teacher/login',
         name: 'LoginTeacher',
         component: Login,
-        props: { roleContext: 'Teacher' }
+        props: { roleContext: 'Teacher' },
+        meta: { public: true }
     },
     {
         path: '/login',
@@ -75,7 +77,8 @@ const routes = [
     {
         path: '/student/login',
         name: 'StudentLogin',
-        component: LoginStudent
+        component: LoginStudent,
+        meta: { public: true }
     },
 
     // ── Authenticated app routes ──
@@ -183,6 +186,11 @@ router.beforeEach(async (to, from, next) => {
     if (redirectCount >= MAX_REDIRECTS) {
         console.error('Max redirect limit reached. Allowing navigation to prevent loop.')
         redirectCount = 0
+        return next()
+    }
+
+    // Skip auth check entirely for public pages — no API calls needed
+    if (to.meta.public) {
         return next()
     }
 
