@@ -330,9 +330,11 @@ class ExportPronoteCommandTests(TestCase):
             lines = [l for l in raw_content.strip().split('\r\n') if l]
             self.assertEqual(len(lines), 3)
             
-            # Check both students
-            self.assertIn('Durand Alice', content)
-            self.assertIn('Martin Bob', content)
+            # Check both students (NOM;PRENOM in separate columns)
+            self.assertIn('Durand', content)
+            self.assertIn('Alice', content)
+            self.assertIn('Martin', content)
+            self.assertIn('Bob', content)
             
             # Check success message shows count
             output = out.getvalue()
@@ -416,8 +418,9 @@ class ExportPronoteCommandTests(TestCase):
             with open(tmp_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            # Check accents are preserved
-            self.assertIn('Müller François', content)
+            # Check accents are preserved (now split into NOM;PRENOM columns)
+            self.assertIn('Müller', content)
+            self.assertIn('François', content)
             self.assertIn('Très bien', content)
             
         finally:

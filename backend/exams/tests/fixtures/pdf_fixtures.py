@@ -46,50 +46,54 @@ def create_valid_pdf(pages=4, page_width=595, page_height=842):
 
 def create_large_pdf(size_mb=51, min_pages=10):
     """
-    Create a PDF larger than the specified size by adding many pages.
+    Create a PDF larger than the specified size.
     
     Args:
         size_mb (int): Target size in megabytes (default: 51 MB)
-        min_pages (int): Minimum number of pages to start with
+        min_pages (int): Minimum number of pages to create
     
     Returns:
         bytes: Large PDF file as bytes
     
     Note:
-        Creates pages with dummy content to reach target size.
-        Actual size may vary depending on compression.
+        Uses random binary data embedded as a PDF stream object to reach
+        target size quickly (~1s) instead of generating thousands of pages.
     """
+    import os
+    
+    # Create a small valid PDF with min_pages
     doc = fitz.open()
-    target_bytes = size_mb * 1024 * 1024
-    
-    page_num = 0
-    current_size = 0
-    
-    # Keep adding pages until we exceed target size
-    while current_size < target_bytes or page_num < min_pages:
+    for i in range(min_pages):
         page = doc.new_page(width=595, height=842)
-        
-        # Add more content to increase file size
-        # Fill page with text and shapes
-        for y in range(50, 800, 20):
-            text = f"Page {page_num + 1} - Line {y // 20} - " + "A" * 50
-            page.insert_text((10, y), text, fontsize=10)
-        
-        # Add some rectangles to increase size
-        for i in range(10):
-            rect = fitz.Rect(10 + i * 50, 10, 60 + i * 50, 60)
-            page.draw_rect(rect, color=(0, 0, 0), fill=(0.5, 0.5, 0.5))
-        
-        page_num += 1
-        
-        # Check current size every 10 pages
-        if page_num % 10 == 0:
-            current_size = len(doc.tobytes())
-    
-    pdf_bytes = doc.tobytes()
+        page.insert_text((50, 50), f"Page {i + 1}", fontsize=12)
+    base_pdf = doc.tobytes()
     doc.close()
     
-    return pdf_bytes
+    target_bytes = size_mb * 1024 * 1024
+    if len(base_pdf) >= target_bytes:
+        return base_pdf
+    
+    # Pad with random bytes wrapped in a valid PDF stream object.
+    # We insert a dummy stream before %%EOF so the file size exceeds the limit.
+    # The PDF header remains valid for size-based validators.
+    padding_size = target_bytes - len(base_pdf) + 1024  # +1KB margin
+    random_data = os.urandom(padding_size)
+    
+    # Build a raw PDF object with the random data as a stream
+    # This keeps the file recognizable as PDF while being large
+    padding_obj = (
+        b"\n999 0 obj\n<< /Length " + str(padding_size).encode() +
+        b" >>\nstream\n" + random_data + b"\nendstream\nendobj\n"
+    )
+    
+    # Insert padding before the final %%EOF marker
+    eof_marker = b"%%EOF"
+    eof_pos = base_pdf.rfind(eof_marker)
+    if eof_pos == -1:
+        # Fallback: just append
+        return base_pdf + padding_obj
+    
+    return base_pdf[:eof_pos] + padding_obj + base_pdf[eof_pos:]
 
 
 def create_corrupted_pdf():
