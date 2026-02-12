@@ -112,7 +112,7 @@ class OCRService:
             if not img_b64:
                 return OCRService._ocr_with_tesseract(image_source)
 
-            model = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')
+            model = os.environ.get('OPENAI_MODEL', 'gpt-4.1-mini-2025-04-14')
 
             response = client.chat.completions.create(
                 model=model,

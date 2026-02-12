@@ -614,7 +614,7 @@ class UnidentifiedCopiesView(APIView):
             header_url = None
             if booklet:
                 # Dynamic URL
-                header_url = f"/api/booklets/{booklet.id}/header/"
+                header_url = f"/api/exams/booklets/{booklet.id}/header/"
             
             data.append({
                 "id": c.id,
