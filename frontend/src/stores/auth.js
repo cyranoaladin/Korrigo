@@ -34,20 +34,25 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-    async function loginStudent(lastName, firstName, dateNaissance) {
+    async function loginStudent(email, password) {
         try {
+            lastError.value = ''
             const res = await api.post('/students/login/', { 
-                last_name: lastName,
-                first_name: firstName,
-                date_naissance: dateNaissance
+                email,
+                password
             })
             if (res.data) {
                 // Fetch student info explicitly
                 await fetchUser(true, true)
+                // Propagate must_change_password from login response
+                if (user.value && res.data.must_change_password) {
+                    user.value.must_change_password = true
+                }
                 return true
             }
             return false
         } catch (e) {
+            lastError.value = e.response?.data?.error || 'Email ou mot de passe incorrect.'
             console.error(e)
             return false
         }
