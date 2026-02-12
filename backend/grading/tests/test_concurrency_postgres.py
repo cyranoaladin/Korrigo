@@ -1,5 +1,6 @@
 import threading
 import datetime
+import unittest.mock
 
 import pytest
 from django.utils import timezone
@@ -17,8 +18,9 @@ def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user)
 
     Expectations:
     - exactly one finalize succeeds
-    - exactly one fails (ValueError/PermissionError/LockConflictError)
+    - exactly one fails (LockConflictError/ValueError/PermissionError)
     - flatten_copy called exactly once
+    - no OperationalError (DB contention handled gracefully)
     """
 
     from datetime import date
@@ -43,45 +45,58 @@ def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user)
         expires_at=timezone.now() + datetime.timedelta(minutes=10),
     )
 
+    # Shared mutable state protected by a threading lock
+    call_lock = threading.Lock()
     calls = {"count": 0}
 
     def flatten_side_effect(_copy):
-        calls["count"] += 1
+        with call_lock:
+            calls["count"] += 1
         return b"%PDF-1.4\n%%EOF"
 
     results = []
-    ready_barrier = threading.Barrier(2)  # Synchronize thread start
+    results_lock = threading.Lock()
+    ready_barrier = threading.Barrier(2)
+
+    # Patch at module level ONCE so both threads share the same mock
+    mock_flattener = unittest.mock.Mock()
+    mock_flattener.flatten_copy.side_effect = flatten_side_effect
 
     def worker():
-        import unittest.mock
         from django.db import connections
 
         try:
-            # Wait for both threads to be ready before attempting finalize
             ready_barrier.wait(timeout=5)
-
-            with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener") as mock_flattener_cls:
-                mock_flattener = unittest.mock.Mock()
-                mock_flattener.flatten_copy.side_effect = flatten_side_effect
-                mock_flattener_cls.return_value = mock_flattener
-
-                GradingService.finalize_copy(copy, teacher_user, lock_token=str(lock.token))
-            results.append("ok")
+            GradingService.finalize_copy(copy, teacher_user, lock_token=str(lock.token))
+            with results_lock:
+                results.append("ok")
         except Exception as e:
-            results.append(type(e).__name__)
+            with results_lock:
+                results.append(type(e).__name__)
         finally:
-            # Prevent leaked connections keeping the test DB from being dropped.
             connections.close_all()
 
-    t1 = threading.Thread(target=worker)
-    t2 = threading.Thread(target=worker)
-    t1.start()
-    t2.start()
-    t1.join(timeout=10)
-    t2.join(timeout=10)
+    with unittest.mock.patch(
+        "processing.services.pdf_flattener.PDFFlattener",
+        return_value=mock_flattener,
+    ):
+        t1 = threading.Thread(target=worker)
+        t2 = threading.Thread(target=worker)
+        t1.start()
+        t2.start()
+        t1.join(timeout=15)
+        t2.join(timeout=15)
 
-    assert results.count("ok") == 1
-    assert calls["count"] == 1
+    # Exactly one thread succeeds, the other gets a business-level error
+    assert results.count("ok") == 1, f"Expected 1 success, got: {results}"
+    failure_types = {"LockConflictError", "ValueError", "PermissionError"}
+    failures = [r for r in results if r != "ok"]
+    assert len(failures) == 1, f"Expected 1 failure, got: {results}"
+    assert failures[0] in failure_types, (
+        f"Expected business error, got {failures[0]}. "
+        f"OperationalError means DB contention was not handled."
+    )
+    assert calls["count"] == 1, f"flatten_copy called {calls['count']} times, expected 1"
 
     copy.refresh_from_db()
     assert copy.status == Copy.Status.GRADED
