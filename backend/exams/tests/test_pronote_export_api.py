@@ -385,8 +385,9 @@ class PronoteExportAPISuccessTests(TestCase):
         
         csv_content = response.content.decode('utf-8')
         
-        # Check accents are preserved
-        self.assertIn('M\u00fcller Fran\u00e7ois', csv_content)
+        # Check accents are preserved (NOM;PRENOM in separate columns)
+        self.assertIn('Müller', csv_content)
+        self.assertIn('François', csv_content)
         
         # Comment with semicolon should be properly quoted
         self.assertIn('Très bien', csv_content)
