@@ -189,5 +189,16 @@ class CopySerializer(serializers.ModelSerializer):
             'pages_per_booklet': instance.exam.pages_per_booklet,
             'grading_structure': instance.exam.grading_structure,
         }
+        # Hide student identity from non-admin users (correctors must not see student info)
+        request = self.context.get('request')
+        user = getattr(request, 'user', None) if request else None
+        is_admin = user and (user.is_superuser or user.is_staff)
+        if not is_admin:
+            representation.pop('student', None)
+            representation.pop('is_identified', None)
+            for booklet in representation.get('booklets', []):
+                booklet.pop('student_name_guess', None)
+                booklet.pop('header_image', None)
+                booklet.pop('header_image_url', None)
         return representation
 
