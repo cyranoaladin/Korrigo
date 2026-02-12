@@ -206,6 +206,8 @@ const onGlobalKeydown = (e) => {
 // --- Watchers ---
 watch(currentPage, () => {
     imageLoaded.value = false
+    imageError.value = false
+    showIdentity.value = false
 })
 
 watch(pages, (newPages) => {
@@ -912,11 +914,10 @@ onUnmounted(() => {
             class="canvas-wrapper" 
             :style="{ width: displayWidth + 'px', height: displayHeight + 'px' }"
           >
-            <!-- Anonymization overlay: covers student identity zone on header pages (rendered BEFORE img to prevent flash) -->
+            <!-- Anonymization overlay: v-show keeps DOM mounted (no insert delay), percentage height is paint-immediate -->
             <div
-              v-if="isHeaderPage && !showIdentity"
+              v-show="isHeaderPage && !showIdentity"
               class="anonymization-overlay"
-              :style="{ width: displayWidth + 'px', height: (displayHeight * 0.27) + 'px' }"
             >
               <div class="anonymization-label">
                 🔒 Zone d'identification masquée
@@ -931,7 +932,7 @@ onUnmounted(() => {
             </div>
             <img
               :src="currentPageImageUrl"
-              class="page-image"
+              :class="['page-image', { 'page-image--loading': !imageLoaded }]"
               draggable="false"
               @load="handleImageLoad"
               @error="handleImageError"
@@ -1277,6 +1278,8 @@ onUnmounted(() => {
     position: absolute;
     top: 0;
     left: 0;
+    width: 100%;
+    height: 27%;
     background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
     z-index: 20;
     display: flex;
