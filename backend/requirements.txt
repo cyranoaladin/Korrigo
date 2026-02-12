@@ -17,9 +17,8 @@ django-csp==3.8
 python-json-logger==2.0.7
 prometheus-client==0.19.0
 # SECURITY: GHSA-cfh3-3jmp-rvhc (PSD OOB write, affects >=10.3.0)
-# Fix: Pillow>=12.1.1 (not yet released as of 2026-02). Upgrade when available.
-# Mitigation: app only processes PDF, PSD parsing not used.
-Pillow>=11.3.0
+# Fixed in Pillow 12.1.1
+Pillow>=12.1.1
 
 # Testing
 pytest~=8.0
