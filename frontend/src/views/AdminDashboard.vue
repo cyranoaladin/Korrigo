@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import ExamUploadModal from '../components/ExamUploadModal.vue'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import UploadAnalyticsDashboard from '../components/UploadAnalyticsDashboard.vue'
 
 const authStore = useAuthStore()
@@ -48,7 +49,7 @@ const goToIdentification = (id) => {
 
 // Upload modal
 const showUploadModal = ref(false)
-const showAnalytics = ref(false)
+const showAnalytics = ref(false) // eslint-disable-line @typescript-eslint/no-unused-vars
 
 const openUploadModal = () => {
     showUploadModal.value = true
@@ -245,11 +246,10 @@ onMounted(() => {
     <nav class="sidebar">
       <div class="logo">
         <img
-          src="/images/Korrigo.png"
-          alt="Korrigo Logo"
+          src="/images/logo_korrigo_pmf.svg"
+          alt="Korrigo PMF"
           class="sidebar-logo-img"
         >
-        <span>Korrigo</span>
       </div>
       <ul class="nav-links">
         <li class="active">
@@ -622,20 +622,32 @@ onMounted(() => {
           Pour : {{ subjectExam?.name }}
         </p>
 
-        <div v-if="subjectLoading" class="loading">
+        <div
+          v-if="subjectLoading"
+          class="loading"
+        >
           Chargement des copies...
         </div>
 
         <template v-else>
           <!-- Bulk actions -->
           <div class="subject-bulk-actions">
-            <button class="btn btn-sm btn-subject-a" @click="setAllVariant('A')">
+            <button
+              class="btn btn-sm btn-subject-a"
+              @click="setAllVariant('A')"
+            >
               Tout → Sujet A
             </button>
-            <button class="btn btn-sm btn-subject-b" @click="setAllVariant('B')">
+            <button
+              class="btn btn-sm btn-subject-b"
+              @click="setAllVariant('B')"
+            >
               Tout → Sujet B
             </button>
-            <button class="btn btn-sm btn-outline" @click="clearAllVariants">
+            <button
+              class="btn btn-sm btn-outline"
+              @click="clearAllVariants"
+            >
               Réinitialiser
             </button>
             <button 
@@ -663,7 +675,10 @@ onMounted(() => {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="copy in subjectCopies" :key="copy.id">
+                <tr
+                  v-for="copy in subjectCopies"
+                  :key="copy.id"
+                >
                   <td>{{ copy.anonymous_id || '—' }}</td>
                   <td>{{ copy.student_name || 'Non identifié' }}</td>
                   <td>
@@ -675,9 +690,15 @@ onMounted(() => {
                         'variant-b': copy.subject_variant === 'B'
                       }"
                     >
-                      <option :value="null">—</option>
-                      <option value="A">Sujet A</option>
-                      <option value="B">Sujet B</option>
+                      <option :value="null">
+                        —
+                      </option>
+                      <option value="A">
+                        Sujet A
+                      </option>
+                      <option value="B">
+                        Sujet B
+                      </option>
                     </select>
                   </td>
                 </tr>
