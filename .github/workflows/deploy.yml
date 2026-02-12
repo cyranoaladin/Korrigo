@@ -204,8 +204,8 @@ jobs:
             printf 'SECRET_KEY=%s\n' "$SECRET_KEY"
             printf 'DJANGO_ENV=production\n'
             printf 'DEBUG=False\n'
-            printf 'ALLOWED_HOSTS=%s\n' "$ALLOWED_HOSTS"
-            printf 'DJANGO_ALLOWED_HOSTS=%s\n' "$ALLOWED_HOSTS"
+            printf 'ALLOWED_HOSTS=%s,localhost\n' "$ALLOWED_HOSTS"
+            printf 'DJANGO_ALLOWED_HOSTS=%s,localhost\n' "$ALLOWED_HOSTS"
             printf 'POSTGRES_DB=%s\n' "$POSTGRES_DB"
             printf 'POSTGRES_USER=%s\n' "$POSTGRES_USER"
             printf 'POSTGRES_PASSWORD=%s\n' "$POSTGRES_PASSWORD"
