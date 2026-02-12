@@ -1,11 +1,11 @@
 # Server override for korrigo.labomaths.tn
 # Usage: docker compose -f docker-compose.yml -f docker-compose.server.yml up -d
-# Reads production values from ../../.env (or infra/docker/.env)
+# Reads production values from infra/docker/.env (Docker Compose project .env)
 
 services:
   backend:
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       SECRET_KEY: ${SECRET_KEY}
       DJANGO_ENV: ${DJANGO_ENV:-production}
       DEBUG: ${DEBUG:-False}
@@ -18,7 +18,7 @@ services:
 
   celery:
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       SECRET_KEY: ${SECRET_KEY}
       DJANGO_ENV: ${DJANGO_ENV:-production}
       DEBUG: ${DEBUG:-False}
