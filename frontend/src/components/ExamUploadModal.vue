@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import api, { UPLOAD_TIMEOUT } from '../services/api'
 
-const props = defineProps({
+defineProps({
   show: Boolean
 })
 
@@ -24,6 +24,7 @@ const fileInputSingle = ref(null)
 const fileInputMultiple = ref(null)
 const fileInputCsv = ref(null)
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const modeLabel = computed(() => {
   return uploadMode.value === 'BATCH_A3' 
     ? 'Scan par lots (A3) - Découpage automatique' 
@@ -364,8 +365,13 @@ const uploadExam = async () => {
           v-if="uploadProgress" 
           class="progress-message"
         >
-          <div class="progress-text">{{ uploadProgress }}</div>
-          <div v-if="uploadPercent > 0" class="progress-bar-container">
+          <div class="progress-text">
+            {{ uploadProgress }}
+          </div>
+          <div
+            v-if="uploadPercent > 0"
+            class="progress-bar-container"
+          >
             <div 
               class="progress-bar-fill" 
               :style="{ width: uploadPercent + '%' }"

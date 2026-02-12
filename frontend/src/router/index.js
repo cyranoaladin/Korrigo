@@ -1,6 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import MainLayout from '../layouts/MainLayout.vue'
+import HomeView from '../views/HomeView.vue'
 import Home from '../views/Home.vue'
+import GuideEnseignant from '../views/GuideEnseignant.vue'
+import GuideEtudiant from '../views/GuideEtudiant.vue'
+import DirectionConformite from '../views/DirectionConformite.vue'
 import Login from '../views/Login.vue'
 import AdminDashboard from '../views/AdminDashboard.vue'
 import CorrectorDashboard from '../views/CorrectorDashboard.vue'
@@ -15,32 +20,90 @@ function getDashboardForRole(role) {
 }
 
 function isLoginPage(routeName) {
-    return ['LoginAdmin', 'LoginTeacher', 'StudentLogin', 'Home'].includes(routeName)
+    return ['LoginAdmin', 'LoginTeacher', 'StudentLogin', 'Portal'].includes(routeName)
 }
 
 const routes = [
+    // ── Main portal (login cards) ──
     {
         path: '/',
-        name: 'Home',
-        component: Home
+        name: 'Portal',
+        component: Home,
+        meta: { title: 'Korrigo PMF', public: true }
     },
+
+    // ── Landing / documentation pages (MainLayout with Navbar + Footer) ──
+    {
+        path: '/korrigo',
+        component: MainLayout,
+        children: [
+            {
+                path: '',
+                name: 'Landing',
+                component: HomeView,
+                meta: { title: 'Korrigo PMF - Correction Numérique', public: true }
+            },
+            {
+                path: 'guide-enseignant',
+                name: 'GuideEnseignant',
+                component: GuideEnseignant,
+                meta: { title: 'Guide Enseignant', public: true }
+            },
+            {
+                path: 'guide-eleve',
+                name: 'GuideEleve',
+                component: GuideEtudiant,
+                meta: { title: 'Guide Élève', public: true }
+            },
+            {
+                path: 'direction',
+                name: 'Direction',
+                component: DirectionConformite,
+                meta: { title: 'Direction & Conformité', public: true }
+            }
+        ]
+    },
+
+    // ── Login routes ──
     {
         path: '/admin/login',
         name: 'LoginAdmin',
         component: Login,
-        props: { roleContext: 'Admin' }
+        props: { roleContext: 'Admin' },
+        meta: { public: true }
     },
     {
         path: '/teacher/login',
         name: 'LoginTeacher',
         component: Login,
-        props: { roleContext: 'Teacher' }
+        props: { roleContext: 'Teacher' },
+        meta: { public: true }
     },
-    // Backwards compatibility or redirect
     {
         path: '/login',
         redirect: '/'
     },
+    // Legacy routes redirect to /korrigo/*
+    {
+        path: '/guide-enseignant',
+        redirect: '/korrigo/guide-enseignant'
+    },
+    {
+        path: '/guide-eleve',
+        redirect: '/korrigo/guide-eleve'
+    },
+    {
+        path: '/direction',
+        redirect: '/korrigo/direction'
+    },
+    {
+        path: '/student/login',
+        name: 'StudentLogin',
+        component: LoginStudent,
+        meta: { public: true }
+    },
+
+    // ── Authenticated app routes ──
     {
         path: '/admin-dashboard',
         name: 'AdminDashboard',
@@ -70,11 +133,6 @@ const routes = [
         name: 'IdentificationDesk',
         component: () => import('../views/admin/IdentificationDesk.vue'),
         meta: { requiresAuth: true, role: 'Admin' }
-    },
-    {
-        path: '/student/login',
-        name: 'StudentLogin',
-        component: LoginStudent
     },
     {
         path: '/student/change-password',
@@ -112,6 +170,8 @@ const routes = [
         component: () => import('../views/admin/MarkingSchemeView.vue'),
         meta: { requiresAuth: true, role: 'Admin' }
     },
+
+    // ── Catch-all ──
     {
         path: '/:pathMatch(.*)*',
         redirect: '/'
@@ -120,7 +180,16 @@ const routes = [
 
 const router = createRouter({
     history: createWebHistory(),
-    routes
+    routes,
+    scrollBehavior(to, from, savedPosition) {
+        if (savedPosition) {
+            return savedPosition
+        }
+        if (to.hash) {
+            return { el: to.hash, behavior: 'smooth' }
+        }
+        return { top: 0 }
+    }
 })
 
 let redirectCount = 0
@@ -128,6 +197,9 @@ const MAX_REDIRECTS = 3
 
 router.beforeEach(async (to, from, next) => {
     const authStore = useAuthStore()
+
+    // Set page title
+    document.title = to.meta.title ? to.meta.title : 'Korrigo PMF'
 
     if (from.name && to.name !== from.name) {
         redirectCount = 0
@@ -139,14 +211,17 @@ router.beforeEach(async (to, from, next) => {
         return next()
     }
 
+    // Skip auth check entirely for public pages — no API calls needed
+    if (to.meta.public) {
+        return next()
+    }
+
     if (!authStore.user && !authStore.isChecking) {
         const preferStudent = to.path.startsWith('/student')
-        
         try {
             await authStore.fetchUser(preferStudent)
         } catch (error) {
             console.error('Router guard: fetchUser failed', error)
-            
             if (to.meta.requiresAuth) {
                 redirectCount++
                 return next({ path: '/', replace: true })

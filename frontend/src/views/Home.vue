@@ -13,11 +13,10 @@ const navigateTo = (path) => {
     <header class="header">
       <div class="brand">
         <img 
-          src="/images/Korrigo.png" 
-          alt="Korrigo Logo" 
+          src="/images/logo_korrigo_pmf.svg" 
+          alt="Korrigo PMF" 
           class="logo-img" 
         >
-        <h1>Korrigo PMF</h1>
       </div>
       <p>
         Plateforme de Correction Numérique et de Consultation de Copies

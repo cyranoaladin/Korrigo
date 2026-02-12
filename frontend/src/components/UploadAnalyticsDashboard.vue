@@ -1,40 +1,73 @@
 <template>
   <div class="analytics-dashboard">
-    <h2 class="dashboard-title">📊 Analytics des Uploads</h2>
+    <h2 class="dashboard-title">
+      📊 Analytics des Uploads
+    </h2>
     
     <!-- Période de sélection -->
     <div class="period-selector">
       <label>Période:</label>
-      <select v-model="selectedPeriod" @change="loadAnalytics">
-        <option value="7">7 derniers jours</option>
-        <option value="30">30 derniers jours</option>
-        <option value="90">90 derniers jours</option>
-        <option value="365">Année complète</option>
+      <select
+        v-model="selectedPeriod"
+        @change="loadAnalytics"
+      >
+        <option value="7">
+          7 derniers jours
+        </option>
+        <option value="30">
+          30 derniers jours
+        </option>
+        <option value="90">
+          90 derniers jours
+        </option>
+        <option value="365">
+          Année complète
+        </option>
       </select>
     </div>
 
     <!-- Loading state -->
-    <div v-if="loading" class="loading">Chargement des analytics...</div>
+    <div
+      v-if="loading"
+      class="loading"
+    >
+      Chargement des analytics...
+    </div>
 
     <!-- Error state -->
-    <div v-if="error" class="error-message">{{ error }}</div>
+    <div
+      v-if="error"
+      class="error-message"
+    >
+      {{ error }}
+    </div>
 
     <!-- Analytics content -->
-    <div v-if="!loading && analytics" class="analytics-content">
-      
+    <div
+      v-if="!loading && analytics"
+      class="analytics-content"
+    >
       <!-- Mode Distribution -->
       <div class="analytics-card">
         <h3>Distribution par Mode d'Upload</h3>
         <div class="mode-distribution">
           <div class="mode-stat">
             <span class="mode-badge badge-batch">BATCH_A3</span>
-            <div class="stat-value">{{ analytics.upload_type_distribution.BATCH_A3.count }}</div>
-            <div class="stat-label">{{ analytics.upload_type_distribution.BATCH_A3.percentage }}%</div>
+            <div class="stat-value">
+              {{ analytics.upload_type_distribution.BATCH_A3.count }}
+            </div>
+            <div class="stat-label">
+              {{ analytics.upload_type_distribution.BATCH_A3.percentage }}%
+            </div>
           </div>
           <div class="mode-stat">
             <span class="mode-badge badge-individual">INDIVIDUAL_A4</span>
-            <div class="stat-value">{{ analytics.upload_type_distribution.INDIVIDUAL_A4.count }}</div>
-            <div class="stat-label">{{ analytics.upload_type_distribution.INDIVIDUAL_A4.percentage }}%</div>
+            <div class="stat-value">
+              {{ analytics.upload_type_distribution.INDIVIDUAL_A4.count }}
+            </div>
+            <div class="stat-label">
+              {{ analytics.upload_type_distribution.INDIVIDUAL_A4.percentage }}%
+            </div>
           </div>
         </div>
       </div>
@@ -44,41 +77,76 @@
         <h3>Métriques Globales</h3>
         <div class="metrics-grid">
           <div class="metric-item">
-            <div class="metric-label">Total Uploads</div>
-            <div class="metric-value">{{ analytics.global_metrics.total_uploads || 0 }}</div>
+            <div class="metric-label">
+              Total Uploads
+            </div>
+            <div class="metric-value">
+              {{ analytics.global_metrics.total_uploads || 0 }}
+            </div>
           </div>
           <div class="metric-item">
-            <div class="metric-label">Fichiers Uploadés</div>
-            <div class="metric-value">{{ analytics.global_metrics.total_files_uploaded || 0 }}</div>
+            <div class="metric-label">
+              Fichiers Uploadés
+            </div>
+            <div class="metric-value">
+              {{ analytics.global_metrics.total_files_uploaded || 0 }}
+            </div>
           </div>
           <div class="metric-item">
-            <div class="metric-label">Taux de Succès</div>
-            <div class="metric-value success">{{ analytics.global_metrics.success_rate || 0 }}%</div>
+            <div class="metric-label">
+              Taux de Succès
+            </div>
+            <div class="metric-value success">
+              {{ analytics.global_metrics.success_rate || 0 }}%
+            </div>
           </div>
           <div class="metric-item">
-            <div class="metric-label">Données Uploadées</div>
-            <div class="metric-value">{{ analytics.global_metrics.total_data_uploaded_gb || 0 }} GB</div>
+            <div class="metric-label">
+              Données Uploadées
+            </div>
+            <div class="metric-value">
+              {{ analytics.global_metrics.total_data_uploaded_gb || 0 }} GB
+            </div>
           </div>
           <div class="metric-item">
-            <div class="metric-label">Temps Moyen</div>
-            <div class="metric-value">{{ (analytics.global_metrics.avg_upload_time || 0).toFixed(2) }}s</div>
+            <div class="metric-label">
+              Temps Moyen
+            </div>
+            <div class="metric-value">
+              {{ (analytics.global_metrics.avg_upload_time || 0).toFixed(2) }}s
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Storage Analytics -->
-      <div v-if="storageAnalytics" class="analytics-card">
+      <div
+        v-if="storageAnalytics"
+        class="analytics-card"
+      >
         <h3>Stockage et Optimisation</h3>
         <div class="storage-info">
           <div class="storage-item">
-            <div class="storage-label">BATCH_A3</div>
-            <div class="storage-value">{{ storageAnalytics.storage_by_mode.BATCH_A3.estimated_storage_gb }} GB</div>
-            <div class="storage-copies">{{ storageAnalytics.storage_by_mode.BATCH_A3.copies_count }} copies</div>
+            <div class="storage-label">
+              BATCH_A3
+            </div>
+            <div class="storage-value">
+              {{ storageAnalytics.storage_by_mode.BATCH_A3.estimated_storage_gb }} GB
+            </div>
+            <div class="storage-copies">
+              {{ storageAnalytics.storage_by_mode.BATCH_A3.copies_count }} copies
+            </div>
           </div>
           <div class="storage-item">
-            <div class="storage-label">INDIVIDUAL_A4</div>
-            <div class="storage-value">{{ storageAnalytics.storage_by_mode.INDIVIDUAL_A4.estimated_storage_gb }} GB</div>
-            <div class="storage-copies">{{ storageAnalytics.storage_by_mode.INDIVIDUAL_A4.copies_count }} copies</div>
+            <div class="storage-label">
+              INDIVIDUAL_A4
+            </div>
+            <div class="storage-value">
+              {{ storageAnalytics.storage_by_mode.INDIVIDUAL_A4.estimated_storage_gb }} GB
+            </div>
+            <div class="storage-copies">
+              {{ storageAnalytics.storage_by_mode.INDIVIDUAL_A4.copies_count }} copies
+            </div>
           </div>
           <div class="storage-savings">
             <strong>✅ Économie de stockage:</strong> {{ storageAnalytics.total_storage_saved_percentage }}%
@@ -89,7 +157,10 @@
       </div>
 
       <!-- Top Users -->
-      <div v-if="analytics.top_users && analytics.top_users.length > 0" class="analytics-card">
+      <div
+        v-if="analytics.top_users && analytics.top_users.length > 0"
+        class="analytics-card"
+      >
         <h3>Top Utilisateurs</h3>
         <table class="top-users-table">
           <thead>
@@ -100,7 +171,10 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in analytics.top_users" :key="user.uploaded_by__username">
+            <tr
+              v-for="user in analytics.top_users"
+              :key="user.uploaded_by__username"
+            >
               <td>{{ user.uploaded_by__username }}</td>
               <td>{{ user.uploads }}</td>
               <td>{{ user.total_files }}</td>
@@ -108,7 +182,6 @@
           </tbody>
         </table>
       </div>
-
     </div>
   </div>
 </template>

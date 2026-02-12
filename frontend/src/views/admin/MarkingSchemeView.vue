@@ -119,8 +119,14 @@ onMounted(() => {
         :class="{ 'total-valid': isValidTotal, 'total-invalid': !isValidTotal }"
       >
         Total : <strong>{{ totalPoints }}</strong> / 20 pts
-        <span v-if="isValidTotal" class="check-icon">✓</span>
-        <span v-else class="warning-icon">⚠ Le total doit être 20</span>
+        <span
+          v-if="isValidTotal"
+          class="check-icon"
+        >✓</span>
+        <span
+          v-else
+          class="warning-icon"
+        >⚠ Le total doit être 20</span>
       </div>
       
       <GradingScaleBuilder v-model="gradingStructure" />
