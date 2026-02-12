@@ -38,7 +38,7 @@
 |------|--------|---------|--------------|------------|
 | **Admin** | Username/Password | Django User (is_superuser=True, is_staff=True) | Django Session | SessionAuthentication |
 | **Teacher** | Username/Password | Django User + Group("teacher") | Django Session | SessionAuthentication |
-| **Student** | INE + Last Name | Student model (no User) | Custom Session (`student_id`) | Custom Permission Class |
+| **Student** | Email/Password | Django User + Student Profile | Django Session | SessionAuthentication |
 
 **Implementation Files**:
 - Admin/Teacher Login: `backend/core/views.py:LoginView` (lines 14-46)
@@ -79,11 +79,14 @@ class UserRole:
 - `CSRF_COOKIE_SAMESITE = 'Lax'` ✅
 - `CSRF_COOKIE_HTTPONLY = False` (required for SPA to read CSRF token) ⚠️
 
-**Student Sessions** (`backend/students/views.py:38-39`):
-```python
-request.session['student_id'] = student.id
-request.session['role'] = 'Student'
-```
+**Student Sessions** (`backend/students/views.py`):
+    - Uses standard Django `auth_login` (SessionAuthentication)
+    - Adds custom keys to session:
+    ```python
+    auth_login(request, user)
+    request.session['student_id'] = student.id
+    request.session['role'] = 'Student'
+    ```
 
 **Concerns**:
 - ⚠️ No explicit session expiry set for students
