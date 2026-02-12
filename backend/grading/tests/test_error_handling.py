@@ -59,7 +59,7 @@ def annotation(ready_copy, admin_user):
         y=0.1,
         w=0.2,
         h=0.2,
-        type=Annotation.Type.COMMENT,
+        type=Annotation.Type.COMMENTAIRE,
         content="Test annotation",
         created_by=admin_user
     )
@@ -84,7 +84,7 @@ def test_value_error_returns_400_detail(authenticated_client, ready_copy):
         "y": 0.1,
         "w": 0,  # ValueError: w must be > 0
         "h": 0.2,
-        "type": "COMMENT",
+        "type": "COMMENTAIRE",
         "content": "Test"
     }
 
@@ -142,7 +142,7 @@ def test_unexpected_error_returns_500_generic_detail(authenticated_client):
         "y": 0.1,
         "w": 0.2,
         "h": 0.2,
-        "type": "COMMENT",
+        "type": "COMMENTAIRE",
         "content": "Test"
     }
 
@@ -222,7 +222,7 @@ def test_missing_required_field_returns_400_detail(authenticated_client, ready_c
 
     payload = {
         # Missing: page_index, x, y, w, h
-        "type": "COMMENT",
+        "type": "COMMENTAIRE",
         "content": "Test"
     }
 
@@ -248,7 +248,7 @@ def test_unauthenticated_request_returns_403(api_client, ready_copy):
         "y": 0.1,
         "w": 0.2,
         "h": 0.2,
-        "type": "COMMENT",
+        "type": "COMMENTAIRE",
         "content": "Test"
     }
 
@@ -274,7 +274,7 @@ def test_non_staff_user_returns_403(api_client, regular_user, ready_copy):
         "y": 0.1,
         "w": 0.2,
         "h": 0.2,
-        "type": "COMMENT",
+        "type": "COMMENTAIRE",
         "content": "Test"
     }
 
