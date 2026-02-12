@@ -15,6 +15,8 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://korrigo.labomaths.tn}
       REDIS_HOST: ${REDIS_HOST:-redis}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
 
   celery:
     environment:
