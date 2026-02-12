@@ -52,7 +52,7 @@ services:
       SECRET_KEY: "${SECRET_KEY:?err}"
       ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
       DJANGO_ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
-      DATABASE_URL: "postgres://${POSTGRES_USER:?err}:${POSTGRES_PASSWORD:?err}@db:5432/${POSTGRES_DB:?err}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:?err}:${POSTGRES_PASSWORD:?err}@db:5432/${POSTGRES_DB:?err}"
       DB_NAME: "${POSTGRES_DB:?err}"
       DB_USER: "${POSTGRES_USER:?err}"
       DB_PASSWORD: "${POSTGRES_PASSWORD:?err}"
@@ -77,7 +77,7 @@ services:
   celery:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
     restart: unless-stopped
-    command: celery -A core worker -l info
+    command: celery -A core worker -l info --concurrency=4 --max-tasks-per-child=100
     volumes:
       - media_volume:/app/media
     depends_on:
@@ -92,7 +92,7 @@ services:
       DEBUG: "False"
       SECRET_KEY: "${SECRET_KEY:?err}"
       DJANGO_ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
-      DATABASE_URL: "postgres://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique}"
       DB_NAME: "${POSTGRES_DB:-viatique}"
       DB_USER: "${POSTGRES_USER:-viatique_user}"
       DB_PASSWORD: "${POSTGRES_PASSWORD:-viatique_password}"
@@ -121,7 +121,7 @@ services:
       DEBUG: "False"
       SECRET_KEY: "${SECRET_KEY:?err}"
       DJANGO_ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
-      DATABASE_URL: "postgres://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique}"
       DB_NAME: "${POSTGRES_DB:-viatique}"
       DB_USER: "${POSTGRES_USER:-viatique_user}"
       DB_PASSWORD: "${POSTGRES_PASSWORD:-viatique_password}"

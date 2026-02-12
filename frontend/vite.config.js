@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
+// Proxy target: use backend:8000 inside Docker, 127.0.0.1:8088 on host
+const apiTarget = process.env.VITE_API_TARGET || 'http://127.0.0.1:8088'
+
 export default defineConfig({
   plugins: [vue()],
   base: '/',
@@ -12,15 +15,15 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8088',
+        target: apiTarget,
         changeOrigin: true,
       },
       '/media': {
-        target: 'http://127.0.0.1:8088',
+        target: apiTarget,
         changeOrigin: true,
       },
       '/static': {
-        target: 'http://127.0.0.1:8088',
+        target: apiTarget,
         changeOrigin: true,
       }
     }

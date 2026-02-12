@@ -358,14 +358,25 @@ CELERY_TASK_TIME_LIMIT = 300
 CELERY_TASK_SOFT_TIME_LIMIT = 270
 
 # Cache Configuration (required for django-ratelimit)
-# Cache Configuration (required for django-ratelimit)
-# Use LocMemCache for testing/dev without Redis
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+# Production: Redis for cross-worker consistency (rate limiting, sessions)
+# Development: LocMemCache (no Redis dependency required)
+REDIS_HOST = os.environ.get("REDIS_HOST")
+if REDIS_HOST:
+    REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
+    REDIS_DB = os.environ.get("REDIS_DB", "1")
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
 
 # Rate limiting configuration
 RATELIMIT_USE_CACHE = 'default'

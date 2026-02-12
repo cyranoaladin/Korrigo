@@ -1,37 +1,56 @@
 version: '3.8'
 
+# Development Docker Compose
+# Usage: docker compose up -d
+# Frontend dev server proxies /api -> backend:8000 (see vite.config.js)
+
 services:
   db:
-    image: postgres:15
+    image: postgres:15-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=viatique
-      - POSTGRES_USER=viatique_user
-      - POSTGRES_PASSWORD=viatique_password
+      POSTGRES_DB: viatique
+      POSTGRES_USER: viatique_user
+      POSTGRES_PASSWORD: viatique_password
     ports:
       - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U viatique_user -d viatique"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6385:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: ../../backend
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ../../backend:/app
+      - media_data:/app/media
     ports:
       - "8088:8000"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      - DATABASE_URL=postgres://viatique_user:viatique_password@db:5432/viatique
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - DEBUG=true
-      - SSL_ENABLED=false
-
-  redis:
-    image: redis:7
-    ports:
-      - "6385:6379"
+      DATABASE_URL: postgresql://viatique_user:viatique_password@db:5432/viatique
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      DEBUG: "true"
+      SSL_ENABLED: "false"
+      ALLOWED_HOSTS: "localhost,127.0.0.1"
 
   frontend:
     build:
@@ -42,20 +61,28 @@ services:
       - /app/node_modules
     ports:
       - "5173:5173"
+    depends_on:
+      - backend
     environment:
-      - VITE_API_URL=http://localhost:8088/api
+      VITE_API_TARGET: http://backend:8000
 
   celery:
     build: ../../backend
-    command: celery -A core worker -l info
+    command: celery -A core worker -l info --concurrency=2 --max-tasks-per-child=50
     volumes:
       - ../../backend:/app
+      - media_data:/app/media
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      - DATABASE_URL=postgres://viatique_user:viatique_password@db:5432/viatique
-      - CELERY_BROKER_URL=redis://redis:6379/0
+      DATABASE_URL: postgresql://viatique_user:viatique_password@db:5432/viatique
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      DEBUG: "true"
 
 volumes:
   postgres_data:
+  media_data:
