@@ -44,14 +44,52 @@
         </nav>
 
         <!-- CTA / Auth -->
-        <div class="hidden md:flex items-center space-x-3">
-          <router-link
-            to="/teacher/login"
+        <div class="hidden md:flex items-center space-x-3 relative">
+          <button
             class="inline-flex items-center gap-2 bg-primary-700 text-white px-5 py-2 rounded-lg hover:bg-primary-800 transition-colors font-medium text-sm shadow-sm"
+            @click="isLoginDropdownOpen = !isLoginDropdownOpen"
+            @blur="closeDropdown"
           >
             <LogIn class="w-4 h-4" />
             Connexion
-          </router-link>
+            <ChevronDown class="w-3.5 h-3.5" :class="{ 'rotate-180': isLoginDropdownOpen }" />
+          </button>
+          <transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="opacity-0 -translate-y-1"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition duration-100 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-1"
+          >
+            <div
+              v-if="isLoginDropdownOpen"
+              class="absolute right-0 top-full mt-2 w-52 bg-white border border-borderSoft rounded-xl shadow-xl py-2 z-50"
+            >
+              <router-link
+                to="/teacher/login"
+                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+              >
+                <PenTool class="w-4 h-4 text-primary-500" />
+                Enseignant
+              </router-link>
+              <router-link
+                to="/admin/login"
+                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+              >
+                <Settings class="w-4 h-4 text-purple-500" />
+                Administration
+              </router-link>
+              <div class="border-t border-gray-100 my-1" />
+              <router-link
+                to="/student/login"
+                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+              >
+                <GraduationCap class="w-4 h-4 text-green-500" />
+                Élève
+              </router-link>
+            </div>
+          </transition>
         </div>
 
         <!-- Mobile menu button -->
@@ -116,13 +154,28 @@
         >
           Conformité
         </router-link>
-        <div class="border-t border-gray-100 pt-4 mt-4">
+        <div class="border-t border-gray-100 pt-3 mt-3 space-y-1">
+          <span class="block px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Connexion</span>
           <router-link
             to="/teacher/login"
-            class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-primary-700 hover:bg-gray-50"
+            class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
           >
-            <LogIn class="w-4 h-4" />
-            Connexion
+            <PenTool class="w-4 h-4 text-primary-500" />
+            Enseignant
+          </router-link>
+          <router-link
+            to="/admin/login"
+            class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
+          >
+            <Settings class="w-4 h-4 text-purple-500" />
+            Administration
+          </router-link>
+          <router-link
+            to="/student/login"
+            class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
+          >
+            <GraduationCap class="w-4 h-4 text-green-500" />
+            Élève
           </router-link>
         </div>
       </div>
@@ -132,7 +185,12 @@
 
 <script setup>
 import { ref } from 'vue'
-import { LogIn } from 'lucide-vue-next'
+import { LogIn, ChevronDown, PenTool, Settings, GraduationCap } from 'lucide-vue-next'
 
 const isMobileMenuOpen = ref(false)
+const isLoginDropdownOpen = ref(false)
+
+function closeDropdown() {
+  setTimeout(() => { isLoginDropdownOpen.value = false }, 150)
+}
 </script>
