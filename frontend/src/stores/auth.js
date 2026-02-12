@@ -11,6 +11,10 @@ export const useAuthStore = defineStore('auth', () => {
     // Check if we are checking auth status
     const isChecking = ref(false)
 
+    // Debounce: avoid redundant fetchUser calls within a short window
+    let lastCheckedAt = 0
+    const CHECK_DEBOUNCE_MS = 3000
+
     function clearError() {
         lastError.value = ''
     }
@@ -21,7 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             lastError.value = ''
             await api.post('/login/', { username, password })
-            await fetchUser() // Get User Data
+            await fetchUser(false, true) // Get User Data (force=true bypasses debounce)
             return true
         } catch (e) {
             lastError.value = e.response?.data?.error || 'Identifiants incorrects.'
@@ -39,7 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
             })
             if (res.data) {
                 // Fetch student info explicitly
-                await fetchUser(true)
+                await fetchUser(true, true)
                 return true
             }
             return false
@@ -60,8 +64,14 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-    async function fetchUser(preferStudent = false) {
+    async function fetchUser(preferStudent = false, force = false) {
+        // Debounce: skip if checked recently and no user found
+        const now = Date.now()
+        if (!force && !user.value && (now - lastCheckedAt) < CHECK_DEBOUNCE_MS) {
+            return
+        }
         isChecking.value = true
+        lastCheckedAt = now
         try {
             // Run both checks in parallel to avoid sequential 403 delays
             const [adminResult, studentResult] = await Promise.allSettled([

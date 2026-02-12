@@ -80,13 +80,19 @@ api.interceptors.response.use(
         config.__retryCount = config.__retryCount || 0;
 
         if (error.response?.status === 401) {
-            const { useAuthStore } = await import('../stores/auth');
-            const router = (await import('../router')).default;
-            const authStore = useAuthStore();
-            
-            authStore.user = null;
-            if (router.currentRoute.value.path !== '/') {
-                router.push('/');
+            // Don't redirect for login attempts (401 = bad credentials, handled by caller)
+            // Don't redirect for auth-check calls (expected when not logged in)
+            const url = config.url || '';
+            const isAuthEndpoint = url.includes('/login/') || url.includes('/me/');
+            if (!isAuthEndpoint) {
+                const { useAuthStore } = await import('../stores/auth');
+                const router = (await import('../router')).default;
+                const authStore = useAuthStore();
+                
+                authStore.user = null;
+                if (router.currentRoute.value.path !== '/') {
+                    router.push('/');
+                }
             }
             
             return Promise.reject(error);
