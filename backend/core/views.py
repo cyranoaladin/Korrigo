@@ -91,11 +91,12 @@ class UserDetailView(APIView):
 
     def get(self, request):
         user = request.user
-        # Determine Role
-        role = "Teacher"
-        if user.is_superuser or user.is_staff:
+        # Determine Role (check groups first, then fall back to flags)
+        if user.groups.filter(name=UserRole.TEACHER).exists():
+            role = "Teacher"
+        elif user.groups.filter(name=UserRole.ADMIN).exists() or user.is_superuser:
             role = "Admin"
-        elif user.groups.filter(name=UserRole.TEACHER).exists():
+        else:
             role = "Teacher"
         
         must_change_password = False
