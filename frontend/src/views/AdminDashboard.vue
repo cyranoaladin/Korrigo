@@ -245,11 +245,10 @@ onMounted(() => {
     <nav class="sidebar">
       <div class="logo">
         <img
-          src="/images/Korrigo.png"
-          alt="Korrigo Logo"
+          src="/images/logo_korrigo_pmf.svg"
+          alt="Korrigo PMF"
           class="sidebar-logo-img"
         >
-        <span>Korrigo</span>
       </div>
       <ul class="nav-links">
         <li class="active">
