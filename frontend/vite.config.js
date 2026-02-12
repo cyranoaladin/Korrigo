@@ -10,6 +10,7 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    allowedHosts: ['korrigo.labomaths.tn', 'localhost', '127.0.0.1'],
     watch: {
       usePolling: true
     },
