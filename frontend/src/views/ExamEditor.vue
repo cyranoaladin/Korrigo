@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import api from '../services/api'
 
 import GradingScaleBuilder from '../components/GradingScaleBuilder.vue'
 
@@ -28,21 +28,16 @@ const saveMessage = ref('')
 // path('upload/', ...), path('.../booklets/'), path('.../merge/')
 // We MISS `path('<uuid:pk>/', ...)` for RetrieveUpdateDestroy.
 
-const authStore = useAuthStore()
-
 const fetchExam = async () => {
     isLoading.value = true
     try {
-        const res = await fetch(`${authStore.API_URL}/api/exams/${examId}/`, {
-            credentials: 'include'
-        })
-        if (!res.ok) throw new Error("Impossible de récupérer l'examen")
-        exam.value = await res.json()
+        const res = await api.get(`/exams/${examId}/`)
+        exam.value = res.data
         if (!exam.value.grading_structure) {
             exam.value.grading_structure = []
         }
     } catch (e) {
-        error.value = e.message
+        error.value = e.response?.data?.error || e.message
     } finally {
         isLoading.value = false
     }
@@ -52,22 +47,13 @@ const saveExam = async () => {
     isSaving.value = true
     saveMessage.value = ''
     try {
-        const res = await fetch(`${authStore.API_URL}/api/exams/${examId}/`, {
-            method: 'PATCH',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                grading_structure: exam.value.grading_structure
-            })
+        await api.patch(`/exams/${examId}/`, {
+            grading_structure: exam.value.grading_structure
         })
-        if (!res.ok) {
-            const errData = await res.json()
-            throw new Error(JSON.stringify(errData))
-        }
         saveMessage.value = 'Sauvegarde réussie !'
         setTimeout(() => saveMessage.value = '', 3000)
     } catch (e) {
-        error.value = "Erreur sauvegarde: " + e.message
+        error.value = "Erreur sauvegarde: " + (e.response?.data?.error || e.message)
     } finally {
         isSaving.value = false
     }
