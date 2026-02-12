@@ -151,7 +151,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
             page_index=0,
             x=0.1, y=0.2, w=0.3, h=0.1,
             content="Bonne réponse, bien formulée",
-            type=Annotation.Type.COMMENT,
+            type=Annotation.Type.COMMENTAIRE,
             score_delta=2,
             created_by=self.teacher_user
         )

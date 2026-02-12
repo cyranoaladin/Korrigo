@@ -172,7 +172,7 @@ class BacBlancE2ETest(TestCase):
             page_index=0,
             x=0.1, y=0.1, w=0.2, h=0.1,
             content="Bon travail!",
-            type=Annotation.Type.COMMENT,
+            type=Annotation.Type.COMMENTAIRE,
             score_delta=5,
             created_by=self.teacher_user
         )

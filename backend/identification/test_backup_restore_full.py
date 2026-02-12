@@ -47,7 +47,7 @@ class BackupRestoreDestroyRecoverTest(TransactionTestCase):
         # Note: Annotation requires created_by user usually
         admin = User.objects.create_superuser('admin_br', 'admin@br.com', 'pass')
         ann = Annotation.objects.create(
-            copy=copy, page_index=0, type=Annotation.Type.COMMENT, 
+            copy=copy, page_index=0, type=Annotation.Type.COMMENTAIRE, 
             content="Persistent Data", x=0.1, y=0.1, w=0.1, h=0.1,
             created_by=admin
         )

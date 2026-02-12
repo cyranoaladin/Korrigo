@@ -45,25 +45,82 @@ const redraw = (ctx) => {
     // Clear in logical CSS pixels
     ctx.clearRect(0, 0, props.width, props.height)
 
+    // Type-based color map (French + backward compat English)
+    const typeColors = {
+        'COMMENTAIRE': { stroke: '#2563eb', fill: 'rgba(37, 99, 235, 0.12)', text: '#1e40af' },
+        'COMMENT':     { stroke: '#2563eb', fill: 'rgba(37, 99, 235, 0.12)', text: '#1e40af' },
+        'SURLIGNAGE':  { stroke: '#d97706', fill: 'rgba(251, 191, 36, 0.18)', text: '#92400e' },
+        'HIGHLIGHT':   { stroke: '#d97706', fill: 'rgba(251, 191, 36, 0.18)', text: '#92400e' },
+        'ERREUR':      { stroke: '#dc2626', fill: 'rgba(220, 38, 38, 0.12)', text: '#991b1b' },
+        'ERROR':       { stroke: '#dc2626', fill: 'rgba(220, 38, 38, 0.12)', text: '#991b1b' },
+        'BONUS':       { stroke: '#16a34a', fill: 'rgba(22, 163, 74, 0.12)', text: '#166534' },
+    }
+    const defaultColor = { stroke: '#2563eb', fill: 'rgba(37, 99, 235, 0.12)', text: '#1e40af' }
+
+    // Word-wrap helper: splits text into lines that fit within maxWidth
+    const wrapText = (text, maxWidth, font) => {
+        ctx.font = font
+        const words = text.split(/\s+/)
+        const lines = []
+        let currentLine = ''
+        for (const word of words) {
+            const testLine = currentLine ? currentLine + ' ' + word : word
+            if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+                lines.push(currentLine)
+                currentLine = word
+            } else {
+                currentLine = testLine
+            }
+        }
+        if (currentLine) lines.push(currentLine)
+        return lines
+    }
+
     // Draw existing annotations
     props.initialAnnotations.forEach(ann => {
         const rx = ann.x * props.width
         const ry = ann.y * props.height
         const rw = ann.w * props.width
         const rh = ann.h * props.height
+        const colors = typeColors[ann.type] || defaultColor
 
-        ctx.strokeStyle = '#007bff' // Blue
-        ctx.lineWidth = 2 // Constant screen width
+        // Rectangle fill + stroke
+        ctx.fillStyle = colors.fill
+        ctx.fillRect(rx, ry, rw, rh)
+        ctx.strokeStyle = colors.stroke
+        ctx.lineWidth = 2
         ctx.setLineDash([])
         ctx.strokeRect(rx, ry, rw, rh)
-        
-        ctx.fillStyle = 'rgba(0, 123, 255, 0.1)'
-        ctx.fillRect(rx, ry, rw, rh)
-        
+
+        // Type label above rectangle
         if (ann.type) {
-             ctx.fillStyle = '#007bff'
-             ctx.font = 'bold 12px sans-serif'
-             ctx.fillText(ann.type, rx, ry - 4)
+            ctx.fillStyle = colors.text
+            ctx.font = 'bold 11px sans-serif'
+            ctx.fillText(ann.type, rx + 2, ry - 4)
+        }
+
+        // Content text inside rectangle (clipped to rect bounds)
+        if (ann.content) {
+            ctx.save()
+            ctx.beginPath()
+            ctx.rect(rx + 4, ry + 2, rw - 8, rh - 4)
+            ctx.clip()
+
+            const fontSize = Math.max(10, Math.min(13, rh * 0.25))
+            const font = `600 ${fontSize}px sans-serif`
+            const lines = wrapText(ann.content, rw - 10, font)
+            const lineHeight = fontSize * 1.3
+
+            ctx.font = font
+            ctx.fillStyle = colors.text
+            ctx.textBaseline = 'top'
+            const startY = ry + 4
+            for (let i = 0; i < lines.length; i++) {
+                const ly = startY + i * lineHeight
+                if (ly + lineHeight > ry + rh) break
+                ctx.fillText(lines[i], rx + 5, ly)
+            }
+            ctx.restore()
         }
     })
 

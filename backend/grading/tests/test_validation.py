@@ -62,7 +62,7 @@ def test_reject_annotation_with_w_zero(authenticated_client, exam_with_copy):
         "y": 0.1,
         "w": 0,  # Invalid: w=0
         "h": 0.2,
-        "type": "COMMENT",
+        "type": "COMMENTAIRE",
         "content": "Test"
     }
 
@@ -88,7 +88,7 @@ def test_reject_annotation_with_overflow_x_plus_w(authenticated_client, exam_wit
         "y": 0.1,
         "w": 0.2,  # Invalid: x + w = 1.1 > 1
         "h": 0.2,
-        "type": "COMMENT",
+        "type": "COMMENTAIRE",
         "content": "Test"
     }
 
@@ -114,7 +114,7 @@ def test_reject_annotation_with_overflow_y_plus_h(authenticated_client, exam_wit
         "y": 0.8,
         "w": 0.2,
         "h": 0.3,  # Invalid: y + h = 1.1 > 1
-        "type": "COMMENT",
+        "type": "COMMENTAIRE",
         "content": "Test"
     }
 
@@ -140,7 +140,7 @@ def test_reject_annotation_with_negative_values(authenticated_client, exam_with_
         "y": 0.1,
         "w": 0.2,
         "h": 0.2,
-        "type": "COMMENT",
+        "type": "COMMENTAIRE",
         "content": "Test"
     }
 
@@ -170,7 +170,7 @@ def test_reject_page_index_out_of_bounds(authenticated_client, exam_with_copy):
         "y": 0.1,
         "w": 0.2,
         "h": 0.2,
-        "type": "COMMENT",
+        "type": "COMMENTAIRE",
         "content": "Test"
     }
 
@@ -195,7 +195,7 @@ def test_accept_page_index_as_string_int(authenticated_client, exam_with_copy):
         "y": 0.1,
         "w": 0.2,
         "h": 0.2,
-        "type": "COMMENT",
+        "type": "COMMENTAIRE",
         "content": "Test"
     }
 

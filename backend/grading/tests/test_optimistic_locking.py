@@ -40,7 +40,7 @@ class OptimisticLockingTests(TestCase):
         annotation = Annotation.objects.create(
             copy=self.copy,
             created_by=self.user,
-            annotation_type=Annotation.Type.COMMENT,
+            annotation_type=Annotation.Type.COMMENTAIRE,
             content='Test comment',
             x=100.0,
             y=200.0,
@@ -54,7 +54,7 @@ class OptimisticLockingTests(TestCase):
         annotation = Annotation.objects.create(
             copy=self.copy,
             created_by=self.user,
-            annotation_type=Annotation.Type.COMMENT,
+            annotation_type=Annotation.Type.COMMENTAIRE,
             content='Original',
             x=100.0,
             y=200.0,
@@ -77,7 +77,7 @@ class OptimisticLockingTests(TestCase):
         annotation = Annotation.objects.create(
             copy=self.copy,
             created_by=self.user,
-            annotation_type=Annotation.Type.COMMENT,
+            annotation_type=Annotation.Type.COMMENTAIRE,
             content='Original',
             x=100.0,
             y=200.0,
@@ -109,7 +109,7 @@ class OptimisticLockingTests(TestCase):
         annotation = Annotation.objects.create(
             copy=self.copy,
             created_by=self.user,
-            annotation_type=Annotation.Type.COMMENT,
+            annotation_type=Annotation.Type.COMMENTAIRE,
             content='Original',
             x=100.0,
             y=200.0,
@@ -132,7 +132,7 @@ class OptimisticLockingTests(TestCase):
         annotation = Annotation.objects.create(
             copy=self.copy,
             created_by=self.user,
-            annotation_type=Annotation.Type.COMMENT,
+            annotation_type=Annotation.Type.COMMENTAIRE,
             content='Original',
             x=100.0,
             y=200.0,

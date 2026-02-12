@@ -127,10 +127,10 @@ class PDFFlattener:
         Retourne la couleur RGB selon le type d'annotation.
         """
         colors = {
-            Annotation.Type.COMMENT: (0, 0, 1),      # Bleu
-            Annotation.Type.HIGHLIGHT: (1, 1, 0),    # Jaune
-            Annotation.Type.ERROR: (1, 0, 0),        # Rouge
-            Annotation.Type.BONUS: (0, 0.5, 0),      # Vert
+            Annotation.Type.COMMENTAIRE: (0, 0, 1),   # Bleu
+            Annotation.Type.SURLIGNAGE: (1, 1, 0),    # Jaune
+            Annotation.Type.ERREUR: (1, 0, 0),        # Rouge
+            Annotation.Type.BONUS: (0, 0.5, 0),       # Vert
         }
         return colors.get(annotation_type, (0, 0, 0))  # Noir par défaut
 

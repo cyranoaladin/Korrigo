@@ -115,7 +115,7 @@ class AnnotationService:
             w=payload['w'],
             h=payload['h'],
             content=payload.get('content', ''),
-            type=payload.get('type', Annotation.Type.COMMENT),
+            type=payload.get('type', Annotation.Type.COMMENTAIRE),
             score_delta=payload.get('score_delta'),
             created_by=user
         )

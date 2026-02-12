@@ -56,7 +56,7 @@ def test_annotation_create_missing_token_returns_403_detail(teacher_client, lock
         "y": 0.1,
         "w": 0.1,
         "h": 0.1,
-        "type": "COMMENT",
+        "type": "COMMENTAIRE",
         "content": "Test",
     }
 
@@ -80,7 +80,7 @@ def test_annotation_delete_missing_token_returns_403_detail(teacher_client, lock
         y=0.1,
         w=0.1,
         h=0.1,
-        type=Annotation.Type.COMMENT,
+        type=Annotation.Type.COMMENTAIRE,
         content="To delete",
         created_by=teacher_user,
     )

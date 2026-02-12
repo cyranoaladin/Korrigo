@@ -566,8 +566,7 @@ const restoreDraft = () => {
          draftAnnotation.value = { 
             rect: data.rect,
             type: data.type,
-            content: data.content,
-            score_delta: data.score_delta
+            content: data.content
          }; 
     }
     
@@ -709,9 +708,8 @@ const handleDrawComplete = (normalizedRect) => {
     activeTab.value = 'editor' // Switch to editor tab/view implicitly
     draftAnnotation.value = {
         rect: normalizedRect,
-        type: 'COMMENT',
-        content: '',
-        score_delta: 0
+        type: 'COMMENTAIRE',
+        content: ''
     }
     showEditor.value = true
     nextTick(() => { if (editorInputRef.value) editorInputRef.value.focus() })
@@ -728,8 +726,7 @@ const saveAnnotation = async () => {
             w: draftAnnotation.value.rect.w,
             h: draftAnnotation.value.rect.h,
             type: draftAnnotation.value.type,
-            content: draftAnnotation.value.content,
-            score_delta: draftAnnotation.value.score_delta
+            content: draftAnnotation.value.content
         }
         await gradingApi.createAnnotation(copyId, payload, softLock.value?.token)
         
@@ -742,7 +739,7 @@ const saveAnnotation = async () => {
         await fetchHistory() // Update log
         cancelEditor()
     } catch (err) {
-        error.value = err.response?.data?.detail || "Failed to create annotation"
+        error.value = err.response?.data?.detail || "Échec de la création de l'annotation"
     } finally { isSaving.value = false; }
 }
 
@@ -753,14 +750,14 @@ const cancelEditor = () => {
 
 const handleDeleteAnnotation = async (id) => {
     if (!canAnnotate.value) return;
-    if (!confirm("Delete this annotation?")) return;
+    if (!confirm("Supprimer cette annotation ?")) return;
     isSaving.value = true;
     try {
         await gradingApi.deleteAnnotation(copyId, id, softLock.value?.token)
         await refreshAnnotations()
         await fetchHistory()
     } catch (err) {
-        error.value = err.response?.data?.detail || "Failed to delete annotation"
+        error.value = err.response?.data?.detail || "Échec de la suppression de l'annotation"
     } finally { isSaving.value = false; }
 }
 
@@ -1022,16 +1019,16 @@ onUnmounted(() => {
             v-else-if="imageError"
             class="empty-state error-state"
           >
-            <p>⚠️ Error loading image.</p>
+            <p>⚠️ Erreur de chargement de l'image.</p>
             <button @click="fetchCopy">
-              Retry
+              Réessayer
             </button>
           </div>
           <div
             v-else
             class="empty-state"
           >
-            <p>No pages available.</p>
+            <p>Aucune page disponible.</p>
           </div>
         </div>
       </div>
@@ -1055,7 +1052,7 @@ onUnmounted(() => {
             :class="{ active: activeTab === 'history' }"
             @click="activeTab = 'history'"
           >
-            History
+            Historique
           </button>
         </div>
 
@@ -1069,18 +1066,18 @@ onUnmounted(() => {
             class="editor-panel"
             data-testid="editor-panel"
           >
-            <h4>New Annotation</h4>
+            <h4>Nouvelle annotation</h4>
             <div class="form-group">
               <label>Type</label>
               <select v-model="draftAnnotation.type">
-                <option value="COMMENT">
-                  Comment
+                <option value="COMMENTAIRE">
+                  Commentaire
                 </option>
-                <option value="HIGHLIGHT">
-                  Highlight
+                <option value="SURLIGNAGE">
+                  Surlignage
                 </option>
-                <option value="ERROR">
-                  Error
+                <option value="ERREUR">
+                  Erreur
                 </option>
                 <option value="BONUS">
                   Bonus
@@ -1088,18 +1085,11 @@ onUnmounted(() => {
               </select>
             </div>
             <div class="form-group">
-              <label>Points</label>
-              <input
-                v-model.number="draftAnnotation.score_delta"
-                type="number"
-                placeholder="0"
-              >
-            </div>
-            <div class="form-group">
-              <label>Content</label>
+              <label>Contenu</label>
               <textarea
                 ref="editorInputRef"
                 v-model="draftAnnotation.content"
+                placeholder="Saisir le texte de l'annotation..."
                 @keydown.ctrl.enter="saveAnnotation"
               />
             </div>
@@ -1108,13 +1098,13 @@ onUnmounted(() => {
                 class="btn-sm btn-secondary"
                 @click="cancelEditor"
               >
-                Cancel
+                Annuler
               </button>
               <button
                 class="btn-sm btn-primary"
                 @click="saveAnnotation"
               >
-                Save
+                Enregistrer
               </button>
             </div>
           </div>
@@ -1131,10 +1121,6 @@ onUnmounted(() => {
               >
                 <div class="ann-header">
                   <span class="ann-type">{{ ann.type }}</span>
-                  <span
-                    v-if="ann.score_delta"
-                    class="ann-score"
-                  >{{ ann.score_delta > 0 ? '+' : '' }}{{ ann.score_delta }}</span>
                   <button
                     v-if="canAnnotate"
                     class="btn-sm btn-delete"
@@ -1151,7 +1137,7 @@ onUnmounted(() => {
                 v-if="currentAnnotations.length === 0"
                 class="empty-list"
               >
-                No annotations on this page.
+                Aucune annotation sur cette page.
               </li>
             </ul>
           </div>
@@ -1306,7 +1292,7 @@ onUnmounted(() => {
               v-if="historyLogs.length === 0"
               class="empty-list"
             >
-              No history available.
+              Aucun historique disponible.
             </li>
           </ul>
         </div>

@@ -110,7 +110,7 @@ class TestAuditEvents(TransactionTestCase):
             "y": 0.2,
             "w": 0.3,
             "h": 0.1,
-            "type": Annotation.Type.COMMENT,
+            "type": Annotation.Type.COMMENTAIRE,
             "content": "Test annotation"
         }
         resp = self.client.post(
@@ -158,7 +158,7 @@ class TestAuditEvents(TransactionTestCase):
             y=0.1,
             w=0.1,
             h=0.1,
-            type=Annotation.Type.COMMENT,
+            type=Annotation.Type.COMMENTAIRE,
             content="Good",
             score_delta=5,
             created_by=self.teacher

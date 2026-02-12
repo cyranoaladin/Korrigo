@@ -111,14 +111,14 @@ class Command(BaseCommand):
         AnnotationService.add_annotation(copy, {
             'page_index': 0,
             'x': 0.1, 'y': 0.1, 'w': 0.2, 'h': 0.1,
-            'type': Annotation.Type.COMMENT,
+            'type': Annotation.Type.COMMENTAIRE,
             'content': "Fixture Annotation Page 0"
         }, user)
         
         AnnotationService.add_annotation(copy, {
             'page_index': 1,
             'x': 0.5, 'y': 0.5, 'w': 0.1, 'h': 0.1,
-            'type': Annotation.Type.ERROR,
+            'type': Annotation.Type.ERREUR,
             'content': "Fixture Error Page 1"
         }, user)
 
