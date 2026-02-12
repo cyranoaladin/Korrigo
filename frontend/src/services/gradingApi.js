@@ -205,4 +205,67 @@ export default {
         const response = await api.post(`/grading/exams/${examId}/unrelease-results/`);
         return response.data;
     },
+
+    // --- Banque d'annotations ---
+
+    async fetchSuggestions(examId, { exercise, question, q } = {}) {
+        const params = {};
+        if (exercise) params.exercise = exercise;
+        if (question) params.question = question;
+        if (q) params.q = q;
+        const response = await api.get(`/grading/exams/${examId}/suggestions/`, { params });
+        return response.data;
+    },
+
+    async fetchAnnotationTemplates(examId) {
+        const response = await api.get(`/grading/exams/${examId}/annotation-templates/`);
+        const data = response.data;
+        if (data && typeof data === 'object' && Array.isArray(data.results)) {
+            return data.results;
+        }
+        return data;
+    },
+
+    // --- Annotations personnelles ---
+
+    async fetchMyAnnotations({ q, exercise } = {}) {
+        const params = {};
+        if (q) params.q = q;
+        if (exercise) params.exercise = exercise;
+        const response = await api.get('/grading/my-annotations/', { params });
+        const data = response.data;
+        if (data && typeof data === 'object' && Array.isArray(data.results)) {
+            return data.results;
+        }
+        return data;
+    },
+
+    async createMyAnnotation(payload) {
+        const response = await api.post('/grading/my-annotations/', payload);
+        return response.data;
+    },
+
+    async updateMyAnnotation(id, payload) {
+        const response = await api.patch(`/grading/my-annotations/${id}/`, payload);
+        return response.data;
+    },
+
+    async deleteMyAnnotation(id) {
+        await api.delete(`/grading/my-annotations/${id}/`);
+        return true;
+    },
+
+    async useMyAnnotation(id) {
+        const response = await api.post(`/grading/my-annotations/${id}/use/`);
+        return response.data;
+    },
+
+    async autoSaveAnnotation(text, exerciseContext = null, questionContext = '') {
+        const response = await api.post('/grading/my-annotations/auto-save/', {
+            text,
+            exercise_context: exerciseContext,
+            question_context: questionContext,
+        });
+        return response.data;
+    },
 };

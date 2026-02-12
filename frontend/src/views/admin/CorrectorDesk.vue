@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import gradingApi from '../../services/gradingApi'
 import CanvasLayer from '../../components/CanvasLayer.vue'
+import AnnotationSuggestionsPanel from '../../components/AnnotationSuggestionsPanel.vue'
 // Removed date-fns, using native Intl
 import { useAuthStore } from '../../stores/auth'
 
@@ -63,6 +64,12 @@ const scoresTimer = ref(null)
 const appreciationTimer = ref(null)
 const lastScoresSaveStatus = ref(null) // { time: Date, success: boolean }
 
+// Suggestions panel
+const showSuggestions = ref(false)
+const suggestionsExercise = ref(null)
+const suggestionsQuestion = ref(null)
+const activeRemarkQuestionId = ref(null)
+
 // --- Computed ---
 const isStaging = computed(() => copy.value?.status === 'STAGING')
 const isReady = computed(() => copy.value?.status === 'READY')
@@ -85,6 +92,7 @@ const isHeaderPage = computed(() => {
 
 const isReadOnly = computed(() => isGraded.value || isLockConflict.value)
 const canAnnotate = computed(() => isReady.value && !isReadOnly.value)
+const examId = computed(() => copy.value?.exam?.id || null)
 
 // Subject variant (Sujet A / Sujet B)
 const subjectVariant = computed(() => copy.value?.subject_variant || null)
@@ -748,6 +756,36 @@ const cancelEditor = () => {
     draftAnnotation.value = null
 }
 
+const handleSuggestionInsert = ({ text, source, id }) => {
+    if (showEditor.value && draftAnnotation.value) {
+        const current = draftAnnotation.value.content || ''
+        draftAnnotation.value.content = current ? current + '\n' + text : text
+        nextTick(() => { if (editorInputRef.value) editorInputRef.value.focus() })
+    } else if (activeRemarkQuestionId.value) {
+        const qid = activeRemarkQuestionId.value
+        const current = questionRemarks.value.get(qid) || ''
+        const newVal = current ? current + '\n' + text : text
+        questionRemarks.value.set(qid, newVal)
+        onRemarkChange(qid, newVal)
+    }
+    if (source === 'manual' || source === 'template') {
+        gradingApi.autoSaveAnnotation(text, suggestionsExercise.value, suggestionsQuestion.value).catch(() => {})
+    }
+}
+
+const openSuggestionsForRemark = (questionId) => {
+    const parts = questionId.split('.')
+    suggestionsExercise.value = parts.length > 0 ? parseInt(parts[0]) || null : null
+    suggestionsQuestion.value = parts.length > 1 ? parts.slice(1).join('.') : null
+    activeRemarkQuestionId.value = questionId
+    showSuggestions.value = true
+}
+
+const closeSuggestions = () => {
+    showSuggestions.value = false
+    activeRemarkQuestionId.value = null
+}
+
 const handleDeleteAnnotation = async (id) => {
     if (!canAnnotate.value) return;
     if (!confirm("Supprimer cette annotation ?")) return;
@@ -1095,6 +1133,14 @@ onUnmounted(() => {
             </div>
             <div class="editor-actions">
               <button
+                v-if="examId"
+                class="btn-sm btn-suggestions"
+                title="Suggestions d'annotations (Ctrl+K)"
+                @click="showSuggestions = !showSuggestions"
+              >
+                💡
+              </button>
+              <button
                 class="btn-sm btn-secondary"
                 @click="cancelEditor"
               >
@@ -1107,6 +1153,15 @@ onUnmounted(() => {
                 Enregistrer
               </button>
             </div>
+            <AnnotationSuggestionsPanel
+              v-if="examId"
+              :exam-id="examId"
+              :exercise-number="suggestionsExercise"
+              :question-number="suggestionsQuestion"
+              :visible="showSuggestions"
+              @insert="handleSuggestionInsert"
+              @close="closeSuggestions"
+            />
           </div>
           <div
             v-else
@@ -1203,14 +1258,34 @@ onUnmounted(() => {
                       />
                     </div>
                     <div class="question-remark-field">
-                      <label :for="'remark-' + question.id">Remarque (facultatif)</label>
+                      <div class="remark-label-row">
+                        <label :for="'remark-' + question.id">Remarque (facultatif)</label>
+                        <button
+                          v-if="examId && !isReadOnly"
+                          class="btn-suggestion-trigger"
+                          title="Suggestions d'annotations"
+                          @click="openSuggestionsForRemark(question.id)"
+                        >
+                          💡
+                        </button>
+                      </div>
                       <textarea
                         :id="'remark-' + question.id"
                         :value="questionRemarks.get(question.id) || ''"
                         :disabled="isReadOnly"
                         :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une remarque...'"
                         rows="2"
+                        @focus="activeRemarkQuestionId = question.id"
                         @input="onRemarkChange(question.id, $event.target.value)"
+                      />
+                      <AnnotationSuggestionsPanel
+                        v-if="examId && activeRemarkQuestionId === question.id && showSuggestions"
+                        :exam-id="examId"
+                        :exercise-number="suggestionsExercise"
+                        :question-number="suggestionsQuestion"
+                        :visible="true"
+                        @insert="handleSuggestionInsert"
+                        @close="closeSuggestions"
                       />
                       <span
                         v-if="remarksSaving.get(question.id)"
@@ -1450,4 +1525,12 @@ onUnmounted(() => {
 .subject-select { padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 0.85rem; cursor: pointer; appearance: auto; }
 .subject-select:disabled { opacity: 0.5; cursor: not-allowed; }
 .subject-select option { color: #333; background: white; }
+
+/* Suggestions */
+.btn-suggestions { background: #fef3c7; border: 1px solid #fbbf24; border-radius: 4px; cursor: pointer; font-size: 14px; padding: 4px 8px; transition: background 0.15s; }
+.btn-suggestions:hover { background: #fde68a; }
+.btn-suggestion-trigger { background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 2px; opacity: 0.6; transition: opacity 0.15s; }
+.btn-suggestion-trigger:hover { opacity: 1; }
+.remark-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+.remark-label-row label { margin-bottom: 0; }
 </style>
