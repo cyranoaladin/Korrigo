@@ -8,7 +8,11 @@
             to="/korrigo"
             class="flex-shrink-0 flex items-center gap-3"
           >
-            <img src="/images/logo_korrigo_pmf.svg" alt="Korrigo PMF" class="h-9 w-auto" />
+            <img
+              src="/images/logo_korrigo_pmf.svg"
+              alt="Korrigo PMF"
+              class="h-9 w-auto"
+            >
           </router-link>
         </div>
 
@@ -49,7 +53,10 @@
           >
             <LogIn class="w-4 h-4" />
             Connexion
-            <ChevronDown class="w-3.5 h-3.5" :class="{ 'rotate-180': isLoginDropdownOpen }" />
+            <ChevronDown
+              class="w-3.5 h-3.5"
+              :class="{ 'rotate-180': isLoginDropdownOpen }"
+            />
           </button>
           <transition
             enter-active-class="transition duration-150 ease-out"

@@ -5,7 +5,11 @@
         <!-- Brand / Identity -->
         <div class="col-span-1 md:col-span-1">
           <div class="mb-4">
-            <img src="/images/logo_korrigo_pmf.svg" alt="Korrigo PMF" class="h-10 w-auto" />
+            <img
+              src="/images/logo_korrigo_pmf.svg"
+              alt="Korrigo PMF"
+              class="h-10 w-auto"
+            >
           </div>
           <p class="text-sm text-gray-500 leading-relaxed">
             Plateforme institutionnelle de correction numérique des examens.
@@ -114,9 +118,6 @@
 <script setup>
 import { Mail, Server } from 'lucide-vue-next'
 import { nextTick } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
 
 function scrollToFeatures() {
   nextTick(() => {
