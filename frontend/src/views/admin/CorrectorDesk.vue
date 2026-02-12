@@ -441,7 +441,7 @@ const onScoreChange = (questionId, value) => {
         const scoresObj = {}
         questionScores.value.forEach((val, key) => { scoresObj[key] = val })
         localStorage.setItem(`korrigo_scores_${copyId}`, JSON.stringify(scoresObj))
-    } catch(e) { /* localStorage full, ignore */ }
+    } catch { /* localStorage full, ignore */ }
 
     if (scoresTimer.value) {
         clearTimeout(scoresTimer.value)
@@ -756,6 +756,7 @@ const cancelEditor = () => {
     draftAnnotation.value = null
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const handleSuggestionInsert = ({ text, source, id }) => {
     if (showEditor.value && draftAnnotation.value) {
         const current = draftAnnotation.value.content || ''
@@ -982,16 +983,16 @@ onUnmounted(() => {
           >
             <button
               :disabled="currentPage <= 1"
-              @click="goPrevPage"
               title="Page précédente (← ou PageUp)"
+              @click="goPrevPage"
             >
               ← Prev
             </button>
             <span>Page {{ currentPage }} / {{ pages.length }}</span>
             <button
               :disabled="currentPage >= pages.length"
-              @click="goNextPage"
               title="Page suivante (→ ou PageDown)"
+              @click="goNextPage"
             >
               Next →
             </button>
@@ -1255,7 +1256,7 @@ onUnmounted(() => {
                         class="score-input"
                         :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
                         @input="onScoreChange(question.id, $event.target.value)"
-                      />
+                      >
                     </div>
                     <div class="question-remark-field">
                       <div class="remark-label-row">
@@ -1304,7 +1305,10 @@ onUnmounted(() => {
               >
                 <span class="total-label">Note totale :</span>
                 <strong>{{ totalScore }}</strong> / 20
-                <span v-if="scoreExceeds20" class="overflow-warning">
+                <span
+                  v-if="scoreExceeds20"
+                  class="overflow-warning"
+                >
                   ⚠ La note dépasse 20 !
                 </span>
               </div>

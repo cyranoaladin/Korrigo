@@ -12,7 +12,7 @@
           src="/images/logo_korrigo_pmf.svg"
           alt="Korrigo PMF"
           class="h-20 md:h-24 mx-auto mb-8 drop-shadow-lg"
-        />
+        >
         <span class="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-white/10 border border-white/20 text-primary-100 text-sm font-medium mb-8 backdrop-blur-sm">
           <ShieldCheck class="w-4 h-4" />
           Plateforme de Correction Numérique — Conforme RGPD
@@ -60,16 +60,35 @@
     <section class="py-20 bg-white">
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-14">
-          <h2 class="text-3xl font-bold text-neutralDark mb-3">Conçu pour tout l'établissement</h2>
-          <p class="text-gray-500 max-w-2xl mx-auto">Chaque profil dispose d'un espace dédié adapté à son rôle dans le processus de correction.</p>
+          <h2 class="text-3xl font-bold text-neutralDark mb-3">
+            Conçu pour tout l'établissement
+          </h2>
+          <p class="text-gray-500 max-w-2xl mx-auto">
+            Chaque profil dispose d'un espace dédié adapté à son rôle dans le processus de correction.
+          </p>
         </div>
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div v-for="role in roles" :key="role.title" class="bg-white border border-borderSoft rounded-xl p-6 hover:shadow-lg transition-shadow">
-            <div class="w-11 h-11 rounded-lg flex items-center justify-center mb-4" :class="role.bg">
-              <component :is="role.icon" class="w-5 h-5" :class="role.color" />
+          <div
+            v-for="role in roles"
+            :key="role.title"
+            class="bg-white border border-borderSoft rounded-xl p-6 hover:shadow-lg transition-shadow"
+          >
+            <div
+              class="w-11 h-11 rounded-lg flex items-center justify-center mb-4"
+              :class="role.bg"
+            >
+              <component
+                :is="role.icon"
+                class="w-5 h-5"
+                :class="role.color"
+              />
             </div>
-            <h3 class="font-semibold text-neutralDark mb-2">{{ role.title }}</h3>
-            <p class="text-sm text-gray-500 leading-relaxed">{{ role.desc }}</p>
+            <h3 class="font-semibold text-neutralDark mb-2">
+              {{ role.title }}
+            </h3>
+            <p class="text-sm text-gray-500 leading-relaxed">
+              {{ role.desc }}
+            </p>
           </div>
         </div>
       </div>
@@ -79,8 +98,12 @@
     <section class="py-24 bg-gray-50 border-t border-gray-100">
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-16">
-          <h2 class="text-3xl font-bold text-neutralDark mb-3">Le workflow complet</h2>
-          <p class="text-gray-500 max-w-2xl mx-auto">Du scan des copies papier à la consultation par les élèves, un processus en 5 étapes entièrement numérique et sécurisé.</p>
+          <h2 class="text-3xl font-bold text-neutralDark mb-3">
+            Le workflow complet
+          </h2>
+          <p class="text-gray-500 max-w-2xl mx-auto">
+            Du scan des copies papier à la consultation par les élèves, un processus en 5 étapes entièrement numérique et sécurisé.
+          </p>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8">
           <StepCard
@@ -129,8 +152,12 @@
     >
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-16">
-          <h2 class="text-3xl font-bold text-neutralDark mb-3">Fonctionnalités clés</h2>
-          <p class="text-gray-500 max-w-2xl mx-auto">Des outils pensés pour l'enseignement, validés en conditions réelles sur des examens blancs et contrôles continus.</p>
+          <h2 class="text-3xl font-bold text-neutralDark mb-3">
+            Fonctionnalités clés
+          </h2>
+          <p class="text-gray-500 max-w-2xl mx-auto">
+            Des outils pensés pour l'enseignement, validés en conditions réelles sur des examens blancs et contrôles continus.
+          </p>
         </div>
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <FeatureCard
@@ -177,15 +204,21 @@
     <section class="py-24 bg-white border-t border-gray-100">
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-14">
-          <h2 class="text-3xl font-bold text-neutralDark mb-3">Pourquoi Korrigo PMF ?</h2>
-          <p class="text-gray-500 max-w-2xl mx-auto">Des bénéfices concrets pour l'ensemble de la communauté éducative.</p>
+          <h2 class="text-3xl font-bold text-neutralDark mb-3">
+            Pourquoi Korrigo PMF ?
+          </h2>
+          <p class="text-gray-500 max-w-2xl mx-auto">
+            Des bénéfices concrets pour l'ensemble de la communauté éducative.
+          </p>
         </div>
         <div class="grid md:grid-cols-3 gap-8">
           <div class="text-center">
             <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <BookOpen class="w-7 h-7" />
             </div>
-            <h3 class="font-semibold text-neutralDark text-lg mb-2">Pédagogiques</h3>
+            <h3 class="font-semibold text-neutralDark text-lg mb-2">
+              Pédagogiques
+            </h3>
             <ul class="text-sm text-gray-500 leading-relaxed space-y-1.5 text-left max-w-xs mx-auto">
               <li>Retour détaillé : annotations claires et pérennes</li>
               <li>Traçabilité complète de chaque action</li>
@@ -197,7 +230,9 @@
             <div class="w-14 h-14 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Clock class="w-7 h-7" />
             </div>
-            <h3 class="font-semibold text-neutralDark text-lg mb-2">Organisationnels</h3>
+            <h3 class="font-semibold text-neutralDark text-lg mb-2">
+              Organisationnels
+            </h3>
             <ul class="text-sm text-gray-500 leading-relaxed space-y-1.5 text-left max-w-xs mx-auto">
               <li>Correction depuis n'importe où (domicile, salle des profs)</li>
               <li>Réduction du temps de distribution et collecte</li>
@@ -209,7 +244,9 @@
             <div class="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <ShieldCheck class="w-7 h-7" />
             </div>
-            <h3 class="font-semibold text-neutralDark text-lg mb-2">Sécuritaires</h3>
+            <h3 class="font-semibold text-neutralDark text-lg mb-2">
+              Sécuritaires
+            </h3>
             <ul class="text-sm text-gray-500 leading-relaxed space-y-1.5 text-left max-w-xs mx-auto">
               <li>Conformité RGPD et référentiel CNIL Éducation</li>
               <li>Anonymisation garantie pendant la correction</li>
@@ -268,7 +305,9 @@
         </div>
 
         <div class="bg-white rounded-xl border border-borderSoft p-6 text-left max-w-3xl mx-auto mb-10">
-          <h3 class="font-semibold text-neutralDark mb-3">Conservation des données</h3>
+          <h3 class="font-semibold text-neutralDark mb-3">
+            Conservation des données
+          </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div class="flex justify-between border-b border-gray-100 pb-2">
               <span class="text-gray-600">Copies numérisées</span>
@@ -309,7 +348,7 @@ import {
   Upload, EyeOff, PenTool, Download, ScanSearch,
   BarChart3, Lightbulb, FileDown,
   CheckCircle, Lock, ClipboardList, KeyRound, ArrowRight,
-  BookOpen, Clock, Users, Settings, Briefcase,
+  BookOpen, Clock, Settings, Briefcase,
 } from 'lucide-vue-next'
 
 const stats = [
