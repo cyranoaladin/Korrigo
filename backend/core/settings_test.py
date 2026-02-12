@@ -31,6 +31,7 @@ raw_suffix = os.environ.get("CI_NODE_INDEX") or os.environ.get("PYTEST_XDIST_WOR
 DB_SUFFIX = "".join(ch for ch in str(raw_suffix) if ch.isalnum() or ch in "_").lower() or "0"
 
 # Force SQLite in-memory for local tests (no Docker PostgreSQL dependency)
+# For postgres-marked tests, use core.settings_test_postgres instead.
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',

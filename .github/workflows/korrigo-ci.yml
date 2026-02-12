@@ -174,11 +174,11 @@ jobs:
       - name: Run postgres-marked tests (must PASS, must not SKIP)
         working-directory: backend
         env:
-          DJANGO_SETTINGS_MODULE: core.settings_test
+          DJANGO_SETTINGS_MODULE: core.settings_test_postgres
           DATABASE_URL: postgres://viatique_user:viatique_password@127.0.0.1:5432/viatique_test
         run: |
           set -euo pipefail
-          pytest -q -m postgres grading/tests/test_concurrency_postgres.py | tee /tmp/pytest_postgres.txt
+          pytest -q -m postgres grading/tests/test_concurrency_postgres.py -o "addopts=" -o "filterwarnings=" | tee /tmp/pytest_postgres.txt
           if grep -qi "skipp" /tmp/pytest_postgres.txt; then
             echo "Postgres tests were skipped (unexpected)." >&2
             exit 1
