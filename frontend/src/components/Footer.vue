@@ -25,9 +25,8 @@
           <ul class="space-y-2.5 text-sm text-gray-600">
             <li>
               <router-link
-                to="/korrigo"
+                to="/korrigo#fonctionnalites"
                 class="hover:text-primary-600 transition"
-                @click="scrollToFeatures"
               >
                 Fonctionnalités
               </router-link>
@@ -117,12 +116,4 @@
 
 <script setup>
 import { Mail, Server } from 'lucide-vue-next'
-import { nextTick } from 'vue'
-
-function scrollToFeatures() {
-  nextTick(() => {
-    const el = document.getElementById('fonctionnalites')
-    if (el) el.scrollIntoView({ behavior: 'smooth' })
-  })
-}
 </script>

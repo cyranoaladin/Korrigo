@@ -419,25 +419,25 @@ Utilisée pour :
 3. Confirmez la suppression
 
 > ⚠️ **Attention** : La suppression est **immédiate** et ne peut pas être annulée (mais la copie est sauvegardée régulièrement).
-422: 
-423: ### Banque de Commentaires Personnelle
-424: 
-425: Pour gagner du temps, Korrigo PMF enregistre automatiquement vos commentaires fréquents.
-426: 
-427: #### Fonctionnement
-428: 
-429: - Chaque commentaire saisi est ajouté à votre **banque personnelle**.
-430: - Lors de la création d'un nouveau commentaire, l'auto-complétion vous propose vos textes existants.
-431: - Les commentaires sont classés par fréquence d'utilisation.
-432: 
-433: #### Réutiliser un Commentaire
-434: 
-435: 1. Commencez à taper un texte (ex: "Att...").
-436: 2. Une liste de suggestions apparaît (ex: "Attention aux unités", "Attention à la rédaction").
-437: 3. Cliquez sur la suggestion ou utilisez les flèches pour sélectionner.
-438: 4. Le texte et la note associée (s'il y en a une) sont remplis automatiquement.
-439: 
-440: ---
+
+### Banque de Commentaires Personnelle
+
+Pour gagner du temps, Korrigo PMF enregistre automatiquement vos commentaires fréquents.
+
+#### Fonctionnement
+
+- Chaque commentaire saisi est ajouté à votre **banque personnelle**.
+- Lors de la création d'un nouveau commentaire, l'auto-complétion vous propose vos textes existants.
+- Les commentaires sont classés par fréquence d'utilisation.
+
+#### Réutiliser un Commentaire
+
+1. Commencez à taper un texte (ex: "Att...").
+2. Une liste de suggestions apparaît (ex: "Attention aux unités", "Attention à la rédaction").
+3. Cliquez sur la suggestion ou utilisez les flèches pour sélectionner.
+4. Le texte et la note associée (s'il y en a une) sont remplis automatiquement.
+
+---
 
 ---
 

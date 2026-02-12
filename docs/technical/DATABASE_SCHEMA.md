@@ -108,6 +108,7 @@ erDiagram
         string last_name
         string class_name
         string email
+        int user_id FK "nullable"
     }
     
     Annotation {

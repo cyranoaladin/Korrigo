@@ -161,32 +161,32 @@ SESSION_SAVE_EVERY_REQUEST = False  # Performance
 ---
 
 #### 3.1.2 Authentification Student (Email + Password)
-    
-    **Méthode** : Email + Mot de passe (Django User standard)
-    
-    **Flux de connexion** :
-    ```python
-    # backend/students/views.py:StudentLoginView
-    POST /api/students/login/
-    {
-      "email": "jean.dupont@eleve.lycee.fr",
-      "password": "password123"
-    }
-    
-    # Vérification
-    user = authenticate(username=email, password=password)
-    # + Vérification lien Student
-    student = Student.objects.get(user=user)
-    
-    auth_login(request, user) # Session Django standard
-    request.session['student_id'] = student.id
-    ```
-    
-    **Sécurité** :
-    - ✅ **Standard** : Utilise l'infrastructure auth Django éprouvée
-    - ✅ **Mot de passe** : Haché (PBKDF2)
-    - ✅ **Rate Limiting** : 5 tentatives / 15 min
-    - ⚠️ **Mot de passe initial** : Souvent générique ('passe123'), changement forcé recommandé
+
+**Méthode** : Email + Mot de passe (Django User standard)
+
+**Flux de connexion** :
+```python
+# backend/students/views.py:StudentLoginView
+POST /api/students/login/
+{
+  "email": "jean.dupont@eleve.lycee.fr",
+  "password": "password123"
+}
+
+# Vérification
+user = authenticate(username=email, password=password)
+# + Vérification lien Student
+student = Student.objects.get(user=user)
+
+auth_login(request, user) # Session Django standard
+request.session['student_id'] = student.id
+```
+
+**Sécurité** :
+- ✅ **Standard** : Utilise l'infrastructure auth Django éprouvée
+- ✅ **Mot de passe** : Haché (PBKDF2)
+- ✅ **Rate Limiting** : 5 tentatives / 15 min
+- ⚠️ **Mot de passe initial** : Souvent générique ('passe123'), changement forcé recommandé
 
 ---
 
