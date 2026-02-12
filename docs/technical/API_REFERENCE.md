@@ -29,7 +29,7 @@ L'API utilise l'authentification par session Django (cookies).
 
 **Login**:
 ```http
-POST /api/auth/login/
+POST /api/login/
 Content-Type: application/json
 
 {
@@ -52,7 +52,7 @@ Content-Type: application/json
 
 **Logout**:
 ```http
-POST /api/auth/logout/
+POST /api/logout/
 ```
 
 ### Headers Requis
@@ -278,7 +278,7 @@ GET /api/exams/{exam_id}/booklets/
     "exam_id": "uuid-...",
     "start_page": 1,
     "end_page": 4,
-    "header_image": "/media/booklets/headers/header_1.png",
+    "header_image": null,
     "student_name_guess": "DUPONT",
     "pages_images": ["/media/pages/p1.png", "/media/pages/p2.png"]
   }
@@ -396,6 +396,34 @@ POST /api/copies/{id}/validate/
 
 ---
 
+## Endpoints Identification
+
+### Identification Desk
+
+```http
+GET /api/identification/desk/
+```
+
+**Permissions**: `IsTeacherOrAdmin`
+
+### Manually Identify Copy
+
+```http
+POST /api/identification/identify/{copy_id}/
+```
+
+**Permissions**: `IsTeacherOrAdmin`
+
+### OCR Perform
+
+```http
+POST /api/identification/perform-ocr/{copy_id}/
+```
+
+**Permissions**: `IsTeacherOrAdmin`
+
+---
+
 ## Endpoints Grading
 
 ### Liste des Copies (Correcteur)
@@ -456,7 +484,7 @@ GET /api/copies/{id}/
 ### Verrouiller une Copie
 
 ```http
-POST /api/copies/{id}/lock/
+POST /api/grading/copies/{id}/lock/
 Content-Type: application/json
 ```
 
@@ -487,7 +515,7 @@ Content-Type: application/json
 ### Déverrouiller une Copie
 
 ```http
-POST /api/copies/{id}/unlock/
+DELETE /api/grading/copies/{id}/lock/release/
 Content-Type: application/json
 ```
 
@@ -512,7 +540,7 @@ Content-Type: application/json
 ### Finaliser une Copie
 
 ```http
-POST /api/copies/{id}/finalize/
+POST /api/grading/copies/{id}/finalize/
 ```
 
 **Permissions**: `IsTeacherOrAdmin`
@@ -531,7 +559,7 @@ POST /api/copies/{id}/finalize/
 ### Télécharger PDF Final
 
 ```http
-GET /api/copies/{id}/final-pdf/
+GET /api/grading/copies/{id}/final-pdf/
 ```
 
 **Permissions**: `AllowAny` (avec gates de sécurité)
@@ -556,7 +584,7 @@ X-Content-Type-Options: nosniff
 ### Historique d'Audit
 
 ```http
-GET /api/copies/{id}/audit/
+GET /api/grading/copies/{id}/audit/
 ```
 
 **Permissions**: `IsTeacherOrAdmin`
@@ -590,7 +618,7 @@ GET /api/copies/{id}/audit/
 ### Liste des Annotations
 
 ```http
-GET /api/copies/{copy_id}/annotations/
+GET /api/grading/copies/{copy_id}/annotations/
 ```
 
 **Permissions**: `IsTeacherOrAdmin`
@@ -623,7 +651,7 @@ GET /api/copies/{copy_id}/annotations/
 ### Créer une Annotation
 
 ```http
-POST /api/copies/{copy_id}/annotations/
+POST /api/grading/copies/{copy_id}/annotations/
 Content-Type: application/json
 ```
 
@@ -671,7 +699,7 @@ Content-Type: application/json
 ### Modifier une Annotation
 
 ```http
-PATCH /api/annotations/{id}/
+PATCH /api/grading/annotations/{id}/
 Content-Type: application/json
 ```
 
@@ -700,7 +728,7 @@ Content-Type: application/json
 ### Supprimer une Annotation
 
 ```http
-DELETE /api/annotations/{id}/
+DELETE /api/grading/annotations/{id}/
 ```
 
 **Permissions**: `IsTeacherOrAdmin` + Owner uniquement
@@ -724,7 +752,7 @@ GET /api/students/
 [
   {
     "id": 123,
-    "ine": "1234567890A",
+    "date_naissance": "2008-05-20",
     "first_name": "Jean",
     "last_name": "Dupont",
     "class_name": "TG2",
@@ -751,8 +779,8 @@ csv_file: <file>
 
 **Format CSV**:
 ```csv
-ine,first_name,last_name,class_name,email
-1234567890A,Jean,Dupont,TG2,jean.dupont@example.com
+date_naissance,first_name,last_name,class_name,email
+2008-05-20,Jean,Dupont,TG2,jean.dupont@example.com
 ```
 
 **Response** (201 Created):

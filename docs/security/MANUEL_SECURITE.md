@@ -160,33 +160,33 @@ SESSION_SAVE_EVERY_REQUEST = False  # Performance
 
 ---
 
-#### 3.1.2 Authentification Student (Session Custom)
-
-**Méthode** : INE + Nom de famille (sans User Django)
-
-**Flux de connexion** :
-```python
-# backend/students/views.py:StudentLoginView (lines 14-46)
-POST /api/students/login/
-{
-  "ine": "1234567890A",
-  "last_name": "DUPONT"
-}
-
-# Vérification
-student = Student.objects.get(
-    ine=ine,
-    last_name__iexact=last_name  # Insensible casse
-)
-request.session['student_id'] = student.id
-request.session['role'] = 'Student'
-```
-
-**Sécurité** :
-- ⚠️ **Pas de mot de passe** : Authentification faible (INE connu)
-- ✅ **Compensation** : Accès lecture seule + filtrage strict
-- ✅ **Logs** : Toutes connexions tracées
-- ⚠️ **Amélioration recommandée** : Code PIN ou email validation
+#### 3.1.2 Authentification Student (Email + Password)
+    
+    **Méthode** : Email + Mot de passe (Django User standard)
+    
+    **Flux de connexion** :
+    ```python
+    # backend/students/views.py:StudentLoginView
+    POST /api/students/login/
+    {
+      "email": "jean.dupont@eleve.lycee.fr",
+      "password": "password123"
+    }
+    
+    # Vérification
+    user = authenticate(username=email, password=password)
+    # + Vérification lien Student
+    student = Student.objects.get(user=user)
+    
+    auth_login(request, user) # Session Django standard
+    request.session['student_id'] = student.id
+    ```
+    
+    **Sécurité** :
+    - ✅ **Standard** : Utilise l'infrastructure auth Django éprouvée
+    - ✅ **Mot de passe** : Haché (PBKDF2)
+    - ✅ **Rate Limiting** : 5 tentatives / 15 min
+    - ⚠️ **Mot de passe initial** : Souvent générique ('passe123'), changement forcé recommandé
 
 ---
 
@@ -380,13 +380,14 @@ class IsAdmin(BasePermission):
         return request.user.groups.filter(name='admin').exists()
 
 class IsTeacher(BasePermission):
+```
     def has_permission(self, request, view):
         return request.user.groups.filter(name='teacher').exists()
 
 class IsStudent(BasePermission):
     def has_permission(self, request, view):
-        # Session student_id OU User associé à Student
-        return request.session.get('student_id') or hasattr(request.user, 'student')
+        # Student authentication: Email/Password, Django User + Student Profile, Django Session, SessionAuthentication
+        return hasattr(request.user, 'student')
 
 class IsAdminOrTeacher(BasePermission):
     def has_permission(self, request, view):

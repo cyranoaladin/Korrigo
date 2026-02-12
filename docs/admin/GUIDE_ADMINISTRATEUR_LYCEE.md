@@ -297,7 +297,7 @@ Si Korrigo PMF est hébergé par un prestataire externe, ce dernier est **sous-t
 
 | Donnée | Finalité | Base Légale |
 |--------|----------|-------------|
-| **INE** (Identifiant National Élève) | Identification unique | Mission d'intérêt public |
+| **Date de Naissance** | Identification unique (avec Nom/Prénom) | Mission d'intérêt public |
 | **Nom, Prénom** | Identification, affichage | Mission d'intérêt public |
 | **Classe** | Organisation pédagogique | Mission d'intérêt public |
 | **Email** (optionnel) | Communication, notifications | Consentement (si utilisé) |
@@ -546,7 +546,7 @@ Korrigo PMF applique une **approche défensive multicouche** pour protéger les 
 |------|----------------------------|----------|
 | **Admin** | Identifiant + Mot de passe | Session sécurisée (cookie HttpOnly) |
 | **Enseignant** | Identifiant + Mot de passe | Session sécurisée (cookie HttpOnly) |
-| **Élève** | INE + Nom de Famille | Session élève (isolation des données) |
+| **Élève** | Email + Mot de passe | Session élève (isolation des données) |
 
 **Politique de Mot de Passe** :
 - Longueur minimale : 8 caractères
@@ -689,7 +689,9 @@ Korrigo PMF enregistre **toutes les actions sensibles** dans un journal d'audit 
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 3 : INGESTION (J+1, 30 min)                           │
 │ - Upload du PDF scanné dans Korrigo                         │
-│ - Découpage automatique en fascicules (4 pages A4/copie)   │
+│   * Option A : Batch A3 (toutes les copies dans 1 PDF)      │
+│   * Option B : Individuel A4 (1 PDF par élève/copie)        │
+│ - Découpage automatique (si Batch A3)                       │
 │ - OCR des en-têtes (reconnaissance des noms)               │
 └─────────────────────────────────────────────────────────────┘
                             ↓

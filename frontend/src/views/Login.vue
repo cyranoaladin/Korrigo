@@ -65,11 +65,10 @@ const handleLogin = async () => {
     >
       <div class="brand">
         <img
-          src="/images/Korrigo.png"
-          alt="Korrigo Logo"
+          src="/images/logo_korrigo_pmf.svg"
+          alt="Korrigo PMF"
           class="logo-img"
         >
-        <h1>Korrigo</h1>
         <p>{{ title }}</p>
       </div>
             

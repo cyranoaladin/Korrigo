@@ -63,54 +63,50 @@ graph LR
 ## Accès au Portail
 
 ### Obtenir Vos Identifiants
-
-Vos identifiants de connexion sont :
-- **Identifiant (INE)** : Votre Identifiant National Élève (11 caractères)
-  - Exemple : `1234567890A`
-  - Vous pouvez le trouver sur votre **bulletin scolaire** ou demander au **secrétariat**
-
-- **Date de naissance** : Votre date de naissance au format AAAA-MM-JJ
-  - Exemple : `2005-03-15` pour le 15 mars 2005
-  - Format : Année-Mois-Jour (4 chiffres, tiret, 2 chiffres, tiret, 2 chiffres)
-  - Utilisez la date enregistrée dans les fichiers administratifs du lycée
+    
+    Vos identifiants de connexion sont :
+    - **Email** : Votre adresse email scolaire (ex: `prenom.nom@ecole.fr`)
+    - **Mot de passe** : Un mot de passe provisoire vous est fourni à la rentrée.
+    
+    > 💡 **Important** : Si vous n'avez pas vos identifiants, contactez le professeur principal ou le secrétariat.
 
 ### Se Connecter
-
-#### Étape 1 : Accéder au Portail
-
-1. Ouvrez votre navigateur web (Chrome, Firefox, Safari, Edge)
-2. Accédez à l'URL du portail élève :
-   - **Exemple** : `https://korrigo.votre-lycee.fr/student/login`
-   - Cette adresse vous est fournie par votre lycée (affichée en classe, envoyée par email, etc.)
-
-#### Étape 2 : Saisir Vos Identifiants
-
-Sur la page de connexion :
-
-```
-┌─────────────────────────────────────────┐
-│ 🎓 Portail Élève - Korrigo PMF          │
-├─────────────────────────────────────────┤
-│                                         │
-│  INE (Identifiant National Élève) :    │
-│  [1234567890A______________]            │
-│                                         │
-│  Date de naissance (AAAA-MM-JJ) :      │
-│  [2005-03-15_______________]            │
-│                                         │
-│  [Se connecter]                         │
-│                                         │
-│  ❓ Identifiants oubliés ?               │
-│  → Contactez le secrétariat             │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-1. **Saisissez votre INE** (11 caractères, chiffres et lettres)
-2. **Saisissez votre date de naissance** au format AAAA-MM-JJ
-   - Exemple : `2005-03-15` pour le 15 mars 2005
-   - ⚠️ **Attention** : Respectez le format exact (tirets obligatoires)
-3. Cliquez sur **« Se connecter »**
+    
+    #### Étape 1 : Accéder au Portail
+    
+    1. Ouvrez votre navigateur web (Chrome, Firefox, Safari, Edge)
+    2. Accédez à l'URL du portail élève :
+       - **Exemple** : `https://korrigo.votre-lycee.fr/student/login`
+       - Cette adresse vous est fournie par votre lycée.
+    
+    #### Étape 2 : Saisir Vos Identifiants
+    
+    Sur la page de connexion :
+    
+    ```
+    ┌─────────────────────────────────────────┐
+    │ 🎓 Portail Élève - Korrigo PMF          │
+    ├─────────────────────────────────────────┤
+    │                                         │
+    │  Email :                               │
+    │  [jean.dupont@eleve.lycee.fr___]        │
+    │                                         │
+    │  Mot de passe :                        │
+    │  [•••••••••••••]                        │
+    │                                         │
+    │  [Se connecter]                         │
+    │                                         │
+    │  ❓ Mot de passe oublié ?               │
+    │  → Contactez le secrétariat             │
+    │                                         │
+    └─────────────────────────────────────────┘
+    ```
+    
+    1. **Saisissez votre Email** (celui communiqué par le lycée)
+    2. **Saisissez votre Mot de Passe** initial
+    3. Cliquez sur **« Se connecter »**
+    
+    > ℹ️ **Note** : À la première connexion, il peut vous être demandé de modifier votre mot de passe provisoire.
 
 #### Étape 3 : Accès au Tableau de Bord
 
@@ -331,7 +327,7 @@ Korrigo PMF respecte vos droits en matière de **protection des données personn
 
 La plateforme stocke uniquement :
 - 📋 **Votre nom et prénom**
-- 🆔 **Votre INE** (Identifiant National Élève)
+- 📅 **Votre Date de Naissance**
 - 🎓 **Votre classe**
 - 📧 **Votre email** (si fourni)
 - 📝 **Vos copies d'examens** et **notes**
@@ -404,30 +400,21 @@ Vos données sont conservées pendant :
 
 ### Connexion et Accès
 
-#### Q1 : J'ai oublié mon INE ou ma date de naissance, que faire ?
+#### Q1 : J'ai oublié mon mot de passe, que faire ?
+    
+    **Réponse** : 
+    - Vérifiez si vous avez reçu un email avec vos identifiants.
+    - Contactez le **secrétariat** ou votre professeur principal pour qu'ils réinitialisent votre mot de passe.
+    - Il n'y a pas encore de lien "Mot de passe oublié" automatique sur le site.
 
-**Réponse** : 
-
-**Pour votre INE** (Identifiant National Élève) :
-- Consultez votre **bulletin scolaire** (en haut à droite généralement)
-- Consultez votre **relevé de notes**
-- Demandez au **secrétariat** du lycée
-
-**Pour votre date de naissance** :
-- Utilisez le format AAAA-MM-JJ (exemple : `2005-03-15`)
-- Si vous avez un doute sur la date enregistrée, contactez le **secrétariat**
-
-#### Q2 : « Identifiants incorrects », que faire ?
-
-**Réponse** : Vérifiez que :
-- Votre INE est correct (11 caractères, chiffres et lettres)
-- Votre date de naissance est au **bon format** : AAAA-MM-JJ
-  - ✅ Correct : `2005-03-15`
-  - ❌ Incorrect : `15/03/2005`, `15-03-2005`, `2005/03/15`
-- Vous n'avez pas ajouté d'espaces avant/après
-- Votre date de naissance correspond à celle dans les fichiers administratifs du lycée
-
-Si le problème persiste, contactez le **secrétariat**.
+#### Q2 : « Email ou mot de passe incorrect », que faire ?
+    
+    **Réponse** : Vérifiez que :
+    - Vous avez bien saisi votre **email complet**
+    - Vous respectez les majuscules/minuscules pour le mot de passe
+    - Vous n'avez pas ajouté d'espaces avant/après
+    
+    Si le problème persiste, contactez le **secrétariat**.
 
 #### Q3 : Je n'ai pas encore de copies corrigées, est-ce normal ?
 
@@ -618,7 +605,7 @@ Pour toute question sur :
 
 | Terme | Explication Simple |
 |-------|-------------------|
-| **INE** | Ton numéro d'identification unique en tant qu'élève (11 caractères) |
+
 | **PDF** | Format de fichier pour lire des documents (comme tes copies) |
 | **Télécharger** | Copier un fichier depuis internet sur ton ordinateur |
 | **Annotation** | Commentaire ou marque ajoutée par ton professeur sur ta copie |
@@ -632,7 +619,8 @@ Pour toute question sur :
 
 | Version | Date | Changements |
 |---------|------|-------------|
-| **1.1.0** | 01/02/2026 | 🔒 **Sécurité** : Connexion avec INE + Date de naissance (au lieu de nom de famille) |
+| **1.2.0** | 12/02/2026 | 🔑 **Mise à jour** : Authentification par Email + Mot de passe |
+| **1.1.0** | 01/02/2026 | 🔒 **Sécurité** : (Version obsolète - méthode non retenue) |
 | **1.0.0** | 30/01/2026 | Version initiale du guide élève |
 
 ---

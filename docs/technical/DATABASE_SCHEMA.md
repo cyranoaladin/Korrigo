@@ -29,9 +29,10 @@ Le schéma est organisé en 4 modules Django:
 
 | Module | Tables | Responsabilité |
 |--------|--------|----------------|
-| **exams** | `Exam`, `Booklet`, `Copy` | Gestion examens et copies |
-| **grading** | `Annotation`, `GradingEvent`, `CopyLock`, `DraftState` | Correction et audit |
+| **exams** | `Exam`, `Booklet`, `Copy`, `ExamPDF`, `ExamDocumentSet`, `ExamDocument` | Gestion examens et documents |
+| **grading** | `Annotation`, `GradingEvent`, `CopyLock`, `DraftState`, `Score`, `QuestionRemark` | Correction et audit |
 | **students** | `Student` | Gestion élèves |
+| **identification** | `OCRResult` | Identification automatique |
 | **auth** | `User`, `Group`, `Permission` | Authentification (Django) |
 
 ### Statistiques
@@ -102,7 +103,7 @@ erDiagram
     
     Student {
         int id PK
-        string ine UK
+        date date_naissance
         string first_name
         string last_name
         string class_name
@@ -168,9 +169,13 @@ erDiagram
 | `id` | UUID | PK | Identifiant unique |
 | `name` | VARCHAR(255) | NOT NULL | Nom de l'examen |
 | `date` | DATE | NOT NULL | Date de l'examen |
-| `pdf_source` | FILE | NULLABLE | PDF source uploadé |
+| `upload_mode` | VARCHAR(20) | DEFAULT 'BATCH_A3' | Mode: BATCH_A3 ou INDIVIDUAL_A4 |
+| `students_csv` | FILE | NULLABLE | Fichier CSV élèves |
+| `pdf_source` | FILE | NULLABLE | PDF source (Legacy/Batch) |
 | `grading_structure` | JSON | DEFAULT [] | Barème hiérarchique |
 | `is_processed` | BOOLEAN | DEFAULT false | PDF traité ? |
+| `pages_per_booklet` | INT | DEFAULT 4 | Pages par copie |
+| `results_released_at` | DATETIME | NULLABLE | Date publication résultats |
 
 **Validations**:
 - `pdf_source`: Extension `.pdf`, taille max 50 MB, MIME type `application/pdf`
@@ -228,6 +233,9 @@ erDiagram
 | `final_pdf` | FILE | NULLABLE | PDF final avec annotations |
 | `status` | VARCHAR(20) | CHOICES | Statut workflow |
 | `is_identified` | BOOLEAN | DEFAULT false | Copie liée à un élève ? |
+| `assigned_corrector_id` | UUID | FK → User, NULLABLE | Correcteur assigné |
+| `subject_variant` | VARCHAR(1) | NULLABLE | Variante sujet (A/B) |
+| `global_appreciation` | TEXT | NULLABLE | Appréciation globale |
 | `validated_at` | DATETIME | NULLABLE | Timestamp STAGING → READY |
 | `locked_at` | DATETIME | NULLABLE | Timestamp READY → LOCKED |
 | `locked_by_id` | UUID | FK → User, NULLABLE | Correcteur ayant verrouillé |
@@ -244,18 +252,59 @@ erDiagram
 
 ---
 
-### 4. Student (students.Student)
+### 4. ExamPDF (exams.ExamPDF)
+
+**Responsabilité**: Fichier PDF individuel (mode INDIVIDUAL_A4).
+
+| Champ | Type | Contraintes | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | Identifiant unique |
+| `exam_id` | UUID | FK → Exam | Examen parent |
+| `pdf_file` | FILE | NOT NULL | Fichier PDF |
+| `student_identifier` | VARCHAR(255) | NULLABLE | ID extrait du nom de fichier |
+| `uploaded_at` | DATETIME | AUTO | Date d'upload |
+
+---
+
+### 5. ExamDocumentSet (exams.ExamDocumentSet)
+
+**Responsabilité**: Lot documentaire versionné (Sujet, Corrigé, Barème).
+
+| Champ | Type | Contraintes | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | Identifiant unique |
+| `exam_id` | UUID | FK → Exam | Examen parent |
+| `version` | INT | NOT NULL | Numéro de version |
+| `is_active` | BOOLEAN | DEFAULT true | Version active ? |
+
+---
+
+### 6. ExamDocument (exams.ExamDocument)
+
+**Responsabilité**: Document PDF unique dans un lot.
+
+| Champ | Type | Contraintes | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | Identifiant unique |
+| `document_set_id` | UUID | FK → ExamDocumentSet | Lot parent |
+| `doc_type` | VARCHAR(20) | CHOICES | SUJET, CORRIGE, BAREME |
+| `sha256` | VARCHAR(64) | NOT NULL | Hash pour intégrité |
+
+---
+
+### 7. Student (students.Student)
 
 **Responsabilité**: Élève de l'établissement
 
 | Champ | Type | Contraintes | Description |
 |-------|------|-------------|-------------|
 | `id` | INT | PK | Identifiant auto-incrémenté |
-| `ine` | VARCHAR(50) | UNIQUE | Identifiant National Élève |
+| `date_naissance` | DATE | NOT NULL | Date de naissance (Identification) |
 | `first_name` | VARCHAR(100) | NOT NULL | Prénom |
 | `last_name` | VARCHAR(100) | NOT NULL | Nom |
 | `class_name` | VARCHAR(50) | NOT NULL | Classe (ex: "TG2") |
 | `email` | EMAIL | NULLABLE | Email élève |
+| `user_id` | INT | FK → User, NULLABLE | Compte utilisateur associé (OneToOne) |
 
 **Import**: CSV Pronote via commande Django `import_students`
 
@@ -387,6 +436,70 @@ y_pdf = y * page_height
 
 ---
 
+### 11. QuestionRemark (grading.QuestionRemark)
+
+**Responsabilité**: Remarque sur une question spécifique.
+
+| Champ | Type | Contraintes | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | Identifiant unique |
+| `copy_id` | UUID | FK → Copy | Copie concernée |
+| `question_id` | VARCHAR(255) | NOT NULL | ID question (barème) |
+| `remark` | TEXT | NULLABLE | Contenu remarque |
+
+---
+
+### 12. Score (grading.Score)
+
+**Responsabilité**: Détail des notes json.
+
+| Champ | Type | Contraintes | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | Identifiant unique |
+| `copy_id` | UUID | FK → Copy | Copie concernée |
+| `scores_data` | JSON | NOT NULL | Détail notes par question |
+
+---
+
+### 13. AnnotationTemplate (grading.AnnotationTemplate)
+
+**Responsabilité**: Banque d'annotations partagées/officielles.
+
+| Champ | Type | Contraintes | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | Identifiant unique |
+| `exam_id` | UUID | FK → Exam | Examen parent |
+| `text` | TEXT | NOT NULL | Contenu annotation |
+| `criterion_type` | VARCHAR | CHOICES | Méthode, Résultat, etc. |
+
+---
+
+### 14. UserAnnotation (grading.UserAnnotation)
+
+**Responsabilité**: Annotations personnelles du correcteur.
+
+| Champ | Type | Contraintes | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | Identifiant unique |
+| `user_id` | UUID | FK → User | Correcteur propriétaire |
+| `text` | TEXT | NOT NULL | Contenu annotation |
+| `usage_count` | INT | DEFAULT 0 | Fréquence d'utilisation |
+
+---
+
+### 15. OCRResult (identification.OCRResult)
+
+**Responsabilité**: Résultat de l'identification automatique.
+
+| Champ | Type | Contraintes | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | Identifiant unique |
+| `copy_id` | UUID | FK → Copy (OneToOne) | Copie identifiée |
+| `detected_text` | TEXT | NOT NULL | Texte brut OCR |
+| `confidence` | FLOAT | NOT NULL | Score confiance (0-1) |
+
+---
+
 ## Relations et Cardinalités
 
 ### Relations ForeignKey
@@ -491,7 +604,7 @@ GradingEvent.objects.create(
 
 - **Primary Keys**: Index automatique sur tous les `id`
 - **Foreign Keys**: Index automatique sur tous les `*_id`
-- **Unique**: Index automatique sur `Copy.anonymous_id`, `Student.ine`
+- **Unique**: Index automatique sur `Copy.anonymous_id`
 
 ### Index Personnalisés
 
@@ -569,7 +682,7 @@ Ajout champs:
 ### Contraintes Métier
 
 1. **Copy.anonymous_id**: Unique, généré automatiquement
-2. **Student.ine**: Unique, identifiant national
+2. **Student (Nom, Prénom, Date)**: Triplet unique (contrainte `unique_together`)
 3. **CopyLock.copy_id**: Unique (OneToOne)
 4. **DraftState (copy_id, owner_id)**: Unique ensemble
 
