@@ -1,10 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import { useExamStore } from '../stores/examStore'
-import { useAuthStore } from '../stores/auth' // Need auth for direct calls if store lacks methods
+import api from '../services/api'
 
 const store = useExamStore()
-const authStore = useAuthStore()
 const fileInput = ref(null)
 const selectedBookletIds = ref([])
 const splitMode = ref(null) // Booklet ID being split
@@ -38,10 +37,7 @@ const deleteBooklet = async (id, e) => {
     e.stopPropagation()
     if(!confirm("Supprimer ce fascicule définitivement ?")) return
     try {
-        await fetch(`${authStore.API_URL}/api/exams/booklets/${id}/`, {
-            method: 'DELETE',
-            headers: authStore.authHeaders
-        })
+        await api.delete(`/exams/booklets/${id}/`)
         store.fetchBooklets(store.currentExam.id)
     } catch {
         alert("Erreur suppression")
@@ -57,19 +53,13 @@ const openSplit = (booklet, e) => {
 const performSplit = async () => {
     if (!splitMode.value) return
     try {
-        const res = await fetch(`${authStore.API_URL}/api/exams/booklets/${splitMode.value.id}/split/`, {
-            method: 'POST',
-            headers: { ...authStore.authHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ split_at: splitIndex.value })
+        await api.post(`/exams/booklets/${splitMode.value.id}/split/`, {
+            split_at: splitIndex.value
         })
-        if (res.ok) {
-            splitMode.value = null
-            store.fetchBooklets(store.currentExam.id)
-        } else {
-            alert("Erreur split")
-        }
+        splitMode.value = null
+        store.fetchBooklets(store.currentExam.id)
     } catch {
-        alert("Erreur réseau")
+        alert("Erreur split")
     }
 }
 

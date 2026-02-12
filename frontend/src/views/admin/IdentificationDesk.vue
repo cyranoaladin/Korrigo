@@ -176,9 +176,8 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
-import { useAuthStore } from '../../stores/auth'
+import api from '../../services/api'
 
-const auth = useAuthStore()
 const unidentifiedCopies = ref([])
 const currentCopy = ref(null)
 const loading = ref(true)
@@ -198,14 +197,9 @@ const ocrSelectedIndex = ref(-1)
 const fetchUnidentifiedCopies = async () => {
     loading.value = true
     try {
-        const res = await fetch(`${auth.API_URL}/api/identification/desk/`, {
-            credentials: 'include',
-            headers: auth.authHeaders
-        })
-        if (res.ok) {
-            unidentifiedCopies.value = await res.json()
-            selectNextCopy()
-        }
+        const res = await api.get('/identification/desk/')
+        unidentifiedCopies.value = res.data
+        selectNextCopy()
     } catch (e) {
         console.error("Fetch error", e)
     } finally {
@@ -215,7 +209,7 @@ const fetchUnidentifiedCopies = async () => {
 
 const selectNextCopy = () => {
     if (unidentifiedCopies.value.length > 0) {
-        currentCopy.value = unidentifiedCopies.value[0] // Always take first
+        currentCopy.value = unidentifiedCopies.value[0]
         resetForm()
         nextTick(() => searchInput.value?.focus())
     } else {
@@ -238,14 +232,9 @@ const searchStudents = async () => {
     }
     
     try {
-        const res = await fetch(`${auth.API_URL}/api/students/?search=${encodeURIComponent(searchQuery.value)}`, {
-             credentials: 'include',
-             headers: auth.authHeaders
-        })
-        if (res.ok) {
-            searchResults.value = await res.json()
-            selectedIndex.value = 0
-        }
+        const res = await api.get('/students/', { params: { search: searchQuery.value } })
+        searchResults.value = res.data?.results || res.data || []
+        selectedIndex.value = 0
     } catch (e) {
         console.error(e)
     }
@@ -254,14 +243,13 @@ const searchStudents = async () => {
 const selectStudent = (student) => {
     selectedStudent.value = student
     searchQuery.value = `${student.last_name} ${student.first_name}`
-    searchResults.value = [] // Hide results
+    searchResults.value = []
 }
 
 const selectFirstResult = () => {
     if (searchResults.value.length > 0) {
         selectStudent(searchResults.value[selectedIndex.value])
     } else if (selectedStudent.value) {
-        // Assume intention to validate if already selected
         confirmIdentification()
     }
 }
@@ -271,22 +259,9 @@ const runOCR = async () => {
 
     submitting.value = true
     try {
-        const res = await fetch(`${auth.API_URL}/api/identification/perform-ocr/${currentCopy.value.id}/`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: new Headers({
-                'Content-Type': 'application/json',
-                ...auth.authHeaders
-            })
-        })
-
-        if (res.ok) {
-            const data = await res.json()
-            ocrSuggestions.value = data.suggestions || []
-            ocrSelectedIndex.value = 0
-        } else {
-            console.error("OCR failed")
-        }
+        const res = await api.post(`/identification/perform-ocr/${currentCopy.value.id}/`)
+        ocrSuggestions.value = res.data?.suggestions || []
+        ocrSelectedIndex.value = 0
     } catch (e) {
         console.error("OCR error", e)
     } finally {
@@ -311,25 +286,13 @@ const confirmIdentification = async () => {
 
     submitting.value = true
     try {
-        const res = await fetch(`${auth.API_URL}/api/identification/identify/${currentCopy.value.id}/`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: new Headers({
-                'Content-Type': 'application/json',
-                ...auth.authHeaders
-            }),
-            body: JSON.stringify({ student_id: selectedStudent.value.id })
+        await api.post(`/identification/identify/${currentCopy.value.id}/`, {
+            student_id: selectedStudent.value.id
         })
-
-        if (res.ok) {
-            // Remove identified copy from list
-            unidentifiedCopies.value.shift()
-            selectNextCopy()
-        } else {
-            console.error("Identification failed")
-        }
+        unidentifiedCopies.value.shift()
+        selectNextCopy()
     } catch (e) {
-        console.error(e)
+        console.error("Identification failed", e)
     } finally {
         submitting.value = false
     }
