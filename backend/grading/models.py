@@ -329,3 +329,166 @@ class Score(models.Model):
 
     def __str__(self):
         return f"Score - {self.copy.anonymous_id}"
+
+
+class AnnotationTemplate(models.Model):
+    """
+    Banque d'annotations officielles contextualisées par exercice/question.
+    Générées automatiquement à partir du barème, corrigé et sujet,
+    ou créées manuellement par un admin.
+    """
+    class CriterionType(models.TextChoices):
+        METHOD = 'method', _("Méthode")
+        RESULT = 'result', _("Résultat")
+        JUSTIFICATION = 'justification', _("Justification")
+        REDACTION = 'redaction', _("Rédaction")
+        ERROR_TYPIQUE = 'error_typique', _("Erreur typique")
+        BONUS = 'bonus', _("Bonus")
+        PLAFOND = 'plafond', _("Plafond")
+
+    class Severity(models.TextChoices):
+        INFO = 'info', _("Information")
+        MINEUR = 'mineur', _("Mineur")
+        MAJEUR = 'majeur', _("Majeur")
+        CRITIQUE = 'critique', _("Critique")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    exam = models.ForeignKey(
+        'exams.Exam',
+        on_delete=models.CASCADE,
+        related_name='annotation_templates',
+        verbose_name=_("Examen")
+    )
+    document_set = models.ForeignKey(
+        'exams.ExamDocumentSet',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='annotation_templates',
+        verbose_name=_("Lot documentaire source"),
+        help_text=_("Version des documents ayant servi à générer ce template")
+    )
+    exercise_number = models.PositiveIntegerField(
+        verbose_name=_("Numéro d'exercice")
+    )
+    question_number = models.CharField(
+        max_length=20,
+        verbose_name=_("Numéro de question"),
+        help_text=_("Ex: '1', '3b', 'A.1'")
+    )
+    sub_question = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name=_("Sous-question"),
+        help_text=_("Ex: 'a', 'ii', etc.")
+    )
+    criterion_type = models.CharField(
+        max_length=30,
+        choices=CriterionType.choices,
+        verbose_name=_("Type de critère")
+    )
+    severity = models.CharField(
+        max_length=20,
+        choices=Severity.choices,
+        default=Severity.INFO,
+        verbose_name=_("Sévérité")
+    )
+    text = models.TextField(
+        verbose_name=_("Texte de l'annotation")
+    )
+    linked_bareme_reference = models.TextField(
+        blank=True,
+        verbose_name=_("Référence barème"),
+        help_text=_("Extrait du barème lié à cette annotation")
+    )
+    linked_corrige_reference = models.TextField(
+        blank=True,
+        verbose_name=_("Référence corrigé"),
+        help_text=_("Extrait du corrigé lié à cette annotation")
+    )
+    tags = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_("Tags"),
+        help_text=_("Tags pour filtrage et recherche")
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_("Actif")
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+
+    class Meta:
+        verbose_name = _("Template d'annotation")
+        verbose_name_plural = _("Templates d'annotation")
+        ordering = ['exercise_number', 'question_number', 'criterion_type']
+        indexes = [
+            models.Index(fields=['exam', 'exercise_number', 'question_number']),
+            models.Index(fields=['exam', 'criterion_type']),
+        ]
+
+    def __str__(self):
+        return f"Ex{self.exercise_number} Q{self.question_number} [{self.get_criterion_type_display()}] - {self.text[:50]}"
+
+
+class UserAnnotation(models.Model):
+    """
+    Mémoire personnelle du correcteur.
+    Annotations créées manuellement, persistantes, auto-alimentées,
+    avec compteur d'usage et contexte exercice/question.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        'auth.User',
+        on_delete=models.CASCADE,
+        related_name='personal_annotations',
+        verbose_name=_("Correcteur")
+    )
+    text = models.TextField(
+        verbose_name=_("Texte de l'annotation")
+    )
+    exercise_context = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Contexte exercice"),
+        help_text=_("Numéro d'exercice associé (optionnel)")
+    )
+    question_context = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name=_("Contexte question"),
+        help_text=_("Label de question associé (optionnel)")
+    )
+    usage_count = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Nombre d'utilisations")
+    )
+    last_used = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Dernière utilisation")
+    )
+    tags = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_("Tags")
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_("Actif")
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+
+    class Meta:
+        verbose_name = _("Annotation personnelle")
+        verbose_name_plural = _("Annotations personnelles")
+        ordering = ['-usage_count', '-last_used']
+        indexes = [
+            models.Index(fields=['user', '-usage_count']),
+            models.Index(fields=['user', 'exercise_context']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username}: {self.text[:50]} (×{self.usage_count})"

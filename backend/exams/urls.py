@@ -8,6 +8,12 @@ from .views import (
     CopyValidationView, BulkCopyValidationView,
     BulkSubjectVariantView, AutoDetectSubjectVariantView
 )
+from .views_documents import (
+    DocumentSetUploadView,
+    DocumentSetListView,
+    DocumentSetActivateView,
+    DocumentSetRetryExtractionView,
+)
 
 urlpatterns = [
     # Mission 14: Upload & List
@@ -52,6 +58,12 @@ urlpatterns = [
     
     # Student Portal
     path('student/copies/', StudentCopiesView.as_view(), name='student-copies'),
+
+    # Document Management (sujet, corrigé, barème)
+    path('<uuid:exam_id>/document-sets/', DocumentSetUploadView.as_view(), name='document-set-upload'),
+    path('<uuid:exam_id>/document-sets/list/', DocumentSetListView.as_view(), name='document-set-list'),
+    path('<uuid:exam_id>/document-sets/<uuid:set_id>/activate/', DocumentSetActivateView.as_view(), name='document-set-activate'),
+    path('<uuid:exam_id>/document-sets/<uuid:set_id>/retry-extraction/', DocumentSetRetryExtractionView.as_view(), name='document-set-retry'),
 ]
 
 # Analytics endpoints (temporarily disabled - UploadMetrics model not yet implemented)

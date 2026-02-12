@@ -25,6 +25,14 @@ from grading.views_lock import (
 )
 from grading.views_draft import DraftReturnView
 from grading.views_async import task_status, cancel_task
+from grading.views_annotation_bank import (
+    ContextualSuggestionsView,
+    UserAnnotationListCreateView,
+    UserAnnotationDetailView,
+    UserAnnotationUseView,
+    AutoSaveAnnotationView,
+    AnnotationTemplateListView,
+)
 
 urlpatterns = [
     # Drafts
@@ -66,4 +74,14 @@ urlpatterns = [
     # Release/Unrelease Results
     path('exams/<uuid:exam_id>/release-results/', ExamReleaseResultsView.as_view(), name='exam-release-results'),
     path('exams/<uuid:exam_id>/unrelease-results/', ExamUnreleaseResultsView.as_view(), name='exam-unrelease-results'),
+
+    # Banque d'annotations — Suggestions contextuelles
+    path('exams/<uuid:exam_id>/suggestions/', ContextualSuggestionsView.as_view(), name='contextual-suggestions'),
+    path('exams/<uuid:exam_id>/annotation-templates/', AnnotationTemplateListView.as_view(), name='annotation-template-list'),
+
+    # Annotations personnelles du correcteur
+    path('my-annotations/', UserAnnotationListCreateView.as_view(), name='user-annotation-list-create'),
+    path('my-annotations/auto-save/', AutoSaveAnnotationView.as_view(), name='user-annotation-auto-save'),
+    path('my-annotations/<uuid:pk>/', UserAnnotationDetailView.as_view(), name='user-annotation-detail'),
+    path('my-annotations/<uuid:pk>/use/', UserAnnotationUseView.as_view(), name='user-annotation-use'),
 ]

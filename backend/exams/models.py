@@ -363,3 +363,269 @@ class ExamPDF(models.Model):
     
     def __str__(self):
         return f"PDF {self.student_identifier or self.id} - {self.exam.name}"
+
+
+class ExamDocumentSet(models.Model):
+    """
+    Lot documentaire versionné pour un examen.
+    Contient les 3 PDFs officiels : sujet, corrigé, barème.
+    Chaque nouvelle version crée un nouveau lot pour traçabilité.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    exam = models.ForeignKey(
+        Exam,
+        on_delete=models.CASCADE,
+        related_name='document_sets',
+        verbose_name=_("Examen")
+    )
+    version = models.PositiveIntegerField(
+        verbose_name=_("Version"),
+        help_text=_("Numéro de version (v1, v2, ...)")
+    )
+    label = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_("Libellé"),
+        help_text=_("Ex: 'BB 2026 J1 - Officiel'")
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_("Version active"),
+        help_text=_("Seule la version active est utilisée par les correcteurs")
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_document_sets',
+        verbose_name=_("Créé par")
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+
+    class Meta:
+        verbose_name = _("Lot documentaire")
+        verbose_name_plural = _("Lots documentaires")
+        unique_together = ['exam', 'version']
+        ordering = ['-version']
+
+    def __str__(self):
+        return f"{self.exam.name} - v{self.version} {'(actif)' if self.is_active else ''}"
+
+
+class ExamDocument(models.Model):
+    """
+    Un document PDF individuel (sujet, corrigé ou barème) au sein d'un lot.
+    Stockage sécurisé avec hash SHA-256 pour traçabilité et déduplication.
+    """
+    class DocType(models.TextChoices):
+        SUJET = 'sujet', _("Sujet")
+        CORRIGE = 'corrige', _("Corrigé")
+        BAREME = 'bareme', _("Barème")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    document_set = models.ForeignKey(
+        ExamDocumentSet,
+        on_delete=models.CASCADE,
+        related_name='documents',
+        verbose_name=_("Lot documentaire")
+    )
+    doc_type = models.CharField(
+        max_length=20,
+        choices=DocType.choices,
+        verbose_name=_("Type de document")
+    )
+    original_filename = models.CharField(
+        max_length=512,
+        verbose_name=_("Nom de fichier original")
+    )
+    storage_path = models.CharField(
+        max_length=1024,
+        verbose_name=_("Chemin de stockage"),
+        help_text=_("Chemin relatif dans MEDIA_ROOT")
+    )
+    mime_type = models.CharField(
+        max_length=100,
+        default='application/pdf',
+        verbose_name=_("Type MIME")
+    )
+    sha256 = models.CharField(
+        max_length=64,
+        verbose_name=_("Hash SHA-256"),
+        help_text=_("Pour traçabilité et déduplication")
+    )
+    file_size = models.BigIntegerField(
+        verbose_name=_("Taille du fichier (octets)")
+    )
+    page_count = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Nombre de pages")
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='uploaded_documents',
+        verbose_name=_("Uploadé par")
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date d'upload"))
+
+    class Meta:
+        verbose_name = _("Document d'examen")
+        verbose_name_plural = _("Documents d'examen")
+        unique_together = ['document_set', 'doc_type']
+        ordering = ['doc_type']
+
+    def __str__(self):
+        return f"{self.get_doc_type_display()} - {self.original_filename}"
+
+
+class DocumentTextExtraction(models.Model):
+    """
+    État du pipeline d'extraction de texte pour un document PDF.
+    Permet le suivi asynchrone et la relance en cas d'échec.
+    """
+    class Status(models.TextChoices):
+        PENDING = 'pending', _("En attente")
+        PROCESSING = 'processing', _("En cours")
+        DONE = 'done', _("Terminé")
+        FAILED = 'failed', _("Échoué")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    document = models.ForeignKey(
+        ExamDocument,
+        on_delete=models.CASCADE,
+        related_name='extractions',
+        verbose_name=_("Document")
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        verbose_name=_("Statut")
+    )
+    engine = models.CharField(
+        max_length=30,
+        default='pymupdf',
+        verbose_name=_("Moteur d'extraction"),
+        help_text=_("Ex: pymupdf, pdfminer")
+    )
+    error_message = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_("Message d'erreur")
+    )
+    extracted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Date d'extraction")
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+
+    class Meta:
+        verbose_name = _("Extraction de texte")
+        verbose_name_plural = _("Extractions de texte")
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Extraction {self.get_status_display()} - {self.document}"
+
+
+class DocumentPage(models.Model):
+    """
+    Texte extrait page par page d'un document PDF.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    extraction = models.ForeignKey(
+        DocumentTextExtraction,
+        on_delete=models.CASCADE,
+        related_name='pages',
+        verbose_name=_("Extraction")
+    )
+    page_number = models.PositiveIntegerField(
+        verbose_name=_("Numéro de page")
+    )
+    page_text = models.TextField(
+        verbose_name=_("Texte de la page")
+    )
+
+    class Meta:
+        verbose_name = _("Page de document")
+        verbose_name_plural = _("Pages de document")
+        unique_together = ['extraction', 'page_number']
+        ordering = ['page_number']
+
+    def __str__(self):
+        return f"Page {self.page_number} - {self.extraction.document}"
+
+
+class DocumentChunk(models.Model):
+    """
+    Segment de texte indexé pour recherche full-text et suggestions contextuelles.
+    Découpé par exercice/question pour permettre des suggestions ciblées.
+    """
+    class DocType(models.TextChoices):
+        SUJET = 'sujet', _("Sujet")
+        CORRIGE = 'corrige', _("Corrigé")
+        BAREME = 'bareme', _("Barème")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    extraction = models.ForeignKey(
+        DocumentTextExtraction,
+        on_delete=models.CASCADE,
+        related_name='chunks',
+        verbose_name=_("Extraction")
+    )
+    doc_type = models.CharField(
+        max_length=20,
+        choices=DocType.choices,
+        verbose_name=_("Type de document source")
+    )
+    chunk_index = models.PositiveIntegerField(
+        verbose_name=_("Index du segment")
+    )
+    page_start = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Page de début")
+    )
+    page_end = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Page de fin")
+    )
+    exercise_number = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Numéro d'exercice"),
+        help_text=_("Détecté automatiquement lors du chunking")
+    )
+    question_label = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name=_("Label de question"),
+        help_text=_("Ex: '3b', 'A.1', etc.")
+    )
+    chunk_text = models.TextField(
+        verbose_name=_("Texte du segment")
+    )
+    tags = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_("Tags"),
+        help_text=_("Tags pour filtrage et recherche")
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+
+    class Meta:
+        verbose_name = _("Segment de document")
+        verbose_name_plural = _("Segments de document")
+        unique_together = ['extraction', 'chunk_index']
+        ordering = ['chunk_index']
+
+    def __str__(self):
+        ex = f"Ex{self.exercise_number}" if self.exercise_number else ""
+        q = f" Q{self.question_label}" if self.question_label else ""
+        return f"Chunk {self.chunk_index} {ex}{q} - {self.extraction.document}"

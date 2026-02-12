@@ -2,7 +2,7 @@
 Serializers pour l'app grading.
 """
 from rest_framework import serializers
-from grading.models import Annotation, GradingEvent, QuestionRemark
+from grading.models import Annotation, GradingEvent, QuestionRemark, AnnotationTemplate, UserAnnotation
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -71,3 +71,42 @@ class QuestionRemarkSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_by', 'created_by_username', 'created_at', 'updated_at']
+
+
+class AnnotationTemplateSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour la banque d'annotations officielles.
+    """
+    criterion_type_display = serializers.CharField(source='get_criterion_type_display', read_only=True)
+    severity_display = serializers.CharField(source='get_severity_display', read_only=True)
+
+    class Meta:
+        model = AnnotationTemplate
+        fields = [
+            'id', 'exam', 'document_set',
+            'exercise_number', 'question_number', 'sub_question',
+            'criterion_type', 'criterion_type_display',
+            'severity', 'severity_display',
+            'text',
+            'linked_bareme_reference', 'linked_corrige_reference',
+            'tags', 'is_active',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class UserAnnotationSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour les annotations personnelles du correcteur.
+    """
+    class Meta:
+        model = UserAnnotation
+        fields = [
+            'id', 'user',
+            'text',
+            'exercise_context', 'question_context',
+            'usage_count', 'last_used',
+            'tags', 'is_active',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'user', 'usage_count', 'last_used', 'created_at', 'updated_at']
