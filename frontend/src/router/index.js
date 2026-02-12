@@ -211,8 +211,14 @@ router.beforeEach(async (to, from, next) => {
         return next()
     }
 
-    // Skip auth check entirely for public pages — no API calls needed
+    // Public pages: skip heavy auth fetch, but still redirect authenticated
+    // users away from login pages to their dashboard
     if (to.meta.public) {
+        if (isLoginPage(to.name) && authStore.user) {
+            const dashboardPath = getDashboardForRole(authStore.user.role)
+            redirectCount++
+            return next({ path: dashboardPath, replace: true })
+        }
         return next()
     }
 
