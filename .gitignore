@@ -62,6 +62,7 @@ venv.bak/
 *.swp
 *.swo
 *~
+.~lock.*
 .DS_Store
 Thumbs.db
 
@@ -126,6 +127,7 @@ G3_EDS_MATHS.csv
 
 # Temporary production rebuild scripts
 backend/rebuild_production.py
+backend/rebuild_full.py
 backend/import_j1_copies.py
 backend/fix_matching*.py
 backend/ocr_matching.py
