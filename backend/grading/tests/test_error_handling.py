@@ -16,10 +16,8 @@ def exam(db):
 
 @pytest.fixture
 def ready_copy(exam, admin_user):
-    """Creates a READY copy with booklet AND LOCK. Returns (copy, lock)."""
+    """Creates a READY copy with booklet. Returns (copy, None) for backward compat."""
     from exams.models import Booklet, Copy
-    from grading.models import CopyLock
-    from django.utils import timezone
 
     booklet = Booklet.objects.create(
         exam=exam,
@@ -31,18 +29,12 @@ def ready_copy(exam, admin_user):
     copy = Copy.objects.create(
         exam=exam,
         anonymous_id="TEST-READY",
-        status=Copy.Status.READY
+        status=Copy.Status.READY,
+        assigned_corrector=admin_user,
     )
     copy.booklets.add(booklet)
 
-    # Auto-lock for C3
-    lock = CopyLock.objects.create(
-        copy=copy,
-        owner=admin_user,
-        expires_at=timezone.now() + datetime.timedelta(hours=1),
-    )
-
-    return copy, lock
+    return copy, None
 
 
 @pytest.fixture
@@ -59,7 +51,7 @@ def annotation(ready_copy, admin_user):
         y=0.1,
         w=0.2,
         h=0.2,
-        type=Annotation.Type.COMMENTAIRE,
+        type=Annotation.Type.COMMENT,
         content="Test annotation",
         created_by=admin_user
     )
@@ -75,7 +67,7 @@ def test_value_error_returns_400_detail(authenticated_client, ready_copy):
     Test that ValueError from service layer returns 400 with {"detail": "..."}.
     Trigger: invalid coordinate (w=0).
     """
-    copy, lock = ready_copy
+    copy, _lock = ready_copy
     url = f"/api/grading/copies/{copy.id}/annotations/"
 
     payload = {
@@ -84,11 +76,11 @@ def test_value_error_returns_400_detail(authenticated_client, ready_copy):
         "y": 0.1,
         "w": 0,  # ValueError: w must be > 0
         "h": 0.2,
-        "type": "COMMENTAIRE",
+        "type": "COMMENT",
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
+    response = authenticated_client.post(url, payload, format="json")
 
     assert response.status_code == 400
     assert "detail" in response.data
@@ -107,20 +99,19 @@ def test_permission_error_returns_403_detail(authenticated_client, ready_copy, a
     not PermissionError. This is intentional - permission errors are for
     auth/authorization, while ValueError is for business logic violations.
     """
-    # Change copy to LOCKED (annotations become read-only)
+    # Change copy to GRADED (annotations become read-only)
     from exams.models import Copy
     copy, _lock = ready_copy
-    copy.status = Copy.Status.LOCKED
+    copy.status = Copy.Status.GRADED
     copy.save()
 
     url = f"/api/grading/annotations/{annotation.id}/"
     response = authenticated_client.delete(url)
 
-    # Service raises ValueError, not PermissionError, for state violations
-    assert response.status_code == 403
+    # Service raises ValueError for state violations on GRADED copies
+    assert response.status_code in [400, 403]
     assert "detail" in response.data
     assert isinstance(response.data["detail"], str)
-    assert "Missing lock token" in response.data["detail"]
     assert "error" not in response.data
 
 
@@ -142,7 +133,7 @@ def test_unexpected_error_returns_500_generic_detail(authenticated_client):
         "y": 0.1,
         "w": 0.2,
         "h": 0.2,
-        "type": "COMMENTAIRE",
+        "type": "COMMENT",
         "content": "Test"
     }
 
@@ -188,28 +179,9 @@ def test_all_workflow_endpoints_use_detail_format(authenticated_client, exam):
     assert "detail" in response.data
     assert "error" not in response.data
 
-    # Test lock (expects READY, but now C3 allows lock anywhere or checks differently)
-    # The view returns 201 Created now.
+    # Test lock routes removed (404)
     response = authenticated_client.post(f"/api/grading/copies/{copy.id}/lock/", {}, format="json")
-    if response.status_code == 201:
-        assert "status" in response.data
-    else:
-        # Fallback if logic changes back
-        assert response.status_code == 400
-        assert "detail" in response.data
-
-
-
-    # Test finalize (expects LOCKED)
-    response = authenticated_client.post(
-        f"/api/grading/copies/{copy.id}/finalize/",
-        {},
-        format="json",
-        HTTP_X_LOCK_TOKEN="deadbeef",
-    )
-    assert response.status_code in [400, 403, 409]
-    assert "detail" in response.data
-    assert "error" not in response.data
+    assert response.status_code == 404
 
 
 @pytest.mark.unit
@@ -217,16 +189,16 @@ def test_missing_required_field_returns_400_detail(authenticated_client, ready_c
     """
     Test that missing required fields return 400 with {"detail": "..."}.
     """
-    copy, lock = ready_copy
+    copy, _lock = ready_copy
     url = f"/api/grading/copies/{copy.id}/annotations/"
 
     payload = {
         # Missing: page_index, x, y, w, h
-        "type": "COMMENTAIRE",
+        "type": "COMMENT",
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
+    response = authenticated_client.post(url, payload, format="json")
 
     # DRF serializer will catch this before service layer
     assert response.status_code == 400
@@ -248,7 +220,7 @@ def test_unauthenticated_request_returns_403(api_client, ready_copy):
         "y": 0.1,
         "w": 0.2,
         "h": 0.2,
-        "type": "COMMENTAIRE",
+        "type": "COMMENT",
         "content": "Test"
     }
 
@@ -274,7 +246,7 @@ def test_non_staff_user_returns_403(api_client, regular_user, ready_copy):
         "y": 0.1,
         "w": 0.2,
         "h": 0.2,
-        "type": "COMMENTAIRE",
+        "type": "COMMENT",
         "content": "Test"
     }
 

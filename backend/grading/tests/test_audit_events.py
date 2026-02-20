@@ -6,7 +6,7 @@ from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from exams.models import Exam, Copy
-from grading.models import GradingEvent, Annotation, CopyLock
+from grading.models import GradingEvent, Annotation
 from core.auth import UserRole
 import unittest.mock
 from django.utils import timezone
@@ -98,26 +98,20 @@ class TestAuditEvents(TransactionTestCase):
         )
         copy.booklets.add(booklet)
 
-        # Lock the copy (required for annotation creation)
-        resp = self.client.post(f"/api/grading/copies/{copy.id}/lock/", {}, format='json')
-        self.assertEqual(resp.status_code, 201)
-        lock_token = resp.data['token']
-
-        # Create annotation via API
+        # Create annotation via API (no lock required)
         ann_data = {
             "page_index": 0,
             "x": 0.1,
             "y": 0.2,
             "w": 0.3,
             "h": 0.1,
-            "type": Annotation.Type.COMMENTAIRE,
+            "type": Annotation.Type.COMMENT,
             "content": "Test annotation"
         }
         resp = self.client.post(
             f"/api/grading/copies/{copy.id}/annotations/",
             ann_data,
             format='json',
-            HTTP_X_LOCK_TOKEN=str(lock_token)
         )
         self.assertEqual(resp.status_code, 201)
         annotation_id = resp.data['id']
@@ -141,13 +135,12 @@ class TestAuditEvents(TransactionTestCase):
         """
         self.client.force_authenticate(user=self.teacher)
 
-        # Create copy in LOCKED state with annotation
+        # Create copy in READY state with annotation
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="AUDIT-FIN-OK",
-            status=Copy.Status.LOCKED,
-            locked_by=self.teacher,
-            locked_at=timezone.now()
+            status=Copy.Status.READY,
+            assigned_corrector=self.teacher,
         )
 
         # Create annotation with score_delta
@@ -158,17 +151,10 @@ class TestAuditEvents(TransactionTestCase):
             y=0.1,
             w=0.1,
             h=0.1,
-            type=Annotation.Type.COMMENTAIRE,
+            type=Annotation.Type.COMMENT,
             content="Good",
             score_delta=5,
             created_by=self.teacher
-        )
-
-        # Create lock
-        lock = CopyLock.objects.create(
-            copy=copy,
-            owner=self.teacher,
-            expires_at=timezone.now() + datetime.timedelta(minutes=10)
         )
 
         # Mock PDF flattener
@@ -179,7 +165,6 @@ class TestAuditEvents(TransactionTestCase):
                 f"/api/grading/copies/{copy.id}/finalize/",
                 {},
                 format='json',
-                HTTP_X_LOCK_TOKEN=str(lock.token)
             )
 
         self.assertEqual(resp.status_code, 200)
@@ -224,20 +209,12 @@ class TestAuditEvents(TransactionTestCase):
         """
         self.client.force_authenticate(user=self.teacher)
 
-        # Create copy in LOCKED state
+        # Create copy in READY state
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="AUDIT-FIN-FAIL",
-            status=Copy.Status.LOCKED,
-            locked_by=self.teacher,
-            locked_at=timezone.now()
-        )
-
-        # Create lock
-        lock = CopyLock.objects.create(
-            copy=copy,
-            owner=self.teacher,
-            expires_at=timezone.now() + datetime.timedelta(minutes=10)
+            status=Copy.Status.READY,
+            assigned_corrector=self.teacher,
         )
 
         # Mock PDF flattener to raise exception
@@ -248,16 +225,15 @@ class TestAuditEvents(TransactionTestCase):
                 f"/api/grading/copies/{copy.id}/finalize/",
                 {},
                 format='json',
-                HTTP_X_LOCK_TOKEN=str(lock.token)
             )
 
         # Verify error response
         self.assertEqual(resp.status_code, 400)
         self.assertIn("Failed to generate final PDF", resp.data['detail'])
         
-        # Verify copy status rolled back to LOCKED (transaction atomic behavior)
+        # Verify copy status rolled back to READY (transaction atomic behavior)
         copy.refresh_from_db()
-        self.assertEqual(copy.status, Copy.Status.LOCKED)
+        self.assertEqual(copy.status, Copy.Status.READY)
         
         # Verify NO audit event persisted (rolled back with transaction)
         # This documents the current limitation
@@ -316,63 +292,16 @@ class TestAuditEvents(TransactionTestCase):
         if copy.pdf_source:
             copy.pdf_source.delete(save=False)
 
-    def test_lock_conflict_records_metric(self):
+    def test_lock_routes_removed(self):
         """
-        Verify that lock conflicts increment the grading_lock_conflicts_total counter.
-        
-        This smoke test triggers an 'already_locked' conflict by having a second user
-        attempt to acquire a lock held by the first user.
+        Verify that lock routes return 404 after lock mechanism removal.
         """
-        # Import metrics module to access counter
-        from grading.metrics import grading_lock_conflicts_total
-
-        # Create a second teacher user for conflict scenario
-        second_teacher = User.objects.create_user(username='teacher_audit_2', password='password')
-        second_teacher.groups.add(self.teacher_group)
-
-        # Create copy in READY state
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="AUDIT-LOCK",
             status=Copy.Status.READY
         )
 
-        # Get initial counter value for 'already_locked' conflict type
-        initial_samples = list(grading_lock_conflicts_total.collect())[0].samples
-        initial_value = 0
-        for sample in initial_samples:
-            if sample.labels.get('conflict_type') == 'already_locked':
-                initial_value = sample.value
-                break
-
-        # First teacher acquires lock (should succeed)
         self.client.force_authenticate(user=self.teacher)
-        resp1 = self.client.post(f"/api/grading/copies/{copy.id}/lock/", {}, format='json')
-        self.assertEqual(resp1.status_code, 201)
-        first_token = resp1.data['token']
-
-        # Second teacher attempts to acquire same lock (should conflict)
-        self.client.force_authenticate(user=second_teacher)
-        resp2 = self.client.post(f"/api/grading/copies/{copy.id}/lock/", {}, format='json')
-        self.assertEqual(resp2.status_code, 409)  # Conflict status
-        self.assertIn("locked by another user", resp2.data['detail'].lower())
-
-        # Verify counter incremented for 'already_locked' conflict
-        final_samples = list(grading_lock_conflicts_total.collect())[0].samples
-        final_value = 0
-        for sample in final_samples:
-            if sample.labels.get('conflict_type') == 'already_locked':
-                final_value = sample.value
-                break
-
-        self.assertGreater(final_value, initial_value,
-                          f"grading_lock_conflicts_total{{conflict_type='already_locked'}} should have incremented from {initial_value} to {final_value}")
-
-        # Cleanup: release lock (switch back to first teacher)
-        self.client.force_authenticate(user=self.teacher)
-        self.client.post(
-            f"/api/grading/copies/{copy.id}/unlock/",
-            {},
-            format='json',
-            HTTP_X_LOCK_TOKEN=str(first_token)
-        )
+        resp = self.client.post(f"/api/grading/copies/{copy.id}/lock/", {}, format='json')
+        self.assertEqual(resp.status_code, 404)

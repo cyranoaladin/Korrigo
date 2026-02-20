@@ -7,7 +7,7 @@ from django.contrib.auth.models import User, Group
 from django.core.files.uploadedfile import SimpleUploadedFile
 from exams.models import Exam, Copy, Booklet
 from students.models import Student
-from grading.models import Annotation, GradingEvent, CopyLock
+from grading.models import Annotation, GradingEvent
 from identification.models import OCRResult
 from core.auth import UserRole
 from django.utils import timezone
@@ -150,20 +150,10 @@ class BacBlancE2ETest(TestCase):
         self.assertEqual(copy.status, Copy.Status.READY)
         self.assertEqual(copy.student, self.student)
         
-        # Step 5: Teacher locks the copy for grading (simulated)
+        # Step 5: Teacher grades the copy (simplified workflow, no lock)
         self.client.force_login(self.teacher_user)
         
-        # Create a lock (simulating the lock mechanism)
-        lock = CopyLock.objects.create(
-            copy=copy,
-            owner=self.teacher_user,
-            expires_at=timezone.now() + datetime.timedelta(hours=1)
-        )
-        
-        # Update copy status to LOCKED
-        copy.status = Copy.Status.LOCKED
-        copy.locked_by = self.teacher_user
-        copy.locked_at = timezone.now()
+        copy.assigned_corrector = self.teacher_user
         copy.save()
         
         # Step 6: Add annotations (simulating grading)
@@ -172,7 +162,7 @@ class BacBlancE2ETest(TestCase):
             page_index=0,
             x=0.1, y=0.1, w=0.2, h=0.1,
             content="Bon travail!",
-            type=Annotation.Type.COMMENTAIRE,
+            type=Annotation.Type.COMMENT,
             score_delta=5,
             created_by=self.teacher_user
         )

@@ -36,80 +36,69 @@ class TestAntiLoss:
 
     def test_finalize_idempotency_or_safety(self, teacher, copy):
         """
-        Finalizing an already finalized copy should be safe (Idempotent 200 or Safe 400).
+        Finalizing an already finalized copy should be safe (Idempotent 200 or Safe 400/409).
         It MUST NOT re-run flattening or corrupt data.
+        Simplified workflow: finalize from READY, no lock required.
         """
-        copy.status = Copy.Status.LOCKED
-        copy.locked_by = teacher
-        copy.locked_at = timezone.now() if hasattr(copy, "locked_at") else None
-        copy.save(update_fields=["status", "locked_by", "locked_at"])
-        
+        copy.status = Copy.Status.READY
+        copy.assigned_corrector = teacher
+        copy.save(update_fields=["status", "assigned_corrector"])
+
         client = APIClient()
         client.force_authenticate(user=teacher)
-        
-        from grading.models import CopyLock
-        lock = CopyLock.objects.create(copy=copy, owner=teacher, expires_at=timezone.now() + datetime.timedelta(minutes=10))
 
         with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
             mock_flatten.return_value = b"%PDF-1.4\n%%EOF"
-            resp1 = client.post(f"/api/grading/copies/{copy.id}/finalize/", HTTP_X_LOCK_TOKEN=str(lock.token))
+            resp1 = client.post(f"/api/grading/copies/{copy.id}/finalize/")
             assert resp1.status_code == 200
             assert mock_flatten.call_count == 1
 
-            resp2 = client.post(f"/api/grading/copies/{copy.id}/finalize/", HTTP_X_LOCK_TOKEN=str(lock.token))
+            resp2 = client.post(f"/api/grading/copies/{copy.id}/finalize/")
             assert resp2.status_code in [400, 403, 409]
             assert mock_flatten.call_count == 1
 
-    def test_lock_idempotency(self, teacher, copy):
+    def test_annotation_on_graded_copy_rejected(self, teacher, copy):
         """
-        Locking an already locked copy should be safe.
-        C3: 1st call -> 201, 2nd call -> 200 (Refresh).
+        Annotating a GRADED copy must be rejected (400).
+        Replaces old lock idempotency test — locks removed.
         """
+        copy.status = Copy.Status.GRADED
+        copy.save(update_fields=["status"])
+
         client = APIClient()
         client.force_authenticate(user=teacher)
-        
-        # 1st Lock
-        resp1 = client.post(f"/api/grading/copies/{copy.id}/lock/")
-        assert resp1.status_code == 201
-        
-        # 2nd Lock
-        resp2 = client.post(f"/api/grading/copies/{copy.id}/lock/")
-        assert resp2.status_code == 200
-        
+
+        resp = client.post(f"/api/grading/copies/{copy.id}/annotations/", {
+            "page_index": 0, "x": 0.1, "y": 0.1, "w": 0.1, "h": 0.1,
+            "type": "COMMENT", "content": "Should fail"
+        }, format='json')
+        assert resp.status_code == 400
     def test_annotation_create_atomicity(self, teacher, copy):
         """
-        If creating an annotation fails (e.g. at DB level), 
+        If creating an annotation fails (e.g. at DB level),
         verify no partial data or side effects.
+        Simplified workflow: READY copy, no lock required.
         """
         client = APIClient()
         client.force_authenticate(user=teacher)
-        
-        # C3: Acquire Lock
-        from grading.models import CopyLock
-        copy.status = Copy.Status.LOCKED
-        copy.locked_by = teacher
-        copy.locked_at = timezone.now() if hasattr(copy, "locked_at") else None
-        copy.save(update_fields=["status", "locked_by", "locked_at"])
-        lock = CopyLock.objects.create(
-            copy=copy,
-            owner=teacher,
-            expires_at=timezone.now() + datetime.timedelta(hours=1),
-        )
-        
+
+        copy.status = Copy.Status.READY
+        copy.assigned_corrector = teacher
+        copy.save(update_fields=["status", "assigned_corrector"])
+
         ann_data = {
             "page_index": 0, "x": 0.1, "y": 0.1, "w": 0.1, "h": 0.1,
-            "type": Annotation.Type.COMMENTAIRE, "content": "Atomic"
+            "type": Annotation.Type.COMMENT, "content": "Atomic"
         }
-        
+
         # Simulate DB error during save
         with unittest.mock.patch("grading.models.Annotation.save", side_effect=Exception("DB Crash")):
             resp = client.post(
                 f"/api/grading/copies/{copy.id}/annotations/",
                 ann_data,
                 format='json',
-                HTTP_X_LOCK_TOKEN=str(lock.token),
             )
-            
+
         assert resp.status_code == 500
         assert Annotation.objects.count() == 0 # Must be 0
         

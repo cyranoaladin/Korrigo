@@ -125,7 +125,7 @@ def test_critical_models_importable():
     """Verify all critical models can be imported"""
     try:
         from exams.models import Exam, Copy, Booklet
-        from grading.models import Annotation, CopyLock  # Score doesn't exist
+        from grading.models import Annotation, CopyLock, GradingEvent
         from students.models import Student
     except ImportError as e:
         pytest.fail(f"Critical model import failed: {e}")
