@@ -1,6 +1,10 @@
+"""
+API error contract tests for the simplified (no-lock) workflow.
+Verifies that annotation/finalize endpoints return correct status codes
+and response shapes for various error conditions.
+"""
 import pytest
-from django.utils import timezone
-import datetime
+import unittest.mock
 
 
 @pytest.fixture
@@ -24,63 +28,60 @@ def booklet_with_pages(exam):
 
 
 @pytest.fixture
-def locked_copy_with_lock(exam, booklet_with_pages, teacher_user):
+def ready_copy(exam, booklet_with_pages, teacher_user):
     from exams.models import Copy
-    from grading.models import CopyLock
 
     copy = Copy.objects.create(
         exam=exam,
-        anonymous_id="CONTRACT-LOCKED",
-        status=Copy.Status.LOCKED,
-        locked_at=timezone.now(),
-        locked_by=teacher_user,
+        anonymous_id="CONTRACT-READY",
+        status=Copy.Status.READY,
+        assigned_corrector=teacher_user,
     )
     copy.booklets.add(booklet_with_pages)
+    return copy
 
-    lock = CopyLock.objects.create(
-        copy=copy,
-        owner=teacher_user,
-        expires_at=timezone.now() + datetime.timedelta(minutes=10),
+
+@pytest.fixture
+def graded_copy(exam, booklet_with_pages, teacher_user):
+    from exams.models import Copy
+
+    copy = Copy.objects.create(
+        exam=exam,
+        anonymous_id="CONTRACT-GRADED",
+        status=Copy.Status.GRADED,
+        assigned_corrector=teacher_user,
     )
-    return copy, lock
+    copy.booklets.add(booklet_with_pages)
+    return copy
 
 
 @pytest.mark.django_db
-def test_annotation_create_missing_token_returns_403_detail(teacher_client, locked_copy_with_lock):
-    copy, _lock = locked_copy_with_lock
-
-    url = f"/api/grading/copies/{copy.id}/annotations/"
+def test_annotation_create_on_graded_returns_400(teacher_client, graded_copy):
+    """Annotating a GRADED copy must return 400 with detail key."""
+    url = f"/api/grading/copies/{graded_copy.id}/annotations/"
     payload = {
         "page_index": 0,
-        "x": 0.1,
-        "y": 0.1,
-        "w": 0.1,
-        "h": 0.1,
-        "type": "COMMENTAIRE",
+        "x": 0.1, "y": 0.1, "w": 0.1, "h": 0.1,
+        "type": "COMMENT",
         "content": "Test",
     }
 
     resp = teacher_client.post(url, payload, format="json")
 
-    assert resp.status_code == 403
+    assert resp.status_code == 400
     assert "detail" in resp.data
-    assert "error" not in resp.data
 
 
 @pytest.mark.django_db
-def test_annotation_delete_missing_token_returns_403_detail(teacher_client, locked_copy_with_lock, teacher_user):
-    copy, _lock = locked_copy_with_lock
-
+def test_annotation_delete_on_graded_returns_400(teacher_client, graded_copy, teacher_user):
+    """Deleting an annotation on a GRADED copy must return 400."""
     from grading.models import Annotation
 
     ann = Annotation.objects.create(
-        copy=copy,
+        copy=graded_copy,
         page_index=0,
-        x=0.1,
-        y=0.1,
-        w=0.1,
-        h=0.1,
-        type=Annotation.Type.COMMENTAIRE,
+        x=0.1, y=0.1, w=0.1, h=0.1,
+        type=Annotation.Type.COMMENT,
         content="To delete",
         created_by=teacher_user,
     )
@@ -88,65 +89,57 @@ def test_annotation_delete_missing_token_returns_403_detail(teacher_client, lock
     url = f"/api/grading/annotations/{ann.id}/"
     resp = teacher_client.delete(url)
 
-    assert resp.status_code == 403
+    assert resp.status_code == 400
     assert "detail" in resp.data
-    assert "error" not in resp.data
 
 
 @pytest.mark.django_db
-def test_finalize_missing_token_returns_403_detail(teacher_client, locked_copy_with_lock, monkeypatch):
-    copy, _lock = locked_copy_with_lock
+def test_finalize_graded_copy_returns_error(teacher_client, graded_copy):
+    """Finalizing an already GRADED copy must return 400 or 409."""
+    url = f"/api/grading/copies/{graded_copy.id}/finalize/"
 
-    url = f"/api/grading/copies/{copy.id}/finalize/"
-
-    import unittest.mock
     with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
         mock_flatten.return_value = b"%PDF-1.4\n%%EOF"
         resp = teacher_client.post(url, {}, format="json")
 
-    assert resp.status_code == 403
+    assert resp.status_code in [400, 409]
     assert "detail" in resp.data
-    assert "error" not in resp.data
+    assert mock_flatten.call_count == 0  # Must not attempt PDF generation
 
 
 @pytest.mark.django_db
-def test_finalize_expired_lock_returns_409_detail(teacher_client, locked_copy_with_lock):
-    copy, lock = locked_copy_with_lock
+def test_annotation_create_on_ready_returns_201(teacher_client, ready_copy):
+    """Annotating a READY copy should succeed (201)."""
+    url = f"/api/grading/copies/{ready_copy.id}/annotations/"
+    payload = {
+        "page_index": 0,
+        "x": 0.1, "y": 0.1, "w": 0.1, "h": 0.1,
+        "type": "COMMENT",
+        "content": "Valid annotation",
+    }
 
-    lock.expires_at = timezone.now() - datetime.timedelta(minutes=1)
-    lock.save(update_fields=["expires_at"])
+    resp = teacher_client.post(url, payload, format="json")
 
-    url = f"/api/grading/copies/{copy.id}/finalize/"
+    assert resp.status_code == 201
 
-    import unittest.mock
+
+@pytest.mark.django_db
+def test_finalize_ready_copy_returns_200(teacher_client, ready_copy):
+    """Finalizing a READY copy should succeed (200)."""
+    url = f"/api/grading/copies/{ready_copy.id}/finalize/"
+
     with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
         mock_flatten.return_value = b"%PDF-1.4\n%%EOF"
-        resp = teacher_client.post(url, {}, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
+        resp = teacher_client.post(url, {}, format="json")
 
-    assert resp.status_code == 409
-    assert "detail" in resp.data
-    assert "error" not in resp.data
+    assert resp.status_code == 200
 
 
 @pytest.mark.django_db
-def test_lock_heartbeat_missing_token_returns_403_detail(teacher_client, locked_copy_with_lock):
-    copy, _lock = locked_copy_with_lock
+def test_lock_routes_return_404(teacher_client, ready_copy):
+    """Lock routes must return 404 (removed from URL conf)."""
+    base = f"/api/grading/copies/{ready_copy.id}"
 
-    url = f"/api/grading/copies/{copy.id}/lock/heartbeat/"
-    resp = teacher_client.post(url, {}, format="json")
-
-    assert resp.status_code == 403
-    assert "detail" in resp.data
-    assert "error" not in resp.data
-
-
-@pytest.mark.django_db
-def test_lock_release_bad_token_returns_403_detail(teacher_client, locked_copy_with_lock):
-    copy, _lock = locked_copy_with_lock
-
-    url = f"/api/grading/copies/{copy.id}/lock/release/"
-    resp = teacher_client.delete(url, HTTP_X_LOCK_TOKEN="bad-token")
-
-    assert resp.status_code == 403
-    assert "detail" in resp.data
-    assert "error" not in resp.data
+    for path in [f"{base}/lock/", f"{base}/lock/heartbeat/", f"{base}/lock/release/", f"{base}/lock/status/"]:
+        resp = teacher_client.post(path, {}, format="json")
+        assert resp.status_code == 404, f"{path} should return 404, got {resp.status_code}"

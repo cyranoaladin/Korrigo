@@ -25,7 +25,6 @@ def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user)
 
     from datetime import date
     from exams.models import Booklet, Copy, Exam
-    from grading.models import CopyLock
     from grading.services import GradingService
 
     exam = Exam.objects.create(name="Postgres Concurrency", date=date.today())
@@ -33,17 +32,10 @@ def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user)
     copy = Copy.objects.create(
         exam=exam,
         anonymous_id="PG-CONC",
-        status=Copy.Status.LOCKED,
-        locked_at=timezone.now(),
-        locked_by=teacher_user,
+        status=Copy.Status.READY,
+        assigned_corrector=teacher_user,
     )
     copy.booklets.add(b)
-
-    lock = CopyLock.objects.create(
-        copy=copy,
-        owner=teacher_user,
-        expires_at=timezone.now() + datetime.timedelta(minutes=10),
-    )
 
     # Shared mutable state protected by a threading lock
     call_lock = threading.Lock()
@@ -67,7 +59,7 @@ def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user)
 
         try:
             ready_barrier.wait(timeout=5)
-            GradingService.finalize_copy(copy, teacher_user, lock_token=str(lock.token))
+            GradingService.finalize_copy(copy, teacher_user)
             with results_lock:
                 results.append("ok")
         except Exception as e:

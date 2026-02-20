@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 
 from exams.models import Exam, Copy
-from grading.models import DraftState, CopyLock
+from grading.models import DraftState
 
 User = get_user_model()
 
@@ -60,24 +60,17 @@ class TestDraftEndpoints:
         assert copy1.exam is not None
         
         # Test copy_factory with custom exam
-        copy2 = copy_factory(exam=exam, status=Copy.Status.LOCKED)
+        copy2 = copy_factory(exam=exam, status=Copy.Status.READY)
         assert copy2.exam == exam
-        assert copy2.status == Copy.Status.LOCKED
+        assert copy2.status == Copy.Status.READY
         
         # Verify teacher_user from conftest.py is available
         assert teacher_user.username == 'teacher_test'
         assert teacher_user.is_staff is True
     
-    def test_save_draft_with_valid_lock(self, api_client, teacher_user, copy_factory):
-        """AC-2.1: Save draft with valid lock → 200 OK, version incremented"""
+    def test_save_draft_success(self, api_client, teacher_user, copy_factory):
+        """AC-2.1: Save draft → 200 OK, version incremented"""
         copy = copy_factory(status=Copy.Status.READY)
-        lock_token = uuid.uuid4()
-        lock = CopyLock.objects.create(
-            copy=copy,
-            owner=teacher_user,
-            token=lock_token,
-            expires_at=timezone.now() + datetime.timedelta(hours=1)
-        )
         
         api_client.force_authenticate(teacher_user)
         client_id = uuid.uuid4()
@@ -85,11 +78,9 @@ class TestDraftEndpoints:
             f'/api/grading/copies/{copy.id}/draft/',
             {
                 'payload': {'rect': [10, 20, 100, 50], 'content': 'Test'},
-                'token': str(lock.token),
                 'client_id': str(client_id)
             },
             format='json',
-            HTTP_X_LOCK_TOKEN=str(lock.token)
         )
         
         assert response.status_code == 200
@@ -129,8 +120,8 @@ class TestDraftEndpoints:
         
         assert response.status_code == 204
     
-    def test_save_without_lock_token(self, api_client, teacher_user, copy_factory):
-        """AC-2.4: Save without lock token → 403 Forbidden"""
+    def test_save_without_client_id(self, api_client, teacher_user, copy_factory):
+        """AC-2.4: Save without client_id → 400 Bad Request"""
         copy = copy_factory()
         
         api_client.force_authenticate(teacher_user)
@@ -138,66 +129,55 @@ class TestDraftEndpoints:
             f'/api/grading/copies/{copy.id}/draft/',
             {
                 'payload': {'content': 'Test'},
-                'client_id': str(uuid.uuid4())
             },
             format='json'
         )
         
-        assert response.status_code == 403
-        assert 'lock token' in response.data['detail'].lower()
+        assert response.status_code == 400
+        assert 'client_id' in response.data['detail'].lower()
     
-    def test_save_with_wrong_lock_owner(self, api_client, teacher_user, copy_factory):
-        """AC-2.5: Save with wrong lock owner → 409 Conflict"""
+    def test_save_draft_by_different_user(self, api_client, teacher_user, copy_factory):
+        """AC-2.5: Two users can each have their own draft on the same copy."""
         copy = copy_factory()
         other_user = User.objects.create_user(username='other', password='test')
-        lock_token = uuid.uuid4()
-        lock = CopyLock.objects.create(
-            copy=copy,
-            owner=other_user,
-            token=lock_token,
-            expires_at=timezone.now() + datetime.timedelta(hours=1)
-        )
         
+        # Teacher saves a draft
         api_client.force_authenticate(teacher_user)
+        client_id_t = uuid.uuid4()
         response = api_client.put(
             f'/api/grading/copies/{copy.id}/draft/',
-            {
-                'payload': {'content': 'Test'},
-                'token': str(lock.token),
-                'client_id': str(uuid.uuid4())
-            },
+            {'payload': {'content': 'Teacher draft'}, 'client_id': str(client_id_t)},
             format='json',
-            HTTP_X_LOCK_TOKEN=str(lock.token)
         )
-        
-        assert response.status_code == 409
-        assert 'owner mismatch' in response.data['detail'].lower()
+        assert response.status_code == 200
+
+        # Other user saves a draft
+        api_client.force_authenticate(other_user)
+        client_id_o = uuid.uuid4()
+        response = api_client.put(
+            f'/api/grading/copies/{copy.id}/draft/',
+            {'payload': {'content': 'Other draft'}, 'client_id': str(client_id_o)},
+            format='json',
+        )
+        assert response.status_code == 200
+
+        assert DraftState.objects.filter(copy=copy).count() == 2
     
     def test_save_to_graded_copy_forbidden(self, api_client, teacher_user, copy_factory):
         """AC-2.6: Save to GRADED copy → 400 Bad Request"""
         copy = copy_factory(status=Copy.Status.GRADED)
-        lock_token = uuid.uuid4()
-        lock = CopyLock.objects.create(
-            copy=copy,
-            owner=teacher_user,
-            token=lock_token,
-            expires_at=timezone.now() + datetime.timedelta(hours=1)
-        )
         
         api_client.force_authenticate(teacher_user)
         response = api_client.put(
             f'/api/grading/copies/{copy.id}/draft/',
             {
                 'payload': {'content': 'Test'},
-                'token': str(lock.token),
                 'client_id': str(uuid.uuid4())
             },
             format='json',
-            HTTP_X_LOCK_TOKEN=str(lock.token)
         )
         
         assert response.status_code == 400
-        assert 'GRADED' in response.data['detail']
         
         # Verify no draft was created
         assert not DraftState.objects.filter(copy=copy, owner=teacher_user).exists()
@@ -205,13 +185,6 @@ class TestDraftEndpoints:
     def test_client_id_conflict(self, api_client, teacher_user, copy_factory):
         """AC-2.7: client_id conflict → 409 Conflict"""
         copy = copy_factory()
-        lock_token = uuid.uuid4()
-        lock = CopyLock.objects.create(
-            copy=copy,
-            owner=teacher_user,
-            token=lock_token,
-            expires_at=timezone.now() + datetime.timedelta(hours=1)
-        )
         
         # Create existing draft with different client_id
         existing_client_id = uuid.uuid4()
@@ -230,15 +203,12 @@ class TestDraftEndpoints:
             f'/api/grading/copies/{copy.id}/draft/',
             {
                 'payload': {'content': 'New'},
-                'token': str(lock.token),
                 'client_id': str(new_client_id)
             },
             format='json',
-            HTTP_X_LOCK_TOKEN=str(lock.token)
         )
         
         assert response.status_code == 409
-        assert 'another session' in response.data['detail'].lower()
     
     def test_unauthorized_access(self, api_client, copy_factory):
         """AC-2.8: Unauthorized access → 401/403 Forbidden"""
