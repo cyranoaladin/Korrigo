@@ -51,16 +51,15 @@ def ready_copy(exam, booklet_with_pages):
 
 
 @pytest.fixture
-def locked_copy(exam, booklet_with_pages, admin_user):
-    """Creates a LOCKED copy."""
+def graded_copy(exam, booklet_with_pages, admin_user):
+    """Creates a GRADED copy."""
     from exams.models import Copy
     from django.utils import timezone
     copy = Copy.objects.create(
         exam=exam,
-        anonymous_id="TEST-LOCKED",
-        status=Copy.Status.LOCKED,
-        locked_at=timezone.now(),
-        locked_by=admin_user
+        anonymous_id="TEST-GRADED",
+        status=Copy.Status.GRADED,
+        graded_at=timezone.now(),
     )
     copy.booklets.add(booklet_with_pages)
     return copy
@@ -138,20 +137,16 @@ def test_ready_transition_changes_status_and_creates_event(
 def test_finalize_works_from_ready(authenticated_client, ready_copy):
     """
     Test that FINALIZE transition allowed from READY status.
+    Simplified workflow: no lock required.
     """
     from exams.models import Copy
     from unittest.mock import patch
-
-    # Must lock before finalize
-    lock_resp = authenticated_client.post(f"/api/grading/copies/{ready_copy.id}/lock/", {}, format="json")
-    assert lock_resp.status_code == 201
-    token = lock_resp.data["token"]
 
     url = f"/api/grading/copies/{ready_copy.id}/finalize/"
 
     with patch('processing.services.pdf_flattener.PDFFlattener.flatten_copy') as mock_flatten:
         mock_flatten.return_value = b"%PDF-1.4\n%%EOF"
-        response = authenticated_client.post(url, {}, format="json", HTTP_X_LOCK_TOKEN=str(token))
+        response = authenticated_client.post(url, {}, format="json")
 
     assert response.status_code == 200
     assert response.data["status"] == "GRADED"
@@ -161,46 +156,28 @@ def test_finalize_works_from_ready(authenticated_client, ready_copy):
 
 
 @pytest.mark.unit
-def test_lock_transition_success(authenticated_client, ready_copy, admin_user):
+def test_lock_routes_return_404(authenticated_client, ready_copy):
     """
-    Test successful READY -> LOCKED transition (Acquire Lock).
-    New C3: Creates CopyLock, returns 201.
+    Lock routes have been removed. Verify they return 404.
     """
-    from grading.models import CopyLock
-
-    url = f"/api/grading/copies/{ready_copy.id}/lock/"
-    response = authenticated_client.post(url, {}, format="json")
-
-    assert response.status_code == 201
-    assert response.data["status"] == "LOCKED"
-    assert "token" in response.data
-
-    # Verify DB state (CopyLock exists)
-    assert CopyLock.objects.filter(copy=ready_copy).exists()
-    lock = CopyLock.objects.get(copy=ready_copy)
-    assert lock.owner == admin_user
-    
-    # We no longer strictly enforce Copy.Status.LOCKED in the same way, 
-    # but the API contract for "Lock" is satisfied.
+    base = f"/api/grading/copies/{ready_copy.id}"
+    for path in [f"{base}/lock/", f"{base}/lock/release/", f"{base}/lock/heartbeat/"]:
+        response = authenticated_client.post(path, {}, format="json")
+        assert response.status_code == 404, f"{path} should return 404"
 
 
 @pytest.mark.unit
-def test_unlock_transition_success(authenticated_client, locked_copy, admin_user):
+def test_finalize_graded_copy_rejected(authenticated_client, graded_copy):
     """
-    Test successful Unlock (Release Lock).
-    New C3: DELETE /lock/ -> 204.
+    Finalizing an already GRADED copy should be rejected.
     """
-    from grading.models import CopyLock
-    
-    # Setup: Ensure a CopyLock exists for the locked_copy (fixture creates Copy.Status.LOCKED but not CopyLock)
-    # We must create the CopyLock manually for the test to delete it
-    lock = CopyLock.objects.create(copy=locked_copy, owner=admin_user, expires_at="2099-01-01T00:00Z")
+    from unittest.mock import patch
+    url = f"/api/grading/copies/{graded_copy.id}/finalize/"
 
-    url = f"/api/grading/copies/{locked_copy.id}/lock/release/"
-    response = authenticated_client.delete(url, HTTP_X_LOCK_TOKEN=str(lock.token)) # DELETE
+    with patch('processing.services.pdf_flattener.PDFFlattener.flatten_copy') as mock_flatten:
+        mock_flatten.return_value = b"%PDF-1.4\n%%EOF"
+        response = authenticated_client.post(url, {}, format="json")
 
-    assert response.status_code == 204
-
-    # Verify DB state
-    assert not CopyLock.objects.filter(copy=locked_copy).exists()
+    assert response.status_code in [400, 409]
+    assert mock_flatten.call_count == 0
 

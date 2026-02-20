@@ -9,10 +9,8 @@ from datetime import date
 
 @pytest.fixture
 def exam_with_copy(db, admin_user):
-    """Creates an exam with a READY copy that has 2 pages AND IS LOCKED by admin. Returns (copy, lock)."""
+    """Creates an exam with a READY copy that has 2 pages. Returns (copy, None) for backward compat."""
     from exams.models import Exam, Booklet, Copy
-    from grading.models import CopyLock
-    from django.utils import timezone
 
     exam = Exam.objects.create(
         name="Test Exam",
@@ -29,18 +27,12 @@ def exam_with_copy(db, admin_user):
     copy = Copy.objects.create(
         exam=exam,
         anonymous_id="TEST-001",
-        status=Copy.Status.READY
+        status=Copy.Status.READY,
+        assigned_corrector=admin_user,
     )
     copy.booklets.add(booklet)
-    
-    # Auto-lock for C3
-    lock = CopyLock.objects.create(
-        copy=copy,
-        owner=admin_user,
-        expires_at=timezone.now() + datetime.timedelta(hours=1),
-    )
 
-    return copy, lock
+    return copy, None
 
 
 # ============================================================================
@@ -62,11 +54,11 @@ def test_reject_annotation_with_w_zero(authenticated_client, exam_with_copy):
         "y": 0.1,
         "w": 0,  # Invalid: w=0
         "h": 0.2,
-        "type": "COMMENTAIRE",
+        "type": "COMMENT",
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
+    response = authenticated_client.post(url, payload, format="json")
 
     assert response.status_code == 400
     assert "detail" in response.data
@@ -88,11 +80,11 @@ def test_reject_annotation_with_overflow_x_plus_w(authenticated_client, exam_wit
         "y": 0.1,
         "w": 0.2,  # Invalid: x + w = 1.1 > 1
         "h": 0.2,
-        "type": "COMMENTAIRE",
+        "type": "COMMENT",
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
+    response = authenticated_client.post(url, payload, format="json")
 
     assert response.status_code == 400
     assert "detail" in response.data
@@ -114,11 +106,11 @@ def test_reject_annotation_with_overflow_y_plus_h(authenticated_client, exam_wit
         "y": 0.8,
         "w": 0.2,
         "h": 0.3,  # Invalid: y + h = 1.1 > 1
-        "type": "COMMENTAIRE",
+        "type": "COMMENT",
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
+    response = authenticated_client.post(url, payload, format="json")
 
     assert response.status_code == 400
     assert "detail" in response.data
@@ -140,11 +132,11 @@ def test_reject_annotation_with_negative_values(authenticated_client, exam_with_
         "y": 0.1,
         "w": 0.2,
         "h": 0.2,
-        "type": "COMMENTAIRE",
+        "type": "COMMENT",
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
+    response = authenticated_client.post(url, payload, format="json")
 
     assert response.status_code == 400
     assert "detail" in response.data
@@ -170,11 +162,11 @@ def test_reject_page_index_out_of_bounds(authenticated_client, exam_with_copy):
         "y": 0.1,
         "w": 0.2,
         "h": 0.2,
-        "type": "COMMENTAIRE",
+        "type": "COMMENT",
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
+    response = authenticated_client.post(url, payload, format="json")
 
     assert response.status_code == 400
     assert "detail" in response.data
@@ -195,11 +187,11 @@ def test_accept_page_index_as_string_int(authenticated_client, exam_with_copy):
         "y": 0.1,
         "w": 0.2,
         "h": 0.2,
-        "type": "COMMENTAIRE",
+        "type": "COMMENT",
         "content": "Test"
     }
 
-    response = authenticated_client.post(url, payload, format="json", HTTP_X_LOCK_TOKEN=str(lock.token))
+    response = authenticated_client.post(url, payload, format="json")
 
     assert response.status_code == 201
     assert response.data["page_index"] == 1  # Converted to int

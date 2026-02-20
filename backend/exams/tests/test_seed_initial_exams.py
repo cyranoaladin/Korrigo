@@ -306,7 +306,7 @@ class TestSeedCommand(TestCase):
         original_corrector = first_copy.assigned_corrector
 
         # Simulate grading started
-        first_copy.status = Copy.Status.LOCKED
+        first_copy.status = Copy.Status.GRADED
         first_copy.save()
 
         # Re-run seed

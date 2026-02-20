@@ -23,28 +23,28 @@ class OptimisticLockingTests(TestCase):
         teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
         self.user.groups.add(teacher_group)
         self.exam = Exam.objects.create(
-            title='Lock Test Exam',
-            created_by=self.user
+            name='Lock Test Exam',
+            date='2024-01-01'
         )
         self.copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='LOCK-001',
-            status=Copy.Status.READY
+            status=Copy.Status.READY,
+            assigned_corrector=self.user,
         )
-        # Acquire lock for tests
-        lock, _ = GradingService.acquire_lock(self.copy, self.user)
-        self.lock_token = str(lock.token)
 
     def test_annotation_has_version_field(self):
         """Annotation model has version field defaulting to 0"""
         annotation = Annotation.objects.create(
             copy=self.copy,
             created_by=self.user,
-            annotation_type=Annotation.Type.COMMENTAIRE,
+            type=Annotation.Type.COMMENT,
             content='Test comment',
-            x=100.0,
-            y=200.0,
-            page_number=1
+            x=0.1,
+            y=0.2,
+            w=0.1,
+            h=0.1,
+            page_index=0
         )
         
         self.assertEqual(annotation.version, 0)
@@ -54,11 +54,13 @@ class OptimisticLockingTests(TestCase):
         annotation = Annotation.objects.create(
             copy=self.copy,
             created_by=self.user,
-            annotation_type=Annotation.Type.COMMENTAIRE,
+            type=Annotation.Type.COMMENT,
             content='Original',
-            x=100.0,
-            y=200.0,
-            page_number=1
+            x=0.1,
+            y=0.2,
+            w=0.1,
+            h=0.1,
+            page_index=0
         )
         initial_version = annotation.version
         
@@ -66,7 +68,6 @@ class OptimisticLockingTests(TestCase):
             annotation_id=annotation.id,
             user=self.user,
             payload={'content': 'Updated', 'version': initial_version},
-            lock_token=self.lock_token
         )
         
         self.assertEqual(updated.version, initial_version + 1)
@@ -77,11 +78,13 @@ class OptimisticLockingTests(TestCase):
         annotation = Annotation.objects.create(
             copy=self.copy,
             created_by=self.user,
-            annotation_type=Annotation.Type.COMMENTAIRE,
+            type=Annotation.Type.COMMENT,
             content='Original',
-            x=100.0,
-            y=200.0,
-            page_number=1
+            x=0.1,
+            y=0.2,
+            w=0.1,
+            h=0.1,
+            page_index=0
         )
         
         # First update succeeds
@@ -89,7 +92,6 @@ class OptimisticLockingTests(TestCase):
             annotation_id=annotation.id,
             user=self.user,
             payload={'content': 'First update', 'version': 0},
-            lock_token=self.lock_token
         )
         
         # Second update with stale version fails
@@ -98,7 +100,6 @@ class OptimisticLockingTests(TestCase):
                 annotation_id=annotation.id,
                 user=self.user,
                 payload={'content': 'Stale update', 'version': 0},
-                lock_token=self.lock_token
             )
         
         self.assertIn('Version mismatch', str(cm.exception))
@@ -109,11 +110,13 @@ class OptimisticLockingTests(TestCase):
         annotation = Annotation.objects.create(
             copy=self.copy,
             created_by=self.user,
-            annotation_type=Annotation.Type.COMMENTAIRE,
+            type=Annotation.Type.COMMENT,
             content='Original',
-            x=100.0,
-            y=200.0,
-            page_number=1
+            x=0.1,
+            y=0.2,
+            w=0.1,
+            h=0.1,
+            page_index=0
         )
         
         # Update without version field works (backward compatible)
@@ -121,7 +124,6 @@ class OptimisticLockingTests(TestCase):
             annotation_id=annotation.id,
             user=self.user,
             payload={'content': 'Updated without version'},
-            lock_token=self.lock_token
         )
         
         self.assertEqual(updated.content, 'Updated without version')
@@ -132,11 +134,13 @@ class OptimisticLockingTests(TestCase):
         annotation = Annotation.objects.create(
             copy=self.copy,
             created_by=self.user,
-            annotation_type=Annotation.Type.COMMENTAIRE,
+            type=Annotation.Type.COMMENT,
             content='Original',
-            x=100.0,
-            y=200.0,
-            page_number=1
+            x=0.1,
+            y=0.2,
+            w=0.1,
+            h=0.1,
+            page_index=0
         )
         
         # User A fetches annotation (version=0)
@@ -147,7 +151,6 @@ class OptimisticLockingTests(TestCase):
             annotation_id=annotation.id,
             user=self.user,
             payload={'content': 'User B update', 'version': 0},
-            lock_token=self.lock_token
         )
         
         # User A tries to update with stale version
@@ -156,7 +159,6 @@ class OptimisticLockingTests(TestCase):
                 annotation_id=annotation.id,
                 user=self.user,
                 payload={'content': 'User A update', 'version': version_a},
-                lock_token=self.lock_token
             )
         
         # Verify User B's update persisted

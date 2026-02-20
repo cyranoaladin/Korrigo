@@ -122,20 +122,17 @@ class TestGradingServiceStrictUnit:
         # Since GradingEvent.objects.create is static, we'd mock it to test strictly
         # But here we assume basic logic is correct for unit scope.
 
-    def test_lock_copy_invariants(self):
+    @pytest.mark.django_db
+    def test_finalize_copy_rejects_staging(self):
         """
-        Verify lock checks preconditions.
+        Verify finalize rejects STAGING copies.
         """
-        # 1. Success case
-        copy = MagicMock(spec=Copy)
-        copy.status = Copy.Status.READY
-        copy._state = MagicMock()
-        
-        with patch('grading.models.GradingEvent.objects.create'):
-            GradingService.lock_copy(copy, user=MagicMock())
-            assert copy.status == Copy.Status.LOCKED
-        
-        copy.status = Copy.Status.LOCKED
-        # Should raise ValueError because it's not READY
-        with pytest.raises(ValueError, match="Only READY copies can be locked"):
-            GradingService.lock_copy(copy, user=MagicMock())
+        from datetime import date as d
+        exam = Exam.objects.create(name="Finalize Test", date=d.today())
+        copy = Copy.objects.create(
+            exam=exam, anonymous_id="STAGING-REJ", status=Copy.Status.STAGING
+        )
+        user = MagicMock()
+
+        with pytest.raises(ValueError):
+            GradingService.finalize_copy(copy, user=user)

@@ -53,7 +53,7 @@ class Command(BaseCommand):
         
         # We need at least 1 Staging, 1 Ready, 1 Locked
         # Let's map indices to strict targets
-        targets = [Copy.Status.READY, Copy.Status.LOCKED, Copy.Status.STAGING]
+        targets = [Copy.Status.READY, Copy.Status.STAGING]
         
         for i in range(num_copies):
             target = targets[i % len(targets)]
@@ -95,14 +95,6 @@ class Command(BaseCommand):
                 self._add_fixtures_annotations(copy, teacher)
                 self.stdout.write(f"  [READY]   UUID: {copy.id}")
                 
-            elif target == Copy.Status.LOCKED:
-                # Validate -> READY -> Add Annotations -> Lock
-                # Annotations MUST be added while READY, before Locking.
-                GradingService.validate_copy(copy, teacher)
-                self._add_fixtures_annotations(copy, teacher)
-                GradingService.lock_copy(copy, teacher)
-                self.stdout.write(f"  [LOCKED]  UUID: {copy.id}")
-
             self.stdout.write(f"      Image Sample: {images_url_sample}")
 
 
@@ -111,14 +103,14 @@ class Command(BaseCommand):
         AnnotationService.add_annotation(copy, {
             'page_index': 0,
             'x': 0.1, 'y': 0.1, 'w': 0.2, 'h': 0.1,
-            'type': Annotation.Type.COMMENTAIRE,
+            'type': Annotation.Type.COMMENT,
             'content': "Fixture Annotation Page 0"
         }, user)
         
         AnnotationService.add_annotation(copy, {
             'page_index': 1,
             'x': 0.5, 'y': 0.5, 'w': 0.1, 'h': 0.1,
-            'type': Annotation.Type.ERREUR,
+            'type': Annotation.Type.ERROR,
             'content': "Fixture Error Page 1"
         }, user)
 

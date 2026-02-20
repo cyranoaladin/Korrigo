@@ -28,19 +28,18 @@ def booklet_with_pages(exam):
 
 
 @pytest.fixture
-def locked_copy_with_annotation(exam, booklet_with_pages, admin_user):
+def ready_copy_with_annotation(exam, booklet_with_pages, admin_user):
     """
-    Creates a LOCKED copy with one annotation that has score_delta=5.
+    Creates a READY copy with one annotation that has score_delta=5.
     """
     from exams.models import Copy
     from grading.models import Annotation
 
     copy = Copy.objects.create(
         exam=exam,
-        anonymous_id="TEST-LOCKED",
-        status=Copy.Status.LOCKED,
-        locked_at=timezone.now(),
-        locked_by=admin_user
+        anonymous_id="TEST-READY-ANN",
+        status=Copy.Status.READY,
+        assigned_corrector=admin_user,
     )
     copy.booklets.add(booklet_with_pages)
 
@@ -52,7 +51,7 @@ def locked_copy_with_annotation(exam, booklet_with_pages, admin_user):
         y=0.1,
         w=0.2,
         h=0.2,
-        type=Annotation.Type.COMMENTAIRE,
+        type=Annotation.Type.COMMENT,
         content="Good work",
         score_delta=5,
         created_by=admin_user
@@ -89,13 +88,13 @@ def graded_copy_with_pdf(exam, booklet_with_pages, admin_user):
 # ============================================================================
 
 @pytest.mark.unit
-def test_finalize_sets_status_graded(authenticated_client, locked_copy_with_annotation):
+def test_finalize_sets_status_graded(authenticated_client, ready_copy_with_annotation):
     """
     Test that finalize transition changes Copy.status to GRADED.
     """
     from exams.models import Copy
 
-    copy = locked_copy_with_annotation
+    copy = ready_copy_with_annotation
     url = f"/api/grading/copies/{copy.id}/finalize/"
 
     with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flatten:
@@ -111,12 +110,12 @@ def test_finalize_sets_status_graded(authenticated_client, locked_copy_with_anno
 
 
 @pytest.mark.unit
-def test_finalize_sets_final_pdf_field(authenticated_client, locked_copy_with_annotation):
+def test_finalize_sets_final_pdf_field(authenticated_client, ready_copy_with_annotation):
     """
     Test that finalize operation sets Copy.final_pdf field.
     Note: May fail if pages_images paths are fake.
     """
-    copy = locked_copy_with_annotation
+    copy = ready_copy_with_annotation
     url = f"/api/grading/copies/{copy.id}/finalize/"
 
     def mock_flatten_side_effect(copy_obj):
@@ -140,16 +139,16 @@ def test_finalize_sets_final_pdf_field(authenticated_client, locked_copy_with_an
 
 
 @pytest.mark.unit
-def test_final_pdf_endpoint_404_when_missing(authenticated_client, locked_copy_with_annotation):
+def test_final_pdf_endpoint_404_when_missing(authenticated_client, ready_copy_with_annotation):
     """
     Test GET /api/grading/copies/<id>/final-pdf/ returns 404 when final_pdf is not set.
     """
-    copy = locked_copy_with_annotation
+    copy = ready_copy_with_annotation
     url = f"/api/grading/copies/{copy.id}/final-pdf/"
 
     response = authenticated_client.get(url)
 
-    # Security Hardening: LOCKED copy returns 403 (Forbidden) even if missing/admin
+    # READY copy blocked by status gate (only GRADED copies can serve PDF)
     assert response.status_code == 403
     assert "detail" in response.data
 
@@ -167,9 +166,8 @@ def test_final_pdf_endpoint_200_when_present(authenticated_client, graded_copy_w
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/pdf"
-        # Check Content-Disposition header for download
+        # Check Content-Disposition header
         assert "Content-Disposition" in response
-        assert "attachment" in response["Content-Disposition"]
         
         if hasattr(response, 'close'): response.close()
     finally:
@@ -180,16 +178,16 @@ def test_final_pdf_endpoint_200_when_present(authenticated_client, graded_copy_w
 
 
 @pytest.mark.unit
-def test_finalize_computes_score_from_annotations(authenticated_client, locked_copy_with_annotation, admin_user):
+def test_finalize_computes_score_from_annotations(authenticated_client, ready_copy_with_annotation, admin_user):
     """
     Test that finalize computes final_score as sum of annotation.score_delta.
     Copy has 1 annotation with score_delta=5.
     """
     from grading.models import Annotation
 
-    copy = locked_copy_with_annotation
+    copy = ready_copy_with_annotation
 
-    # Add another annotation with score_delta=3
+    # Add another annotation with score_delta=-2
     Annotation.objects.create(
         copy=copy,
         page_index=1,
@@ -197,7 +195,7 @@ def test_finalize_computes_score_from_annotations(authenticated_client, locked_c
         y=0.2,
         w=0.1,
         h=0.1,
-        type=Annotation.Type.ERREUR,
+        type=Annotation.Type.ERROR,
         content="Error here",
         score_delta=-2,
         created_by=admin_user
@@ -232,13 +230,13 @@ def test_finalize_computes_score_from_annotations(authenticated_client, locked_c
 
 
 @pytest.mark.unit
-def test_finalize_creates_grading_event(authenticated_client, locked_copy_with_annotation):
+def test_finalize_creates_grading_event(authenticated_client, ready_copy_with_annotation):
     """
     Test that finalize creates a GradingEvent with action=FINALIZE.
     """
     from grading.models import GradingEvent
 
-    copy = locked_copy_with_annotation
+    copy = ready_copy_with_annotation
     url = f"/api/grading/copies/{copy.id}/finalize/"
 
     initial_count = GradingEvent.objects.filter(copy=copy).count()

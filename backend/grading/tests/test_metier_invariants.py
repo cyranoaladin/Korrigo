@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
 from exams.models import Exam, Copy, Booklet
-from grading.models import Annotation, GradingEvent, CopyLock, Score
+from grading.models import Annotation, GradingEvent, Score
 from grading.services import GradingService, LockConflictError
 from students.models import Student
 from core.auth import UserRole
@@ -196,7 +196,7 @@ class TestScoreInvariants(TestCase):
     def test_score_sum_from_annotations(self):
         """GradingService.compute_score sums all annotation score_deltas."""
         copy = Copy.objects.create(
-            exam=self.exam, anonymous_id="SCORE-001", status=Copy.Status.LOCKED
+            exam=self.exam, anonymous_id="SCORE-001", status=Copy.Status.READY
         )
         Annotation.objects.create(
             copy=copy, page_index=0, x=0.1, y=0.1, w=0.1, h=0.1,
@@ -211,7 +211,7 @@ class TestScoreInvariants(TestCase):
     def test_score_ignores_null_deltas(self):
         """Annotations without score_delta are ignored in sum."""
         copy = Copy.objects.create(
-            exam=self.exam, anonymous_id="SCORE-002", status=Copy.Status.LOCKED
+            exam=self.exam, anonymous_id="SCORE-002", status=Copy.Status.READY
         )
         Annotation.objects.create(
             copy=copy, page_index=0, x=0.1, y=0.1, w=0.1, h=0.1,
@@ -273,26 +273,21 @@ class TestStateMachineInvariants(TestCase):
         with self.assertRaises(ValueError):
             GradingService.finalize_copy(copy, self.teacher)
 
-    def test_cannot_finalize_ready_copy(self):
-        """READY copies cannot be finalized (must be LOCKED first)."""
+    def test_finalize_ready_copy_succeeds(self):
+        """READY copies can be finalized (simplified workflow)."""
+        import unittest.mock
         copy = Copy.objects.create(
             exam=self.exam, anonymous_id="SM-002", status=Copy.Status.READY
         )
-        with self.assertRaises(ValueError):
+        with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy", return_value=b"%PDF-test"):
             GradingService.finalize_copy(copy, self.teacher)
+        copy.refresh_from_db()
+        self.assertEqual(copy.status, Copy.Status.GRADED)
 
-    def test_cannot_lock_staging_copy(self):
-        """STAGING copies cannot be locked."""
+    def test_cannot_validate_graded_copy(self):
+        """GRADED copies cannot be re-validated."""
         copy = Copy.objects.create(
-            exam=self.exam, anonymous_id="SM-003", status=Copy.Status.STAGING
-        )
-        with self.assertRaises(ValueError):
-            GradingService.lock_copy(copy, self.teacher)
-
-    def test_cannot_validate_locked_copy(self):
-        """LOCKED copies cannot be re-validated."""
-        copy = Copy.objects.create(
-            exam=self.exam, anonymous_id="SM-004", status=Copy.Status.LOCKED
+            exam=self.exam, anonymous_id="SM-004", status=Copy.Status.GRADED
         )
         with self.assertRaises(ValueError):
             GradingService.validate_copy(copy, self.teacher)

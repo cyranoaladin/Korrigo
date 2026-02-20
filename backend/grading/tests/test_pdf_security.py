@@ -71,7 +71,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
             password="password123",
             is_staff=True
         )
-        teacher_group, _ = Group.objects.get_or_create(name="Teachers")
+        teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
         self.teacher.groups.add(teacher_group)
         
         # Create admin user
@@ -193,7 +193,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp['Content-Type'], 'application/pdf')
-        self.assertIn('attachment', resp.get('Content-Disposition', ''))
+        self.assertIn('Content-Disposition', resp)
         
         if hasattr(resp, 'close'):
             resp.close()
@@ -324,9 +324,9 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         # Verify X-Content-Type-Options header
         self.assertEqual(resp.get('X-Content-Type-Options', ''), 'nosniff')
         
-        # Verify Content-Disposition header
+        # Verify Content-Disposition header (inline by default, attachment with ?download=1)
         content_disposition = resp.get('Content-Disposition', '')
-        self.assertIn('attachment', content_disposition)
+        self.assertIn('inline', content_disposition)
         self.assertIn(f'copy_{self.copy_a_graded.anonymous_id}_corrected.pdf', content_disposition)
         
         if hasattr(resp, 'close'):

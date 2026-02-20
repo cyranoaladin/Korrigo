@@ -97,7 +97,7 @@ class TestPhase39Hardening(TransactionTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_final_pdf_security_gate(self):
-        copy = Copy.objects.create(exam=self.exam, anonymous_id="SECURE-PDF", status=Copy.Status.LOCKED)
+        copy = Copy.objects.create(exam=self.exam, anonymous_id="SECURE-PDF", status=Copy.Status.READY)
         content = ContentFile(b"PDF CONTENT")
         copy.final_pdf.save("final.pdf", content)
         copy.save()
@@ -106,7 +106,7 @@ class TestPhase39Hardening(TransactionTestCase):
             url = f"/api/grading/copies/{copy.id}/final-pdf/"
             self.client.force_authenticate(user=self.teacher_user)
             
-            # LOCKED -> 403
+            # READY with PDF -> 403 (status gate blocks even for staff)
             response = self.client.get(url)
             self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
             
@@ -117,7 +117,6 @@ class TestPhase39Hardening(TransactionTestCase):
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(response['Content-Type'], 'application/pdf')
             self.assertTrue(getattr(response, "streaming", False))
-            # DO NOT iterate response.streaming_content in TransactionTestCase (Docker)
             if hasattr(response, 'close'): response.close()
         finally:
             if copy.final_pdf:
