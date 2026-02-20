@@ -108,7 +108,7 @@ onMounted(() => {
           <h2>{{ selectedCopy.exam_name }}</h2>
           <a
             v-if="selectedCopy.final_pdf_url"
-            :href="selectedCopy.final_pdf_url"
+            :href="selectedCopy.final_pdf_url + '?download=1'"
             download
             class="btn-download"
           >
@@ -165,16 +165,6 @@ onMounted(() => {
             </p>
           </div>
 
-          <!-- LLM Summary -->
-          <div
-            v-if="selectedCopy.llm_summary"
-            class="llm-summary-section"
-          >
-            <h4>Bilan personnalisé</h4>
-            <p class="llm-summary-text">
-              {{ selectedCopy.llm_summary }}
-            </p>
-          </div>
                     
           <div class="pdf-wrapper">
             <iframe 
@@ -251,9 +241,6 @@ onMounted(() => {
 .appreciation-section h4 { margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #92400e; text-transform: uppercase; letter-spacing: 0.05em; }
 .appreciation-text { color: #78350f; line-height: 1.6; margin: 0; }
 
-.llm-summary-section { background: #ede9fe; padding: 1rem; border-radius: 8px; border: 1px solid #c4b5fd; }
-.llm-summary-section h4 { margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #5b21b6; text-transform: uppercase; letter-spacing: 0.05em; }
-.llm-summary-text { color: #4c1d95; line-height: 1.6; margin: 0; white-space: pre-line; }
 
 .pdf-wrapper { flex: 1; background: #e5e7eb; border-radius: 8px; overflow: hidden; position: relative; }
 .no-pdf { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #6b7280; font-weight: 500; }
