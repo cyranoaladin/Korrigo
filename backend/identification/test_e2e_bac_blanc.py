@@ -136,13 +136,11 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         # 4. Correction (simuler le workflow de correction)
         print("=== ÉTAPE 4: Correction ===")
         
-        # Verrouiller la copie
-        copy.status = Copy.Status.LOCKED
-        copy.locked_by = self.teacher_user
-        copy.locked_at = timezone.now()
+        # Assigner le correcteur
+        copy.assigned_corrector = self.teacher_user
         copy.save()
         
-        print(f"   - Copie verrouillée par: {self.teacher_user.username}")
+        print(f"   - Copie assignée à: {self.teacher_user.username}")
         print(f"   - Statut: {copy.status}")
         
         # Ajouter des annotations (simuler la correction)
@@ -151,7 +149,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
             page_index=0,
             x=0.1, y=0.2, w=0.3, h=0.1,
             content="Bonne réponse, bien formulée",
-            type=Annotation.Type.COMMENTAIRE,
+            type=Annotation.Type.COMMENT,
             score_delta=2,
             created_by=self.teacher_user
         )
@@ -264,23 +262,13 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         print(f"   - Transition STAGING → READY: {copy.status}")
         self.assertEqual(copy.status, Copy.Status.READY)
         
-        # Transition: READY → LOCKED (via correction)
-        copy.status = Copy.Status.LOCKED
-        copy.locked_by = self.teacher_user
-        copy.locked_at = timezone.now()
-        copy.save()
-        
-        copy.refresh_from_db()
-        print(f"   - Transition READY → LOCKED: {copy.status}")
-        self.assertEqual(copy.status, Copy.Status.LOCKED)
-        
-        # Transition: LOCKED → GRADED (via finalisation)
+        # Transition: READY → GRADED (via finalisation, simplified workflow)
         copy.status = Copy.Status.GRADED
         copy.graded_at = timezone.now()
         copy.save()
         
         copy.refresh_from_db()
-        print(f"   - Transition LOCKED → GRADED: {copy.status}")
+        print(f"   - Transition READY → GRADED: {copy.status}")
         self.assertEqual(copy.status, Copy.Status.GRADED)
         
         print("✅ TRANSITIONS ÉTATS VALIDES!")
