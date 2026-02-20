@@ -37,7 +37,7 @@ export default {
         return response.data;
     },
 
-    async acquireLock(id, ttlSeconds = 600) {
+    async acquireLock(id, ttlSeconds = 1800) {
         const response = await api.post(`/grading/copies/${id}/lock/`, { ttl_seconds: ttlSeconds });
         return response.data;
     },

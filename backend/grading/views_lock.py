@@ -19,7 +19,7 @@ class LockAcquireView(views.APIView):
         now = timezone.now()
         
         # Default TTL=10min (600s), configurable via body (but enforced max)
-        raw_ttl = request.data.get('ttl_seconds', 600)
+        raw_ttl = request.data.get('ttl_seconds', 1800)
         try:
             ttl = int(raw_ttl)
         except (TypeError, ValueError):
@@ -61,7 +61,7 @@ class LockHeartbeatView(views.APIView):
 
         try:
             copy = get_object_or_404(Copy, id=copy_id)
-            lock = GradingService.heartbeat_lock(copy=copy, user=request.user, lock_token=str(token), ttl_seconds=600)
+            lock = GradingService.heartbeat_lock(copy=copy, user=request.user, lock_token=str(token), ttl_seconds=1800)
         except LockConflictError as e:
             message = str(e)
             status_code = status.HTTP_404_NOT_FOUND if "not found" in message.lower() or "expired" in message.lower() else status.HTTP_409_CONFLICT

@@ -230,10 +230,8 @@ class GradingService:
     def _reconcile_lock_state(copy: Copy) -> None:
         now = timezone.now()
 
-        try:
-            lock = copy.lock
-        except CopyLock.DoesNotExist:
-            lock = None
+        # Use DB query instead of copy.lock to avoid Django's cached reverse relation
+        lock = CopyLock.objects.filter(copy=copy).select_related("owner").first()
 
         if lock and lock.expires_at < now:
             lock.delete()
@@ -254,7 +252,7 @@ class GradingService:
 
     @staticmethod
     @transaction.atomic
-    def acquire_lock(copy: Copy, user, ttl_seconds: int = 600):
+    def acquire_lock(copy: Copy, user, ttl_seconds: int = 1800):
         now = timezone.now()
         copy_id = getattr(copy, "id", None)
         if (
@@ -314,7 +312,7 @@ class GradingService:
 
     @staticmethod
     @transaction.atomic
-    def heartbeat_lock(copy: Copy, user, lock_token: str, ttl_seconds: int = 600):
+    def heartbeat_lock(copy: Copy, user, lock_token: str, ttl_seconds: int = 1800):
         now = timezone.now()
         try:
             lock = (
@@ -522,7 +520,7 @@ class GradingService:
     def lock_copy(copy: Copy, user):
         if copy.status != Copy.Status.READY:
             raise ValueError("Only READY copies can be locked")
-        lock, _created = GradingService.acquire_lock(copy=copy, user=user, ttl_seconds=600)
+        lock, _created = GradingService.acquire_lock(copy=copy, user=user, ttl_seconds=1800)
         return lock
 
     @staticmethod

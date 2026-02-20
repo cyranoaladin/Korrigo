@@ -102,7 +102,7 @@ const isHeaderPage = computed(() => {
 })
 
 const isReadOnly = computed(() => isGraded.value || isLockConflict.value)
-const canAnnotate = computed(() => isReady.value && !isReadOnly.value)
+const canAnnotate = computed(() => (isReady.value || (isLocked.value && !!softLock.value?.token)) && !isReadOnly.value)
 const examId = computed(() => copy.value?.exam?.id || null)
 
 // Subject variant (Sujet A / Sujet B)
@@ -819,8 +819,8 @@ const formatDate = (isoString) => {
 
 onMounted(async () => {
   await fetchCopy()
-  // Try acquire lock if ready
-  if (isReady.value) {
+  // Try acquire lock if ready or already locked (re-open scenario)
+  if (isReady.value || isLocked.value) {
       await acquireLock();
   }
   window.addEventListener('keydown', onGlobalKeydown)
