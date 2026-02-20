@@ -22,7 +22,7 @@ class CSRFTokenView(APIView):
     authentication_classes = []
 
     def get(self, request):
-        return Response({"detail": "CSRF cookie set"})
+        return Response({"detail": "Cookie CSRF défini."})
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
@@ -51,30 +51,43 @@ class LoginView(APIView):
                 pass
         
         if user is not None:
-            if user.is_active:
-                login(request, user)
-                # Audit trail: Login réussi
-                log_authentication_attempt(request, success=True, username=username)
-                
-                must_change_password = False
-                try:
-                    if hasattr(user, 'profile'):
-                        must_change_password = user.profile.must_change_password
-                except Exception:
-                    pass
-                
-                return Response({
-                    "message": "Login successful",
-                    "must_change_password": must_change_password
-                })
-            else:
-                # Audit trail: Compte désactivé
+            if not user.is_active:
                 log_authentication_attempt(request, success=False, username=username)
-                return Response({"error": "Account disabled"}, status=status.HTTP_403_FORBIDDEN)
+                return Response(
+                    {"error": "Compte désactivé."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Isolation profil : rejeter les élèves (doivent utiliser /students/login/)
+            from students.models import Student
+            if Student.objects.filter(user=user).exists():
+                log_authentication_attempt(request, success=False, username=username)
+                return Response(
+                    {"error": "Accès réservé aux enseignants et administrateurs. "
+                              "Les élèves doivent se connecter via l'espace élève."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            login(request, user)
+            log_authentication_attempt(request, success=True, username=username)
+            
+            must_change_password = False
+            try:
+                if hasattr(user, 'profile'):
+                    must_change_password = user.profile.must_change_password
+            except Exception:
+                pass
+            
+            return Response({
+                "message": "Connexion réussie.",
+                "must_change_password": must_change_password
+            })
         else:
-            # Audit trail: Identifiants invalides
             log_authentication_attempt(request, success=False, username=username)
-            return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"error": "Identifiants incorrects."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]  # Requires authenticated teacher/admin
@@ -84,7 +97,7 @@ class LogoutView(APIView):
         # Audit trail: Logout
         log_audit(request, 'logout', 'User', request.user.id)
         logout(request)
-        return Response({"message": "Logout successful"})
+        return Response({"message": "Déconnexion réussie."})
 
 class UserDetailView(APIView):
     permission_classes = [IsAuthenticated]
@@ -130,7 +143,7 @@ class GlobalSettingsView(APIView):
         
     def post(self, request):
         if not request.user.is_superuser and not request.user.is_staff:
-             return Response({"error": "Admin only"}, status=status.HTTP_403_FORBIDDEN)
+             return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
              
         from core.models import GlobalSettings
         settings_obj = GlobalSettings.load()
@@ -142,7 +155,7 @@ class GlobalSettingsView(APIView):
         if 'notifications' in data: settings_obj.notifications_enabled = bool(data['notifications'])
         
         settings_obj.save()
-        return Response({"message": "Settings saved"})
+        return Response({"message": "Paramètres enregistrés."})
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
@@ -171,7 +184,7 @@ class ChangePasswordView(APIView):
         except Exception:
             pass
         
-        return Response({"message": "Password updated successfully"})
+        return Response({"message": "Mot de passe mis à jour."})
 
 class UserListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -179,7 +192,7 @@ class UserListView(APIView):
     def get(self, request):
         # Allow admins to view users
         if not request.user.is_superuser and not request.user.is_staff:
-            return Response({"error": "Admin only"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
             
         role = request.query_params.get('role', None) 
         queryset = User.objects.all().order_by('username')
@@ -208,7 +221,7 @@ class UserListView(APIView):
     def post(self, request):
         # Allow admins to create users
         if not request.user.is_superuser and not request.user.is_staff:
-            return Response({"error": "Admin only"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
             
         data = request.data
         username = data.get('username')
@@ -217,13 +230,13 @@ class UserListView(APIView):
         email = data.get('email', '')
         
         if not username or not password or not role:
-            return Response({"error": "Missing fields"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Champs obligatoires manquants."}, status=status.HTTP_400_BAD_REQUEST)
             
         if User.objects.filter(username=username).exists():
-            return Response({"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Nom d'utilisateur déjà existant."}, status=status.HTTP_400_BAD_REQUEST)
         
         if email and User.objects.filter(email=email).exists():
-            return Response({"error": "Email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Adresse email déjà utilisée."}, status=status.HTTP_400_BAD_REQUEST)
             
         user = User.objects.create_user(username=username, email=email, password=password)
         
@@ -236,7 +249,7 @@ class UserListView(APIView):
             g, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
             user.groups.add(g)
             
-        return Response({"message": "User created", "id": user.id}, status=status.HTTP_201_CREATED)
+        return Response({"message": "Utilisateur créé.", "id": user.id}, status=status.HTTP_201_CREATED)
 
 
 class UserManageView(APIView):
@@ -245,43 +258,43 @@ class UserManageView(APIView):
     def put(self, request, pk):
         # Allow admins to edit users
         if not request.user.is_superuser and not request.user.is_staff:
-            return Response({"error": "Admin only"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
             
         try:
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Utilisateur introuvable."}, status=status.HTTP_404_NOT_FOUND)
             
         data = request.data
         if 'email' in data:
             if data['email'] and User.objects.filter(email=data['email']).exclude(pk=pk).exists():
-                return Response({"error": "Email already exists"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Adresse email déjà utilisée."}, status=status.HTTP_400_BAD_REQUEST)
             user.email = data['email']
         if 'is_active' in data: user.is_active = bool(data['is_active'])
         if 'password' in data and data['password']:
             if len(data['password']) >= 6:
                 user.set_password(data['password'])
             else:
-                 return Response({"error": "Password too short"}, status=status.HTTP_400_BAD_REQUEST)
+                 return Response({"error": "Mot de passe trop court."}, status=status.HTTP_400_BAD_REQUEST)
 
         user.save()
-        return Response({"message": "User updated"})
+        return Response({"message": "Utilisateur mis à jour."})
 
     def delete(self, request, pk):
         # Allow admins to delete users
         if not request.user.is_superuser and not request.user.is_staff:
-            return Response({"error": "Admin only"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
             
         try:
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Utilisateur introuvable."}, status=status.HTTP_404_NOT_FOUND)
             
         if user.id == request.user.id:
-            return Response({"error": "Cannot delete yourself"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Impossible de supprimer votre propre compte."}, status=status.HTTP_400_BAD_REQUEST)
             
         user.delete()
-        return Response({"message": "User deleted"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "Utilisateur supprimé."}, status=status.HTTP_204_NO_CONTENT)
 
 
 class UserResetPasswordView(APIView):
@@ -290,15 +303,15 @@ class UserResetPasswordView(APIView):
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request, pk):
         if not request.user.is_superuser and not request.user.is_staff:
-            return Response({"error": "Admin only"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
         
         try:
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Utilisateur introuvable."}, status=status.HTTP_404_NOT_FOUND)
         
         if user.id == request.user.id:
-            return Response({"error": "Cannot reset your own password"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Impossible de réinitialiser votre propre mot de passe."}, status=status.HTTP_400_BAD_REQUEST)
         
         import secrets
         import string
@@ -326,6 +339,6 @@ class UserResetPasswordView(APIView):
         )
         
         return Response({
-            "message": "Password reset successfully",
+            "message": "Mot de passe réinitialisé.",
             "temporary_password": temporary_password
         })
