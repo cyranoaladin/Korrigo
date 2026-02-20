@@ -508,7 +508,7 @@ GradingEvent.objects.create(
 - Système dual (User vs Student session)
 - Gates explicites dans vue (documenté)
 - Audit complet des téléchargements
-- Conformité `.antigravity/rules/01_security_rules.md § 2.2`
+- Conformité : Règles de sécurité internes — Accès PDF Final
 
 **Référence** : `SECURITY_PERMISSIONS_INVENTORY.md:186-218`
 

@@ -47,8 +47,8 @@ Guide complet pour configurer l'environnement de développement et contribuer au
 ### 1. Cloner le Dépôt
 
 ```bash
-git clone https://github.com/votre-org/viatique__PMF.git
-cd viatique__PMF
+git clone https://github.com/votre-org/korrigo__PMF.git
+cd korrigo__PMF
 ```
 
 ### 2. Configuration Environnement
@@ -63,7 +63,7 @@ cp .env.example .env
 # Backend
 SECRET_KEY=django-insecure-dev-only-xxxxxxxxxxxxxxxxxx
 DEBUG=true
-DATABASE_URL=postgres://viatique_user:viatique_password@db:5432/viatique
+DATABASE_URL=postgres://korrigo_user:korrigo_password@db:5432/korrigo
 CELERY_BROKER_URL=redis://redis:6379/0
 
 # Frontend
@@ -252,7 +252,7 @@ npx playwright test --ui
 ## Structure du Projet
 
 ```
-viatique__PMF/
+korrigo__PMF/
 ├── backend/                    # Backend Django
 │   ├── core/                   # Configuration Django
 │   │   ├── settings.py         # Settings principal
@@ -574,7 +574,7 @@ make migrate
 
 **Erreur**:
 ```
-psycopg2.OperationalError: FATAL: database "viatique" does not exist
+psycopg2.OperationalError: FATAL: database "korrigo" does not exist
 ```
 
 **Solution**:
@@ -583,7 +583,7 @@ psycopg2.OperationalError: FATAL: database "viatique" does not exist
 make down
 
 # Supprimer volumes (⚠️ PERTE DE DONNÉES)
-docker volume rm viatique__pmf_postgres_data
+docker volume rm korrigo__pmf_postgres_data
 
 # Redémarrer et recréer DB
 make up
@@ -635,7 +635,7 @@ import pdb; pdb.set_trace()
 
 Attacher au container:
 ```bash
-docker attach viatique__pmf_backend_1
+docker attach korrigo__pmf_backend_1
 ```
 
 ### Debugging Frontend
@@ -658,13 +658,13 @@ console.trace()
 
 ## Références
 
-- [ARCHITECTURE.md](file:///home/alaeddine/viatique__PMF/docs/ARCHITECTURE.md) - Architecture globale
-- [API_REFERENCE.md](file:///home/alaeddine/viatique__PMF/docs/API_REFERENCE.md) - Documentation API
-- [TEST_PLAN.md](file:///home/alaeddine/viatique__PMF/docs/quality/TEST_PLAN.md) - Plan de tests
-- [DEPLOYMENT_GUIDE.md](file:///home/alaeddine/viatique__PMF/docs/DEPLOYMENT_GUIDE.md) - Guide déploiement
+- [ARCHITECTURE.md](file:///home/alaeddine/korrigo__PMF/docs/ARCHITECTURE.md) - Architecture globale
+- [API_REFERENCE.md](file:///home/alaeddine/korrigo__PMF/docs/API_REFERENCE.md) - Documentation API
+- [TEST_PLAN.md](file:///home/alaeddine/korrigo__PMF/docs/quality/TEST_PLAN.md) - Plan de tests
+- [DEPLOYMENT_GUIDE.md](file:///home/alaeddine/korrigo__PMF/docs/DEPLOYMENT_GUIDE.md) - Guide déploiement
 
 ---
 
 **Dernière mise à jour**: 25 janvier 2026  
-**Auteur**: Aleddine BEN RHOUMA  
+**Auteur**: Alaeddine BEN RHOUMA  
 **Licence**: Propriétaire - AEFE/Éducation Nationale

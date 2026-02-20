@@ -394,7 +394,7 @@ if DJANGO_ENV == "production" and not RATELIMIT_ENABLE and not E2E_TEST_MODE:
     raise ValueError("RATELIMIT_ENABLE cannot be false in production environment (unless E2E_TEST_MODE=true)")
 
 # CORS Configuration
-# Conformité: .antigravity/rules/01_security_rules.md § 4.2
+# Conformité: docs/security/MANUEL_SECURITE.md — CORS
 if DEBUG:
     # Development: Allow localhost origins for frontend dev server
     CORS_ALLOWED_ORIGINS = [
@@ -463,13 +463,13 @@ else:
 # DRF Spectacular Configuration
 # OpenAPI 3.0 Schema Generation
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Viatique API',
-    'DESCRIPTION': 'API de la plateforme Viatique - Correction numérique de copies d\'examens',
+    'TITLE': 'Korrigo API',
+    'DESCRIPTION': 'API de la plateforme Korrigo - Correction numérique de copies d\'examens',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'CONTACT': {
         'name': 'Aleddine BEN RHOUMA',
-        'email': 'contact@viatique.edu',
+        'email': 'contact@korrigo.edu',
     },
     'LICENSE': {
         'name': 'Proprietary - AEFE/Éducation Nationale',
@@ -485,7 +485,7 @@ SPECTACULAR_SETTINGS = {
     'SCHEMA_PATH_PREFIX': r'/api/',
     'SERVERS': [
         {'url': 'http://localhost:8088', 'description': 'Serveur de développement'},
-        {'url': 'https://viatique.example.com', 'description': 'Production'},
+        {'url': 'https://korrigo.labomaths.tn', 'description': 'Production'},
     ],
 }
 

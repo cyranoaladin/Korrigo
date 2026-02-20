@@ -95,7 +95,7 @@ mkdir -p "$BACKUP_DIR"
 BACKUP_FILE="$BACKUP_DIR/korrigo_db_$(date +'%Y%m%d_%H%M%S').sql"
 
 log "Création du backup: $BACKUP_FILE"
-docker exec korrigo-db-1 pg_dump -U viatique_user viatique > "$BACKUP_FILE" 2>/dev/null || {
+docker exec korrigo-db-1 pg_dump -U korrigo_user korrigo > "$BACKUP_FILE" 2>/dev/null || {
     warning "Impossible de créer le backup (conteneur peut-être arrêté)"
 }
 

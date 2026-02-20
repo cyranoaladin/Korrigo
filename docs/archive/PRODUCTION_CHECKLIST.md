@@ -1,4 +1,4 @@
-# 🚀 Production Checklist - Viatique
+# 🚀 Production Checklist - Korrigo
 
 **Version**: v1.0.0-rc1 → v1.0.0
 **Date**: 2026-01-29
@@ -29,9 +29,9 @@ docker compose -f infra/docker/docker-compose.staging.yml ps
 DJANGO_ENV=production
 DEBUG=False
 SECRET_KEY=<staging-secret-64-chars>
-ALLOWED_HOSTS=staging.viatique.example.com
-CSRF_TRUSTED_ORIGINS=https://staging.viatique.example.com
-DATABASE_URL=postgresql://user:password@db:5432/viatique_staging
+ALLOWED_HOSTS=staging.korrigo.example.com
+CSRF_TRUSTED_ORIGINS=https://staging.korrigo.example.com
+DATABASE_URL=postgresql://user:password@db:5432/korrigo_staging
 METRICS_TOKEN=<staging-token-64-chars>
 SSL_ENABLED=True
 SESSION_COOKIE_SECURE=True
@@ -75,11 +75,11 @@ METRICS_TOKEN=a1b2c3d4e5f6...  # 64+ chars
 **Vérification**:
 ```bash
 # Sans token → 401
-curl https://viatique.example.com/metrics/
+curl https://korrigo.example.com/metrics/
 # → {"error": "Unauthorized"}
 
 # Avec token → 200
-curl -H "X-Metrics-Token: $METRICS_TOKEN" https://viatique.example.com/metrics/
+curl -H "X-Metrics-Token: $METRICS_TOKEN" https://korrigo.example.com/metrics/
 # → {"status": "ok", "db_connections": 3, ...}
 ```
 
@@ -97,9 +97,9 @@ curl -H "X-Metrics-Token: $METRICS_TOKEN" https://viatique.example.com/metrics/
 docker compose -f docker-compose.prod.yml run --rm certbot certonly \
   --webroot \
   --webroot-path=/var/www/certbot \
-  -d viatique.example.com \
-  -d www.viatique.example.com \
-  --email admin@viatique.example.com \
+  -d korrigo.example.com \
+  -d www.korrigo.example.com \
+  --email admin@korrigo.example.com \
   --agree-tos
 
 # Nginx reload après obtention certificat
@@ -120,15 +120,15 @@ add_header X-XSS-Protection "1; mode=block" always;
 **Vérification**:
 ```bash
 # Test HTTPS
-curl -I https://viatique.example.com/ | grep -i "strict-transport-security"
+curl -I https://korrigo.example.com/ | grep -i "strict-transport-security"
 # → Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
 
 # Test redirect HTTP → HTTPS
-curl -I http://viatique.example.com/ | grep -i "location"
-# → Location: https://viatique.example.com/
+curl -I http://korrigo.example.com/ | grep -i "location"
+# → Location: https://korrigo.example.com/
 
 # SSL Labs test (optionnel mais recommandé)
-# https://www.ssllabs.com/ssltest/analyze.html?d=viatique.example.com
+# https://www.ssllabs.com/ssltest/analyze.html?d=korrigo.example.com
 # → Grade A ou A+ attendu
 ```
 
@@ -147,13 +147,13 @@ set -euo pipefail
 
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="/backups/postgres"
-BACKUP_FILE="$BACKUP_DIR/viatique_backup_$DATE.sql"
+BACKUP_FILE="$BACKUP_DIR/korrigo_backup_$DATE.sql"
 
 # Créer répertoire
 mkdir -p $BACKUP_DIR
 
 # Backup PostgreSQL (via Docker)
-docker exec viatique_db pg_dump -U postgres viatique_prod > $BACKUP_FILE
+docker exec korrigo_db pg_dump -U postgres korrigo_prod > $BACKUP_FILE
 
 # Compression
 gzip $BACKUP_FILE
@@ -172,11 +172,11 @@ echo "✅ Backup completed: $BACKUP_FILE.gz"
 **Test Restore** (à faire AVANT production, puis mensuellement) :
 ```bash
 # Restore sur DB de test
-gunzip -c /backups/postgres/viatique_backup_20260129_020000.sql.gz \
-  | docker exec -i viatique_test_db psql -U postgres viatique_test
+gunzip -c /backups/postgres/korrigo_backup_20260129_020000.sql.gz \
+  | docker exec -i korrigo_test_db psql -U postgres korrigo_test
 
 # Vérifier intégrité
-docker exec viatique_test_db psql -U postgres viatique_test -c "SELECT COUNT(*) FROM exams_copy;"
+docker exec korrigo_test_db psql -U postgres korrigo_test -c "SELECT COUNT(*) FROM exams_copy;"
 # → Doit retourner nombre de copies attendu
 ```
 
@@ -239,11 +239,11 @@ if not DEBUG:
         }
     }
 
-    ADMINS = [('Admin', 'admin@viatique.example.com')]
+    ADMINS = [('Admin', 'admin@korrigo.example.com')]
     EMAIL_HOST = 'smtp.example.com'
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = 'noreply@viatique.example.com'
+    EMAIL_HOST_USER = 'noreply@korrigo.example.com'
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASSWORD')
 ```
 
@@ -266,7 +266,7 @@ if not DEBUG:
 #### A) Login Professeur
 ```bash
 # Via UI ou curl
-curl -X POST https://staging.viatique.example.com/api/auth/login/ \
+curl -X POST https://staging.korrigo.example.com/api/auth/login/ \
   -H 'Content-Type: application/json' \
   -d '{"username": "prof1", "password": "prof_password"}'
 # → HTTP 200 + session cookie
@@ -274,14 +274,14 @@ curl -X POST https://staging.viatique.example.com/api/auth/login/ \
 
 #### B) Lister Copies READY
 ```bash
-curl -b cookies.txt https://staging.viatique.example.com/api/copies/?status=READY
+curl -b cookies.txt https://staging.korrigo.example.com/api/copies/?status=READY
 # → HTTP 200 + liste copies avec pages > 0
 ```
 
 #### C) Lock Copie
 ```bash
 curl -b cookies.txt -X POST \
-  https://staging.viatique.example.com/api/grading/copies/{copy_id}/lock/ \
+  https://staging.korrigo.example.com/api/grading/copies/{copy_id}/lock/ \
   -H 'X-CSRFToken: {csrf}'
 # → HTTP 201 + lock_token
 ```
@@ -289,7 +289,7 @@ curl -b cookies.txt -X POST \
 #### D) Annoter
 ```bash
 curl -b cookies.txt -X POST \
-  https://staging.viatique.example.com/api/grading/copies/{copy_id}/annotations/ \
+  https://staging.korrigo.example.com/api/grading/copies/{copy_id}/annotations/ \
   -H 'Content-Type: application/json' \
   -H 'X-CSRFToken: {csrf}' \
   -H 'X-Lock-Token: {lock_token}' \
@@ -300,7 +300,7 @@ curl -b cookies.txt -X POST \
 #### E) Finaliser
 ```bash
 curl -b cookies.txt -X POST \
-  https://staging.viatique.example.com/api/grading/copies/{copy_id}/finalize/ \
+  https://staging.korrigo.example.com/api/grading/copies/{copy_id}/finalize/ \
   -H 'Content-Type: application/json' \
   -H 'X-CSRFToken: {csrf}' \
   -d '{"scores": {"Q1": 5, "Q2": 3}, "comment": "Bien"}'
@@ -310,7 +310,7 @@ curl -b cookies.txt -X POST \
 #### F) Récupérer PDF Final
 ```bash
 curl -b cookies.txt \
-  https://staging.viatique.example.com/api/grading/copies/{copy_id}/pdf/ \
+  https://staging.korrigo.example.com/api/grading/copies/{copy_id}/pdf/ \
   -o final_copy.pdf
 # → HTTP 200 + PDF téléchargé
 
@@ -381,7 +381,7 @@ gh release create v1.0.0 \
 
 ## Summary
 
-First production release of Viatique, validated through comprehensive Release Gate process.
+First production release of Korrigo, validated through comprehensive Release Gate process.
 
 ## Key Features
 
@@ -421,7 +421,7 @@ No breaking changes. Direct deployment possible.
 
 ## Support
 
-- Documentation: `.claude/` directory
+- Documentation: `docs/` directory
 - Issues: https://github.com/cyranoaladin/Korrigo/issues
 - Release Gate Report: RELEASE_GATE_REPORT_v1.0.0-rc1.md
 ```
@@ -465,7 +465,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 # 3. Verify services
 docker compose -f docker-compose.prod.yml ps
-curl https://viatique.example.com/api/health/
+curl https://korrigo.example.com/api/health/
 ```
 
 ### Rollback avec Restore DB (< 15 min)
@@ -474,8 +474,8 @@ curl https://viatique.example.com/api/health/
 docker compose -f docker-compose.prod.yml down
 
 # 2. Restore last backup
-gunzip -c /backups/postgres/viatique_backup_YYYYMMDD_HHMMSS.sql.gz \
-  | docker exec -i viatique_db psql -U postgres viatique_prod
+gunzip -c /backups/postgres/korrigo_backup_YYYYMMDD_HHMMSS.sql.gz \
+  | docker exec -i korrigo_db psql -U postgres korrigo_prod
 
 # 3. Restart with old version
 git checkout v0.9.x
@@ -503,5 +503,5 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 **Checklist Complète** : Cocher les 7 items avant tag v1.0.0.
 
-**Contact Support** : admin@viatique.example.com
+**Contact Support** : admin@korrigo.example.com
 **Escalation** : Shark (responsable technique)

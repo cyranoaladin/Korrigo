@@ -211,7 +211,15 @@ class GradingService:
     """
 
     @staticmethod
-    def compute_score(copy: Copy) -> int:
+    def compute_score(copy: Copy) -> float:
+        from grading.models import Score
+        score_obj = Score.objects.filter(copy=copy).first()
+        if score_obj and score_obj.scores_data:
+            total = sum(
+                float(v) for v in score_obj.scores_data.values()
+                if v is not None and v != ''
+            )
+            return total
         total = 0
         for annotation in copy.annotations.all():
             if annotation.score_delta is not None:
