@@ -826,6 +826,29 @@ class CorrectorCopiesView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
+
+        # Cleanup: reconcile stale LOCKED copies with expired/missing locks
+        from grading.models import CopyLock
+        from django.utils import timezone as tz
+        now = tz.now()
+        stale_locked = Copy.objects.filter(status=Copy.Status.LOCKED)
+        if not user.is_superuser:
+            stale_locked = stale_locked.filter(assigned_corrector=user)
+        for copy in stale_locked:
+            try:
+                lock = CopyLock.objects.get(copy=copy)
+                if lock.expires_at < now:
+                    lock.delete()
+                    copy.status = Copy.Status.READY
+                    copy.locked_at = None
+                    copy.locked_by = None
+                    copy.save(update_fields=["status", "locked_at", "locked_by"])
+            except CopyLock.DoesNotExist:
+                copy.status = Copy.Status.READY
+                copy.locked_at = None
+                copy.locked_by = None
+                copy.save(update_fields=["status", "locked_at", "locked_by"])
+
         base_qs = Copy.objects.filter(
             status__in=[Copy.Status.READY, Copy.Status.LOCKED, Copy.Status.GRADED,
                         Copy.Status.GRADING_IN_PROGRESS]
