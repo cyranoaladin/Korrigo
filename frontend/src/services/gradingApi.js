@@ -37,36 +37,13 @@ export default {
         return response.data;
     },
 
-    async acquireLock(id, ttlSeconds = 1800) {
-        const response = await api.post(`/grading/copies/${id}/lock/`, { ttl_seconds: ttlSeconds });
+    async finalizeCopy(id) {
+        const response = await api.post(`/grading/copies/${id}/finalize/`, {});
         return response.data;
     },
 
-    async heartbeatLock(id, token) {
-        const response = await api.post(`/grading/copies/${id}/lock/heartbeat/`, { token });
-        return response.data;
-    },
-
-    async releaseLock(id, token) {
-        // Use 'data' property for DELETE body in axios
-        const response = await api.delete(`/grading/copies/${id}/lock/release/`, { data: { token } });
-        return response.data;
-    },
-
-    async getLockStatus(id) {
-        const response = await api.get(`/grading/copies/${id}/lock/status/`);
-        return response.data;
-    },
-
-    async finalizeCopy(id, token = null) {
-        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
-        const response = await api.post(`/grading/copies/${id}/finalize/`, {}, config);
-        return response.data;
-    },
-
-    async createAnnotation(copyId, payload, token = null) {
-        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
-        const response = await api.post(`/grading/copies/${copyId}/annotations/`, payload, config);
+    async createAnnotation(copyId, payload) {
+        const response = await api.post(`/grading/copies/${copyId}/annotations/`, payload);
         return response.data;
     },
 
@@ -80,10 +57,9 @@ export default {
         return data;
     },
 
-    async deleteAnnotation(copyId, annotationId, token = null) {
+    async deleteAnnotation(copyId, annotationId) {
         try {
-            const config = token ? { headers: { 'X-Lock-Token': token } } : {};
-            const response = await api.delete(`/grading/annotations/${annotationId}/`, config);
+            const response = await api.delete(`/grading/annotations/${annotationId}/`);
             return true;
         } catch (err) {
             throw err;
@@ -100,20 +76,17 @@ export default {
         return response.data;
     },
 
-    async saveDraft(copyId, payload, token, clientId = null) {
-        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+    async saveDraft(copyId, payload, token = null, clientId = null) {
         const body = {
             payload,
-            token,
             client_id: clientId
         };
-        const response = await api.put(`/grading/copies/${copyId}/draft/`, body, config);
+        const response = await api.put(`/grading/copies/${copyId}/draft/`, body);
         return response.data;
     },
 
-    async deleteDraft(copyId, token = null) {
-        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
-        const response = await api.delete(`/grading/copies/${copyId}/draft/`, config);
+    async deleteDraft(copyId) {
+        const response = await api.delete(`/grading/copies/${copyId}/draft/`);
         return response.data;
     },
 
@@ -140,12 +113,10 @@ export default {
         return data;
     },
 
-    async saveRemark(copyId, questionId, remark, token = null) {
-        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+    async saveRemark(copyId, questionId, remark) {
         const response = await api.post(
             `/grading/copies/${copyId}/remarks/`,
-            { question_id: questionId, remark },
-            config
+            { question_id: questionId, remark }
         );
         return response.data;
     },
@@ -155,12 +126,10 @@ export default {
         return response.data;
     },
 
-    async saveGlobalAppreciation(copyId, appreciation, token = null) {
-        const config = token ? { headers: { 'X-Lock-Token': token } } : {};
+    async saveGlobalAppreciation(copyId, appreciation) {
         const response = await api.patch(
             `/grading/copies/${copyId}/global-appreciation/`,
-            { global_appreciation: appreciation },
-            config
+            { global_appreciation: appreciation }
         );
         return response.data;
     },
