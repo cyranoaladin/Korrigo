@@ -300,5 +300,15 @@ class PDFFlattener:
             y += 25
             y = write_wrapped(70, y, appreciation.strip(), fontsize=11, max_width=470)
 
+        y += 15
+
+        # --- 5. Bilan pedagogique LLM ---
+        llm_summary = getattr(copy, 'llm_summary', None)
+        if llm_summary and llm_summary.strip():
+            y = check_overflow(y, 25)
+            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Bilan pedagogique personnalise :", fontsize=14)
+            y += 25
+            y = write_wrapped(70, y, llm_summary.strip(), fontsize=10, max_width=470)
+
         # Finaliser la dernière page
         text_writer.write_text(summary_page)
