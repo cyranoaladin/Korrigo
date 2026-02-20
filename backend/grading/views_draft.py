@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import F
 from django.db import transaction
-from .models import DraftState, CopyLock
+from .models import DraftState
 from exams.models import Copy
 import uuid
 import logging
@@ -16,20 +16,10 @@ def _handle_value_error(message: str, context: str):
     return Response({"detail": message}, status=status.HTTP_400_BAD_REQUEST)
 
 
-def _handle_permission_error(message: str, context: str):
-    logger.warning(f"{context} PermissionError: {message}")
-    return Response({"detail": message}, status=status.HTTP_403_FORBIDDEN)
-
-
-def _handle_lock_conflict_error(message: str, context: str):
-    logger.warning(f"{context} LockConflictError: {message}")
-    return Response({"detail": message}, status=status.HTTP_409_CONFLICT)
-
-
 def _handle_unexpected_error(e: Exception, context: str):
     logger.error(f"{context} Unexpected Error: {e}", exc_info=True)
     return Response(
-        {"detail": "An unexpected error occurred. Please contact support."},
+        {"detail": "Une erreur inattendue s'est produite."},
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
 
@@ -37,13 +27,13 @@ class DraftReturnView(views.APIView):
     """
     GET /api/copies/<uuid:copy_id>/draft/
     PUT /api/copies/<uuid:copy_id>/draft/
-    
-    Gère le brouillon (Autosave).
+
+    Gère le brouillon (Autosave). Pas de lock requis — l'assigned_corrector
+    garantit qu'un seul correcteur accède à une copie.
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, copy_id):
-        # Retrieve latest draft for this user and copy
         try:
             draft = DraftState.objects.get(copy_id=copy_id, owner=request.user)
             return Response({
@@ -62,22 +52,7 @@ class DraftReturnView(views.APIView):
             copy = get_object_or_404(Copy, id=copy_id)
 
             if copy.status == Copy.Status.GRADED:
-                return Response({"detail": "Cannot save draft to GRADED copy."}, status=status.HTTP_400_BAD_REQUEST)
-
-            token = request.headers.get('X-Lock-Token') or request.data.get('token')
-            if not token:
-                return _handle_permission_error("Missing lock token.", context=context)
-
-            try:
-                lock = CopyLock.objects.select_related("owner").get(copy=copy)
-            except CopyLock.DoesNotExist:
-                return _handle_lock_conflict_error("Lock lost (not found).", context=context)
-
-            if lock.owner != request.user:
-                return _handle_lock_conflict_error("Lock owner mismatch.", context=context)
-
-            if str(lock.token) != str(token):
-                return _handle_permission_error("Invalid lock token.", context=context)
+                return Response({"detail": "Impossible de sauvegarder un brouillon sur une copie corrigée."}, status=status.HTTP_400_BAD_REQUEST)
 
             payload = request.data.get('payload', {})
             client_id = request.data.get('client_id')
@@ -88,9 +63,9 @@ class DraftReturnView(views.APIView):
             try:
                 existing_draft = DraftState.objects.get(copy=copy, owner=request.user)
                 if existing_draft.client_id and str(existing_draft.client_id) != str(client_id):
-                    return _handle_lock_conflict_error(
-                        "Draft conflict: Modified by another session.",
-                        context=context,
+                    return Response(
+                        {"detail": "Conflit de brouillon : modifié par une autre session."},
+                        status=status.HTTP_409_CONFLICT,
                     )
             except DraftState.DoesNotExist:
                 pass
@@ -100,29 +75,26 @@ class DraftReturnView(views.APIView):
                 owner=request.user,
                 defaults={
                     "payload": payload,
-                    "lock_token": token,
                     "client_id": client_id,
                     "version": 1,
                 },
             )
 
             if not created:
-                # P0-DI-002 FIX: Atomic version increment with F() expression
                 updated_count = DraftState.objects.filter(
                     id=draft.id,
-                    client_id=draft.client_id  # Prevent session conflict
+                    client_id=draft.client_id
                 ).update(
                     payload=payload,
-                    lock_token=token,
-                    version=F('version') + 1  # Atomic increment
+                    version=F('version') + 1
                 )
-                
+
                 if updated_count == 0:
-                    return _handle_lock_conflict_error(
-                        "Draft conflict: Modified by another session.",
-                        context=context
+                    return Response(
+                        {"detail": "Conflit de brouillon : modifié par une autre session."},
+                        status=status.HTTP_409_CONFLICT,
                     )
-                
+
                 draft.refresh_from_db()
 
             return Response({
@@ -132,8 +104,6 @@ class DraftReturnView(views.APIView):
             })
         except (ValueError, KeyError) as e:
             return _handle_value_error(str(e), context=context)
-        except PermissionError as e:
-            return _handle_permission_error(str(e), context=context)
         except Exception as e:
             return _handle_unexpected_error(e, context=context)
 

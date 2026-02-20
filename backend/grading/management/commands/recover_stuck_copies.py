@@ -82,33 +82,6 @@ class Command(BaseCommand):
                         
                         total_recovered += 1
 
-        # Recovery 2: Abandoned LOCKED copies (teacher crashed/abandoned)
-        locked_cutoff = timezone.now() - timedelta(minutes=locked_threshold)
-        stuck_locked = Copy.objects.filter(
-            status=Copy.Status.LOCKED,
-            updated_at__lt=locked_cutoff
-        ).select_related('exam')
-
-        locked_count = stuck_locked.count()
-        if locked_count > 0:
-            self.stdout.write(f'\nFound {locked_count} abandoned LOCKED copies (no update for {locked_threshold} min)')
-            
-            for copy in stuck_locked:
-                self.stdout.write(f'  - Copy {copy.id} (exam: {copy.exam.title}, last update: {copy.updated_at})')
-                
-                if not dry_run:
-                    with transaction.atomic():
-                        # Release lock and move to READY
-                        copy.status = Copy.Status.READY
-                        copy.save()
-                        
-                        # Clear any associated lock
-                        from grading.models import CopyLock
-                        CopyLock.objects.filter(copy=copy).delete()
-                        
-                        self.stdout.write(self.style.SUCCESS(f'    Released lock for copy {copy.id}'))
-                        total_recovered += 1
-
         if total_recovered == 0:
             self.stdout.write(self.style.SUCCESS('\nNo stuck copies found. System healthy.'))
         else:
