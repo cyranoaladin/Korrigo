@@ -6,6 +6,16 @@ import api from '../services/api'
 const route = useRoute()
 const examId = route.params.examId
 const copies = ref([])
+
+const statusLabels = {
+  'STAGING': 'En attente',
+  'READY': 'Prêt',
+  'LOCKED': 'En cours',
+  'GRADED': 'Corrigé',
+  'GRADING_IN_PROGRESS': 'Correction en cours',
+  'GRADING_FAILED': 'Échec',
+}
+const getStatusLabel = (s) => statusLabels[s] || s
 const exam = ref(null)
 const isLoading = ref(false)
 const message = ref('')
@@ -175,7 +185,7 @@ onMounted(() => {
               </td>
               <td>
                 <span :class="['status-badge', copy.status.toLowerCase()]">
-                  {{ copy.status }}
+                  {{ getStatusLabel(copy.status) }}
                 </span>
               </td>
               <td class="font-bold">
