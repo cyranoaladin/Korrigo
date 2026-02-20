@@ -42,7 +42,7 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
         
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertIn('message', resp.json())
-        self.assertEqual(resp.json()['message'], 'Login successful')
+        self.assertEqual(resp.json()['message'], 'Connexion réussie.')
         self.assertEqual(self.client.session['student_id'], self.student.id)
         self.assertEqual(self.client.session['role'], 'Student')
     
