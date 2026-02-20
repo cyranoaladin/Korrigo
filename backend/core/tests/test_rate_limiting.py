@@ -55,7 +55,7 @@ class TestRateLimitingBaseline:
         })
 
         assert response.status_code == 200
-        assert response.json()['message'] == 'Login successful'
+        assert response.json()['message'] == 'Connexion réussie.'
 
 
 # Note: TestRateLimitingProtection class removed

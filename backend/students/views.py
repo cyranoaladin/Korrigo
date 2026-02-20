@@ -71,7 +71,7 @@ class StudentLoginView(views.APIView):
 
         log_authentication_attempt(request, success=True, student_id=student.id)
         return Response({
-            'message': 'Login successful',
+            'message': 'Connexion réussie.',
             'role': 'Student',
             'must_change_password': must_change_password,
             'student': {

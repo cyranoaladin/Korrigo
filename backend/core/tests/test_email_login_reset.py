@@ -22,7 +22,7 @@ class EmailLoginTest(TestCase):
             'password': 'testpass123'
         })
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['message'], 'Login successful')
+        self.assertEqual(response.data['message'], 'Connexion réussie.')
     
     def test_login_with_email_works(self):
         response = self.client.post('/api/login/', {
@@ -30,7 +30,7 @@ class EmailLoginTest(TestCase):
             'password': 'testpass123'
         })
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['message'], 'Login successful')
+        self.assertEqual(response.data['message'], 'Connexion réussie.')
     
     def test_login_with_wrong_email_fails(self):
         response = self.client.post('/api/login/', {
@@ -112,7 +112,7 @@ class EmailUniquenessTest(TestCase):
             'role': 'Teacher'
         })
         self.assertEqual(response.status_code, 400)
-        self.assertIn('Email already exists', response.data['error'])
+        self.assertIn('Adresse email déjà utilisée.', response.data['error'])
     
     def test_unique_email_accepted(self):
         response = self.client.post('/api/users/', {
@@ -139,4 +139,4 @@ class EmailUniquenessTest(TestCase):
             'email': 'user1@example.com'
         })
         self.assertEqual(response.status_code, 400)
-        self.assertIn('Email already exists', response.data['error'])
+        self.assertIn('Adresse email déjà utilisée.', response.data['error'])
