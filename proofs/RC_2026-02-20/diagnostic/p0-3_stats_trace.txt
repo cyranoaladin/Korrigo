@@ -1,0 +1,14 @@
+=== P0-3 DIAGNOSTIC: Stats endpoint ===
+BB_J1 stats (status=200):
+  total_copies: 106
+  graded_copies: 16
+  all_graded: False
+  global_stats: mean=13.49 median=14.85 std=4.45 min=4.5 max=19.5 count=16
+  global_distribution: [{'range': '0-2', 'start': 0, 'end': 2, 'count': 0}, {'range': '2-4', 'start': 2, 'end': 4, 'count': 0}, {'range': '4-6', 'start': 4, 'end': 6, 'count': 1}, {'range': '6-8', 'start': 6, 'end': 8, 'count': 1}, {'range': '8-10', 'start': 8, 'end': 10, 'count': 2}, {'range': '10-12', 'start': 10, 'end': 12, 'count': 2}, {'range': '12-14', 'start': 12, 'end': 14, 'count': 1}, {'range': '14-16', 'start': 14, 'end': 16, 'count': 5}, {'range': '16-18', 'start': 16, 'end': 18, 'count': 1}, {'range': '18-20', 'start': 18, 'end': 20, 'count': 3}, {'range': '20-22', 'start': 20, 'end': 22, 'count': 0}]
+  lot_stats: total=27 graded=16 mean=13.49
+
+BB_J2 stats (status=200):
+  total_copies: 103
+  graded_copies: 26
+  global_stats: mean=13.52 median=14.25 count=26
+  lot_stats: total=25 graded=23 mean=13.42

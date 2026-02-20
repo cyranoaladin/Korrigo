@@ -1,0 +1,60 @@
+=== P0-2 DIAGNOSTIC: DB → API payload trace ===
+
+Copy 0F8E-072 (exam=BB_J1 student=ines.luciani-e@ert.tn)
+  total_score: 9.00
+  scores_data keys: ['1.1', '1.2', '1.3', '1.4', '1.5']
+  scores_data values: [1, 0, 0, 0, 1]
+  remarks count: 18 (sample: [('3.1', 'Rien à voir avec une loi binomiale!'), ('3.2', 'Non traité.')])
+  annotations: 28
+  global_appreciation: True
+  final_pdf: True
+  llm_summary: True
+  results_released: 2026-02-19 23:37:22.668325+00:00
+
+Copy 0F8E-074 (exam=BB_J1 student=ahmed.marrakchi-e@ert.tn)
+  total_score: 15.45
+  scores_data keys: ['1.1', '1.2', '1.3', '1.4', '1.5']
+  scores_data values: [1, 1, 1, 1, 1]
+  remarks count: 17 (sample: [('3.1', 'Issue -a et non a!'), ('3.2', 'a doit être positif!')])
+  annotations: 36
+  global_appreciation: True
+  final_pdf: True
+  llm_summary: True
+  results_released: 2026-02-19 23:37:22.668325+00:00
+
+Copy 75FB-003 (exam=BB_J2 student=youssef.affes-e@ert.tn)
+  total_score: 14.50
+  scores_data keys: ['1', '3.1', '3.2', '3.3', '3.4']
+  scores_data values: [3, 0.5, 0.5, 0.5, 0.75]
+  remarks count: 13 (sample: [('2.1.2', 'Limite en +inf compliquée...\n'), ('2.1.3', "Dérivée de xln(x) trop brève\nLe signe de g(x) n'es...")])
+  annotations: 0
+  global_appreciation: True
+  final_pdf: True
+  llm_summary: True
+  results_released: None
+
+Copy 75FB-004 (exam=BB_J2 student=aziz.akid-e@ert.tn)
+  total_score: 14.75
+  scores_data keys: ['1', '3.1', '3.2', '3.3', '3.4']
+  scores_data values: [3, 0.5, 0.5, 0.25, 0.5]
+  remarks count: 9 (sample: [('2.1.3', 'Dans la tableau, 0 est une valeur interdite pour g...'), ('2.1.4', "Il manque l'argument essentiel de la monotonie. l'...")])
+  annotations: 0
+  global_appreciation: True
+  final_pdf: True
+  llm_summary: True
+  results_released: None
+
+Copy 75FB-005 (exam=BB_J2 student=mehdi.akrout-e@ert.tn)
+  total_score: 7.75
+  scores_data keys: ['1', '3.1', '3.2', '3.3', '3.4']
+  scores_data values: [3.5, 0, 0, 0, 0]
+  remarks count: 13 (sample: [('2.1.3', "Dérivée fausse. Le signe de g' n'est pas justifié...."), ('2.1.4', "L'argumentation est incomplète (sens de variation)")])
+  annotations: 0
+  global_appreciation: True
+  final_pdf: True
+  llm_summary: True
+  results_released: None
+
+Exam Prod Validation Exam - Bac Blanc Maths: results_released_at=None
+Exam BB_J1: results_released_at=2026-02-19 23:37:22.668325+00:00
+Exam BB_J2: results_released_at=None

@@ -1,0 +1,19 @@
+GuideEnseignant.vue:36:        <li><strong>Identifiant :</strong> Généralement sous la forme <code>prenom.nom</code> ou votre email <code>@ert.tn</code>.</li>
+GuideEnseignant.vue:194:        <li>Le score total est cohérent</li>
+UserManagement.vue:295:          <th>Email</th>
+UserManagement.vue:396:          <label>Identifiant (Login)</label>
+UserManagement.vue:406:          <label>Email (Optionnel)</label>
+MarkingSchemeView.vue:75:        setTimeout(() => router.back(), 1000)
+CorrectorDesk.vue:23:const getStatusLabel = (status) => statusLabels[status] || status
+CorrectorDesk.vue:1159:                      <label :for="'score-' + question.id">Note</label>
+GuideEtudiant.vue:21:        <li><strong>Email :</strong> Votre adresse email scolaire (ex : <code>prenom.nom@ert.tn</code>).</li>
+GuideEtudiant.vue:30:        <li>Saisissez votre email et votre mot de passe</li>
+GuideEtudiant.vue:141:        <li>Adresse email scolaire</li>
+LoginStudent.vue:55:          <label>Adresse email</label>
+CorrectorDashboard.vue:18:const getStatusLabel = (status) => statusLabels[status] || status
+Login.vue:22:watch(() => authStore.lastError, (newError) => {
+Login.vue:80:          <label>Identifiant / Email</label>
+Login.vue:91:          <label>Mot de passe</label>
+DirectionConformite.vue:114:              <li>Nom, prénom, classe</li><li>Email scolaire</li><li>Copies d'examens, notes, annotations</li>
+DirectionConformite.vue:122:              <li>Nom, prénom, login / email</li><li>Actions de correction (traçabilité)</li>
+Dashboard.vue:28:        .filter(c => c.status === 'GRADED')

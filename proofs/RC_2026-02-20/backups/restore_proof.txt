@@ -1,0 +1,15 @@
+=== RESTORE PROOF — 2026-02-20 09:06 UTC+1 ===
+Method: pg_dump -Fc inside docker-db-1 → createdb restore_test → pg_restore → count → dropdb
+Source DB: korrigo_db (docker-db-1, postgres:15-alpine)
+Dump: db_2026-02-20.dump (445K)
+SHA256: d1ec1b107698d08cd47053c78a017f0140df9ed8157dba9204bb99c13873f89f
+
+RESTORED COUNTS (match production):
+  copies=213
+  annotations=544
+  scores=105
+  remarks=1075
+  events=2221
+  students=220
+
+VERDICT: RESTORE SUCCESSFUL — backup is valid

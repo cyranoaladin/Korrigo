@@ -1,0 +1,5 @@
+9fbdfe9 refactor: suppression complète du mécanisme de verrouillage (CopyLock)
+15d2792 fix: workflow verrouillage copies — 6 bugs corrigés
+b3d8ae0 fix: isolation profils + francisation + suppression LOCKED + LLM retiré du PDF
+767dd2c fix: supprimer bilan LLM du PDF + corriger auto-téléchargement à la connexion élève
+01dcd22 feat: bilans LLM + PDFs finaux complets avec vraies données

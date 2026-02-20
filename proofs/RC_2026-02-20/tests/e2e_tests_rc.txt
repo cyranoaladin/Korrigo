@@ -1,0 +1,49 @@
+2026-02-20 08:16:33,897 WARNING processing.services.pdf_flattener Copy 93da233e-ca30-4025-863b-e88454592ded has no pages to flatten.
+2026-02-20 08:16:33,898 ERROR grading.services PDF generation failed for copy 93da233e-ca30-4025-863b-e88454592ded (attempt 1): No pages found to flatten
+Traceback (most recent call last):
+  File "/app/grading/services.py", line 367, in _finalize_copy_inner
+    pdf_bytes = flattener.flatten_copy(copy)
+  File "/app/processing/services/pdf_flattener.py", line 45, in flatten_copy
+    raise ValueError("No pages found to flatten")
+ValueError: No pages found to flatten
+2026-02-20 08:16:34,170 INFO audit audit
+2026-02-20 08:16:34,405 INFO audit audit
+============================================================
+  E2E TESTS — RC_2026-02-20 (P0-2 to P0-6)
+============================================================
+
+--- P0-4: LOCKED REMOVAL ---
+  PASS: T1 CopyLock=0
+  PASS: T2 LOCKED=0
+  PASS: T3 lock routes 404
+  PASS: T4 CRUD annotations sans lock
+  PASS: T5 annotation blocked on GRADED
+
+--- P0-4: FINALIZE WORKFLOW ---
+  FAIL: T6 Failed to generate final PDF: No pages found to flatten
+  PASS: T7 SKIP (GRADING_FAILED, not GRADED)
+
+--- P0-6: RBAC CLOISONNEMENT ---
+  PASS: T8 student blocked on teacher portal (403)
+  PASS: T9 teacher blocked on student portal (401)
+
+--- P0-5: FRANCISATION ---
+  PASS: T10 grading/views.py francised (7 strings)
+  PASS: T11 exams/views.py francised (4 strings)
+  PASS: T12 students/views.py francised (6 strings)
+
+--- P0-3: STATS ---
+  PASS: T13 stats BB_J1 mean=13.49
+  PASS: T14 stats BB_J2 count=26
+
+--- P0-2: STUDENT REPORTS ---
+  PASS: T15 student qs works (0 copies, may be 0 if none graded for this student)
+  PASS: T16 graded copy has: scores=True remarks=25 appreciation=True pdf=True total=4.50
+
+--- DATA INTEGRITY ---
+  PASS: T17 entity counts match baseline
+  PASS: T18 no orphan records
+
+============================================================
+  RESULTS: 17 PASSED / 1 FAILED
+============================================================

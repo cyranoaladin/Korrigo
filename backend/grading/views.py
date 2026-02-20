@@ -221,7 +221,7 @@ class CopyFinalPdfView(APIView):
             student_id = request.session.get("student_id")
             if not student_id:
                 return Response(
-                    {"detail": "Authentication required."},
+                    {"detail": "Authentification requise."},
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
@@ -230,18 +230,18 @@ class CopyFinalPdfView(APIView):
                 sid = int(student_id)
             except Exception:
                 return Response(
-                    {"detail": "Invalid session."},
+                    {"detail": "Session invalide."},
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
             if not copy.student_id or copy.student_id != sid:
                 return Response(
-                    {"detail": "You do not have permission to view this copy."},
+                    {"detail": "Vous n'avez pas la permission de consulter cette copie."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
         if not copy.final_pdf:
-            return Response({"detail": "No final PDF available."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "PDF final non disponible."}, status=status.HTTP_404_NOT_FOUND)
 
         # Audit trail: Téléchargement PDF final
         from core.utils.audit import log_data_access
@@ -332,7 +332,7 @@ class QuestionRemarkDetailView(generics.RetrieveUpdateDestroyAPIView):
         if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
             if remark_obj.created_by != request.user:
                 return Response(
-                    {"detail": "You do not have permission to edit this remark."},
+                    {"detail": "Vous ne pouvez pas modifier cette remarque."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
@@ -350,7 +350,7 @@ class QuestionRemarkDetailView(generics.RetrieveUpdateDestroyAPIView):
         if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
             if remark_obj.created_by != request.user:
                 return Response(
-                    {"detail": "You do not have permission to delete this remark."},
+                    {"detail": "Vous ne pouvez pas supprimer cette remarque."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
@@ -419,7 +419,7 @@ class CopyScoresView(APIView):
 
         if copy.status == Copy.Status.GRADED:
             return Response(
-                {"detail": "Cannot modify scores of a graded copy."},
+                {"detail": "Impossible de modifier les notes d'une copie déjà corrigée."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

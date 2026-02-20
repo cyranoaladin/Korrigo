@@ -1,0 +1,39 @@
+=== ENTITY COUNTS (BASELINE) ===
+Users: 222
+  staff: 4
+  superuser: 1
+Students: 220
+Exams: 3
+Copies: 213
+Booklets: 212
+Annotations: 544
+Scores: 105
+QuestionRemarks: 1075
+GradingEvents: 2221
+CopyLock: 0
+DraftState: 12
+
+=== COPIES BY STATUS ===
+  GRADED: 43
+  READY: 170
+
+=== COPIES BY EXAM ===
+  Prod Validation Exam - Bac Blanc Maths: total=4 ready=3 graded=1 scores=0 remarks=0 annots=0 events=3
+  BB_J1: total=106 ready=90 graded=16 scores=47 remarks=627 annots=494 events=1519
+  BB_J2: total=103 ready=77 graded=26 scores=58 remarks=448 annots=50 events=699
+
+=== LINKAGE CHECKS ===
+Copies without exam: 0
+Annotations without copy: 0
+Scores without copy: 0
+Copies with corrector: 209
+Copies without corrector: 4
+Students with user: 210
+Students without user: 10
+Copies with student: 210
+Copies without student: 3
+
+=== GRADED COPIES DETAIL (sample 3) ===
+  0F8E-072 exam=BB_J1 student=ines.luciani-e@ert.tn corrector=philippe.carr@ert.tn score=9.00 remarks=18 annots=28 appreciation=True final_pdf=True
+  0F8E-074 exam=BB_J1 student=ahmed.marrakchi-e@ert.tn corrector=philippe.carr@ert.tn score=15.45 remarks=17 annots=36 appreciation=True final_pdf=True
+  75FB-003 exam=BB_J2 student=youssef.affes-e@ert.tn corrector=chawki.saadi@ert.tn score=14.50 remarks=13 annots=0 appreciation=True final_pdf=True
