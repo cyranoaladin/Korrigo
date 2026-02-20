@@ -100,7 +100,7 @@ class StudentMeView(views.APIView):
     def get(self, request):
         student_id = request.session.get('student_id')
         if not student_id:
-            return Response({'error': 'Not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'error': 'Non authentifié.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         student = get_object_or_404(Student, id=student_id)
         serializer = StudentSerializer(student)
@@ -186,7 +186,7 @@ class StudentImportView(views.APIView):
         
         file_obj = request.FILES.get('file')
         if not file_obj:
-            return Response({'error': 'File required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Fichier requis.'}, status=status.HTTP_400_BAD_REQUEST)
             
         results = {"created": 0, "updated": 0, "errors": []}
         
@@ -211,7 +211,7 @@ class StudentImportView(views.APIView):
                 if len(row) < 5:
                     results['errors'].append({
                         "line": line_num,
-                        "error": f"Missing columns (expected 5, got {len(row)})"
+                        "error": f"Colonnes manquantes (attendu 5, reçu {len(row)})"
                     })
                     continue
                 
@@ -227,7 +227,7 @@ class StudentImportView(views.APIView):
                 if len(parts) < 2:
                     results['errors'].append({
                         "line": line_num,
-                        "error": f"Invalid name format: '{nom_prenom}' (expected 'NOM PRENOM')"
+                        "error": f"Format de nom invalide : '{nom_prenom}' (attendu 'NOM PRENOM')"
                     })
                     continue
                 
@@ -254,7 +254,7 @@ class StudentImportView(views.APIView):
                 except ValueError:
                     results['errors'].append({
                         "line": line_num,
-                        "error": f"Invalid date format: '{date_str}' (expected DD/MM/YYYY)"
+                        "error": f"Format de date invalide : '{date_str}' (attendu JJ/MM/AAAA)"
                     })
                     continue
                 
@@ -262,7 +262,7 @@ class StudentImportView(views.APIView):
                 if not last_name or not first_name:
                     results['errors'].append({
                         "line": line_num,
-                        "error": "Last name and first name are required"
+                        "error": "Nom et prénom sont requis."
                     })
                     continue
                 

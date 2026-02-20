@@ -1,0 +1,9 @@
+Sys. de fichiers Taille Utilisé Dispo Uti% Monté sur
+tmpfs              3.2G    2.8M  3.2G   1% /run
+efivarfs           128K     52K   72K  42% /sys/firmware/efi/efivars
+/dev/nvme0n1p3     913G    832G   35G  96% /
+tmpfs               16G    404M   16G   3% /dev/shm
+tmpfs              5.0M     12K  5.0M   1% /run/lock
+tmpfs               16G       0   16G   0% /run/qemu
+/dev/nvme0n1p2     511M    6.2M  505M   2% /boot/efi
+tmpfs              3.2G    7.9M  3.2G   1% /run/user/1000

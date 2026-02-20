@@ -1,0 +1,2 @@
+/home/alaeddine/viatique__PMF/frontend/src/views/HomeView.vue:113:            :icon="Upload"
+/home/alaeddine/viatique__PMF/frontend/src/views/HomeView.vue:141:            :icon="Download"

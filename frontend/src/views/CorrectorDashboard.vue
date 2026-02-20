@@ -33,8 +33,8 @@ const fetchCopies = async () => {
         basicStats.value.graded = data.filter(c => c.status === 'GRADED').length
         basicStats.value.todo = data.filter(c => c.status === 'READY').length
 
-        // If all copies graded, auto-fetch stats
-        if (basicStats.value.graded === basicStats.value.total && basicStats.value.total > 0) {
+        // Auto-fetch stats when at least 1 copy is graded
+        if (basicStats.value.graded > 0) {
             showStats.value = true
             await fetchStats()
         }

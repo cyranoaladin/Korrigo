@@ -1,0 +1,40 @@
+/home/alaeddine/viatique__PMF/backend/students/views.py:103:            return Response({'error': 'Not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
+/home/alaeddine/viatique__PMF/backend/students/views.py:135:                'error': 'Non authentifié.'
+/home/alaeddine/viatique__PMF/backend/students/views.py:189:            return Response({'error': 'File required'}, status=status.HTTP_400_BAD_REQUEST)
+/home/alaeddine/viatique__PMF/backend/students/views.py:214:                        "error": f"Missing columns (expected 5, got {len(row)})"
+/home/alaeddine/viatique__PMF/backend/students/views.py:230:                        "error": f"Invalid name format: '{nom_prenom}' (expected 'NOM PRENOM')"
+/home/alaeddine/viatique__PMF/backend/students/views.py:257:                        "error": f"Invalid date format: '{date_str}' (expected DD/MM/YYYY)"
+/home/alaeddine/viatique__PMF/backend/students/views.py:265:                        "error": "Last name and first name are required"
+/home/alaeddine/viatique__PMF/backend/students/management/commands/provision_student_users.py:112:        self.stdout.write(self.style.SUCCESS(f"Done: {created} created/linked, {skipped} skipped, {len(errors)} errors."))
+/home/alaeddine/viatique__PMF/backend/identification/services.py:157:                    'error': 'Texte illisible (GPT-4o-mini)'
+/home/alaeddine/viatique__PMF/backend/grading/views.py:224:                    {"detail": "Authentication required."},
+/home/alaeddine/viatique__PMF/backend/grading/views.py:233:                    {"detail": "Invalid session."},
+/home/alaeddine/viatique__PMF/backend/grading/views.py:239:                    {"detail": "You do not have permission to view this copy."},
+/home/alaeddine/viatique__PMF/backend/grading/views.py:335:                    {"detail": "You do not have permission to edit this remark."},
+/home/alaeddine/viatique__PMF/backend/grading/views.py:353:                    {"detail": "You do not have permission to delete this remark."},
+/home/alaeddine/viatique__PMF/backend/grading/views.py:422:                {"detail": "Cannot modify scores of a graded copy."},
+/home/alaeddine/viatique__PMF/backend/grading/services.py:417:                raise ValueError(f"Failed to generate final PDF: {error_msg}")
+/home/alaeddine/viatique__PMF/backend/grading/tasks.py:51:                'detail': f'Copy {copy_id} not found'
+/home/alaeddine/viatique__PMF/backend/grading/views_lock.py:36:            return Response({"detail": "An unexpected error occurred. Please contact support."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+/home/alaeddine/viatique__PMF/backend/grading/views_lock.py:60:            return Response({"detail": "Missing lock token."}, status=status.HTTP_403_FORBIDDEN)
+/home/alaeddine/viatique__PMF/backend/grading/views_lock.py:72:            return Response({"detail": "An unexpected error occurred. Please contact support."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+/home/alaeddine/viatique__PMF/backend/grading/views_lock.py:83:            return Response({"detail": "Missing lock token."}, status=status.HTTP_403_FORBIDDEN)
+/home/alaeddine/viatique__PMF/backend/grading/views_lock.py:93:            return Response({"detail": "An unexpected error occurred. Please contact support."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+/home/alaeddine/viatique__PMF/backend/grading/views_lock.py:109:            return Response({"detail": "An unexpected error occurred. Please contact support."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+/home/alaeddine/viatique__PMF/backend/grading/views_async.py:44:            "detail": "Failed to generate PDF: ...",
+/home/alaeddine/viatique__PMF/backend/grading/views_async.py:84:        response_data['message'] = 'Task failed'
+/home/alaeddine/viatique__PMF/backend/grading/views_async.py:119:        400: {"detail": "Task already completed"}
+/home/alaeddine/viatique__PMF/backend/grading/views_async.py:124:        payload = {'detail': 'Task already completed, cannot cancel'}
+/home/alaeddine/viatique__PMF/backend/exams/views.py:191:                {"error": _("Cet examen n'est pas en mode INDIVIDUAL_A4. Utilisez l'endpoint d'upload standard.")},
+/home/alaeddine/viatique__PMF/backend/exams/views.py:207:                {"error": _(f"Trop de fichiers. Maximum {self.MAX_FILES_PER_REQUEST} fichiers par requête.")},
+/home/alaeddine/viatique__PMF/backend/exams/views.py:291:             return Response({'error': 'Invalid PDF file'}, status=status.HTTP_400_BAD_REQUEST)
+/home/alaeddine/viatique__PMF/backend/exams/views.py:409:                 {"error": _("Le PDF source n'est pas disponible pour cet examen")},
+/home/alaeddine/viatique__PMF/backend/exams/views.py:422:                return Response({"error": "Page out of range"}, status=status.HTTP_404_NOT_FOUND)
+/home/alaeddine/viatique__PMF/backend/exams/views.py:444:                safe_error_response(e, context="Page analysis", user_message="Failed to analyze page."),
+/home/alaeddine/viatique__PMF/backend/exams/views.py:487:                {"error": _("Certains fascicules sont introuvables ou ne correspondent pas à cet examen.")}, 
+/home/alaeddine/viatique__PMF/backend/exams/views.py:596:            return Response({"error": "Student ID required"}, status=status.HTTP_400_BAD_REQUEST)
+/home/alaeddine/viatique__PMF/backend/exams/views.py:771:             return Response({"error": "Invalid copy state"}, status=status.HTTP_400_BAD_REQUEST)
+/home/alaeddine/viatique__PMF/backend/exams/views.py:775:                 safe_error_response(e, context="Copy validation", user_message="Failed to validate copy."),
+/home/alaeddine/viatique__PMF/backend/exams/views.py:941:                safe_error_response(e, context="Copy dispatch", user_message="Failed to dispatch copies."),
+/home/alaeddine/viatique__PMF/backend/exams/views.py:990:                {"error": _("Accès refusé. Seuls les administrateurs peuvent exporter vers PRONOTE.")},
+/home/alaeddine/viatique__PMF/backend/exams/views.py:1003:                {"error": _("Coefficient invalide. Doit être un nombre décimal.")},

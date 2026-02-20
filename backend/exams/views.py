@@ -288,11 +288,11 @@ class CopyImportView(APIView):
              serializer = CopySerializer(copy)
              return Response(serializer.data, status=status.HTTP_201_CREATED)
         except ValueError as e:
-             return Response({'error': 'Invalid PDF file'}, status=status.HTTP_400_BAD_REQUEST)
+             return Response({'error': 'Fichier PDF invalide.'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
              from core.utils.errors import safe_error_response
              return Response(
-                 safe_error_response(e, context="PDF import", user_message="Failed to import PDF. Please try again."),
+                 safe_error_response(e, context="PDF import", user_message="Échec de l'import PDF. Veuillez réessayer."),
                  status=status.HTTP_500_INTERNAL_SERVER_ERROR
              )
 
@@ -419,7 +419,7 @@ class BookletSplitView(APIView):
         try:
             doc = fitz.open(booklet.exam.pdf_source.path)
             if page_index < 0 or page_index >= doc.page_count:
-                return Response({"error": "Page out of range"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"error": "Page hors limites."}, status=status.HTTP_404_NOT_FOUND)
                 
             page = doc.load_page(page_index)
             pix = page.get_pixmap(dpi=150)
@@ -441,7 +441,7 @@ class BookletSplitView(APIView):
         except Exception as e:
             from core.utils.errors import safe_error_response
             return Response(
-                safe_error_response(e, context="Page analysis", user_message="Failed to analyze page."),
+                safe_error_response(e, context="Page analysis", user_message="Échec de l'analyse de la page."),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         finally:
@@ -593,7 +593,7 @@ class CopyIdentificationView(APIView):
         student_id = request.data.get('student_id')
 
         if not student_id:
-            return Response({"error": "Student ID required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Identifiant élève requis."}, status=status.HTTP_400_BAD_REQUEST)
 
         student = get_object_or_404(Student, id=student_id)
 
@@ -768,11 +768,11 @@ class CopyValidationView(APIView):
              GradingService.validate_copy(copy, request.user)
              return Response({"message": "Copy validated and ready for grading.", "status": copy.status})
         except ValueError as e:
-             return Response({"error": "Invalid copy state"}, status=status.HTTP_400_BAD_REQUEST)
+             return Response({"error": "État de copie invalide."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
              from core.utils.errors import safe_error_response
              return Response(
-                 safe_error_response(e, context="Copy validation", user_message="Failed to validate copy."),
+                 safe_error_response(e, context="Copy validation", user_message="Échec de la validation de la copie."),
                  status=status.HTTP_500_INTERNAL_SERVER_ERROR
              )
 
@@ -938,7 +938,7 @@ class ExamDispatchView(APIView):
             from core.utils.errors import safe_error_response
             logger.error(f"Dispatch failed for exam {exam_id}: {str(e)}", exc_info=True)
             return Response(
-                safe_error_response(e, context="Copy dispatch", user_message="Failed to dispatch copies."),
+                safe_error_response(e, context="Copy dispatch", user_message="Échec de la distribution des copies."),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
