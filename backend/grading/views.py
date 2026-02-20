@@ -269,7 +269,8 @@ class CopyFinalPdfView(APIView):
 
         response = FileResponse(copy.final_pdf.open("rb"), content_type="application/pdf")
         filename = f'copy_{copy.anonymous_id}_corrected.pdf'
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        disposition = 'attachment' if request.query_params.get('download') == '1' else 'inline'
+        response["Content-Disposition"] = f'{disposition}; filename="{filename}"'
         response["Cache-Control"] = "private, no-store, no-cache, must-revalidate, max-age=0"
         response["Pragma"] = "no-cache"
         response["Expires"] = "0"
