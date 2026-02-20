@@ -1,6 +1,6 @@
 """
 Unit tests for DraftState API endpoints.
-Task: ZF-AUD-06 AUTOSAVE + RECOVERY (DraftState DB + localStorage)
+Task: AUTOSAVE + RECOVERY (DraftState DB + localStorage)
 """
 import pytest
 import uuid

@@ -9,7 +9,7 @@ mkdir -p $BACKUP_DIR
 
 echo "📦 Creating database backup: $BACKUP_FILE"
 docker compose -f infra/docker/docker-compose.prod.yml exec -T db \
-  pg_dump -U ${POSTGRES_USER:-viatique_user} ${POSTGRES_DB:-viatique} \
+  pg_dump -U ${POSTGRES_USER:-korrigo_user} ${POSTGRES_DB:-korrigo} \
   > $BACKUP_FILE
 
 gzip $BACKUP_FILE

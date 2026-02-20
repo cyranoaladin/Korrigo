@@ -4,7 +4,7 @@ set -euo pipefail
 # ==========================================
 # Korrigo — Release Gate "one-shot" runner
 # Build/Boot/Migrate/Seed/E2E/Tests + logs
-# Adapted for Viatique/Korrigo project
+# Adapted for Korrigo/Korrigo project
 # ==========================================
 
 # ---- Config (adjust if needed)

@@ -2,7 +2,7 @@
 
 ## Description
 
-Script de validation **complète et automatisée** pour Korrigo/Viatique, exécutant toutes les phases du Release Gate en un seul run:
+Script de validation **complète et automatisée** pour Korrigo/Korrigo, exécutant toutes les phases du Release Gate en un seul run:
 
 - **Phase A**: Build (no-cache)
 - **Phase B**: Boot & Stability (3 minutes sans restart)
@@ -50,7 +50,7 @@ COMPOSE_FILE="infra/docker/docker-compose.prod.yml" \
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `ROOT` | `/home/alaeddine/viatique__PMF` | Racine du projet |
+| `ROOT` | `/home/alaeddine/korrigo__PMF` | Racine du projet |
 | `COMPOSE_FILE` | `infra/docker/docker-compose.local-prod.yml` | Fichier Docker Compose |
 | `NGINX_BASE_URL` | `http://localhost:8088` | URL de base Nginx |
 | `BACKEND_SVC` | `backend` | Nom du service backend |
@@ -276,7 +276,7 @@ release-gate:
 
 - **Release Gate Report**: `/tmp/final_deployment_report.txt`
 - **CI Fixes Report**: `/tmp/CI_FIXES_VALIDATION_REPORT.md`
-- **Documentation Rules**: `.claude/rules/`
+- **Documentation Rules**: `docs/security/MANUEL_SECURITE.md`
 - **Docker Compose**: `infra/docker/docker-compose.local-prod.yml`
 
 ---

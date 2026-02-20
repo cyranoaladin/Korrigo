@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-ZF-AUD-13: Performance Load Test Script
+Performance Load Test Script
 Simulates 100 copies, 30 teachers, concurrent operations
 
 Usage:
@@ -401,7 +401,7 @@ def main():
     args = parser.parse_args()
     
     print(f"\n{'#'*60}")
-    print(f"# ZF-AUD-13: Performance Load Test")
+    print(f"# Performance Load Test")
     print(f"# Scenario: {args.scenario}")
     print(f"# Copies: {args.copies}, Teachers: {args.teachers}")
     print(f"# Started: {datetime.now().isoformat()}")

@@ -1,9 +1,9 @@
 # Schéma Base de Données - Korrigo PMF
 
-> **Version**: 1.2.0  
-> **Date**: Janvier 2026  
+> **Version**: 1.3.0  
+> **Date**: 14 février 2026  
 > **SGBD**: PostgreSQL 15+  
-> **ORM**: Django 4.2 LTS
+> **ORM**: Django 4.2 LTS (Python 3.11)
 
 Ce document décrit le schéma complet de la base de données du projet Korrigo PMF, incluant tous les modèles, leurs relations, contraintes et workflows d'états.
 
@@ -25,23 +25,22 @@ Ce document décrit le schéma complet de la base de données du projet Korrigo 
 
 ### Modules de Données
 
-Le schéma est organisé en 4 modules Django:
+Le schéma est organisé en 5 modules Django :
 
 | Module | Tables | Responsabilité |
 |--------|--------|----------------|
-| **exams** | `Exam`, `Booklet`, `Copy`, `ExamPDF`, `ExamDocumentSet`, `ExamDocument` | Gestion examens et documents |
-| **grading** | `Annotation`, `GradingEvent`, `CopyLock`, `DraftState`, `Score`, `QuestionRemark` | Correction et audit |
+| **exams** | `Exam`, `Booklet`, `Copy`, `ExamPDF`, `ExamDocumentSet`, `ExamDocument`, `DocumentTextExtraction`, `DocumentPage`, `DocumentChunk` | Gestion examens, copies et documents |
+| **grading** | `Annotation`, `GradingEvent`, `CopyLock`, `DraftState`, `Score`, `QuestionRemark`, `AnnotationTemplate`, `UserAnnotation` | Correction, audit et banque d'annotations |
 | **students** | `Student` | Gestion élèves |
-| **identification** | `OCRResult` | Identification automatique |
-| **auth** | `User`, `Group`, `Permission` | Authentification (Django) |
+| **identification** | `OCRResult` | Identification automatique (OCR) |
+| **core** | `GlobalSettings`, `AuditLog`, `UserProfile` | Paramètres système, traçabilité RGPD, profils |
+| **auth** | `User`, `Group`, `Permission` | Authentification (Django natif) |
 
 ### Statistiques
 
-- **8 modèles métier** (hors auth Django)
-- **12 relations ForeignKey**
-- **1 relation ManyToMany**
-- **1 relation OneToOne**
-- **6 index personnalisés**
+- **~20 modèles métier** (hors auth Django)
+- **Relations** : ForeignKey, ManyToMany (Exam↔correctors, Copy↔booklets), OneToOne (Student↔User, Copy↔CopyLock)
+- **Machine d'états** : 6 statuts Copy (STAGING → READY → LOCKED → GRADING_IN_PROGRESS → GRADED / GRADING_FAILED)
 
 ---
 
@@ -245,8 +244,14 @@ erDiagram
 **Statuts possibles** (Enum `Copy.Status`):
 - `STAGING`: Copie créée, en attente validation
 - `READY`: Prête à corriger
-- `LOCKED`: En cours de correction (verrouillée)
-- `GRADED`: Correction terminée
+- `LOCKED`: En cours de correction (verrouillée par un correcteur)
+- `GRADING_IN_PROGRESS`: Finalisation en cours (génération PDF)
+- `GRADED`: Correction terminée, PDF final généré
+- `GRADING_FAILED`: Échec de finalisation (retry possible, max 3 tentatives)
+
+**Champs supplémentaires** (ajoutés depuis v1.2):
+- `grading_retries` (INT, DEFAULT 0) : Nombre de tentatives de finalisation
+- `grading_error_message` (TEXT, NULLABLE) : Message d'erreur en cas d'échec
 
 **Relation ManyToMany**:
 - `booklets`: Booklets composant cette copie (traçabilité)
@@ -300,14 +305,18 @@ erDiagram
 | Champ | Type | Contraintes | Description |
 |-------|------|-------------|-------------|
 | `id` | INT | PK | Identifiant auto-incrémenté |
-| `date_naissance` | DATE | NOT NULL | Date de naissance (Identification) |
 | `first_name` | VARCHAR(100) | NOT NULL | Prénom |
 | `last_name` | VARCHAR(100) | NOT NULL | Nom |
-| `class_name` | VARCHAR(50) | NOT NULL | Classe (ex: "TG2") |
 | `email` | EMAIL | NULLABLE | Email élève |
-| `user_id` | INT | FK → User, NULLABLE | Compte utilisateur associé (OneToOne) |
+| `date_naissance` | DATE | NULLABLE | Date de naissance |
+| `class_name` | VARCHAR(50) | NOT NULL | Classe (ex: "TG2") |
+| `groupe` | VARCHAR(50) | NULLABLE | Groupe (ex: "G1", "G2") |
+| `user_id` | INT | FK → User, OneToOne | Compte utilisateur associé |
 
-**Import**: CSV Pronote via commande Django `import_students`
+**Import** : CSV via endpoint `POST /api/students/import/` ou via script.
+Format CSV : `Nom-Prenom,Date-naissance,Adresse-mail,Classe,Groupe`
+
+**Contrainte unique** : `(first_name, last_name, class_name)`
 
 ---
 
@@ -327,15 +336,21 @@ erDiagram
 | `content` | TEXT | NULLABLE | Texte ou JSON de l'annotation |
 | `type` | VARCHAR(20) | CHOICES | Type d'annotation |
 | `score_delta` | INT | NULLABLE | Points ajoutés/retirés |
+| `version` | INT | DEFAULT 1 | Version optimiste (détection conflits) |
 | `created_by_id` | UUID | FK → User | Correcteur |
 | `created_at` | DATETIME | AUTO | Date création |
 | `updated_at` | DATETIME | AUTO | Date modification |
 
 **Types possibles** (Enum `Annotation.Type`):
-- `COMMENT`: Commentaire textuel
+- `COMMENTAIRE`: Commentaire textuel
 - `HIGHLIGHT`: Surligné
 - `ERROR`: Erreur détectée
 - `BONUS`: Bonus
+- `NOTE`: Note de correction
+- `CROIX`: Croix (erreur visuelle)
+- `COCHE`: Coche (validation visuelle)
+
+**Versionnement optimiste** : Le champ `version` est incrémenté atomiquement (`F('version') + 1`) à chaque mise à jour. Le client peut envoyer `version` attendue pour détecter les modifications concurrentes.
 
 **Index**:
 - `(copy_id, page_index)`: Requêtes fréquentes par page
@@ -401,10 +416,11 @@ y_pdf = y * page_height
 
 **Logique**:
 - Un seul verrou par copie (OneToOne)
-- Expiration automatique après 30 minutes
-- Token requis pour toute modification
+- Expiration automatique (TTL configurable, défaut 10 min, max 1h)
+- Token requis pour toute modification (heartbeat, release, annotations)
+- Heartbeat renouvelle le TTL (endpoint `/lock/heartbeat/`)
 
-**Nettoyage**: Tâche Celery périodique supprime les verrous expirés
+**Nettoyage** : Verrous expirés supprimés automatiquement lors de l'accès (`_reconcile_lock_state`)
 
 ---
 
@@ -548,7 +564,10 @@ stateDiagram-v2
     STAGING --> READY: Validate (Admin)
     READY --> LOCKED: Lock (Teacher)
     LOCKED --> READY: Unlock (Teacher)
-    LOCKED --> GRADED: Finalize (Teacher)
+    LOCKED --> GRADING_IN_PROGRESS: Finalize (Teacher)
+    GRADING_IN_PROGRESS --> GRADED: PDF Success
+    GRADING_IN_PROGRESS --> GRADING_FAILED: PDF Error
+    GRADING_FAILED --> GRADING_IN_PROGRESS: Retry (max 3)
     GRADED --> [*]
     
     note right of STAGING
@@ -556,19 +575,19 @@ stateDiagram-v2
         validation admin
     end note
     
-    note right of READY
-        Prête à corriger
-        Disponible pour verrouillage
-    end note
-    
     note right of LOCKED
         En cours de correction
-        Verrouillée par un enseignant
+        Verrouillée (CopyLock + token)
     end note
     
-    note right of GRADED
-        Correction terminée
-        PDF final généré
+    note right of GRADING_IN_PROGRESS
+        Génération PDF final
+        en cours (PDFFlattener)
+    end note
+    
+    note right of GRADING_FAILED
+        Échec finalisation
+        Retry possible (max 3)
     end note
 ```
 
@@ -728,20 +747,20 @@ Ajout champs:
 
 ```bash
 # Dump complet
-docker-compose exec db pg_dump -U viatique_user viatique > backup.sql
+docker-compose exec db pg_dump -U korrigo_user korrigo > backup.sql
 
 # Dump avec compression
-docker-compose exec db pg_dump -U viatique_user viatique | gzip > backup.sql.gz
+docker-compose exec db pg_dump -U korrigo_user korrigo | gzip > backup.sql.gz
 ```
 
 ### Restauration
 
 ```bash
 # Restauration
-docker-compose exec -T db psql -U viatique_user viatique < backup.sql
+docker-compose exec -T db psql -U korrigo_user korrigo < backup.sql
 
 # Avec compression
-gunzip -c backup.sql.gz | docker-compose exec -T db psql -U viatique_user viatique
+gunzip -c backup.sql.gz | docker-compose exec -T db psql -U korrigo_user korrigo
 ```
 
 ### Stratégie Recommandée
@@ -752,16 +771,57 @@ gunzip -c backup.sql.gz | docker-compose exec -T db psql -U viatique_user viatiq
 
 ---
 
-## Références
+## Modèles Core (core)
 
-- [ARCHITECTURE.md](file:///home/alaeddine/viatique__PMF/docs/ARCHITECTURE.md) - Architecture globale
-- [TECHNICAL_MANUAL.md](file:///home/alaeddine/viatique__PMF/docs/TECHNICAL_MANUAL.md) - Manuel technique
-- [API_REFERENCE.md](file:///home/alaeddine/viatique__PMF/docs/API_REFERENCE.md) - Documentation API
-- [backend/exams/models.py](file:///home/alaeddine/viatique__PMF/backend/exams/models.py) - Code source modèles exams
-- [backend/grading/models.py](file:///home/alaeddine/viatique__PMF/backend/grading/models.py) - Code source modèles grading
+### GlobalSettings (core.GlobalSettings)
+
+**Responsabilité** : Paramètres singleton de l'application.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `results_released` | BOOLEAN | Publication globale des résultats |
+| `maintenance_mode` | BOOLEAN | Mode maintenance |
+| `announcement` | TEXT | Annonce système |
+
+**Pattern** : Singleton — un seul enregistrement, accédé via `GlobalSettings.load()`.
+
+### AuditLog (core.AuditLog)
+
+**Responsabilité** : Traçabilité RGPD des actions critiques.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `id` | UUID | PK |
+| `action` | VARCHAR(100) | Type d'action (login, download, etc.) |
+| `user_id` | FK → User, NULLABLE | Utilisateur |
+| `ip_address` | GenericIPAddress | Adresse IP client |
+| `user_agent` | TEXT | User-Agent navigateur |
+| `metadata` | JSON | Données contextuelles |
+| `timestamp` | DATETIME | AUTO |
+
+**Rétention** : 12 mois minimum (conformité RGPD).
+
+### UserProfile (core.UserProfile)
+
+**Responsabilité** : Profil étendu de l'utilisateur.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `user_id` | FK → User, OneToOne | Utilisateur |
+| `must_change_password` | BOOLEAN | Changement mot de passe requis |
 
 ---
 
-**Dernière mise à jour**: 25 janvier 2026  
-**Auteur**: Aleddine BEN RHOUMA  
-**Licence**: Propriétaire - AEFE/Éducation Nationale
+## Références
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) — Architecture globale
+- [API_REFERENCE.md](API_REFERENCE.md) — Documentation API
+- [ADR-002: PDF Coordinate Normalization](../decisions/ADR-002-pdf-coordinate-normalization.md)
+- [ADR-003: Copy Status State Machine](../decisions/ADR-003-copy-status-state-machine.md)
+- Code source : `backend/exams/models.py`, `backend/grading/models.py`, `backend/core/models.py`
+
+---
+
+**Dernière mise à jour** : 14 février 2026  
+**Auteur** : Alaeddine BEN RHOUMA  
+**Licence** : Propriétaire — AEFE/Éducation Nationale

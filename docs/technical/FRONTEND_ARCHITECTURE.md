@@ -760,5 +760,5 @@ npm run typecheck
 ---
 
 **Dernière mise à jour**: 4 février 2026  
-**Auteur**: Aleddine BEN RHOUMA  
+**Auteur**: Alaeddine BEN RHOUMA  
 **Licence**: Propriétaire - AEFE/Éducation Nationale

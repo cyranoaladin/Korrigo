@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
-# Korrigo/Viatique Restore Script
-# ZF-AUD-12: Production restore for DB and media files
+# Korrigo/Korrigo Restore Script
+# Production restore for DB and media files
 # =============================================================================
 
 set -euo pipefail

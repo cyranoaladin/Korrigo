@@ -31,7 +31,7 @@ class LoginView(APIView):
     Rate limited to 5 attempts per 15 minutes per IP.
     CSRF exempt: Public authentication endpoint, protected by rate limiting.
     
-    Conformité: .antigravity/rules/01_security_rules.md § 9
+    Conformité: docs/security/MANUEL_SECURITE.md — Rate Limiting
     """
     permission_classes = [AllowAny]
     authentication_classes = []  # No auth required, bypass SessionAuth CSRF

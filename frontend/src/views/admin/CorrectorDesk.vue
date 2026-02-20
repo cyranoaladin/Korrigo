@@ -12,6 +12,17 @@ const router = useRouter()
 const authStore = useAuthStore()
 const copyId = route.params.copyId
 
+// --- Labels FR ---
+const statusLabels = {
+  'STAGING': 'En attente',
+  'READY': 'Prêt',
+  'LOCKED': 'En cours',
+  'GRADED': 'Corrigé',
+  'GRADING_IN_PROGRESS': 'Correction en cours',
+  'GRADING_FAILED': 'Échec',
+}
+const getStatusLabel = (status) => statusLabels[status] || status
+
 // --- State ---
 const copy = ref(null)
 const isLoading = ref(true)
@@ -305,9 +316,9 @@ const fetchCopy = async () => {
     await fetchGlobalAppreciation()
   } catch (err) {
     if (err.response?.status === 403) {
-        error.value = "Access Denied: You do not have permission to view this copy."
+        error.value = "Accès refusé : vous n'avez pas la permission de voir cette copie."
     } else {
-        error.value = err.response?.data?.detail || "Failed to load copy"
+        error.value = err.response?.data?.detail || "Échec du chargement de la copie"
     }
   } finally {
     isLoading.value = false
@@ -363,7 +374,7 @@ const saveRemark = async (questionId, remark) => {
         await gradingApi.saveRemark(copyId, questionId, remark, softLock.value?.token)
     } catch (err) {
         console.error("Failed to save remark", err)
-        error.value = "Failed to save remark"
+        error.value = "Échec de la sauvegarde de la remarque"
     } finally {
         remarksSaving.value.set(questionId, false)
     }
@@ -375,7 +386,7 @@ const saveGlobalAppreciationToServer = async () => {
         await gradingApi.saveGlobalAppreciation(copyId, globalAppreciation.value, softLock.value?.token)
     } catch (err) {
         console.error("Failed to save global appreciation", err)
-        error.value = "Failed to save global appreciation"
+        error.value = "Échec de la sauvegarde de l'appréciation"
     } finally {
         appreciationSaving.value = false
     }
@@ -489,7 +500,7 @@ const handleMarkReady = async () => {
         // Try to acquire lock if now ready
         if (!softLock.value) await acquireLock();
     }
-    catch (err) { error.value = err.response?.data?.detail || "Action failed"; } 
+    catch (err) { error.value = err.response?.data?.detail || "Échec de l'action"; } 
     finally { isSaving.value = false; }
 }
 
@@ -508,7 +519,7 @@ const acquireLock = async () => {
             isLockConflict.value = true;
             softLock.value = null; // We don't have the token
             const owner = err.response.data.owner?.username || "Another user";
-            error.value = `LOCKED by ${owner}. You are in Read-Only mode.`;
+            error.value = `Verrouillée par ${owner}. Mode lecture seule.`;
         } else {
             console.error("Lock acquire failed", err);
         }
@@ -647,7 +658,7 @@ const startHeartbeat = () => {
                  // Lock stolen, expired, or forbidden
                  softLock.value = null;
                  isLockConflict.value = true;
-                 error.value = "Lock lost (taken by another user or expired). Switching to Read-Only.";
+                 error.value = "Verrou perdu (pris par un autre utilisateur ou expiré). Mode lecture seule.";
                  clearInterval(lockInterval.value);
                  return;
              }
@@ -658,7 +669,7 @@ const startHeartbeat = () => {
                  console.warn("Too many heartbeat failures. Assuming lock lost.");
                  softLock.value = null;
                  isLockConflict.value = true;
-                 error.value = "Connection unstable. Lock maintenance failed. Read-Only.";
+                 error.value = "Connexion instable. Maintenance du verrou échouée. Lecture seule.";
                  clearInterval(lockInterval.value);
              }
         }
@@ -690,7 +701,7 @@ const handleFinalize = async () => {
         await gradingApi.finalizeCopy(copyId, softLock.value?.token);
         await fetchCopy();
     }
-    catch (err) { error.value = err.response?.data?.detail || "Action failed"; }
+    catch (err) { error.value = err.response?.data?.detail || "Échec de l'action"; }
     finally { isSaving.value = false; }
 }
 
@@ -707,7 +718,7 @@ const handleImageLoad = (e) => {
 
 const handleImageError = () => {
     imageError.value = true
-    error.value = "Failed to load page image."
+    error.value = "Échec du chargement de l'image de la page."
 }
 
 // --- Annotation Editor ---
@@ -850,14 +861,14 @@ onUnmounted(() => {
           class="back-btn"
           @click="router.push('/corrector-dashboard')"
         >
-          ← Back
+          ← Retour
         </button>
         <span
           v-if="copy"
           class="copy-info"
         >
           <strong>{{ copy.anonymous_id }}</strong> 
-          <span :class="'status-badge status-' + copy.status.toLowerCase()">{{ copy.status }}</span>
+          <span :class="'status-badge status-' + copy.status.toLowerCase()">{{ getStatusLabel(copy.status) }}</span>
         </span>
         <!-- Subject Variant (Sujet A / Sujet B) -->
         <div
@@ -912,7 +923,7 @@ onUnmounted(() => {
           class="btn-primary"
           @click="handleMarkReady"
         >
-          Mark READY
+          Marquer Prêt
         </button>
 
         <button
@@ -929,7 +940,7 @@ onUnmounted(() => {
           class="btn-info"
           @click="handleDownload"
         >
-          Download
+          Télécharger
         </button>
       </div>
     </div>
@@ -940,7 +951,7 @@ onUnmounted(() => {
     >
       <span>{{ error }}</span>
       <button @click="error = null">
-        Dismiss
+        Fermer
       </button>
     </div>
 
@@ -968,7 +979,7 @@ onUnmounted(() => {
       v-if="isLoading"
       class="loading-state"
     >
-      Loading...
+      Chargement...
     </div>
     <div
       v-else
@@ -986,7 +997,7 @@ onUnmounted(() => {
               title="Page précédente (← ou PageUp)"
               @click="goPrevPage"
             >
-              ← Prev
+              ← Préc.
             </button>
             <span>Page {{ currentPage }} / {{ pages.length }}</span>
             <button
@@ -994,14 +1005,14 @@ onUnmounted(() => {
               title="Page suivante (→ ou PageDown)"
               @click="goNextPage"
             >
-              Next →
+              Suiv. →
             </button>
           </div>
           <div
             v-else
             class="pagination"
           >
-            <span>No Pages</span>
+            <span>Aucune page</span>
           </div>
           <div class="zoom-controls">
             <button @click="scale = Math.max(0.2, scale - 0.1)">

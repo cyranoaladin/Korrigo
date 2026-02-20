@@ -83,7 +83,7 @@ echo ""
 
 set +x  # Redundant but explicit (no tracing)
 
-export BASE_URL="${BASE_URL:-https://staging.viatique.example.com}"
+export BASE_URL="${BASE_URL:-https://staging.korrigo.example.com}"
 export TAG="${TAG:-v1.0.0-rc1}"
 export SMOKE_USER="${SMOKE_USER:-prof1}"
 
