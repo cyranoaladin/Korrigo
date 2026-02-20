@@ -19,7 +19,7 @@ FIXTURES_DIR = os.path.join(settings.BASE_DIR, "grading/tests/fixtures/pdfs")
 class TestAuditEvents(TransactionTestCase):
     """
     Test suite for verifying GradingEvent creation at key workflow moments.
-    Part of observability & audit trail requirements (ZF-AUD-11).
+    Part of observability & audit trail requirements.
     """
 
     def setUp(self):

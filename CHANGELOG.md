@@ -1,9 +1,27 @@
 # Changelog
 
-Tous les changements notables du projet Viatique seront documentés dans ce fichier.
+Tous les changements notables du projet Korrigo seront documentés dans ce fichier.
 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
+
+---
+
+## [1.3.0] - 2026-02-14
+
+### 📚 Documentation — Mise à jour complète
+
+- **README.md** : Réécriture complète — architecture illustrée, stack technique détaillée, modèle de données, API REST (~60 endpoints), rôles/permissions, workflow de correction, OCR/IA, installation dev/prod
+- **docs/INDEX.md** : Liens corrigés (chemins `technical/`, `deployment/`, `development/`), métadonnées actualisées, historique des versions
+- **docs/README.md** : Réécrit comme index rapide avec tables par public
+- **docs/technical/ARCHITECTURE.md** : Python 3.11, OCR dual (GPT-4o-mini + Tesseract), machine d'états 6 statuts, production Docker Compose server.yml, évolutions réalisées depuis v1.0
+- **docs/technical/DATABASE_SCHEMA.md** : 5 apps (~20 modèles), modèles core (AuditLog, GlobalSettings, UserProfile), champ `version` sur Annotation, statuts GRADING_IN_PROGRESS/GRADING_FAILED, Student.groupe, CopyLock TTL/heartbeat
+- **Archivage** : 38 fichiers .md obsolètes déplacés de la racine vers `docs/archive/root_reports/`
+- **Liens** : Tous les liens internes corrigés (INDEX.md, README.md principal, docs/README.md)
+
+### 🔧 Maintenance
+- Racine nettoyée : seuls README.md, CHANGELOG.md et BILAN_AFFECTATIONS.md conservés
+- Correction des chemins cassés vers `technical/`, `deployment/`, `development/` dans toute la documentation
 
 ---
 
@@ -155,13 +173,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ### 📚 Documentation
 - `README.md` : Guide utilisateur et installation
-- `.antigravity/` : Système de gouvernance technique (v1.1.0)
-  - 7 fichiers rules (sécurité, backend, frontend, database, PDF, deployment)
-  - 6 workflows métier formalisés
-  - 5 skills techniques
-  - 3 checklists qualité
-- `.claude/` : Système de gouvernance (v1.1.0, synchronisé)
-- `docs/` : Documentation technique
+- `docs/` : Documentation technique complète
 
 ---
 
@@ -198,10 +210,10 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - [Audit Complet Projet](docs/AUDIT_COMPLET_2026-01-24.md)
 - [Phase 1 - Corrections Sécurité](docs/PHASE1_SECURITY_CORRECTIONS.md)
 - [Phase 2 - Améliorations Production](docs/PHASE2_PRODUCTION_IMPROVEMENTS.md)
-- [Règles de Gouvernance](.antigravity/README.md)
+- [Documentation](docs/INDEX.md)
 
 ---
 
-**Projet** : Viatique (Korrigo)  
+**Projet** : Korrigo (Korrigo)  
 **Contexte** : Production institutionnelle (AEFE / Éducation nationale)  
-**Mainteneur** : Aleddine BEN RHOUMA
+**Mainteneur** : Alaeddine BEN RHOUMA

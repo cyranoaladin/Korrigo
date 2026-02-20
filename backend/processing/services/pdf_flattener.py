@@ -7,7 +7,7 @@ import os
 from tempfile import NamedTemporaryFile
 from django.conf import settings
 from django.core.files import File
-from grading.models import Annotation
+from grading.models import Annotation, Score, QuestionRemark
 from exams.models import Copy
 import logging
 
@@ -127,75 +127,178 @@ class PDFFlattener:
         Retourne la couleur RGB selon le type d'annotation.
         """
         colors = {
-            Annotation.Type.COMMENTAIRE: (0, 0, 1),   # Bleu
-            Annotation.Type.SURLIGNAGE: (1, 1, 0),    # Jaune
-            Annotation.Type.ERREUR: (1, 0, 0),        # Rouge
+            Annotation.Type.COMMENT: (0, 0, 1),   # Bleu
+            Annotation.Type.HIGHLIGHT: (1, 1, 0),    # Jaune
+            Annotation.Type.ERROR: (1, 0, 0),       # Rouge
             Annotation.Type.BONUS: (0, 0.5, 0),       # Vert
         }
         return colors.get(annotation_type, (0, 0, 0))  # Noir par défaut
 
     def _add_summary_page(self, doc, copy):
         """
-        Ajoute une page de synthèse avec le score total et les détails.
+        Ajoute des pages de synthèse complètes avec :
+        - Notes détaillées du barème (Score.scores_data)
+        - Note finale
+        - Remarques par question (QuestionRemark)
+        - Appréciation générale (Copy.global_appreciation)
         """
-        summary_page = doc.new_page(width=595, height=842)  # A4
+        PAGE_W, PAGE_H = 595, 842
+        MARGIN_LEFT = 50
+        MARGIN_RIGHT = 545
+        LINE_HEIGHT = 18
+        MAX_Y = 790
+
+        summary_page = doc.new_page(width=PAGE_W, height=PAGE_H)
         text_writer = fitz.TextWriter(summary_page.rect)
 
-        # Titre
-        text_writer.append(fitz.Point(50, 50), "Relevé de Notes", fontsize=24)
+        def new_page():
+            nonlocal summary_page, text_writer
+            text_writer.write_text(summary_page)
+            summary_page = doc.new_page(width=PAGE_W, height=PAGE_H)
+            text_writer = fitz.TextWriter(summary_page.rect)
+            return 50
+
+        def check_overflow(y, needed=LINE_HEIGHT):
+            if y + needed > MAX_Y:
+                return new_page()
+            return y
+
+        def write_wrapped(x, y, text, fontsize=10, max_width=480):
+            """Écrit du texte avec retour à la ligne si trop long."""
+            if not text:
+                return y
+            avg_char_width = fontsize * 0.5
+            chars_per_line = max(int(max_width / avg_char_width), 20)
+            lines = []
+            for paragraph in text.split('\n'):
+                while len(paragraph) > chars_per_line:
+                    split_at = paragraph[:chars_per_line].rfind(' ')
+                    if split_at <= 0:
+                        split_at = chars_per_line
+                    lines.append(paragraph[:split_at])
+                    paragraph = paragraph[split_at:].lstrip()
+                lines.append(paragraph)
+            for line in lines:
+                y = check_overflow(y, LINE_HEIGHT)
+                text_writer.append(fitz.Point(x, y), line, fontsize=fontsize)
+                y += LINE_HEIGHT
+            return y
+
+        # --- Titre ---
+        y = 50
+        text_writer.append(fitz.Point(MARGIN_LEFT, y), "Releve de Notes", fontsize=24)
+        y += 35
         text_writer.append(
-            fitz.Point(50, 80),
+            fitz.Point(MARGIN_LEFT, y),
             f"Copie : {copy.anonymous_id}",
             fontsize=14
         )
+        y += 30
 
-        # Récupérer toutes les annotations avec score_delta
+        # --- 1. Notes detaillees du bareme ---
+        score_obj = Score.objects.filter(copy=copy).first()
+        scores_data = {}
+        total_score = 0.0
+        if score_obj and score_obj.scores_data:
+            scores_data = score_obj.scores_data
+            for val in scores_data.values():
+                try:
+                    total_score += float(val) if val not in (None, '') else 0
+                except (TypeError, ValueError):
+                    pass
+
+        # Note finale en gros
+        y = check_overflow(y, 35)
+        text_writer.append(
+            fitz.Point(MARGIN_LEFT, y),
+            f"NOTE FINALE : {total_score:.2f} / 20",
+            fontsize=20
+        )
+        y += 40
+
+        # Détail par question
+        if scores_data:
+            y = check_overflow(y, 25)
+            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Detail des notes par question :", fontsize=14)
+            y += 25
+
+            def sort_key(item):
+                parts = item[0].split('.')
+                result = []
+                for p in parts:
+                    try:
+                        result.append((0, int(p)))
+                    except ValueError:
+                        result.append((1, p))
+                return result
+
+            for q_id, q_score in sorted(scores_data.items(), key=sort_key):
+                y = check_overflow(y)
+                score_display = q_score if q_score not in (None, '') else '0'
+                text_writer.append(
+                    fitz.Point(70, y),
+                    f"Q{q_id} : {score_display}",
+                    fontsize=11
+                )
+                y += LINE_HEIGHT
+        else:
+            y = check_overflow(y)
+            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Aucune note de bareme enregistree.", fontsize=11)
+            y += LINE_HEIGHT
+
+        y += 15
+
+        # --- 2. Remarques par question ---
+        remarks = list(QuestionRemark.objects.filter(copy=copy).order_by('question_id'))
+        remarks_with_text = [r for r in remarks if r.remark and r.remark.strip()]
+
+        if remarks_with_text:
+            y = check_overflow(y, 25)
+            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Remarques par question :", fontsize=14)
+            y += 25
+
+            for remark in remarks_with_text:
+                y = check_overflow(y, LINE_HEIGHT * 2)
+                text_writer.append(
+                    fitz.Point(70, y),
+                    f"Q{remark.question_id} :",
+                    fontsize=11
+                )
+                y += LINE_HEIGHT
+                y = write_wrapped(80, y, remark.remark.strip(), fontsize=10, max_width=460)
+                y += 5
+
+        y += 15
+
+        # --- 3. Annotations visuelles (si presentes) ---
         annotations_with_score = copy.annotations.filter(
             score_delta__isnull=False
         ).order_by('page_index')
 
-        y = 120
-        total_score = 0
-
-        # Détail par annotation
         if annotations_with_score.exists():
-            text_writer.append(fitz.Point(50, y), "Détail des points :", fontsize=14)
-            y += 30
+            y = check_overflow(y, 25)
+            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Annotations du correcteur :", fontsize=14)
+            y += 25
 
             for annot in annotations_with_score:
-                score = annot.score_delta
-                total_score += score
-                score_str = f"{score:+d}"  # Format +5 ou -3
-
-                # Limiter le texte affiché
-                display_content = annot.content[:40] + "..." if len(annot.content) > 40 else annot.content
+                y = check_overflow(y)
+                score_str = f"{annot.score_delta:+d}"
+                display_content = annot.content[:60] + "..." if annot.content and len(annot.content) > 60 else (annot.content or '')
                 line = f"Page {annot.page_index + 1} : {score_str} pts"
                 if display_content:
-                    line += f" ({display_content})"
+                    line += f" - {display_content}"
+                text_writer.append(fitz.Point(70, y), line, fontsize=10)
+                y += LINE_HEIGHT
 
-                text_writer.append(fitz.Point(60, y), line, fontsize=11)
-                y += 20
+        y += 15
 
-                # Nouvelle page si débordement
-                if y > 800:
-                    text_writer.write_text(summary_page)
-                    summary_page = doc.new_page(width=595, height=842)
-                    text_writer = fitz.TextWriter(summary_page.rect)
-                    y = 50
-        else:
-            text_writer.append(
-                fitz.Point(50, y),
-                "Aucune annotation avec score.",
-                fontsize=12
-            )
-            y += 30
+        # --- 4. Appreciation generale ---
+        appreciation = copy.global_appreciation
+        if appreciation and appreciation.strip():
+            y = check_overflow(y, 25)
+            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Appreciation generale :", fontsize=14)
+            y += 25
+            y = write_wrapped(70, y, appreciation.strip(), fontsize=11, max_width=470)
 
-        # Total
-        y += 20
-        text_writer.append(
-            fitz.Point(50, y),
-            f"SCORE TOTAL : {total_score} points",
-            fontsize=18
-        )
-
+        # Finaliser la dernière page
         text_writer.write_text(summary_page)

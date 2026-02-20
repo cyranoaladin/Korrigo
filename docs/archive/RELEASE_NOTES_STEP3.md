@@ -26,7 +26,7 @@
 
 - **Int-like page_index handling** (094a7b2): Accepts string values convertible to integers ("0", "1") for frontend compatibility.
 
-- **Comprehensive documentation** (c4033f3): Added `.claude/ETAPE_3_ANNOTATION_GRADING.md` (ADR refs, known limitations, checklist) and `scripts/README.md` (container restart warning).
+- **Comprehensive documentation** (c4033f3): Added `docs/ETAPE_3_ANNOTATION_GRADING.md` (ADR refs, known limitations, checklist) and `scripts/README.md` (container restart warning).
 
 ---
 

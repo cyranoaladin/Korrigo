@@ -1,4 +1,4 @@
-# Security Scanning Policy - Viatique Backend
+# Security Scanning Policy - Korrigo Backend
 
 ## Bandit Static Analysis
 

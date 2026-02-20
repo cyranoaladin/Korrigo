@@ -781,7 +781,7 @@ axios.defaults.xsrfHeaderName = 'X-CSRFToken';
 
 ```python
 # Backend : Vérifiez les settings Django
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8088', 'https://viatique.example.com']
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8088', 'https://korrigo.example.com']
 CSRF_COOKIE_SAMESITE = 'Lax'
 ```
 

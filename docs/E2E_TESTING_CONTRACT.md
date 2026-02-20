@@ -319,5 +319,5 @@ Le mode local (Vite + Django séparés) est pour **développement rapide**, pas 
 
 **Version:** 1.0
 **Date:** 2026-01-30
-**Auteur:** Architecture Team
+**Auteur:** Alaeddine BEN RHOUMA
 **Statut:** ✅ Décision Produit Validée

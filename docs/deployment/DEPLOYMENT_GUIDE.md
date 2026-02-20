@@ -140,7 +140,7 @@ upstream backend {
 
 server {
     listen 80;
-    server_name viatique.example.com;
+    server_name korrigo.example.com;
     
     # Redirect HTTP to HTTPS
     return 301 https://$server_name$request_uri;
@@ -148,11 +148,11 @@ server {
 
 server {
     listen 443 ssl http2;
-    server_name viatique.example.com;
+    server_name korrigo.example.com;
     
     # SSL Configuration
-    ssl_certificate /etc/letsencrypt/live/viatique.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/viatique.example.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/korrigo.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/korrigo.example.com/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
     
@@ -214,15 +214,15 @@ server {
 SECRET_KEY=<générer avec: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())">
 DEBUG=false
 DJANGO_ENV=production
-ALLOWED_HOSTS=viatique.example.com
-CSRF_TRUSTED_ORIGINS=https://viatique.example.com
-CORS_ALLOWED_ORIGINS=https://viatique.example.com
+ALLOWED_HOSTS=korrigo.example.com
+CSRF_TRUSTED_ORIGINS=https://korrigo.example.com
+CORS_ALLOWED_ORIGINS=https://korrigo.example.com
 
 # Database
-DB_NAME=viatique_prod
-DB_USER=viatique_user
+DB_NAME=korrigo_prod
+DB_USER=korrigo_user
 DB_PASSWORD=<mot de passe fort>
-DATABASE_URL=postgres://viatique_user:<password>@db:5432/viatique_prod
+DATABASE_URL=postgres://korrigo_user:<password>@db:5432/korrigo_prod
 
 # Redis
 CELERY_BROKER_URL=redis://redis:6379/0
@@ -264,8 +264,8 @@ sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-
 sudo chmod +x /usr/local/bin/docker-compose
 
 # Cloner le dépôt
-git clone https://github.com/votre-org/viatique__PMF.git
-cd viatique__PMF
+git clone https://github.com/votre-org/korrigo__PMF.git
+cd korrigo__PMF
 ```
 
 #### 2. Configurer l'Environnement
@@ -313,7 +313,7 @@ docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manag
 sudo apt install certbot python3-certbot-nginx
 
 # Obtenir certificat
-sudo certbot --nginx -d viatique.example.com
+sudo certbot --nginx -d korrigo.example.com
 
 # Auto-renouvellement
 sudo certbot renew --dry-run
@@ -327,7 +327,7 @@ sudo certbot renew --dry-run
 
 ```bash
 # Backup DB
-docker-compose -f infra/docker/docker-compose.prod.yml exec db pg_dump -U viatique_user viatique_prod > backup_$(date +%Y%m%d).sql
+docker-compose -f infra/docker/docker-compose.prod.yml exec db pg_dump -U korrigo_user korrigo_prod > backup_$(date +%Y%m%d).sql
 
 # Backup media
 tar -czf media_backup_$(date +%Y%m%d).tar.gz backend/media/
@@ -368,7 +368,7 @@ docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manag
 docker-compose -f infra/docker/docker-compose.prod.yml logs -f backend
 
 # Health check
-curl https://viatique.example.com/api/
+curl https://korrigo.example.com/api/
 ```
 
 ---
@@ -383,7 +383,7 @@ git checkout <commit-hash>
 docker-compose -f infra/docker/docker-compose.prod.yml up -d --build
 
 # 3. Restaurer DB si nécessaire
-docker-compose -f infra/docker/docker-compose.prod.yml exec -T db psql -U viatique_user viatique_prod < backup_20260125.sql
+docker-compose -f infra/docker/docker-compose.prod.yml exec -T db psql -U korrigo_user korrigo_prod < backup_20260125.sql
 ```
 
 ---
@@ -437,7 +437,7 @@ docker-compose -f infra/docker/docker-compose.prod.yml exec backend \
 ```bash
 # ALWAYS backup before running migrations
 docker-compose -f infra/docker/docker-compose.prod.yml exec db \
-    pg_dump -U viatique_user viatique_prod > pre_migration_backup_$(date +%Y%m%d_%H%M%S).sql
+    pg_dump -U korrigo_user korrigo_prod > pre_migration_backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 **Step 3: Apply migration with monitoring**
@@ -463,14 +463,14 @@ docker-compose -f infra/docker/docker-compose.prod.yml stop backend
 
 # 2. Restore database from pre-migration backup
 docker-compose -f infra/docker/docker-compose.prod.yml exec -T db \
-    psql -U viatique_user viatique_prod < pre_migration_backup_YYYYMMDD_HHMMSS.sql
+    psql -U korrigo_user korrigo_prod < pre_migration_backup_YYYYMMDD_HHMMSS.sql
 
 # 3. Rollback code to previous version
 git checkout <previous_commit>
 docker-compose -f infra/docker/docker-compose.prod.yml up -d --build
 
 # 4. Verify system healthy
-curl https://viatique.example.com/api/health/
+curl https://korrigo.example.com/api/health/
 ```
 
 **Scenario 2: Migration succeeded but introduces bugs**
@@ -504,11 +504,11 @@ docker-compose -f infra/docker/docker-compose.prod.yml down
 # 2. Restore from backup (ONLY option for irreversible migrations)
 docker-compose -f infra/docker/docker-compose.prod.yml up -d db
 docker-compose -f infra/docker/docker-compose.prod.yml exec -T db \
-    psql -U viatique_user viatique_prod < pre_migration_backup_YYYYMMDD_HHMMSS.sql
+    psql -U korrigo_user korrigo_prod < pre_migration_backup_YYYYMMDD_HHMMSS.sql
 
 # 3. Verify data integrity manually before restart
 docker-compose -f infra/docker/docker-compose.prod.yml exec db \
-    psql -U viatique_user viatique_prod -c "SELECT COUNT(*) FROM exams_copy;"
+    psql -U korrigo_user korrigo_prod -c "SELECT COUNT(*) FROM exams_copy;"
 
 # 4. Deploy previous code and restart services
 git checkout <previous_commit>
@@ -557,11 +557,11 @@ docker-compose -f infra/docker/docker-compose.prod.yml up -d backend
 ### Backup Automatique
 Cette procédure utilise la commande interne `manage.py backup` qui génère une archive complète (JSON DB + Media).
 
-**Script `/root/backup_viatique.sh`**:
+**Script `/root/backup_korrigo.sh`**:
 ```bash
 #!/bin/bash
 # Backup complet via Django
-docker-compose -f /opt/viatique/infra/docker/docker-compose.prod.yml exec -T backend python manage.py backup --include-media --output-dir /backups/viatique
+docker-compose -f /opt/korrigo/infra/docker/docker-compose.prod.yml exec -T backend python manage.py backup --include-media --output-dir /backups/korrigo
 ```
 
 ### Restauration
@@ -569,7 +569,7 @@ docker-compose -f /opt/viatique/infra/docker/docker-compose.prod.yml exec -T bac
 
 ```bash
 # 1. Identifier le dossier de backup
-BACKUP_PATH="/backups/viatique/korrigo_backup_20260126_120000"
+BACKUP_PATH="/backups/korrigo/korrigo_backup_20260126_120000"
 
 # 2. Lancer la restauration
 docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manage.py restore $BACKUP_PATH
@@ -578,7 +578,7 @@ docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manag
 ### Alternative (Raw PostgreSQL)
 Pour les administrateurs DBAG, `pg_dump` reste utilisable pour la base de données seule.
 ```bash
-docker-compose exec -T db pg_dump -U viatique_user viatique_prod | gzip > db.sql.gz
+docker-compose exec -T db pg_dump -U korrigo_user korrigo_prod | gzip > db.sql.gz
 ```
 
 ---
@@ -663,12 +663,12 @@ docker system df -v
 
 ## Références
 
-- [ARCHITECTURE.md](file:///home/alaeddine/viatique__PMF/docs/ARCHITECTURE.md) - Architecture globale
-- [DEVELOPMENT_GUIDE.md](file:///home/alaeddine/viatique__PMF/docs/DEVELOPMENT_GUIDE.md) - Guide développement
-- [SECURITY_GUIDE.md](file:///home/alaeddine/viatique__PMF/docs/SECURITY_GUIDE.md) - Guide sécurité
+- [ARCHITECTURE.md](file:///home/alaeddine/korrigo__PMF/docs/ARCHITECTURE.md) - Architecture globale
+- [DEVELOPMENT_GUIDE.md](file:///home/alaeddine/korrigo__PMF/docs/DEVELOPMENT_GUIDE.md) - Guide développement
+- [SECURITY_GUIDE.md](file:///home/alaeddine/korrigo__PMF/docs/SECURITY_GUIDE.md) - Guide sécurité
 
 ---
 
 **Dernière mise à jour**: 25 janvier 2026  
-**Auteur**: Aleddine BEN RHOUMA  
+**Auteur**: Alaeddine BEN RHOUMA  
 **Licence**: Propriétaire - AEFE/Éducation Nationale

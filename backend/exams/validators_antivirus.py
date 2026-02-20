@@ -2,7 +2,7 @@
 Validator Antivirus (Optionnel - P3)
 Scan antivirus avec ClamAV pour fichiers uploadés
 
-Conformité: .antigravity/rules/01_security_rules.md § 8.1
+Conformité: docs/security/MANUEL_SECURITE.md — Validation PDF / Antivirus
 
 IMPORTANT: Ce validator est OPTIONNEL et nécessite:
 - ClamAV installé sur le serveur (clamd daemon)

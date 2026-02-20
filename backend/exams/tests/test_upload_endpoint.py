@@ -1,6 +1,6 @@
 """
 Tests for Exam Upload Endpoint - Validation, Atomicity, and Security Cases
-Conformité: .antigravity/rules/01_security_rules.md § 8.1
+Conformité: docs/security/MANUEL_SECURITE.md — Validation PDF
 Coverage: POST /api/exams/upload/ comprehensive test coverage
 """
 import pytest

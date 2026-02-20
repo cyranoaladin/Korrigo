@@ -1,8 +1,8 @@
 # Documentation Korrigo - Index Principal
 
-> **Version**: 1.0  
-> **Date**: 30 janvier 2026  
-> **Statut**: Documentation complète de la plateforme Korrigo
+> **Version**: 1.3  
+> **Date**: 14 février 2026  
+> **Statut**: Documentation mise à jour — fidèle à l'état actuel du projet
 
 ---
 
@@ -15,7 +15,7 @@
 - 👨‍🏫 **Enseignant** → Lisez le [GUIDE_ENSEIGNANT](users/GUIDE_ENSEIGNANT.md) pour corriger des copies
 - 👔 **Personnel de Secrétariat** → Consultez [GUIDE_SECRETARIAT](users/GUIDE_SECRETARIAT.md) pour gérer l'identification
 - 🎓 **Élève** → Lisez le [GUIDE_ETUDIANT](users/GUIDE_ETUDIANT.md) pour consulter vos copies
-- 🔧 **Développeur** → Accédez à [TECHNICAL_MANUAL](TECHNICAL_MANUAL.md), [API_REFERENCE](API_REFERENCE.md), [ARCHITECTURE](ARCHITECTURE.md)
+- 🔧 **Développeur** → Accédez à [TECHNICAL_MANUAL](technical/TECHNICAL_MANUAL.md), [API_REFERENCE](technical/API_REFERENCE.md), [ARCHITECTURE](technical/ARCHITECTURE.md)
 
 ---
 
@@ -98,16 +98,19 @@
 
 ### Architecture, API, Base de Données, Développement
 
-| Document | Description | Taille | Public |
-|----------|-------------|--------|--------|
-| [**ARCHITECTURE**](ARCHITECTURE.md) | Architecture technique du système | ~16 KB | Développeurs |
-| [**API_REFERENCE**](API_REFERENCE.md) | Référence complète de l'API REST | ~17 KB | Développeurs |
-| [**DATABASE_SCHEMA**](DATABASE_SCHEMA.md) | Schéma de base de données PostgreSQL | ~18 KB | Développeurs |
-| [**BUSINESS_WORKFLOWS**](BUSINESS_WORKFLOWS.md) | Workflows métier détaillés | ~19 KB | Développeurs |
-| [**TECHNICAL_MANUAL**](TECHNICAL_MANUAL.md) | Manuel technique général | ~5 KB | Développeurs |
-| [**DEVELOPMENT_GUIDE**](DEVELOPMENT_GUIDE.md) | Guide de développement local | ~17 KB | Développeurs |
-| [**DEPLOYMENT_GUIDE**](DEPLOYMENT_GUIDE.md) | Guide de déploiement | ~17 KB | DevOps |
-| [**DEPLOY_PRODUCTION**](DEPLOY_PRODUCTION.md) | Déploiement en production | ~3 KB | DevOps |
+> **Stack** : Django 4.2 + DRF (Python 3.11) · Vue.js 3 + Vite · PostgreSQL 15 · Redis · Celery · PyMuPDF · OpenCV · GPT-4o-mini Vision + Tesseract OCR  
+> **Production** : Docker Compose · Nginx reverse proxy · korrigo.labomaths.tn (TLS)
+
+| Document | Description | Public |
+|----------|-------------|--------|
+| [**ARCHITECTURE**](technical/ARCHITECTURE.md) | Architecture technique du système (services, flux, diagrammes) | Développeurs |
+| [**API_REFERENCE**](technical/API_REFERENCE.md) | Référence complète de l'API REST (~60 endpoints) | Développeurs |
+| [**DATABASE_SCHEMA**](technical/DATABASE_SCHEMA.md) | Schéma PostgreSQL (5 apps, ~20 modèles) | Développeurs |
+| [**BUSINESS_WORKFLOWS**](technical/BUSINESS_WORKFLOWS.md) | Workflows métier détaillés (import, correction, export) | Développeurs |
+| [**TECHNICAL_MANUAL**](technical/TECHNICAL_MANUAL.md) | Manuel technique général | Développeurs |
+| [**DEVELOPMENT_GUIDE**](development/DEVELOPMENT_GUIDE.md) | Guide de développement local | Développeurs |
+| [**DEPLOYMENT_GUIDE**](deployment/DEPLOYMENT_GUIDE.md) | Guide de déploiement (Docker Compose, env vars) | DevOps |
+| [**DEPLOY_PRODUCTION**](deployment/DEPLOY_PRODUCTION.md) | Déploiement en production (korrigo.labomaths.tn) | DevOps |
 
 ---
 
@@ -142,11 +145,11 @@
 3. **Questions** → [FAQ](support/FAQ.md) section Élèves
 
 #### 🔧 Développeur/DevOps
-1. **Architecture** → [ARCHITECTURE](ARCHITECTURE.md)
-2. **API** → [API_REFERENCE](API_REFERENCE.md)
-3. **Base de données** → [DATABASE_SCHEMA](DATABASE_SCHEMA.md)
-4. **Développement local** → [DEVELOPMENT_GUIDE](DEVELOPMENT_GUIDE.md)
-5. **Déploiement** → [DEPLOYMENT_GUIDE](DEPLOYMENT_GUIDE.md)
+1. **Architecture** → [ARCHITECTURE](technical/ARCHITECTURE.md)
+2. **API** → [API_REFERENCE](technical/API_REFERENCE.md)
+3. **Base de données** → [DATABASE_SCHEMA](technical/DATABASE_SCHEMA.md)
+4. **Développement local** → [DEVELOPMENT_GUIDE](development/DEVELOPMENT_GUIDE.md)
+5. **Déploiement** → [DEPLOYMENT_GUIDE](deployment/DEPLOYMENT_GUIDE.md)
 
 ---
 
@@ -156,7 +159,7 @@
 
 #### 📝 Créer un Nouvel Examen
 1. Admin: [GUIDE_UTILISATEUR_ADMIN](admin/GUIDE_UTILISATEUR_ADMIN.md) § "Création d'Examen"
-2. Technique: [BUSINESS_WORKFLOWS](BUSINESS_WORKFLOWS.md) § "Exam Creation Workflow"
+2. Technique: [BUSINESS_WORKFLOWS](technical/BUSINESS_WORKFLOWS.md) § "Exam Creation Workflow"
 
 #### 🔍 Identifier des Copies Scannées
 1. Secrétariat: [GUIDE_SECRETARIAT](users/GUIDE_SECRETARIAT.md) § "Workflow d'Identification"
@@ -169,7 +172,7 @@
 
 #### 📤 Exporter les Notes vers Pronote
 1. Admin: [GUIDE_UTILISATEUR_ADMIN](admin/GUIDE_UTILISATEUR_ADMIN.md) § "Export Pronote"
-2. Format CSV: [BUSINESS_WORKFLOWS](BUSINESS_WORKFLOWS.md) § "Pronote Export"
+2. Format CSV: [BUSINESS_WORKFLOWS](technical/BUSINESS_WORKFLOWS.md) § "Pronote Export"
 
 #### 👥 Gérer les Utilisateurs
 1. Création manuelle: [GESTION_UTILISATEURS](admin/GESTION_UTILISATEURS.md) § "Création Utilisateur"
@@ -191,7 +194,7 @@
 - [Politique RGPD](security/POLITIQUE_RGPD.md)
 - [Manuel de Sécurité](security/MANUEL_SECURITE.md)
 - [Gestion des Données](security/GESTION_DONNEES.md)
-- [Inventaire Permissions](../SECURITY_PERMISSIONS_INVENTORY.md)
+- [Inventaire Permissions](security/SECURITY_PERMISSIONS_INVENTORY.md)
 - [Audit de Conformité](security/AUDIT_CONFORMITE.md)
 
 #### Gestion Utilisateurs
@@ -200,16 +203,16 @@
 - [Formulaires de Consentement](legal/FORMULAIRES_CONSENTEMENT.md)
 
 #### Examens et Corrections
-- [Business Workflows](BUSINESS_WORKFLOWS.md)
+- [Business Workflows](technical/BUSINESS_WORKFLOWS.md)
 - [Guide Enseignant](users/GUIDE_ENSEIGNANT.md)
 - [Guide Secrétariat](users/GUIDE_SECRETARIAT.md)
 - [Procédures Opérationnelles](admin/PROCEDURES_OPERATIONNELLES.md)
 
 #### Déploiement et Infrastructure
-- [Deployment Guide](DEPLOYMENT_GUIDE.md)
-- [Deploy Production](DEPLOY_PRODUCTION.md)
-- [Development Guide](DEVELOPMENT_GUIDE.md)
-- [Architecture](ARCHITECTURE.md)
+- [Deployment Guide](deployment/DEPLOYMENT_GUIDE.md)
+- [Deploy Production](deployment/DEPLOY_PRODUCTION.md)
+- [Development Guide](development/DEVELOPMENT_GUIDE.md)
+- [Architecture](technical/ARCHITECTURE.md)
 
 #### Support
 - [FAQ](support/FAQ.md)
@@ -262,10 +265,11 @@
 ### Métadonnées
 
 - **Projet**: Korrigo - Plateforme de Correction Numérique
-- **Version Documentation**: 1.0
-- **Date de Publication**: 30 janvier 2026
-- **Nombre de Documents**: 17 documents utilisateurs + 8 documents techniques = 25 documents
-- **Taille Totale**: ~350 KB
+- **Production**: [https://korrigo.labomaths.tn](https://korrigo.labomaths.tn)
+- **Version Documentation**: 1.3
+- **Date de Mise à Jour**: 14 février 2026
+- **Stack**: Django 4.2 (Python 3.11) + Vue.js 3 + PostgreSQL 15 + Redis + Celery
+- **OCR**: GPT-4o-mini Vision + Tesseract (fallback)
 - **Langues**: Français (documentation utilisateur), Anglais (documentation technique)
 - **Maintenance**: Voir [SUPPORT](support/SUPPORT.md) § "Maintenance Documentation"
 
@@ -320,6 +324,9 @@ docs/
 
 | Version | Date | Changements |
 |---------|------|-------------|
+| 1.3 | 2026-02-14 | Mise à jour complète : README réécrit, stack technique actualisée (Python 3.11, GPT-4o-mini, mode INDIVIDUAL_A4), API exhaustive, modèle de données complet |
+| 1.2 | 2026-01-24 | CORS production, DRF Spectacular, infrastructure tests |
+| 1.1 | 2026-01-24 | Audit trail RGPD, rate limiting, documentation sécurité |
 | 1.0 | 2026-01-30 | Publication initiale de la documentation complète |
 
 ---

@@ -319,7 +319,7 @@ grep "X-Lock-Token" /tmp/staging_smoke_<timestamp>/smoke.log
 
 ```bash
 # Step 1: Deploy staging
-BASE_URL=https://staging.viatique.example.com \
+BASE_URL=https://staging.korrigo.example.com \
   TAG=v1.0.0-rc1 \
   METRICS_TOKEN=$(openssl rand -hex 32) \
   ./scripts/deploy_staging_safe.sh
@@ -328,7 +328,7 @@ BASE_URL=https://staging.viatique.example.com \
 # Check output: ✅ STAGING DEPLOY DONE
 
 # Step 2: Run smoke test
-BASE_URL=https://staging.viatique.example.com \
+BASE_URL=https://staging.korrigo.example.com \
   SMOKE_USER=prof1 \
   SMOKE_PASS=secure_password_123 \
   ./scripts/smoke_staging.sh

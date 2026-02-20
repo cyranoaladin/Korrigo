@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
-# Korrigo/Viatique Backup Script
-# ZF-AUD-12: Production backup for DB and media files
+# Korrigo/Korrigo Backup Script
+# Production backup for DB and media files
 # =============================================================================
 
 set -euo pipefail

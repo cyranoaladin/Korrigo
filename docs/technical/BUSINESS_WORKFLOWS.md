@@ -622,5 +622,5 @@ flowchart TD
 ---
 
 **Dernière mise à jour**: 25 janvier 2026  
-**Auteur**: Aleddine BEN RHOUMA  
+**Auteur**: Alaeddine BEN RHOUMA  
 **Licence**: Propriétaire - AEFE/Éducation Nationale

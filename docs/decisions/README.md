@@ -2,7 +2,7 @@
 
 ## Objectif
 
-Ce dossier documente les **décisions architecturales majeures** du projet Viatique.
+Ce dossier documente les **décisions architecturales majeures** du projet Korrigo.
 
 Ces décisions sont :
 - **Irréversibles** ou coûteuses à changer

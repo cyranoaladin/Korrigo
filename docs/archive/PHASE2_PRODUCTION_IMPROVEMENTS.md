@@ -42,7 +42,7 @@ Les 3 améliorations importantes Phase 2 ont été **entièrement implémentées
 
 ```python
 # CORS Configuration
-# Conformité: .antigravity/rules/01_security_rules.md § 4.2
+# Conformité: docs/security/MANUEL_SECURITE.md § 4.2
 if DEBUG:
     # Development: Allow localhost origins for frontend dev server
     CORS_ALLOWED_ORIGINS = [
@@ -93,7 +93,7 @@ CORS_ALLOW_HEADERS = [
 ```bash
 # CORS Configuration (Production only)
 # Comma-separated list of allowed origins
-# Example: CORS_ALLOWED_ORIGINS=https://viatique.example.com,https://www.viatique.example.com
+# Example: CORS_ALLOWED_ORIGINS=https://korrigo.example.com,https://www.korrigo.example.com
 # CORS_ALLOWED_ORIGINS=
 ```
 
@@ -102,7 +102,7 @@ CORS_ALLOW_HEADERS = [
 ```bash
 # Production avec frontend sur domaine séparé
 DEBUG=False
-CORS_ALLOWED_ORIGINS=https://viatique.example.com,https://www.viatique.example.com
+CORS_ALLOWED_ORIGINS=https://korrigo.example.com,https://www.korrigo.example.com
 ```
 
 ### Sécurité
@@ -110,7 +110,7 @@ CORS_ALLOWED_ORIGINS=https://viatique.example.com,https://www.viatique.example.c
 ✅ **Origines explicites** : Pas de wildcard `*`  
 ✅ **Credentials contrôlés** : Activés uniquement si origines définies  
 ✅ **Headers restreints** : Liste blanche stricte  
-✅ **Conformité** : `.antigravity/rules/01_security_rules.md` § 4.2
+✅ **Conformité** : `docs/security/MANUEL_SECURITE.md` § 4.2
 
 ---
 
@@ -168,13 +168,13 @@ REST_FRAMEWORK = {
 **SPECTACULAR_SETTINGS** (lignes 198-225) :
 ```python
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Viatique API',
-    'DESCRIPTION': 'API de la plateforme Viatique - Correction numérique de copies d\'examens',
+    'TITLE': 'Korrigo API',
+    'DESCRIPTION': 'API de la plateforme Korrigo - Correction numérique de copies d\'examens',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'CONTACT': {
         'name': 'Aleddine BEN RHOUMA',
-        'email': 'contact@viatique.edu',
+        'email': 'contact@korrigo.edu',
     },
     'LICENSE': {
         'name': 'Proprietary - AEFE/Éducation Nationale',
@@ -190,7 +190,7 @@ SPECTACULAR_SETTINGS = {
     'SCHEMA_PATH_PREFIX': r'/api/',
     'SERVERS': [
         {'url': 'http://localhost:8088', 'description': 'Serveur de développement'},
-        {'url': 'https://viatique.example.com', 'description': 'Production'},
+        {'url': 'https://korrigo.example.com', 'description': 'Production'},
     ],
 }
 ```
@@ -342,7 +342,7 @@ pytest --cov=grading --cov=students --cov=core --cov-report=term
 
 ### Objectifs Coverage
 
-**Règle** : `.antigravity/rules/00_global_rules.md` ligne 101
+**Règle** : `docs/rules/00_global_rules.md` ligne 101
 
 > Coverage minimum de 70% pour le code critique
 
@@ -434,10 +434,10 @@ python -c "import drf_spectacular; print('✅ DRF Spectacular installé')"
 ```bash
 # .env (production)
 DEBUG=False
-ALLOWED_HOSTS=viatique.example.com,www.viatique.example.com
+ALLOWED_HOSTS=korrigo.example.com,www.korrigo.example.com
 
 # CORS (si frontend sur domaine séparé)
-CORS_ALLOWED_ORIGINS=https://viatique.example.com,https://www.viatique.example.com
+CORS_ALLOWED_ORIGINS=https://korrigo.example.com,https://www.korrigo.example.com
 
 # SSL
 SSL_ENABLED=True
@@ -553,7 +553,7 @@ curl -H "Origin: http://localhost:5173" http://localhost:8088/api/me/ -v
 
 # 2. Vérifier documentation API
 curl http://localhost:8088/api/schema/ | jq '.info.title'
-# Attendre: "Viatique API"
+# Attendre: "Korrigo API"
 
 # 3. Vérifier Swagger UI
 curl http://localhost:8088/api/docs/ | grep "swagger-ui"
