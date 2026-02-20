@@ -11,7 +11,6 @@ const router = useRouter()
 const statusLabels = {
   'STAGING': 'En attente',
   'READY': 'Prêt',
-  'LOCKED': 'En cours',
   'GRADED': 'Corrigé',
   'GRADING_IN_PROGRESS': 'Correction en cours',
   'GRADING_FAILED': 'Échec',
@@ -32,7 +31,7 @@ const fetchCopies = async () => {
         copies.value = data
         basicStats.value.total = data.length
         basicStats.value.graded = data.filter(c => c.status === 'GRADED').length
-        basicStats.value.todo = data.filter(c => ['READY', 'LOCKED'].includes(c.status)).length
+        basicStats.value.todo = data.filter(c => c.status === 'READY').length
 
         // If all copies graded, auto-fetch stats
         if (basicStats.value.graded === basicStats.value.total && basicStats.value.total > 0) {

@@ -8,7 +8,6 @@ from .models import Annotation, GradingEvent, QuestionRemark, Score
 from exams.models import Copy, Exam
 from .serializers import AnnotationSerializer, GradingEventSerializer, QuestionRemarkSerializer
 from exams.permissions import IsTeacherOrAdmin
-from .permissions import IsLockedByOwnerOrReadOnly
 from django.shortcuts import get_object_or_404
 from grading.services import AnnotationService, GradingService, LockConflictError
 from core.auth import UserRole
@@ -18,9 +17,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
-def _get_lock_token(request):
-    return request.META.get("HTTP_X_LOCK_TOKEN")
 
 class PassthroughRenderer(renderers.BaseRenderer):
     """
@@ -63,10 +59,10 @@ def _handle_unexpected_error(e, context="API"):
 class AnnotationListCreateView(generics.ListCreateAPIView):
     """
     GET: Liste les annotations d'une copie.
-    POST: Crée une annotation sur une copie (si READY et LOCK détenu).
-    Permission: IsTeacherOrAdmin + IsLockedByOwnerOrReadOnly
+    POST: Crée une annotation sur une copie READY.
+    Permission: IsTeacherOrAdmin
     """
-    permission_classes = [IsTeacherOrAdmin, IsLockedByOwnerOrReadOnly]
+    permission_classes = [IsTeacherOrAdmin]
     serializer_class = AnnotationSerializer
 
     def get_queryset(self):
@@ -77,14 +73,12 @@ class AnnotationListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         copy_id = self.kwargs['copy_id']
         copy = get_object_or_404(Copy, id=copy_id)
-        lock_token = _get_lock_token(request)
         
         try:
             annotation = AnnotationService.add_annotation(
                 copy=copy,
                 payload=request.data,
                 user=request.user,
-                lock_token=lock_token,
             )
             serializer = self.get_serializer(annotation)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -100,30 +94,24 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
     PATCH  /api/annotations/<id>/ - Modifie une annotation (si LOCK détenu)
     DELETE /api/annotations/<id>/ - Supprime une annotation (si LOCK détenu)
 
-    Permission : IsTeacherOrAdmin (staff only) + IsLockedByOwnerOrReadOnly
+    Permission : IsTeacherOrAdmin (staff only)
     """
-    permission_classes = [IsTeacherOrAdmin, IsLockedByOwnerOrReadOnly]
+    permission_classes = [IsTeacherOrAdmin]
     serializer_class = AnnotationSerializer
     queryset = Annotation.objects.all()
 
     def update(self, request, *args, **kwargs):
         annotation = self.get_object()
-        lock_token = _get_lock_token(request)
-        # Not using kwargs.pop('partial') because we pass payload directly
         
-        # Check permissions logic (Owner or Admin for non-admins)?
-        # For P0.2: Teacher ne peut pas DELETE annotation d’un autre.
-        # But here we are in update.
         if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
              if annotation.created_by != request.user:
-                 return Response({"detail": "You do not have permission to edit this annotation."}, status=status.HTTP_403_FORBIDDEN)
+                 return Response({"detail": "Vous ne pouvez pas modifier cette annotation."}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             updated = AnnotationService.update_annotation(
                 annotation=annotation,
                 payload=request.data,
                 user=request.user,
-                lock_token=lock_token,
             )
             serializer = self.get_serializer(updated)
             return Response(serializer.data)
@@ -134,15 +122,13 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         annotation = self.get_object()
-        lock_token = _get_lock_token(request)
         
-        # Permission check: Teacher cannot delete others' annotations
         if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
              if annotation.created_by != request.user:
-                 return Response({"detail": "You do not have permission to delete this annotation."}, status=status.HTTP_403_FORBIDDEN)
+                 return Response({"detail": "Vous ne pouvez pas supprimer cette annotation."}, status=status.HTTP_403_FORBIDDEN)
         
         try:
-            AnnotationService.delete_annotation(annotation, request.user, lock_token=lock_token)
+            AnnotationService.delete_annotation(annotation, request.user)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except (ValueError, KeyError, PermissionError) as e:
             return _handle_service_error(e, context="AnnotationDetailView.destroy")
@@ -160,20 +146,14 @@ class CopyReadyView(APIView):
         except (ValueError, PermissionError) as e:
             return _handle_service_error(e)
 
-# CopyLockView and CopyUnlockView replaced by views_lock.py logic
-# Keeping Ready and Finalize views here
-
-
-
 class CopyFinalizeView(APIView):
     permission_classes = [IsTeacherOrAdmin]
     def post(self, request, id):
         copy = get_object_or_404(Copy, id=id)
         if copy.status == Copy.Status.GRADED:
             return Response({"detail": "Copie déjà corrigée."}, status=status.HTTP_400_BAD_REQUEST)
-        lock_token = _get_lock_token(request)
         try:
-            finalized = GradingService.finalize_copy(copy, request.user, lock_token=lock_token)
+            finalized = GradingService.finalize_copy(copy, request.user)
             return Response({"status": finalized.status})
         except LockConflictError as e:
             return Response({"detail": str(e)}, status=status.HTTP_409_CONFLICT)

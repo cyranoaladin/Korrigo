@@ -16,7 +16,6 @@ const copyId = route.params.copyId
 const statusLabels = {
   'STAGING': 'En attente',
   'READY': 'Prêt',
-  'LOCKED': 'En cours',
   'GRADED': 'Corrigé',
   'GRADING_IN_PROGRESS': 'Correction en cours',
   'GRADING_FAILED': 'Échec',
@@ -40,14 +39,6 @@ const imageLoaded = ref(false)
 const scrollAreaRef = ref(null)
 const wheelCooldown = ref(false)
 
-// Lock State
-// Lock State
-const softLock = ref(null) // { token, owner, expires_at }
-const lockInterval = ref(null)
-const isLockConflict = ref(false) // If true, we are read-only due to other owner
-
-
-// Autosave State
 // Autosave State
 const restoreAvailable = ref(null) // { source: 'LOCAL'|'SERVER', payload: ... }
 const autosaveTimer = ref(null)
@@ -84,7 +75,6 @@ const activeRemarkQuestionId = ref(null)
 // --- Computed ---
 const isStaging = computed(() => copy.value?.status === 'STAGING')
 const isReady = computed(() => copy.value?.status === 'READY')
-const isLocked = computed(() => copy.value?.status === 'LOCKED')
 const isGraded = computed(() => copy.value?.status === 'GRADED')
 
 // Anonymization: hide student identity on header pages (1+4*N) and last page (annexe)
@@ -101,8 +91,8 @@ const isHeaderPage = computed(() => {
     return isPeriodicHeader || isLastPage
 })
 
-const isReadOnly = computed(() => isGraded.value || isLockConflict.value)
-const canAnnotate = computed(() => (isReady.value || (isLocked.value && !!softLock.value?.token)) && !isReadOnly.value)
+const isReadOnly = computed(() => isGraded.value)
+const canAnnotate = computed(() => isReady.value && !isReadOnly.value)
 const examId = computed(() => copy.value?.exam?.id || null)
 
 // Subject variant (Sujet A / Sujet B)
@@ -371,7 +361,7 @@ const fetchGlobalAppreciation = async () => {
 const saveRemark = async (questionId, remark) => {
     remarksSaving.value.set(questionId, true)
     try {
-        await gradingApi.saveRemark(copyId, questionId, remark, softLock.value?.token)
+        await gradingApi.saveRemark(copyId, questionId, remark)
     } catch (err) {
         console.error("Failed to save remark", err)
         error.value = "Échec de la sauvegarde de la remarque"
@@ -383,7 +373,7 @@ const saveRemark = async (questionId, remark) => {
 const saveGlobalAppreciationToServer = async () => {
     appreciationSaving.value = true
     try {
-        await gradingApi.saveGlobalAppreciation(copyId, globalAppreciation.value, softLock.value?.token)
+        await gradingApi.saveGlobalAppreciation(copyId, globalAppreciation.value)
     } catch (err) {
         console.error("Failed to save global appreciation", err)
         error.value = "Échec de la sauvegarde de l'appréciation"
@@ -497,34 +487,11 @@ const handleMarkReady = async () => {
     try { 
         await gradingApi.readyCopy(copyId); 
         await fetchCopy(); 
-        // Try to acquire lock if now ready
-        if (!softLock.value) await acquireLock();
     }
     catch (err) { error.value = err.response?.data?.detail || "Échec de l'action"; } 
     finally { isSaving.value = false; }
 }
 
-// Soft Lock Management
-const acquireLock = async () => {
-    try {
-        const response = await gradingApi.acquireLock(copyId);
-        // Success
-        softLock.value = response;
-        isLockConflict.value = false;
-        startHeartbeat();
-        checkDrafts(); // Check for draft restoration
-    } catch (err) {
-        if (err.response?.status === 409) {
-            // Conflict
-            isLockConflict.value = true;
-            softLock.value = null; // We don't have the token
-            const owner = err.response.data.owner?.username || "Another user";
-            error.value = `Verrouillée par ${owner}. Mode lecture seule.`;
-        } else {
-            console.error("Lock acquire failed", err);
-        }
-    }
-}
 
 // --- Autosave Logic ---
 // Stable Key using Auth Store
@@ -595,9 +562,7 @@ const restoreDraft = () => {
 const discardDraft = async () => {
     localStorage.removeItem(getStorageKey());
     // Also clear server to prevent 409 on next save (Start Fresh)
-    if (softLock.value?.token) {
-        try { await gradingApi.deleteDraft(copyId, softLock.value.token); } catch {}
-    }
+    try { await gradingApi.deleteDraft(copyId); } catch {}
     restoreAvailable.value = null;
 }
 
@@ -625,66 +590,13 @@ watch(draftAnnotation, (newVal) => {
     // 2. Server Save (Debounced)
     if (autosaveTimer.value) clearTimeout(autosaveTimer.value);
     autosaveTimer.value = setTimeout(async () => {
-        if (!softLock.value?.token) return;
         try {
-           await gradingApi.saveDraft(copyId, savePayload, softLock.value.token, clientId.value);
+           await gradingApi.saveDraft(copyId, savePayload, null, clientId.value);
            lastSaveStatus.value = { source: 'SERVER', time: new Date() };
         } catch (e) { console.error("Autosave failed", e); }
     }, 2000); // 2s debounce
 
 }, { deep: true });
-
-const startHeartbeat = () => {
-    if (lockInterval.value) clearInterval(lockInterval.value);
-    let failCount = 0;
-    
-    lockInterval.value = setInterval(async () => {
-        if (!softLock.value?.token) return;
-        try {
-            const res = await gradingApi.heartbeatLock(copyId, softLock.value.token);
-            softLock.value.expires_at = res.expires_at;
-            failCount = 0; // Reset on success
-        } catch (err) {
-             console.error("Heartbeat failed", err);
-             const status = err.response?.status;
-             
-             if (status === 401) {
-                 // Session Expired
-                 window.location.href = '/'; // Force login redirect
-                 return; 
-             }
-             
-             if (status === 409 || status === 404 || status === 403) {
-                 // Lock stolen, expired, or forbidden
-                 softLock.value = null;
-                 isLockConflict.value = true;
-                 error.value = "Verrou perdu (pris par un autre utilisateur ou expiré). Mode lecture seule.";
-                 clearInterval(lockInterval.value);
-                 return;
-             }
-             
-             // Network errors or 5xx: Tolerate small failures
-             failCount++;
-             if (failCount > 3) {
-                 console.warn("Too many heartbeat failures. Assuming lock lost.");
-                 softLock.value = null;
-                 isLockConflict.value = true;
-                 error.value = "Connexion instable. Maintenance du verrou échouée. Lecture seule.";
-                 clearInterval(lockInterval.value);
-             }
-        }
-    }, 30000); // 30s
-}
-
-const releaseLock = async () => {
-    if (lockInterval.value) clearInterval(lockInterval.value);
-    if (softLock.value?.token) {
-        try {
-            await gradingApi.releaseLock(copyId, softLock.value.token);
-            softLock.value = null;
-        } catch (e) { console.error("Release failed", e); }
-    }
-}
 
 const handleFinalize = async () => {
     if (isSaving.value) return;
@@ -698,7 +610,7 @@ const handleFinalize = async () => {
     try {
         // Save scores one last time before finalize
         await saveScoresToServer()
-        await gradingApi.finalizeCopy(copyId, softLock.value?.token);
+        await gradingApi.finalizeCopy(copyId);
         await fetchCopy();
     }
     catch (err) { error.value = err.response?.data?.detail || "Échec de l'action"; }
@@ -747,11 +659,11 @@ const saveAnnotation = async () => {
             type: draftAnnotation.value.type,
             content: draftAnnotation.value.content
         }
-        await gradingApi.createAnnotation(copyId, payload, softLock.value?.token)
+        await gradingApi.createAnnotation(copyId, payload)
         
         // Clear Drafts on Success
         localStorage.removeItem(getStorageKey());
-        try { await gradingApi.deleteDraft(copyId, softLock.value?.token); } catch{}
+        try { await gradingApi.deleteDraft(copyId); } catch{}
         restoreAvailable.value = null;
 
         await refreshAnnotations()
@@ -803,7 +715,7 @@ const handleDeleteAnnotation = async (id) => {
     if (!confirm("Supprimer cette annotation ?")) return;
     isSaving.value = true;
     try {
-        await gradingApi.deleteAnnotation(copyId, id, softLock.value?.token)
+        await gradingApi.deleteAnnotation(copyId, id)
         await refreshAnnotations()
         await fetchHistory()
     } catch (err) {
@@ -819,15 +731,8 @@ const formatDate = (isoString) => {
 
 onMounted(async () => {
   await fetchCopy()
-  // Try acquire lock if ready or already locked (re-open scenario)
-  if (isReady.value || isLocked.value) {
-      await acquireLock();
-  }
+  if (isReady.value) checkDrafts()
   window.addEventListener('keydown', onGlobalKeydown)
-  
-    // Robust Release
-    window.addEventListener('beforeunload', releaseLock)
-    window.addEventListener('pagehide', releaseLock)
 
     // Scroll-wheel page navigation on viewer
     nextTick(() => {
@@ -843,10 +748,7 @@ watch(() => authStore.user, (u) => {
 }, { immediate: true })
 
 onUnmounted(() => {
-    releaseLock();
     window.removeEventListener('keydown', onGlobalKeydown)
-    window.removeEventListener('beforeunload', releaseLock)
-    window.removeEventListener('pagehide', releaseLock)
     if (scrollAreaRef.value) {
         scrollAreaRef.value.removeEventListener('wheel', onScrollAreaWheel)
     }
@@ -927,7 +829,7 @@ onUnmounted(() => {
         </button>
 
         <button
-          v-if="(isReady && softLock) || isLocked"
+          v-if="isReady"
           :disabled="isSaving || isReadOnly || !canFinalize"
           :class="['btn-success', { 'btn-disabled': !canFinalize }]"
           :title="!canFinalize ? 'Toutes les notes + appréciation requises' : 'Finaliser la correction'"
@@ -1397,7 +1299,6 @@ onUnmounted(() => {
 .copy-info { margin-left: 15px; font-size: 1.1rem; }
 .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-left: 5px; text-transform: uppercase; font-weight: bold; }
 .status-ready { background: #28a745; color: white; }
-.status-locked { background: #dc3545; color: white; }
 .status-staging { background: #6c757d; color: white; }
 .status-graded { background: #17a2b8; color: white; }
 .save-indicator { font-size: 0.8rem; color: #adb5bd; margin-right: 15px; font-style: italic; }

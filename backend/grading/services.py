@@ -10,7 +10,7 @@ from django.db import transaction, OperationalError
 from django.utils import timezone
 from django.conf import settings
 from django.core.files.base import ContentFile
-from grading.models import Annotation, GradingEvent, CopyLock
+from grading.models import Annotation, GradingEvent
 from exams.models import Copy, Booklet, Exam
 import logging
 import datetime
@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class LockConflictError(Exception):
+    """Kept for backward compatibility with async tasks."""
     pass
 
 
@@ -69,38 +70,9 @@ class AnnotationService:
 
     @staticmethod
     @transaction.atomic
-    def _require_active_lock(copy: Copy, user, lock_token: str):
-        now = timezone.now()
-        try:
-            lock = CopyLock.objects.select_related("owner").get(copy=copy)
-        except CopyLock.DoesNotExist:
-            grading_lock_conflicts_total.labels(conflict_type='missing').inc()
-            raise LockConflictError("Lock required.")
-
-        if lock.expires_at < now:
-            lock.delete()
-            grading_lock_conflicts_total.labels(conflict_type='expired').inc()
-            raise LockConflictError("Lock expired.")
-
-        if lock.owner != user:
-            grading_lock_conflicts_total.labels(conflict_type='owner_mismatch').inc()
-            raise LockConflictError("Copy is locked by another user.")
-
-        if not lock_token:
-            raise PermissionError("Missing lock token.")
-        if str(lock.token) != str(lock_token):
-            grading_lock_conflicts_total.labels(conflict_type='token_mismatch').inc()
-            raise PermissionError("Invalid lock token.")
-
-        return lock
-
-    @staticmethod
-    @transaction.atomic
     def add_annotation(copy: Copy, payload: dict, user, lock_token=None):
-        if copy.status not in (Copy.Status.LOCKED, Copy.Status.READY):
-            raise ValueError(f"Cannot annotate copy in status {copy.status}")
-
-        AnnotationService._require_active_lock(copy=copy, user=user, lock_token=lock_token)
+        if copy.status not in (Copy.Status.READY,):
+            raise ValueError(f"Impossible d'annoter une copie en statut {copy.status}")
 
         AnnotationService.validate_page_index(copy, payload['page_index'])
         AnnotationService.validate_coordinates(
@@ -115,7 +87,7 @@ class AnnotationService:
             w=payload['w'],
             h=payload['h'],
             content=payload.get('content', ''),
-            type=payload.get('type', Annotation.Type.COMMENTAIRE),
+            type=payload.get('type', Annotation.Type.COMMENT),
             score_delta=payload.get('score_delta'),
             created_by=user
         )
@@ -136,10 +108,8 @@ class AnnotationService:
             annotation = Annotation.objects.select_related("copy").get(id=annotation_id)
         if payload is None:
             payload = {}
-        if annotation.copy.status != Copy.Status.LOCKED:
-            raise ValueError(f"Cannot update annotation in copy status {annotation.copy.status}")
-
-        AnnotationService._require_active_lock(copy=annotation.copy, user=user, lock_token=lock_token)
+        if annotation.copy.status != Copy.Status.READY:
+            raise ValueError(f"Impossible de modifier une annotation en statut {annotation.copy.status}")
 
         # P0-DI-008 FIX: Optimistic locking to prevent lost updates
         expected_version = payload.get('version', None)
@@ -182,10 +152,8 @@ class AnnotationService:
     @staticmethod
     @transaction.atomic
     def delete_annotation(annotation: Annotation, user, lock_token=None):
-        if annotation.copy.status != Copy.Status.LOCKED:
-             raise ValueError(f"Cannot delete annotation in copy status {annotation.copy.status}")
-
-        AnnotationService._require_active_lock(copy=annotation.copy, user=user, lock_token=lock_token)
+        if annotation.copy.status != Copy.Status.READY:
+             raise ValueError(f"Impossible de supprimer une annotation en statut {annotation.copy.status}")
 
         copy = annotation.copy
         ann_id = str(annotation.id)
@@ -207,7 +175,7 @@ class AnnotationService:
 class GradingService:
     """
     Service pour la gestion du workflow:
-    IMPORT -> STAGING -> READY -> LOCKED -> GRADED -> EXPORT
+    IMPORT -> STAGING -> READY -> GRADED -> EXPORT
     """
 
     @staticmethod
@@ -225,173 +193,6 @@ class GradingService:
             if annotation.score_delta is not None:
                 total += annotation.score_delta
         return total
-
-    @staticmethod
-    def _reconcile_lock_state(copy: Copy) -> None:
-        now = timezone.now()
-
-        # Use DB query instead of copy.lock to avoid Django's cached reverse relation
-        lock = CopyLock.objects.filter(copy=copy).select_related("owner").first()
-
-        if lock and lock.expires_at < now:
-            lock.delete()
-            lock = None
-
-        if lock and copy.status != Copy.Status.LOCKED:
-            copy.status = Copy.Status.LOCKED
-            copy.locked_at = now
-            copy.locked_by = lock.owner
-            copy.save(update_fields=["status", "locked_at", "locked_by"])
-            return
-
-        if not lock and copy.status == Copy.Status.LOCKED:
-            copy.status = Copy.Status.READY
-            copy.locked_at = None
-            copy.locked_by = None
-            copy.save(update_fields=["status", "locked_at", "locked_by"])
-
-    @staticmethod
-    @transaction.atomic
-    def acquire_lock(copy: Copy, user, ttl_seconds: int = 1800):
-        now = timezone.now()
-        copy_id = getattr(copy, "id", None)
-        if (
-            not isinstance(copy, Copy)
-            or not isinstance(copy_id, (uuid.UUID, str))
-            or (isinstance(copy_id, str) and copy_id.strip() in ("", "[]"))
-        ):
-            copy.status = Copy.Status.LOCKED
-            if hasattr(copy, "locked_at"):
-                copy.locked_at = now
-            if hasattr(copy, "locked_by"):
-                copy.locked_by = user
-            return None, True
-        
-        # P0-DI-001 FIX: Lock the Copy object to prevent race conditions
-        copy = Copy.objects.select_for_update().get(id=copy.id)
-        
-        ttl = max(int(ttl_seconds), 1)
-        ttl = min(ttl, 3600)
-        expires_at = now + datetime.timedelta(seconds=ttl)
-
-        # P0-DI-001 FIX: Clean up expired locks atomically
-        CopyLock.objects.filter(copy=copy, expires_at__lt=now).delete()
-
-        # P0-DI-001 FIX: Use get_or_create to handle race conditions atomically
-        lock, created = CopyLock.objects.get_or_create(
-            copy=copy,
-            defaults={'owner': user, 'expires_at': expires_at}
-        )
-
-        if not created:
-            # Lock already exists, check ownership
-            if lock.owner != user:
-                grading_lock_conflicts_total.labels(conflict_type='already_locked').inc()
-                raise LockConflictError("Copy is locked by another user.")
-            
-            # Refresh expiration for the existing lock owned by requester
-            lock.expires_at = expires_at
-            lock.save(update_fields=["expires_at"])
-
-        # Update Copy status atomically
-        copy.status = Copy.Status.LOCKED
-        copy.locked_at = now
-        copy.locked_by = user
-        copy.save(update_fields=["status", "locked_at", "locked_by"])
-
-        if created:
-            # Only create GradingEvent for new locks
-            GradingEvent.objects.create(
-                copy=copy,
-                action=GradingEvent.Action.LOCK,
-                actor=user,
-                metadata={"token_prefix": str(lock.token)[:8]},
-            )
-
-        return lock, created
-
-    @staticmethod
-    @transaction.atomic
-    def heartbeat_lock(copy: Copy, user, lock_token: str, ttl_seconds: int = 1800):
-        now = timezone.now()
-        try:
-            lock = (
-                CopyLock.objects.select_for_update()
-                .select_related("owner")
-                .get(copy=copy)
-            )
-        except CopyLock.DoesNotExist:
-            grading_lock_conflicts_total.labels(conflict_type='missing').inc()
-            raise LockConflictError("Lock not found or expired.")
-
-        if lock.expires_at < now:
-            lock.delete()
-            GradingService._reconcile_lock_state(copy)
-            grading_lock_conflicts_total.labels(conflict_type='expired').inc()
-            raise LockConflictError("Lock expired.")
-
-        if lock.owner != user:
-            grading_lock_conflicts_total.labels(conflict_type='owner_mismatch').inc()
-            raise LockConflictError("Lock owner mismatch.")
-
-        if not lock_token:
-            raise PermissionError("Missing lock token.")
-        if str(lock.token) != str(lock_token):
-            grading_lock_conflicts_total.labels(conflict_type='token_mismatch').inc()
-            raise PermissionError("Invalid lock token.")
-
-        ttl = max(int(ttl_seconds), 1)
-        ttl = min(ttl, 3600)
-        lock.expires_at = now + datetime.timedelta(seconds=ttl)
-        lock.save(update_fields=["expires_at"])
-        GradingService._reconcile_lock_state(copy)
-        return lock
-
-    @staticmethod
-    @transaction.atomic
-    def release_lock(copy: Copy, user, lock_token: str):
-        try:
-            lock = CopyLock.objects.select_for_update().get(copy=copy)
-        except CopyLock.DoesNotExist:
-            return False
-
-        if not lock_token:
-            raise PermissionError("Missing lock token.")
-        if str(lock.token) != str(lock_token):
-            grading_lock_conflicts_total.labels(conflict_type='token_mismatch').inc()
-            raise PermissionError("Invalid lock token.")
-
-        if lock.owner != user:
-            grading_lock_conflicts_total.labels(conflict_type='owner_mismatch').inc()
-            raise LockConflictError("Lock owner mismatch.")
-
-        GradingEvent.objects.create(
-            copy=copy,
-            action=GradingEvent.Action.UNLOCK,
-            actor=user,
-        )
-
-        lock.delete()
-        GradingService._reconcile_lock_state(copy)
-        return True
-
-    @staticmethod
-    @transaction.atomic
-    def get_lock_status(copy: Copy):
-        now = timezone.now()
-        try:
-            lock = CopyLock.objects.select_related("owner").get(copy=copy)
-        except CopyLock.DoesNotExist:
-            GradingService._reconcile_lock_state(copy)
-            return None
-
-        if lock.expires_at < now:
-            lock.delete()
-            GradingService._reconcile_lock_state(copy)
-            return None
-
-        GradingService._reconcile_lock_state(copy)
-        return lock
 
     @staticmethod
     @transaction.atomic
@@ -516,19 +317,6 @@ class GradingService:
         return GradingService.validate_copy(copy, user)
 
     @staticmethod
-    @transaction.atomic
-    def lock_copy(copy: Copy, user):
-        if copy.status != Copy.Status.READY:
-            raise ValueError("Only READY copies can be locked")
-        lock, _created = GradingService.acquire_lock(copy=copy, user=user, ttl_seconds=1800)
-        return lock
-
-    @staticmethod
-    @transaction.atomic
-    def unlock_copy(copy: Copy, user):
-        raise ValueError("Use release_lock with token.")
-
-    @staticmethod
     def finalize_copy(copy: Copy, user, lock_token=None):
         # Top-level guard: translate any DB-level contention (deadlock, lock
         # timeout, serialization failure) into a business-level error so that
@@ -548,71 +336,24 @@ class GradingService:
     @staticmethod
     @transaction.atomic
     def _finalize_copy_inner(copy: Copy, user, lock_token=None):
-        # P0-DI-003 FIX: Lock the Copy object to prevent race conditions
         copy = Copy.objects.select_for_update().get(id=copy.id)
 
-        # P0-DI-003 FIX: Detect concurrent finalization (single-winner enforcement)
-        # If status is already GRADED, another request won the race - reject duplicate
         if copy.status == Copy.Status.GRADED:
-            logger.warning(
-                f"Copy {copy.id} already graded (concurrent finalization detected) - "
-                f"rejecting duplicate request"
-            )
-            grading_lock_conflicts_total.labels(conflict_type='already_graded').inc()
-            raise LockConflictError("Copy already finalized by another request")
+            logger.warning(f"Copy {copy.id} already graded — rejecting duplicate request")
+            raise LockConflictError("Copie déjà finalisée.")
 
-        # P0-DI-004 FIX: Handle GRADING_FAILED - allow retry
         if copy.status == Copy.Status.GRADING_FAILED:
-            logger.info(f"Copy {copy.id} previously failed, retrying finalization (attempt {copy.grading_retries + 1})")
-            # Continue with finalization logic
+            logger.info(f"Copy {copy.id} previously failed, retrying (attempt {copy.grading_retries + 1})")
 
-        if copy.status not in [Copy.Status.LOCKED, Copy.Status.GRADING_FAILED]:
-            raise ValueError("Only LOCKED or GRADING_FAILED copies can be finalized")
-
-        # Lock CopyLock row as well to prevent concurrent finalize.
-        now = timezone.now()
-        try:
-            lock = (
-                CopyLock.objects.select_for_update()
-                .select_related("owner")
-                .get(copy=copy)
-            )
-        except CopyLock.DoesNotExist:
-            if copy.locked_by == user:
-                lock = None
-            else:
-                grading_lock_conflicts_total.labels(conflict_type='missing').inc()
-                raise LockConflictError("Lock required.")
-
-        if lock is not None:
-            if lock.expires_at < now:
-                lock.delete()
-                grading_lock_conflicts_total.labels(conflict_type='expired').inc()
-                raise LockConflictError("Lock expired.")
-
-            if lock.owner != user:
-                grading_lock_conflicts_total.labels(conflict_type='owner_mismatch').inc()
-                raise LockConflictError("Copy is locked by another user.")
-
-            if not lock_token:
-                raise PermissionError("Missing lock token.")
-            elif str(lock.token) != str(lock_token):
-                grading_lock_conflicts_total.labels(conflict_type='token_mismatch').inc()
-                raise PermissionError("Invalid lock token.")
+        if copy.status not in [Copy.Status.READY, Copy.Status.GRADING_FAILED]:
+            raise ValueError(f"Impossible de finaliser une copie en statut {copy.status}")
 
         final_score = GradingService.compute_score(copy)
         retry_attempt = copy.grading_retries + 1
 
-        # P0-DI-004 FIX: Set intermediate status during processing
         copy.status = Copy.Status.GRADING_IN_PROGRESS
         copy.grading_retries = retry_attempt
-        copy.locked_at = None
-        copy.locked_by = None
-        copy.save(update_fields=["status", "grading_retries", "locked_at", "locked_by"])
-
-        # Delete lock immediately after status change
-        if lock is not None:
-            lock.delete()
+        copy.save(update_fields=["status", "grading_retries"])
 
         # Generate Final PDF with comprehensive error handling
         from processing.services.pdf_flattener import PDFFlattener
