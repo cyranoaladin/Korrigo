@@ -2,7 +2,7 @@
 
 **Date d'implémentation** : 24 janvier 2026  
 **Statut** : ✅ **COMPLÉTÉ**  
-**Référence Audit** : Audit complet du projet Viatique - 2026-01-24
+**Référence Audit** : Audit complet du projet Korrigo - 2026-01-24
 
 ---
 
@@ -20,7 +20,7 @@ Les 3 problèmes critiques P1 identifiés lors de l'audit de sécurité ont ét�
 
 ### Problème Identifié
 
-**Règle violée** : `.antigravity/rules/01_security_rules.md` § 7.3 (lignes 565-731)
+**Règle violée** : `docs/security/MANUEL_SECURITE.md` § 7.3 (lignes 565-731)
 
 Absence de traçabilité centralisée pour :
 - Tentatives d'authentification (succès/échec)
@@ -108,7 +108,7 @@ Fonctions créées :
 
 ### Problème Identifié
 
-**Règle violée** : `.antigravity/rules/01_security_rules.md` § 9 (lignes 797-800)
+**Règle violée** : `docs/security/MANUEL_SECURITE.md` § 9 (lignes 797-800)
 
 Absence de rate limiting sur endpoints login :
 - Vulnérabilité brute force
@@ -229,7 +229,7 @@ Docstring complète ajoutée avec :
 - Référence règles de gouvernance
 - Référence audit P1
 
-**Conformité** : `.antigravity/rules/01_security_rules.md` § 2.2
+**Conformité** : `docs/security/MANUEL_SECURITE.md` § 2.2
 
 ---
 

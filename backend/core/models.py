@@ -33,7 +33,7 @@ class AuditLog(models.Model):
     Table d'audit centralisée pour actions critiques.
     Conformité RGPD/CNIL - Traçabilité obligatoire.
     
-    Référence: .antigravity/rules/01_security_rules.md § 7.3
+    Référence: docs/security/MANUEL_SECURITE.md — Audit Trail RGPD
     """
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name=_("Horodatage"))
     user = models.ForeignKey(

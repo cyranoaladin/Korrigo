@@ -199,7 +199,7 @@ STAGING ──validate──> READY ──lock──> LOCKED ──finalize─�
   - **Impact:** Unclear who can do what, potential security gaps
   - **Current:** IsTeacherOrAdmin for all grading endpoints
   - **Improvements:**
-    - Document permission matrix in `.claude/`
+    - Document permission matrix in `docs/`
     - Add locked_by check: only locker can finalize
     - Student can only download their own final_pdf
 
@@ -251,13 +251,13 @@ STAGING ──validate──> READY ──lock──> LOCKED ──finalize─�
 - Add CopyReadyView (POST /api/copies/<id>/ready/)
 - Add CopyFinalPdfView (GET /api/copies/<id>/final-pdf/)
 - Update grading/urls.py
-- Update .claude/ETAPE_3_ANNOTATION_GRADING.md (new endpoints)
+- Update docs/ETAPE_3_ANNOTATION_GRADING.md (new endpoints)
 - Runtime test script: `scripts/test_etape3_workflow_e2e.sh`
 
 **Commit 2:** `fix(grading): make finalize atomic and consistent`
 - Wrap finalize_copy + compute_score + PDFFlattener in @transaction.atomic
 - Add rollback test (simulate PDF generation failure)
-- Document strategy in .claude/ETAPE_3_ANNOTATION_GRADING.md
+- Document strategy in docs/ETAPE_3_ANNOTATION_GRADING.md
 
 **Verification:**
 ```bash
@@ -292,7 +292,7 @@ docker-compose exec -T backend bash -c "cd /app && pytest grading/tests/ -q"
 # → 25 passed in 5.22s ✅
 ```
 
-**Report:** See `.claude/PHASE2_TEST_REPORT.md` for detailed coverage analysis
+**Report:** See `docs/PHASE2_TEST_REPORT.md` for detailed coverage analysis
 
 ---
 
@@ -331,8 +331,8 @@ docker-compose up -d
 - Update tests
 
 **Commit 2:** `docs: add permission matrix and observability guide`
-- .claude/PERMISSIONS.md (who can do what)
-- .claude/OBSERVABILITY.md (logging standards, how to debug)
+- docs/PERMISSIONS.md (who can do what)
+- docs/OBSERVABILITY.md (logging standards, how to debug)
 
 **Commit 3:** `ci: add GitHub Actions workflow`
 - .github/workflows/ci.yml
@@ -357,7 +357,7 @@ docker-compose up -d
 - [ ] CI pipeline passes (lint + tests) (PENDING: PHASE 4)
 
 ✅ **Documentation**
-- [ ] API endpoints documented in .claude/
+- [ ] API endpoints documented in docs/
 - [ ] Permission matrix clear
 - [ ] E2E manual test procedure documented
 

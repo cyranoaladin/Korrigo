@@ -16,6 +16,8 @@ from grading.views import (
     CorrectorStatsView,
     ExamReleaseResultsView,
     ExamUnreleaseResultsView,
+    ExamLLMSummaryView,
+    CopyLLMSummaryView,
 )
 from grading.views_lock import (
     LockAcquireView,
@@ -74,6 +76,10 @@ urlpatterns = [
     # Release/Unrelease Results
     path('exams/<uuid:exam_id>/release-results/', ExamReleaseResultsView.as_view(), name='exam-release-results'),
     path('exams/<uuid:exam_id>/unrelease-results/', ExamUnreleaseResultsView.as_view(), name='exam-unrelease-results'),
+
+    # LLM Summary Generation
+    path('exams/<uuid:exam_id>/generate-summaries/', ExamLLMSummaryView.as_view(), name='exam-llm-summaries'),
+    path('copies/<uuid:copy_id>/generate-summary/', CopyLLMSummaryView.as_view(), name='copy-llm-summary'),
 
     # Banque d'annotations — Suggestions contextuelles
     path('exams/<uuid:exam_id>/suggestions/', ContextualSuggestionsView.as_view(), name='contextual-suggestions'),

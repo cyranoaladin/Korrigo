@@ -62,8 +62,8 @@ services:
     ports:
       - "8090:80"
     volumes:
-      - media_volume:/var/www/viatique/media:ro
-      - static_volume:/var/www/viatique/static:ro
+      - media_volume:/var/www/korrigo/media:ro
+      - static_volume:/var/www/korrigo/static:ro
     depends_on:
       - backend
 

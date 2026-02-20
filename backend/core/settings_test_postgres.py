@@ -20,7 +20,7 @@ warnings.filterwarnings(
 # Override the SQLite database with PostgreSQL from environment
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgres://viatique_user:viatique_password@db:5432/viatique",
+    "postgres://korrigo_user:korrigo_password@db:5432/korrigo",
 )
 
 try:
@@ -32,7 +32,7 @@ try:
             conn_max_age=0,
         )
     }
-    DATABASES["default"]["TEST"] = {"NAME": "test_viatique_postgres"}
+    DATABASES["default"]["TEST"] = {"NAME": "test_korrigo_postgres"}
 except ImportError:
     raise RuntimeError(
         "dj-database-url is required for postgres test settings. "

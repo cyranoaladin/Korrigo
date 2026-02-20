@@ -2,7 +2,7 @@
 Audit Trail Utilities
 Conformité RGPD/CNIL - Traçabilité des actions critiques
 
-Référence: .antigravity/rules/01_security_rules.md § 7.3
+Référence: docs/security/MANUEL_SECURITE.md — Audit Trail RGPD
 """
 import logging
 from django.utils import timezone

@@ -64,7 +64,7 @@ def prometheus_metrics_view(request):
 
     Example Prometheus configuration:
         scrape_configs:
-          - job_name: 'viatique-backend'
+          - job_name: 'korrigo-backend'
             static_configs:
               - targets: ['backend:8000']
             metrics_path: '/metrics'

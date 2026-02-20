@@ -17,7 +17,7 @@ const fetchExams = async () => {
         exams.value = res.data
         if (exams.value.length > 0) selectedExam.value = exams.value[0].id
     } catch {
-        error.value = "Failed to load exams"
+        error.value = "Échec du chargement des examens"
     }
 }
 
@@ -40,7 +40,7 @@ const handleUpload = async () => {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         
-        successMessage.value = "Import successful! Rasterizing..."
+        successMessage.value = "Import réussi ! Rastérisation en cours..."
         // Since we are sync for P0, we have the copy ID
         if (res.data.id) {
              setTimeout(() => {
@@ -49,7 +49,7 @@ const handleUpload = async () => {
         }
     } catch {
         console.error(err)
-        error.value = err.response?.data?.error || "Import failed"
+        error.value = err.response?.data?.error || "Échec de l'import"
     } finally {
         isUploading.value = false;
     }
@@ -60,11 +60,11 @@ onMounted(fetchExams)
 
 <template>
   <div class="import-copies">
-    <h1>Import Copies (Real PDF)</h1>
+    <h1>Importer des Copies (PDF)</h1>
     
     <div class="card">
       <div class="form-group">
-        <label>Select Exam</label>
+        <label>Sélectionner l'examen</label>
         <select v-model="selectedExam">
           <option
             v-for="ex in exams"
@@ -77,13 +77,13 @@ onMounted(fetchExams)
       </div>
         
       <div class="form-group">
-        <label>Upload PDF Copy</label>
+        <label>Téléverser une copie PDF</label>
         <input
           type="file"
           accept="application/pdf"
           @change="handleFileChange"
         >
-        <small>Upload a single PDF file representing one copy (pages will be rasterized).</small>
+        <small>Téléversez un fichier PDF représentant une copie (les pages seront rastérisées).</small>
       </div>
         
       <div
@@ -104,7 +104,7 @@ onMounted(fetchExams)
         class="btn-primary"
         @click="handleUpload"
       >
-        {{ isUploading ? 'Processing...' : 'Import & Process' }}
+        {{ isUploading ? 'Traitement en cours...' : 'Importer et traiter' }}
       </button>
     </div>
   </div>

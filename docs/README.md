@@ -1,129 +1,108 @@
-# Korrigo PMF Documentation
+# Korrigo PMF — Documentation
 
-**Last Updated**: 30 Janvier 2026  
-**Version**: 1.0.0
+**Dernière mise à jour** : 14 février 2026  
+**Version** : 1.3  
+**Production** : [https://korrigo.labomaths.tn](https://korrigo.labomaths.tn)
 
 ---
 
-## 📚 Documentation Index
+## 📚 Index de la Documentation
 
-### For End Users
+> **Point d'entrée complet** : Voir [INDEX.md](INDEX.md) pour l'index exhaustif avec tables, checklists et guide de navigation par rôle.
 
-#### Administrators
-- [Administration Guide](user/GUIDE_ADMINISTRATEUR.md) - *(To be created)*
-- [FAQ](support/FAQ.md) - Comprehensive FAQ by user role
-- [Support Procedures](support/SUPPORT.md) - Support levels and escalation
+### Guides Utilisateurs
 
-#### Teachers
-- [Teacher Guide](user/GUIDE_ENSEIGNANT.md) - *(To be created)*
-- [Walkthrough](user/walkthrough.md) - Interactive platform walkthrough
+| Public | Document | Description |
+|--------|----------|-------------|
+| Direction | [GUIDE_ADMINISTRATEUR_LYCEE](admin/GUIDE_ADMINISTRATEUR_LYCEE.md) | Vue d'ensemble exécutive (non-technique) |
+| Admin | [GUIDE_UTILISATEUR_ADMIN](admin/GUIDE_UTILISATEUR_ADMIN.md) | Manuel technique administrateur |
+| Admin | [GESTION_UTILISATEURS](admin/GESTION_UTILISATEURS.md) | Procédures gestion des comptes |
+| Admin | [PROCEDURES_OPERATIONNELLES](admin/PROCEDURES_OPERATIONNELLES.md) | Opérations quotidiennes |
+| Enseignant | [GUIDE_ENSEIGNANT](users/GUIDE_ENSEIGNANT.md) | Workflow de correction complet |
+| Secrétariat | [GUIDE_SECRETARIAT](users/GUIDE_SECRETARIAT.md) | Identification et gestion copies |
+| Élève | [GUIDE_ETUDIANT](users/GUIDE_ETUDIANT.md) | Consultation copies corrigées |
+| Tous | [NAVIGATION_UI](users/NAVIGATION_UI.md) | Référence complète de l'interface |
 
-#### Secretariat
-- [Secretariat Guide](user/GUIDE_SECRETARIAT.md) - *(To be created)*
+### Support et Dépannage
 
-#### Students  
-- [Student Guide](user/GUIDE_ELEVE.md) - *(To be created)*
+- **[FAQ](support/FAQ.md)** — Questions fréquentes par rôle
+- **[Dépannage](support/DEPANNAGE.md)** — Diagnostic et résolution de problèmes
+- **[Support](support/SUPPORT.md)** — Niveaux de support, SLA, escalade
 
-### For Support & Operations
+### Documentation Technique
 
-- **[FAQ](support/FAQ.md)** - Frequently Asked Questions organized by role
-- **[Troubleshooting Guide](support/DEPANNAGE.md)** - Diagnostic procedures and common issues
-- **[Support Procedures](support/SUPPORT.md)** - Support levels, SLA, escalation matrix
+| Document | Description |
+|----------|-------------|
+| [ARCHITECTURE](technical/ARCHITECTURE.md) | Architecture système (Django + Vue + Docker) |
+| [API_REFERENCE](technical/API_REFERENCE.md) | Référence API REST (~60 endpoints) |
+| [DATABASE_SCHEMA](technical/DATABASE_SCHEMA.md) | Schéma PostgreSQL (5 apps, ~20 modèles) |
+| [BUSINESS_WORKFLOWS](technical/BUSINESS_WORKFLOWS.md) | Workflows métier (import, correction, export) |
+| [DEVELOPMENT_GUIDE](development/DEVELOPMENT_GUIDE.md) | Guide de développement local |
+| [DEPLOYMENT_GUIDE](deployment/DEPLOYMENT_GUIDE.md) | Guide de déploiement Docker |
+| [DEPLOY_PRODUCTION](deployment/DEPLOY_PRODUCTION.md) | Déploiement korrigo.labomaths.tn |
 
-### For Developers
+### Sécurité et Conformité
 
-- **[Development Guide](development/DEVELOPMENT_GUIDE.md)** - Local development environment setup
-- **[Specification](development/SPECIFICATION.md)** - Project specification and requirements
-- **[API Reference](technical/API_REFERENCE.md)** - REST API endpoints documentation
-- **[Testing Guide](quality/TEST_PLAN.md)** - Test strategy and execution
+- **[POLITIQUE_RGPD](security/POLITIQUE_RGPD.md)** — Conformité RGPD/CNIL
+- **[MANUEL_SECURITE](security/MANUEL_SECURITE.md)** — Sécurité technique
+- **[GESTION_DONNEES](security/GESTION_DONNEES.md)** — Cycle de vie des données
+- **[AUDIT_CONFORMITE](security/AUDIT_CONFORMITE.md)** — Procédures d'audit
 
-### For System Architects
+### Documentation Légale
 
-- **[Architecture](technical/ARCHITECTURE.md)** - System architecture and design
-- **[Business Workflows](technical/BUSINESS_WORKFLOWS.md)** - Business process flows
-- **[Database Schema](technical/DATABASE_SCHEMA.md)** - Database models and relationships
-- **[PDF Processing](technical/PDF_PROCESSING.md)** - PDF validation and processing pipeline
-- **[Technical Manual](technical/TECHNICAL_MANUAL.md)** - Technical reference
-
-### For DevOps & Deployment
-
-- **[Deployment Guide](deployment/DEPLOYMENT_GUIDE.md)** - Complete deployment instructions
-- **[Production Runbook](deployment/RUNBOOK_PRODUCTION.md)** - Production operations
-- **[Staging Runbook](deployment/RUNBOOK_STAGING.md)** - Staging environment operations
-- **[Docker Production](deployment/DEPLOY_PRODUCTION.md)** - Docker deployment specifics
-
-### For Quality Assurance
-
-- **[Test Plan](quality/TEST_PLAN.md)** - Test plan and test coverage
-- **[CI/CD Workflows](quality/CI_WORKFLOWS.md)** - Continuous integration setup
-- **[Local Production Testing](quality/RUNBOOK_LOCAL_PRODLIKE.md)** - Local prod-like environment
+- **[POLITIQUE_CONFIDENTIALITE](legal/POLITIQUE_CONFIDENTIALITE.md)** — Politique de confidentialité
+- **[CONDITIONS_UTILISATION](legal/CONDITIONS_UTILISATION.md)** — CGU
+- **[ACCORD_TRAITEMENT_DONNEES](legal/ACCORD_TRAITEMENT_DONNEES.md)** — DPA contractuel
+- **[FORMULAIRES_CONSENTEMENT](legal/FORMULAIRES_CONSENTEMENT.md)** — Modèles de consentement
 
 ### Architecture Decision Records (ADRs)
 
-- **[ADR Index](decisions/README.md)** - List of all architecture decisions
 - [ADR-001: Student Authentication Model](decisions/ADR-001-student-authentication-model.md)
 - [ADR-002: PDF Coordinate Normalization](decisions/ADR-002-pdf-coordinate-normalization.md)
 - [ADR-003: Copy Status State Machine](decisions/ADR-003-copy-status-state-machine.md)
 
 ---
 
-## 📂 Documentation Structure
+## 📂 Structure des Répertoires
 
 ```
 docs/
-├── README.md                    # This file - Documentation index
-├── user/                        # End-user guides by role
-├── support/                     # Support and troubleshooting
-├── technical/                   # Technical architecture docs
-├── development/                 # Developer guides
-├── deployment/                  # Deployment and operations
-├── quality/                     # QA and testing docs
-├── decisions/                   # Architecture Decision Records (ADRs)
-└── archive/                     # Historical documents
+├── INDEX.md                     # Index principal exhaustif
+├── README.md                    # Ce fichier — index rapide
+├── ARCHITECTURE.md              # Architecture technique
+├── API_REFERENCE.md             # Référence API REST
+├── DATABASE_SCHEMA.md           # Schéma base de données
+├── BUSINESS_WORKFLOWS.md        # Workflows métier
+├── DEVELOPMENT_GUIDE.md         # Guide développement local
+├── DEPLOYMENT_GUIDE.md          # Guide déploiement
+├── admin/                       # Guides administration
+├── users/                       # Guides par rôle utilisateur
+├── security/                    # RGPD, sécurité, données
+├── legal/                       # Documents légaux
+├── support/                     # FAQ, dépannage, support
+├── decisions/                   # ADRs
+└── archive/                     # Documents historiques
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Démarrage Rapide
 
-**New to Korrigo?**
-1. Read the [Walkthrough](user/walkthrough.md) for an overview
-2. Check the [FAQ](support/FAQ.md) for common questions
-3. See your role-specific guide (Admin/Teacher/Secretariat/Student)
-
-**Setting up development?**
-1. Follow the [Development Guide](development/DEVELOPMENT_GUIDE.md)
-2. Review the [Architecture](technical/ARCHITECTURE.md)
-3. Check the [API Reference](technical/API_REFERENCE.md)
-
-**Deploying to production?**
-1. Read the [Deployment Guide](deployment/DEPLOYMENT_GUIDE.md)
-2. Follow the [Production Runbook](deployment/RUNBOOK_PRODUCTION.md)
-3. Review security best practices in technical docs
-
-**Troubleshooting issues?**
-1. Check the [FAQ](support/FAQ.md) first
-2. Use the [Troubleshooting Guide](support/DEPANNAGE.md)
-3. Follow [Support Procedures](support/SUPPORT.md) for escalation
+| Besoin | Documents |
+|--------|-----------|
+| **Nouveau sur Korrigo** | [FAQ](support/FAQ.md) puis guide de votre rôle |
+| **Développement local** | [DEVELOPMENT_GUIDE](development/DEVELOPMENT_GUIDE.md) → [ARCHITECTURE](technical/ARCHITECTURE.md) → [API_REFERENCE](technical/API_REFERENCE.md) |
+| **Déploiement production** | [DEPLOYMENT_GUIDE](deployment/DEPLOYMENT_GUIDE.md) → [DEPLOY_PRODUCTION](deployment/DEPLOY_PRODUCTION.md) |
+| **Problème technique** | [FAQ](support/FAQ.md) → [Dépannage](support/DEPANNAGE.md) → [Support](support/SUPPORT.md) |
+| **Conformité RGPD** | [POLITIQUE_RGPD](security/POLITIQUE_RGPD.md) → [GESTION_DONNEES](security/GESTION_DONNEES.md) |
 
 ---
 
-## 📞 Support
-
-- **L1 Support**: School administrator (see [Support Procedures](support/SUPPORT.md))
-- **L2 Support**: Technical IT team
-- **L3 Support**: Korrigo vendor
-
-For support procedures and SLA, see [Support Documentation](support/SUPPORT.md).
-
----
-
-## 📜 License & Legal
+## 📜 Historique
 
 - [Changelog](../CHANGELOG.md)
-- [Release Notes](../RELEASE_NOTES_v1.0.0.md)
 
 ---
 
-**Maintained by**: Korrigo PMF Team  
-**Last Review**: 30 Janvier 2026
+**Maintenu par** : Alaeddine BEN RHOUMA — Labo Maths ERT  
+**Dernière revue** : 14 février 2026

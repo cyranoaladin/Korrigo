@@ -215,7 +215,7 @@ class UserRole:
 **Justification Comment** (lines 160-191):
 - Documented dual authentication system (User vs Student session)
 - Explicit security gates explanation
-- Conformity reference: `.antigravity/rules/01_security_rules.md § 2.2`
+- Conformity reference: docs/security/MANUEL_SECURITE.md — Accès PDF Final
 - Audit reference included
 
 **Verdict**: ✅ **ACCEPTABLE** - Security-by-obscurity via queryset filtering is properly implemented with explicit documentation
@@ -654,7 +654,7 @@ No P0 security risks identified. All baseline security controls are in place.
 
 ### 11.1 Security Rules Compliance
 
-**Reference**: `.antigravity/rules/01_security_rules.md`
+**Reference**: docs/security/MANUEL_SECURITE.md
 
 | Rule | Status | Evidence |
 |------|--------|----------|

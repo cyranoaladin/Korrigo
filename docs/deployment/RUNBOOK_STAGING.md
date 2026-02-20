@@ -11,7 +11,7 @@
 
 Vérifier **AVANT** de lancer:
 
-- [ ] DNS staging opérationnel: `https://staging.viatique.example.com`
+- [ ] DNS staging opérationnel: `https://staging.korrigo.example.com`
 - [ ] TLS en place (cert valide, pas d'erreur navigateur)
 - [ ] Accès DB/Redis sur la stack staging (via docker compose)
 - [ ] Compte prof staging valide (`SMOKE_USER` + `SMOKE_PASS`)
@@ -53,7 +53,7 @@ ls -l infra/docker/docker-compose.staging.yml
 ### Commande d'exécution
 
 ```bash
-BASE_URL=https://staging.viatique.example.com \
+BASE_URL=https://staging.korrigo.example.com \
   TAG=v1.0.0-rc1 \
   METRICS_TOKEN=$(openssl rand -hex 32) \
   ./scripts/deploy_staging_safe.sh
@@ -79,7 +79,7 @@ BASE_URL=https://staging.viatique.example.com \
 docker compose -f infra/docker/docker-compose.staging.yml ps
 
 # Vérifier health endpoint
-curl -fsS https://staging.viatique.example.com/api/health/ | jq .
+curl -fsS https://staging.korrigo.example.com/api/health/ | jq .
 
 # Vérifier logs
 ls -lh /tmp/staging_deploy_*/
@@ -109,7 +109,7 @@ ls -lh /tmp/staging_deploy_*/
 ### Commande d'exécution
 
 ```bash
-BASE_URL=https://staging.viatique.example.com \
+BASE_URL=https://staging.korrigo.example.com \
   SMOKE_USER=prof1 \
   SMOKE_PASS='changeme' \
   ./scripts/smoke_staging.sh
@@ -152,7 +152,7 @@ ls -lh /tmp/staging_smoke_*/
 
 # Vérifier PDF final accessible
 curl -I -b /tmp/staging_smoke_*/cookies.txt \
-  https://staging.viatique.example.com/api/grading/copies/<copy_id>/final-pdf/
+  https://staging.korrigo.example.com/api/grading/copies/<copy_id>/final-pdf/
 ```
 
 ### Critères FAIL ❌ → STOP
@@ -199,7 +199,7 @@ tar -czf /tmp/staging_artifacts_${TIMESTAMP}.tgz \
 ls -lh /tmp/staging_artifacts_*.tgz
 
 # Optionnel: upload vers S3/bucket de backup
-# aws s3 cp /tmp/staging_artifacts_${TIMESTAMP}.tgz s3://viatique-releases/
+# aws s3 cp /tmp/staging_artifacts_${TIMESTAMP}.tgz s3://korrigo-releases/
 ```
 
 **Contenu de l'archive** (à conserver 1 an minimum):
@@ -298,7 +298,7 @@ echo "https://github.com/cyranoaladin/Korrigo/releases/tag/v1.0.0"
 ```bash
 # Option 1: Redeploy tag précédent stable
 TAG=<previous-stable-tag> \
-  BASE_URL=https://staging.viatique.example.com \
+  BASE_URL=https://staging.korrigo.example.com \
   ./scripts/deploy_staging_safe.sh
 
 # Option 2: Down + clean + redeploy
@@ -307,7 +307,7 @@ docker compose -f docker-compose.staging.yml down
 docker compose -f docker-compose.staging.yml up -d --build
 
 # Vérifier santé
-curl -fsS https://staging.viatique.example.com/api/health/
+curl -fsS https://staging.korrigo.example.com/api/health/
 ```
 
 ### Rollback "full" — DB + Stack (< 15 min)
@@ -322,22 +322,22 @@ docker compose -f infra/docker/docker-compose.staging.yml down
 
 # 2. Restaurer backup DB (dernier backup OK)
 # Exemple: backup quotidien à 02:00 UTC
-BACKUP_FILE="/backups/postgres/viatique_backup_<DATE>.sql.gz"
+BACKUP_FILE="/backups/postgres/korrigo_backup_<DATE>.sql.gz"
 
 # Vérifier backup existe
 ls -lh $BACKUP_FILE
 
 # Restaurer DB
 gunzip -c $BACKUP_FILE | \
-  docker exec -i viatique_staging_db psql -U postgres viatique_staging
+  docker exec -i korrigo_staging_db psql -U postgres korrigo_staging
 
 # 3. Redeploy tag stable
 TAG=<previous-stable-tag> \
-  BASE_URL=https://staging.viatique.example.com \
+  BASE_URL=https://staging.korrigo.example.com \
   ./scripts/deploy_staging_safe.sh
 
 # 4. Vérifier intégrité
-curl -fsS https://staging.viatique.example.com/api/health/
+curl -fsS https://staging.korrigo.example.com/api/health/
 docker compose -f infra/docker/docker-compose.staging.yml ps
 ```
 
@@ -375,7 +375,7 @@ docker compose -f infra/docker/docker-compose.staging.yml ps
 **Version robuste** avec archivage garanti même en cas d'échec (debug-friendly):
 
 ```bash
-BASE_URL=https://staging.viatique.example.com \
+BASE_URL=https://staging.korrigo.example.com \
 SMOKE_USER=prof1 \
 SMOKE_PASS='changeme' \
 TAG=v1.0.0-rc1 \
@@ -502,7 +502,7 @@ export SMOKE_PASS='changeme'
 export METRICS_TOKEN=$(openssl rand -hex 32)
 
 # Commande one-shot sans secrets inline
-BASE_URL=https://staging.viatique.example.com \
+BASE_URL=https://staging.korrigo.example.com \
 SMOKE_USER=prof1 \
 TAG=v1.0.0-rc1 \
 bash -lc '
@@ -557,7 +557,7 @@ read -sp "SMOKE_PASS: " SMOKE_PASS; echo; export SMOKE_PASS
 **Solution** : Nettoyer `/tmp/staging_*` au début du one-shot (safe).
 
 ```bash
-BASE_URL=https://staging.viatique.example.com \
+BASE_URL=https://staging.korrigo.example.com \
 SMOKE_USER=prof1 \
 SMOKE_PASS='changeme' \
 TAG=v1.0.0-rc1 \
@@ -613,7 +613,7 @@ find /tmp -maxdepth 1 -name "staging_*" -type d -mtime +1 -exec rm -rf {} \; 2>/
 export SMOKE_PASS='changeme'
 export METRICS_TOKEN=$(openssl rand -hex 32)
 
-BASE_URL=https://staging.viatique.example.com \
+BASE_URL=https://staging.korrigo.example.com \
 SMOKE_USER=prof1 \
 TAG=v1.0.0-rc1 \
 bash -lc '

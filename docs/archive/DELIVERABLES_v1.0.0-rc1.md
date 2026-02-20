@@ -273,7 +273,7 @@ Status: Clean
 
 **Technique** : Shark (responsable Release Gate)
 **Escalation** : [À définir]
-**Documentation** : `.claude/` directory + deliverables listés ci-dessus
+**Documentation** : `docs/` directory + deliverables listés ci-dessus
 
 ---
 

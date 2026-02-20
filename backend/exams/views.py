@@ -684,6 +684,7 @@ class StudentCopiesView(generics.ListAPIView):
                 "scores_details": scores_data,
                 "remarks": remarks,
                 "global_appreciation": copy.global_appreciation or '',
+                "llm_summary": copy.llm_summary or '',
             })
         return Response(data)
 class ExamSourceUploadView(APIView):

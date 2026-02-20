@@ -8,6 +8,16 @@ import api from '../services/api'
 const authStore = useAuthStore()
 const router = useRouter()
 
+const statusLabels = {
+  'STAGING': 'En attente',
+  'READY': 'Prêt',
+  'LOCKED': 'En cours',
+  'GRADED': 'Corrigé',
+  'GRADING_IN_PROGRESS': 'Correction en cours',
+  'GRADING_FAILED': 'Échec',
+}
+const getStatusLabel = (status) => statusLabels[status] || status
+
 const copies = ref([])
 const isLoading = ref(true)
 const basicStats = ref({ total: 0, graded: 0, todo: 0 })
@@ -40,8 +50,9 @@ const fetchStats = async () => {
     if (!copies.value.length) return
     statsLoading.value = true
     try {
-        // Get exam_id from first copy
-        const examId = copies.value[0]?.exam
+        // Get exam_id from first copy (exam is an object with .id or a direct UUID)
+        const examRaw = copies.value[0]?.exam
+        const examId = typeof examRaw === 'object' ? examRaw?.id : examRaw
         if (examId) {
             examStats.value = await gradingApi.fetchExamStats(examId)
         }
@@ -237,17 +248,17 @@ const scrollToStats = async () => {
                   <td>{{ examStats.global_stats?.std_dev ?? '-' }}</td>
                 </tr>
                 <tr>
-                  <td>Min</td>
+                  <td>Minimum</td>
                   <td>{{ examStats.lot_stats?.min ?? '-' }}</td>
                   <td>{{ examStats.global_stats?.min ?? '-' }}</td>
                 </tr>
                 <tr>
-                  <td>Max</td>
+                  <td>Maximum</td>
                   <td>{{ examStats.lot_stats?.max ?? '-' }}</td>
                   <td>{{ examStats.global_stats?.max ?? '-' }}</td>
                 </tr>
                 <tr>
-                  <td>Nb copies</td>
+                  <td>Nombre de copies</td>
                   <td>{{ examStats.lot_stats?.count ?? '-' }}</td>
                   <td>{{ examStats.global_stats?.count ?? '-' }}</td>
                 </tr>
@@ -341,14 +352,14 @@ const scrollToStats = async () => {
               </div>
             </div>
             <div :class="['copy-status', copy.status.toLowerCase()]">
-              {{ copy.status }}
+              {{ getStatusLabel(copy.status) }}
             </div>
             <button
               class="btn-action"
               data-testid="copy-action"
               @click="goToDesk(copy.id)"
             >
-              {{ copy.status === 'GRADED' ? 'Voir' : (copy.status === 'LOCKED' ? 'Continuer' : 'Corriger') }}
+              {{ copy.status === 'GRADED' ? 'Voir' : 'Corriger' }}
             </button>
           </div>
           <div

@@ -542,12 +542,12 @@ docker-compose exec backend python manage.py shell
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8088',
     'http://127.0.0.1:8088',
-    'https://viatique.example.com',
+    'https://korrigo.example.com',
 ]
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8088',
-    'https://viatique.example.com',
+    'https://korrigo.example.com',
 ]
 
 CSRF_COOKIE_SAMESITE = 'Lax'

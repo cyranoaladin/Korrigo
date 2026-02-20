@@ -302,6 +302,14 @@ class Copy(models.Model):
         help_text=_("Commentaire global du correcteur pour cette copie")
     )
 
+    # LLM-generated summary for student assessment
+    llm_summary = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_("Bilan LLM"),
+        help_text=_("Bilan personnalisé généré par LLM après finalisation")
+    )
+
     # Subject variant (Sujet A / Sujet B) — set manually by corrector
     subject_variant = models.CharField(
         max_length=1,

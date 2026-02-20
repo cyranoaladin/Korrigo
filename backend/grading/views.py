@@ -55,7 +55,7 @@ def _handle_unexpected_error(e, context="API"):
     """
     logger.error(f"{context} Unexpected Error: {e}", exc_info=True)
     return Response(
-        {"detail": "An unexpected error occurred. Please contact support."},
+        {"detail": "Une erreur inattendue s'est produite. Veuillez contacter le support."},
         status=status.HTTP_500_INTERNAL_SERVER_ERROR
     )
 
@@ -170,7 +170,7 @@ class CopyFinalizeView(APIView):
     def post(self, request, id):
         copy = get_object_or_404(Copy, id=id)
         if copy.status == Copy.Status.GRADED:
-            return Response({"detail": "Copy already graded."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Copie déjà corrigée."}, status=status.HTTP_400_BAD_REQUEST)
         lock_token = _get_lock_token(request)
         try:
             finalized = GradingService.finalize_copy(copy, request.user, lock_token=lock_token)
@@ -210,7 +210,7 @@ class CopyFinalPdfView(APIView):
     
     Audit Trail: All downloads are logged (line 222)
     
-    Conformité: .antigravity/rules/01_security_rules.md § 2.2
+    Conformité: docs/security/MANUEL_SECURITE.md — Accès PDF Final
     Référence Audit: P1 Security Review - 2026-01-24
     """
     from rest_framework.permissions import AllowAny
@@ -458,7 +458,7 @@ class CopyScoresView(APIView):
                     float(val)
                 except (TypeError, ValueError):
                     return Response(
-                        {"detail": f"Score for '{qid}' must be numeric, got '{val}'."},
+                        {"detail": f"La note pour '{qid}' doit être numérique, reçu '{val}'."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
@@ -494,7 +494,7 @@ class CorrectorStatsView(APIView):
 
         if not is_corrector and not is_admin:
             return Response(
-                {"detail": "Not authorized for this exam."},
+                {"detail": "Non autorisé pour cet examen."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -600,7 +600,7 @@ class ExamReleaseResultsView(APIView):
 
         if exam.results_released_at:
             return Response({
-                'message': 'Results already released.',
+                'message': 'Résultats déjà publiés.',
                 'released_at': exam.results_released_at.isoformat(),
             })
 
@@ -609,7 +609,7 @@ class ExamReleaseResultsView(APIView):
         exam.save(update_fields=['results_released_at'])
 
         return Response({
-            'message': 'Results released successfully.',
+            'message': 'Résultats publiés avec succès.',
             'released_at': exam.results_released_at.isoformat(),
         })
 
@@ -626,4 +626,67 @@ class ExamUnreleaseResultsView(APIView):
         exam.results_released_at = None
         exam.save(update_fields=['results_released_at'])
 
-        return Response({'message': 'Results unreleased.'})
+        return Response({'message': 'Publication des résultats annulée.'})
+
+
+class ExamLLMSummaryView(APIView):
+    """
+    POST /api/grading/exams/<uuid>/generate-summaries/
+    Génère les bilans LLM pour toutes les copies GRADED d'un examen.
+    Query param ?force=true pour régénérer les bilans existants.
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, exam_id):
+        exam = get_object_or_404(Exam, id=exam_id)
+        force = request.query_params.get('force', 'false').lower() == 'true'
+
+        from processing.services.llm_summary import LLMSummaryService
+        try:
+            stats = LLMSummaryService.generate_batch(str(exam.id), force=force)
+        except Exception as e:
+            return Response(
+                {'detail': f'Erreur lors de la génération des bilans: {str(e)[:300]}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        return Response({
+            'exam_id': str(exam.id),
+            'exam_name': exam.name,
+            'success': stats['success'],
+            'skipped': stats['skipped'],
+            'errors': stats['errors'],
+            'details': stats['details'],
+        })
+
+
+class CopyLLMSummaryView(APIView):
+    """
+    POST /api/grading/copies/<uuid>/generate-summary/
+    Génère le bilan LLM pour une seule copie GRADED.
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, copy_id):
+        copy = get_object_or_404(Copy, id=copy_id)
+
+        if copy.status != Copy.Status.GRADED:
+            return Response(
+                {'detail': 'Seules les copies finalisées (GRADED) peuvent avoir un bilan LLM.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from processing.services.llm_summary import LLMSummaryService
+        try:
+            summary = LLMSummaryService.generate_summary(copy)
+        except Exception as e:
+            return Response(
+                {'detail': f'Erreur LLM: {str(e)[:300]}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        return Response({
+            'copy_id': str(copy.id),
+            'anonymous_id': copy.anonymous_id,
+            'llm_summary': summary,
+        })

@@ -1,6 +1,6 @@
 """
 Validators pour les fichiers PDF
-Conformité: .antigravity/rules/01_security_rules.md § 8.1
+Conformité: docs/security/MANUEL_SECURITE.md — Validation PDF
 """
 import magic
 import fitz  # PyMuPDF

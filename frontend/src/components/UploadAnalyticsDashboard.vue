@@ -1,7 +1,7 @@
 <template>
   <div class="analytics-dashboard">
     <h2 class="dashboard-title">
-      📊 Analytics des Uploads
+      📊 Analytique des téléversements
     </h2>
     
     <!-- Période de sélection -->
@@ -78,7 +78,7 @@
         <div class="metrics-grid">
           <div class="metric-item">
             <div class="metric-label">
-              Total Uploads
+              Total téléversements
             </div>
             <div class="metric-value">
               {{ analytics.global_metrics.total_uploads || 0 }}
@@ -86,7 +86,7 @@
           </div>
           <div class="metric-item">
             <div class="metric-label">
-              Fichiers Uploadés
+              Fichiers téléversés
             </div>
             <div class="metric-value">
               {{ analytics.global_metrics.total_files_uploaded || 0 }}
@@ -102,7 +102,7 @@
           </div>
           <div class="metric-item">
             <div class="metric-label">
-              Données Uploadées
+              Données téléversées
             </div>
             <div class="metric-value">
               {{ analytics.global_metrics.total_data_uploaded_gb || 0 }} GB
@@ -166,7 +166,7 @@
           <thead>
             <tr>
               <th>Utilisateur</th>
-              <th>Uploads</th>
+              <th>Téléversements</th>
               <th>Fichiers</th>
             </tr>
           </thead>

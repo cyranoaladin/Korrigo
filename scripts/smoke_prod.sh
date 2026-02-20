@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Production Smoke Test Script
-# Task: ZF-AUD-12 - HARDENING PROD
+# Production Hardening
 # 
 # Enhanced smoke test for production deployment validation
 # Tests: health, static files, media protection, security headers, SSL/TLS

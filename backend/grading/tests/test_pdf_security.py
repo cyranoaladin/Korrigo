@@ -7,8 +7,8 @@ Tests verify that CopyFinalPdfView enforces:
 3. Authorization gate: Students can only access their OWN copies
 4. Security headers: Cache-Control, Content-Disposition, etc.
 
-Conformité: .antigravity/rules/01_security_rules.md § 2.2
-Référence: ZF-AUD-09 - Portail Élève Security Audit
+Conformité: docs/security/MANUEL_SECURITE.md — Accès PDF Final
+Référence: Portail Élève Security Audit
 """
 from django.test import TransactionTestCase, Client
 from django.contrib.auth.models import User, Group

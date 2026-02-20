@@ -10,13 +10,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: viatique
-      POSTGRES_USER: viatique_user
-      POSTGRES_PASSWORD: viatique_password
+      POSTGRES_DB: korrigo
+      POSTGRES_USER: korrigo_user
+      POSTGRES_PASSWORD: korrigo_password
     ports:
       - "5436:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U viatique_user -d viatique"]
+      test: ["CMD-SHELL", "pg_isready -U korrigo_user -d korrigo"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -45,7 +45,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://viatique_user:viatique_password@db:5432/viatique
+      DATABASE_URL: postgresql://korrigo_user:korrigo_password@db:5432/korrigo
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       DEBUG: "true"
@@ -82,7 +82,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://viatique_user:viatique_password@db:5432/viatique
+      DATABASE_URL: postgresql://korrigo_user:korrigo_password@db:5432/korrigo
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       DEBUG: "true"

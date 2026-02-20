@@ -335,11 +335,11 @@ docker compose -f infra/docker/docker-compose.prod.yml exec backend bash
 ```bash
 # Psql interactif
 docker compose -f infra/docker/docker-compose.prod.yml exec db \
-  psql -U ${POSTGRES_USER:-viatique_user} -d ${POSTGRES_DB:-viatique}
+  psql -U ${POSTGRES_USER:-korrigo_user} -d ${POSTGRES_DB:-korrigo}
 
 # Requête SQL directe
 docker compose -f infra/docker/docker-compose.prod.yml exec db \
-  psql -U viatique_user -d viatique -c "SELECT COUNT(*) FROM exams_exam;"
+  psql -U korrigo_user -d korrigo -c "SELECT COUNT(*) FROM exams_exam;"
 ```
 
 ### Problèmes Fréquents
@@ -395,7 +395,7 @@ docker compose -f infra/docker/docker-compose.prod.yml exec celery \
 # Créer backup horodaté
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 docker compose -f infra/docker/docker-compose.prod.yml exec -T db \
-  pg_dump -U ${POSTGRES_USER:-viatique_user} ${POSTGRES_DB:-viatique} \
+  pg_dump -U ${POSTGRES_USER:-korrigo_user} ${POSTGRES_DB:-korrigo} \
   > backups/db_backup_${TIMESTAMP}.sql
 
 # Compresser
@@ -416,7 +416,7 @@ mkdir -p $BACKUP_DIR
 
 echo "📦 Creating database backup: $BACKUP_FILE"
 docker compose -f infra/docker/docker-compose.prod.yml exec -T db \
-  pg_dump -U ${POSTGRES_USER:-viatique_user} ${POSTGRES_DB:-viatique} \
+  pg_dump -U ${POSTGRES_USER:-korrigo_user} ${POSTGRES_DB:-korrigo} \
   > $BACKUP_FILE
 
 gzip $BACKUP_FILE
@@ -449,7 +449,7 @@ docker compose -f infra/docker/docker-compose.prod.yml stop backend celery celer
 # 2. Restaurer le backup
 gunzip -c backups/db_backup_20260128_020000.sql.gz | \
   docker compose -f infra/docker/docker-compose.prod.yml exec -T db \
-    psql -U ${POSTGRES_USER:-viatique_user} ${POSTGRES_DB:-viatique}
+    psql -U ${POSTGRES_USER:-korrigo_user} ${POSTGRES_DB:-korrigo}
 
 # 3. Redémarrer les services
 docker compose -f infra/docker/docker-compose.prod.yml start backend celery celery-beat
@@ -459,12 +459,12 @@ docker compose -f infra/docker/docker-compose.prod.yml start backend celery cele
 ```bash
 # Créer une DB de test
 docker compose -f infra/docker/docker-compose.prod.yml exec db \
-  psql -U postgres -c "CREATE DATABASE viatique_restore_test;"
+  psql -U postgres -c "CREATE DATABASE korrigo_restore_test;"
 
 # Restaurer dans cette DB
 gunzip -c backups/db_backup_20260128_020000.sql.gz | \
   docker compose -f infra/docker/docker-compose.prod.yml exec -T db \
-    psql -U postgres viatique_restore_test
+    psql -U postgres korrigo_restore_test
 ```
 
 ### Backup Media Files
@@ -547,7 +547,7 @@ LAST_BACKUP=$(ls -t backups/db_backup_*.sql.gz | head -1)
 echo "Using backup: $LAST_BACKUP"
 gunzip -c $LAST_BACKUP | \
   docker compose -f infra/docker/docker-compose.prod.yml exec -T db \
-    psql -U ${POSTGRES_USER:-viatique_user} ${POSTGRES_DB:-viatique}
+    psql -U ${POSTGRES_USER:-korrigo_user} ${POSTGRES_DB:-korrigo}
 
 # 3. Changer KORRIGO_SHA vers version stable
 echo "🔄 Switching to previous version..."
@@ -683,7 +683,7 @@ nginx:
 
 ### Ressources
 - [README.md](README.md) - Documentation développement
-- [.claude/rules/](.claude/rules/) - Règles du projet et architecture
+- [docs/rules/](docs/rules/) - Règles du projet et architecture
 
 ### Problèmes Connus
 

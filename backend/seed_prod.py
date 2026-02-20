@@ -86,7 +86,7 @@ def seed_prod():
     admin, created = User.objects.get_or_create(
         username='admin',
         defaults={
-            'email': 'admin@viatique.local',
+            'email': 'admin@korrigo.local',
             'is_staff': True,
             'is_superuser': True,
         }
@@ -122,7 +122,7 @@ def seed_prod():
         prof, created = User.objects.get_or_create(
             username=f'prof{i}',
             defaults={
-                'email': f'prof{i}@viatique.local',
+                'email': f'prof{i}@korrigo.local',
                 'first_name': f'Professor{i}',
                 'last_name': f'Smith{i}',
                 'is_staff': True,
@@ -153,7 +153,7 @@ def seed_prod():
             date_naissance=date(2005, 1, i),
             defaults={
                 'class_name': 'Terminale S',
-                'email': f'eleve{i}@viatique.local',
+                'email': f'eleve{i}@korrigo.local',
             }
         )
         if created:

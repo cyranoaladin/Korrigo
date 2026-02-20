@@ -33,11 +33,73 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
     restart: unless-stopped
     command: gunicorn core.wsgi:application -c gunicorn_config.py
+    networks:
+      - default
+      - ollama_net
     expose:
       - "8000"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
+      - /var/www/labomaths/korrigo/overlay/core/auth.py:/app/core/auth.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/celery.py:/app/core/celery.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/logging.py:/app/core/logging.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/management/commands/backup.py:/app/core/management/commands/backup.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/management/commands/backup_restore.py:/app/core/management/commands/backup_restore.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/management/commands/cleanup_orphaned_files.py:/app/core/management/commands/cleanup_orphaned_files.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/management/commands/ensure_admin.py:/app/core/management/commands/ensure_admin.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/management/commands/init_pmf.py:/app/core/management/commands/init_pmf.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/management/commands/restore.py:/app/core/management/commands/restore.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/models.py:/app/core/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/prometheus.py:/app/core/prometheus.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/settings.py:/app/core/settings.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/settings_prod.py:/app/core/settings_prod.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/settings_test.py:/app/core/settings_test.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/urls.py:/app/core/urls.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/utils/audit.py:/app/core/utils/audit.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/utils/errors.py:/app/core/utils/errors.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/utils/ratelimit.py:/app/core/utils/ratelimit.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views.py:/app/core/views.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_dev.py:/app/core/views_dev.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_health.py:/app/core/views_health.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_metrics.py:/app/core/views_metrics.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_prometheus.py:/app/core/views_prometheus.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/management/commands/export_pronote.py:/app/exams/management/commands/export_pronote.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/management/commands/generate_test_copies.py:/app/exams/management/commands/generate_test_copies.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/management/commands/seed_initial_exams.py:/app/exams/management/commands/seed_initial_exams.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0021_copy_llm_summary.py:/app/exams/migrations/0021_copy_llm_summary.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/models.py:/app/exams/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/permissions.py:/app/exams/permissions.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/serializers.py:/app/exams/serializers.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/tasks.py:/app/exams/tasks.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/urls.py:/app/exams/urls.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/urls_copies.py:/app/exams/urls_copies.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/validators.py:/app/exams/validators.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/validators_antivirus.py:/app/exams/validators_antivirus.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/views.py:/app/exams/views.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/views_analytics.py:/app/exams/views_analytics.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/views_documents.py:/app/exams/views_documents.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/management/commands/recover_stuck_copies.py:/app/grading/management/commands/recover_stuck_copies.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/models.py:/app/grading/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/permissions.py:/app/grading/permissions.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/serializers.py:/app/grading/serializers.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/services.py:/app/grading/services.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/urls.py:/app/grading/urls.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views.py:/app/grading/views.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_annotation_bank.py:/app/grading/views_annotation_bank.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_async.py:/app/grading/views_async.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_draft.py:/app/grading/views_draft.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_lock.py:/app/grading/views_lock.py:ro
+      - /var/www/labomaths/korrigo/overlay/identification/models.py:/app/identification/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/identification/services.py:/app/identification/services.py:ro
+      - /var/www/labomaths/korrigo/overlay/identification/views.py:/app/identification/views.py:ro
+      - /var/www/labomaths/korrigo/overlay/processing/services/llm_summary.py:/app/processing/services/llm_summary.py:ro
+      - /var/www/labomaths/korrigo/overlay/processing/services/pdf_flattener.py:/app/processing/services/pdf_flattener.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/management/commands/provision_student_users.py:/app/students/management/commands/provision_student_users.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/models.py:/app/students/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/serializers.py:/app/students/serializers.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/urls.py:/app/students/urls.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/views.py:/app/students/views.py:ro
       - seed_data:/app/seed_data:ro
     depends_on:
       db:
@@ -80,6 +142,65 @@ services:
     command: celery -A core worker -l info --concurrency=4 --max-tasks-per-child=100
     volumes:
       - media_volume:/app/media
+      - /var/www/labomaths/korrigo/overlay/core/auth.py:/app/core/auth.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/celery.py:/app/core/celery.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/logging.py:/app/core/logging.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/management/commands/backup.py:/app/core/management/commands/backup.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/management/commands/backup_restore.py:/app/core/management/commands/backup_restore.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/management/commands/cleanup_orphaned_files.py:/app/core/management/commands/cleanup_orphaned_files.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/management/commands/ensure_admin.py:/app/core/management/commands/ensure_admin.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/management/commands/init_pmf.py:/app/core/management/commands/init_pmf.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/management/commands/restore.py:/app/core/management/commands/restore.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/models.py:/app/core/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/prometheus.py:/app/core/prometheus.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/settings.py:/app/core/settings.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/settings_prod.py:/app/core/settings_prod.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/settings_test.py:/app/core/settings_test.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/urls.py:/app/core/urls.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/utils/audit.py:/app/core/utils/audit.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/utils/errors.py:/app/core/utils/errors.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/utils/ratelimit.py:/app/core/utils/ratelimit.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views.py:/app/core/views.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_dev.py:/app/core/views_dev.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_health.py:/app/core/views_health.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_metrics.py:/app/core/views_metrics.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_prometheus.py:/app/core/views_prometheus.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/management/commands/export_pronote.py:/app/exams/management/commands/export_pronote.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/management/commands/generate_test_copies.py:/app/exams/management/commands/generate_test_copies.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/management/commands/seed_initial_exams.py:/app/exams/management/commands/seed_initial_exams.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0021_copy_llm_summary.py:/app/exams/migrations/0021_copy_llm_summary.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/models.py:/app/exams/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/permissions.py:/app/exams/permissions.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/serializers.py:/app/exams/serializers.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/tasks.py:/app/exams/tasks.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/urls.py:/app/exams/urls.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/urls_copies.py:/app/exams/urls_copies.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/validators.py:/app/exams/validators.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/validators_antivirus.py:/app/exams/validators_antivirus.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/views.py:/app/exams/views.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/views_analytics.py:/app/exams/views_analytics.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/views_documents.py:/app/exams/views_documents.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/management/commands/recover_stuck_copies.py:/app/grading/management/commands/recover_stuck_copies.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/models.py:/app/grading/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/permissions.py:/app/grading/permissions.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/serializers.py:/app/grading/serializers.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/services.py:/app/grading/services.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/urls.py:/app/grading/urls.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views.py:/app/grading/views.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_annotation_bank.py:/app/grading/views_annotation_bank.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_async.py:/app/grading/views_async.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_draft.py:/app/grading/views_draft.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_lock.py:/app/grading/views_lock.py:ro
+      - /var/www/labomaths/korrigo/overlay/identification/models.py:/app/identification/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/identification/services.py:/app/identification/services.py:ro
+      - /var/www/labomaths/korrigo/overlay/identification/views.py:/app/identification/views.py:ro
+      - /var/www/labomaths/korrigo/overlay/processing/services/llm_summary.py:/app/processing/services/llm_summary.py:ro
+      - /var/www/labomaths/korrigo/overlay/processing/services/pdf_flattener.py:/app/processing/services/pdf_flattener.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/management/commands/provision_student_users.py:/app/students/management/commands/provision_student_users.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/models.py:/app/students/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/serializers.py:/app/students/serializers.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/urls.py:/app/students/urls.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/views.py:/app/students/views.py:ro
     depends_on:
       db:
         condition: service_healthy
@@ -134,7 +255,7 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-nginx:${KORRIGO_SHA:-latest}
     restart: unless-stopped
     ports:
-      - "8088:80"
+      - "127.0.0.1:8088:80"
     volumes:
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
@@ -156,3 +277,9 @@ volumes:
       type: none
       o: bind
       device: ${SEED_DATA_HOST_PATH:-./seed_data}
+
+networks:
+  default:
+  ollama_net:
+    external: true
+    name: infra_rag_net

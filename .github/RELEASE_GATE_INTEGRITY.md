@@ -166,7 +166,7 @@ git checkout -b fix/release-gate-hotfix
 ### 1. Documentation Pure (pas d'impact fonctionnel)
 - Modification de `README.md`, `CHANGELOG.md`
 - Typos dans commentaires
-- Mise à jour documentation `.claude/`
+- Mise à jour documentation
 
 **Justification** : Pas d'impact sur validation technique.
 

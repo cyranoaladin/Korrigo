@@ -2,7 +2,7 @@
 
 > **Version**: 1.4.0
 > **Date**: 1 Février 2026  
-> **Base URL**: `http://localhost:8088/api/` (dev) | `https://viatique.example.com/api/` (prod)
+> **Base URL**: `http://localhost:8088/api/` (dev) | `https://korrigo.example.com/api/` (prod)
 
 Documentation complète de l'API REST de la plateforme Korrigo PMF.
 
@@ -1069,14 +1069,14 @@ http://localhost:8088/api/schema/redoc/
 
 ## Références
 
-- [ARCHITECTURE.md](file:///home/alaeddine/viatique__PMF/docs/ARCHITECTURE.md) - Architecture globale
-- [DATABASE_SCHEMA.md](file:///home/alaeddine/viatique__PMF/docs/DATABASE_SCHEMA.md) - Schéma base de données
-- [SECURITY_GUIDE.md](file:///home/alaeddine/viatique__PMF/docs/SECURITY_GUIDE.md) - Guide de sécurité
-- [backend/exams/views.py](file:///home/alaeddine/viatique__PMF/backend/exams/views.py) - Code source views exams
-- [backend/grading/views.py](file:///home/alaeddine/viatique__PMF/backend/grading/views.py) - Code source views grading
+- [ARCHITECTURE.md](file:///home/alaeddine/korrigo__PMF/docs/ARCHITECTURE.md) - Architecture globale
+- [DATABASE_SCHEMA.md](file:///home/alaeddine/korrigo__PMF/docs/DATABASE_SCHEMA.md) - Schéma base de données
+- [SECURITY_GUIDE.md](file:///home/alaeddine/korrigo__PMF/docs/SECURITY_GUIDE.md) - Guide de sécurité
+- [backend/exams/views.py](file:///home/alaeddine/korrigo__PMF/backend/exams/views.py) - Code source views exams
+- [backend/grading/views.py](file:///home/alaeddine/korrigo__PMF/backend/grading/views.py) - Code source views grading
 
 ---
 
 **Dernière mise à jour**: 25 janvier 2026  
-**Auteur**: Aleddine BEN RHOUMA  
+**Auteur**: Alaeddine BEN RHOUMA  
 **Licence**: Propriétaire - AEFE/Éducation Nationale

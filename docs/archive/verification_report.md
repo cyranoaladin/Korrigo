@@ -1,4 +1,4 @@
-# Verification Report - Korrigo/Viatique Production-Like Stack
+# Verification Report - Korrigo/Korrigo Production-Like Stack
 **Date**: 2026-01-24
 **Environment**: Docker Compose local-prod stack
 

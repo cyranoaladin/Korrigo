@@ -21,7 +21,7 @@ Audit complet de la qualité du code avec focus sur :
 
 ### Implémentation
 
-**Fichier créé** : `/home/alaeddine/viatique__PMF/CHANGELOG.md`
+**Fichier créé** : `/home/alaeddine/korrigo__PMF/CHANGELOG.md`
 
 **Format** : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)  
 **Versioning** : [Semantic Versioning](https://semver.org/lang/fr/)
@@ -363,7 +363,7 @@ def validate_pdf_content(file):
 
 ### 3.3 Sécurité Upload
 
-**Règle** : `.antigravity/rules/01_security_rules.md` § 8.1
+**Règle** : `docs/security/MANUEL_SECURITE.md` § 8.1
 
 #### Checklist Validation
 
@@ -810,7 +810,7 @@ def validate_pdf_integrity(file):
 
 ### Recommandation Finale
 
-Le projet Viatique maintient un **excellent niveau de qualité** (88/100) malgré l'identification d'un problème critique de validation PDF.
+Le projet Korrigo maintient un **excellent niveau de qualité** (88/100) malgré l'identification d'un problème critique de validation PDF.
 
 **Actions immédiates** :
 1. Implémenter validators PDF (P1 - 2 jours)

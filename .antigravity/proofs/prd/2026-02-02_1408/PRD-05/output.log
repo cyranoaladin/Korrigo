@@ -1,6 +1,0 @@
-NAME               STATUS
-docker-backend-1   Up 2 hours (healthy)
-docker-celery-1    Up 2 hours
-docker-db-1        Up 2 hours (healthy)
-docker-nginx-1     Up 2 hours (healthy)
-docker-redis-1     Up 2 hours (healthy)

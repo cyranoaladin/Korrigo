@@ -8,7 +8,7 @@
 
 ## 🎯 Résumé Exécutif
 
-Le projet Viatique a atteint le **score parfait de 100/100** après l'implémentation complète de toutes les améliorations identifiées lors des audits successifs.
+Le projet Korrigo a atteint le **score parfait de 100/100** après l'implémentation complète de toutes les améliorations identifiées lors des audits successifs.
 
 ### Évolution du Score
 
@@ -30,7 +30,7 @@ Le projet Viatique a atteint le **score parfait de 100/100** après l'implément
 
 **Problème** : Risque de booklets orphelins en cas d'erreur
 
-**Solution** : `@/home/alaeddine/viatique__PMF/backend/processing/services/pdf_splitter.py`
+**Solution** : `@/home/alaeddine/korrigo__PMF/backend/processing/services/pdf_splitter.py`
 
 ```python
 from django.db import transaction
@@ -50,7 +50,7 @@ def split_exam(self, exam: Exam, force=False):
 
 **Problème** : Brouillons sans expiration, risque quota exceeded
 
-**Solution** : `@/home/alaeddine/viatique__PMF/frontend/src/utils/storage.js`
+**Solution** : `@/home/alaeddine/korrigo__PMF/frontend/src/utils/storage.js`
 
 ```javascript
 export function setItemWithTTL(key, value, ttl = 7 * 24 * 60 * 60 * 1000) {
@@ -83,7 +83,7 @@ export function cleanExpiredDrafts() {
 
 **Problème** : Absence de CSP (protection XSS supplémentaire)
 
-**Solution** : `@/home/alaeddine/viatique__PMF/backend/core/settings.py`
+**Solution** : `@/home/alaeddine/korrigo__PMF/backend/core/settings.py`
 
 ```python
 # requirements.txt
@@ -123,7 +123,7 @@ if not DEBUG:
 
 **Problème** : Pas de tests pour AuditLog
 
-**Solution** : `@/home/alaeddine/viatique__PMF/backend/core/tests/test_audit_trail.py`
+**Solution** : `@/home/alaeddine/korrigo__PMF/backend/core/tests/test_audit_trail.py`
 
 **Tests créés** (12) :
 - `test_create_audit_log()` ✅
@@ -143,7 +143,7 @@ if not DEBUG:
 
 **Problème** : Pas de tests pour rate limiting
 
-**Solution** : `@/home/alaeddine/viatique__PMF/backend/core/tests/test_rate_limiting.py`
+**Solution** : `@/home/alaeddine/korrigo__PMF/backend/core/tests/test_rate_limiting.py`
 
 **Tests créés** (5) :
 - `test_login_rate_limit_under_threshold()` ✅
@@ -222,7 +222,7 @@ if not DEBUG:
 ### Installation Dépendances
 
 ```bash
-cd /home/alaeddine/viatique__PMF/backend
+cd /home/alaeddine/korrigo__PMF/backend
 source .venv/bin/activate
 
 # Nouvelles dépendances
@@ -363,8 +363,8 @@ sudo freshclam
 
 ### Gouvernance
 
-- `.antigravity/` : Règles techniques (v1.1.0)
-- `.claude/` : Règles techniques (v1.1.0)
+- `docs/` : Règles techniques (v1.1.0)
+- `docs/` : Règles techniques (v1.1.0)
 - `CHANGELOG.md` : Historique versions
 
 ---
@@ -373,7 +373,7 @@ sudo freshclam
 
 ### Objectif Atteint ✅
 
-Le projet Viatique a atteint le **score parfait de 100/100** grâce à :
+Le projet Korrigo a atteint le **score parfait de 100/100** grâce à :
 
 1. **Sécurité exemplaire** : Audit trail, rate limiting, validators PDF 5 couches, CSP
 2. **Architecture solide** : Transactions atomiques, séparation responsabilités
@@ -404,7 +404,7 @@ Le projet peut maintenant être déployé en production. Recommandations :
 
 ---
 
-**Projet Viatique (Korrigo)**  
+**Projet Korrigo (Korrigo)**  
 **Score Final** : **100/100** ⭐⭐⭐⭐⭐  
 **Statut** : ✅ **PRODUCTION-READY**  
 **Qualité** : **INSTITUTIONNELLE**

@@ -1,8 +1,9 @@
 # Architecture Korrigo PMF
 
-> **Version**: 2.0.0  
-> **Date**: Février 2026  
-> **Public**: Développeurs, Architectes, DevOps
+> **Version**: 2.1.0  
+> **Date**: 14 février 2026  
+> **Public**: Développeurs, Architectes, DevOps  
+> **Production**: [https://korrigo.labomaths.tn](https://korrigo.labomaths.tn)
 
 Ce document décrit l'architecture complète de la plateforme Korrigo PMF, une solution de correction numérique d'examens scannés pour établissements scolaires.
 
@@ -47,7 +48,7 @@ Korrigo PMF est une plateforme locale de correction dématérialisée pour exame
 
 | Composant | Version | Rôle |
 |-----------|---------|------|
-| **Python** | 3.9 | Langage principal |
+| **Python** | 3.11 | Langage principal |
 | **Django** | 4.2 (LTS) | Framework web, ORM, Admin |
 | **Django REST Framework** | 3.16+ | API REST |
 | **PostgreSQL** | 15+ | Base de données relationnelle |
@@ -57,6 +58,14 @@ Korrigo PMF est une plateforme locale de correction dématérialisée pour exame
 | **OpenCV** | 4.8.0 | Traitement d'images |
 | **pdf2image** | - | Conversion PDF → Images |
 | **Gunicorn** | - | Serveur WSGI (production) |
+| **Tesseract OCR** | - | OCR fallback (fra+eng) |
+| **OpenAI GPT-4o-mini** | Vision | OCR principal (écriture manuscrite) |
+| **Pillow** | 12.1+ | Traitement images (crop header) |
+| **python-magic** | 0.4.27 | Validation type MIME |
+| **django-ratelimit** | 4.1.0 | Protection brute force |
+| **django-csp** | 3.8 | Content Security Policy |
+| **prometheus-client** | 0.19.0 | Métriques monitoring |
+| **DRF Spectacular** | 0.27.1 | Documentation OpenAPI 3.0 |
 
 ### Frontend
 
@@ -352,36 +361,34 @@ services:
 - CORS permissif
 - Pas de SSL
 
-#### 2. `docker-compose.prod.yml` (Production)
+#### 2. `docker-compose.server.yml` (Production — korrigo.labomaths.tn)
+
+Override de la configuration de base pour la production :
 
 ```yaml
 services:
-  - db: PostgreSQL 15 (interne)
-  - redis: Redis 7 (interne)
-  - backend: Gunicorn (interne)
-  - celery: Celery worker
-  - nginx: Reverse proxy + static serving (port 80/443)
+  backend:
+    environment:
+      DATABASE_URL: postgresql://...
+      DJANGO_ENV: production
+      DEBUG: False
+      SSL_ENABLED: True
+      ALLOWED_HOSTS: korrigo.labomaths.tn
+      OPENAI_API_KEY: ...
+      OPENAI_MODEL: gpt-4.1-mini-2025-04-14
+  celery:
+    environment:
+      DATABASE_URL: postgresql://...
+      DJANGO_ENV: production
 ```
 
-**Caractéristiques**:
-- DEBUG=false
-- SSL activé
-- CORS strict
-- Static files servis par Nginx
-- Logs persistants
-
-#### 3. `docker-compose.prodlike.yml` (Tests Prod-like)
-
-Configuration identique à prod mais:
-- SSL_ENABLED=false (HTTP pour tests E2E)
-- Ports exposés pour debugging
-
-#### 4. `docker-compose.e2e.yml` (Tests E2E)
-
-Configuration minimale pour tests Playwright:
-- Backend + DB + Redis
-- Seed data automatique
-- Rate limiting désactivé
+**Caractéristiques** :
+- DEBUG=False (vérifié au démarrage, crash si True en production)
+- SSL/HSTS activé via Nginx reverse proxy
+- CORS strict (origine unique)
+- Session cookies Secure + HttpOnly
+- JSON structured logging
+- Gunicorn 3 workers, timeout 120s
 
 ### Volumes Persistants
 
@@ -436,10 +443,14 @@ copies = Copy.objects.filter(status=Copy.Status.READY)
 
 **Implémentation**: Statuts Copy
 ```
-STAGING → READY → LOCKED → GRADED
+STAGING → READY → LOCKED → GRADING_IN_PROGRESS → GRADED
+                    ↑         │                         │
+                    └─unlock───┘                  GRADING_FAILED
+                                                       │
+                                                       └─retry→ GRADING_IN_PROGRESS
 ```
 
-Chaque transition est validée et auditée via `GradingEvent`.
+Chaque transition est validée et auditée via `GradingEvent`. Les états `GRADING_IN_PROGRESS` et `GRADING_FAILED` gèrent la génération du PDF final avec retry automatique (max 3 tentatives).
 
 ### 4. Audit Trail Pattern
 
@@ -535,32 +546,43 @@ class Annotation(models.Model):
 
 ## Évolutions Futures
 
-### Court Terme (v1.3)
-- [ ] Intégration Tesseract/EasyOCR pour identification automatique
+### Réalisé depuis v1.0
+- [x] OCR dual : GPT-4o-mini Vision (principal) + Tesseract (fallback)
+- [x] Mode INDIVIDUAL_A4 (1 PDF = 1 copie, sans split)
+- [x] Banque d'annotations (templates + annotations personnelles + suggestions contextuelles)
+- [x] Versionnement optimiste des annotations (champ `version`)
+- [x] Gestion documentaire versionnée (sujet, corrigé, barème)
+- [x] Métriques Prometheus + JSON structured logging
+- [x] Rate limiting + CSP + audit trail RGPD
+- [x] Health checks (liveness, readiness)
+
+### Court Terme
+- [ ] Celery pour traitement PDF volumineux (actuellement synchrone)
 - [ ] Module d'export avancé (statistiques par question)
 - [ ] Amélioration UI mobile (responsive)
 
-### Moyen Terme (v2.0)
-- [ ] Support multi-établissements (SaaS)
-- [ ] API publique pour intégrations tierces
-- [ ] Tableau de bord analytics (Power BI / Metabase)
+### Moyen Terme
+- [ ] Support multi-établissements
+- [ ] CI/CD Pipeline (GitHub Actions)
+- [ ] Tableau de bord analytics
 
-### Long Terme (v3.0)
-- [ ] IA de correction automatique (suggestions)
-- [ ] Reconnaissance écriture manuscrite (ML)
-- [ ] Application mobile native (React Native)
+### Long Terme
+- [ ] IA de correction automatique (suggestions basées sur LLM)
+- [ ] Application mobile native
 
 ---
 
 ## Références
 
-- [SPEC.md](file:///home/alaeddine/viatique__PMF/docs/SPEC.md) - Cahier des charges
-- [TECHNICAL_MANUAL.md](file:///home/alaeddine/viatique__PMF/docs/TECHNICAL_MANUAL.md) - Manuel technique
-- [DATABASE_SCHEMA.md](file:///home/alaeddine/viatique__PMF/docs/DATABASE_SCHEMA.md) - Schéma base de données
-- [DEPLOYMENT_GUIDE.md](file:///home/alaeddine/viatique__PMF/docs/DEPLOYMENT_GUIDE.md) - Guide déploiement
+- [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) - Schéma base de données
+- [API_REFERENCE.md](API_REFERENCE.md) - Référence API REST
+- [BUSINESS_WORKFLOWS.md](BUSINESS_WORKFLOWS.md) - Workflows métier
+- [DEPLOYMENT_GUIDE.md](../DEPLOYMENT_GUIDE.md) - Guide déploiement
+- [ADR-002: PDF Coordinate Normalization](../decisions/ADR-002-pdf-coordinate-normalization.md)
+- [ADR-003: Copy Status State Machine](../decisions/ADR-003-copy-status-state-machine.md)
 
 ---
 
-**Dernière mise à jour**: 25 janvier 2026  
-**Auteur**: Aleddine BEN RHOUMA  
+**Dernière mise à jour**: 14 février 2026  
+**Auteur**: Alaeddine BEN RHOUMA  
 **Licence**: Propriétaire - AEFE/Éducation Nationale

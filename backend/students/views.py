@@ -20,7 +20,7 @@ class StudentLoginView(views.APIView):
     
     Authentification par: Email + Mot de passe
     
-    Conformité: .antigravity/rules/01_security_rules.md § 9
+    Conformité: docs/security/MANUEL_SECURITE.md — Rate Limiting
     """
     permission_classes = [AllowAny]  # Public endpoint - student authentication
     authentication_classes = []  # No auth required, bypass SessionAuth CSRF

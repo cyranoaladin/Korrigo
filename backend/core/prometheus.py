@@ -1,5 +1,5 @@
 """
-Prometheus metrics instrumentation for Viatique
+Prometheus metrics instrumentation for Korrigo
 Conformité: Phase S5-B - Observability
 
 Exposes Prometheus-compatible metrics with:

@@ -1,5 +1,5 @@
 """
-Production-grade JSON logging for Viatique
+Production-grade JSON logging for Korrigo
 Conformité: Phase S5-A - Observability
 
 This module provides structured JSON logging for production environments

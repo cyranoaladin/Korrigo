@@ -50,7 +50,7 @@
   ```nginx
   location /media/ {
       internal;
-      alias /var/www/viatique/media/; 
+      alias /var/www/korrigo/media/; 
       # Or reverse proxy auth
   }
   ```

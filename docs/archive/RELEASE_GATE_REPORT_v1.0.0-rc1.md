@@ -191,14 +191,14 @@ gh run download 21474569485 --repo cyranoaladin/Korrigo
 DJANGO_ENV=production
 DEBUG=False
 SECRET_KEY=<secure-random-key>
-ALLOWED_HOSTS=viatique.example.com
-CSRF_TRUSTED_ORIGINS=https://viatique.example.com
+ALLOWED_HOSTS=korrigo.example.com
+CSRF_TRUSTED_ORIGINS=https://korrigo.example.com
 
 # Optional: Secure /metrics endpoint
 METRICS_TOKEN=<secure-token>
 
 # Database
-DATABASE_URL=postgresql://user:password@db:5432/viatique_prod
+DATABASE_URL=postgresql://user:password@db:5432/korrigo_prod
 
 # Celery
 CELERY_BROKER_URL=redis://redis:6379/0
