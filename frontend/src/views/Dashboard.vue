@@ -10,7 +10,6 @@ const copies = ref([])
 const statusLabels = {
   'STAGING': 'En attente',
   'READY': 'Prêt',
-  'LOCKED': 'En cours',
   'GRADED': 'Corrigé',
   'GRADING_IN_PROGRESS': 'Correction en cours',
   'GRADING_FAILED': 'Échec',
