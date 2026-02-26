@@ -17,8 +17,8 @@ mkdir -p "${PACKAGE_DIR}"/{copies_J1,copies_J2,overlay,seed_data}
 
 # 1. Reconstitution data + script
 echo "1. Données de reconstitution..."
-cp /home/alaeddine/viatique__PMF/proofs/RC_2026-02-20/reconstitution_data.json "${PACKAGE_DIR}/"
-cp /home/alaeddine/viatique__PMF/proofs/RC_2026-02-20/reconstitute_db.py "${PACKAGE_DIR}/"
+cp /home/alaeddine/viatique__PMF/proofs/RC_2026-02-20/reconstitution_data_v2.json "${PACKAGE_DIR}/"
+cp /home/alaeddine/viatique__PMF/proofs/RC_2026-02-20/reconstitute_db_v2.py "${PACKAGE_DIR}/"
 cp /home/alaeddine/viatique__PMF/proofs/RC_2026-02-20/deploy_server.sh "${PACKAGE_DIR}/"
 
 # 2. CSV élèves
