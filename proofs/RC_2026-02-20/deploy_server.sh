@@ -177,18 +177,18 @@ log "Migrations terminées"
 # STEP 9: Run reconstitution
 # ============================================================
 log "--- STEP 9: Reconstitution de la DB ---"
-if [ -f "${DATA_DIR}/reconstitution_data.json" ]; then
+if [ -f "${DATA_DIR}/reconstitution_data_v2.json" ]; then
     docker exec \
-        -e RECONSTITUTION_DATA=/data/reconstitution_data.json \
+        -e RECONSTITUTION_DATA=/data/reconstitution_data_v2.json \
         -e J1_PDF_DIR=/data/copies_J1/ \
         -e J2_PDF_DIR=/data/copies_J2/ \
         -e J1_CSV=/data/eleves_maths_J1.csv \
         -e J2_CSV=/data/eleves_maths_J2.csv \
         -e MEDIA_ROOT=/app/media \
-        docker-backend-1 python /data/reconstitute_db.py 2>&1
+        docker-backend-1 python /data/reconstitute_db_v2.py 2>&1
     log "Reconstitution terminée"
 else
-    log "WARN: reconstitution_data.json non trouvé dans ${DATA_DIR}"
+    log "WARN: reconstitution_data_v2.json non trouvé dans ${DATA_DIR}"
     log "       Uploadez les données puis lancez manuellement"
 fi
 
@@ -211,7 +211,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 import django; django.setup()
 from django.contrib.auth.models import User
 from exams.models import Copy, Exam
-from grading.models import Score, Annotation, QuestionRemark
+from grading.models import Score, Annotation, QuestionRemark, GradingEvent, AnnotationTemplate
 from students.models import Student
 print(f'Users: {User.objects.count()}')
 print(f'Students: {Student.objects.count()}')
@@ -220,10 +220,13 @@ print(f'Copies: {Copy.objects.count()}')
 print(f'Scores: {Score.objects.count()}')
 print(f'Annotations: {Annotation.objects.count()}')
 print(f'Remarks: {QuestionRemark.objects.count()}')
-for e in Exam.objects.all():
+print(f'Events: {GradingEvent.objects.count()}')
+print(f'Templates: {AnnotationTemplate.objects.count()}')
+for e in Exam.objects.filter(name__in=['BB_J1', 'BB_J2']):
     c = Copy.objects.filter(exam=e)
     s = Score.objects.filter(copy__exam=e)
-    print(f'  {e.name}: {c.count()} copies, {c.filter(status=\"GRADED\").count()} graded, {s.count()} scores')
+    a = Annotation.objects.filter(copy__exam=e)
+    print(f'  {e.name}: {c.count()} copies, {c.filter(status=\"GRADED\").count()} graded, {s.count()} scores, {a.count()} annotations')
 " 2>&1
 
 log "=========================================="
