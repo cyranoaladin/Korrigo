@@ -59,17 +59,17 @@
         </h4>
         <ul class="space-y-2 text-sm">
           <li><span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-2" /><strong>PRÊT :</strong> Copie identifiée, prête à corriger. Cliquez pour verrouiller et commencer.</li>
-          <li><span class="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2" /><strong>VERROUILLÉE (par vous) :</strong> Vous êtes en train de corriger. Cliquez pour continuer.</li>
-          <li><span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-2" /><strong>VERROUILLÉE (autre) :</strong> Un collègue corrige cette copie. Attendez la libération.</li>
-          <li><span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-2" /><strong>CORRIGÉE :</strong> Correction finalisée. Consultation uniquement.</li>
+          <li><span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-2" /><strong>VERROUILLÉE (par vous) :</strong> Vous êtes en train de corriger. Cliquez pour continuer.</li>
+          <li><span class="inline-block w-3 h-3 rounded-full bg-orange-500 mr-2" /><strong>VERROUILLÉE (autre) :</strong> Un collègue corrige cette copie. Attendez la libération.</li>
+          <li><span class="inline-block w-3 h-3 rounded-full bg-gray-400 mr-2" /><strong>CORRIGÉE :</strong> Correction finalisée (GRADED). Consultation uniquement.</li>
         </ul>
       </div>
       <p class="mb-3">
         Lorsque vous ouvrez une copie, elle est automatiquement <strong>verrouillée</strong> pour vous, empêchant toute modification concurrente.
       </p>
       <div class="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
-        <strong>Heartbeat :</strong> Le verrouillage est maintenu tant que vous travaillez (mécanisme automatique).
-        Il expire après <strong>30 minutes d'inactivité</strong>. Si vous fermez votre navigateur, vos annotations sont sauvegardées et restaurées à la reprise.
+        <strong>CopyLock & Heartbeat :</strong> Le verrouillage est maintenu dynamiquement tant que votre onglet est ouvert.
+        Si vous fermez l'onglet sans finaliser, le verrou expire après <strong>10 minutes</strong>. Vos annotations sont sauvegardées en temps réel.
       </div>
     </CollapsibleSection>
 
@@ -83,10 +83,10 @@
             Zone gauche : Visualiseur PDF
           </h4>
           <ul class="text-sm text-gray-600 space-y-1.5">
-            <li>Affichage de la copie scannée page par page</li>
-            <li>Barre d'outils d'annotation en bas</li>
-            <li>Navigation entre pages (flèches clavier <code>← →</code>)</li>
-            <li>Zoom (<code>Ctrl +</code> / <code>Ctrl -</code>)</li>
+            <li>Affichage de la copie scannée via PDF.js</li>
+            <li>Annotation vectorielle (rendu parfait à tout zoom)</li>
+            <li>Navigation fluide entre les pages</li>
+            <li>Zoom haute fidélité</li>
           </ul>
         </div>
         <div class="bg-white border border-gray-200 rounded-lg p-4">
@@ -95,15 +95,14 @@
           </h4>
           <ul class="text-sm text-gray-600 space-y-1.5">
             <li>Barème hiérarchique : Exercice → Question → Sous-question</li>
-            <li>Cases à cocher (tout ou rien) ou saisie manuelle de points</li>
-            <li>Calcul automatique du total (aucune erreur possible)</li>
+            <li>Saisie rapide des points et calcul automatique du total</li>
+            <li>Commentaires par question</li>
             <li>Boutons <strong>Sauvegarder</strong> et <strong>Finaliser</strong></li>
           </ul>
         </div>
       </div>
       <p class="text-sm text-gray-600">
-        <strong>Sauvegarde automatique :</strong> Vos annotations sont sauvegardées toutes les 30 secondes.
-        Indicateur <code>☁️</code> en haut à droite. Sauvegarde manuelle possible avec <code>Ctrl + S</code>.
+        <strong>DraftState (Sauvegarde ultra-rapide) :</strong> Vos annotations et notes sont sauvegardées automatiquement sur le serveur <strong>toutes les 2 secondes</strong> dès qu'une modification est détectée. Un indicateur de synchronisation est visible en bas de la barre latérale.
       </p>
     </CollapsibleSection>
 
@@ -160,19 +159,28 @@
       </div>
     </CollapsibleSection>
 
-    <CollapsibleSection title="5. Banque de Commentaires">
+    <CollapsibleSection title="5. Banque de Commentaires et Bilans IA">
       <p class="mb-4">
-        Pour gagner du temps, Korrigo enregistre automatiquement vos commentaires fréquents dans une <strong>banque personnelle</strong>.
+        Gagnez du temps grâce à l'assistance à la correction intégrée.
       </p>
-      <ul class="list-disc pl-5 space-y-2 text-sm mb-4">
-        <li>Chaque commentaire saisi est ajouté à votre banque.</li>
-        <li>Lors de la création d'un nouveau commentaire, l'<strong>auto-complétion</strong> propose vos textes existants.</li>
-        <li>Les commentaires sont classés par <strong>fréquence d'utilisation</strong>.</li>
-        <li>Le texte et la note associée sont remplis automatiquement.</li>
-      </ul>
-      <p class="text-sm text-gray-500">
-        En plus de votre banque personnelle, <strong>123 suggestions officielles</strong> issues du barème et du corrigé sont disponibles.
-      </p>
+      <div class="space-y-4">
+        <div class="p-3 bg-white border border-gray-200 rounded-lg">
+          <h4 class="font-semibold text-gray-900 mb-1">
+            Banque Personnelle & Officielle
+          </h4>
+          <p class="text-sm text-gray-600">
+            Korrigo mémorise vos commentaires fréquents et vous les propose via auto-complétion intelligente. Vous avez également accès à une banque officielle de 123 suggestions issues du barème.
+          </p>
+        </div>
+        <div class="p-3 bg-primary-50 border border-primary-200 rounded-lg">
+          <h4 class="font-semibold text-primary-900 mb-1 flex items-center gap-2">
+            <Sparkles class="w-4 h-4" /> Bilan Pédagogique IA (Korrigo AI)
+          </h4>
+          <p class="text-sm text-primary-800">
+            Une fois la copie finalisée, vous pouvez générer un <strong>bilan personnalisé</strong> via notre IA locale (Ollama). Ce bilan analyse vos annotations et notes pour produire une synthèse bienveillante (tutoiement) soulignant les points forts et les axes de progrès de l'élève.
+          </p>
+        </div>
+      </div>
     </CollapsibleSection>
 
     <CollapsibleSection title="6. Finalisation et Export">
@@ -337,5 +345,5 @@
 <script setup>
 import SectionContainer from '../components/SectionContainer.vue'
 import CollapsibleSection from '../components/CollapsibleSection.vue'
-import { Info, CheckCircle } from 'lucide-vue-next'
+import { Info, CheckCircle, Sparkles } from 'lucide-vue-next'
 </script>

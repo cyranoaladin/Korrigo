@@ -1,7 +1,7 @@
 # Workflows Métier - Korrigo PMF
 
-> **Version**: 1.2.0  
-> **Date**: Janvier 2026  
+> **Version**: 1.3.0  
+> **Date**: 20 février 2026  
 > **Public**: Product Owners, Développeurs, Utilisateurs
 
 Documentation complète des workflows métier de la plateforme Korrigo PMF, du scan des copies à la consultation par les élèves.
@@ -36,12 +36,13 @@ graph TD
     E --> F[Correction Numérique]
     F --> G[Calcul Scores]
     G --> H[Génération PDF Finaux]
-    H --> I[Export Pronote]
-    H --> J[Consultation Élèves]
+    H --> I[Bilan Pédagogique IA]
+    I --> J[Export Pronote]
+    J --> K[Consultation Élèves]
     
     style A fill:#e1f5ff
     style F fill:#ffe1e1
-    style J fill:#e1ffe1
+    style K fill:#e1ffe1
 ```
 
 ### Phases Principales
@@ -98,6 +99,11 @@ sequenceDiagram
     System->>System: Générer PDF final
     System->>System: LOCKED → GRADED
     System-->>Teacher: Copie finalisée
+
+    Teacher->>System: Générer bilan IA
+    System->>Ollama: Prompt (Notes + Annotations)
+    Ollama-->>System: Bilan pédagogique
+    System-->>Teacher: Bilan généré
     
     Admin->>System: Exporter résultats
     System->>Pronote: Export CSV

@@ -556,6 +556,47 @@ POST /api/grading/copies/{id}/finalize/
 
 ---
 
+### Générer Bilan LLM (Copie)
+
+```http
+POST /api/grading/copies/{id}/generate-summary/
+```
+
+**Permissions**: `IsTeacherOrAdmin`
+
+**Description**: Génère un bilan pédagogique personnalisé via Ollama pour une copie `GRADED`.
+
+**Response** (200 OK):
+```json
+{
+  "summary": "..."
+}
+```
+
+---
+
+### Générer Bilans LLM (Examen)
+
+```http
+POST /api/grading/exams/{id}/generate-summaries/
+?force=true
+```
+
+**Permissions**: `IsTeacherOrAdmin`
+
+**Description**: Génère les bilans pour toutes les copies d'un examen. `force=true` pour régénérer.
+
+**Response** (200 OK):
+```json
+{
+  "success": 10,
+  "skipped": 5,
+  "errors": 0
+}
+```
+
+---
+
 ### Télécharger PDF Final
 
 ```http
