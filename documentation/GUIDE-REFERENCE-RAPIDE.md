@@ -1,7 +1,7 @@
 # Guide de Référence Rapide - Korrigo
 
 **Auteur** : Alaeddine BEN RHOUMA
-**Date** : 3 Février 2026
+**Date** : 20 Février 2026
 
 ---
 
@@ -445,4 +445,4 @@ docker compose exec redis redis-cli LLEN celery
 **Document rédigé par :**
 **Alaeddine BEN RHOUMA**
 *Lead Senior Documentation & Architecture*
-Date : 3 Février 2026
+Date : 20 Février 2026

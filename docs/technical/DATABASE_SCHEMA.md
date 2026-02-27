@@ -92,6 +92,7 @@ erDiagram
         string anonymous_id UK
         file pdf_source
         file final_pdf
+        text llm_summary
         string status
         boolean is_identified
         datetime validated_at
@@ -231,6 +232,7 @@ erDiagram
 | `anonymous_id` | VARCHAR(50) | UNIQUE | Numéro d'anonymat |
 | `pdf_source` | FILE | NULLABLE | PDF source de la copie |
 | `final_pdf` | FILE | NULLABLE | PDF final avec annotations |
+| `llm_summary` | TEXT | NULLABLE | Bilan pédagogique généré par IA |
 | `status` | VARCHAR(20) | CHOICES | Statut workflow |
 | `is_identified` | BOOLEAN | DEFAULT false | Copie liée à un élève ? |
 | `assigned_corrector_id` | UUID | FK → User, NULLABLE | Correcteur assigné |

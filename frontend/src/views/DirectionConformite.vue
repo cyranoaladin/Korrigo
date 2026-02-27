@@ -177,10 +177,17 @@
                 </td>
               </tr>
               <tr>
+                <td class="px-3 py-2 border-b font-medium">
+                  Intelligence Artificielle
+                </td><td class="px-3 py-2 border-b">
+                  LLM Local (Ollama) : traitement interne sans sortie de données pédagogiques vers le cloud
+                </td>
+              </tr>
+              <tr>
                 <td class="px-3 py-2 font-medium">
                   Audit
                 </td><td class="px-3 py-2">
-                  GradingEvent : connexions, annotations, exports, téléchargements
+                  AuditLog complet : connexions, annotations, exports, téléchargements
                 </td>
               </tr>
             </tbody>
