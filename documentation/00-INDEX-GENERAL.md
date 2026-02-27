@@ -9,11 +9,11 @@
 | Propriété | Valeur |
 |-----------|--------|
 | **Projet** | Korrigo - Système de Correction d'Examens |
-| **Version** | 2.0 (PRD-19 - OCR Multi-layer) |
-| **Date de dernière mise à jour** | 3 Février 2026 |
+| **Version** | 2.1 (Production - GPT-4o-mini Vision + Ollama) |
+| **Date de dernière mise à jour** | 20 Février 2026 |
 | **Auteur** | **Alaeddine BEN RHOUMA** |
 | **Statut** | Production |
-| **Commit actuel** | 43b3409 |
+| **Commit actuel** | HEAD |
 
 ---
 
@@ -96,7 +96,7 @@ Documentation détaillée de tous les workflows métier.
   - Extraction des pages par copie
 
 - **[02.4-Workflow-OCR-Identification.md](./02-workflows/02.4-Workflow-OCR-Identification.md)**
-  - OCR multi-layer (Tesseract + EasyOCR + PaddleOCR)
+  - OCR avec GPT-4o-mini Vision (Principal) + Tesseract (Fallback)
   - Matching étudiant avec CSV
   - Modes : AUTO / SEMI-AUTO / MANUAL
   - Desk d'identification
@@ -398,4 +398,4 @@ Cette documentation est propriété de l'auteur et ne peut être reproduite, dis
 **Alaeddine BEN RHOUMA**
 *Lead Senior Documentation & Architecture*
 
-Date de signature : 3 Février 2026
+Date de signature : 20 Février 2026

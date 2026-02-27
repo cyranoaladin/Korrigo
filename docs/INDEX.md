@@ -98,7 +98,7 @@
 
 ### Architecture, API, Base de Données, Développement
 
-> **Stack** : Django 4.2 + DRF (Python 3.11) · Vue.js 3 + Vite · PostgreSQL 15 · Redis · Celery · PyMuPDF · OpenCV · GPT-4o-mini Vision + Tesseract OCR  
+> **Stack** : Django 4.2 + DRF (Python 3.11) · Vue.js 3 + Vite · PostgreSQL 15 · Redis · Celery · PyMuPDF · OpenCV · GPT-4o-mini Vision + Tesseract OCR · Ollama (LLM)  
 > **Production** : Docker Compose · Nginx reverse proxy · korrigo.labomaths.tn (TLS)
 
 | Document | Description | Public |

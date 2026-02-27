@@ -54,12 +54,12 @@
       </div>
     </CollapsibleSection>
 
-    <CollapsibleSection title="3. Comprendre les annotations">
+    <CollapsibleSection title="3. Comprendre les annotations et le Bilan IA">
       <p class="mb-4">
         Vos professeurs utilisent <strong>4 types d'annotations</strong> standardisées sur vos copies :
       </p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="flex items-start gap-3 p-3 border rounded-lg bg-white">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div class="flex items-start gap-3 p-3 border rounded-lg bg-white shadow-sm">
           <span class="text-red-500 font-bold text-xl mt-0.5">💬</span>
           <div>
             <h4 class="font-semibold text-sm text-gray-900">
@@ -67,47 +67,57 @@
             </h4>
             <p class="text-xs text-gray-600">
               Remarque, explication ou conseil du professeur. Peut contenir des points (+/-).
-              Ex : « Bonne méthode, mais erreur de calcul ligne 3 ».
             </p>
           </div>
         </div>
-        <div class="flex items-start gap-3 p-3 border rounded-lg bg-white">
+        <div class="flex items-start gap-3 p-3 border rounded-lg bg-white shadow-sm">
           <span class="bg-yellow-200 w-6 h-6 rounded flex-shrink-0 mt-1" />
           <div>
             <h4 class="font-semibold text-sm text-gray-900">
               Surlignage
             </h4>
             <p class="text-xs text-gray-600">
-              Passage mis en évidence par le professeur. Peut indiquer une zone importante à relire ou un point à retenir.
+              Passage mis en évidence par le professeur pour attirer votre attention.
             </p>
           </div>
         </div>
-        <div class="flex items-start gap-3 p-3 border rounded-lg bg-white">
+        <div class="flex items-start gap-3 p-3 border rounded-lg bg-white shadow-sm">
           <span class="text-red-500 font-bold text-xl mt-0.5">✗</span>
           <div>
             <h4 class="font-semibold text-sm text-gray-900">
               Erreur
             </h4>
             <p class="text-xs text-gray-600">
-              Signale une erreur. Accompagné des points retirés (ex : -1.0) et souvent d'un commentaire explicatif.
+              Signale une erreur. Accompagné des points retirés (ex : -1.0).
             </p>
           </div>
         </div>
-        <div class="flex items-start gap-3 p-3 border rounded-lg bg-white">
+        <div class="flex items-start gap-3 p-3 border rounded-lg bg-white shadow-sm">
           <span class="text-green-500 font-bold text-xl mt-0.5">⭐</span>
           <div>
             <h4 class="font-semibold text-sm text-gray-900">
               Bonus
             </h4>
             <p class="text-xs text-gray-600">
-              Récompense une initiative ou un raisonnement original. Points bonus ajoutés (ex : +0.5).
+              Récompense une initiative ou un raisonnement original (+ points).
             </p>
           </div>
         </div>
       </div>
-      <div class="mt-4 bg-gray-50 border border-gray-200 rounded p-3 text-sm">
-        <strong>Calcul de la note :</strong> Note = Points obtenus par question + Bonus − Erreurs.
-        Le total est calculé automatiquement. Vous voyez exactement comment votre note a été attribuée grâce aux annotations.
+
+      <div class="p-4 bg-primary-50 border border-primary-200 rounded-lg mb-4">
+        <h4 class="font-bold text-primary-900 mb-2 flex items-center gap-2">
+          <Sparkles class="w-5 h-5" /> Bilan Pédagogique IA (Nouveauté 2026)
+        </h4>
+        <p class="text-sm text-primary-800 leading-relaxed">
+          En plus des annotations, vous trouverez souvent un <strong>bilan personnalisé</strong> généré par Korrigo AI. 
+          Ce texte vous tutoie et résume vos points forts et vos axes de progrès en se basant sur les remarques de votre professeur. C'est un outil précieux pour vos révisions !
+        </p>
+      </div>
+
+      <div class="bg-gray-50 border border-gray-200 rounded p-3 text-sm">
+        <strong>Calcul de la note :</strong> Note = Somme des points par question + Bonus − Erreurs.
+        Le total est calculé automatiquement sans erreur possible.
       </div>
     </CollapsibleSection>
 
@@ -300,5 +310,5 @@
 <script setup>
 import SectionContainer from '../components/SectionContainer.vue'
 import CollapsibleSection from '../components/CollapsibleSection.vue'
-import { GraduationCap } from 'lucide-vue-next'
+import { GraduationCap, Sparkles } from 'lucide-vue-next'
 </script>
