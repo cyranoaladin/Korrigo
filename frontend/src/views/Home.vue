@@ -76,6 +76,12 @@ const navigateTo = (path) => {
       </div>
     </main>
 
+    <div class="info-link-container">
+      <router-link to="/korrigo" class="info-link">
+        En savoir plus sur la plateforme Korrigo PMF ›
+      </router-link>
+    </div>
+
     <footer class="footer">
       <p>&copy; 2026 Lycée Pierre Mendès France - Tunis</p>
     </footer>
@@ -182,6 +188,24 @@ h1 {
   font-size: 1rem;
   cursor: pointer;
   padding: 0;
+}
+
+.info-link-container {
+  margin-top: 3rem;
+  text-align: center;
+}
+
+.info-link {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: color 0.2s ease;
+}
+
+.info-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
 }
 
 /* Specific Card Styles */

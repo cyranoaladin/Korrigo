@@ -99,13 +99,13 @@
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-16">
           <h2 class="text-3xl font-bold text-neutralDark mb-3">
-            Le workflow complet
+            Le workflow complet v2.1
           </h2>
           <p class="text-gray-500 max-w-2xl mx-auto">
-            Du scan des copies papier à la consultation par les élèves, un processus en 5 étapes entièrement numérique et sécurisé.
+            Du scan des copies papier à la consultation par les élèves, un processus en 6 étapes entièrement numérique, sécurisé et assisté par IA.
           </p>
         </div>
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 md:gap-8">
           <StepCard
             :step="1"
             title="Numérisation"
@@ -116,7 +116,7 @@
           <StepCard
             :step="2"
             title="Identification"
-            text="L'OCR détecte les noms manuscrits. Le secrétariat valide ou corrige, puis associe chaque copie à un élève."
+            text="L'IA Vision GPT-4o-mini détecte les noms manuscrits. Le secrétariat valide ou corrige la liaison copie-élève."
             :icon="ScanSearch"
             accent="orange"
           />
@@ -130,16 +130,23 @@
           <StepCard
             :step="4"
             title="Correction"
-            text="L'enseignant annote sur le PDF, note par question selon le barème structuré et utilise la banque de suggestions."
+            text="L'enseignant annote sur le PDF et note par question. Le système gère les verrous pour éviter tout conflit."
             :icon="PenTool"
             accent="primary"
           />
           <StepCard
             :step="5"
-            title="Export & Restitution"
-            text="Les PDF finaux sont générés, les notes exportées en CSV pour Pronote, et les élèves consultent leurs copies en ligne."
-            :icon="Download"
+            title="Bilan IA"
+            text="Le LLM local (Ollama) génère un bilan pédagogique personnalisé tutoyant l'élève à partir des annotations."
+            :icon="Sparkles"
             accent="green"
+          />
+          <StepCard
+            :step="6"
+            title="Restitution"
+            text="Export CSV Pronote et génération des PDF finaux. Les élèves consultent leur copie et leur bilan en ligne."
+            :icon="Download"
+            accent="blue"
           />
         </div>
       </div>
@@ -153,10 +160,10 @@
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-16">
           <h2 class="text-3xl font-bold text-neutralDark mb-3">
-            Fonctionnalités clés
+            Fonctionnalités avancées
           </h2>
           <p class="text-gray-500 max-w-2xl mx-auto">
-            Des outils pensés pour l'enseignement, validés en conditions réelles sur des examens blancs et contrôles continus.
+            Des outils de pointe validés par les enseignants du Lycée Pierre Mendès France.
           </p>
         </div>
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -164,37 +171,37 @@
             :icon="EyeOff"
             accent="purple"
             title="Anonymisation stricte"
-            text="Numéro d'anonymat séquentiel unique par copie. L'en-tête manuscrite est masquée : l'enseignant ne voit jamais le nom de l'élève pendant la correction."
+            text="Numéro d'anonymat séquentiel unique par copie. L'en-tête manuscrite est masquée dynamiquement pendant la phase de correction."
           />
           <FeatureCard
-            :icon="PenTool"
-            accent="blue"
-            title="4 types d'annotations"
-            text="Commentaire pédagogique, surlignage, signalement d'erreur et bonus. Chaque annotation peut porter des points positifs ou négatifs."
+            :icon="Sparkles"
+            accent="green"
+            title="Korrigo AI (Bilans)"
+            text="Génération de résumés pédagogiques personnalisés via LLM local (Ollama). Analyse les points forts et les axes de progrès de chaque élève."
           />
           <FeatureCard
             :icon="BarChart3"
             accent="primary"
             title="Barème hiérarchique"
-            text="Structure Exercice → Question → Sous-question avec points. Cases à cocher ou saisie libre. Calcul automatique du total sans erreur."
+            text="Structure Exercice → Question → Sous-question. Saisie rapide au clavier, calcul automatique du total et export Pronote direct."
           />
           <FeatureCard
             :icon="Lightbulb"
             accent="orange"
             title="Banque de commentaires"
-            text="Banque officielle de 123 suggestions issues du barème. Banque personnelle auto-alimentée : auto-complétion par fréquence d'usage."
+            text="Suggestions officielles et banque personnelle auto-alimentée. Gagnez du temps grâce à l'auto-complétion intelligente par fréquence."
           />
           <FeatureCard
             :icon="ScanSearch"
-            accent="green"
-            title="OCR et identification"
-            text="Reconnaissance optique des noms manuscrits sur les en-têtes. Validation humaine par le secrétariat avant liaison copie-élève."
+            accent="blue"
+            title="OCR Vision GPT-4o-mini"
+            text="Reconnaissance ultra-précise de l'écriture manuscrite cursive pour l'identification automatique des copies."
           />
           <FeatureCard
-            :icon="FileDown"
+            :icon="Lock"
             accent="red"
-            title="Export Pronote & PDF"
-            text="Export CSV des notes compatible Pronote. Génération de PDF finaux annotés avec nom de l'élève réaffiché pour consultation."
+            title="Verrouillage & Draft"
+            text="Verrouillage pessimiste avec heartbeat et sauvegarde automatique (DraftState) toutes les 2s : zéro perte de données."
           />
         </div>
       </div>
@@ -208,7 +215,7 @@
             Pourquoi Korrigo PMF ?
           </h2>
           <p class="text-gray-500 max-w-2xl mx-auto">
-            Des bénéfices concrets pour l'ensemble de la communauté éducative.
+            Une solution souveraine, hébergée localement et conçue pour l'excellence pédagogique.
           </p>
         </div>
         <div class="grid md:grid-cols-3 gap-8">
@@ -220,10 +227,10 @@
               Pédagogiques
             </h3>
             <ul class="text-sm text-gray-500 leading-relaxed space-y-1.5 text-left max-w-xs mx-auto">
-              <li>Retour détaillé : annotations claires et pérennes</li>
-              <li>Traçabilité complète de chaque action</li>
+              <li>Retour ultra-détaillé via Bilans IA personnalisés</li>
+              <li>Analyse croisée des résultats par compétence</li>
               <li>Élèves absents consultent leurs copies en ligne</li>
-              <li>Historique de correction consultable à tout moment</li>
+              <li>Traçabilité complète de l'évolution des notes</li>
             </ul>
           </div>
           <div class="text-center">
@@ -234,10 +241,10 @@
               Organisationnels
             </h3>
             <ul class="text-sm text-gray-500 leading-relaxed space-y-1.5 text-left max-w-xs mx-auto">
-              <li>Correction depuis n'importe où (domicile, salle des profs)</li>
-              <li>Réduction du temps de distribution et collecte</li>
-              <li>Fin des armoires de copies papier</li>
-              <li>Export direct vers Pronote en un clic</li>
+              <li>Correction délocalisée (domicile, établissement)</li>
+              <li>Zéro logistique papier (collecte, stockage, armoires)</li>
+              <li>Import/Export Pronote en 2 clics</li>
+              <li>Supervision temps-réel de l'avancement</li>
             </ul>
           </div>
           <div class="text-center">
@@ -245,13 +252,13 @@
               <ShieldCheck class="w-7 h-7" />
             </div>
             <h3 class="font-semibold text-neutralDark text-lg mb-2">
-              Sécuritaires
+              Souveraineté
             </h3>
             <ul class="text-sm text-gray-500 leading-relaxed space-y-1.5 text-left max-w-xs mx-auto">
+              <li>Hébergement local au Labo Maths ERT à Tunis</li>
+              <li>LLM Local (Ollama) : aucune donnée pédagogique sortante</li>
               <li>Conformité RGPD et référentiel CNIL Éducation</li>
-              <li>Anonymisation garantie pendant la correction</li>
-              <li>Journal d'audit immuable de chaque action</li>
-              <li>Données hébergées localement en France</li>
+              <li>Code source auditable et maîtrisé</li>
             </ul>
           </div>
         </div>
@@ -348,7 +355,7 @@ import {
   Upload, EyeOff, PenTool, Download, ScanSearch,
   BarChart3, Lightbulb, FileDown,
   CheckCircle, Lock, ClipboardList, KeyRound, ArrowRight,
-  BookOpen, Clock, Settings, Briefcase,
+  BookOpen, Clock, Settings, Briefcase, Sparkles
 } from 'lucide-vue-next'
 
 const stats = [

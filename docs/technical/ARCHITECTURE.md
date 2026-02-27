@@ -60,6 +60,7 @@ Korrigo PMF est une plateforme locale de correction dématérialisée pour exame
 | **Gunicorn** | - | Serveur WSGI (production) |
 | **Tesseract OCR** | - | OCR fallback (fra+eng) |
 | **OpenAI GPT-4o-mini** | Vision | OCR principal (écriture manuscrite) |
+| **Ollama** | qwen2.5:32b | LLM local pour bilans pédagogiques |
 | **Pillow** | 12.1+ | Traitement images (crop header) |
 | **python-magic** | 0.4.27 | Validation type MIME |
 | **django-ratelimit** | 4.1.0 | Protection brute force |
@@ -205,6 +206,10 @@ graph TB
         subgraph "Cache Container"
             RedisCache[(Redis<br/>Port 6379)]
         end
+
+        subgraph "LLM Container"
+            Ollama[(Ollama<br/>Port 11434)]
+        end
         
         subgraph "Volumes"
             MediaVol[Media Volume<br/>PDF, Images]
@@ -218,9 +223,11 @@ graph TB
     Django --> Gunicorn
     Django --> Postgres
     Django --> RedisCache
+    Django --> Ollama
     Django --> MediaVol
     CeleryWorker --> Postgres
     CeleryWorker --> RedisCache
+    CeleryWorker --> Ollama
     CeleryWorker --> MediaVol
     Postgres --> DBVol
 ```
