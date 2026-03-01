@@ -26,11 +26,8 @@ const handleLogin = async () => {
     try {
         const success = await authStore.loginStudent(email.value, password.value)
         if (success) {
-            if (authStore.mustChangePassword) {
-                router.push('/student/change-password')
-            } else {
-                router.push('/student-portal')
-            }
+            // Always go to portal — App.vue modal handles forced password change
+            router.push('/student-portal')
         } else {
             error.value = authStore.lastError || "Email ou mot de passe incorrect."
         }
