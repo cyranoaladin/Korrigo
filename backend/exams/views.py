@@ -1297,7 +1297,11 @@ class ExamStudentListView(APIView):
             if copy.student and copy.student.user:
                 u = copy.student.user
                 student_name = f"{u.last_name} {u.first_name}".strip() or u.username
-                student_class = getattr(copy.student, 'classe', None)
+                student_class = copy.student.class_name
+                student_groupe = copy.student.groupe
+
+            else:
+                student_groupe = None
 
             # Score
             total_score = None
@@ -1316,6 +1320,7 @@ class ExamStudentListView(APIView):
                 "anonymous_id": copy.anonymous_id,
                 "student_name": student_name,
                 "student_class": student_class,
+                "student_groupe": student_groupe,
                 "total_score": total_score,
                 "status": copy.status,
                 "corrector": corrector_name,
