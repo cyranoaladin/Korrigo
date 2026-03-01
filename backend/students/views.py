@@ -104,7 +104,16 @@ class StudentMeView(views.APIView):
 
         student = get_object_or_404(Student, id=student_id)
         serializer = StudentSerializer(student)
-        return Response(serializer.data)
+        data = serializer.data
+
+        # Include must_change_password flag so frontend stays in sync
+        user = student.user
+        if user:
+            data['must_change_password'] = not user.has_usable_password() or user.check_password('passe123')
+        else:
+            data['must_change_password'] = False
+
+        return Response(data)
 
 
 class StudentChangePasswordView(views.APIView):
