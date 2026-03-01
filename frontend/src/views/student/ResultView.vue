@@ -263,18 +263,6 @@ onMounted(() => { fetchCopies() })
           <p class="text-slate-400 text-sm">Aucune appréciation disponible.</p>
         </div>
 
-        <!-- LLM Summary -->
-        <div v-if="selectedCopy.llm_summary" class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl ring-1 ring-purple-100 overflow-hidden">
-          <div class="px-6 py-4 border-b border-purple-100/50 flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-              <Target class="w-4 h-4 text-purple-600" />
-            </div>
-            <h3 class="font-semibold text-purple-900">Bilan pédagogique personnalisé</h3>
-          </div>
-          <div class="px-6 py-5">
-            <p class="text-purple-800/80 leading-relaxed whitespace-pre-line text-sm">{{ selectedCopy.llm_summary }}</p>
-          </div>
-        </div>
       </div>
 
       <!-- ═══════════════ TAB: PDF ═══════════════ -->
