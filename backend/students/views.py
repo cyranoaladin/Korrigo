@@ -66,8 +66,13 @@ class StudentLoginView(views.APIView):
         request.session['student_id'] = student.id
         request.session['role'] = 'Student'
 
-        # Check if must change default password
-        must_change_password = not user.has_usable_password() or user.check_password('passe123')
+        # Check if must change default password (passe123 or date of birth JJMMAAAA)
+        dob_pwd = student.date_naissance.strftime('%d%m%Y') if student.date_naissance else None
+        must_change_password = (
+            not user.has_usable_password()
+            or user.check_password('passe123')
+            or (dob_pwd and user.check_password(dob_pwd))
+        )
 
         log_authentication_attempt(request, success=True, student_id=student.id)
         return Response({
@@ -109,7 +114,12 @@ class StudentMeView(views.APIView):
         # Include must_change_password flag so frontend stays in sync
         user = student.user
         if user:
-            data['must_change_password'] = not user.has_usable_password() or user.check_password('passe123')
+            dob_pwd = student.date_naissance.strftime('%d%m%Y') if student.date_naissance else None
+            data['must_change_password'] = (
+                not user.has_usable_password()
+                or user.check_password('passe123')
+                or (dob_pwd and user.check_password(dob_pwd))
+            )
         else:
             data['must_change_password'] = False
 
@@ -158,8 +168,10 @@ class StudentChangePasswordView(views.APIView):
                 'error': e.messages
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Prevent reusing the default password
-        if new_password == 'passe123':
+        # Prevent reusing the default password (passe123 or date of birth)
+        student = Student.objects.filter(user=user).first()
+        dob_pwd = student.date_naissance.strftime('%d%m%Y') if student and student.date_naissance else None
+        if new_password == 'passe123' or (dob_pwd and new_password == dob_pwd):
             return Response({
                 'error': 'Veuillez choisir un mot de passe différent du mot de passe par défaut.'
             }, status=status.HTTP_400_BAD_REQUEST)
