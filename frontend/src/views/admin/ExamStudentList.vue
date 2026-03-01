@@ -15,6 +15,8 @@ const searchQuery = ref('')
 const sortField = ref('student_name')
 const sortAsc = ref(true)
 const filterStatus = ref('all')
+const filterClasse = ref('all')
+const filterGroupe = ref('all')
 
 const fetchData = async () => {
   loading.value = true
@@ -42,12 +44,17 @@ const toggleSort = (field) => {
   if (sortField.value === field) { sortAsc.value = !sortAsc.value } else { sortField.value = field; sortAsc.value = true }
 }
 
+const uniqueClasses = computed(() => [...new Set(copies.value.map(c => c.student_class).filter(Boolean))].sort())
+const uniqueGroupes = computed(() => [...new Set(copies.value.map(c => c.student_groupe).filter(Boolean))].sort())
+
 const filteredCopies = computed(() => {
   let list = [...copies.value]
   if (filterStatus.value !== 'all') list = list.filter(c => c.status === filterStatus.value)
+  if (filterClasse.value !== 'all') list = list.filter(c => c.student_class === filterClasse.value)
+  if (filterGroupe.value !== 'all') list = list.filter(c => c.student_groupe === filterGroupe.value)
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()
-    list = list.filter(c => (c.student_name||'').toLowerCase().includes(q) || (c.anonymous_id||'').toLowerCase().includes(q) || (c.corrector||'').toLowerCase().includes(q))
+    list = list.filter(c => (c.student_name||'').toLowerCase().includes(q) || (c.anonymous_id||'').toLowerCase().includes(q) || (c.corrector||'').toLowerCase().includes(q) || (c.student_class||'').toLowerCase().includes(q) || (c.student_groupe||'').toLowerCase().includes(q))
   }
   list.sort((a, b) => {
     let va = a[sortField.value], vb = b[sortField.value]
@@ -62,8 +69,8 @@ const filteredCopies = computed(() => {
 })
 
 const exportCSV = () => {
-  const header = ['#','Anonymat','Élève','Classe','Note','Statut','Correcteur','Appréciation']
-  const rows = filteredCopies.value.map((c, i) => [i+1, c.anonymous_id, c.student_name||'—', c.student_class||'—', c.total_score??'—', statusLabel(c.status), c.corrector||'—', c.has_appreciation?'Oui':'Non'])
+  const header = ['#','Anonymat','Élève','Classe','Groupe','Note','Statut','Correcteur','Appréciation']
+  const rows = filteredCopies.value.map((c, i) => [i+1, c.anonymous_id, c.student_name||'—', c.student_class||'—', c.student_groupe||'—', c.total_score??'—', statusLabel(c.status), c.corrector||'—', c.has_appreciation?'Oui':'Non'])
   const csv = [header, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})
   const url = URL.createObjectURL(blob)
@@ -126,6 +133,14 @@ onMounted(fetchData)
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"/>
             <input v-model="searchQuery" type="text" placeholder="Rechercher élève, anonymat, correcteur..." class="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl ring-1 ring-slate-200 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none"/>
           </div>
+          <select v-model="filterClasse" class="px-4 py-2.5 bg-white rounded-xl ring-1 ring-slate-200 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            <option value="all">Toutes les classes</option>
+            <option v-for="cl in uniqueClasses" :key="cl" :value="cl">{{ cl }}</option>
+          </select>
+          <select v-model="filterGroupe" class="px-4 py-2.5 bg-white rounded-xl ring-1 ring-slate-200 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            <option value="all">Tous les groupes</option>
+            <option v-for="gr in uniqueGroupes" :key="gr" :value="gr">{{ gr }}</option>
+          </select>
           <select v-model="filterStatus" class="px-4 py-2.5 bg-white rounded-xl ring-1 ring-slate-200 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
             <option value="all">Tous les statuts</option>
             <option value="GRADED">Corrigées</option>
@@ -144,6 +159,7 @@ onMounted(fetchData)
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('anonymous_id')">Anonymat <span v-if="sortField==='anonymous_id'">{{ sortAsc?'▲':'▼' }}</span></th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_name')">Élève <span v-if="sortField==='student_name'">{{ sortAsc?'▲':'▼' }}</span></th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_class')">Classe <span v-if="sortField==='student_class'">{{ sortAsc?'▲':'▼' }}</span></th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_groupe')">Groupe <span v-if="sortField==='student_groupe'">{{ sortAsc?'▲':'▼' }}</span></th>
                   <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('total_score')">Note /20 <span v-if="sortField==='total_score'">{{ sortAsc?'▲':'▼' }}</span></th>
                   <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('status')">Statut <span v-if="sortField==='status'">{{ sortAsc?'▲':'▼' }}</span></th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('corrector')">Correcteur <span v-if="sortField==='corrector'">{{ sortAsc?'▲':'▼' }}</span></th>
@@ -156,12 +172,13 @@ onMounted(fetchData)
                   <td class="px-4 py-3 font-mono text-xs text-slate-500">{{ copy.anonymous_id }}</td>
                   <td class="px-4 py-3 font-medium text-slate-800">{{ copy.student_name || '—' }}</td>
                   <td class="px-4 py-3 text-slate-500 text-xs">{{ copy.student_class || '—' }}</td>
+                  <td class="px-4 py-3 text-slate-500 text-xs">{{ copy.student_groupe || '—' }}</td>
                   <td class="px-4 py-3 text-center"><span :class="scoreColor(copy.total_score)">{{ copy.total_score !== null ? copy.total_score.toFixed(2) : '—' }}</span></td>
                   <td class="px-4 py-3 text-center"><span :class="['px-2.5 py-1 rounded-full text-xs font-medium', statusColor(copy.status)]">{{ statusLabel(copy.status) }}</span></td>
                   <td class="px-4 py-3 text-slate-600 text-xs">{{ copy.corrector || '—' }}</td>
                   <td class="px-4 py-3 text-center"><span v-if="copy.has_appreciation" class="text-emerald-500">✓</span><span v-else class="text-slate-300">—</span></td>
                 </tr>
-                <tr v-if="filteredCopies.length===0"><td colspan="8" class="px-4 py-8 text-center text-slate-400">Aucun résultat.</td></tr>
+                <tr v-if="filteredCopies.length===0"><td colspan="9" class="px-4 py-8 text-center text-slate-400">Aucun résultat.</td></tr>
               </tbody>
             </table>
           </div>
