@@ -81,7 +81,7 @@ const fetchPdf = async () => {
   if (pdfBlobUrl.value) { URL.revokeObjectURL(pdfBlobUrl.value); pdfBlobUrl.value = null }
   try {
     const pdfUrl = selectedCopy.value.final_pdf_url
-    const res = await (pdfUrl.startsWith('/media') ? api.get(pdfUrl, { baseURL: '', responseType: 'blob', headers: { 'Accept': 'application/pdf' } }) : api.get(pdfUrl, { responseType: 'blob', headers: { 'Accept': 'application/pdf' } }))
+    const res = await api.get(pdfUrl, { baseURL: '', responseType: 'blob', headers: { 'Accept': 'application/pdf' } })
     pdfBlobUrl.value = URL.createObjectURL(res.data)
   } catch (e) {
     console.error('PDF fetch error:', e)
@@ -95,7 +95,7 @@ const downloadPdf = async () => {
   if (!selectedCopy.value?.final_pdf_url) return
   try {
     const pdfUrl = selectedCopy.value.final_pdf_url
-    const res = await (pdfUrl.startsWith('/media') ? api.get(pdfUrl, { baseURL: '', responseType: 'blob', headers: { 'Accept': 'application/pdf' } }) : api.get(pdfUrl, { responseType: 'blob', headers: { 'Accept': 'application/pdf' } }))
+    const res = await api.get(pdfUrl, { baseURL: '', responseType: 'blob', headers: { 'Accept': 'application/pdf' } })
     const url = URL.createObjectURL(res.data)
     const a = document.createElement('a')
     a.href = url
