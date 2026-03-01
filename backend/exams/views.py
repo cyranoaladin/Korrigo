@@ -1271,3 +1271,71 @@ class AutoDetectSubjectVariantView(APIView):
 
         return Response(results)
 
+
+class ExamStudentListView(APIView):
+    """
+    GET /api/exams/<exam_id>/student-list/
+    Returns all copies for an exam with student name, score, corrector, status.
+    Admin only.
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def get(self, request, exam_id):
+        from grading.models import Score
+        from grading.services import GradingService
+
+        exam = get_object_or_404(Exam, id=exam_id)
+        copies = Copy.objects.filter(exam=exam).select_related(
+            'student', 'student__user', 'assigned_corrector'
+        ).order_by('anonymous_id')
+
+        data = []
+        for copy in copies:
+            # Student name
+            student_name = None
+            student_class = None
+            if copy.student and copy.student.user:
+                u = copy.student.user
+                student_name = f"{u.last_name} {u.first_name}".strip() or u.username
+                student_class = getattr(copy.student, 'classe', None)
+
+            # Score
+            total_score = None
+            score_obj = Score.objects.filter(copy=copy).first()
+            if score_obj and score_obj.scores_data:
+                total_score = round(sum(float(v) for v in score_obj.scores_data.values() if v), 2)
+
+            # Corrector
+            corrector_name = None
+            if copy.assigned_corrector:
+                c = copy.assigned_corrector
+                corrector_name = f"{c.last_name} {c.first_name}".strip() or c.username
+
+            data.append({
+                "id": str(copy.id),
+                "anonymous_id": copy.anonymous_id,
+                "student_name": student_name,
+                "student_class": student_class,
+                "total_score": total_score,
+                "status": copy.status,
+                "corrector": corrector_name,
+                "has_appreciation": bool(copy.global_appreciation and copy.global_appreciation.strip()),
+            })
+
+        # Summary stats
+        scored = [d for d in data if d['total_score'] is not None]
+        summary = {
+            "exam_name": exam.name,
+            "exam_date": str(exam.date) if exam.date else None,
+            "total_copies": len(data),
+            "graded": sum(1 for d in data if d['status'] == 'GRADED'),
+            "ready": sum(1 for d in data if d['status'] == 'READY'),
+            "staging": sum(1 for d in data if d['status'] == 'STAGING'),
+            "with_scores": len(scored),
+            "average": round(sum(d['total_score'] for d in scored) / len(scored), 2) if scored else None,
+            "min_score": min(d['total_score'] for d in scored) if scored else None,
+            "max_score": max(d['total_score'] for d in scored) if scored else None,
+        }
+
+        return Response({"summary": summary, "copies": data})
+

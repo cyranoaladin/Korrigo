@@ -3,6 +3,20 @@
 **Contexte** : Réinstallation serveur Hetzner (88.99.254.59) avec formatage disques — perte totale des données serveur  
 **Dernier backup disponible** : dump PostgreSQL du **20 février 2026 à 09:06 UTC+1**
 
+> **⚠️ MISE À JOUR DU 27 FÉVRIER 2026 à 17h :**
+>
+> Le bilan ci-dessous (rédigé le 26 février) a été **entièrement révisé**. Suite aux opérations de récupération via localStorage des navigateurs (Phase 4) et à la confirmation par les correcteurs concernés :
+>
+> - **Patrick DUPONT** : 26/26 scores Ex1+Ex2 récupérés via Firefox localStorage (Ex3+Ex4 non saisis avant l'incident)
+> - **Selima KLIBI** : 14 scores manquants récupérés via Chrome localStorage → 27/27 complets
+> - **Philippe CARR** : 27/27 validés (localStorage = DB)
+> - **Sami BEN TIBA** : 26/26 validés (localStorage = DB)
+> - **Edouard ROUSSEAU, Laroussi LAROUSSI, Alaeddine BENRHOUMA** : les copies sans score n'étaient **pas des pertes** — ces correcteurs n'avaient pas encore corrigé ces copies avant l'incident.
+>
+> **BILAN RÉVISÉ : ZÉRO PERTE DE DONNÉES.** Toutes les corrections effectuées avant l'incident ont été intégralement récupérées. 150/209 copies ont un score en base (72%), les 59 restantes sont des copies non encore corrigées.
+>
+> Voir : `proofs/recovery/ADDENDUM_POSTMORTEM.md` pour le détail complet de la Phase 4.
+
 ---
 
 ## 1. RÉSUMÉ EXÉCUTIF
@@ -16,10 +30,10 @@
 | **Copies sans données (PERDUES)** | 59 | 45 | **104** |
 | **Preuve de correction post-dump** | bilan_walid.tex (22 fév, 8,25/20), PDFs (23-25 fév) | | |
 
-### Verdict
-> **~50% des notes sont récupérables** (105/209). L'extraction approfondie du dump a révélé **63 copies supplémentaires** avec notes saisies dans le barème mais non finalisées. Les **104 copies sans aucune donnée** dans le dump sont définitivement perdues — elles ont été corrigées après le 20 février.
+### Verdict (26 février — obsolète, voir mise à jour du 27 février ci-dessus)
+> ~~**~50% des notes sont récupérables** (105/209). Les **104 copies sans aucune donnée** dans le dump sont définitivement perdues.~~
 >
-> **Découverte majeure** : philippe.carr a **27/27 notes** dans le dump, sami.bentiba **26/26**, chawki.saadi **25/25**. Seuls patrick.dupont (0/26), une partie de selima.klibi (14/27 manquantes), edouard.rousseau (22/26 manquantes), laroussi (23/26 manquantes) et alaeddine (19/26 manquantes) ont des copies réellement perdues.
+> **CORRIGÉ** : Les 104 copies « perdues » incluaient en réalité 59 copies jamais corrigées + 40 récupérées via localStorage + 5 corrections post-reconstitution. **Perte finale : 0.**
 
 ---
 
@@ -353,11 +367,11 @@ Les éléments suivants prouvent que des corrections ont été effectuées **apr
 3. **philippe.carr : RIEN à refaire** — ses 27/27 notes sont dans le dump
 4. **chawki.saadi : RIEN à refaire** — ses 25/25 notes sont dans le dump
 5. **sami.bentiba : RIEN à refaire** — ses 26/26 notes sont dans le dump
-6. **Contacter patrick.dupont en priorité** — 0/26 notes, tout est perdu
-7. **Contacter edouard.rousseau** — 22/26 notes perdues
-8. **Contacter laroussi.laroussi** — 23/26 notes perdues
-9. **selima.klibi** — 14/27 notes perdues (13 récupérables)
-10. **alaeddine** — 19/26 notes perdues (7 récupérables)
+6. ~~**Contacter patrick.dupont en priorité** — 0/26 notes, tout est perdu~~ → ✅ 26/26 récupérés via localStorage (Ex1+Ex2)
+7. ~~**Contacter edouard.rousseau** — 22/26 notes perdues~~ → ✅ Pas de perte (copies non encore corrigées)
+8. ~~**Contacter laroussi.laroussi** — 23/26 notes perdues~~ → ✅ Pas de perte (copies non encore corrigées)
+9. ~~**selima.klibi** — 14/27 notes perdues~~ → ✅ 14/14 récupérés via localStorage
+10. ~~**alaeddine** — 19/26 notes perdues~~ → ✅ Pas de perte (copies non encore corrigées)
 11. **Mettre en place des backups automatiques** (cron pg_dump toutes les 6h minimum)
 
 ---
@@ -373,4 +387,6 @@ Les éléments suivants prouvent que des corrections ont été effectuées **apr
 
 ---
 
-*Rapport généré par analyse forensique approfondie du dump PostgreSQL, des fichiers locaux (bilan_walid.tex, PDFs téléchargés) et de l'historique Windsurf. Mis à jour le 26 février 2026 à 17h.*
+*Rapport généré par analyse forensique approfondie du dump PostgreSQL, des fichiers locaux (bilan_walid.tex, PDFs téléchargés) et de l'historique Windsurf. Mis à jour le 27 février 2026 à 17h.*
+
+*Addendum Phase 4 : voir `proofs/recovery/ADDENDUM_POSTMORTEM.md`*
