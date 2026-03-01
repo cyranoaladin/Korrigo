@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
 import { useRouter } from 'vue-router'
@@ -9,6 +9,17 @@ const router = useRouter()
 const copies = ref([])
 const selectedCopy = ref(null)
 const loading = ref(true)
+
+const nonEmptyRemarks = computed(() => {
+    const remarks = selectedCopy.value?.remarks || {}
+    const filtered = {}
+    for (const [qid, text] of Object.entries(remarks)) {
+        if (text && text.trim()) {
+            filtered[qid] = text
+        }
+    }
+    return filtered
+})
 
 const fetchCopies = async () => {
     loading.value = true
@@ -140,12 +151,12 @@ onMounted(() => {
 
           <!-- Remarks per question -->
           <div
-            v-if="selectedCopy.remarks && Object.keys(selectedCopy.remarks).length > 0"
+            v-if="nonEmptyRemarks && Object.keys(nonEmptyRemarks).length > 0"
             class="remarks-section"
           >
             <h4>Remarques par question</h4>
             <div
-              v-for="(remark, qid) in selectedCopy.remarks"
+              v-for="(remark, qid) in nonEmptyRemarks"
               :key="'remark-' + qid"
               class="remark-item"
             >
