@@ -388,6 +388,58 @@ const scrollToStats = async () => {
               <line :x1="padL" :x2="padL" :y1="padT" :y2="padT + plotH" stroke="#cbd5e1" stroke-width="1" />
             </svg>
           </div>
+
+          <!-- Group Stats Table -->
+          <div
+            v-if="examStats.group_stats && examStats.group_stats.length"
+            class="group-stats-section"
+          >
+            <h3>Statistiques par Groupe</h3>
+            <div class="group-table-wrapper">
+              <table class="group-stats-table">
+                <thead>
+                  <tr>
+                    <th>Groupe</th>
+                    <th>Copies</th>
+                    <th>Moyenne</th>
+                    <th>Médiane</th>
+                    <th>Écart-type</th>
+                    <th>Min</th>
+                    <th>Max</th>
+                    <th>≥ Moy. globale</th>
+                    <th>&lt; Moy. globale</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="g in examStats.group_stats" :key="g.groupe">
+                    <td class="group-name">{{ g.groupe }}</td>
+                    <td>{{ g.count }}</td>
+                    <td :class="{ 'above-global': g.mean >= examStats.global_stats?.mean, 'below-global': g.mean < examStats.global_stats?.mean }">
+                      <strong>{{ g.mean ?? '-' }}</strong>
+                    </td>
+                    <td>{{ g.median ?? '-' }}</td>
+                    <td>{{ g.std_dev ?? '-' }}</td>
+                    <td>{{ g.min ?? '-' }}</td>
+                    <td>{{ g.max ?? '-' }}</td>
+                    <td class="count-above">{{ g.above_mean }}</td>
+                    <td class="count-below">{{ g.below_mean }}</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr class="global-row">
+                    <td class="group-name"><strong>Global</strong></td>
+                    <td><strong>{{ examStats.global_stats?.count ?? '-' }}</strong></td>
+                    <td><strong>{{ examStats.global_stats?.mean ?? '-' }}</strong></td>
+                    <td><strong>{{ examStats.global_stats?.median ?? '-' }}</strong></td>
+                    <td><strong>{{ examStats.global_stats?.std_dev ?? '-' }}</strong></td>
+                    <td><strong>{{ examStats.global_stats?.min ?? '-' }}</strong></td>
+                    <td><strong>{{ examStats.global_stats?.max ?? '-' }}</strong></td>
+                    <td colspan="2" />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
         </template>
       </div>
 
@@ -483,6 +535,20 @@ const scrollToStats = async () => {
 .mean-line { border-color: #ef4444; }
 .median-line { border-color: #f59e0b; }
 .svg-chart { width: 100%; height: auto; max-height: 260px; }
+
+.group-stats-section { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.group-stats-section h3 { margin: 0 0 1rem 0; font-size: 1rem; color: #1e293b; }
+.group-table-wrapper { overflow-x: auto; }
+.group-stats-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.group-stats-table th, .group-stats-table td { padding: 0.5rem 0.6rem; text-align: center; border-bottom: 1px solid #e2e8f0; }
+.group-stats-table th { background: #f8fafc; font-weight: 600; color: #64748b; font-size: 0.8rem; white-space: nowrap; }
+.group-stats-table .group-name { text-align: left; font-weight: 600; color: #334155; }
+.group-stats-table .above-global { color: #059669; }
+.group-stats-table .below-global { color: #dc2626; }
+.group-stats-table .count-above { color: #059669; font-weight: 600; }
+.group-stats-table .count-below { color: #dc2626; font-weight: 600; }
+.group-stats-table tfoot .global-row { background: #f1f5f9; }
+.group-stats-table tfoot .global-row td { border-top: 2px solid #cbd5e1; font-size: 0.85rem; }
 
 .task-list h2 { font-size: 1.25rem; color: #1e293b; margin-bottom: 1rem; }
 .copy-card { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
