@@ -669,10 +669,11 @@ class StudentCopiesView(generics.ListAPIView):
             if score_obj and score_obj.scores_data:
                 scores_data = score_obj.scores_data
 
-            # Get question remarks
+            # Get question remarks (skip empty remarks)
             remarks = {}
             for remark in QuestionRemark.objects.filter(copy=copy):
-                remarks[remark.question_id] = remark.remark
+                if remark.remark and remark.remark.strip():
+                    remarks[remark.question_id] = remark.remark
 
             data.append({
                 "id": copy.id,
