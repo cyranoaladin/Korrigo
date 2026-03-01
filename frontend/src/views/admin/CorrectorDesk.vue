@@ -91,8 +91,13 @@ const isHeaderPage = computed(() => {
     return isPeriodicHeader || isLastPage
 })
 
-const isReadOnly = computed(() => isGraded.value)
-const canAnnotate = computed(() => isReady.value && !isReadOnly.value)
+const isAssignedCorrector = computed(() => {
+    const userId = authStore.user?.id
+    const correctorId = copy.value?.assigned_corrector?.id || copy.value?.assigned_corrector
+    return userId && correctorId && String(userId) === String(correctorId)
+})
+const isReadOnly = computed(() => isGraded.value && !isAdmin.value && !isAssignedCorrector.value)
+const canAnnotate = computed(() => (isReady.value || (isGraded.value && (isAdmin.value || isAssignedCorrector.value))) && !isReadOnly.value)
 const examId = computed(() => copy.value?.exam?.id || null)
 
 // Subject variant (Sujet A / Sujet B)
