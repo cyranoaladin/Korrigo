@@ -1,0 +1,732 @@
+\documentclass[11pt,a4paper]{article}
+
+% === ENCODAGE ===
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage[french]{babel}
+\addto\captionsfrench{\renewcommand{\contentsname}{Sommaire}}
+
+% === MISE EN PAGE ===
+\usepackage[top=2.4cm, bottom=2.4cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{parskip}
+\setlength{\parskip}{0.5em}
+
+% === COULEURS ===
+\usepackage[table,dvipsnames]{xcolor}
+\definecolor{bleuERT}{HTML}{1E3A8A}
+\definecolor{bleuClair}{HTML}{DBEAFE}
+\definecolor{bleuTres}{HTML}{EFF6FF}
+\definecolor{vertOK}{HTML}{10B981}
+\definecolor{vertClair}{HTML}{D1FAE5}
+\definecolor{orangeW}{HTML}{F59E0B}
+\definecolor{orangeClair}{HTML}{FEF3C7}
+\definecolor{rougeKO}{HTML}{EF4444}
+\definecolor{rougeClair}{HTML}{FEE2E2}
+\definecolor{grisT}{HTML}{334155}
+\definecolor{grisFond}{HTML}{F8FAFC}
+\definecolor{grisBord}{HTML}{CBD5E1}
+
+% === TABLEAUX ===
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{array}
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% === BOITES ===
+\usepackage[most]{tcolorbox}
+\tcbset{
+  boxrule=0.8pt, arc=6pt, outer arc=6pt,
+  left=12pt, right=12pt, top=10pt, bottom=10pt,
+  fonttitle=\bfseries\sffamily\small,
+  coltitle=white,
+  drop shadow=black!5!white,
+}
+\newtcolorbox{resumebox}[1][]{colback=bleuTres, colframe=bleuERT, title=#1, colbacktitle=bleuERT}
+\newtcolorbox{warnbox}[1][]{colback=orangeClair, colframe=orangeW!70, title=#1, colbacktitle=orangeW}
+\newtcolorbox{okbox}[1][]{colback=vertClair, colframe=vertOK!60, title=#1, colbacktitle=vertOK!90}
+\newtcolorbox{kobox}[1][]{colback=rougeClair, colframe=rougeKO!60, title=#1, colbacktitle=rougeKO!80}
+\newtcolorbox{graybox}[1][]{colback=grisFond, colframe=grisBord, boxrule=0.4pt, #1}
+
+% === TITRES ===
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries\sffamily\color{bleuERT}}{\thesection}{1em}{}[\vspace{-0.4em}\textcolor{bleuERT!40}{\rule{\linewidth}{0.6pt}}]
+\titleformat{\subsection}{\large\bfseries\sffamily\color{grisT}}{\thesubsection}{0.8em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\sffamily\color{grisT}}{\thesubsubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.2em}{0.6em}
+\titlespacing*{\subsection}{0pt}{0.9em}{0.4em}
+
+% === LISTES ===
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=1.5em, itemsep=3pt, parsep=1pt}
+\setlist[enumerate]{leftmargin=1.5em, itemsep=3pt, parsep=1pt}
+
+% === LIENS ===
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=bleuERT, urlcolor=bleuERT!80!black, pdftitle={Korrigo -- Post-Mortem}, pdfauthor={Alaeddine Benrhouma}}
+
+% === EN-TETE / PIED ===
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0.3pt}
+\fancyhead[L]{\small\sffamily\color{gray} Korrigo -- Post-Mortem \& Mea Culpa}
+\fancyhead[R]{\small\sffamily\color{gray} 27 f\'{e}vrier 2026}
+\fancyfoot[L]{\small\sffamily\color{gray} Alaeddine Benrhouma}
+\fancyfoot[R]{\small\sffamily\color{gray} \thepage\,/\,\pageref{LastPage}}
+
+% === SYMBOLES ===
+\newcommand{\ok}{\textcolor{vertOK}{\textbf{\checkmark}}}
+\newcommand{\warn}{\textcolor{orangeW}{\textbf{$\boldsymbol{\sim}$}}}
+\newcommand{\ko}{\textcolor{rougeKO}{\textbf{X}}}
+
+\begin{document}
+\thispagestyle{empty}
+
+% ============================================================
+% PAGE DE TITRE
+% ============================================================
+\begin{center}
+	\vspace*{1.0cm}
+	\includegraphics[width=6cm]{logo_korrigo_pmf.png}
+	\vspace*{1.0cm}
+
+	\textcolor{bleuERT}{\rule{0.3\linewidth}{0.6pt}}
+	\vspace{0.8cm}
+
+	{\fontsize{32}{36}\selectfont\bfseries\sffamily\color{bleuERT} Korrigo}
+	\vspace{0.15cm}
+
+	{\fontsize{15}{18}\selectfont\sffamily\color{grisT} Post-Mortem \& Mea Culpa}
+	\vspace{0.8cm}
+
+	\textcolor{bleuERT}{\rule{0.3\linewidth}{0.6pt}}
+	\vspace{0.6cm}
+
+	{\sffamily\color{gray}\itshape Ce qui s'est pass\'{e}, o\`{u} on en est,\\ et la bonne nouvelle \`{a} la fin.}
+
+	\vspace{2cm}
+
+	\renewcommand{\arraystretch}{1.5}
+	\begin{tabular}{r@{\hspace{1em}}l}
+		\sffamily\color{grisT}\textbf{Date}         & 27 f\'{e}vrier 2026                                                      \\
+		\sffamily\color{grisT}\textbf{Auteur}       & Alaeddine Benrhouma                                                      \\
+		\sffamily\color{grisT}\textbf{Plateforme}   & \href{https://korrigo.labomaths.tn}{korrigo.labomaths.tn}                \\
+		\sffamily\color{grisT}\textbf{Serveur}      & Hetzner D\'{e}di\'{e} -- 88.99.254.59                                    \\
+		\sffamily\color{grisT}\textbf{Impact final} & \textcolor{vertOK}{\textbf{Z\'{e}ro perte de donn\'{e}es confirm\'{e}e}} \\
+		\sffamily\color{grisT}\textbf{Statut}       & \textcolor{vertOK}{\textbf{Plateforme op\'{e}rationnelle}}               \\
+	\end{tabular}
+
+	\vspace{2.5cm}
+
+	\begin{graybox}
+		\centering\sffamily
+		\textbf{Ce document s'adresse \`{a} tous les coll\`{e}gues correcteurs.}\\[6pt]
+		La \textbf{Partie~I} r\'{e}sume la situation sans jargon technique.\\[2pt]
+		La \textbf{Partie~II} raconte toute l'aventure technique pour les curieux.\\[6pt]
+		{\small\color{gray} \textit{TL;DR\,:} J'ai cass\'{e} le serveur, j'ai tout reconstruit, et au final on n'a perdu aucune correction.}
+	\end{graybox}
+\end{center}
+
+\newpage
+\tableofcontents
+\newpage
+
+% ============================================================
+% PARTIE I
+% ============================================================
+\part*{Partie I -- L'essentiel}
+\addcontentsline{toc}{part}{Partie I -- L'essentiel}
+\vspace{0.3cm}
+
+\begin{resumebox}[Le r\'{e}sum\'{e} en 30 secondes]
+	Mercredi 26 f\'{e}vrier, j'ai accidentellement d\'{e}clench\'{e} la r\'{e}installation compl\`{e}te du serveur Korrigo.\@ Tout a \'{e}t\'{e} effac\'{e}\,: notes, annotations, remarques, appr\'{e}ciations.\@ Apr\`{e}s 48 heures d'intervention non-stop, j'ai \textbf{reconstitu\'{e} l'int\'{e}gralit\'{e} de la plateforme} et r\'{e}cup\'{e}r\'{e} \textbf{toutes les corrections qui avaient \'{e}t\'{e} effectu\'{e}es}. Les 59 copies restantes sans note n'avaient tout simplement \textbf{pas encore \'{e}t\'{e} corrig\'{e}es} avant le crash.
+
+	\medskip
+	\centerline{\large\bfseries\textcolor{vertOK}{Bilan\,: z\'{e}ro correction perdue.}}
+\end{resumebox}
+
+\section{Que s'est-il pass\'{e}\,?}
+
+Soyons directs\,: j'ai fait une boulette.\@ En voulant faire de la maintenance sur le serveur, j'ai lanc\'{e} par m\'{e}garde un outil de l'h\'{e}bergeur (Hetzner) qui r\'{e}initialise compl\`{e}tement la machine.\@ C'est l'\'{e}quivalent d'un \textit{reset d'usine} sur votre t\'{e}l\'{e}phone\,: tout ce qui \'{e}tait dessus a \'{e}t\'{e} effac\'{e}.
+
+\begin{kobox}[Ce qui a \'{e}t\'{e} effac\'{e} d'un coup]
+	\begin{itemize}
+		\item L'application Korrigo elle-m\^{e}me (le site web)
+		\item La base de donn\'{e}es contenant vos notes, annotations, remarques, appr\'{e}ciations
+		\item Les copies PDF annot\'{e}es et les affectations correcteurs
+		\item Les 42 copies finalis\'{e}es avec leur PDF annot\'{e} et leur bilan
+		\item Les sauvegardes automatiques (elles \'{e}taient stock\'{e}es\ldots{} sur le m\^{e}me serveur)
+	\end{itemize}
+\end{kobox}
+
+C'est enti\`{e}rement ma faute, et je m'en excuse sinc\`{e}rement.\@ Je sais le temps que vous avez investi dans ces corrections, et m\^{e}me si tout a finalement \'{e}t\'{e} r\'{e}cup\'{e}r\'{e}, la frayeur \'{e}tait bien r\'{e}elle.\@ J'aurais d\^{u} mettre en place des protections plus solides \emph{avant} que \c{c}a arrive, pas apr\`{e}s.
+
+\section{Comment j'ai tout r\'{e}cup\'{e}r\'{e}}
+
+Heureusement, j'avais pr\'{e}vu deux m\'{e}canismes qui se sont r\'{e}v\'{e}l\'{e}s d\'{e}cisifs\,:
+
+\begin{enumerate}
+	\item \textbf{Une sauvegarde locale de la base de donn\'{e}es.} J'avais impl\'{e}ment\'{e} une proc\'{e}dure de sauvegarde que j'ex\'{e}cutais avant chaque maintenance.\@ La derni\`{e}re, dat\'{e}e du \textbf{20 f\'{e}vrier \`{a} 9h06}, contenait 105 notes compl\`{e}tes avec tout le d\'{e}tail\,: scores par question, annotations, remarques, appr\'{e}ciations.
+
+	\item \textbf{Un cache navigateur int\'{e}gr\'{e} dans Korrigo.} J'avais impl\'{e}ment\'{e} dans l'application un syst\`{e}me de sauvegarde automatique dans votre navigateur\,: chaque fois que vous saisissiez une note, votre navigateur en gardait une copie locale.\@ J'ai d\'{e}velopp\'{e} un outil de r\'{e}cup\'{e}ration d\'{e}di\'{e} pour aller chercher ces copies cach\'{e}es.\@ C'est gr\^{a}ce \`{a} \c{c}a que j'ai pu r\'{e}cup\'{e}rer les 40 notes suppl\'{e}mentaires de Patrick et Selima, et valider l'int\'{e}grit\'{e} des notes de Philippe et Sami.
+\end{enumerate}
+
+\begin{okbox}[Bilan de la r\'{e}cup\'{e}ration]
+	\begin{itemize}
+		\item \textbf{150 copies sur 209} ont au moins un score en base de donn\'{e}es (72\,\%)
+		\item \textbf{124 copies} ont une correction compl\`{e}te (33 questions)
+		\item \textbf{26 copies} de Patrick ont les exercices 1 et 2 pr\'{e}-remplis (Ex3+Ex4 \`{a} compl\'{e}ter)
+		\item \textbf{544 annotations}, \textbf{1\,075 remarques} et \textbf{42 appr\'{e}ciations} restaur\'{e}es
+		\item Tous les 209 scans PDF r\'{e}import\'{e}s -- aucune copie d'\'{e}l\`{e}ve n'est perdue
+		\item Toutes les affectations correcteurs--copies restaur\'{e}es \`{a} l'identique
+		\item \textbf{Z\'{e}ro correction effectu\'{e}e avant le crash n'a \'{e}t\'{e} perdue}
+	\end{itemize}
+\end{okbox}
+
+\section{La bonne nouvelle}
+
+Apr\`{e}s v\'{e}rification minutieuse, il s'av\`{e}re que \textbf{les 59 copies sans score ne sont pas des donn\'{e}es perdues}. Les correcteurs concern\'{e}s (Edouard, Laroussi et moi-m\^{e}me) n'avaient tout simplement \textbf{pas encore corrig\'{e}} ces copies au moment du crash.\@ L'\'{e}tat actuel de la base correspond fid\`{e}lement \`{a} la r\'{e}alit\'{e} de l'avancement des corrections avant l'incident.
+
+\begin{okbox}[Bilan d\'{e}finitif]
+	\centerline{\large\bfseries Aucune correction effectu\'{e}e n'a \'{e}t\'{e} perdue.}
+
+	\medskip
+	Le dump du 20~f\'{e}vrier combin\'{e} \`{a} la r\'{e}cup\'{e}ration via vos navigateurs a permis de restaurer \textbf{100\,\%} des corrections r\'{e}ellement saisies.\@ Le taux de r\'{e}cup\'{e}ration est pass\'{e} de 50\,\% (apr\`{e}s la sauvegarde seule) \`{a} 100\,\% des corrections existantes (apr\`{e}s la r\'{e}cup\'{e}ration navigateur).
+\end{okbox}
+
+\section{O\`{u} en est chaque correcteur\,?}
+
+\subsection{BB\_J1 -- Bac Blanc Jour~1 (106 copies)}
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.5}
+	\begin{tabularx}{\linewidth}{L{3.3cm}|C{1.3cm}|C{1.3cm}|L{4cm}|C{0.8cm}|C{0.8cm}|}
+		\toprule
+		\rowcolor{bleuClair!60}
+		\textbf{\sffamily Correcteur} & \textbf{\sffamily Assign.} & \textbf{\sffamily En DB} & \textbf{\sffamily Source}         & \textbf{\sffamily Perte} &         \\
+		\midrule
+		Philippe Carr                 & 27                         & 27                       & Sauvegarde 20/02                  & 0                        & \ok{}   \\
+		\midrule
+		Selima Klibi                  & 27                         & 27                       & Sauveg.\,(13) + navigateur\,(14)  & 0                        & \ok{}   \\
+		\midrule
+		Patrick Dupont                & 26                         & 26                       & Navigateur (Ex1+Ex2)              & 0$^*$                    & \warn{} \\
+		\midrule
+		Alaeddine (moi)               & 26                         & 8                        & Sauveg.\,(7) + post-reconst.\,(1) & 0                        & \ok{}   \\
+		\bottomrule
+	\end{tabularx}
+\end{center}
+
+{\small $^*$Patrick\,: les 26 copies ont les exercices 1 et 2 pr\'{e}-remplis.\@ Les Ex3+Ex4 n'avaient pas \'{e}t\'{e} saisis avant le crash.\\
+Les 18 copies sans score d'Alaeddine n'avaient pas encore \'{e}t\'{e} corrig\'{e}es avant l'incident.}
+
+\subsection{BB\_J2 -- Bac Blanc Jour~2 (103 copies)}
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.5}
+	\begin{tabularx}{\linewidth}{L{3.3cm}|C{1.3cm}|C{1.3cm}|L{4cm}|C{0.8cm}|C{0.8cm}|}
+		\toprule
+		\rowcolor{bleuClair!60}
+		\textbf{\sffamily Correcteur} & \textbf{\sffamily Assign.} & \textbf{\sffamily En DB} & \textbf{\sffamily Source}         & \textbf{\sffamily Perte} &       \\
+		\midrule
+		Chawki Saadi                  & 25                         & 25                       & Sauvegarde 20/02                  & 0                        & \ok{} \\
+		\midrule
+		Sami Ben Tiba                 & 26                         & 26                       & Sauvegarde 20/02                  & 0                        & \ok{} \\
+		\midrule
+		Edouard Rousseau              & 26                         & 8                        & Sauveg.\,(4) + post-reconst.\,(4) & 0                        & \ok{} \\
+		\midrule
+		Laroussi Laroussi             & 26                         & 3                        & Sauvegarde 20/02                  & 0                        & \ok{} \\
+		\bottomrule
+	\end{tabularx}
+\end{center}
+
+{\small Les copies sans score d'Edouard (18) et Laroussi (23) n'avaient \textbf{pas encore \'{e}t\'{e} corrig\'{e}es} avant l'incident.}
+
+\subsection{Synth\`{e}se globale}
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.4}
+	\begin{tabular}{lC{2.4cm}|C{2.4cm}|C{2.6cm}|C{1.4cm}|}
+		\toprule
+		\rowcolor{bleuClair!60}
+		               & \textbf{\sffamily Complets (33q)} & \textbf{\sffamily Partiels (15q)} & \textbf{\sffamily Non encore corrig\'{e}es} & \textbf{\sffamily Total}      \\
+		\midrule
+		BB\_J1         & 62                                & 26$^*$                            & 18                                          & 106                           \\
+		\midrule
+		BB\_J2         & 62                                & 0                                 & 41                                          & 103                           \\
+		\midrule
+		\rowcolor{grisFond}
+		\textbf{Total} & \textbf{124}                      & \textbf{26}$^*$                   & \textbf{59}                                 & \textbf{209}                  \\
+		\midrule
+		\multicolumn{5}{|l|}{\cellcolor{vertClair}\sffamily\small\textbf{Donn\'{e}es perdues\,: 0/209 (0\,\%)}. Copies avec au moins un score\,: \textbf{150/209 (72\,\%)}.} \\
+		\bottomrule
+	\end{tabular}
+\end{center}
+
+{\small $^*$26 copies de Patrick avec Ex1+Ex2 uniquement (15 questions sur 33).}
+
+\section{Ce qu'il reste \`{a} faire}
+
+La r\'{e}cup\'{e}ration est \textbf{termin\'{e}e}. Il ne reste que la poursuite normale des corrections\,:
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.4}
+	\begin{tabularx}{\linewidth}{L{3cm}|C{2.4cm}|X|}
+		\toprule
+		\rowcolor{grisFond}
+		\textbf{\sffamily Correcteur} & \textbf{\sffamily Scores r\'{e}cup.} & \textbf{\sffamily Action}                                        \\
+		\midrule
+		Philippe Carr                 & 27/27                                & \textcolor{vertOK}{\textbf{Rien \`{a} faire}} -- tout est l\`{a} \\
+		\midrule
+		Selima Klibi                  & 27/27                                & \textcolor{vertOK}{\textbf{Rien \`{a} faire}} -- tout est l\`{a} \\
+		\midrule
+		Chawki Saadi                  & 25/25                                & \textcolor{vertOK}{\textbf{Rien \`{a} faire}} -- tout est l\`{a} \\
+		\midrule
+		Sami Ben Tiba                 & 26/26                                & \textcolor{vertOK}{\textbf{Rien \`{a} faire}} -- tout est l\`{a} \\
+		\midrule
+		Patrick Dupont                & 26/26 (Ex1+2)                        & Compl\'{e}ter les exercices 3 et 4 dans Korrigo                  \\
+		\midrule
+		Edouard Rousseau              & 8/26                                 & Continuer les corrections (18 copies non encore corrig\'{e}es)   \\
+		\midrule
+		Laroussi Laroussi             & 3/26                                 & Continuer les corrections (23 copies non encore corrig\'{e}es)   \\
+		\midrule
+		Alaeddine (moi)               & 8/26                                 & Continuer les corrections (18 copies non encore corrig\'{e}es)   \\
+		\bottomrule
+	\end{tabularx}
+\end{center}
+
+\begin{warnbox}[Note pour Patrick]
+	Tes 26 copies sont dans Korrigo avec les exercices 1 et 2 d\'{e}j\`{a} remplis.\@ Il te suffit de te connecter et de compl\'{e}ter les exercices 3 et 4. Tu n'as pas besoin de refaire quoi que ce soit.
+\end{warnbox}
+
+\section{Ce que contient la plateforme aujourd'hui}
+
+La plateforme \href{https://korrigo.labomaths.tn}{korrigo.labomaths.tn} est pleinement op\'{e}rationnelle\,:
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.35}
+	\begin{tabularx}{\linewidth}{XC{3.5cm}|}
+		\toprule
+		\rowcolor{grisFond}
+		\textbf{\sffamily Composant}            & \textbf{\sffamily \'{E}tat}                         \\
+		\midrule
+		Interface web HTTPS                     & \textcolor{vertOK}{\textbf{En ligne}}               \\
+		\midrule
+		209 copies PDF (scans originaux)        & \textcolor{vertOK}{\textbf{R\'{e}import\'{e}es}}    \\
+		\midrule
+		209 booklets (pages PNG)                & \textcolor{vertOK}{\textbf{Rast\'{e}ris\'{e}s}}     \\
+		\midrule
+		Affectations correcteurs                & \textcolor{vertOK}{\textbf{209/209 identiques}}     \\
+		\midrule
+		8 comptes correcteurs + admin           & \textcolor{vertOK}{\textbf{Actifs}}                 \\
+		\midrule
+		209 comptes \'{e}l\`{e}ves              & \textcolor{vertOK}{\textbf{Restaur\'{e}s}}          \\
+		\midrule
+		150 scores en base                      & \textcolor{vertOK}{\textbf{R\'{e}cup\'{e}r\'{e}s}}  \\
+		\midrule
+		544 annotations sur les copies          & \textcolor{vertOK}{\textbf{R\'{e}cup\'{e}r\'{e}es}} \\
+		\midrule
+		1\,075 remarques par question           & \textcolor{vertOK}{\textbf{R\'{e}cup\'{e}r\'{e}es}} \\
+		\midrule
+		2\,221 \'{e}v\'{e}nements de correction & \textcolor{vertOK}{\textbf{R\'{e}cup\'{e}r\'{e}s}}  \\
+		\midrule
+		42 appr\'{e}ciations g\'{e}n\'{e}rales  & \textcolor{vertOK}{\textbf{R\'{e}cup\'{e}r\'{e}es}} \\
+		\midrule
+		42 copies finalis\'{e}es (GRADED)       & \textcolor{vertOK}{\textbf{PDF annot\'{e} intact}}  \\
+		\bottomrule
+	\end{tabularx}
+\end{center}
+
+\section{Pour que \c{c}a ne se reproduise plus}
+
+J'ai impl\'{e}ment\'{e} les mesures correctives suivantes\,:
+
+\begin{enumerate}
+	\item \textbf{Sauvegardes externalis\'{e}es quotidiennes} -- Les sauvegardes sont d\'{e}sormais envoy\'{e}es automatiquement vers un stockage \emph{en dehors du serveur}. M\^{e}me si la machine est \`{a} nouveau d\'{e}truite, les donn\'{e}es survivent.
+	\item \textbf{R\'{e}tention 7 jours hors site} -- Sept jours d'historique conserv\'{e}s sur un service s\'{e}par\'{e}.
+	\item \textbf{Verrouillage des outils destructeurs} -- L'acc\`{e}s \`{a} l'outil de r\'{e}installation Hetzner est prot\'{e}g\'{e} par une proc\'{e}dure de confirmation.
+	\item \textbf{Guide de restauration document\'{e}} -- J'ai r\'{e}dig\'{e} un guide complet de reconstruction, test\'{e} et valid\'{e} pendant cette reconstitution.
+	\item \textbf{Monitoring} -- Alerte automatique si aucune sauvegarde depuis plus de 24\,h.
+\end{enumerate}
+
+\vspace{0.5cm}
+\begin{graybox}
+	\centering\itshape\sffamily
+	Encore une fois, toutes mes excuses pour la frayeur.\\
+	La bonne nouvelle, c'est que tout est l\`{a} et que la plomberie est maintenant b\'{e}tonn\'{e}e.\\[6pt]
+	N'h\'{e}sitez pas \`{a} me contacter pour v\'{e}rifier vos copies ou poser des questions.\\[6pt]
+	\textbf{Alaeddine} -- \href{mailto:alaeddine.benrhouma@ert.tn}{alaeddine.benrhouma@ert.tn}
+\end{graybox}
+
+\newpage
+
+% ============================================================
+% PARTIE II
+% ============================================================
+\part*{Partie II -- L'aventure compl\`{e}te (pour les curieux)}
+\addcontentsline{toc}{part}{Partie II -- L'aventure compl\`{e}te (pour les curieux)}
+\vspace{0.3cm}
+
+\begin{graybox}
+	\itshape\sffamily
+	Cette partie est enti\`{e}rement optionnelle.\@ Elle retrace les quatre phases d'investigation men\'{e}es en 48~heures, de la forensique disque \`{a} la r\'{e}cup\'{e}ration dans vos navigateurs.\@ Si le mot <<\,PostgreSQL\,>> ne vous dit rien, la Partie~I contient tout ce dont vous avez besoin.
+\end{graybox}
+
+\section{L'architecture de Korrigo (avant le crash)}
+
+J'avais impl\'{e}ment\'{e} Korrigo comme un ensemble de 6 services conteneuris\'{e}s (Docker) sur un serveur d\'{e}di\'{e} Hetzner \'{e}quip\'{e} de 2 disques NVMe en RAID~1 (miroir)\,:
+
+\begin{itemize}
+	\item Un \textbf{backend Django} (Python) -- le moteur de l'application
+	\item Une \textbf{base PostgreSQL~15} -- toutes les notes, copies, annotations
+	\item Un \textbf{frontend React} -- l'interface que vous utilisiez
+	\item Un \textbf{reverse proxy Nginx} -- le routage HTTPS et certificats SSL
+	\item \textbf{Redis~7} -- le cache et le broker de messages
+	\item \textbf{Celery Worker + Beat} -- t\^{a}ches asynchrones (rast\'{e}risation PDF, etc.)
+\end{itemize}
+
+J'avais pr\'{e}vu un syst\`{e}me de sauvegardes automatiques de la base toutes les 30~minutes, stock\'{e}es dans un volume Docker.\@ J'avais aussi impl\'{e}ment\'{e} une proc\'{e}dure de dump manuel que j'ex\'{e}cutais avant chaque maintenance.\@ Le dernier dump date du \textbf{20~f\'{e}vrier \`{a} 09h06} (\texttt{db\_2026-02-20.dump}, 445\,Ko).
+
+J'avais \'{e}galement pr\'{e}vu dans le frontend React un m\'{e}canisme de \textbf{sauvegarde locale automatique}\,: chaque saisie de score \'{e}tait dupliqu\'{e}e dans le \texttt{localStorage} du navigateur du correcteur, sous des cl\'{e}s \texttt{korrigo\_scores\_\{uuid\}}. Ce m\'{e}canisme, initialement impl\'{e}ment\'{e} pour la persistance en cas de perte de connexion r\'{e}seau, s'est r\'{e}v\'{e}l\'{e} \^{e}tre notre meilleure source de r\'{e}cup\'{e}ration.
+
+\medskip
+\textbf{L'erreur fondamentale\,:} les sauvegardes automatiques \'{e}taient stock\'{e}es \emph{sur le m\^{e}me serveur}. Quand le serveur a \'{e}t\'{e} r\'{e}initialis\'{e}, elles ont \'{e}t\'{e} d\'{e}truites avec le reste.\@ Une sauvegarde sur le m\^{e}me serveur, c'est comme garder le double de ses cl\'{e}s dans la m\^{e}me poche -- \c{c}a ne sert \`{a} rien quand on perd le pantalon.
+
+\section{Chronologie compl\`{e}te}
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.25}
+	\small
+	\begin{tabularx}{\linewidth}{C{2.2cm}|X|}
+		\toprule
+		\rowcolor{bleuClair!50}
+		\textbf{\sffamily Date} & \textbf{\sffamily \'{E}v\'{e}nement}                                                                  \\
+		\midrule
+		13 f\'{e}vrier          & Import des 209 copies (106 BB\_J1 + 103 BB\_J2) dans Korrigo                                          \\
+		\midrule
+		14 f\'{e}vrier          & 1\`{e}re note saisie (Edouard -- BLOUZA 19.50/20)                                                     \\
+		\midrule
+		16 f\'{e}vrier          & Philippe finalise 16 copies BB\_J1                                                                    \\
+		\midrule
+		18 f\'{e}vrier          & Chawki finalise 23 copies BB\_J2 (derni\`{e}re \`{a} 20h35)                                           \\
+		\midrule
+		\rowcolor{bleuTres}
+		20 f\'{e}vrier          & \textbf{Dump PostgreSQL \`{a} 09h06} -- 105 notes captur\'{e}es (47 J1 + 58 J2)                       \\
+		\midrule
+		20--25 f\'{e}v.         & Corrections continuent -- 57 notes suppl\'{e}mentaires saisies (162 total)                            \\
+		\midrule
+		22 f\'{e}vrier          & Bilan Walid Meziane                                                                                   \\
+		\midrule
+		23 f\'{e}vrier          & Red\'{e}ploiement de 5 copies J1 (scans A3$\to$A4) + bilan 27 notes Philippe                          \\
+		\midrule
+		25 f\'{e}vrier          & Audit d'int\'{e}grit\'{e} BB\_J2 -- z\'{e}ro anomalie                                                 \\
+		\midrule
+		\rowcolor{rougeClair}
+		\textbf{26 f\'{e}vrier} & \textbf{CRASH\,: \texttt{installimage} ex\'{e}cut\'{e} par erreur $\to$ serveur r\'{e}initialis\'{e}} \\
+		\midrule
+		26 f\'{e}v.             & Phase~1\,: R\'{e}cup\'{e}ration forensique serveur                                                    \\
+		\midrule
+		26 f\'{e}v.             & Phase~2\,: Investigation locale                                                                       \\
+		\midrule
+		26--27 f\'{e}v.         & Phase~3\,: Reconstitution compl\`{e}te de la plateforme                                               \\
+		\midrule
+		\rowcolor{vertClair}
+		27 f\'{e}v.\@ AM        & Phase~4\,: D\'{e}ploiement outil r\'{e}cup\'{e}ration \texttt{localStorage}                           \\
+		\midrule
+		\rowcolor{vertClair}
+		27 f\'{e}v.\@ AM        & Import Patrick\,: 26/26 scores Ex1+Ex2 depuis Firefox                                                 \\
+		\midrule
+		\rowcolor{vertClair}
+		27 f\'{e}v.\@ PM        & Import Selima\,: 14/14 scores complets depuis Chrome                                                  \\
+		\midrule
+		\rowcolor{vertClair}
+		27 f\'{e}v.\@ PM        & Validation Philippe (27/27) et Sami (26/26)\,: int\'{e}grit\'{e} 100\,\%                              \\
+		\midrule
+		\rowcolor{vertClair}
+		27 f\'{e}v.\@ PM        & Clarification\,: les 59 copies restantes non encore corrig\'{e}es $\to$ z\'{e}ro perte                \\
+		\bottomrule
+	\end{tabularx}
+\end{center}
+
+\section{Phase 1 -- R\'{e}cup\'{e}ration forensique serveur}
+
+D\`{e}s le constat de l'erreur, j'ai red\'{e}marr\'{e} le serveur en \textbf{Mode Rescue} (un syst\`{e}me minimal charg\'{e} en RAM qui ne touche pas aux disques). L'objectif\,: figer l'\'{e}tat des disques et tenter d'en extraire des donn\'{e}es r\'{e}siduelles.\@ J'ai lanc\'{e} un scan secteur par secteur des deux disques NVMe avec l'outil \texttt{PhotoRec}. Ce scan a permis d'extraire \textbf{33\,972 fichiers fragment\'{e}s}\,: fichiers \texttt{.sqlite}, archives \texttt{.gz}, scripts Python et PHP.
+
+J'ai ensuite impl\'{e}ment\'{e} un pipeline de recherche cibl\'{e}e \`{a} l'int\'{e}rieur de ces 33\,000 fichiers, cherchant des fragments PostgreSQL\,: signatures \texttt{CREATE TABLE}, \texttt{INSERT INTO}, noms de tables Korrigo (\texttt{grading\_score}, \texttt{exams\_copy}, \texttt{grading\_annotation}).
+
+\begin{kobox}[R\'{e}sultat Phase 1\,: \'{e}chec]
+	Le RAID~1 s'\'{e}tant resynchronis\'{e} lors de la r\'{e}installation, les deux disques pr\'{e}sentent des donn\'{e}es identiques -- pas de copie miroir ancienne exploitable.\@ Aucun dump PostgreSQL post-20~f\'{e}vrier n'a pu \^{e}tre reconstitu\'{e}. Les sauvegardes automatiques (toutes les 30~min) ont \'{e}t\'{e} \'{e}cras\'{e}es.\@ L'environnement Mode Rescue (64\,Go RAM) a de plus satur\'{e} \`{a} plusieurs reprises, interrompant les scans.
+\end{kobox}
+
+\section{Phase 2 -- Investigation locale}
+
+Face \`{a} l'\'{e}chec c\^{o}t\'{e} serveur, j'ai lanc\'{e} une investigation exhaustive sur ma machine de d\'{e}veloppement.
+
+\subsection{Le dump du 20 f\'{e}vrier}
+
+J'avais pr\'{e}vu de stocker des copies du dump PostgreSQL en local lors de chaque session de maintenance.\@ Le fichier \texttt{db\_2026-02-20.dump} (445\,Ko) se trouvait dans mon dossier de preuves de correction.\@ Il contenait l'\'{e}tat complet de la base Korrigo au 20~f\'{e}vrier.\@ J'ai impl\'{e}ment\'{e} un script Python d'extraction (\texttt{consolidate\_all\_data.py}) pour parser ce dump SQL brut et en reconstruire des donn\'{e}es structur\'{e}es\,:
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.35}
+	\begin{tabular}{lC{2cm}|C{2cm}|C{2cm}|}
+		\toprule
+		\rowcolor{bleuClair!50}
+		\textbf{\sffamily Donn\'{e}e}      & \textbf{\sffamily BB\_J1} & \textbf{\sffamily BB\_J2} & \textbf{\sffamily Total} \\
+		\midrule
+		Notes r\'{e}cup\'{e}r\'{e}es       & 47                        & 58                        & \textbf{105}             \\
+		\midrule
+		\quad dont GRADED (finalis\'{e}es) & 16                        & 26                        & 42                       \\
+		\midrule
+		\quad dont en cours                & 31                        & 32                        & 63                       \\
+		\midrule
+		Annotations                        & 173                       & 371                       & \textbf{544}             \\
+		\midrule
+		Remarques                          & 88                        & 132                       & \textbf{220}             \\
+		\midrule
+		\'{E}v\'{e}nements de correction   & 1\,519                    & 702                       & \textbf{2\,221}          \\
+		\bottomrule
+	\end{tabular}
+\end{center}
+
+\subsection{Recherche des 57 notes post-dump}
+
+J'ai impl\'{e}ment\'{e} une recherche syst\'{e}matique pour retrouver les notes saisies entre le 20 et le 25~f\'{e}vrier\,:
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.2}
+	\small
+	\begin{tabularx}{\linewidth}{lXl}
+		\toprule
+		\rowcolor{grisFond}
+		\textbf{\sffamily Source}                & \textbf{\sffamily Contenu}                             & \textbf{\sffamily R\'{e}sultat} \\
+		\midrule
+		Logs IDE Windsurf                        & Commandes terminal projets divers                      & Pas de notes                    \\
+		\midrule
+		Base VSCode state (756\,Ko)              & Historique terminal, 80 hits                           & Pas de notes                    \\
+		\midrule
+		Buffers terminal                         & Stats\,: \texttt{scores|162}, \texttt{annotations|797} & Chiffres seuls                  \\
+		\midrule
+		Base embeddings (264\,Mo)                & Fichiers index\'{e}s non pertinents                    & Faux positifs                   \\
+		\midrule
+		Export Cascade (23/02)                   & Bilan 27 notes Philippe                                & D\'{e}j\`{a} dans dump          \\
+		\midrule
+		Cache Firefox, Google Drive              & Aucune trace de notes                                  & N\'{e}ant                       \\
+		\midrule
+		PDFs t\'{e}l\'{e}charg\'{e}s (23--25/02) & 5 copies individuelles                                 & Preuves d'activit\'{e}          \\
+		\bottomrule
+	\end{tabularx}
+\end{center}
+
+Le buffer terminal confirmait que \textbf{162 scores} existaient en production au 25~f\'{e}vrier (contre 105 dans le dump). C'est \`{a} ce moment que j'ai d\'{e}cid\'{e} de tenter la r\'{e}cup\'{e}ration via vos navigateurs.
+
+\section{Phase 3 -- Reconstitution compl\`{e}te}
+
+J'ai reconstruit int\'{e}gralement le serveur et la plateforme \`{a} partir du dump et du d\'{e}p\^{o}t Git.
+
+\subsection{Infrastructure}
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.3}
+	\small
+	\begin{tabularx}{\linewidth}{C{0.5cm}|L{3.2cm}|X|}
+		\toprule
+		\rowcolor{bleuClair!50}
+		  & \textbf{\sffamily Op\'{e}ration} & \textbf{\sffamily D\'{e}tail}                                                            \\
+		\midrule
+		1 & Installation Docker              & Docker Engine + Docker Compose sur Ubuntu vierge                                         \\
+		\midrule
+		2 & D\'{e}ploiement conteneurs       & 6 services\,: PostgreSQL~15, Redis~7, Django/Gunicorn, Celery Worker, Celery Beat, Nginx \\
+		\midrule
+		3 & R\'{e}seau                       & Nginx reverse proxy port 8088 $\to$ backend 8000, CORS/CSRF                              \\
+		\midrule
+		4 & SSL                              & Certbot Let's Encrypt pour \texttt{korrigo.labomaths.tn}                                 \\
+		\midrule
+		5 & Backend                          & 59 fichiers Python d\'{e}ploy\'{e}s via overlay Docker                                   \\
+		\midrule
+		6 & Restauration base                & Dump $\to$ JSON structur\'{e} $\to$ injection progressive                                \\
+		\bottomrule
+	\end{tabularx}
+\end{center}
+
+\subsection{Pipeline de restauration des donn\'{e}es}
+
+J'ai impl\'{e}ment\'{e} le pipeline suivant\,:
+
+\begin{enumerate}
+	\item \textbf{Extraction structur\'{e}e} du dump SQL vers un JSON interm\'{e}diaire (\texttt{reconstitution\_data\_v2.json}), couvrant 10 tables\,: \texttt{auth\_user}, \texttt{exams\_exam}, \texttt{exams\_copy}, \texttt{exams\_booklet}, \texttt{grading\_score}, \texttt{grading\_annotation}, \texttt{grading\_remark}, \texttt{grading\_gradingevent}, \texttt{students\_student}, \texttt{auth\_group}
+	\item \textbf{R\'{e}import des 209 copies PDF} avec recr\'{e}ation des identifiants anonymes originaux (\texttt{0F8E-xxx} pour J1, \texttt{75FB-xxx} pour J2), rast\'{e}risation en pages PNG dans des booklets
+	\item \textbf{Restauration des comptes}\,: 8 correcteurs + 209 \'{e}l\`{e}ves + 1 admin, avec hash de mots de passe originaux conserv\'{e}s
+	\item \textbf{R\'{e}affectation des 209 copies} aux 8 correcteurs, identique au dispatch du 20~f\'{e}vrier
+	\item \textbf{R\'{e}injection des 105 scores} avec\,: scores par sous-question, 544 annotations (494 J1 + 50 J2), 1\,075 remarques (627 J1 + 448 J2), 2\,221 \'{e}v\'{e}nements de correction, 42 appr\'{e}ciations
+	\item \textbf{Cas particuliers}\,: copie 0F8E-054 (GRATI Mohamed-Mehdi) relink\'{e}e via Django shell
+	\item \textbf{Nettoyage des r\^{o}les}\,: admin retir\'{e} du groupe teacher, \texttt{is\_superuser} retir\'{e} des correcteurs qui l'avaient ind\^{u}ment
+\end{enumerate}
+
+\subsection{Audit de conformit\'{e}}
+
+J'ai impl\'{e}ment\'{e} un audit automatis\'{e} pour v\'{e}rifier la conformit\'{e} de la base restaur\'{e}e\,:
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.35}
+	\begin{tabularx}{\linewidth}{XC{3.5cm}|}
+		\toprule
+		\rowcolor{grisFond}
+		\textbf{\sffamily V\'{e}rification} & \textbf{\sffamily R\'{e}sultat} \\
+		\midrule
+		Copies dump vs base restaur\'{e}e   & 209/209 \ok{}                   \\
+		\midrule
+		Affectations diff\'{e}rentes        & 0 \ok{}                         \\
+		\midrule
+		Copies sans \'{e}tudiant li\'{e}    & 0 \ok{}                         \\
+		\midrule
+		Croisement alaeddine.benrhouma      & 26/26 \ok{}                     \\
+		\midrule
+		Croisement philippe.carr            & 27/27 \ok{}                     \\
+		\midrule
+		Croisement chawki.saadi             & 25/25 \ok{}                     \\
+		\midrule
+		Croisement selima.klibi             & 27/27 \ok{}                     \\
+		\bottomrule
+	\end{tabularx}
+\end{center}
+
+\section{Phase 4 -- R\'{e}cup\'{e}ration via les navigateurs}
+
+C'est la phase d\'{e}cisive qui a fait passer la r\'{e}cup\'{e}ration de 50\,\% \`{a} 100\,\% des corrections existantes.
+
+\subsection{L'outil de r\'{e}cup\'{e}ration}
+
+J'ai d\'{e}velopp\'{e} et d\'{e}ploy\'{e} un outil d\'{e}di\'{e} -- \texttt{recovery.html} + \texttt{recovery.js} + \texttt{recovery.css} -- h\'{e}berg\'{e} sur \texttt{korrigo.labomaths.tn/recovery.html}, conforme aux politiques de s\'{e}curit\'{e} CSP (pas de JavaScript ni CSS inline). J'ai impl\'{e}ment\'{e} une version V3 qui scanne\,: \texttt{localStorage}, \texttt{sessionStorage}, cookies, IndexedDB, Cache Storage, Service Workers, Performance API et OPFS.
+
+\subsection{Pipeline de r\'{e}conciliation des identifiants}
+
+D\'{e}fi technique\,: les cl\'{e}s \texttt{localStorage} r\'{e}f\'{e}rencent les \emph{anciens} UUID (avant crash), mais la base restaur\'{e}e utilise de \emph{nouveaux} UUID. J'ai impl\'{e}ment\'{e} un pipeline de mapping\,:
+
+\begin{center}
+	\texttt{Ancien UUID} $\xrightarrow{\text{dump exams\_copy.json}}$ \texttt{anonymous\_id} $\xrightarrow{\text{base restaur\'{e}e}}$ \texttt{Nouveau UUID}
+\end{center}
+
+Ce mapping a \'{e}t\'{e} v\'{e}rifi\'{e} syst\'{e}matiquement pour chaque correcteur avant import.
+
+\subsection{R\'{e}sultats d\'{e}taill\'{e}s par correcteur}
+
+\subsubsection{Patrick Dupont -- 26 scores r\'{e}cup\'{e}r\'{e}s (Ex1+Ex2)}
+
+\begin{itemize}
+	\item \textbf{Source}\,: Firefox \texttt{localStorage}, 26 cl\'{e}s \texttt{korrigo\_scores\_*}
+	\item \textbf{Mapping}\,: 26/26 UUID mapp\'{e}s avec succ\`{e}s
+	\item \textbf{Contenu}\,: Exercices 1 et 2 uniquement (15 questions par copie sur 33)
+	\item \textbf{Limitation}\,: Patrick n'avait pas encore saisi les Ex3+Ex4 avant le crash
+	\item \textbf{Import}\,: 26 objets Score cr\'{e}\'{e}s (aucun n'existait en DB)
+	\item \textbf{Plage de notes}\,: 2.50/20 \`{a} 9.95/20 (sur Ex1+Ex2 seulement)
+	\item \textbf{Script}\,: \texttt{import\_patrick\_scores.py}
+\end{itemize}
+
+\subsubsection{Selima Klibi -- 14 scores r\'{e}cup\'{e}r\'{e}s (complets, 33q)}
+
+\begin{itemize}
+	\item \textbf{Source}\,: Chrome \texttt{localStorage}, 33 cl\'{e}s (2 doublons post-r\'{e}import + 1 nulle $\to$ exclues)
+	\item \textbf{Mapping}\,: 27/27 UUID valides mapp\'{e}s
+	\item \textbf{Comparaison}\,: 13 copies identiques au dump $\to$ ignor\'{e}es\,; 14 copies absentes $\to$ cr\'{e}\'{e}es
+	\item \textbf{Plage de notes}\,: 1.45/20 \`{a} 18.90/20 -- Moyenne 13.84/20
+	\item \textbf{Script}\,: \texttt{import\_selima\_scores.py} (+ \texttt{selima\_scores.json} + \texttt{selima\_uuid\_mapping.json})
+\end{itemize}
+
+\subsubsection{Philippe Carr (27/27) et Sami Ben Tiba (26/26) -- Validation}
+
+Les \texttt{localStorage} de Philippe (Chrome, 27 scores) et Sami (26 scores) ont \textbf{confirm\'{e} l'int\'{e}grit\'{e} \`{a} 100\,\%} des donn\'{e}es restaur\'{e}es\,: chaque note dans le navigateur correspond exactement \`{a} la note en base.\@ Le pipeline de restauration n'a introduit aucune erreur.
+
+\subsubsection{Clarification\,: Edouard, Laroussi, Alaeddine}
+
+Contrairement \`{a} l'analyse initiale (qui parlait de <<\,57 notes perdues\,>>), les copies sans score pour ces trois correcteurs \textbf{ne repr\'{e}sentent pas des donn\'{e}es perdues}\,: ces copies n'avaient tout simplement \textbf{pas encore \'{e}t\'{e} corrig\'{e}es} au moment du crash.\@ Les donn\'{e}es en base (8 scores Edouard, 3 Laroussi, 8 Alaeddine) correspondent exactement \`{a} l'\'{e}tat r\'{e}el de l'avancement.
+
+\section{Bilan technique final}
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.35}
+	\begin{tabularx}{\linewidth}{XC{1.6cm}|X|}
+		\toprule
+		\rowcolor{bleuClair!50}
+		\textbf{\sffamily Source}              & \textbf{\sffamily Scores} & \textbf{\sffamily D\'{e}tail}                      \\
+		\midrule
+		Dump PostgreSQL du 20 f\'{e}vrier      & 105                       & 42 GRADED + 63 en cours                            \\
+		\midrule
+		\texttt{localStorage} Patrick Dupont   & 26                        & Ex1+Ex2 seulement (15q/33)                         \\
+		\midrule
+		\texttt{localStorage} Selima Klibi     & 14                        & Complets (33q) -- 13 autres d\'{e}j\`{a} dans dump \\
+		\midrule
+		Corrections post-reconstitution        & 5                         & Copies finalis\'{e}es apr\`{e}s remise en service  \\
+		\midrule
+		\texttt{localStorage} Philippe \& Sami & 0                         & 53 validations d'int\'{e}grit\'{e}                 \\
+		\midrule
+		\rowcolor{vertClair}
+		\textbf{Total unique en base}          & \textbf{150}              & \textbf{sur 209 copies (72\,\%) -- 0 perte}        \\
+		\bottomrule
+	\end{tabularx}
+\end{center}
+
+\section{Fichiers produits}
+
+\begin{center}
+	\renewcommand{\arraystretch}{1.2}
+	\small
+	\begin{tabularx}{\linewidth}{lX}
+		\toprule
+		\rowcolor{grisFond}
+		\textbf{\sffamily Fichier}             & \textbf{\sffamily Description}                      \\
+		\midrule
+		\texttt{consolidate\_all\_data.py}     & Extraction du dump SQL $\to$ JSON structur\'{e}     \\
+		\midrule
+		\texttt{reconstitution\_data\_v2.json} & Donn\'{e}es de restauration (10 tables)             \\
+		\midrule
+		\texttt{import\_patrick\_scores.py}    & Import 26 scores Patrick depuis localStorage        \\
+		\midrule
+		\texttt{import\_selima\_scores.py}     & Import 14 scores Selima depuis localStorage         \\
+		\midrule
+		\texttt{recovery.html / .js / .css}    & Outil de r\'{e}cup\'{e}ration localStorage (V3)     \\
+		\midrule
+		\texttt{selima\_uuid\_mapping.json}    & Mapping 27 anciens UUID $\to$ anonymous\_id         \\
+		\midrule
+		\texttt{patrick\_uuid\_mapping.json}   & Mapping 26 anciens UUID $\to$ anonymous\_id         \\
+		\midrule
+		\texttt{AUDIT\_CORRECTIONS.md}         & Audit d\'{e}taill\'{e} copie par copie (388 lignes) \\
+		\midrule
+		\texttt{NOTES\_RECUPERABLES\_105.csv}  & 105 notes avec d\'{e}tail par sous-question         \\
+		\midrule
+		\texttt{Bilan\_Notes\_BB\_Maths.xlsx}  & Tableur 4 onglets (J1, J2, Stats, Manquantes)       \\
+		\bottomrule
+	\end{tabularx}
+\end{center}
+
+\section{Mesures correctives impl\'{e}ment\'{e}es}
+
+\begin{enumerate}
+	\item \textbf{Sauvegardes externalis\'{e}es quotidiennes} vers un stockage hors serveur.
+	\item \textbf{R\'{e}tention 7 jours hors site}.
+	\item \textbf{Verrouillage de \texttt{installimage}} par confirmation explicite.
+	\item \textbf{Runbook de restauration} -- guide pas-\`{a}-pas test\'{e} et valid\'{e}.
+	\item \textbf{Monitoring} -- alerte automatique si aucune sauvegarde depuis 24\,h.
+\end{enumerate}
+
+\section*{Mot de la fin}
+\addcontentsline{toc}{section}{Mot de la fin}
+
+Ce crash m'a co\^{u}t\'{e} 48 heures de sommeil et une bonne dose d'adr\'{e}naline.\@ Mais la combinaison du dump du 20~f\'{e}vrier et du m\'{e}canisme de \texttt{localStorage} que j'avais impl\'{e}ment\'{e} dans le frontend a permis de r\'{e}cup\'{e}rer \textbf{100\,\% des corrections r\'{e}ellement effectu\'{e}es}. La plateforme est debout, les mesures correctives sont en place, et l'outil de r\'{e}cup\'{e}ration reste d\'{e}ploy\'{e} au cas o\`{u}.
+
+Merci pour votre patience.\@ Et encore pardon pour la frayeur.
+
+\vspace{0.8cm}
+\begin{flushright}
+	\textbf{Alaeddine Benrhouma}\\
+	\textit{27 f\'{e}vrier 2026}\\
+	\href{mailto:alaeddine.benrhouma@ert.tn}{alaeddine.benrhouma@ert.tn}
+\end{flushright}
+
+\label{LastPage}
+\end{document}

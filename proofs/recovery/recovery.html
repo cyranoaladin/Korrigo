@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Korrigo — Récupération des données</title>
+  <link rel="stylesheet" href="/recovery.css">
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <h1>Korrigo — Récupération</h1>
+      <p>Extraction des données de correction depuis votre navigateur</p>
+    </div>
+
+    <div class="info">
+      <strong>Ce que fait cette page :</strong> elle va lire les données de correction
+      (notes, brouillons, annotations) qui sont peut-être encore stockées dans votre
+      navigateur. <strong>Rien n'est modifié ni supprimé.</strong><br><br>
+      Un fichier JSON sera téléchargé automatiquement.<br>
+      <strong>Envoyez ce fichier à Alaeddine sur WhatsApp.</strong>
+    </div>
+
+    <button class="btn" id="startBtn">
+      Lancer l'extraction
+    </button>
+
+    <div id="status">
+      <div id="statusText"></div>
+      <div class="progress hidden" id="progressWrap">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="step" id="stepText"></div>
+      </div>
+      <div class="results hidden" id="resultsWrap"></div>
+    </div>
+
+    <div class="footer">
+      Korrigo PMF — Outil de récupération V3 — Les données restent dans votre navigateur
+    </div>
+  </div>
+
+  <script src="/recovery.js"></script>
+</body>
+</html>
