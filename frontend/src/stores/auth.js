@@ -93,7 +93,12 @@ export const useAuthStore = defineStore('auth', () => {
 
             // Fallback to student
             if (studentResult.status === 'fulfilled') {
-                user.value = { ...studentResult.value.data, role: 'Student' }
+                const studentData = studentResult.value.data
+                user.value = { ...studentData, role: 'Student' }
+                // Propagate must_change_password from /students/me/ response
+                if (studentData.must_change_password !== undefined) {
+                    user.value.must_change_password = studentData.must_change_password
+                }
                 return
             }
 
