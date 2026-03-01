@@ -62,28 +62,73 @@ const fetchStats = async () => {
     }
 }
 
-// Merge lot + global distributions into aligned bins for the combined chart
+// SVG chart dimensions
+const chartW = 700
+const chartH = 220
+const padL = 35
+const padR = 15
+const padT = 20
+const padB = 30
+const plotW = chartW - padL - padR
+const plotH = chartH - padT - padB
+
 const mergedBins = computed(() => {
     const lot = examStats.value?.lot_distribution || []
     const global = examStats.value?.global_distribution || []
-    const rangeMap = new Map()
-    for (const b of global) {
-        rangeMap.set(b.range, { range: b.range, start: b.start, lotCount: 0, globalCount: b.count })
+    const bins = []
+    for (let n = 0; n <= 20; n++) {
+        const lb = lot.find(b => b.start === n)
+        const gb = global.find(b => b.start === n)
+        bins.push({ note: n, lotCount: lb?.count || 0, globalCount: gb?.count || 0 })
     }
-    for (const b of lot) {
-        if (rangeMap.has(b.range)) {
-            rangeMap.get(b.range).lotCount = b.count
-        } else {
-            rangeMap.set(b.range, { range: b.range, start: b.start, lotCount: b.count, globalCount: 0 })
-        }
-    }
-    return [...rangeMap.values()].sort((a, b) => a.start - b.start)
+    return bins
 })
 
-// Compute max bar height for chart (across both series)
 const maxDistCount = computed(() => {
     if (!mergedBins.value.length) return 1
     return Math.max(...mergedBins.value.map(b => Math.max(b.lotCount, b.globalCount)), 1)
+})
+
+const yTicks = computed(() => {
+    const m = maxDistCount.value
+    if (m <= 5) return Array.from({ length: m + 1 }, (_, i) => i)
+    const step = Math.ceil(m / 5)
+    const ticks = []
+    for (let v = 0; v <= m; v += step) ticks.push(v)
+    if (ticks[ticks.length - 1] < m) ticks.push(m)
+    return ticks
+})
+
+const toX = (note) => padL + (note / 20) * plotW
+const toY = (count) => padT + plotH - (count / maxDistCount.value) * plotH
+
+const buildPath = (series) => {
+    const pts = mergedBins.value.map(b => ({ x: toX(b.note), y: toY(b[series]) }))
+    if (!pts.length) return ''
+    return 'M ' + pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')
+}
+
+const buildArea = (series) => {
+    const pts = mergedBins.value.map(b => ({ x: toX(b.note), y: toY(b[series]) }))
+    if (!pts.length) return ''
+    const baseline = toY(0)
+    return 'M ' + `${pts[0].x.toFixed(1)},${baseline.toFixed(1)} ` +
+        pts.map(p => `L ${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') +
+        ` L ${pts[pts.length - 1].x.toFixed(1)},${baseline.toFixed(1)} Z`
+}
+
+const lotPath = computed(() => buildPath('lotCount'))
+const globalPath = computed(() => buildPath('globalCount'))
+const lotArea = computed(() => buildArea('lotCount'))
+const globalArea = computed(() => buildArea('globalCount'))
+
+const meanLineX = computed(() => {
+    const m = examStats.value?.global_stats?.mean
+    return m != null ? toX(m) : null
+})
+const medianLineX = computed(() => {
+    const m = examStats.value?.global_stats?.median
+    return m != null ? toX(m) : null
 })
 
 onMounted(fetchCopies)
@@ -265,63 +310,83 @@ const scrollToStats = async () => {
             </table>
           </div>
 
-          <!-- Combined Distribution Chart -->
+          <!-- Combined Distribution Chart (SVG Line) -->
           <div
             v-if="mergedBins.length"
             class="chart-container"
           >
             <div class="chart-header">
               <h3>
-                Répartition des Notes{{ !examStats.all_graded ? ' (global partiel)' : '' }}
+                Répartition des Notes (0–20){{ !examStats.all_graded ? ' — partiel' : '' }}
               </h3>
               <div class="chart-legend">
-                <span class="legend-item">
-                  <span class="legend-dot lot-dot" />
-                  Mon Lot
-                </span>
-                <span class="legend-item">
-                  <span class="legend-dot global-dot" />
-                  Global
-                </span>
+                <span class="legend-item"><span class="legend-dot lot-dot" /> Mon Lot</span>
+                <span class="legend-item"><span class="legend-dot global-dot" /> Global</span>
+                <span class="legend-item"><span class="legend-line mean-line" /> Moyenne</span>
+                <span class="legend-item"><span class="legend-line median-line" /> Médiane</span>
               </div>
             </div>
-            <div class="bar-chart">
-              <div
-                v-for="bin in mergedBins"
-                :key="bin.range"
-                class="bar-group"
-              >
-                <div class="bar-pair">
-                  <div
-                    class="bar lot-bar"
-                    :style="{ height: (bin.lotCount / maxDistCount * 140) + 'px' }"
-                    :title="`Mon lot ${bin.range}: ${bin.lotCount} copies`"
-                  >
-                    <span
-                      v-if="bin.lotCount > 0"
-                      class="bar-label lot-label"
-                    >
-                      {{ bin.lotCount }}
-                    </span>
-                  </div>
-                  <div
-                    class="bar global-bar"
-                    :style="{ height: (bin.globalCount / maxDistCount * 140) + 'px' }"
-                    :title="`Global ${bin.range}: ${bin.globalCount} copies`"
-                  >
-                    <span
-                      v-if="bin.globalCount > 0"
-                      class="bar-label global-label"
-                    >
-                      {{ bin.globalCount }}
-                    </span>
-                  </div>
-                </div>
-                <span class="bar-range">
-                  {{ bin.range }}
-                </span>
-              </div>
-            </div>
+            <svg :viewBox="`0 0 ${chartW} ${chartH}`" class="svg-chart" preserveAspectRatio="xMidYMid meet">
+              <!-- Grid lines -->
+              <line v-for="t in yTicks" :key="'gy'+t"
+                :x1="padL" :x2="chartW - padR" :y1="toY(t)" :y2="toY(t)"
+                stroke="#e2e8f0" stroke-width="0.5" />
+              <line v-for="n in 21" :key="'gx'+n"
+                :x1="toX(n-1)" :x2="toX(n-1)" :y1="padT" :y2="padT + plotH"
+                stroke="#f1f5f9" stroke-width="0.5" />
+
+              <!-- Area fills -->
+              <path :d="globalArea" fill="#10b98120" />
+              <path :d="lotArea" fill="#6366f120" />
+
+              <!-- Curves -->
+              <path :d="globalPath" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linejoin="round" />
+              <path :d="lotPath" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linejoin="round" />
+
+              <!-- Data points -->
+              <template v-for="b in mergedBins" :key="'dp'+b.note">
+                <circle v-if="b.globalCount > 0" :cx="toX(b.note)" :cy="toY(b.globalCount)" r="3" fill="#10b981" />
+                <circle v-if="b.lotCount > 0" :cx="toX(b.note)" :cy="toY(b.lotCount)" r="3" fill="#6366f1" />
+              </template>
+
+              <!-- Mean vertical line -->
+              <line v-if="meanLineX != null"
+                :x1="meanLineX" :x2="meanLineX" :y1="padT" :y2="padT + plotH"
+                stroke="#ef4444" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.7" />
+              <text v-if="meanLineX != null"
+                :x="meanLineX" :y="padT - 4" text-anchor="middle"
+                fill="#ef4444" font-size="9" font-weight="600">
+                μ={{ examStats.global_stats?.mean }}
+              </text>
+
+              <!-- Median vertical line -->
+              <line v-if="medianLineX != null"
+                :x1="medianLineX" :x2="medianLineX" :y1="padT" :y2="padT + plotH"
+                stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.7" />
+              <text v-if="medianLineX != null"
+                :x="medianLineX" :y="padT + plotH + 26" text-anchor="middle"
+                fill="#f59e0b" font-size="9" font-weight="600">
+                Méd={{ examStats.global_stats?.median }}
+              </text>
+
+              <!-- X axis labels -->
+              <text v-for="n in 21" :key="'xl'+n"
+                :x="toX(n-1)" :y="padT + plotH + 14"
+                text-anchor="middle" fill="#64748b" font-size="9">
+                {{ n - 1 }}
+              </text>
+
+              <!-- Y axis labels -->
+              <text v-for="t in yTicks" :key="'yl'+t"
+                :x="padL - 6" :y="toY(t) + 3"
+                text-anchor="end" fill="#94a3b8" font-size="9">
+                {{ t }}
+              </text>
+
+              <!-- Axes -->
+              <line :x1="padL" :x2="chartW - padR" :y1="padT + plotH" :y2="padT + plotH" stroke="#cbd5e1" stroke-width="1" />
+              <line :x1="padL" :x2="padL" :y1="padT" :y2="padT + plotH" stroke="#cbd5e1" stroke-width="1" />
+            </svg>
           </div>
         </template>
       </div>
@@ -409,21 +474,15 @@ const scrollToStats = async () => {
 .chart-container { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
 .chart-header h3 { margin: 0; font-size: 1rem; color: #1e293b; }
-.chart-legend { display: flex; gap: 1rem; align-items: center; }
+.chart-legend { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 .legend-item { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: #475569; font-weight: 500; }
 .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
 .lot-dot { background: #6366f1; }
 .global-dot { background: #10b981; }
-.bar-chart { display: flex; align-items: flex-end; gap: 6px; padding: 10px 0; min-height: 180px; border-bottom: 2px solid #e2e8f0; }
-.bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; }
-.bar-pair { display: flex; align-items: flex-end; gap: 2px; }
-.bar { min-width: 16px; border-radius: 3px 3px 0 0; position: relative; transition: height 0.3s ease; min-height: 2px; }
-.lot-bar { background: #6366f1; }
-.global-bar { background: #10b981; }
-.bar-label { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.65rem; font-weight: 600; white-space: nowrap; }
-.lot-label { color: #6366f1; }
-.global-label { color: #059669; }
-.bar-range { font-size: 0.65rem; color: #64748b; margin-top: 4px; white-space: nowrap; }
+.legend-line { width: 18px; height: 0; border-top: 2px dashed; }
+.mean-line { border-color: #ef4444; }
+.median-line { border-color: #f59e0b; }
+.svg-chart { width: 100%; height: auto; max-height: 260px; }
 
 .task-list h2 { font-size: 1.25rem; color: #1e293b; margin-bottom: 1rem; }
 .copy-card { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
