@@ -115,6 +115,12 @@ onMounted(() => { fetchCopies() })
     <!-- MAIN -->
     <main v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
+      <!-- EXAM TITLE -->
+      <div class="text-center">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">Bac Blanc — Mathématiques</h1>
+        <p class="text-sm text-slate-400 mt-1">Février 2026</p>
+      </div>
+
       <!-- COPY SELECTOR (if multiple) -->
       <div v-if="copies.length > 1" class="flex gap-3 overflow-x-auto pb-2">
         <button v-for="copy in copies" :key="copy.id" @click="selectCopy(copy)"
