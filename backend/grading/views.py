@@ -479,17 +479,17 @@ class CorrectorStatsView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Get all graded copies for this exam
-        all_graded = Copy.objects.filter(
-            exam=exam, status=Copy.Status.GRADED
+        # Get all copies with scores (GRADED or READY with scores_data)
+        all_with_scores = Copy.objects.filter(
+            exam=exam, status__in=[Copy.Status.GRADED, Copy.Status.READY]
         ).select_related('assigned_corrector')
 
         # Get all copies for this exam
         total_copies = Copy.objects.filter(exam=exam).count()
-        graded_count = all_graded.count()
+        graded_count = all_with_scores.count()
 
         # Calculate global scores
-        global_scores = self._get_scores_for_copies(all_graded)
+        global_scores = self._get_scores_for_copies(all_with_scores)
 
         result = {
             'exam_id': str(exam.id),
@@ -503,7 +503,7 @@ class CorrectorStatsView(APIView):
 
         # If corrector, add lot-specific stats
         if is_corrector:
-            lot_graded = all_graded.filter(assigned_corrector=request.user)
+            lot_graded = all_with_scores.filter(assigned_corrector=request.user)
             lot_total = Copy.objects.filter(
                 exam=exam, assigned_corrector=request.user
             ).count()
@@ -551,19 +551,16 @@ class CorrectorStatsView(APIView):
         }
 
     def _compute_distribution(self, scores):
-        """Compute histogram distribution (bins of 2 points)."""
+        """Compute histogram distribution (1-point bins from 0 to 20)."""
         if not scores:
             return []
-        max_score = max(scores) if scores else 20
-        bin_size = 2
         bins = []
-        for start in range(0, int(max_score) + bin_size, bin_size):
-            end = start + bin_size
-            count = sum(1 for s in scores if start <= s < end)
+        for note in range(21):
+            count = sum(1 for s in scores if note <= round(s, 1) < note + 1)
             bins.append({
-                'range': f"{start}-{end}",
-                'start': start,
-                'end': end,
+                'range': str(note),
+                'start': note,
+                'end': note + 1,
                 'count': count,
             })
         return bins
