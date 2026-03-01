@@ -482,7 +482,7 @@ class CorrectorStatsView(APIView):
         # Get all copies with scores (GRADED or READY with scores_data)
         all_with_scores = Copy.objects.filter(
             exam=exam, status__in=[Copy.Status.GRADED, Copy.Status.READY]
-        ).select_related('assigned_corrector')
+        ).select_related('assigned_corrector', 'student')
 
         # Get all copies for this exam
         total_copies = Copy.objects.filter(exam=exam).count()
@@ -517,7 +517,41 @@ class CorrectorStatsView(APIView):
             }
             result['lot_distribution'] = self._compute_distribution(lot_scores)
 
+        # Group-level stats
+        group_stats = self._compute_group_stats(all_with_scores, global_scores)
+        result['group_stats'] = group_stats
+
         return Response(result)
+
+    def _compute_group_stats(self, copies_qs, global_scores):
+        """Compute stats per student group (groupe field on Student model)."""
+        from collections import defaultdict
+        group_scores = defaultdict(list)
+        for copy in copies_qs:
+            if not copy.student:
+                continue
+            groupe = copy.student.groupe or 'Non assigné'
+            score_obj = Score.objects.filter(copy=copy).first()
+            if score_obj and score_obj.scores_data:
+                total = 0
+                for val in score_obj.scores_data.values():
+                    try:
+                        total += float(val) if val is not None and val != '' else 0
+                    except (TypeError, ValueError):
+                        pass
+                group_scores[groupe].append(total)
+
+        global_mean = statistics.mean(global_scores) if global_scores else 0
+        result = []
+        for groupe in sorted(group_scores.keys()):
+            scores = group_scores[groupe]
+            stats = self._compute_stats(scores)
+            stats['groupe'] = groupe
+            stats['above_mean'] = sum(1 for s in scores if s >= global_mean)
+            stats['below_mean'] = sum(1 for s in scores if s < global_mean)
+            stats['distribution'] = self._compute_distribution(scores)
+            result.append(stats)
+        return result
 
     def _get_scores_for_copies(self, copies_qs):
         """Extract total scores from Score objects for given copies."""
