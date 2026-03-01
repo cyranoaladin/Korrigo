@@ -170,6 +170,12 @@ const routes = [
         component: () => import('../views/admin/MarkingSchemeView.vue'),
         meta: { requiresAuth: true, role: 'Admin' }
     },
+    {
+        path: '/exam/:examId/students',
+        name: 'ExamStudentList',
+        component: () => import('../views/admin/ExamStudentList.vue'),
+        meta: { requiresAuth: true, role: 'Admin' }
+    },
 
     // ── Catch-all ──
     {

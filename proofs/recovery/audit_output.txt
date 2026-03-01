@@ -1,0 +1,2540 @@
+
+################################################################################
+# EXAM: BB_J1 (id=baa78b5b-e670-4d18-b66b-c0dd1ce10225)
+################################################################################
+
+================================================================================
+CORRECTEUR: Alaeddine BEN RHOUMA (alaeddine.benrhouma@ert.tn)
+  Copies: 26 | GRADED: 0 | READY: 26 | STAGING: 0
+================================================================================
+
+  --- 0F8E-001 | ABID YOUCEF | Status: READY | Sujet: A ---
+      Note globale: 2/20 (2 questions)
+      Ex 1: 2 pts [1.2=1, 1.4=1]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 18
+
+  --- 0F8E-002 | ABOUDA AMINE | Status: READY | Sujet: A ---
+      Note globale: 4/20 (4 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.4=1, 1.5=1]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 14
+
+  --- 0F8E-003 | AGREBI SANDRA-INES | Status: READY | Sujet: A ---
+      Note globale: 4/20 (4 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.4=1, 1.5=1]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 4
+
+  --- 0F8E-004 | ALBANESE ALEXANDRE | Status: READY | Sujet: A ---
+      Note globale: 3/20 (3 questions)
+      Ex 1: 3 pts [1.1=1, 1.2=1, 1.5=1]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 4
+
+  --- 0F8E-005 | ALLANI MERIEM | Status: READY | Sujet: A ---
+      Note globale: 5/20 (5 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 4
+
+  --- 0F8E-006 | ALOULOU MALEK LOULA | Status: READY | Sujet: A ---
+      Note globale: 5/20 (5 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 2
+
+  --- 0F8E-007 | AMARA FARES | Status: READY | Sujet: B ---
+      Note globale: 5/20 (5 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 4
+
+  --- 0F8E-008 | AMEUR SELIM | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 10
+
+  --- 0F8E-009 | AOUAOUI CHAIMA | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-010 | AYADI LINA | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-011 | AYADI SARRA | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-012 | BACCOUCHE SELIMA | Status: READY | Sujet: A ---
+      Note globale: 2/20 (5 questions)
+      Ex 1: 2 pts [1.1=0, 1.2=1, 1.3=0, 1.4=1, 1.5=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-013 | BARCHICHE INES AMELIE | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 2
+
+  --- 0F8E-014 | BELCADHI YOLDEZ | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-015 | BEL HADJ KHALIFA MOHAMED | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-016 | BEN ABDELGHAFFAR MEHDI | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-017 | BEN ABDESSALEM ELYES | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-018 | BEN ALI ZEINEB | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-019 | BEN AMEUR MOHAMED-YOUSSEF | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 2
+
+  --- 0F8E-020 | BEN ATTOUCH DONIA | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-021 | BEN AYED HAFEDH | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-022 | BEN AYED SALMA | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-023 | BEN BRAHIM JAWAD | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 2
+
+  --- 0F8E-024 | BEN JEMAA SADRI | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 2
+
+  --- 0F8E-025 | BEN JERAD YASSINE | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 8
+
+  --- 0F8E-026 | BEN KHEMIS SARAH | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 2
+
+  >>> RESUME Alaeddine BEN RHOUMA:
+      Copies avec scores: 8/26
+      Copies 27 questions completes: 0/26
+      Copies avec annotations: 0/26
+      Copies avec appreciation: 0/26
+      Copies GRADED: 0/26
+      Moyenne: 3.75/20 | Min: 2/20 | Max: 5/20
+
+================================================================================
+CORRECTEUR: Patrick DUPONT (patrick.dupont@ert.tn)
+  Copies: 26 | GRADED: 0 | READY: 26 | STAGING: 0
+================================================================================
+
+  --- 0F8E-027 | BEN LAGHA YANIS | Status: READY | Sujet: A ---
+      Note globale: 8.65/20 (15 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=0]
+      Ex 2: 4.65 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0.25, 2.6=0.75, 2.7=0.5, 2.8=0.15, 2.9=0.75]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 2
+
+  --- 0F8E-028 | BEN MAAOUIA IMEN | Status: READY | Sujet: B ---
+      Note globale: 6.75/20 (15 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=0, 1.4=1, 1.5=1]
+      Ex 2: 2.75 pts [2.1=0.25, 2.10=0.5, 2.2=0.25, 2.3=0.5, 2.4=0.75, 2.5=0, 2.6=0.25, 2.7=0.25, 2.8=0, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-029 | BEN MRAD YOUSSEF | Status: READY | Sujet: A ---
+      Note globale: 3.0/20 (15 questions)
+      Ex 1: 1 pts [1.1=0, 1.2=0, 1.3=1, 1.4=0, 1.5=0]
+      Ex 2: 2.0 pts [2.1=0.25, 2.10=0.25, 2.2=0.25, 2.3=0.5, 2.4=0, 2.5=0, 2.6=0.25, 2.7=0.5, 2.8=0, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-030 | BEN RABEH ARWA | Status: READY | Sujet: B ---
+      Note globale: 5.4/20 (15 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=0, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 1.4 pts [2.1=0, 2.10=0.25, 2.2=0, 2.3=0.5, 2.4=0.5, 2.5=0, 2.6=0, 2.7=0.15, 2.8=0, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-031 | BEN RAYANA MOHAMED | Status: READY | Sujet: A ---
+      Note globale: 9.95/20 (15 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 4.95 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.75, 2.7=0.5, 2.8=0.2, 2.9=0.75]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-032 | BEN TIBA LYNDA | Status: READY | Sujet: A ---
+      Note globale: 6.85/20 (15 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=0, 1.4=1, 1.5=1]
+      Ex 2: 2.85 pts [2.1=0, 2.10=0.25, 2.2=0.25, 2.3=0.5, 2.4=0.5, 2.5=0.25, 2.6=0.5, 2.7=0.5, 2.8=0.1, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-033 | BEN TURKIA LEITH | Status: READY | Sujet: A ---
+      Note globale: 4.75/20 (15 questions)
+      Ex 1: 2 pts [1.1=0, 1.2=1, 1.3=0, 1.4=1, 1.5=0]
+      Ex 2: 2.75 pts [2.1=0, 2.10=0.5, 2.2=0.25, 2.3=0.5, 2.4=0.5, 2.5=0.25, 2.6=0.5, 2.7=0.25, 2.8=0, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-034 | BOUASSIDA ILYES | Status: READY | Sujet: B ---
+      Note globale: 7.45/20 (15 questions)
+      Ex 1: 3 pts [1.1=1, 1.2=1, 1.3=0, 1.4=1, 1.5=0]
+      Ex 2: 4.45 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.75, 2.7=0.5, 2.8=0.2, 2.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-035 | BOUGHABA SIRINE | Status: READY | Sujet: A ---
+      Note globale: 2.5/20 (15 questions)
+      Ex 1: 2 pts [1.1=0, 1.2=1, 1.3=0, 1.4=1, 1.5=0]
+      Ex 2: 0.5 pts [2.1=0, 2.10=0, 2.2=0.25, 2.3=0, 2.4=0, 2.5=0, 2.6=0.25, 2.7=0, 2.8=0, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-036 | BOUHELA YOUSSEF | Status: READY | Sujet: B ---
+      Note globale: 8.65/20 (15 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=0, 1.4=1, 1.5=1]
+      Ex 2: 4.65 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.5, 2.7=0.5, 2.8=0.15, 2.9=0.75]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-037 | BOUKER FARES | Status: READY | Sujet: A ---
+      Note globale: 8.95/20 (15 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=0]
+      Ex 2: 4.95 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.75, 2.7=0.5, 2.8=0.2, 2.9=0.75]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-038 | CHAHED SEDDIK | Status: READY | Sujet: A ---
+      Note globale: 5.0/20 (15 questions)
+      Ex 1: 2 pts [1.1=0, 1.2=1, 1.3=0, 1.4=1, 1.5=0]
+      Ex 2: 3.0 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0.25, 2.6=0.5, 2.7=0, 2.8=0, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-039 | CHAHERLI NOURHAYET | Status: READY | Sujet: B ---
+      Note globale: 7.0/20 (15 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=0, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 3.0 pts [2.1=0.25, 2.10=0, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0.15, 2.6=0.75, 2.7=0.25, 2.8=0.1, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-040 | CHAMAM JASIM-BRAHIM | Status: READY | Sujet: B ---
+      Note globale: 5.5/20 (15 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 0.5 pts [2.1=0, 2.10=0, 2.2=0, 2.3=0.5, 2.4=0, 2.5=0, 2.6=0, 2.7=0, 2.8=0, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-041 | CHAOUCH RIMA | Status: READY | Sujet: B ---
+      Note globale: 7.5/20 (15 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 2.5 pts [2.1=0, 2.10=0.25, 2.2=0.25, 2.3=0.5, 2.4=0.75, 2.5=0.15, 2.6=0.5, 2.7=0.1, 2.8=0, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-042 | CHAOUCH YASMIN | Status: READY | Sujet: A ---
+      Note globale: 8.2/20 (15 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=0, 1.4=1, 1.5=1]
+      Ex 2: 4.2 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.75, 2.7=0.5, 2.8=0.2, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-043 | CHIHAOUI INES | Status: READY | Sujet: B ---
+      Note globale: 5.5/20 (15 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 0.5 pts [2.1=0, 2.10=0, 2.2=0, 2.3=0.5, 2.4=0, 2.5=0, 2.6=0, 2.7=0, 2.8=0, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-044 | CHOUAYA YOUSSEF | Status: READY | Sujet: B ---
+      Note globale: 8.35/20 (15 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 3.35 pts [2.1=0.25, 2.10=0.25, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.75, 2.7=0, 2.8=0.1, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-045 | DABOUSSI IHEB | Status: READY | Sujet: B ---
+      Note globale: 8.65/20 (15 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 3.65 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0.25, 2.6=0.75, 2.7=0.25, 2.8=0.15, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-046 | DABOUSSI YASMINE | Status: READY | Sujet: B ---
+      Note globale: 7.45/20 (15 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 2.45 pts [2.1=0.25, 2.10=0.25, 2.2=0.25, 2.3=0.5, 2.4=0, 2.5=0.1, 2.6=0.75, 2.7=0.25, 2.8=0.1, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-047 | DEBBECH MOHAMED-ANAS | Status: READY | Sujet: A ---
+      Note globale: 3.75/20 (15 questions)
+      Ex 1: 3 pts [1.1=0, 1.2=1, 1.3=0, 1.4=1, 1.5=1]
+      Ex 2: 0.75 pts [2.1=0, 2.10=0, 2.2=0.25, 2.3=0.5, 2.4=0, 2.5=0, 2.6=0, 2.7=0, 2.8=0, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-048 | DOUAGI ALY | Status: READY | Sujet: A ---
+      Note globale: 7.15/20 (15 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=0, 1.4=1, 1.5=1]
+      Ex 2: 3.15 pts [2.1=0.25, 2.10=0.25, 2.2=0.25, 2.3=0.5, 2.4=0.5, 2.5=0.25, 2.6=0.75, 2.7=0.3, 2.8=0.1, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-049 | DRISS YACINE | Status: READY | Sujet: B ---
+      Note globale: 9.95/20 (15 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 4.95 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.75, 2.7=0.5, 2.8=0.2, 2.9=0.75]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-050 | EL OUDI IRAM | Status: READY | Sujet: B ---
+      Note globale: 5.5/20 (15 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=0, 1.4=1, 1.5=1]
+      Ex 2: 1.5 pts [2.1=0, 2.10=0, 2.2=0.25, 2.3=0.5, 2.4=0.5, 2.5=0, 2.6=0, 2.7=0.25, 2.8=0, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-051 | FENNIRA NADINE | Status: READY | Sujet: A ---
+      Note globale: 6.75/20 (15 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=0]
+      Ex 2: 2.75 pts [2.1=0.25, 2.10=0.25, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0, 2.6=0, 2.7=0.5, 2.8=0.25, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-052 | GHORBAL SOPHIE | Status: READY | Sujet: A ---
+      Note globale: 7.65/20 (15 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 2.65 pts [2.1=0.15, 2.10=0.5, 2.2=0.25, 2.3=0.5, 2.4=0.5, 2.5=0, 2.6=0.5, 2.7=0.25, 2.8=0, 2.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  >>> RESUME Patrick DUPONT:
+      Copies avec scores: 26/26
+      Copies 27 questions completes: 0/26
+      Copies avec annotations: 0/26
+      Copies avec appreciation: 0/26
+      Copies GRADED: 0/26
+      Moyenne: 6.8/20 | Min: 2.5/20 | Max: 9.95/20
+
+================================================================================
+CORRECTEUR: Philippe CARR (philippe.carr@ert.tn)
+  Copies: 27 | GRADED: 27 | READY: 0 | STAGING: 0
+================================================================================
+
+  --- 0F8E-053 | GRAF ALIA | Status: GRADED | Sujet: B ---
+      Note globale: 7.25/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 0 pts [2.1=0, 2.10=0, 2.2=0, 2.3=0, 2.4=0, 2.5=0, 2.6=0, 2.7=0, 2.8=0, 2.9=0]
+      Ex 3: 1.5 pts [3.1=0, 3.2=0, 3.3=0.25, 3.4=0.5, 3.5=0, 3.6=0.75]
+      Ex 4: 0.75 pts [4.1=0, 4.10=0, 4.11=0, 4.12=0, 4.2=0, 4.3=0, 4.4=0.25, 4.5=0, 4.6=0, 4.7=0, 4.8=0.5, 4.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Ensemble trop moyen.
+Ex1: TB.
+Ex3: Méthodes non maîtrisées et réflexion insuffisante.
+EX2: seules la 1ère question et la dernière ont été traitées et mal traitées! Revoir les méthode d'étude des fonct...
+      Events de correction: 16
+
+  --- 0F8E-054 | GRATI MOHAMED-MEHDI | Status: GRADED | Sujet: B ---
+      Note globale: 11.75/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 1.75 pts [2.1=0, 2.10=0, 2.2=0.25, 2.3=0.5, 2.4=0.25, 2.5=0.25, 2.6=0.25, 2.7=0.25, 2.8=0, 2.9=0]
+      Ex 3: 1.75 pts [3.1=0.25, 3.2=0, 3.3=0.5, 3.4=0.75, 3.5=0.25, 3.6=0]
+      Ex 4: 3.25 pts [4.1=0.25, 4.10=0, 4.11=0.75, 4.12=0, 4.2=0, 4.3=0, 4.4=0.75, 4.5=0.5, 4.6=0.25, 4.7=0.25, 4.8=0.5, 4.9=0]
+      Annotations: 15 (COMMENT:15)
+      Remarques (15):
+        - p1: Utiliser la croissance de g et les images de 0 et de 1 par g. g est définie en 0
+        - p3: Faux! Utiliser le point fixe.
+        - p3: A long terme 100% de la pop sera équipée.
+        - p4: v(n+1)=(1-u(n))²=v(n)² manquant
+        - p4: v(n+1)=(1-u(n))²=v(n)² manquant
+        - p4: valeur exacte?
+        - p4: ?? R!
+        - p5: ln€R!!!! Que signifie ceci ici?
+        - p5: RC?
+        - p5: erreur: 0,9^(2^(n+1))!!!
+        ... et 5 de plus
+      Appreciation: Ensemble moyen.
+EX1: TB.
+Ex3: méthodes mal maîtrisées et réflexion à approfondir. Des calculs faux.
+Ex2: début correct puis réflexion erronée, calculs faux et questions non traitées.
+Ex4: Les méthodes...
+      Events de correction: 71
+
+  --- 0F8E-055 | HACHICH SELIM | Status: GRADED | Sujet: B ---
+      Note globale: 20.0/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 5.0 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.75, 2.7=0.5, 2.8=0.25, 2.9=0.75]
+      Ex 3: 4.0 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.75]
+      Ex 4: 6.0 pts [4.1=0.25, 4.10=0.25, 4.11=1, 4.12=0.25, 4.2=0.25, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.75, 4.7=0.5, 4.8=1, 4.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Excellent travail.
+EX1: TB.
+EX3: TB.
+EX2: TB.
+EX4: TB.
+      Events de correction: 16
+
+  --- 0F8E-056 | HAMAIED EMNA | Status: GRADED | Sujet: B ---
+      Note globale: 18.75/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 4.7 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.75, 2.7=0.5, 2.8=0.2, 2.9=0.5]
+      Ex 3: 3.75 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.5]
+      Ex 4: 5.3 pts [4.1=0.25, 4.10=0.1, 4.11=0.5, 4.12=0.2, 4.2=0.25, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.75, 4.7=0.5, 4.8=1, 4.9=0.25]
+      Annotations: 18 (COMMENT:18)
+      Remarques (18):
+        - p4: Attention! Cette méthode n'implique pas les positions relatives avant e(-3/2)!
+        - p4: équation de la tangente pour x=0 un peu trop rapide! + résoudre
+ f'(a)(-a)+f(a)=
+        - p4: équation de la tangente pour x=0 un peu trop rapide! + résoudre
+ f'(a)(-a)+f(a)=
+        - p5: oui.
+        - p5: Bien.
+        - p6: La dernière conclusion est erronée! votre variable aléatoire X n'est pas un gain
+        - p8: pour tout n dans N
+        - p8: attention au blanco!
+        - p9: Pour tout n dans N.
+        - p10: Pour tout n dans N.
+        ... et 8 de plus
+      Appreciation: Très bon ensemble.
+Ex1 :TB.
+EX3: TB.
+EX2: TB quelques raisonnements sont trop rapides. 
+Ex3: TB mais revoir la fin.
+      Events de correction: 56
+
+  --- 0F8E-057 | HAMZAOUI ISMAËL SATYAVAN | Status: GRADED | Sujet: B ---
+      Note globale: 11.15/20 (33 questions)
+      Ex 1: 2 pts [1.1=0, 1.2=1, 1.3=0, 1.4=1, 1.5=0]
+      Ex 2: 2.8 pts [2.1=0, 2.10=0.5, 2.2=0.4, 2.3=0.5, 2.4=0.6, 2.5=0, 2.6=0.3, 2.7=0.5, 2.8=0, 2.9=0]
+      Ex 3: 2.5 pts [3.1=0, 3.2=0.25, 3.3=0.5, 3.4=0.75, 3.5=0.5, 3.6=0.5]
+      Ex 4: 3.85 pts [4.1=0.25, 4.10=0.1, 4.11=0.75, 4.12=0, 4.2=0.25, 4.3=0, 4.4=0.75, 4.5=0.5, 4.6=0.5, 4.7=0.25, 4.8=0.5, 4.9=0]
+      Annotations: 27 (COMMENT:27)
+      Remarques (27):
+        - p2: Attention vous n'avez pas donné la limite de lnx en + infinie.
+        - p2: pas parceque e>0 mais parceque exp croit sur R!
+        - p3: Incohérent.
+        - p3: il faut résoudre f">0.
+Conclusion sur la convexité non donnée! Calcul de yI non 
+        - p4: 1ère phrase fausse: f concave sur ]0; e(-3/2)]
+        - p5: Méthode juste mais erreur sur le loi 1a. Il est écrit a positif!
+
+        - p5: Cette loi n'est forcément pas équiprobable! deplus l'issue est -a et non a!
+        - p6: Justifier la loi binomiale! 
+        - p6: justifier la loi dès la question 3a)! Interprétation fausse! Y n'est pas un gain
+        - p7: Votre loi ne donne pas des gains!
+        ... et 17 de plus
+      Appreciation: Ensemble moyen.
+Ex1: Etonnamment il s'agit des réponses du QCM sujet A!
+EX3: Réflexion à approfondir et méthodes à revoir.
+Ex4: correct mais les raisonnement manques d'approfondissement.
+EX2: la fin à...
+      Events de correction: 63
+
+  --- 0F8E-058 | HASSAIRI HEDI | Status: GRADED | Sujet: B ---
+      Note globale: 12.8/20 (33 questions)
+      Ex 1: 3 pts [1.1=1, 1.2=0, 1.3=0, 1.4=1, 1.5=1]
+      Ex 2: 3.45 pts [2.1=0.2, 2.10=0.25, 2.2=0.5, 2.3=0.5, 2.4=0.65, 2.5=0.25, 2.6=0.5, 2.7=0.5, 2.8=0.1, 2.9=0]
+      Ex 3: 2.5 pts [3.1=0.5, 3.2=0.5, 3.3=0, 3.4=0.5, 3.5=0.5, 3.6=0.5]
+      Ex 4: 3.85 pts [4.1=0.25, 4.10=0.1, 4.11=0.5, 4.12=0, 4.2=0, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0, 4.7=0.5, 4.8=0.75, 4.9=0.25]
+      Annotations: 32 (COMMENT:32)
+      Remarques (32):
+        - p1: Attention! vous partez de l'égalité à prouver!
+        - p2: vous mélangez les notations!
+        - p2: signe de x non donné!
+        - p3: vous mélangez les notations!
+        - p3: ok mais au 10ème demandé donc on attendait plutôt [0,2;0,3]
+        - p4: Valeur exacte simplifiée de yI attendue. Pas de valeur approchée!
+        - p4: Propriété tangente et convexité mal comprise! de plus incomplet.
+        - p4: Non justifié.
+        - p5: P(-a) FAUSSE.
+        - p5: METHODE BONNE MAIS ERREUR SUR P(-a)
+        ... et 22 de plus
+      Appreciation: Ensemble correct.
+EX1: Réflexion à revoir.
+EX3: Réflexion à approfondir. 2) non traitée. 
+Ex2: des imprécisions, des justifications manquantes et une réflexion insuffisante.
+Ex4: quelques erreurs ou r...
+      Events de correction: 70
+
+  --- 0F8E-059 | ISSA MOURAD | Status: GRADED | Sujet: A ---
+      Note globale: 19.5/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 4.75 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.4, 2.4=0.75, 2.5=0.25, 2.6=0.75, 2.7=0.5, 2.8=0.2, 2.9=0.65]
+      Ex 3: 4.0 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.75]
+      Ex 4: 5.75 pts [4.1=0.25, 4.10=0.25, 4.11=0.75, 4.12=0.25, 4.2=0.25, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.75, 4.7=0.5, 4.8=1, 4.9=0.25]
+      Annotations: 17 (COMMENT:17)
+      Remarques (17):
+        - p2: Attention rédaction minimaliste!
+        - p3: Dérivée raisonnement minimaliste.
+
+        - p4: Conclure!
+        - p5: Méthode qui ne dit pas la position relative de C par rapport à T avant e(-3/2)!
+        - p5: Préciser a² non nul
+        - p5: Préciser a² non nul
+        - p6: Bien
+        - p6: Bien
+        - p8: Bien
+        - p9: le contraire!
+        ... et 7 de plus
+      Appreciation: Excellent ensemble.
+EX1: TB.
+EX3: TB.
+EX2: Bien mais quelques imprécision des raisonnements.
+Ex4: TB un raisonnement manquant.
+
+      Events de correction: 49
+
+  --- 0F8E-060 | JAAFAR YOUSSEF | Status: GRADED | Sujet: A ---
+      Note globale: 8.75/20 (33 questions)
+      Ex 1: 2 pts [1.1=0, 1.2=1, 1.3=0, 1.4=1, 1.5=0]
+      Ex 2: 0.25 pts [2.1=0, 2.10=0, 2.2=0, 2.3=0, 2.4=0.25, 2.5=0, 2.6=0, 2.7=0, 2.8=0, 2.9=0]
+      Ex 3: 3.25 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=0.5, 3.5=0.5, 3.6=0.5]
+      Ex 4: 3.25 pts [4.1=0.25, 4.10=0, 4.11=0.5, 4.12=0, 4.2=0.25, 4.3=0.25, 4.4=0.25, 4.5=0.5, 4.6=0.25, 4.7=0.5, 4.8=0.25, 4.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Ensemble trop moyen.
+EX1: Etonnamment il s'agit des réponses au QCM du sujet B!
+Ex3: Réponses incomplètes.
+Ex 2: Méthodes d'étude des fonctions non acquises.
+Ex4: Raisonnement par récurrence non acqui...
+      Events de correction: 24
+
+  --- 0F8E-061 | JABEUR RAMY | Status: GRADED | Sujet: B ---
+      Note globale: 13.5/20 (33 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=0, 1.4=1, 1.5=1]
+      Ex 2: 2.75 pts [2.1=0.25, 2.10=0.25, 2.2=0.5, 2.3=0.25, 2.4=0.75, 2.5=0, 2.6=0.5, 2.7=0.25, 2.8=0, 2.9=0]
+      Ex 3: 2.25 pts [3.1=0, 3.2=0.25, 3.3=0.5, 3.4=1, 3.5=0, 3.6=0.5]
+      Ex 4: 4.5 pts [4.1=0.25, 4.10=0, 4.11=0.25, 4.12=0.25, 4.2=0.1, 4.3=0.15, 4.4=0.75, 4.5=0.25, 4.6=0.75, 4.7=0.5, 4.8=1, 4.9=0.25]
+      Annotations: 4 (COMMENT:4)
+      Remarques (4):
+        - p13: FIN.
+        - p14: FIN.
+        - p15: FIN.
+        - p16: FIN.
+      Appreciation: Ensemble correct.
+Ex1: une erreur.
+Ex2: quelques points à revoir et des questions non traitées. Attention aux méthodes.
+Ex4: Correct. Quelques points à revoir.
+Ex3: Moyen! des incompréhensions!
+      Events de correction: 24
+
+  --- 0F8E-062 | JAIDANE MOHAMED-SEYF | Status: GRADED | Sujet: A ---
+      Note globale: 8.25/20 (33 questions)
+      Ex 1: 2 pts [1.1=0, 1.2=1, 1.3=0, 1.4=1, 1.5=0]
+      Ex 2: 2.25 pts [2.1=0, 2.10=0, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0, 2.6=0.5, 2.7=0.25, 2.8=0, 2.9=0]
+      Ex 3: 1.25 pts [3.1=0, 3.2=0, 3.3=0, 3.4=0.5, 3.5=0.25, 3.6=0.5]
+      Ex 4: 2.75 pts [4.1=0.25, 4.10=0, 4.11=0.25, 4.12=0, 4.2=0, 4.3=0.25, 4.4=0.5, 4.5=0.5, 4.6=0.25, 4.7=0.5, 4.8=0.25, 4.9=0]
+      Annotations: 11 (COMMENT:11)
+      Remarques (11):
+        - p6: Attention aux notations. f'=x(2lnx+1) notation fausse.
+        - p6: manque exp croît sur R. et x>e(-1/2).
+Minimum non calculé.
+        - p8: faux on demande un encadrement et incohérent avec 4b.
+Vous parlez de la droite (
+        - p8: idem attention aux notations!
+yI: on attendait la valeur exacte simplifiée! Pas 
+        - p8: yI: on attendait la valeur exacte simplifiée! Pas une valeur approchée! D'ailleu
+        - p9: Justification de la loi binomiale? Arrondi au millième!
+        - p10: Vous donnez 2 résultats différents!  Formule fausse! Arrondi au millième!
+        - p10: Interprétation confuse et incomplète. La loi ne donne pas des gains! Le joueur g
+        - p11: La loi n'est pas équiprobable! De plus l'issue a est fausse.
+        - p11: Les deux issues sont conformes à l'événement. Pourquoi multipliez vous les proba
+        ... et 1 de plus
+      Appreciation: Ensemble trop moyen.
+EX1: Etonnamment il s'agit des réponses au QCM du sujet B!
+EX3: Réflexion et maîtrise des méthodes insuffisantes.
+Ex2: méthodes d'étude de fonctions approximatives. Réflexion insu...
+      Events de correction: 47
+
+  --- 0F8E-063 | JALLOULI AMINE | Status: GRADED | Sujet: B ---
+      Note globale: 17.85/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 3.85 pts [2.1=0.25, 2.10=0.25, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0.25, 2.6=0.5, 2.7=0.15, 2.8=0.2, 2.9=0.75]
+      Ex 3: 4.0 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.75]
+      Ex 4: 5.0 pts [4.1=0.25, 4.10=0.25, 4.11=0.75, 4.12=0.25, 4.2=0.25, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.75, 4.7=0.25, 4.8=0.5, 4.9=0.25]
+      Annotations: 5 (COMMENT:5)
+      Remarques (5):
+        - p2: Ok Mais un peu rapide!
+        - p2: Valeur exacte du minimum attendue.
+        - p3: Calcul de yI attendu!
+        - p3: Formule ok mais calculs en valeurs exactes essentiels! 
+Conclusion incohérente!
+        - p4: Votre méthode ne donne pas les positions relatives avant e(-3/2)!
+      Appreciation: Très bon ensemble.
+Ex1: TB.
+Ex3: TB.
+Ex2: Quelques imprécisions. Equation de tangente en valeurs exactes essentiel!
+EX4: Bien. Quelques points à améliorer.
+      Events de correction: 31
+
+  --- 0F8E-064 | JEBIRA SAMI | Status: GRADED | Sujet: A ---
+      Note globale: 7.75/20 (33 questions)
+      Ex 1: 4 pts [1.1=0, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 0.75 pts [2.1=0, 2.10=0, 2.2=0.25, 2.3=0.5, 2.4=0, 2.5=0, 2.6=0, 2.7=0, 2.8=0, 2.9=0]
+      Ex 3: 2.0 pts [3.1=0, 3.2=0, 3.3=0.5, 3.4=0.5, 3.5=0.5, 3.6=0.5]
+      Ex 4: 1.0 pts [4.1=0, 4.10=0, 4.11=0, 4.12=0.25, 4.2=0, 4.3=0.25, 4.4=0.25, 4.5=0.25, 4.6=0, 4.7=0, 4.8=0, 4.9=0]
+      Annotations: 34 (COMMENT:34)
+      Remarques (34):
+        - p1: Que vient faire la résolution de g(x)=0 dans cette question!!!! De plus vous uti
+        - p2: On ne cherche pas le signe de g mais celui de g'!!!!!!! Voyons!
+        - p2: non! Factoriser voyons!!!
+        - p3: Ne pas partir de l'inégalité à prouver!
+        - p3: c est u1
+        - p3: non! utiliser la croissance de g sur [0;1]
+        - p3: faux!
+        - p3: faux!
+        - p3: Non!
+        - p4: Rien à voir avec une loi binomiale!
+        ... et 24 de plus
+      Appreciation: Trop moyen.
+Ex1: 1) Réflexion insuffisante.
+Ex3: méthodes non maîtrisées et réflexion erronée. 
+Ex2: les méthodes d'études de fonctions ne sont pas acquises et la réflexion insuffisante.
+Ex4: méthodes...
+      Events de correction: 76
+
+  --- 0F8E-065 | JERIBI OMAR | Status: GRADED | Sujet: B ---
+      Note globale: 14.0/20 (33 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=0]
+      Ex 2: 2.5 pts [2.1=0.25, 2.10=0.25, 2.2=0.5, 2.3=0.25, 2.4=0.6, 2.5=0.15, 2.6=0.25, 2.7=0.25, 2.8=0, 2.9=0]
+      Ex 3: 2.0 pts [3.1=0, 3.2=0.5, 3.3=0.5, 3.4=0.5, 3.5=0.25, 3.6=0.25]
+      Ex 4: 5.5 pts [4.1=0.25, 4.10=0.25, 4.11=0.75, 4.12=0.25, 4.2=0.25, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.5, 4.7=0.5, 4.8=1, 4.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Assez bon ensemble.
+Ex3: Réflexion insuffisante et calculs à revoir.
+Ex4: Méthodes bien acquises. Quelques points à revoir.
+Ex1: revoir Q5.
+Ex2: certains raisonnement à revoir et une erreur de calcul ...
+      Events de correction: 52
+
+  --- 0F8E-066 | JOMAA EMINE | Status: GRADED | Sujet: B ---
+      Note globale: 18.6/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 4.35 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.15, 2.6=0.75, 2.7=0.5, 2.8=0.2, 2.9=0.25]
+      Ex 3: 4.0 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.75]
+      Ex 4: 5.25 pts [4.1=0.25, 4.10=0.25, 4.11=0.5, 4.12=0.25, 4.2=0.25, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.5, 4.7=0.5, 4.8=1, 4.9=0.25]
+      Annotations: 17 (COMMENT:17)
+      Remarques (17):
+        - p2: bien
+        - p2: bien
+        - p3: bien
+        - p4: TB
+        - p4: plutôt entre 0,2 et 0,3!
+        - p8: Raisonnement non acceptable sur cet intervalle.
+        - p8: ??
+        - p8: ??
+        - p14: Conclure S=
+        - p15: g
+        ... et 7 de plus
+      Appreciation: Très bon ensemble.
+Ex1: TB.
+Ex3: TB.
+Ex2: Certains raisonnements incomplets.
+Ex4: TB . Un point à revoir.
+      Events de correction: 51
+
+  --- 0F8E-067 | KAABI OMAR-MOKHTAR | Status: GRADED | Sujet: B ---
+      Note globale: 15.0/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 3.5 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.5, 2.7=0.25, 2.8=0, 2.9=0]
+      Ex 3: 3.5 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=0.75, 3.5=0.5, 3.6=0.5]
+      Ex 4: 3.0 pts [4.1=0.25, 4.10=0.1, 4.11=0.5, 4.12=0.25, 4.2=0, 4.3=0.25, 4.4=0, 4.5=0.5, 4.6=0.5, 4.7=0.25, 4.8=0.15, 4.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Bon ensemble.
+Ex1: TB.
+Ex2: Certains points non traités. Tangente et convexité incomplet.
+Ex3: bien mis à part 2 erreurs.
+Ex4: très confus. Réponses dans le désordre! A éviter absolument! Certaines mé...
+      Events de correction: 54
+
+  --- 0F8E-068 | KAMMOUN AYMAR | Status: GRADED | Sujet: A ---
+      Note globale: 16.65/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 3.0 pts [2.1=0.25, 2.10=0.25, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0.25, 2.6=0.25, 2.7=0.5, 2.8=0, 2.9=0]
+      Ex 3: 3.5 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=0.75, 3.5=0.5, 3.6=0.5]
+      Ex 4: 5.15 pts [4.1=0.25, 4.10=0.15, 4.11=0.75, 4.12=0.25, 4.2=0.25, 4.3=0.15, 4.4=0.75, 4.5=0.25, 4.6=0.75, 4.7=0.5, 4.8=0.85, 4.9=0.25]
+      Annotations: 11 (COMMENT:11)
+      Remarques (11):
+        - p1: bien
+        - p1: bien
+        - p2: signe non justifié! Il faut résoudre une inéquation!
+        - p2: à simplifier!
+        - p2: inéquation à résoudre.
+        - p2: calcul de yI?
+        - p2: convexité?
+        - p3: Justification de la loi binomiale manquante.
+        - p3: Interpréter
+        - p4: incomplet!
+        ... et 1 de plus
+      Appreciation: Très bon ensemble.
+EX1. TB.
+EX3: B mais incomplet.
+Ex2: Des questions non traitées ou des réponses incomplètes. Manque de rigueur dans l'étude des fonction.
+Ex 4: Les raisonnements manquent parfois de...
+      Events de correction: 33
+
+  --- 0F8E-069 | KHALSI SAFE | Status: GRADED | Sujet: A ---
+      Note globale: 6.25/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 0.25 pts [2.1=0, 2.10=0, 2.2=0, 2.3=0, 2.4=0, 2.5=0, 2.6=0, 2.7=0.25, 2.8=0, 2.9=0]
+      Ex 3: 0.5 pts [3.1=0, 3.2=0, 3.3=0, 3.4=0.25, 3.5=0, 3.6=0.25]
+      Ex 4: 0.5 pts [4.1=0, 4.10=0, 4.11=0, 4.12=0, 4.2=0, 4.3=0.25, 4.4=0, 4.5=0, 4.6=0, 4.7=0, 4.8=0.25, 4.9=0]
+      Annotations: 11 (COMMENT:11)
+      Remarques (11):
+        - p1: à prouver pour tout a et b réels strictement positifs!
+        - p1: calculs faux!
+        - p1: limite lnx fausse en 0+! Utiliser croissance comparée
+        - p1: Limite lnx fausse en +infini
+        - p1: rédaction non acceptable
+        - p2: formules non acquises!
+        - p2: faux et non justifié!
+        - p2: tableau incomplet
+        - p2: non
+        - p2: y=
+        ... et 1 de plus
+      Appreciation: Ensemble faible.
+EX1: TB.
+Ex 3: méthodes non acquises et réflexion insuffisante.
+Ex2: méthodes d'étude de fonctions mal acquises.
+Ex4: les méthodes sur les suites ne sont pas acquises et la réflexion ...
+      Events de correction: 25
+
+  --- 0F8E-070 | KHEMIRI HEDI | Status: GRADED | Sujet: A ---
+      Note globale: 14.25/20 (33 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=0]
+      Ex 2: 2.0 pts [2.1=0, 2.10=0.25, 2.2=0.25, 2.3=0.5, 2.4=0.25, 2.5=0, 2.6=0.5, 2.7=0.15, 2.8=0.1, 2.9=0]
+      Ex 3: 3.75 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.5]
+      Ex 4: 4.5 pts [4.1=0.25, 4.10=0.25, 4.11=0.75, 4.12=0, 4.2=0, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.5, 4.7=0.5, 4.8=0.5, 4.9=0.25]
+      Annotations: 35 (COMMENT:35)
+      Remarques (35):
+        - p1: Ne pas partir de ce qu'il faut prouver!
+        - p1: incomplet.
+        - p1: oui
+        - p1: limite fausse
+        - p1: pas par composition mais limite remarquable.
+        - p1: pas par composition
+        - p3: exp croît sur R
+        - p3: calcul yI?
+        - p3: détails?
+        - p3: Pas de réponse sur l'appartenance de O.
+        ... et 25 de plus
+      Appreciation: Assez bon ensemble.
+Ex 1: Q5 réflexion à revoir.
+Ex3: Bien mais interprétation de l'espérance à revoir.
+Ex2: Etude incomplète de la fonction. Méthodes à revoir.
+Ex4: Raisonnements brouillons ou incomp...
+      Events de correction: 69
+
+  --- 0F8E-071 | KHOUADJA LINA | Status: GRADED | Sujet: A ---
+      Note globale: 15.5/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 2.85 pts [2.1=0.25, 2.10=0.25, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0.25, 2.6=0.5, 2.7=0, 2.8=0.1, 2.9=0]
+      Ex 3: 2.75 pts [3.1=0.5, 3.2=0.25, 3.3=0, 3.4=1, 3.5=0.5, 3.6=0.5]
+      Ex 4: 4.9 pts [4.1=0.25, 4.10=0.15, 4.11=0.75, 4.12=0.25, 4.2=0.25, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.5, 4.7=0.25, 4.8=0.75, 4.9=0.25]
+      Annotations: 21 (COMMENT:21)
+      Remarques (21):
+        - p1: D'où sort ceci?
+        - p2: sur?
+        - p2: à calculer!
+        - p3: l'abscisse du ...
+        - p3: et son ordonnée?
+        - p3: formule fausse!
+        - p3: Pourquoi =0??
+        - p3: faux.
+        - p3: ok sur cet intervalle mais pas sur l'autre!
+        - p3: ça n'est pas une preuve.
+        ... et 11 de plus
+      Appreciation: Bon ensemble.
+EX1: TB.
+EX3: Attention à l'énoncé!
+Ex2: moyen. Maîtrise partielle des méthodes.
+EX4: Bon ensemble mais quelques erreurs.
+
+      Events de correction: 47
+
+  --- 0F8E-072 | LUCIANI INES | Status: GRADED | Sujet: B ---
+      Note globale: 9.0/20 (33 questions)
+      Ex 1: 2 pts [1.1=1, 1.2=0, 1.3=0, 1.4=0, 1.5=1]
+      Ex 2: 2.15 pts [2.1=0.25, 2.10=0.25, 2.2=0.4, 2.3=0.5, 2.4=0.5, 2.5=0, 2.6=0, 2.7=0.25, 2.8=0, 2.9=0]
+      Ex 3: 2.75 pts [3.1=0, 3.2=0, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.75]
+      Ex 4: 2.1 pts [4.1=0.25, 4.10=0, 4.11=0, 4.12=0, 4.2=0, 4.3=0, 4.4=0.5, 4.5=0.25, 4.6=0.25, 4.7=0.5, 4.8=0.35, 4.9=0]
+      Annotations: 28 (COMMENT:28)
+      Remarques (28):
+        - p2: non pas de croissance comparée ici!
+        - p3: valeur exacte attendue!
+        - p3: 0
+        - p3: non
+        - p3: pas de sens!
+        - p3: Non comment étudie-t-on la convexité de f?
+        - p3: non
+        - p3: ??
+        - p4: calculs en valeurs exactes essentiels!
+        - p4: pourquoi?
+        ... et 18 de plus
+      Appreciation: Ensemble trop moyen.
+EX1: Réflexion insuffisante.
+EX3: méthodes mal maîtrisées et réflexion insuffisante.
+Ex4: les méthodes ne sont pas bien acquises. Des erreurs de calcul et un manque de réflexion.
+      Events de correction: 58
+
+  --- 0F8E-073 | MAATOUG SAFA | Status: GRADED | Sujet: A ---
+      Note globale: 4.5/20 (33 questions)
+      Ex 1: 2 pts [1.1=0, 1.2=1, 1.3=0, 1.4=0, 1.5=1]
+      Ex 2: 0 pts [2.1=0, 2.10=0, 2.2=0, 2.3=0, 2.4=0, 2.5=0, 2.6=0, 2.7=0, 2.8=0, 2.9=0]
+      Ex 3: 1.25 pts [3.1=0, 3.2=0, 3.3=0, 3.4=0.25, 3.5=0.5, 3.6=0.5]
+      Ex 4: 1.25 pts [4.1=0, 4.10=0, 4.11=0.1, 4.12=0, 4.2=0, 4.3=0.25, 4.4=0.25, 4.5=0, 4.6=0, 4.7=0, 4.8=0.5, 4.9=0.15]
+      Annotations: 30 (COMMENT:30)
+      Remarques (30):
+        - p1: Rien à voir avec une loi binomiale!
+        - p2: Justifier la loi!
+        - p2: erreur d'arrondi.
+        - p2: Erreur d'arrondi.
+        - p2: Interprétation?
+        - p2: Confusion! P(R)+P(V). Votre formule n'a aucun sens!
+        - p3: Aucune justification!
+        - p3: ce n'est pas une preuve.
+        - p3: ne pas partir de ce qu'il faut prouver!
+        - p3: faux!
+        ... et 20 de plus
+      Appreciation: Très faible.
+Ex1: réflexion insuffisante.
+EX 3: méthodes mal acquises et réflexion erronée.
+Ex2: Méthodes d'étude de fonctions non acquises et réflexion très insuffisante.
+Ex4: Méthodes sur les suites...
+      Events de correction: 58
+
+  --- 0F8E-074 | MARRAKCHI AHMED | Status: GRADED | Sujet: B ---
+      Note globale: 15.45/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 3.2 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0, 2.6=0.5, 2.7=0.25, 2.8=0.2, 2.9=0]
+      Ex 3: 3.5 pts [3.1=0.5, 3.2=0.25, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.75]
+      Ex 4: 3.75 pts [4.1=0.25, 4.10=0.1, 4.11=0.5, 4.12=0.25, 4.2=0.25, 4.3=0.2, 4.4=0.5, 4.5=0.25, 4.6=0.5, 4.7=0.3, 4.8=0.5, 4.9=0.15]
+      Annotations: 36 (COMMENT:36)
+      Remarques (36):
+        - p6: Ok mais un peu rapide!
+        - p6: >0 inutile ici
+        - p6: minimum?
+        - p8: encadrement au 10ème demandé
+        - p8: valeurs exactes essentielles!
+        - p8: ah bon!
+        - p9: seulement prouvé après e(-3/2) avec cette méthode! et avant?
+        - p9: Raisonnement non acceptable.
+        - p13: Issue -a et non a!
+        - p13: a doit être positif!
+        ... et 26 de plus
+      Appreciation: Bon ensemble.
+EX1: TB.
+EX3: Attention de bien lire l'énoncé!
+Ex 2: Correct mais certains raisonnements et la réflexion sont à approfondir parfois.
+Ex4: Beaucoup de confusion!
+
+      Events de correction: 64
+
+  --- 0F8E-075 | MDIMAGH EMNA | Status: GRADED | Sujet: B ---
+      Note globale: 12.25/20 (33 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=0, 1.4=1, 1.5=1]
+      Ex 2: 2.25 pts [2.1=0, 2.10=0, 2.2=0.25, 2.3=0.5, 2.4=0.75, 2.5=0, 2.6=0.25, 2.7=0.5, 2.8=0, 2.9=0]
+      Ex 3: 3.5 pts [3.1=0.75, 3.2=0.25, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.5]
+      Ex 4: 2.5 pts [4.1=0.25, 4.10=0, 4.11=0.25, 4.12=0, 4.2=0.15, 4.3=0.1, 4.4=0.5, 4.5=0.5, 4.6=0.25, 4.7=0, 4.8=0.5, 4.9=0]
+      Annotations: 6 (COMMENT:6)
+      Remarques (6):
+        - p3: Non par produit!
+        - p3: attention aux notations fausses!
+        - p4: bien.
+        - p4: non.
+        - p4: notations fausses.
+        - p4: faux!
+      Appreciation: Ensemble moyen.
+Ex1: Q3 à revoir.
+Ex 3: attention à la cohérence avec l'énoncé et une réponse incomplète.
+Ex2: certains raisonnements ne sont pas adaptés ou sont incomplets. Réflexion à approfondir.
+E...
+      Events de correction: 22
+
+  --- 0F8E-076 | MECHICHI MEHDI | Status: GRADED | Sujet: B ---
+      Note globale: 17.6/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 3.7 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0, 2.6=0.5, 2.7=0.5, 2.8=0.2, 2.9=0]
+      Ex 3: 3.5 pts [3.1=0.5, 3.2=0.25, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.75]
+      Ex 4: 5.4 pts [4.1=0.25, 4.10=0.15, 4.11=0.75, 4.12=0.25, 4.2=0.25, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.75, 4.7=0.25, 4.8=1, 4.9=0.25]
+      Annotations: 17 (COMMENT:17)
+      Remarques (17):
+        - p2: un peu rapide.
+        - p2: exponentielle
+        - p2: Encadrement au 10ème demandé.
+        - p3: exponentielle
+        - p3: Rapide! Tableau de signes de f"?
+        - p4: Cette méthode ne donne pas les positions relatives avant e(-3/2).
+        - p4: raisonnement non adapté
+        - p4: ??
+        - p4: ??
+        - p5: L'issue est -a!
+        ... et 7 de plus
+      Appreciation: Très bon ensemble.
+Ex1: TB.
+Ex3: attention à la lecture de l'énoncé.
+Ex2: Bien mais certains raisonnements sont à revoir.
+Ex4: bonne maîtrise des méthodes. Quelques points à revoir.
+      Events de correction: 45
+
+  --- 0F8E-077 | MEDFAI IYED-AHMED | Status: GRADED | Sujet: B ---
+      Note globale: 15.7/20 (33 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=0, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 3.45 pts [2.1=0.25, 2.10=0.25, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0.25, 2.6=0.5, 2.7=0.5, 2.8=0.2, 2.9=0]
+      Ex 3: 3.5 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=0.75, 3.5=0.5, 3.6=0.5]
+      Ex 4: 4.75 pts [4.1=0.25, 4.10=0.25, 4.11=0.75, 4.12=0.25, 4.2=0.25, 4.3=0.15, 4.4=0.75, 4.5=0.5, 4.6=0.5, 4.7=0.5, 4.8=0.35, 4.9=0.25]
+      Annotations: 22 (COMMENT:22)
+      Remarques (22):
+        - p2: Détails!
+        - p3: continuité de g!
+        - p3: A long terme!
+        - p4: long!
+        - p4: direct identité remarquable!
+        - p4: formule 2^n et non 2n!
+        - p4: n=0!
+        - p4: Confond 2^n et 2n!
+        - p5: Confond 2^n et 2n!
+        - p5: Confond 2^n et 2n!
+        ... et 12 de plus
+      Appreciation: Bon ensemble.
+Ex1: revoir Q3.
+Ex3: Interprétation de l'espérance fausse.
+Ex2: certains raisonnements non traités ou incomplets. Des imprécisions.
+Ex4 confusions entre 2n et 2^n! Sinon méthodes assimil...
+      Events de correction: 48
+
+  --- 0F8E-078 | MEHERZI INES | Status: GRADED | Sujet: A ---
+      Note globale: 8.0/20 (33 questions)
+      Ex 1: 2 pts [1.1=0, 1.2=1, 1.3=1, 1.4=0, 1.5=0]
+      Ex 2: 1.5 pts [2.1=0, 2.10=0, 2.2=0.5, 2.3=0.5, 2.4=0.25, 2.5=0, 2.6=0, 2.7=0.25, 2.8=0, 2.9=0]
+      Ex 3: 1.5 pts [3.1=0, 3.2=0.25, 3.3=0.25, 3.4=0.25, 3.5=0.25, 3.6=0.5]
+      Ex 4: 3.0 pts [4.1=0.25, 4.10=0, 4.11=0.25, 4.12=0.25, 4.2=0.1, 4.3=0.25, 4.4=0.5, 4.5=0.25, 4.6=0, 4.7=0.5, 4.8=0.4, 4.9=0.25]
+      Annotations: 35 (COMMENT:35)
+      Remarques (35):
+        - p2: faux ici
+        - p2: attention aux notations!
+        - p3: signes non justifiés!
+        - p3: calcul de la valeur exacte du minimum!
+        - p3: non.
+        - p3: non.
+        - p3: valeurs exactes essentielles!
+        - p3: Appartenance de O?
+        - p3: Notations fausses!
+        - p4: Rien à voir avec une loi binomiale ici!
+        ... et 25 de plus
+      Appreciation: Ensemble trop moyen.
+Ex1: réflexion insuffisante.
+Ex3: méthodes non acquises et réflexion erronée.
+Ex2: Méthodes d'études de fonctions non acquises.
+EX4: Méthodes sur les suites mal acquises et réflex...
+      Events de correction: 59
+
+  --- 0F8E-079 | MEHERZI MOHAMED-WAEL | Status: GRADED | Sujet: A ---
+      Note globale: 15.5/20 (33 questions)
+      Ex 1: 4 pts [1.1=0, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 2.95 pts [2.1=0.25, 2.10=0.25, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0.25, 2.6=0.5, 2.7=0, 2.8=0.2, 2.9=0]
+      Ex 3: 4.0 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.75]
+      Ex 4: 4.55 pts [4.1=0.25, 4.10=0.1, 4.11=0.75, 4.12=0.25, 4.2=0.1, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.6, 4.7=0.25, 4.8=0.5, 4.9=0.25]
+      Annotations: 31 (COMMENT:31)
+      Remarques (31):
+        - p2: un peu rapide!
+        - p3: exp croît sur R.
+        - p3: A simplifier!
+        - p3: l'abscisse du...
+        - p4: 0
+        - p4: valeur exacte!
+        - p4: Valeur exactes essentielles!
+        - p4: Incohérent!
+        - p4: Cette méthode ne donne pas les positions relatives avant e(-3/2).
+        - p4: que faites vous?
+        ... et 21 de plus
+      Appreciation: Un bon ensemble.
+Ex1: Q1 à revoir.
+Ex3: TB.
+Ex2: correct mais certains raisonnements sont erronés ou incomplets. Des imprécisions.
+Ex4: confusion entre 2^n et 2n. Méthodes acquises mais quelques point...
+      Events de correction: 59
+
+  >>> RESUME Philippe CARR:
+      Copies avec scores: 27/27
+      Copies 27 questions completes: 27/27
+      Copies avec annotations: 22/27
+      Copies avec appreciation: 27/27
+      Copies GRADED: 27/27
+      Moyenne: 13.17/20 | Min: 4.5/20 | Max: 20.0/20
+
+================================================================================
+CORRECTEUR: Selima KLIBI (selima.klibi@ert.tn)
+  Copies: 27 | GRADED: 13 | READY: 14 | STAGING: 0
+================================================================================
+
+  --- 0F8E-080 | MEJRI HAROUN | Status: GRADED | Sujet: A ---
+      Note globale: 18.4/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 4.2 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.5, 2.7=0.5, 2.8=0.2, 2.9=0.25]
+      Ex 3: 4.0 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.75]
+      Ex 4: 5.2 pts [4.1=0.25, 4.10=0.25, 4.11=0.75, 4.12=0.25, 4.2=0.25, 4.3=0.25, 4.4=0.5, 4.5=0.5, 4.6=0.75, 4.7=0.5, 4.8=0.7, 4.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Très bien! 
+
+
+      Events de correction: 22
+
+  --- 0F8E-081 | MESTIRI MAHMOUD | Status: GRADED | Sujet: B ---
+      Note globale: 17.6/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 3.35 pts [2.1=0.1, 2.10=0, 2.2=0.5, 2.3=0.5, 2.4=0.5, 2.5=0, 2.6=0.75, 2.7=0.25, 2.8=0, 2.9=0.75]
+      Ex 3: 3.75 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=0.75, 3.5=0.5, 3.6=0.75]
+      Ex 4: 5.5 pts [4.1=0.25, 4.10=0.25, 4.11=0.75, 4.12=0.25, 4.2=0.25, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.75, 4.7=0.5, 4.8=0.75, 4.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Très bien! 
+
+      Events de correction: 17
+
+  --- 0F8E-082 | MEZIANE WALID | Status: GRADED | Sujet: B ---
+      Note globale: 6.25/20 (33 questions)
+      Ex 1: 3 pts [1.1=1, 1.2=0, 1.3=0, 1.4=1, 1.5=1]
+      Ex 2: 0.75 pts [2.1=0, 2.10=0, 2.2=0.25, 2.3=0.5, 2.4=0, 2.5=0, 2.6=0, 2.7=0, 2.8=0, 2.9=0]
+      Ex 3: 1.25 pts [3.1=0, 3.2=0, 3.3=0, 3.4=0.5, 3.5=0.25, 3.6=0.5]
+      Ex 4: 1.25 pts [4.1=0.25, 4.10=0, 4.11=0, 4.12=0, 4.2=0, 4.3=0, 4.4=0.25, 4.5=0.5, 4.6=0, 4.7=0, 4.8=0.25, 4.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Beaucoup d'insuffisances et de lacunes en calcul algébrique notamment (erreur de parenthèses, résolution d'équation, signe des dérivées n'ayant pas de sens). Un travail méticuleux et une bien meilleur...
+      Events de correction: 21
+
+  --- 0F8E-083 | M'HAMED SELIMA | Status: GRADED | Sujet: B ---
+      Note globale: 7.55/20 (33 questions)
+      Ex 1: 3 pts [1.1=0, 1.2=0, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 1.5 pts [2.1=0, 2.10=0.25, 2.2=0.25, 2.3=0.5, 2.4=0, 2.5=0, 2.6=0.25, 2.7=0.25, 2.8=0, 2.9=0]
+      Ex 3: 0 pts [3.1=0, 3.2=0, 3.3=0, 3.4=0, 3.5=0, 3.6=0]
+      Ex 4: 3.05 pts [4.1=0.25, 4.10=0, 4.11=0.5, 4.12=0.25, 4.2=0, 4.3=0.25, 4.4=0.3, 4.5=0, 4.6=0.75, 4.7=0.5, 4.8=0.25, 4.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Très insuffisant en probas aucune connaissance. 
+Les signes d'expression avec ln x ne sont pas maîtrisés. Beaucoup d'approximations, et des lacunes importantes dans les connaissances de cours. 
+
+      Events de correction: 4
+
+  --- 0F8E-084 | M'HIRSI RAYENE | Status: GRADED | Sujet: B ---
+      Note globale: 16.4/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 3.0 pts [2.1=0.15, 2.10=0, 2.2=0.25, 2.3=0.5, 2.4=0.7, 2.5=0.15, 2.6=0.75, 2.7=0.5, 2.8=0, 2.9=0]
+      Ex 3: 3.3 pts [3.1=0.5, 3.2=0.5, 3.3=0.5, 3.4=0.75, 3.5=0.3, 3.6=0.75]
+      Ex 4: 5.1 pts [4.1=0.25, 4.10=0.1, 4.11=1, 4.12=0.25, 4.2=0.25, 4.3=0.25, 4.4=0.5, 4.5=0.5, 4.6=0.5, 4.7=0.5, 4.8=0.75, 4.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Bon travail malgré un certain nombre de maladresses de rédaction. 
+      Events de correction: 17
+
+  --- 0F8E-085 | MONTACER RAYEN | Status: GRADED | Sujet: A ---
+      Note globale: 9.7/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 1.75 pts [2.1=0, 2.10=0, 2.2=0.25, 2.3=0.5, 2.4=0.5, 2.5=0.1, 2.6=0.4, 2.7=0, 2.8=0, 2.9=0]
+      Ex 3: 0.5 pts [3.1=0, 3.2=0, 3.3=0, 3.4=0, 3.5=0, 3.6=0.5]
+      Ex 4: 2.45 pts [4.1=0.25, 4.10=0.1, 4.11=0, 4.12=0, 4.2=0, 4.3=0.1, 4.4=0.25, 4.5=0.5, 4.6=0.75, 4.7=0, 4.8=0.25, 4.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Ensemble très fragile et en particulier très insuffisant en probabilité. 
+      Events de correction: 11
+
+  --- 0F8E-086 | MRAD MOHAMED-AZIZ | Status: GRADED | Sujet: B ---
+      Note globale: 17.7/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 3.6 pts [2.1=0.15, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.65, 2.5=0.25, 2.6=0.75, 2.7=0.2, 2.8=0.1, 2.9=0]
+      Ex 3: 3.35 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=0.5, 3.5=0.5, 3.6=0.6]
+      Ex 4: 5.75 pts [4.1=0.25, 4.10=0.25, 4.11=1, 4.12=0, 4.2=0.25, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.75, 4.7=0.5, 4.8=1, 4.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Très bien!
+
+      Events de correction: 6
+
+  --- 0F8E-087 | MYAMBAYE AHMAT CHRISTOPHER | Status: GRADED | Sujet: A ---
+      Note globale: 10.9/20 (33 questions)
+      Ex 1: 4 pts [1.1=0, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 1.4 pts [2.1=0, 2.10=0, 2.2=0.4, 2.3=0.5, 2.4=0.25, 2.5=0.25, 2.6=0, 2.7=0, 2.8=0, 2.9=0]
+      Ex 3: 2.9 pts [3.1=0.4, 3.2=0.5, 3.3=0.5, 3.4=0.5, 3.5=0.5, 3.6=0.5]
+      Ex 4: 2.6 pts [4.1=0, 4.10=0, 4.11=0.75, 4.12=0.25, 4.2=0, 4.3=0, 4.4=0.2, 4.5=0.25, 4.6=0, 4.7=0.5, 4.8=0.4, 4.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Des connaissances plus qu'approximatives. Le principe de la récurrence n'est pas compris (en particulier conclusions farfelues). Il faut vous mettre au travail, on voit que vous vous contentez d'une c...
+      Events de correction: 8
+
+  --- 0F8E-088 | MZOUGHI LINA | Status: GRADED | Sujet: B ---
+      Note globale: 18.1/20 (33 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=0]
+      Ex 2: 4.95 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.75, 2.7=0.5, 2.8=0.2, 2.9=0.75]
+      Ex 3: 3.95 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.7]
+      Ex 4: 5.2 pts [4.1=0.25, 4.10=0.25, 4.11=0.75, 4.12=0.2, 4.2=0.25, 4.3=0.25, 4.4=0.5, 4.5=0.5, 4.6=0.75, 4.7=0.5, 4.8=0.75, 4.9=0.25]
+      Annotations: 8 (COMMENT:7, HIGHLIGHT:1)
+      Remarques (8):
+        - p11: orthographe!!
+
+        - p12: Ces deux termes ne peuvent pas être associés, choisir une point de vue. 
+        - p16: manque interprétation
+        - p16: Manque les () à U_n!!!
+        - p16: pas d'accolade!
+        - p19: Le passage entre les deux lignes n'est pas clair, or c'est le coeur de la récurr
+        - p19: Second degré: pas de coeff directeur!
+        - p20: Ce ne sont pas les valeurs 2 et 0,5 qui créent la différence mais le degré! 
+      Appreciation: Très bonne maîtrise mais une attention particulière à l'orthographe, aux notations et à la rigueur valoriserait votre travail! 
+      Events de correction: 15
+
+  --- 0F8E-089 | NAJI INES | Status: GRADED | Sujet: B ---
+      Note globale: 11.75/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 2.55 pts [2.1=0, 2.10=0.25, 2.2=0.5, 2.3=0.5, 2.4=0.7, 2.5=0, 2.6=0.6, 2.7=0, 2.8=0, 2.9=0]
+      Ex 3: 1.45 pts [3.1=0.25, 3.2=0, 3.3=0, 3.4=0.5, 3.5=0.2, 3.6=0.5]
+      Ex 4: 2.75 pts [4.1=0.25, 4.10=0, 4.11=0.4, 4.12=0, 4.2=0, 4.3=0, 4.4=0.7, 4.5=0.5, 4.6=0.4, 4.7=0, 4.8=0.5, 4.9=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Un manque de maîtrise globale et des difficultés techniques et de compréhension sur des points assez simples. Heureusement que les ex 1 et 2 sont assez bien réussis. 
+      Events de correction: 10
+
+  --- 0F8E-090 | OUEDERNI RAFIF | Status: GRADED | Sujet: B ---
+      Note globale: 18.45/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 4.9 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.75, 2.7=0.5, 2.8=0.2, 2.9=0.7]
+      Ex 3: 3.6 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=0.75, 3.5=0.5, 3.6=0.6]
+      Ex 4: 4.95 pts [4.1=0.25, 4.10=0.25, 4.11=0.75, 4.12=0, 4.2=0.25, 4.3=0.25, 4.4=0.7, 4.5=0.5, 4.6=0.5, 4.7=0.5, 4.8=0.75, 4.9=0.25]
+      Annotations: 23 (COMMENT:21, ERROR:2)
+      Remarques (23):
+        - p1: Très bien!
+        - p4: Pourquoi? On aurait aimé un argument plus explicite! 
+        - p4: orthographe
+
+        - p4: Il fallait aussi traiter le cas de l'autre intervalle.  
+        - p6: il faut changer de notation, et la variable aléatoire est mal définie! 
+        - p6: il faut changer de notation, et la variable aléatoire est mal définie! 
+        - p6: il faut changer de notation, et la variable aléatoire est mal définie! 
+        - p6: il faut changer de notation, et la variable aléatoire est mal définie! 
+        - p7: phrase incohérente écrite ainsi! 8/3 n'est pas une proportion! il faudrait enlev
+        - p7: phrase incohérente écrite ainsi! 8/3 n'est pas une proportion! il faudrait enlev
+        ... et 13 de plus
+      Appreciation: Très bon travail!
+
+      Events de correction: 38
+
+  --- 0F8E-091 | OUERGHI MAYA | Status: GRADED | Sujet: A ---
+      Note globale: 18.05/20 (33 questions)
+      Ex 1: 4 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=0]
+      Ex 2: 4.95 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.75, 2.5=0.25, 2.6=0.75, 2.7=0.5, 2.8=0.2, 2.9=0.75]
+      Ex 3: 3.85 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=1, 3.5=0.5, 3.6=0.6]
+      Ex 4: 5.25 pts [4.1=0.25, 4.10=0.25, 4.11=0.5, 4.12=0, 4.2=0.25, 4.3=0.25, 4.4=0.75, 4.5=0.5, 4.6=0.75, 4.7=0.5, 4.8=1, 4.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Très bonne copie, très bonne maîtrise technique. Quelques petites maladresses de rédactions à corriger. 
+      Events de correction: 3
+
+  --- 0F8E-092 | PERON RAYAN | Status: GRADED | Sujet: A ---
+      Note globale: 14.8/20 (33 questions)
+      Ex 1: 5 pts [1.1=1, 1.2=1, 1.3=1, 1.4=1, 1.5=1]
+      Ex 2: 2.65 pts [2.1=0.25, 2.10=0.5, 2.2=0.5, 2.3=0.5, 2.4=0.4, 2.5=0, 2.6=0.5, 2.7=0, 2.8=0, 2.9=0]
+      Ex 3: 3.5 pts [3.1=0.75, 3.2=0.5, 3.3=0.5, 3.4=0.75, 3.5=0.25, 3.6=0.75]
+      Ex 4: 3.65 pts [4.1=0.15, 4.10=0.15, 4.11=1, 4.12=0.15, 4.2=0, 4.3=0.25, 4.4=0.3, 4.5=0.4, 4.6=0, 4.7=0.5, 4.8=0.5, 4.9=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Bien dans l'ensemble malgré des maladresses et des imprécisions. Attention, des notions importantes ne sont pas acquises ( théorème du point fixe, manipulation des inégalités) 
+      Events de correction: 3
+
+  --- 0F8E-093 | RAHMOUNI NESRINE SABRINA | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 1
+
+  --- 0F8E-094 | SANTOS SARRA CHRISTIANE | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-095 | SATOURI ADEM | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-096 | SFIA IYAD ALEX | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-097 | SGHAIER LILIA | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-098 | SLAMA ELYES | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-099 | SOUISSI MOHAMED ALI | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-100 | SOUISSI YOMNA | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-101 | SOUISSI YOSR | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-102 | TRABELSI ABDERRAHMANE | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-103 | TRABELSI SKANDER-AZIZ | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-104 | TURKI SAMI | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-105 | ZARAA LINA | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 0F8E-106 | ZARDI MOHAMED | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  >>> RESUME Selima KLIBI:
+      Copies avec scores: 13/27
+      Copies 27 questions completes: 13/27
+      Copies avec annotations: 2/27
+      Copies avec appreciation: 13/27
+      Copies GRADED: 13/27
+      Moyenne: 14.28/20 | Min: 6.25/20 | Max: 18.45/20
+
+################################################################################
+# EXAM: BB_J2 (id=bd24af37-d685-4fba-a107-9422c9994a7d)
+################################################################################
+
+================================================================================
+CORRECTEUR: Chawki SAADI (chawki.saadi@ert.tn)
+  Copies: 25 | GRADED: 25 | READY: 0 | STAGING: 0
+================================================================================
+
+  --- 75FB-001 | ABDELMOULA KHALIL | Status: GRADED | Sujet: A ---
+      Note globale: 7.25/20 (27 questions)
+      Ex 1: 2 pts [1=2]
+      Ex 2: 2.25 pts [2.1.1=0.25, 2.1.2=0, 2.1.3=0.5, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0, 2.2.5=0]
+      Ex 3: 1.0 pts [3.1=0.25, 3.2=0, 3.3=0, 3.4=0.25, 3.5=0.25, 3.6=0, 3.7=0.25]
+      Ex 4: 2.0 pts [4.1.1=0, 4.1.2=0, 4.2.1=0, 4.2.2=0.5, 4.2.3=0.25, 4.2.4=0.25, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Faible.
+      Events de correction: 14
+
+  --- 75FB-002 | ABDENNADHER ZAINEB | Status: GRADED | Sujet: B ---
+      Note globale: 12.5/20 (27 questions)
+      Ex 1: 1 pts [1=1]
+      Ex 2: 4.0 pts [2.1.1=0, 2.1.2=0.5, 2.1.3=0.75, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0, 2.2.5=0.5]
+      Ex 3: 4.25 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.25]
+      Ex 4: 3.25 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0, 4.2.4=0.25, 4.2.5=0.5, 4.2.6=0, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Assez bien.
+      Events de correction: 26
+
+  --- 75FB-003 | AFFES YOUSSEF | Status: GRADED | Sujet: B ---
+      Note globale: 14.5/20 (27 questions)
+      Ex 1: 3 pts [1=3]
+      Ex 2: 3.75 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=0.5, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.25, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0]
+      Ex 3: 4.0 pts [3.1=0.5, 3.2=0.5, 3.3=0.5, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.5]
+      Ex 4: 3.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.5, 4.2.5=0.25, 4.2.6=0, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Bien.
+      Events de correction: 22
+
+  --- 75FB-004 | AKID AZIZ | Status: GRADED | Sujet: A ---
+      Note globale: 14.75/20 (27 questions)
+      Ex 1: 3 pts [1=3]
+      Ex 2: 4.0 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=0.75, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.25, 2.2.5=0.25]
+      Ex 3: 2.75 pts [3.1=0.5, 3.2=0.5, 3.3=0.25, 3.4=0.5, 3.5=0.25, 3.6=0.5, 3.7=0.25]
+      Ex 4: 5.0 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Bien !
+      Events de correction: 22
+
+  --- 75FB-005 | AKROUT MEHDI | Status: GRADED | Sujet: A ---
+      Note globale: 7.75/20 (27 questions)
+      Ex 1: 3.5 pts [1=3.5]
+      Ex 2: 2.0 pts [2.1.1=0, 2.1.2=0.5, 2.1.3=0, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0, 2.2.3=0.5, 2.2.4=0, 2.2.5=0]
+      Ex 3: 0 pts [3.1=0, 3.2=0, 3.3=0, 3.4=0, 3.5=0, 3.6=0, 3.7=0]
+      Ex 4: 2.25 pts [4.1.1=0, 4.1.2=0, 4.2.1=0.75, 4.2.2=0.25, 4.2.3=0, 4.2.4=0.25, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: L'exercice 3 est barré dans sa totalité. Il n'est donc pas corrigé.
+Ensemble faible.
+      Events de correction: 16
+
+  --- 75FB-006 | ALBOUCHI ADAM | Status: GRADED | Sujet: A ---
+      Note globale: 18.25/20 (27 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 3.75 pts [2.1.1=0, 2.1.2=0.25, 2.1.3=0.5, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.25, 2.2.4=0.5, 2.2.5=0.5]
+      Ex 3: 4.75 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.25, 3.6=0.75, 3.7=1]
+      Ex 4: 4.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Excellent
+      Events de correction: 14
+
+  --- 75FB-007 | AMMAR AMAL | Status: GRADED | Sujet: B ---
+      Note globale: 19.0/20 (27 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 4.25 pts [2.1.1=0.25, 2.1.2=0, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.25, 2.2.5=0.5]
+      Ex 3: 4.75 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.25, 3.6=0.75, 3.7=1]
+      Ex 4: 5.0 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Excellent !
+      Events de correction: 14
+
+  --- 75FB-008 | AOUADI AHMED | Status: GRADED | Sujet: B ---
+      Note globale: 14.5/20 (27 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 3.75 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.25, 2.2.2=0.25, 2.2.3=0, 2.2.4=0.5, 2.2.5=0.25]
+      Ex 3: 2.5 pts [3.1=0.5, 3.2=0.25, 3.3=0, 3.4=0.75, 3.5=0.5, 3.6=0.5, 3.7=0]
+      Ex 4: 3.25 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.5, 4.2.2=0, 4.2.3=0.25, 4.2.4=0.75, 4.2.5=0.5, 4.2.6=0, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Bien.
+      Events de correction: 12
+
+  --- 75FB-009 | ATI SYRINE | Status: GRADED | Sujet: A ---
+      Note globale: 12.75/20 (27 questions)
+      Ex 1: 2.5 pts [1=2.5]
+      Ex 2: 2.75 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=0.25, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0, 2.2.2=0, 2.2.3=0.5, 2.2.4=0, 2.2.5=0.5]
+      Ex 3: 2.5 pts [3.1=0.5, 3.2=0.25, 3.3=0, 3.4=0.5, 3.5=0.25, 3.6=0.75, 3.7=0.25]
+      Ex 4: 5.0 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Bien
+      Events de correction: 12
+
+  --- 75FB-010 | BACCOUCHE LINA | Status: GRADED | Sujet: B ---
+      Note globale: 10.75/20 (27 questions)
+      Ex 1: 3 pts [1=3]
+      Ex 2: 2.75 pts [2.1.1=0.25, 2.1.2=0.25, 2.1.3=0.25, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.25, 2.2.4=0, 2.2.5=0.25]
+      Ex 3: 1.75 pts [3.1=0.5, 3.2=0.5, 3.3=0, 3.4=0.25, 3.5=0.25, 3.6=0, 3.7=0.25]
+      Ex 4: 3.25 pts [4.1.1=0.5, 4.1.2=0, 4.2.1=0, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.25, 4.2.6=0.25, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Bien juste.
+      Events de correction: 18
+
+  --- 75FB-011 | BCHATNIA IKRAM | Status: GRADED | Sujet: A ---
+      Note globale: 18.25/20 (27 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 4.0 pts [2.1.1=0.25, 2.1.2=0.25, 2.1.3=0.5, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.25, 2.2.5=0.5]
+      Ex 3: 4.5 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.5]
+      Ex 4: 4.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Excellent.
+      Events de correction: 12
+
+  --- 75FB-012 | BEJI SARRA | Status: GRADED | Sujet: B ---
+      Note globale: 14.5/20 (27 questions)
+      Ex 1: 2.5 pts [1=2.5]
+      Ex 2: 3.75 pts [2.1.1=0, 2.1.2=0.5, 2.1.3=0.5, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.25]
+      Ex 3: 4.5 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.25, 3.6=0.75, 3.7=0.75]
+      Ex 4: 3.75 pts [4.1.1=0.25, 4.1.2=0.25, 4.2.1=0, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Bien
+      Events de correction: 10
+
+  --- 75FB-013 | BELHAJ SIRINE | Status: GRADED | Sujet: B ---
+      Note globale: 18.25/20 (27 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 4.75 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.25, 2.2.5=0.5]
+      Ex 3: 4.0 pts [3.1=0, 3.2=0.5, 3.3=0.75, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.75]
+      Ex 4: 4.5 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Excellent
+      Events de correction: 12
+
+  --- 75FB-014 | BELTAIEF LINA | Status: GRADED | Sujet: A ---
+      Note globale: 9.5/20 (27 questions)
+      Ex 1: 2.5 pts [1=2.5]
+      Ex 2: 3.0 pts [2.1.1=0.25, 2.1.2=0, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0, 2.2.5=0]
+      Ex 3: 2.75 pts [3.1=0, 3.2=0.5, 3.3=0.75, 3.4=0.75, 3.5=0, 3.6=0.75, 3.7=0]
+      Ex 4: 1.25 pts [4.1.1=0, 4.1.2=0.25, 4.2.1=0, 4.2.2=0.25, 4.2.3=0.5, 4.2.4=0, 4.2.5=0, 4.2.6=0, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Trop juste.
+      Events de correction: 10
+
+  --- 75FB-015 | BENLTIFA MARAM | Status: GRADED | Sujet: B ---
+      Note globale: 11.25/20 (27 questions)
+      Ex 1: 2.5 pts [1=2.5]
+      Ex 2: 3.25 pts [2.1.1=0.25, 2.1.2=0, 2.1.3=0.75, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0.25, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0, 2.2.5=0.5]
+      Ex 3: 2.0 pts [3.1=0, 3.2=0.5, 3.3=0, 3.4=0.5, 3.5=0.25, 3.6=0.25, 3.7=0.5]
+      Ex 4: 3.5 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0, 4.2.2=0.5, 4.2.3=0.25, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Assez bien
+      Events de correction: 10
+
+  --- 75FB-016 | BENNANI LILYA | Status: GRADED | Sujet: B ---
+      Note globale: 19.0/20 (27 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 4.5 pts [2.1.1=0, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.25]
+      Ex 3: 4.75 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.75]
+      Ex 4: 4.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Excellent
+      Events de correction: 10
+
+  --- 75FB-017 | BENNEJI SARAH | Status: GRADED | Sujet: A ---
+      Note globale: 14.0/20 (27 questions)
+      Ex 1: 3 pts [1=3]
+      Ex 2: 3.25 pts [2.1.1=0, 2.1.2=0.5, 2.1.3=0.75, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.25, 2.2.4=0, 2.2.5=0]
+      Ex 3: 2.75 pts [3.1=0.5, 3.2=0.5, 3.3=0, 3.4=0.75, 3.5=0.25, 3.6=0.75, 3.7=0]
+      Ex 4: 5.0 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Bien
+      Events de correction: 14
+
+  --- 75FB-018 | BENOTHMAN MALEK | Status: GRADED | Sujet: A ---
+      Note globale: 17.75/20 (27 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 4.0 pts [2.1.1=0, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0]
+      Ex 3: 4.5 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.25, 3.6=0.75, 3.7=0.75]
+      Ex 4: 4.25 pts [4.1.1=0.5, 4.1.2=0, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Excellent
+      Events de correction: 16
+
+  --- 75FB-019 | BEN ALAYA ZINEDDINE | Status: GRADED | Sujet: A ---
+      Note globale: 12.0/20 (27 questions)
+      Ex 1: 1.5 pts [1=1.5]
+      Ex 2: 2.75 pts [2.1.1=0.25, 2.1.2=0, 2.1.3=0.5, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0, 2.2.5=0.5]
+      Ex 3: 4.0 pts [3.1=0.5, 3.2=0.5, 3.3=0.5, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.5]
+      Ex 4: 3.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.5, 4.2.5=0.5, 4.2.6=0, 4.2.7=0.25]
+      Annotations: 1 (COMMENT:1)
+      Remarques (1):
+        - p1: Ici je lis B, ce qi est faux.
+      Appreciation: Assez bien
+      Events de correction: 15
+
+  --- 75FB-020 | BEN BRIK ANES | Status: GRADED | Sujet: B ---
+      Note globale: 9.0/20 (27 questions)
+      Ex 1: 1.5 pts [1=1.5]
+      Ex 2: 2.5 pts [2.1.1=0, 2.1.2=0.25, 2.1.3=0.75, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0.25, 2.2.2=0.5, 2.2.3=0.25, 2.2.4=0, 2.2.5=0]
+      Ex 3: 3.75 pts [3.1=0.5, 3.2=0.25, 3.3=0.5, 3.4=0.75, 3.5=0.25, 3.6=0.5, 3.7=1]
+      Ex 4: 1.25 pts [4.1.1=0, 4.1.2=0, 4.2.1=0.25, 4.2.2=0, 4.2.3=0, 4.2.4=0.5, 4.2.5=0.5, 4.2.6=0, 4.2.7=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Trop juste et très fragile.
+      Events de correction: 12
+
+  --- 75FB-021 | BEN GHORBAL FERYEL | Status: GRADED | Sujet: B ---
+      Note globale: 17.5/20 (27 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 4.25 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0, 2.2.5=0.25]
+      Ex 3: 4.5 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.25, 3.6=0.75, 3.7=0.75]
+      Ex 4: 3.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.5, 4.2.2=0.5, 4.2.3=0, 4.2.4=1, 4.2.5=0.5, 4.2.6=0, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Très bien.
+      Events de correction: 12
+
+  --- 75FB-022 | BEN HTIRA ADONIS | Status: GRADED | Sujet: B ---
+      Note globale: 10.75/20 (27 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 1.75 pts [2.1.1=0.25, 2.1.2=0.25, 2.1.3=0.25, 2.1.4=0, 2.1.5=0, 2.2.1=0, 2.2.2=0.5, 2.2.3=0.25, 2.2.4=0, 2.2.5=0.25]
+      Ex 3: 2.5 pts [3.1=0.5, 3.2=0.5, 3.3=0.25, 3.4=0.75, 3.5=0, 3.6=0.25, 3.7=0.25]
+      Ex 4: 1.5 pts [4.1.1=0, 4.1.2=0, 4.2.1=0, 4.2.2=0.5, 4.2.3=0.25, 4.2.4=0.5, 4.2.5=0, 4.2.6=0, 4.2.7=0.25]
+      Annotations: 1 (COMMENT:1)
+      Remarques (1):
+        - p1: Attention, le jour du bac il faudra être très clair. Barrez et réécrivez la répo
+      Appreciation: Très moyen.
+      Events de correction: 9
+
+  --- 75FB-023 | BEN JEMAA AZIZ | Status: GRADED | Sujet: A ---
+      Note globale: 18.25/20 (27 questions)
+      Ex 1: 4 pts [1=4]
+      Ex 2: 4.75 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.25]
+      Ex 3: 5.0 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=1]
+      Ex 4: 4.5 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.75, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Très bien
+      Events de correction: 6
+
+  --- 75FB-024 | BEN MEZIANE MAYA | Status: GRADED | Sujet: B ---
+      Note globale: 2.5/20 (27 questions)
+      Ex 1: 2.5 pts [1=2.5]
+      Ex 2: 0 pts [2.1.1=0, 2.1.2=0, 2.1.3=0, 2.1.4=0, 2.1.5=0, 2.2.1=0, 2.2.2=0, 2.2.3=0, 2.2.4=0, 2.2.5=0]
+      Ex 3: 0 pts [3.1=0, 3.2=0, 3.3=0, 3.4=0, 3.5=0, 3.6=0, 3.7=0]
+      Ex 4: 0 pts [4.1.1=0, 4.1.2=0, 4.2.1=0, 4.2.2=0, 4.2.3=0, 4.2.4=0, 4.2.5=0, 4.2.6=0, 4.2.7=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Une copie vide.
+      Events de correction: 8
+
+  --- 75FB-025 | BEN RABAA MOHAMED | Status: GRADED | Sujet: A ---
+      Note globale: 9.75/20 (27 questions)
+      Ex 1: 2.5 pts [1=2.5]
+      Ex 2: 2.75 pts [2.1.1=0, 2.1.2=0.5, 2.1.3=0.25, 2.1.4=0.25, 2.1.5=0, 2.2.1=0, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.25]
+      Ex 3: 2.25 pts [3.1=0, 3.2=0.5, 3.3=0, 3.4=0.75, 3.5=0.25, 3.6=0.75, 3.7=0]
+      Ex 4: 2.25 pts [4.1.1=0.25, 4.1.2=0, 4.2.1=0, 4.2.2=0.5, 4.2.3=0.25, 4.2.4=0.75, 4.2.5=0.25, 4.2.6=0, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Bien juste.
+      Events de correction: 12
+
+  >>> RESUME Chawki SAADI:
+      Copies avec scores: 25/25
+      Copies 27 questions completes: 25/25
+      Copies avec annotations: 2/25
+      Copies avec appreciation: 25/25
+      Copies GRADED: 25/25
+      Moyenne: 13.37/20 | Min: 2.5/20 | Max: 19.0/20
+
+================================================================================
+CORRECTEUR: Edouard ROUSSEAU (edouard.rousseau@ert.tn)
+  Copies: 26 | GRADED: 7 | READY: 19 | STAGING: 0
+================================================================================
+
+  --- 75FB-026 | BEN REGUIGA NOUR | Status: GRADED | Sujet: A ---
+      Note globale: 20.0/20 (27 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 5.0 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.5]
+      Ex 3: 5.0 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=1]
+      Ex 4: 5.0 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Un travail d'une très grande rigueur, où les justifications sont efficaces et les calculs bien menés. Une excellente maîtrise. Bravo.
+      Events de correction: 2
+
+  --- 75FB-027 | BLOUZA EMNA | Status: GRADED | Sujet: B ---
+      Note globale: 19.5/20 (27 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 5.0 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.5]
+      Ex 3: 4.75 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.5, 3.7=1]
+      Ex 4: 4.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.25, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 2 (COMMENT:1, ERROR:1)
+      Remarques (2):
+        - p14: Qu'est-ce que ça veut dire ?
+        - p21: Ce n'est pas nécessaire; la définition d'une suite croissante c'est bien ce que 
+      Appreciation: Une rédaction minutieuse qui reflète un excellent niveau de maîtrise. Félicitations ! N'allez pas trop vite, c'est la seule chose qui semble vous faire perdre des points.
+      Events de correction: 4
+
+  --- 75FB-028 | BOUDAYA AHMED | Status: GRADED | Sujet: B ---
+      Note globale: 17.0/20 (27 questions)
+      Ex 1: 4 pts [1=4]
+      Ex 2: 4.25 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=0.75, 2.1.4=0.25, 2.1.5=0, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.5]
+      Ex 3: 4.75 pts [3.1=0.5, 3.2=0.5, 3.3=0.75, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=1]
+      Ex 4: 4.0 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.75, 4.2.5=0.25, 4.2.6=0, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Un très bon travail, les méthodes sont bien maîtrisées et même les questions difficiles sont bien traitées.
+      Events de correction: 2
+
+  --- 75FB-029 | BOUGUEDOUR SAMY-NAZIM | Status: GRADED | Sujet: B ---
+      Note globale: 6.25/20 (27 questions)
+      Ex 1: 1 pts [1=1]
+      Ex 2: 2.0 pts [2.1.1=0.25, 2.1.2=0.25, 2.1.3=0.5, 2.1.4=0, 2.1.5=0, 2.2.1=0.25, 2.2.2=0.5, 2.2.3=0, 2.2.4=0, 2.2.5=0.25]
+      Ex 3: 1.0 pts [3.1=0, 3.2=0.5, 3.3=0, 3.4=0.5, 3.5=0, 3.6=0, 3.7=0]
+      Ex 4: 2.25 pts [4.1.1=0.25, 4.1.2=0, 4.2.1=0, 4.2.2=0.5, 4.2.3=0.25, 4.2.4=0.5, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0]
+      Annotations: 1 (ERROR:1)
+      Remarques (1):
+        - p4: ???
+      Appreciation: Une copie avec une rédaction à retravailler : il manque des explications, le nom des théorèmes utilisés, la mention des hypothèses pour que les théorèmes soient valables, etc. Il y a encore du travail...
+      Events de correction: 3
+
+  --- 75FB-030 | BOUHAHA SOFYA | Status: GRADED | Sujet: A ---
+      Note globale: 16.0/20 (27 questions)
+      Ex 1: 4 pts [1=4]
+      Ex 2: 3.75 pts [2.1.1=0, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0.25, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.25, 2.2.5=0.25]
+      Ex 3: 4.0 pts [3.1=0.5, 3.2=0.5, 3.3=0.75, 3.4=0.25, 3.5=0.5, 3.6=0.75, 3.7=0.75]
+      Ex 4: 4.25 pts [4.1.1=0.5, 4.1.2=0, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.75, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0.5]
+      Annotations: 3 (COMMENTAIRE:1, ERREUR:2)
+      Remarques (3):
+        - p8: Pourquoi ?
+
+        - p8: Intervalle mal écrit.
+        - p10: Non !
+      Appreciation: Une bonne maîtrise générale des méthodes du programme, avec parfois quelques maladresses dans la rédaction, que vous pourrez facilement corriger par la suite.
+      Events de correction: 6
+
+  --- 75FB-031 | BOUJEMAA MOHAMED-AMINE | Status: GRADED | Sujet: A ---
+      Note globale: 17.25/20 (27 questions)
+      Ex 1: 3.5 pts [1=3.5]
+      Ex 2: 4.75 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.25, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.5]
+      Ex 3: 4.25 pts [3.1=0.5, 3.2=0.5, 3.3=0.5, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.75]
+      Ex 4: 4.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.25, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Bonne copie, avec une grande maîtrise des techniques vues en classe de Terminale. Quelques erreurs parfois, mais facilement évitable dans le futur. Continuez ainsi.
+      Events de correction: 1
+
+  --- 75FB-032 | BOUZIRI NOUR | Status: GRADED | Sujet: A ---
+      Note globale: 13.0/20 (27 questions)
+      Ex 1: 2.5 pts [1=2.5]
+      Ex 2: 4.75 pts [2.1.1=0, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.5]
+      Ex 3: 2.5 pts [3.1=0, 3.2=0.5, 3.3=0.5, 3.4=0.5, 3.5=0.25, 3.6=0.5, 3.7=0.25]
+      Ex 4: 3.25 pts [4.1.1=0, 4.1.2=0, 4.2.1=0.75, 4.2.2=0.25, 4.2.3=0.5, 4.2.4=0.75, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: L'aire d'un rectangle vaut largeur × longueur ! Il y a de l'idée dans le reste de la méthode, mais cela ne va pas jusqu'au bout.
+      Events de correction: 1
+
+  --- 75FB-033 | CHAKCHOUK ELYES | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-034 | CHAMAKH NOUR | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-035 | CHANNOUFI MOHAMED YASSINE | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-036 | CHANOUFI SARAH | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-037 | CHAPOUTOT LEIL | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-038 | CHEDLY CYRINE | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-039 | CHELBI YOUSSEF | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-040 | CHOUIKHA SELIM | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-041 | DEKHIL MOHAMED SELIM | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-042 | DOGGAZ ENIS | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-043 | DRIDI MOHAMED-DHIAA | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-044 | EBEYE YAHYA | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-045 | EL BAHRI AHMED SELIM | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-046 | EL KAAKI KHALED | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-047 | ESSAIDI SALMA ZEINEB | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-048 | FEKI LINA | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-049 | GADDES ALIA | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-050 | GAIED YASMINE | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-051 | GHORBEL ALYA | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  >>> RESUME Edouard ROUSSEAU:
+      Copies avec scores: 7/26
+      Copies 27 questions completes: 7/26
+      Copies avec annotations: 3/26
+      Copies avec appreciation: 7/26
+      Copies GRADED: 7/26
+      Moyenne: 15.57/20 | Min: 6.25/20 | Max: 20.0/20
+
+================================================================================
+CORRECTEUR: Laroussi LAROUSSI (laroussi.laroussi@ert.tn)
+  Copies: 26 | GRADED: 0 | READY: 26 | STAGING: 0
+================================================================================
+
+  --- 75FB-052 | HADROUG MOHAMED-AZIZ | Status: READY | Sujet: A ---
+      Note globale: 9.0/20 (25 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 1.5 pts [2.1.1=0.25, 2.1.2=0.25, 2.1.3=0.25, 2.1.4=0, 2.1.5=0.25, 2.2.1=0.25, 2.2.2=0, 2.2.3=0, 2.2.4=0, 2.2.5=0.25]
+      Ex 3: 1.25 pts [3.1=0.25, 3.2=0.25, 3.3=0, 3.4=0.5, 3.5=0.25, 3.6=0, 3.7=0]
+      Ex 4: 1.25 pts [4.1.1=0, 4.1.2=0.25, 4.2.1=0, 4.2.2=0.25, 4.2.3=0.25, 4.2.4=0.25, 4.2.7=0.25]
+      Annotations: 14 (COMMENT:14)
+      Remarques (14):
+        - p2: Faux
+        - p2: Incohérent avec la suite
+        - p3: Dire pourquoi elle est dérivable
+
+        - p3: faux
+        - p3: utilise la notion de au moins
+        - p3: faux
+        - p3: Faux
+        - p3: pure hasard et mal justifié
+        - p3: Justifier
+        - p3: On laisse alpha à la place d'une valeur approchée dans un tableau de variation
+        ... et 4 de plus
+      Appreciation: Trop d'imprécisions, ensemble moyen
+      Events de correction: 36
+
+  --- 75FB-053 | HAKIM SARRA | Status: READY | Sujet: A ---
+      Note globale: 2.5/20 (6 questions)
+      Ex 1: 0 pts [1=0]
+      Ex 2: 2.5 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 3
+
+  --- 75FB-054 | HARBAOUI MALEK | Status: READY | Sujet: A ---
+      Note globale: 1.5/20 (7 questions)
+      Ex 1: 0 pts [1=0]
+      Ex 2: 1.5 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=0, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0]
+      Annotations: 1 (COMMENT:1)
+      Remarques (1):
+        - p1: non reconnu
+      Appreciation: AUCUNE
+      Events de correction: 2
+
+  --- 75FB-055 | HENDAOUI FERYEL | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-056 | IDANI MARIEM | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-057 | JABER INES | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-058 | JARRAYA ABDELHAMID | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-059 | JEDDI NOUR | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-060 | KAMOUN EMNA | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-061 | KAOUEL YOUSSEF | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-062 | KASRAOUI YOUSSEF | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-063 | KHELIL YASMIN | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-064 | KHEMIR SYRINE | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-065 | KHOUADJA YACINE | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-066 | KOUBAA KHADIJA | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-067 | KOUNDI HEDI | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-068 | KTATA EMNA | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-069 | LAJNEF ADAM | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-070 | LANGAR MOHAMED-AMINE | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-071 | LAYOUNI SARAH | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-072 | MAAMOURI YASMINE | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-073 | MAAREF YOUNES | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-074 | MAAREF YOUSSEF | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-075 | MARRAKCHI INES | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-076 | MASMOUDI HAMED | Status: READY | Sujet: A ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  --- 75FB-077 | MASROUKI MOLKA | Status: READY | Sujet: B ---
+      Note globale: 0/20 (0 questions)
+      AUCUN SCORE SAISI
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 0
+
+  >>> RESUME Laroussi LAROUSSI:
+      Copies avec scores: 3/26
+      Copies 27 questions completes: 0/26
+      Copies avec annotations: 2/26
+      Copies avec appreciation: 1/26
+      Copies GRADED: 0/26
+      Moyenne: 4.33/20 | Min: 1.5/20 | Max: 9.0/20
+
+================================================================================
+CORRECTEUR: Sami BEN TIBA (sami.bentiba@ert.tn)
+  Copies: 26 | GRADED: 8 | READY: 18 | STAGING: 0
+================================================================================
+
+  --- 75FB-078 | MAYARD RAFED | Status: GRADED | Sujet: B ---
+      Note globale: 8.75/20 (27 questions)
+      Ex 1: 1.5 pts [1=1.5]
+      Ex 2: 2.0 pts [2.1.1=0.25, 2.1.2=0.25, 2.1.3=0.75, 2.1.4=0, 2.1.5=0, 2.2.1=0, 2.2.2=0.25, 2.2.3=0.25, 2.2.4=0, 2.2.5=0.25]
+      Ex 3: 2.5 pts [3.1=0.5, 3.2=0.25, 3.3=0.25, 3.4=0.75, 3.5=0.5, 3.6=0, 3.7=0.25]
+      Ex 4: 2.75 pts [4.1.1=0, 4.1.2=0, 4.2.1=0, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.75, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0.25]
+      Annotations: 13 (COMMENT:13)
+      Remarques (13):
+        - p2: forme indéterminée
+        - p3: Etude de signes de g'(x)??!!
+        - p4: NON
+        - p4: NON
+        - p4: NON
+        - p4: alpha
+        - p4: NON
+        - p4: croissances comparées
+        - p4: - l'infini
+        - p6: A justifier en détaillant vos démarches
+        ... et 3 de plus
+      Appreciation: Ensemble juste!
+      Events de correction: 30
+
+  --- 75FB-079 | M'BAZAA SKANDER | Status: GRADED | Sujet: B ---
+      Note globale: 7.25/20 (27 questions)
+      Ex 1: 2.5 pts [1=2.5]
+      Ex 2: 1.25 pts [2.1.1=0.25, 2.1.2=0.25, 2.1.3=0.5, 2.1.4=0, 2.1.5=0, 2.2.1=0.25, 2.2.2=0, 2.2.3=0, 2.2.4=0, 2.2.5=0]
+      Ex 3: 0.75 pts [3.1=0, 3.2=0.25, 3.3=0, 3.4=0, 3.5=0.25, 3.6=0.25, 3.7=0]
+      Ex 4: 2.75 pts [4.1.1=0.25, 4.1.2=0, 4.2.1=0.25, 4.2.2=0, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Ensemble insuffisant!
+      Events de correction: 19
+
+  --- 75FB-080 | MEGDICHE SARAH | Status: GRADED | Sujet: A ---
+      Note globale: 18.75/20 (27 questions)
+      Ex 1: 4 pts [1=4]
+      Ex 2: 5.0 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.5]
+      Ex 3: 5.0 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=1]
+      Ex 4: 4.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.75, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Très Bien!
+      Events de correction: 9
+
+  --- 75FB-081 | MEGHIRBI FATMA | Status: GRADED | Sujet: A ---
+      Note globale: 15.5/20 (27 questions)
+      Ex 1: 3 pts [1=3]
+      Ex 2: 4.75 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=0.75, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.5]
+      Ex 3: 3.75 pts [3.1=0, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.25]
+      Ex 4: 4.0 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.25, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Très Bien dans l'ensemble
+      Events de correction: 15
+
+  --- 75FB-082 | MESSEDI KHADIJA | Status: READY | Sujet: B ---
+      Note globale: 17.5/20 (27 questions)
+      Ex 1: 5 pts [1=5]
+      Ex 2: 4.0 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=0.75, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.25, 2.2.4=0, 2.2.5=0.5]
+      Ex 3: 4.5 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.5, 3.5=0.5, 3.6=0.75, 3.7=0.75]
+      Ex 4: 4.0 pts [4.1.1=0, 4.1.2=0, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.75, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 5
+
+  --- 75FB-083 | MEZIOU INES CELIA | Status: GRADED | Sujet: A ---
+      Note globale: 2.25/20 (27 questions)
+      Ex 1: 1 pts [1=1]
+      Ex 2: 0.25 pts [2.1.1=0, 2.1.2=0.25, 2.1.3=0, 2.1.4=0, 2.1.5=0, 2.2.1=0, 2.2.2=0, 2.2.3=0, 2.2.4=0, 2.2.5=0]
+      Ex 3: 0.75 pts [3.1=0, 3.2=0.5, 3.3=0.25, 3.4=0, 3.5=0, 3.6=0, 3.7=0]
+      Ex 4: 0.25 pts [4.1.1=0, 4.1.2=0, 4.2.1=0, 4.2.2=0, 4.2.3=0, 4.2.4=0, 4.2.5=0, 4.2.6=0, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Ensemble inquiétant
+      Events de correction: 10
+
+  --- 75FB-084 | MOATEMRI MOHAMED-BADIS | Status: GRADED | Sujet: A ---
+      Note globale: 11.75/20 (27 questions)
+      Ex 1: 3.5 pts [1=3.5]
+      Ex 2: 3.0 pts [2.1.1=0, 2.1.2=0.25, 2.1.3=0.75, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0, 2.2.2=0.25, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.25]
+      Ex 3: 2.0 pts [3.1=0.5, 3.2=0.25, 3.3=0, 3.4=0.75, 3.5=0.5, 3.6=0, 3.7=0]
+      Ex 4: 3.25 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.25, 4.2.3=0.5, 4.2.4=0, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0.25]
+      Annotations: 5 (COMMENT:5)
+      Remarques (5):
+        - p1: Valeur excate??!!
+        - p1: Quelle propriété
+        - p3: - l'infini
+        - p3: - l'infini
+        - p5: ????
+      Appreciation: Ensemble moyen
+      Events de correction: 16
+
+  --- 75FB-085 | MZOUGHI EMNA | Status: GRADED | Sujet: B ---
+      Note globale: 14.0/20 (27 questions)
+      Ex 1: 2.5 pts [1=2.5]
+      Ex 2: 4.0 pts [2.1.1=0, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0]
+      Ex 3: 3.0 pts [3.1=0.25, 3.2=0.25, 3.3=0, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.5]
+      Ex 4: 4.5 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.25, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 3 (COMMENT:3)
+      Remarques (3):
+        - p1: Valeur exacte!!
+        - p4: NON
+        - p4: NON
+      Appreciation: Bien dans l'ensemble
+      Events de correction: 20
+
+  --- 75FB-086 | OUESLATI ISRAA | Status: GRADED | Sujet: A ---
+      Note globale: 11.75/20 (27 questions)
+      Ex 1: 1.5 pts [1=1.5]
+      Ex 2: 4.5 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.25, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.25]
+      Ex 3: 2.75 pts [3.1=0, 3.2=0.25, 3.3=0.25, 3.4=0.75, 3.5=0.25, 3.6=0.75, 3.7=0.5]
+      Ex 4: 3.0 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.25, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0]
+      Annotations: 4 (COMMENT:4)
+      Remarques (4):
+        - p4: OHHHHHHH!!!!
+        - p4: OHHHHHHH!!!!
+        - p10: OHHHHHHH
+        - p14: juste n= 0 et NON n=1
+      Appreciation: Ensemble Moyen
+      Events de correction: 25
+
+  --- 75FB-087 | PAZ GALVEZ HANNAH GRAZIELA | Status: READY | Sujet: B ---
+      Note globale: 9.25/20 (27 questions)
+      Ex 1: 2 pts [1=2]
+      Ex 2: 3.5 pts [2.1.1=0, 2.1.2=0.25, 2.1.3=0.75, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.5]
+      Ex 3: 1.5 pts [3.1=0.5, 3.2=0.25, 3.3=0.25, 3.4=0.5, 3.5=0, 3.6=0, 3.7=0]
+      Ex 4: 2.25 pts [4.1.1=0, 4.1.2=0, 4.2.1=0.75, 4.2.2=0, 4.2.3=0.5, 4.2.4=0.75, 4.2.5=0, 4.2.6=0, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: Ensemble juste.
+      Events de correction: 27
+
+  --- 75FB-088 | RAJHI LEITH | Status: READY | Sujet: B ---
+      Note globale: 18.25/20 (27 questions)
+      Ex 1: 4 pts [1=4]
+      Ex 2: 4.5 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=0.75, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.25]
+      Ex 3: 5.0 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=1]
+      Ex 4: 4.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 13
+
+  --- 75FB-089 | REJEB NOUR | Status: READY | Sujet: B ---
+      Note globale: 16.75/20 (27 questions)
+      Ex 1: 4 pts [1=4]
+      Ex 2: 4.25 pts [2.1.1=0, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.25]
+      Ex 3: 4.0 pts [3.1=0.5, 3.2=0.5, 3.3=0.25, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.75]
+      Ex 4: 4.5 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.75, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 14
+
+  --- 75FB-090 | SAADI MYRIAM | Status: READY | Sujet: B ---
+      Note globale: 16.25/20 (27 questions)
+      Ex 1: 3 pts [1=3]
+      Ex 2: 4.5 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0, 2.2.5=0.5]
+      Ex 3: 4.25 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.25]
+      Ex 4: 4.5 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.25, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 8
+
+  --- 75FB-091 | SAIGHI GHALIA | Status: READY | Sujet: A ---
+      Note globale: 16.25/20 (27 questions)
+      Ex 1: 3.5 pts [1=3.5]
+      Ex 2: 4.0 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.25, 2.2.4=0, 2.2.5=0.25]
+      Ex 3: 4.75 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.5, 3.7=1]
+      Ex 4: 4.0 pts [4.1.1=0, 4.1.2=0, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 8
+
+  --- 75FB-092 | SKHIRI FATMA | Status: READY | Sujet: A ---
+      Note globale: 17.75/20 (27 questions)
+      Ex 1: 4 pts [1=4]
+      Ex 2: 4.5 pts [2.1.1=0, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.25, 2.2.4=0.5, 2.2.5=0.5]
+      Ex 3: 4.75 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.75]
+      Ex 4: 4.5 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.5, 4.2.2=0.25, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 10
+
+  --- 75FB-093 | SLAMA ZEINEB | Status: READY | Sujet: B ---
+      Note globale: 13.25/20 (27 questions)
+      Ex 1: 3 pts [1=3]
+      Ex 2: 4.25 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0, 2.2.5=0.5]
+      Ex 3: 2.75 pts [3.1=0.5, 3.2=0, 3.3=0, 3.4=0.5, 3.5=0.5, 3.6=0.75, 3.7=0.5]
+      Ex 4: 3.25 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.25, 4.2.2=0.5, 4.2.3=0.25, 4.2.4=0.5, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0.25]
+      Annotations: 2 (COMMENT:2)
+      Remarques (2):
+        - p2: PAS DE CROISSANCES COMPAREES!!
+        - p2: PAS DE CROISSANCES COMPAREES!!
+      Appreciation: AUCUNE
+      Events de correction: 8
+
+  --- 75FB-094 | SMAOUI YASSINE | Status: READY | Sujet: B ---
+      Note globale: 12.5/20 (27 questions)
+      Ex 1: 2.5 pts [1=2.5]
+      Ex 2: 0.25 pts [2.1.1=0, 2.1.2=0.25, 2.1.3=0, 2.1.4=0, 2.1.5=0, 2.2.1=0, 2.2.2=0, 2.2.3=0, 2.2.4=0, 2.2.5=0]
+      Ex 3: 5.0 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=1]
+      Ex 4: 4.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.25, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 8
+
+  --- 75FB-095 | SNOUSSI YASMINE | Status: READY | Sujet: A ---
+      Note globale: 1.0/20 (27 questions)
+      Ex 1: 0.5 pts [1=0.5]
+      Ex 2: 0.25 pts [2.1.1=0.25, 2.1.2=0, 2.1.3=0, 2.1.4=0, 2.1.5=0, 2.2.1=0, 2.2.2=0, 2.2.3=0, 2.2.4=0, 2.2.5=0]
+      Ex 3: 0 pts [3.1=0, 3.2=0, 3.3=0, 3.4=0, 3.5=0, 3.6=0, 3.7=0]
+      Ex 4: 0.25 pts [4.1.1=0, 4.1.2=0, 4.2.1=0, 4.2.2=0, 4.2.3=0, 4.2.4=0.25, 4.2.5=0, 4.2.6=0, 4.2.7=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 6
+
+  --- 75FB-096 | TRABELSI BILEL | Status: READY | Sujet: A ---
+      Note globale: 13.75/20 (27 questions)
+      Ex 1: 1.5 pts [1=1.5]
+      Ex 2: 4.5 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=0.75, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.5]
+      Ex 3: 3.25 pts [3.1=0.5, 3.2=0.25, 3.3=1, 3.4=0.5, 3.5=0.25, 3.6=0.5, 3.7=0.25]
+      Ex 4: 4.5 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.25, 4.2.6=0.5, 4.2.7=0.25]
+      Annotations: 1 (COMMENT:1)
+      Remarques (1):
+        - p2: Ecriture fausse!
+      Appreciation: AUCUNE
+      Events de correction: 11
+
+  --- 75FB-097 | TRABELSI MOHAMED | Status: READY | Sujet: A ---
+      Note globale: 12.5/20 (27 questions)
+      Ex 1: 1.5 pts [1=1.5]
+      Ex 2: 3.25 pts [2.1.1=0.25, 2.1.2=0.25, 2.1.3=0.75, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0, 2.2.5=0.5]
+      Ex 3: 4.0 pts [3.1=0.5, 3.2=0.5, 3.3=0.25, 3.4=0.75, 3.5=0.5, 3.6=0.5, 3.7=1]
+      Ex 4: 3.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.5, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.5, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 8
+
+  --- 75FB-098 | TRABELSI ONS | Status: READY | Sujet: B ---
+      Note globale: 10.75/20 (27 questions)
+      Ex 1: 0.5 pts [1=0.5]
+      Ex 2: 3.75 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=0.75, 2.1.4=0.25, 2.1.5=0, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0, 2.2.5=0.5]
+      Ex 3: 2.5 pts [3.1=0, 3.2=0.5, 3.3=0, 3.4=0.75, 3.5=0.5, 3.6=0.5, 3.7=0.25]
+      Ex 4: 4.0 pts [4.1.1=0, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.75, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 6
+
+  --- 75FB-099 | TRIFA YASSINE | Status: READY | Sujet: A ---
+      Note globale: 7.5/20 (27 questions)
+      Ex 1: 0 pts [1=0]
+      Ex 2: 1.0 pts [2.1.1=0, 2.1.2=0, 2.1.3=0.25, 2.1.4=0.25, 2.1.5=0, 2.2.1=0, 2.2.2=0.5, 2.2.3=0, 2.2.4=0, 2.2.5=0]
+      Ex 3: 4.0 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.5, 3.5=0.5, 3.6=0.75, 3.7=0.25]
+      Ex 4: 2.5 pts [4.1.1=0, 4.1.2=0, 4.2.1=0.25, 4.2.2=0.5, 4.2.3=0.25, 4.2.4=0.5, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 8
+
+  --- 75FB-100 | TRIKI INES | Status: READY | Sujet: A ---
+      Note globale: 17.25/20 (27 questions)
+      Ex 1: 4 pts [1=4]
+      Ex 2: 4.75 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.25]
+      Ex 3: 4.25 pts [3.1=0.5, 3.2=0.5, 3.3=0.25, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=1]
+      Ex 4: 4.25 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.5, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.25, 4.2.6=0.5, 4.2.7=0.25]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 8
+
+  --- 75FB-101 | ZAIER KHALIL | Status: READY | Sujet: B ---
+      Note globale: 18.75/20 (27 questions)
+      Ex 1: 4 pts [1=4]
+      Ex 2: 5.0 pts [2.1.1=0.25, 2.1.2=0.5, 2.1.3=1, 2.1.4=0.5, 2.1.5=0.25, 2.2.1=0.5, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0.5, 2.2.5=0.5]
+      Ex 3: 5.0 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=1]
+      Ex 4: 4.75 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0.5, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=1, 4.2.5=0.5, 4.2.6=0.5, 4.2.7=0.5]
+      Annotations: 2 (COMMENT:2)
+      Remarques (2):
+        - p4: Attention à l'encadrement!
+        - p4: Attention à l'encadrement!
+      Appreciation: AUCUNE
+      Events de correction: 14
+
+  --- 75FB-102 | ZNAIDI ZINE-SABIHA | Status: READY | Sujet: A ---
+      Note globale: 12.75/20 (27 questions)
+      Ex 1: 1.5 pts [1=1.5]
+      Ex 2: 3.0 pts [2.1.1=0.25, 2.1.2=0, 2.1.3=0.75, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0, 2.2.2=0.5, 2.2.3=0.5, 2.2.4=0, 2.2.5=0.5]
+      Ex 3: 4.25 pts [3.1=0.5, 3.2=0.5, 3.3=1, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0.25]
+      Ex 4: 4.0 pts [4.1.1=0, 4.1.2=0.25, 4.2.1=0.75, 4.2.2=0.5, 4.2.3=0.5, 4.2.4=0.75, 4.2.5=0.5, 4.2.6=0.25, 4.2.7=0.5]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 8
+
+  --- 75FB-103 | ZOUAOUI ILIAN | Status: READY | Sujet: A ---
+      Note globale: 8.0/20 (27 questions)
+      Ex 1: 2 pts [1=2]
+      Ex 2: 1.25 pts [2.1.1=0.25, 2.1.2=0, 2.1.3=0.25, 2.1.4=0.25, 2.1.5=0.25, 2.2.1=0, 2.2.2=0, 2.2.3=0.25, 2.2.4=0, 2.2.5=0]
+      Ex 3: 2.5 pts [3.1=0.5, 3.2=0, 3.3=0, 3.4=0.75, 3.5=0.5, 3.6=0.75, 3.7=0]
+      Ex 4: 2.25 pts [4.1.1=0.5, 4.1.2=0.25, 4.2.1=0, 4.2.2=0.5, 4.2.3=0.25, 4.2.4=0.5, 4.2.5=0, 4.2.6=0.25, 4.2.7=0]
+      Annotations: 0
+      Remarques: AUCUNE
+      Appreciation: AUCUNE
+      Events de correction: 6
+
+  >>> RESUME Sami BEN TIBA:
+      Copies avec scores: 26/26
+      Copies 27 questions completes: 26/26
+      Copies avec annotations: 7/26
+      Copies avec appreciation: 9/26
+      Copies GRADED: 8/26
+      Moyenne: 12.69/20 | Min: 1.0/20 | Max: 18.75/20
+
+
+################################################################################
+# RESUME GLOBAL
+################################################################################
+Total copies: 209
+GRADED: 80/209
+Avec scores: 135/209
+Avec 27 questions: 98/209
+Avec annotations: 38/209
+Avec appreciation: 82/209
