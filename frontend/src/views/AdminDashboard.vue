@@ -389,6 +389,13 @@ onMounted(() => {
                 >
                   Dispatcher
                 </button>
+                <button 
+                  class="btn-sm btn-students"
+                  title="Voir la liste des élèves et notes"
+                  @click="router.push({ name: 'ExamStudentList', params: { examId: exam.id } })"
+                >
+                  Élèves
+                </button>
               </td>
             </tr>
             <tr v-if="exams.length === 0">
@@ -836,6 +843,13 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 }
 .btn-dispatch:hover:not(:disabled) {
   background: #059669;
+}
+.btn-students {
+  background: #6366f1;
+  color: white;
+}
+.btn-students:hover {
+  background: #4f46e5;
 }
 .btn-disabled {
   background: #9ca3af;

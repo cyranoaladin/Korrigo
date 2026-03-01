@@ -6,7 +6,8 @@ from .views import (
     CopyImportView, ExamSourceUploadView, BookletSplitView, BookletDetailView,
     BookletHeaderView, ExamDispatchView, IndividualPDFUploadView, PronoteExportView,
     CopyValidationView, BulkCopyValidationView,
-    BulkSubjectVariantView, AutoDetectSubjectVariantView
+    BulkSubjectVariantView, AutoDetectSubjectVariantView,
+    ExamStudentListView,
 )
 from .views_documents import (
     DocumentSetUploadView,
@@ -55,6 +56,9 @@ urlpatterns = [
     
     # Dispatch
     path('<uuid:exam_id>/dispatch/', ExamDispatchView.as_view(), name='exam-dispatch'),
+    
+    # Student List (admin view)
+    path('<uuid:exam_id>/student-list/', ExamStudentListView.as_view(), name='exam-student-list'),
     
     # Student Portal
     path('student/copies/', StudentCopiesView.as_view(), name='student-copies'),
