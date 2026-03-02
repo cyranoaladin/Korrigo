@@ -111,12 +111,14 @@ const handleLogin = async () => {
 
 <style scoped>
 .login-container {
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     font-family: 'Inter', sans-serif;
+    padding: 1rem;
+    box-sizing: border-box;
 }
 
 .login-box {
@@ -126,6 +128,7 @@ const handleLogin = async () => {
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     width: 100%;
     max-width: 400px;
+    box-sizing: border-box;
 }
 
 h1 { color: #2d3748; margin-bottom: 0.5rem; text-align: center; }
@@ -138,9 +141,11 @@ input {
     padding: 0.75rem;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
-    font-size: 1rem;
+    font-size: 16px;
     outline: none;
     transition: border-color 0.2s;
+    box-sizing: border-box;
+    -webkit-appearance: none;
 }
 input:focus { border-color: #667eea; box-shadow: 0 0 0 2px #667eea; outline: none; }
 
