@@ -16,24 +16,48 @@ const UPLOAD_TIMEOUT = 120000;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
+// Idempotent grading endpoints safe to retry (update_or_create semantics)
+const IDEMPOTENT_PATTERNS = [
+    { method: 'put', pattern: /\/scores\/$/ },
+    { method: 'post', pattern: /\/remarks\/$/ },
+    { method: 'patch', pattern: /\/global-appreciation\/$/ },
+    { method: 'put', pattern: /\/draft\/$/ },
+];
+
+function isIdempotentGradingRequest(config) {
+    const method = (config.method || 'get').toLowerCase();
+    const url = config.url || '';
+    return IDEMPOTENT_PATTERNS.some(p => p.method === method && p.pattern.test(url));
+}
+
 function shouldRetry(error, config) {
     if (!error || config.__retryCount >= MAX_RETRIES) {
         return false;
     }
 
-    // P5 FIX: NEVER retry mutating requests (POST/PUT/PATCH/DELETE) to prevent duplicates
     const method = (config.method || 'get').toLowerCase();
-    if (method !== 'get') {
+
+    // Allow retry for idempotent grading endpoints (scores, remarks, appreciation, draft)
+    const isIdempotent = isIdempotentGradingRequest(config);
+
+    // Non-GET, non-idempotent → never retry
+    if (method !== 'get' && !isIdempotent) {
         return false;
     }
 
-    // Only retry GET requests on network errors or 5xx
+    // Network error (no response) → retry
     if (!error.response) {
         return true;
     }
 
     const status = error.response.status;
+    // 5xx server errors → retry
     if (status >= 500 && status < 600) {
+        return true;
+    }
+
+    // 408 Request Timeout, 429 Too Many Requests → retry
+    if (status === 408 || status === 429) {
         return true;
     }
 

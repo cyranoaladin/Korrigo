@@ -66,6 +66,26 @@ const scoresTimer = ref(null)
 const appreciationTimer = ref(null)
 const lastScoresSaveStatus = ref(null) // { time: Date, success: boolean }
 
+// --- Sync Protection State ---
+const pendingScoresChange = ref(false)
+const pendingRemarksChanges = ref(new Set()) // Set<question_id>
+const pendingAppreciationChange = ref(false)
+const syncErrors = ref([]) // Array<{ type: string, time: Date, message: string }>
+const isOnline = ref(navigator.onLine)
+const lastServerConfirm = ref(null) // Date of last successful server save
+const consecutiveFailures = ref(0)
+
+const hasPendingChanges = computed(() => {
+    return pendingScoresChange.value || pendingRemarksChanges.value.size > 0 || pendingAppreciationChange.value
+})
+
+const syncStatusLevel = computed(() => {
+    if (!isOnline.value) return 'offline'
+    if (consecutiveFailures.value >= 3) return 'critical'
+    if (syncErrors.value.length > 0 || hasPendingChanges.value) return 'warning'
+    return 'ok'
+})
+
 // Suggestions panel
 const showSuggestions = ref(false)
 const suggestionsExercise = ref(null)
@@ -367,9 +387,17 @@ const saveRemark = async (questionId, remark) => {
     remarksSaving.value.set(questionId, true)
     try {
         await gradingApi.saveRemark(copyId, questionId, remark)
+        const newPending = new Set(pendingRemarksChanges.value)
+        newPending.delete(questionId)
+        pendingRemarksChanges.value = newPending
+        consecutiveFailures.value = 0
+        lastServerConfirm.value = new Date()
+        syncErrors.value = syncErrors.value.filter(e => e.type !== `remark_${questionId}`)
     } catch (err) {
         console.error("Failed to save remark", err)
-        error.value = "Échec de la sauvegarde de la remarque"
+        consecutiveFailures.value++
+        syncErrors.value = syncErrors.value.filter(e => e.type !== `remark_${questionId}`)
+        syncErrors.value.push({ type: `remark_${questionId}`, time: new Date(), message: err.message || 'Échec sauvegarde remarque' })
     } finally {
         remarksSaving.value.set(questionId, false)
     }
@@ -379,9 +407,15 @@ const saveGlobalAppreciationToServer = async () => {
     appreciationSaving.value = true
     try {
         await gradingApi.saveGlobalAppreciation(copyId, globalAppreciation.value)
+        pendingAppreciationChange.value = false
+        consecutiveFailures.value = 0
+        lastServerConfirm.value = new Date()
+        syncErrors.value = syncErrors.value.filter(e => e.type !== 'appreciation')
     } catch (err) {
         console.error("Failed to save global appreciation", err)
-        error.value = "Échec de la sauvegarde de l'appréciation"
+        consecutiveFailures.value++
+        syncErrors.value = syncErrors.value.filter(e => e.type !== 'appreciation')
+        syncErrors.value.push({ type: 'appreciation', time: new Date(), message: err.message || 'Échec sauvegarde appréciation' })
     } finally {
         appreciationSaving.value = false
     }
@@ -389,7 +423,16 @@ const saveGlobalAppreciationToServer = async () => {
 
 const onRemarkChange = (questionId, value) => {
     questionRemarks.value.set(questionId, value)
-    
+    const newPending = new Set(pendingRemarksChanges.value)
+    newPending.add(questionId)
+    pendingRemarksChanges.value = newPending
+    // localStorage fallback for remarks
+    try {
+        const remarksObj = {}
+        questionRemarks.value.forEach((val, key) => { remarksObj[key] = val })
+        localStorage.setItem(`korrigo_remarks_${copyId}`, JSON.stringify(remarksObj))
+    } catch { /* localStorage full, ignore */ }
+
     if (remarkTimers.value.has(questionId)) {
         clearTimeout(remarkTimers.value.get(questionId))
     }
@@ -403,6 +446,11 @@ const onRemarkChange = (questionId, value) => {
 
 const onAppreciationChange = (value) => {
     globalAppreciation.value = value
+    pendingAppreciationChange.value = true
+    // localStorage fallback for appreciation
+    try {
+        localStorage.setItem(`korrigo_appreciation_${copyId}`, value)
+    } catch { /* localStorage full, ignore */ }
 
     if (appreciationTimer.value) {
         clearTimeout(appreciationTimer.value)
@@ -422,9 +470,16 @@ const saveScoresToServer = async () => {
         })
         await gradingApi.saveScores(copyId, scoresObj)
         lastScoresSaveStatus.value = { time: new Date(), success: true }
+        pendingScoresChange.value = false
+        consecutiveFailures.value = 0
+        lastServerConfirm.value = new Date()
+        syncErrors.value = syncErrors.value.filter(e => e.type !== 'scores')
     } catch (err) {
         console.error("Failed to save scores", err)
         lastScoresSaveStatus.value = { time: new Date(), success: false }
+        consecutiveFailures.value++
+        syncErrors.value = syncErrors.value.filter(e => e.type !== 'scores')
+        syncErrors.value.push({ type: 'scores', time: new Date(), message: err.message || 'Échec sauvegarde notes' })
     } finally {
         scoresSaving.value = false
     }
@@ -442,6 +497,7 @@ const onScoreChange = (questionId, value) => {
         if (question && parsed > question.maxScore) parsed = question.maxScore
         questionScores.value.set(questionId, parsed)
     }
+    pendingScoresChange.value = true
     // Also save to localStorage as fallback
     try {
         const scoresObj = {}
@@ -734,10 +790,41 @@ const formatDate = (isoString) => {
     return new Date(isoString).toLocaleString()
 }
 
+// --- Sync Protection: beforeunload + connectivity ---
+const onBeforeUnload = (e) => {
+    if (hasPendingChanges.value) {
+        e.preventDefault()
+        e.returnValue = 'Des modifications non sauvegard\u00e9es sur le serveur seront perdues.'
+        return e.returnValue
+    }
+}
+
+const onOnline = () => {
+    isOnline.value = true
+    retryAllPending()
+}
+const onOffline = () => { isOnline.value = false }
+
+const retryAllPending = async () => {
+    if (pendingScoresChange.value) {
+        await saveScoresToServer()
+    }
+    if (pendingAppreciationChange.value) {
+        await saveGlobalAppreciationToServer()
+    }
+    for (const questionId of pendingRemarksChanges.value) {
+        const remark = questionRemarks.value.get(questionId) || ''
+        await saveRemark(questionId, remark)
+    }
+}
+
 onMounted(async () => {
   await fetchCopy()
   if (isReady.value) checkDrafts()
   window.addEventListener('keydown', onGlobalKeydown)
+  window.addEventListener('beforeunload', onBeforeUnload)
+  window.addEventListener('online', onOnline)
+  window.addEventListener('offline', onOffline)
 
     // Scroll-wheel page navigation on viewer
     nextTick(() => {
@@ -754,6 +841,9 @@ watch(() => authStore.user, (u) => {
 
 onUnmounted(() => {
     window.removeEventListener('keydown', onGlobalKeydown)
+    window.removeEventListener('beforeunload', onBeforeUnload)
+    window.removeEventListener('online', onOnline)
+    window.removeEventListener('offline', onOffline)
     if (scrollAreaRef.value) {
         scrollAreaRef.value.removeEventListener('wheel', onScrollAreaWheel)
     }
@@ -860,6 +950,32 @@ onUnmounted(() => {
       <button @click="error = null">
         Fermer
       </button>
+    </div>
+
+    <!-- Sync Status Banner -->
+    <div
+      v-if="syncStatusLevel === 'offline'"
+      class="sync-banner sync-offline"
+    >
+      <span>&#x26A0;&#xFE0F; Hors ligne — Les modifications sont sauvegardées localement mais ne peuvent pas être envoyées au serveur.</span>
+    </div>
+    <div
+      v-else-if="syncStatusLevel === 'critical'"
+      class="sync-banner sync-critical"
+    >
+      <span>&#x1F6A8; {{ syncErrors.length }} erreur(s) de synchronisation — Vos notes ne sont PAS sauvegardées sur le serveur !</span>
+      <button
+        class="btn-sm btn-retry"
+        @click="retryAllPending"
+      >
+        Réessayer maintenant
+      </button>
+    </div>
+    <div
+      v-else-if="syncStatusLevel === 'warning' && hasPendingChanges"
+      class="sync-banner sync-warning"
+    >
+      <span>&#x23F3; Synchronisation en cours…</span>
     </div>
 
     <!-- Restore Draft Banner -->
@@ -1392,6 +1508,13 @@ onUnmounted(() => {
 
 .error-banner { background: #f8d7da; color: #721c24; padding: 10px; text-align: center; border-bottom: 1px solid #f5c6cb; }
 .info-banner { background: #d1ecf1; color: #0c5460; padding: 10px; text-align: center; border-bottom: 1px solid #bee5eb; display: flex; justify-content: center; gap: 10px; align-items: center; }
+.sync-banner { padding: 10px 20px; text-align: center; font-weight: 600; font-size: 0.9rem; display: flex; justify-content: center; align-items: center; gap: 12px; animation: syncPulse 2s ease-in-out infinite; }
+.sync-offline { background: #fef3c7; color: #92400e; border-bottom: 2px solid #f59e0b; }
+.sync-critical { background: #fecaca; color: #991b1b; border-bottom: 2px solid #dc2626; animation: syncPulse 1s ease-in-out infinite; }
+.sync-warning { background: #dbeafe; color: #1e40af; border-bottom: 1px solid #93c5fd; }
+.btn-retry { background: #dc2626; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-weight: 600; }
+.btn-retry:hover { background: #b91c1c; }
+@keyframes syncPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
 .loading-state { flex: 1; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; color: #666; }
 .empty-list, .empty-state { padding: 20px; text-align: center; color: #999; }
 .error-state p { color: #dc3545; font-weight: bold; }
