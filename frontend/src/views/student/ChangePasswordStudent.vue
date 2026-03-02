@@ -30,8 +30,8 @@ const handleChangePassword = async () => {
         return
     }
 
-    if (newPassword.value.length < 8) {
-        error.value = 'Le mot de passe doit contenir au moins 8 caractères.'
+    if (newPassword.value.length < 12) {
+        error.value = 'Le mot de passe doit contenir au moins 12 caractères.'
         return
     }
 
@@ -110,7 +110,7 @@ const handleChangePassword = async () => {
             <input
               v-model="newPassword"
               :type="showNew ? 'text' : 'password'"
-              placeholder="Minimum 8 caractères"
+              placeholder="Minimum 12 caractères"
               required
               autocomplete="new-password"
             >
@@ -122,6 +122,21 @@ const handleChangePassword = async () => {
               {{ showNew ? '🙈' : '👁️' }}
             </button>
           </div>
+        </div>
+
+        <div class="password-rules">
+          <p>Le mot de passe doit :</p>
+          <ul>
+            <li :class="{ 'rule-ok': newPassword.length >= 12 }">
+              Contenir au moins 12 caractères
+            </li>
+            <li :class="{ 'rule-ok': !/^\d+$/.test(newPassword) && newPassword.length > 0 }">
+              Ne pas être entièrement numérique
+            </li>
+            <li :class="{ 'rule-ok': newPassword.length > 0 && newPassword !== 'passe123' }">
+              Ne pas être un mot de passe courant
+            </li>
+          </ul>
         </div>
 
         <div class="form-group">
@@ -162,12 +177,14 @@ const handleChangePassword = async () => {
 
 <style scoped>
 .change-pw-container {
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     font-family: 'Inter', sans-serif;
+    padding: 1rem;
+    box-sizing: border-box;
 }
 
 .change-pw-box {
@@ -177,6 +194,7 @@ const handleChangePassword = async () => {
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     width: 100%;
     max-width: 420px;
+    box-sizing: border-box;
 }
 
 h1 { color: #2d3748; margin-bottom: 0.5rem; text-align: center; font-size: 1.4rem; }
@@ -189,9 +207,11 @@ input {
     padding: 0.75rem;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
-    font-size: 1rem;
+    font-size: 16px;
     outline: none;
     transition: border-color 0.2s;
+    box-sizing: border-box;
+    -webkit-appearance: none;
 }
 input:focus { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.2); }
 
