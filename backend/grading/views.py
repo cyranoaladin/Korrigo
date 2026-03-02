@@ -439,11 +439,13 @@ class CopyScoresView(APIView):
     def put(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
 
-        if copy.status == Copy.Status.GRADED:
+        if copy.status == Copy.Status.GRADED and not request.user.is_superuser:
             return Response(
                 {"detail": "Impossible de modifier les notes d'une copie déjà corrigée."},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        if copy.status == Copy.Status.GRADED and request.user.is_superuser:
+            logger.info("Admin %s overriding GRADED status for copy %s", request.user.username, copy_id)
 
         scores_data = request.data.get('scores_data', {})
         final_comment = request.data.get('final_comment', '')
