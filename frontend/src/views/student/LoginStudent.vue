@@ -96,7 +96,8 @@ const handleLogin = async () => {
       </form>
 
       <p class="hint-text">
-        Mot de passe par défaut : <strong>passe123</strong><br>
+        Mot de passe par défaut : <strong>votre date de naissance (JJMMAAAA)</strong><br>
+        Exemple : 15 mars 2007 → <strong>15032007</strong><br>
         Vous serez invité à le changer à la première connexion.
       </p>
             
