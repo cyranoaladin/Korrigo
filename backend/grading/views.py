@@ -308,6 +308,17 @@ class QuestionRemarkListCreateView(generics.ListCreateAPIView):
             }
         )
 
+        # Audit trail
+        try:
+            GradingEvent.objects.create(
+                copy=copy,
+                actor=request.user,
+                action='remark_saved',
+                metadata={'question_id': question_id, 'created': created},
+            )
+        except Exception:
+            logger.warning("Failed to create GradingEvent for remark save on copy %s", copy_id)
+
         serializer = self.get_serializer(obj)
         return Response(
             serializer.data,
@@ -385,6 +396,17 @@ class CopyGlobalAppreciationView(APIView):
         copy.global_appreciation = global_appreciation
         copy.save(update_fields=['global_appreciation'])
 
+        # Audit trail
+        try:
+            GradingEvent.objects.create(
+                copy=copy,
+                actor=request.user,
+                action='apprec_saved',
+                metadata={'length': len(global_appreciation)},
+            )
+        except Exception:
+            logger.warning("Failed to create GradingEvent for appreciation save on copy %s", copy_id)
+
         return Response({
             'copy_id': str(copy.id),
             'global_appreciation': copy.global_appreciation or ''
@@ -450,6 +472,19 @@ class CopyScoresView(APIView):
                 'final_comment': final_comment,
             }
         )
+
+        # Audit trail: log every score save for traceability
+        try:
+            nq = len([v for v in scores_data.values() if v is not None and v != ''])
+            total = sum(float(v) for v in scores_data.values() if v is not None and v != '')
+            GradingEvent.objects.create(
+                copy=copy,
+                actor=request.user,
+                action='scores_saved',
+                metadata={'nq': nq, 'total': round(total, 2), 'created': created},
+            )
+        except Exception:
+            logger.warning("Failed to create GradingEvent for score save on copy %s", copy_id)
 
         return Response({
             'copy_id': str(copy.id),
