@@ -14,18 +14,23 @@ const expandedExercises = ref({})
 const activeTab = ref('scores')
 const pdfDirectUrl = ref(null)
 
-const exerciseConfig = {
-  1: { name: 'QCM — Géométrie', max: 5 },
-  2: { name: 'Fonctions', max: 5 },
-  3: { name: 'Probabilités', max: 4 },
-  4: { name: 'Suites numériques', max: 6 },
-}
-const qMax = {
-  '1.1':1,'1.2':1,'1.3':1,'1.4':1,'1.5':1,
-  '2.1':0.25,'2.2':0.50,'2.3':0.50,'2.4':0.75,'2.5':0.25,'2.6':0.75,'2.7':0.50,'2.8':0.25,'2.9':0.75,'2.10':0.50,
-  '3.1':0.75,'3.2':0.50,'3.3':0.50,'3.4':1.00,'3.5':0.50,'3.6':0.75,
-  '4.1':0.25,'4.2':0.25,'4.3':0.25,'4.4':0.75,'4.5':0.50,'4.6':0.75,'4.7':0.50,'4.8':1.00,'4.9':0.25,'4.10':0.25,'4.11':0.75,'4.12':0.50,
-}
+const currentExerciseConfig = computed(() => {
+  if (selectedCopy.value?.exercise_config && Object.keys(selectedCopy.value.exercise_config).length > 0) {
+    const cfg = {}
+    for (const [k, v] of Object.entries(selectedCopy.value.exercise_config)) cfg[parseInt(k)] = v
+    return cfg
+  }
+  return { 1: { name: 'QCM — Géométrie', max: 5 }, 2: { name: 'Fonctions', max: 5 }, 3: { name: 'Probabilités', max: 4 }, 4: { name: 'Suites numériques', max: 6 } }
+})
+const currentQMax = computed(() => {
+  if (selectedCopy.value?.q_max && Object.keys(selectedCopy.value.q_max).length > 0) return selectedCopy.value.q_max
+  return {
+    '1.1':1,'1.2':1,'1.3':1,'1.4':1,'1.5':1,
+    '2.1':0.25,'2.2':0.50,'2.3':0.50,'2.4':0.75,'2.5':0.25,'2.6':0.75,'2.7':0.50,'2.8':0.25,'2.9':0.75,'2.10':0.50,
+    '3.1':0.75,'3.2':0.50,'3.3':0.50,'3.4':1.00,'3.5':0.50,'3.6':0.75,
+    '4.1':0.25,'4.2':0.25,'4.3':0.25,'4.4':0.75,'4.5':0.50,'4.6':0.75,'4.7':0.50,'4.8':1.00,'4.9':0.25,'4.10':0.25,'4.11':0.75,'4.12':0.50,
+  }
+})
 
 const exerciseBreakdown = computed(() => {
   if (!selectedCopy.value) return {}
@@ -36,11 +41,12 @@ const exerciseBreakdown = computed(() => {
     const parts = qid.split('.')
     const exNum = parseInt(parts[0])
     if (!grouped[exNum]) {
-      const c = exerciseConfig[exNum] || { name: `Exercice ${exNum}`, max: 0 }
+      const c = currentExerciseConfig.value[exNum] || { name: `Exercice ${exNum}`, max: 0 }
       grouped[exNum] = { name: c.name, max: c.max, questions: [], total: 0 }
     }
     const n = parseFloat(score) || 0
-    grouped[exNum].questions.push({ qid, qLabel: `Q${parts[1]}`, score: n, maxScore: qMax[qid]||1, remark: (remarks[qid]&&remarks[qid].trim())?remarks[qid]:null })
+    const qLabel = parts.length > 1 ? `Q${parts.slice(1).join('.')}` : 'QCM'
+    grouped[exNum].questions.push({ qid, qLabel, score: n, maxScore: currentQMax.value[qid]||1, remark: (remarks[qid]&&remarks[qid].trim())?remarks[qid]:null })
     grouped[exNum].total += n
   }
   for (const k of Object.keys(grouped)) grouped[k].questions.sort((a,b) => { const ap=a.qid.split('.').map(Number), bp=b.qid.split('.').map(Number); return ap[0]-bp[0]||ap[1]-bp[1] })
