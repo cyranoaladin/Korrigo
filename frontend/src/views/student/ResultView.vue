@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
 import { useRouter } from 'vue-router'
@@ -12,9 +12,7 @@ const selectedCopy = ref(null)
 const loading = ref(true)
 const expandedExercises = ref({})
 const activeTab = ref('scores')
-const pdfBlobUrl = ref(null)
-const pdfLoading = ref(false)
-const pdfError = ref(null)
+const pdfDirectUrl = ref(null)
 
 const exerciseConfig = {
   1: { name: 'QCM — Géométrie', max: 5 },
@@ -74,37 +72,20 @@ const fetchCopies = async () => {
   finally { loading.value = false }
 }
 const selectCopy = (copy) => { selectedCopy.value = copy; expandedExercises.value = {}; for (const qid of Object.keys(copy.scores_details||{})) expandedExercises.value[parseInt(qid.split('.')[0])]=true }
-const fetchPdf = async () => {
+const loadPdf = () => {
   if (!selectedCopy.value?.final_pdf_url) return
-  pdfLoading.value = true
-  pdfError.value = null
-  if (pdfBlobUrl.value) { URL.revokeObjectURL(pdfBlobUrl.value); pdfBlobUrl.value = null }
-  try {
-    const pdfUrl = selectedCopy.value.final_pdf_url
-    const res = await api.get(pdfUrl, { baseURL: '', responseType: 'blob', headers: { 'Accept': 'application/pdf' } })
-    pdfBlobUrl.value = URL.createObjectURL(res.data)
-  } catch (e) {
-    console.error('PDF fetch error:', e)
-    pdfError.value = 'Impossible de charger le PDF.'
-  } finally { pdfLoading.value = false }
+  pdfDirectUrl.value = selectedCopy.value.final_pdf_url
 }
-watch(activeTab, (tab) => { if (tab === 'pdf' && !pdfBlobUrl.value) fetchPdf() })
-watch(selectedCopy, () => { if (pdfBlobUrl.value) { URL.revokeObjectURL(pdfBlobUrl.value); pdfBlobUrl.value = null; pdfError.value = null } if (activeTab.value === 'pdf') fetchPdf() })
-onBeforeUnmount(() => { if (pdfBlobUrl.value) URL.revokeObjectURL(pdfBlobUrl.value) })
-const downloadPdf = async () => {
+watch(activeTab, (tab) => { if (tab === 'pdf' && !pdfDirectUrl.value) loadPdf() })
+watch(selectedCopy, () => { pdfDirectUrl.value = null; if (activeTab.value === 'pdf') loadPdf() })
+const downloadPdf = () => {
   if (!selectedCopy.value?.final_pdf_url) return
-  try {
-    const pdfUrl = selectedCopy.value.final_pdf_url
-    const res = await api.get(pdfUrl, { baseURL: '', responseType: 'blob', headers: { 'Accept': 'application/pdf' } })
-    const url = URL.createObjectURL(res.data)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `copie_corrigee_${selectedCopy.value.anonymous_id || 'copie'}.pdf`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  } catch (e) { console.error('Download error:', e) }
+  const a = document.createElement('a')
+  a.href = selectedCopy.value.final_pdf_url + '?download=1'
+  a.download = `copie_corrigee_${selectedCopy.value.anonymous_id || 'copie'}.pdf`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
 }
 const logout = async () => { await auth.logout(); router.push('/') }
 onMounted(() => { fetchCopies() })
@@ -307,24 +288,17 @@ onMounted(() => { fetchCopies() })
       </div>
 
       <!-- ═══════════════ TAB: PDF ═══════════════ -->
-      <div v-if="selectedCopy && activeTab==='pdf'" class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 overflow-hidden" style="height: 75vh;">
-        <div v-if="pdfLoading" class="flex items-center justify-center h-full">
-          <div class="text-center">
-            <div class="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-3"></div>
-            <p class="text-slate-400 text-sm">Chargement du PDF...</p>
+      <div v-if="selectedCopy && activeTab==='pdf'" class="space-y-2">
+        <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 overflow-hidden" style="height: 75vh;">
+          <iframe v-if="pdfDirectUrl" :src="pdfDirectUrl" class="w-full h-full border-0" />
+          <div v-else class="flex items-center justify-center h-full">
+            <p class="text-slate-400">PDF non disponible.</p>
           </div>
         </div>
-        <iframe v-else-if="pdfBlobUrl" :src="pdfBlobUrl" class="w-full h-full border-0" />
-        <div v-else-if="pdfError" class="flex items-center justify-center h-full">
-          <div class="text-center">
-            <FileText class="w-12 h-12 text-red-300 mx-auto mb-3" />
-            <p class="text-red-500 text-sm">{{ pdfError }}</p>
-            <button @click="fetchPdf" class="mt-3 px-4 py-2 text-sm bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors">Réessayer</button>
-          </div>
-        </div>
-        <div v-else class="flex items-center justify-center h-full">
-          <p class="text-slate-400">PDF non disponible.</p>
-        </div>
+        <p v-if="pdfDirectUrl" class="text-center text-xs text-slate-400">
+          Le PDF ne s'affiche pas ?
+          <a :href="selectedCopy.final_pdf_url + '?download=1'" class="text-indigo-600 hover:underline font-medium">Télécharger directement</a>
+        </p>
       </div>
 
     </main>
