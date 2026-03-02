@@ -255,6 +255,8 @@ class CopyFinalPdfView(APIView):
         response["Pragma"] = "no-cache"
         response["Expires"] = "0"
         response["X-Content-Type-Options"] = "nosniff"
+        response["X-Frame-Options"] = "SAMEORIGIN"
+        response["Content-Security-Policy"] = "frame-ancestors 'self'"
         return response
 
 
