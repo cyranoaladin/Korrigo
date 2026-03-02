@@ -647,44 +647,45 @@ class StudentCopiesView(generics.ListAPIView):
             except Student.DoesNotExist:
                 return Copy.objects.none()
 
-    # Per-exam grading schemes: exercise config + per-question max scores
-    EXAM_BAREMES = {
+    # Per-question max scores (keyed by question ID as used in scores_data)
+    Q_MAX_BY_EXAM = {
         'BB_J1': {
-            'exercise_config': {
-                1: {'name': 'QCM — Géométrie', 'max': 5},
-                2: {'name': 'Fonctions', 'max': 5},
-                3: {'name': 'Probabilités', 'max': 4},
-                4: {'name': 'Suites numériques', 'max': 6},
-            },
-            'q_max': {
-                '1.1':1,'1.2':1,'1.3':1,'1.4':1,'1.5':1,
-                '2.1':0.25,'2.2':0.50,'2.3':0.50,'2.4':0.75,'2.5':0.25,
-                '2.6':0.75,'2.7':0.50,'2.8':0.25,'2.9':0.75,'2.10':0.50,
-                '3.1':0.75,'3.2':0.50,'3.3':0.50,'3.4':1.00,'3.5':0.50,'3.6':0.75,
-                '4.1':0.25,'4.2':0.25,'4.3':0.25,'4.4':0.75,'4.5':0.50,
-                '4.6':0.75,'4.7':0.50,'4.8':1.00,'4.9':0.25,'4.10':0.25,
-                '4.11':0.75,'4.12':0.50,
-            },
+            '1.1':1,'1.2':1,'1.3':1,'1.4':1,'1.5':1,
+            '2.1':0.25,'2.2':0.50,'2.3':0.50,'2.4':0.75,'2.5':0.25,
+            '2.6':0.75,'2.7':0.50,'2.8':0.25,'2.9':0.75,'2.10':0.50,
+            '3.1':0.75,'3.2':0.50,'3.3':0.50,'3.4':1.00,'3.5':0.50,'3.6':0.75,
+            '4.1':0.25,'4.2':0.25,'4.3':0.25,'4.4':0.75,'4.5':0.50,
+            '4.6':0.75,'4.7':0.50,'4.8':1.00,'4.9':0.25,'4.10':0.25,
+            '4.11':0.75,'4.12':0.50,
         },
         'BB_J2': {
-            'exercise_config': {
-                1: {'name': 'QCM', 'max': 5},
-                2: {'name': 'Analyse', 'max': 5},
-                3: {'name': 'Probabilités', 'max': 5},
-                4: {'name': 'Géométrie', 'max': 5},
-            },
-            'q_max': {
-                '1':5.0,
-                '2.1.1':0.25,'2.1.2':0.50,'2.1.3':1.00,'2.1.4':0.50,'2.1.5':0.25,
-                '2.2.1':0.50,'2.2.2':0.50,'2.2.3':0.50,'2.2.4':0.50,'2.2.5':0.50,
-                '3.1':0.50,'3.2':0.50,'3.3':1.00,'3.4':0.75,'3.5':0.50,
-                '3.6':0.75,'3.7':1.00,
-                '4.1.1':0.50,'4.1.2':0.50,'4.1.3':0.50,
-                '4.2.1':0.75,'4.2.2':0.50,'4.2.3':0.50,'4.2.4':1.00,
-                '4.2.5':0.50,'4.2.6':0.50,'4.2.7':0.50,
-            },
+            '1':5.0,
+            '2.1.1':0.25,'2.1.2':0.50,'2.1.3':1.00,'2.1.4':0.50,'2.1.5':0.25,
+            '2.2.1':0.50,'2.2.2':0.50,'2.2.3':0.50,'2.2.4':0.50,'2.2.5':0.50,
+            '3.1':0.50,'3.2':0.50,'3.3':1.00,'3.4':0.75,'3.5':0.50,
+            '3.6':0.75,'3.7':1.00,
+            '4.1.1':0.50,'4.1.2':0.50,'4.1.3':0.50,
+            '4.2.1':0.75,'4.2.2':0.50,'4.2.3':0.50,'4.2.4':1.00,
+            '4.2.5':0.50,'4.2.6':0.50,'4.2.7':0.50,
         },
     }
+
+    @staticmethod
+    def _build_exercise_config(exam):
+        """Build exercise_config from exam.grading_structure (DB source of truth)."""
+        gs = exam.grading_structure or []
+        config = {}
+        for i, ex in enumerate(gs, 1):
+            label = ex.get('label', f'Exercice {i}')
+            # Strip "Exercice N — " prefix to get just the topic name
+            name = label
+            if ' — ' in label:
+                name = label.split(' — ', 1)[1]
+            elif label.startswith('Exercice'):
+                name = label
+            max_score = ex.get('max_score', 0)
+            config[i] = {'name': name, 'max': max_score}
+        return config
 
     def list(self, request, *args, **kwargs):
         from grading.models import Score, QuestionRemark
@@ -714,8 +715,9 @@ class StudentCopiesView(generics.ListAPIView):
                 if remark.remark and remark.remark.strip():
                     remarks[remark.question_id] = remark.remark
 
-            # Get exam-specific barème
-            bareme = self.EXAM_BAREMES.get(copy.exam.name, {})
+            # Build exercise_config from DB grading_structure (source of truth)
+            exercise_config = self._build_exercise_config(copy.exam)
+            q_max = self.Q_MAX_BY_EXAM.get(copy.exam.name, {})
 
             data.append({
                 "id": copy.id,
@@ -728,8 +730,8 @@ class StudentCopiesView(generics.ListAPIView):
                 "remarks": remarks,
                 "global_appreciation": copy.global_appreciation or '',
                 "llm_summary": copy.llm_summary or '',
-                "exercise_config": bareme.get('exercise_config', {}),
-                "q_max": bareme.get('q_max', {}),
+                "exercise_config": exercise_config,
+                "q_max": q_max,
             })
         return Response(data)
 class ExamSourceUploadView(APIView):
