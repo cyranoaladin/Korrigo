@@ -29,7 +29,7 @@ const passwordsMatch = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  const baseOk = newPassword.value.length >= 8 && passwordsMatch.value && !isLoading.value
+  const baseOk = newPassword.value.length >= 12 && passwordsMatch.value && !isLoading.value
   if (isStudent.value) {
     return baseOk && currentPassword.value.length > 0
   }
@@ -44,8 +44,8 @@ const handleSubmit = async () => {
     return
   }
 
-  if (newPassword.value.length < 8) {
-    error.value = 'Le mot de passe doit contenir au moins 8 caractères.'
+  if (newPassword.value.length < 12) {
+    error.value = 'Le mot de passe doit contenir au moins 12 caractères.'
     return
   }
 
@@ -203,8 +203,8 @@ const handleClose = () => {
                 v-model="newPassword"
                 :type="passwordVisible ? 'text' : 'password'"
                 required
-                minlength="8"
-                placeholder="Minimum 8 caractères"
+                minlength="12"
+                placeholder="Minimum 12 caractères"
               >
               <button
                 type="button"
@@ -251,6 +251,21 @@ const handleClose = () => {
             </div>
           </div>
 
+          <div class="password-rules">
+            <p>Le mot de passe doit :</p>
+            <ul>
+              <li :class="{ 'rule-ok': newPassword.length >= 12 }">
+                Contenir au moins 12 caractères
+              </li>
+              <li :class="{ 'rule-ok': !/^\d+$/.test(newPassword) && newPassword.length > 0 }">
+                Ne pas être entièrement numérique
+              </li>
+              <li :class="{ 'rule-ok': newPassword.length > 0 && newPassword !== 'passe123' }">
+                Ne pas être un mot de passe courant
+              </li>
+            </ul>
+          </div>
+
           <div class="form-group">
             <label for="confirm-password">Confirmer le mot de passe</label>
             <div class="password-input-wrapper">
@@ -259,7 +274,7 @@ const handleClose = () => {
                 v-model="confirmPassword"
                 :type="confirmVisible ? 'text' : 'password'"
                 required
-                minlength="8"
+                minlength="12"
                 placeholder="Retapez le mot de passe"
               >
               <button
@@ -461,6 +476,47 @@ const handleClose = () => {
 
 .password-toggle:hover {
   color: #374151;
+}
+
+.password-rules {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.password-rules p {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.password-rules ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.password-rules li {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  padding: 2px 0;
+}
+
+.password-rules li::before {
+  content: '\2717 ';
+  color: #ef4444;
+}
+
+.password-rules li.rule-ok {
+  color: #16a34a;
+}
+
+.password-rules li.rule-ok::before {
+  content: '\2713 ';
+  color: #16a34a;
 }
 
 .error-hint {
