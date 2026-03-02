@@ -132,7 +132,8 @@ const handleClose = () => {
           v-if="forced"
           class="warning-message"
         >
-          Vous devez changer votre mot de passe pour continuer.
+          Votre mot de passe actuel est votre date de naissance (format JJMMAAAA).<br>
+          Pour des raisons de sécurité, vous devez le changer pour continuer.
         </p>
 
         <form @submit.prevent="handleSubmit">
@@ -147,7 +148,7 @@ const handleClose = () => {
                 v-model="currentPassword"
                 :type="currentVisible ? 'text' : 'password'"
                 required
-                placeholder="Votre mot de passe actuel"
+                placeholder="Votre date de naissance (JJMMAAAA)"
                 autocomplete="current-password"
               >
               <button
