@@ -114,6 +114,9 @@ onMounted(fetchStudents)
                 {{ copy.total_score.toFixed(2) }}/20
               </span>
               <span v-else class="score pending">—</span>
+              <span v-if="copy.corrector_name" class="corrector-name">
+                ✏️ {{ copy.corrector_name }}
+              </span>
             </div>
           </div>
           <div class="action-arrow">→</div>
@@ -178,6 +181,7 @@ onMounted(fetchStudents)
 .status-badge.staging { background: #f1f5f9; color: #64748b; }
 .score { font-weight: 700; color: #0f172a; min-width: 50px; text-align: right; }
 .score.pending { color: #94a3b8; }
+.corrector-name { color: #6366f1; font-size: 0.75rem; font-weight: 500; background: #eef2ff; padding: 2px 6px; border-radius: 4px; }
 
 .action-arrow { color: #94a3b8; font-size: 1.2rem; }
 .student-card:hover .action-arrow { color: #6366f1; }
