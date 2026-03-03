@@ -67,12 +67,20 @@ class MyStudentsListView(views.APIView):
                 if score_obj and score_obj.scores_data:
                     total_score = sum(score_obj.scores_data.values())
                 
+                # Nom du correcteur
+                corrector_name = None
+                if copy.assigned_corrector:
+                    corrector_name = f"{copy.assigned_corrector.first_name} {copy.assigned_corrector.last_name}".strip()
+                    if not corrector_name:
+                        corrector_name = copy.assigned_corrector.username
+                
                 student_data['copies'].append({
                     'copy_id': str(copy.id),
                     'exam_name': copy.exam.name if copy.exam else 'N/A',
                     'status': copy.status,
                     'total_score': round(total_score, 2) if total_score is not None else None,
                     'anonymous_id': copy.anonymous_id,
+                    'corrector_name': corrector_name,
                 })
             
             result.append(student_data)
