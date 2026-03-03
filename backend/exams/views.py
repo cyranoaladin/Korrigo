@@ -1340,11 +1340,13 @@ class ExamStudentListView(APIView):
             # Student name
             student_name = None
             student_class = None
+            student_id = None
             if copy.student and copy.student.user:
                 u = copy.student.user
                 student_name = f"{u.last_name} {u.first_name}".strip() or u.username
                 student_class = copy.student.class_name
                 student_groupe = copy.student.groupe
+                student_id = str(copy.student.id)
 
             else:
                 student_groupe = None
@@ -1364,6 +1366,7 @@ class ExamStudentListView(APIView):
             data.append({
                 "id": str(copy.id),
                 "anonymous_id": copy.anonymous_id,
+                "student_id": student_id,
                 "student_name": student_name,
                 "student_class": student_class,
                 "student_groupe": student_groupe,
