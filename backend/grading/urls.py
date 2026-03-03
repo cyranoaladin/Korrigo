@@ -29,6 +29,7 @@ from grading.views_annotation_bank import (
     AutoSaveAnnotationView,
     AnnotationTemplateListView,
 )
+from grading.views_my_students import MyStudentsListView, StudentBilanView
 
 urlpatterns = [
     # Drafts
@@ -80,4 +81,8 @@ urlpatterns = [
     path('my-annotations/auto-save/', AutoSaveAnnotationView.as_view(), name='user-annotation-auto-save'),
     path('my-annotations/<uuid:pk>/', UserAnnotationDetailView.as_view(), name='user-annotation-detail'),
     path('my-annotations/<uuid:pk>/use/', UserAnnotationUseView.as_view(), name='user-annotation-use'),
+
+    # Mes Élèves (correcteur)
+    path('my-students/', MyStudentsListView.as_view(), name='my-students-list'),
+    path('students/<int:student_id>/bilan/', StudentBilanView.as_view(), name='student-bilan'),
 ]

@@ -174,6 +174,10 @@ const scrollToStats = async () => {
         if (el) el.scrollIntoView({ behavior: 'smooth' })
     })
 }
+
+const goToMyStudents = () => {
+    router.push('/corrector/my-students')
+}
 </script>
 
 <template>
@@ -199,6 +203,12 @@ const scrollToStats = async () => {
           @click="scrollToStats"
         >
           📊 Statistiques
+        </button>
+        <button
+          class="btn-my-students"
+          @click="goToMyStudents"
+        >
+          👥 Mes Élèves
         </button>
         <button
           class="btn-logout"
@@ -498,6 +508,8 @@ const scrollToStats = async () => {
 .btn-text { background: none; border: none; color: #64748b; cursor: pointer; text-decoration: underline; font-size: 0.85rem; }
 .btn-nav-stats { background: #6366f1; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
 .btn-nav-stats:hover { background: #4f46e5; }
+.btn-my-students { background: #10b981; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
+.btn-my-students:hover { background: #059669; }
 .btn-logout { border: 1px solid #ef4444; background: white; color: #ef4444; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; }
 .btn-logout:hover { background: #ef4444; color: white; }
 
