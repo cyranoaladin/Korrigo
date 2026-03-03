@@ -1338,7 +1338,7 @@ onUnmounted(() => {
                 :class="{ 'score-overflow': scoreExceeds20 }"
               >
                 <span class="total-label">Note totale :</span>
-                <strong>{{ totalScore }}</strong> / 20
+                <strong>{{ totalScore.toFixed(2) }}</strong> / 20
                 <span
                   v-if="scoreExceeds20"
                   class="overflow-warning"

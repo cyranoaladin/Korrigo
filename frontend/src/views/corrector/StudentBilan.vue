@@ -158,7 +158,7 @@ onMounted(fetchBilan)
                 class="score-item"
               >
                 <span class="question-id">Q{{ qid }}</span>
-                <span class="question-score">{{ score }}</span>
+                <span class="question-score">{{ typeof score === 'number' ? score.toFixed(2) : score }}</span>
               </div>
             </div>
             <div v-else class="empty-section">Aucune note enregistrée.</div>
