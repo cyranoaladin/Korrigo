@@ -143,7 +143,7 @@ class StudentBilanView(views.APIView):
             llm_summary = copy.llm_summary or ''
             
             # PDF URL
-            pdf_url = f'/api/grading/copies/{copy.id}/final-pdf/' if copy.status == 'GRADED' else None
+            pdf_url = f'/grading/copies/{copy.id}/final-pdf/' if copy.status == 'GRADED' else None
             
             copies_data.append({
                 'copy_id': str(copy.id),
