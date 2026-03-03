@@ -129,6 +129,18 @@ const routes = [
         meta: { requiresAuth: true, role: ['Teacher', 'Admin'] }
     },
     {
+        path: '/corrector/my-students',
+        name: 'MyStudents',
+        component: () => import('../views/corrector/MyStudents.vue'),
+        meta: { requiresAuth: true, role: ['Teacher', 'Admin'] }
+    },
+    {
+        path: '/corrector/student/:studentId/bilan',
+        name: 'StudentBilan',
+        component: () => import('../views/corrector/StudentBilan.vue'),
+        meta: { requiresAuth: true, role: ['Teacher', 'Admin'] }
+    },
+    {
         path: '/exam/:examId/identification',
         name: 'IdentificationDesk',
         component: () => import('../views/admin/IdentificationDesk.vue'),
