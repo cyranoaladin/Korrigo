@@ -725,7 +725,7 @@ class StudentCopiesView(generics.ListAPIView):
                 "date": copy.exam.date,
                 "total_score": total_score,
                 "status": copy.status,
-                "final_pdf_url": f"/api/grading/copies/{copy.id}/final-pdf/" if copy.final_pdf else None,
+                "final_pdf_url": f"/grading/copies/{copy.id}/final-pdf/" if copy.final_pdf else None,
                 "scores_details": scores_data,
                 "remarks": remarks,
                 "global_appreciation": copy.global_appreciation or '',
