@@ -111,7 +111,7 @@ onMounted(fetchStudents)
                 {{ getStatusLabel(copy.status) }}
               </span>
               <span v-if="copy.total_score !== null" class="score">
-                {{ copy.total_score }}/20
+                {{ copy.total_score.toFixed(2) }}/20
               </span>
               <span v-else class="score pending">—</span>
             </div>

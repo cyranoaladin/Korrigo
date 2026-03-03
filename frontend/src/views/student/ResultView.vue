@@ -151,7 +151,7 @@ onMounted(() => { fetchCopies() })
               ? 'bg-white text-indigo-700 shadow-md shadow-indigo-100 ring-1 ring-indigo-200'
               : 'bg-white/50 text-slate-500 hover:bg-white hover:shadow-sm']">
           {{ copy.exam_name }}
-          <span class="ml-2 font-bold">{{ copy.total_score.toFixed(1) }}/20</span>
+          <span class="ml-2 font-bold">{{ copy.total_score.toFixed(2) }}/20</span>
         </button>
       </div>
 
@@ -173,7 +173,7 @@ onMounted(() => { fetchCopies() })
                   class="transition-all duration-1000 ease-out" />
               </svg>
               <div class="absolute inset-0 flex flex-col items-center justify-center">
-                <span class="text-3xl sm:text-4xl font-black text-slate-800">{{ totalScore.toFixed(1) }}</span>
+                <span class="text-3xl sm:text-4xl font-black text-slate-800">{{ totalScore.toFixed(2) }}</span>
                 <span class="text-sm text-slate-400 font-medium">/ 20</span>
               </div>
             </div>
@@ -189,7 +189,7 @@ onMounted(() => { fetchCopies() })
                 <div v-for="(ex, exNum) in exerciseBreakdown" :key="'mini-'+exNum" class="bg-slate-50/80 rounded-xl px-3 py-2.5">
                   <div class="flex justify-between items-baseline mb-1.5">
                     <span class="text-xs font-semibold text-slate-500">Ex. {{ exNum }}</span>
-                    <span class="text-xs font-bold text-slate-700">{{ ex.total.toFixed(1) }}/{{ ex.max }}</span>
+                    <span class="text-xs font-bold text-slate-700">{{ ex.total.toFixed(2) }}/{{ ex.max }}</span>
                   </div>
                   <div class="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                     <div :class="['h-full rounded-full transition-all duration-700', exBarC(ex.total, ex.max)]" :style="{width: exBarW(ex.total, ex.max)}"></div>
