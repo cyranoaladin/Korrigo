@@ -170,7 +170,16 @@ onMounted(fetchData)
                 <tr v-for="(copy, idx) in filteredCopies" :key="copy.id" class="hover:bg-indigo-50/30 transition-colors">
                   <td class="px-4 py-3 text-slate-400 text-xs">{{ idx+1 }}</td>
                   <td class="px-4 py-3 font-mono text-xs text-slate-500">{{ copy.anonymous_id }}</td>
-                  <td class="px-4 py-3 font-medium text-slate-800">{{ copy.student_name || '—' }}</td>
+                  <td class="px-4 py-3 font-medium text-slate-800">
+                    <router-link 
+                      v-if="copy.student_id" 
+                      :to="{ name: 'StudentBilan', params: { studentId: copy.student_id } }"
+                      class="text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                    >
+                      {{ copy.student_name || '—' }}
+                    </router-link>
+                    <span v-else>{{ copy.student_name || '—' }}</span>
+                  </td>
                   <td class="px-4 py-3 text-slate-500 text-xs">{{ copy.student_class || '—' }}</td>
                   <td class="px-4 py-3 text-slate-500 text-xs">{{ copy.student_groupe || '—' }}</td>
                   <td class="px-4 py-3 text-center"><span :class="scoreColor(copy.total_score)">{{ copy.total_score !== null ? copy.total_score.toFixed(2) : '—' }}</span></td>
