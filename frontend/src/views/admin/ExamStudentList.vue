@@ -124,7 +124,7 @@ onMounted(fetchData)
           </div>
           <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-100 px-4 py-3">
             <div class="flex items-center gap-2 mb-1"><ArrowUpDown class="w-4 h-4 text-purple-400"/><span class="text-xs text-slate-400 uppercase">Min / Max</span></div>
-            <p class="text-lg font-bold text-purple-600">{{ summary.min_score ?? '—' }} / {{ summary.max_score ?? '—' }}</p>
+            <p class="text-lg font-bold text-purple-600">{{ summary.min_score !== null ? summary.min_score.toFixed(2) : '—' }} / {{ summary.max_score !== null ? summary.max_score.toFixed(2) : '—' }}</p>
           </div>
         </div>
 
