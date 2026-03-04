@@ -206,14 +206,6 @@ onMounted(fetchBilan)
             <div v-else class="empty-section">Aucune appréciation.</div>
           </section>
 
-          <!-- Bilan LLM -->
-          <section v-if="selectedCopy.llm_summary" class="bilan-section">
-            <h2>🤖 Bilan Pédagogique Personnalisé</h2>
-            <div class="llm-summary-box">
-              <pre>{{ selectedCopy.llm_summary }}</pre>
-            </div>
-          </section>
-
           <!-- Commentaire final -->
           <section v-if="selectedCopy.final_comment" class="bilan-section">
             <h2>📋 Commentaire Final</h2>
