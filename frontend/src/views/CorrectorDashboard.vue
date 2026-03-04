@@ -210,6 +210,13 @@ const goToMyStudents = () => {
         >
           👥 Mes Élèves
         </button>
+        <a
+          href="https://korrigo.labomaths.tn/korrigo/stats-bb-maths-2026"
+          target="_blank"
+          class="btn-jury-report"
+        >
+          📋 Rapport du jury
+        </a>
         <button
           class="btn-logout"
           @click="handleLogout"
@@ -510,6 +517,8 @@ const goToMyStudents = () => {
 .btn-nav-stats:hover { background: #4f46e5; }
 .btn-my-students { background: #10b981; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
 .btn-my-students:hover { background: #059669; }
+.btn-jury-report { display: inline-block; background: #f59e0b; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; text-decoration: none; }
+.btn-jury-report:hover { background: #d97706; }
 .btn-logout { border: 1px solid #ef4444; background: white; color: #ef4444; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; }
 .btn-logout:hover { background: #ef4444; color: white; }
 
