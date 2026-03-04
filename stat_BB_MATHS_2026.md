@@ -694,7 +694,46 @@ L'investigation porte sur les **70 élèves** ayant obtenu la note maximale 5/5 
 >
 > **4 des 6 élèves sont en classe T.01** — ce qui confirme la difficulté structurelle de cette classe déjà identifiée (taux de réussite BB_J1 : 43.8%).
 
-### 13.5 Détection de Triche au QCM — BB_J1
+### 13.5 Alerte : %Ex1 supérieur au seuil BB_J2
+
+#### Seuil de référence
+
+Les **16 élèves BB_J2** ayant obtenu 5/5 au QCM ont un pourcentage moyen de la note QCM par rapport à la note globale de **31.2%**. Ce seuil sert de référence : tout élève BB_J1 avec 5/5 dont le %Ex1 dépasse 31.2% présente un **déséquilibre anormal** — le QCM pèse plus lourd dans sa note que la moyenne des meilleurs élèves du Jour 2.
+
+#### Résultat : 24 élèves BB_J1 en alerte
+
+| # | Élève | Classe | Note /20 | %Ex1 | Écart vs seuil |
+|--:|-------|--------|--------:|-----:|:--------------:|
+| 1 | SOUISSI Yomna | T.08 | 15.90 | 31.4% | +0.2 |
+| 2 | KHOUADJA Lina | T.05 | 15.50 | 32.3% | +1.1 |
+| 3 | MARRAKCHI Ahmed | T.02 | 15.45 | 32.4% | +1.2 |
+| 4 | SOUISSI Yosr | T.02 | 15.35 | 32.6% | +1.4 |
+| 5 | DABOUSSI Yasmine | T.02 | 15.15 | 33.0% | +1.8 |
+| 6 | KAABI Omar-Mokhtar | T.02 | 15.00 | 33.3% | +2.1 |
+| 7 | PERON Rayan | T.09 | 14.80 | 33.8% | +2.6 |
+| 8 | CHOUAYA Youssef | T.07 | 14.65 | 34.1% | +2.9 |
+| 9 | TURKI Sami | T.06 | 14.30 | 35.0% | +3.8 |
+| 10 | BEN AYED Hafedh | T.06 | 14.10 | 35.5% | +4.3 |
+| 11 | BEN ALI Zeineb | T.02 | 14.00 | 35.7% | +4.5 |
+| 12 | BEN JEMAA Sadri | T.01 | 14.00 | 35.7% | +4.5 |
+| 13 | BEN JERAD Yassine | T.01 | 14.00 | 35.7% | +4.5 |
+| 14 | CHAOUCH Rima | T.09 | 12.95 | 38.6% | +7.4 |
+| 15 | ALBANESE Alexandre | T.06 | 12.00 | 41.7% | +10.5 |
+| 16 | GRATI Mohamed-Mehdi | T.10 | 11.75 | 42.6% | +11.4 |
+| 17 | NAJI Ines | T.01 | 11.75 | 42.6% | +11.4 |
+| 18 | SGHAIER Lilia | T.06 | 10.75 | 46.5% | +15.3 |
+| 19 | SOUISSI Mohamed Ali | T.06 | 10.35 | 48.3% | +17.1 |
+| 20 | CHIHAOUI Ines | T.01 | 9.95 | 50.3% | +19.1 |
+| 21 | MONTACER Rayen | T.01 | 9.70 | 51.5% | +20.3 |
+| 22 | GRAF Alia | T.01 | 7.25 | 69.0% | +37.8 |
+| 23 | KHALSI Safe | T.01 | 6.25 | 80.0% | +48.8 |
+| 24 | CHAMAM Jasim-Brahim | T.09 | 6.20 | 80.6% | +49.4 |
+
+> **24 élèves BB_J1 sur 54** ayant eu 5/5 au QCM (44.4%) dépassent le seuil de 31.2%. Cela signifie que pour ces élèves, le QCM a un poids disproportionné dans leur note par rapport à ce qu'on observe chez les meilleurs élèves du Jour 2.
+>
+> Les écarts les plus extrêmes (KHALSI +48.8%, CHAMAM +49.4%, GRAF +37.8%) révèlent des profils où le QCM constitue quasiment la seule source de points. Ces élèves nécessitent un **suivi individualisé renforcé** sur les exercices de rédaction.
+
+### 13.6 Détection de Triche au QCM — BB_J1
 
 #### Méthodologie
 
