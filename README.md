@@ -179,4 +179,4 @@ Korrigo dispose d'une documentation exhaustive organisée par rôle et par thém
 **Licence** : Propriétaire — Usage institutionnel uniquement.
 
 ---
-*Dernière mise à jour : 20 février 2026*
+*Dernière mise à jour : 4 mars 2026*
