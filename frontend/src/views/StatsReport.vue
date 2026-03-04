@@ -532,7 +532,11 @@
             <tbody>
               <tr v-for="s in bottom11" :key="s.rank + s.name" class="border-t border-red-100 hover:bg-red-50/30">
                 <td class="px-3 py-2.5 text-center text-gray-500">{{ s.rank }}</td>
-                <td class="px-3 py-2.5 font-semibold text-gray-800">{{ s.name }}</td>
+                <td class="px-3 py-2.5 font-semibold text-gray-800">
+                  <span v-if="s.cheatFlag === 'exact'" class="mr-1" title="Suspicion de triche QCM (pattern exact)">🚩</span>
+                  <span v-else-if="s.cheatFlag === 'near'" class="mr-1" title="Pattern QCM proche de la triche (4/5)">⚠️</span>
+                  {{ s.name }}
+                </td>
                 <td class="px-3 py-2.5 text-center text-gray-600">{{ s.classe }}</td>
                 <td class="px-3 py-2.5 text-center text-gray-600">{{ s.groupe }}</td>
                 <td class="px-3 py-2.5 text-center">
@@ -771,7 +775,7 @@
             <tbody>
               <tr v-for="(c, i) in cheatDetected" :key="i" class="border-t border-gray-100 bg-red-50/30 hover:bg-red-50">
                 <td class="px-2 py-2 text-center text-gray-500 text-xs">{{ i + 1 }}</td>
-                <td class="px-3 py-2 font-medium text-red-800">{{ c.name }}</td>
+                <td class="px-3 py-2 font-medium text-red-800"><span class="mr-1">🚩</span>{{ c.name }}</td>
                 <td class="px-2 py-2 text-center">
                   <span class="text-xs px-1.5 py-0.5 rounded-full font-bold" :class="c.subject === 'B' ? 'bg-red-200 text-red-900' : 'bg-orange-100 text-orange-800'">{{ c.subject }}</span>
                 </td>
@@ -1043,7 +1047,7 @@ const top15 = [
 
 const bottom11 = [
   { rank: 209, name: 'SNOUSSI Yasmine', classe: 'T.03', groupe: 'G5', exam: 'BB_J2', note: '1.00', corrector: 'Sami BEN TIBA' },
-  { rank: 208, name: 'SATOURI Adem', classe: 'T.07', groupe: 'G1', exam: 'BB_J1', note: '1.45', corrector: 'Selima KLIBI' },
+  { rank: 208, name: 'SATOURI Adem', classe: 'T.07', groupe: 'G1', exam: 'BB_J1', note: '1.45', corrector: 'Selima KLIBI', cheatFlag: 'near' },
   { rank: 207, name: 'CHANNOUFI Mohamed Yassine', classe: 'T.08', groupe: 'G5', exam: 'BB_J2', note: '2.00', corrector: 'Edouard ROUSSEAU' },
   { rank: 206, name: 'MEZIOU Ines Celia', classe: 'T.03', groupe: 'G4', exam: 'BB_J2', note: '2.25', corrector: 'Sami BEN TIBA' },
   { rank: 205, name: 'BEN MEZIANE Maya', classe: 'T.09', groupe: 'G5', exam: 'BB_J2', note: '2.50', corrector: 'Chawki SAADI' },
@@ -1052,7 +1056,7 @@ const bottom11 = [
   { rank: 202, name: 'EBEYE Yahya', classe: 'T.09', groupe: 'G4', exam: 'BB_J2', note: '4.25', corrector: 'Edouard ROUSSEAU' },
   { rank: 201, name: 'JARRAYA Abdelhamid', classe: 'T.10', groupe: 'G6', exam: 'BB_J2', note: '4.50', corrector: 'Laroussi LAROUSSI' },
   { rank: 200, name: 'MAATOUG Safa', classe: 'T.08', groupe: 'G3', exam: 'BB_J1', note: '4.50', corrector: 'Philippe CARR' },
-  { rank: 199, name: 'BOUGHABA Sirine', classe: 'T.03', groupe: 'G1', exam: 'BB_J1', note: '4.60', corrector: 'Patrick DUPONT' }
+  { rank: 199, name: 'BOUGHABA Sirine', classe: 'T.03', groupe: 'G1', exam: 'BB_J1', note: '4.60', corrector: 'Patrick DUPONT', cheatFlag: 'exact' }
 ]
 
 const qualityKpis = [
