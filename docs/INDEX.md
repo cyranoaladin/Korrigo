@@ -108,6 +108,7 @@
 | [**DATABASE_SCHEMA**](technical/DATABASE_SCHEMA.md) | Schéma PostgreSQL (5 apps, ~20 modèles) | Développeurs |
 | [**BUSINESS_WORKFLOWS**](technical/BUSINESS_WORKFLOWS.md) | Workflows métier détaillés (import, correction, export) | Développeurs |
 | [**TECHNICAL_MANUAL**](technical/TECHNICAL_MANUAL.md) | Manuel technique général | Développeurs |
+| [**CURRENT_STATE_MARCH_2026**](technical/CURRENT_STATE_MARCH_2026.md) | État actuel du projet (routes, interfaces, API) | Développeurs |
 | [**DEVELOPMENT_GUIDE**](development/DEVELOPMENT_GUIDE.md) | Guide de développement local | Développeurs |
 | [**DEPLOYMENT_GUIDE**](deployment/DEPLOYMENT_GUIDE.md) | Guide de déploiement (Docker Compose, env vars) | DevOps |
 | [**DEPLOY_PRODUCTION**](deployment/DEPLOY_PRODUCTION.md) | Déploiement en production (korrigo.labomaths.tn) | DevOps |

@@ -1,7 +1,7 @@
 # Guide de Navigation UI - Korrigo PMF
 
-> **Version** : 1.0.0  
-> **Date** : 30 Janvier 2026  
+> **Version** : 2.0.0  
+> **Date** : 4 mars 2026  
 > **Public** : Tous les utilisateurs (Administrateurs, Enseignants, Élèves)  
 > **Type** : Référence Complète de l'Interface Utilisateur
 
@@ -96,14 +96,18 @@ Korrigo PMF
 
 | Route | Rôle | Composant | Description |
 |-------|------|-----------|-------------|
-| `/login` | Public | `LoginView` | Connexion Admin/Teacher |
-| `/student/login` | Public | `StudentLoginView` | Connexion Élève |
-| `/dashboard` | Admin/Teacher | `DashboardView` | Tableau de bord |
-| `/exams` | Admin/Teacher | `ExamsListView` | Liste des examens |
-| `/exam/:id` | Admin/Teacher | `ExamDetailView` | Détails d'un examen |
-| `/grading/:copyId` | Admin/Teacher | `GradingDeskView` | Interface de correction |
-| `/student/dashboard` | Student | `StudentDashboardView` | Tableau de bord élève |
-| `/student/copy/:id` | Student | `StudentCopyView` | Consultation copie |
+| `/` | Public | `Home.vue` | Portail avec cartes de connexion |
+| `/admin/login` | Public | `Login.vue` | Connexion Admin |
+| `/teacher/login` | Public | `Login.vue` | Connexion Teacher |
+| `/student/login` | Public | `LoginStudent.vue` | Connexion Élève |
+| `/admin-dashboard` | Admin | `AdminDashboard.vue` | Tableau de bord admin |
+| `/corrector-dashboard` | Teacher | `CorrectorDashboard.vue` | Tableau de bord correcteur |
+| `/corrector/desk/:copyId` | Admin/Teacher | `CorrectorDesk.vue` | Interface de correction |
+| `/exam/:id/identification` | Admin | `IdentificationDesk.vue` | Video-coding OCR |
+| `/exam/:id/grading-scale` | Admin | `MarkingSchemeView.vue` | Configuration barème |
+| `/exam/:id/students` | Admin | `ExamStudentList.vue` | Liste élèves et notes |
+| `/corrector/my-students` | Teacher | `MyStudents.vue` | Mes élèves |
+| `/student-portal` | Student | `ResultView.vue` | Consultation copies |
 
 ---
 
