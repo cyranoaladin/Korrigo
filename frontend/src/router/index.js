@@ -66,7 +66,7 @@ const routes = [
                 path: 'stats-bb-maths-2026',
                 name: 'StatsReport',
                 component: StatsReport,
-                meta: { title: 'Rapport Statistique — BB Maths 2026', public: true }
+                meta: { title: 'Rapport Statistique — BB Maths 2026', requiresAuth: true, role: ['Teacher', 'Admin'] }
             }
         ]
     },
