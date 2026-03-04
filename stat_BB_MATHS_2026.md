@@ -24,7 +24,8 @@
 10. [Palmarès](#10-palmarès)
 11. [Élèves en Grande Difficulté](#11-élèves-en-grande-difficulté)
 12. [Recommandations du Jury](#12-recommandations-du-jury)
-13. [Annexes](#13-annexes)
+13. [Investigation Exercice 1 — QCM 5/5](#13-investigation-exercice-1--qcm-55)
+14. [Annexes](#14-annexes)
 
 ---
 
@@ -547,7 +548,155 @@ Exemples représentatifs :
 
 ---
 
-## 13. Annexes
+## 13. Investigation Exercice 1 — QCM 5/5
+
+### 13.1 Contexte
+
+L'Exercice 1 des deux épreuves est un QCM noté sur **5 points** (25% de la note totale).
+- **BB_J1** : QCM Géométrie dans l'espace — 5 questions indépendantes × 1 pt (clés `1.1` à `1.5`)
+- **BB_J2** : QCM — bloc unique noté sur 5 pts (clé `1`)
+
+L'investigation porte sur les **70 élèves** ayant obtenu la note maximale 5/5 à cet exercice, en croisant avec leur note globale pour évaluer la dépendance au QCM.
+
+### 13.2 Distribution de l'Exercice 1
+
+#### BB_J1 (106 copies — 5 questions × 1 pt)
+
+| Score Ex1 | Effectif | % |
+|-----------|----------|---|
+| 1/5 | 2 | 1.9% |
+| 2/5 | 14 | 13.2% |
+| 3/5 | 7 | 6.6% |
+| 4/5 | 29 | 27.4% |
+| **5/5** | **54** | **50.9%** |
+
+> **Moyenne Ex1 BB_J1 = 4.12/5** — QCM très accessible, plus de la moitié des candidats obtiennent 5/5.
+
+#### BB_J2 (103 copies — bloc 5 pts)
+
+| Score Ex1 | Effectif | % |
+|-----------|----------|---|
+| 0/5 | 1 | 1.0% |
+| 0.5/5 | 3 | 2.9% |
+| 1/5 | 6 | 5.8% |
+| 1.5/5 | 13 | 12.6% |
+| 2/5 | 8 | 7.8% |
+| 2.5/5 | 20 | 19.4% |
+| 3/5 | 12 | 11.7% |
+| 3.5/5 | 8 | 7.8% |
+| 4/5 | 14 | 13.6% |
+| 4.5/5 | 2 | 1.9% |
+| **5/5** | **16** | **15.5%** |
+
+> **Moyenne Ex1 BB_J2 = 2.93/5** — QCM nettement plus discriminant que BB_J1.
+
+### 13.3 Tableau : Élèves avec 5/5 à l'Exercice 1
+
+**BB_J1 : 54 élèves** | **BB_J2 : 16 élèves** | **Total : 70 élèves**
+
+| # | Élève | Exam | Classe | Groupe | Ex1 | Note /20 | %Ex1 | Correcteur |
+|--:|-------|------|--------|--------|----:|--------:|-----:|------------|
+| 1 | BEN REGUIGA Nour | BB_J2 | T.04 | T.04 | 5 | 20.00 | 25.0% | Edouard ROUSSEAU |
+| 2 | HACHICH Selim | BB_J1 | T.01 | G3 | 5 | 20.00 | 25.0% | Philippe CARR |
+| 3 | BEN RAYANA Mohamed | BB_J1 | T.07 | G1 | 5 | 19.95 | 25.1% | Patrick DUPONT |
+| 4 | DRISS Yacine | BB_J1 | T.02 | G2 | 5 | 19.95 | 25.1% | Patrick DUPONT |
+| 5 | DOGGAZ Enis | BB_J2 | T.09 | G4 | 5 | 19.75 | 25.3% | Edouard ROUSSEAU |
+| 6 | BEN BRAHIM Jawad | BB_J1 | T.08 | G3 | 5 | 19.50 | 25.6% | Alaeddine BEN RHOUMA |
+| 7 | BLOUZA Emna | BB_J2 | T.04 | T.04 | 5 | 19.50 | 25.6% | Edouard ROUSSEAU |
+| 8 | ISSA Mourad | BB_J1 | T.06 | T.06 | 5 | 19.50 | 25.6% | Philippe CARR |
+| 9 | AMARA Fares | BB_J1 | T.06 | T.06 | 5 | 19.45 | 25.7% | Alaeddine BEN RHOUMA |
+| 10 | AMMAR Amal | BB_J2 | T.04 | T.04 | 5 | 19.00 | 26.3% | Chawki SAADI |
+| 11 | BENNANI Lilya | BB_J2 | T.05 | G6 | 5 | 19.00 | 26.3% | Chawki SAADI |
+| 12 | AMEUR Selim | BB_J1 | T.02 | G2 | 5 | 18.95 | 26.4% | Alaeddine BEN RHOUMA |
+| 13 | BELCADHI Yoldez | BB_J1 | T.02 | G2 | 5 | 18.95 | 26.4% | Alaeddine BEN RHOUMA |
+| 14 | SFIA Iyad Alex | BB_J1 | T.06 | T.06 | 5 | 18.90 | 26.5% | Selima KLIBI |
+| 15 | ALLANI Meriem | BB_J1 | T.08 | G3 | 5 | 18.80 | 26.6% | Alaeddine BEN RHOUMA |
+| 16 | BEN AYED Salma | BB_J1 | T.07 | G1 | 5 | 18.80 | 26.6% | Alaeddine BEN RHOUMA |
+| 17 | HAMAIED Emna | BB_J1 | T.02 | G2 | 5 | 18.75 | 26.7% | Philippe CARR |
+| 18 | JOMAA Emine | BB_J1 | T.06 | T.06 | 5 | 18.60 | 26.9% | Philippe CARR |
+| 19 | OUEDERNI Rafif | BB_J1 | T.01 | G3 | 5 | 18.45 | 27.1% | Selima KLIBI |
+| 20 | MEJRI Haroun | BB_J1 | T.05 | G2 | 5 | 18.40 | 27.2% | Selima KLIBI |
+| 21 | ALBOUCHI Adam | BB_J2 | T.04 | T.04 | 5 | 18.25 | 27.4% | Chawki SAADI |
+| 22 | AYADI Lina | BB_J1 | T.06 | T.06 | 5 | 18.25 | 27.4% | Alaeddine BEN RHOUMA |
+| 23 | BCHATNIA Ikram | BB_J2 | T.03 | G4 | 5 | 18.25 | 27.4% | Chawki SAADI |
+| 24 | BELHAJ Sirine | BB_J2 | T.01 | G6 | 5 | 18.25 | 27.4% | Chawki SAADI |
+| 25 | BARCHICHE Ines Amelie | BB_J1 | T.07 | G1 | 5 | 17.90 | 27.9% | Alaeddine BEN RHOUMA |
+| 26 | JALLOULI Amine | BB_J1 | T.02 | G2 | 5 | 17.85 | 28.0% | Philippe CARR |
+| 27 | BENOTHMAN Malek | BB_J2 | T.04 | T.04 | 5 | 17.75 | 28.2% | Chawki SAADI |
+| 28 | MRAD Mohamed-Aziz | BB_J1 | T.09 | G1 | 5 | 17.70 | 28.2% | Selima KLIBI |
+| 29 | SANTOS Sarra Christiane | BB_J1 | T.06 | T.06 | 5 | 17.70 | 28.2% | Selima KLIBI |
+| 30 | MECHICHI Mehdi | BB_J1 | T.03 | G2 | 5 | 17.60 | 28.4% | Philippe CARR |
+| 31 | MESTIRI Mahmoud | BB_J1 | T.06 | T.06 | 5 | 17.60 | 28.4% | Selima KLIBI |
+| 32 | DABOUSSI Iheb | BB_J1 | T.02 | G2 | 5 | 17.55 | 28.5% | Patrick DUPONT |
+| 33 | BEN GHORBAL Feryel | BB_J2 | T.10 | G6 | 5 | 17.50 | 28.6% | Chawki SAADI |
+| 34 | MESSEDI Khadija | BB_J2 | T.03 | G4 | 5 | 17.50 | 28.6% | Sami BEN TIBA |
+| 35 | RAHMOUNI Nesrine Sabrina | BB_J1 | T.07 | G1 | 5 | 17.50 | 28.6% | Selima KLIBI |
+| 36 | BEL HADJ KHALIFA Mohamed | BB_J1 | T.07 | G1 | 5 | 17.45 | 28.7% | Alaeddine BEN RHOUMA |
+| 37 | KAMMOUN Aymar | BB_J1 | T.09 | G1 | 5 | 16.65 | 30.0% | Philippe CARR |
+| 38 | M'HIRSI Rayene | BB_J1 | T.03 | G2 | 5 | 16.40 | 30.5% | Selima KLIBI |
+| 39 | ALOULOU Malek Loula | BB_J1 | T.03 | G2 | 5 | 16.25 | 30.8% | Alaeddine BEN RHOUMA |
+| 40 | TRABELSI Skander-Aziz | BB_J1 | T.02 | G2 | 5 | 16.25 | 30.8% | Selima KLIBI |
+| 41 | GHORBAL Sophie | BB_J1 | T.02 | G2 | 5 | 16.15 | 31.0% | Patrick DUPONT |
+| 42 | SOUISSI Yomna | BB_J1 | T.08 | G3 | 5 | 15.90 | 31.4% | Selima KLIBI |
+| 43 | LANGAR Mohamed-Amine | BB_J2 | T.04 | T.04 | 5 | 15.75 | 31.7% | Laroussi LAROUSSI |
+| 44 | KHOUADJA Lina | BB_J1 | T.05 | G2 | 5 | 15.50 | 32.3% | Philippe CARR |
+| 45 | MARRAKCHI Ahmed | BB_J1 | T.02 | G2 | 5 | 15.45 | 32.4% | Philippe CARR |
+| 46 | SOUISSI Yosr | BB_J1 | T.02 | G2 | 5 | 15.35 | 32.6% | Selima KLIBI |
+| 47 | DABOUSSI Yasmine | BB_J1 | T.02 | G2 | 5 | 15.15 | 33.0% | Patrick DUPONT |
+| 48 | KAABI Omar-Mokhtar | BB_J1 | T.02 | G2 | 5 | 15.00 | 33.3% | Philippe CARR |
+| 49 | PERON Rayan | BB_J1 | T.09 | G1 | 5 | 14.80 | 33.8% | Selima KLIBI |
+| 50 | CHOUAYA Youssef | BB_J1 | T.07 | G1 | 5 | 14.65 | 34.1% | Patrick DUPONT |
+| 51 | AOUADI Ahmed | BB_J2 | T.04 | T.04 | 5 | 14.50 | 34.5% | Chawki SAADI |
+| 52 | KOUNDI Hedi | BB_J2 | T.04 | T.04 | 5 | 14.50 | 34.5% | Laroussi LAROUSSI |
+| 53 | TURKI Sami | BB_J1 | T.06 | T.06 | 5 | 14.30 | 35.0% | Selima KLIBI |
+| 54 | BEN AYED Hafedh | BB_J1 | T.06 | T.06 | 5 | 14.10 | 35.5% | Alaeddine BEN RHOUMA |
+| 55 | BEN ALI Zeineb | BB_J1 | T.02 | G2 | 5 | 14.00 | 35.7% | Alaeddine BEN RHOUMA |
+| 56 | BEN JEMAA Sadri | BB_J1 | T.01 | G3 | 5 | 14.00 | 35.7% | Alaeddine BEN RHOUMA |
+| 57 | BEN JERAD Yassine | BB_J1 | T.01 | G3 | 5 | 14.00 | 35.7% | Alaeddine BEN RHOUMA |
+| 58 | CHAOUCH Rima | BB_J1 | T.09 | G1 | 5 | 12.95 | 38.6% | Patrick DUPONT |
+| 59 | ALBANESE Alexandre | BB_J1 | T.06 | T.06 | 5 | 12.00 | 41.7% | Alaeddine BEN RHOUMA |
+| 60 | GRATI Mohamed-Mehdi | BB_J1 | T.10 | G1 | 5 | 11.75 | 42.6% | Philippe CARR |
+| 61 | NAJI Ines | BB_J1 | T.01 | G3 | 5 | 11.75 | 42.6% | Selima KLIBI |
+| 62 | BEN HTIRA Adonis | BB_J2 | T.07 | G6 | 5 | 10.75 | 46.5% | Chawki SAADI |
+| 63 | SGHAIER Lilia | BB_J1 | T.06 | T.06 | 5 | 10.75 | 46.5% | Selima KLIBI |
+| 64 | SOUISSI Mohamed Ali | BB_J1 | T.06 | T.06 | 5 | 10.35 | 48.3% | Selima KLIBI |
+| 65 | **CHIHAOUI Ines** | BB_J1 | T.01 | G3 | 5 | **9.95** | **50.3%** | Patrick DUPONT |
+| 66 | **MONTACER Rayen** | BB_J1 | T.01 | G3 | 5 | **9.70** | **51.5%** | Selima KLIBI |
+| 67 | **HADROUG Mohamed-Aziz** | BB_J2 | T.09 | G4 | 5 | **9.00** | **55.6%** | Laroussi LAROUSSI |
+| 68 | **GRAF Alia** | BB_J1 | T.01 | G3 | 5 | **7.25** | **69.0%** | Philippe CARR |
+| 69 | **KHALSI Safe** | BB_J1 | T.01 | G3 | 5 | **6.25** | **80.0%** | Philippe CARR |
+| 70 | **CHAMAM Jasim-Brahim** | BB_J1 | T.09 | G1 | 5 | **6.20** | **80.6%** | Patrick DUPONT |
+
+### 13.4 Synthèse et Alertes
+
+#### Statistiques des élèves à 5/5
+
+| | BB_J1 | BB_J2 | Total |
+|---|---|---|---|
+| **Nb élèves 5/5** | 54 (50.9%) | 16 (15.5%) | 70 (33.5%) |
+| **Note moy. globale** | 15.68/20 | 16.83/20 | 15.94/20 |
+| **%Ex1 moyen** | 34.4% | 31.2% | 33.6% |
+
+> **Constat majeur** : Le QCM BB_J1 est très peu discriminant — plus de la moitié des candidats (50.9%) obtiennent 5/5, contre seulement 15.5% pour BB_J2. Le QCM BB_J2 différencie beaucoup mieux les niveaux.
+
+#### ⚠ Alertes : 6 élèves avec 5/5 au QCM mais note globale < 10/20
+
+| Élève | Exam | Classe | Note /20 | %Ex1 |
+|-------|------|--------|--------:|-----:|
+| CHIHAOUI Ines | BB_J1 | T.01 | 9.95 | 50.3% |
+| MONTACER Rayen | BB_J1 | T.01 | 9.70 | 51.5% |
+| HADROUG Mohamed-Aziz | BB_J2 | T.09 | 9.00 | 55.6% |
+| GRAF Alia | BB_J1 | T.01 | 7.25 | 69.0% |
+| KHALSI Safe | BB_J1 | T.01 | 6.25 | 80.0% |
+| CHAMAM Jasim-Brahim | BB_J1 | T.09 | 6.20 | 80.6% |
+
+> Pour ces 6 élèves, le QCM représente entre **50% et 80%** de leur note totale. Sans le QCM, leur note effective serait entre 1.2 et 5.0 sur 15 points. Cela révèle une **fragilité extrême sur les exercices de rédaction** (Ex2, Ex3, Ex4), avec une capacité limitée aux seules questions à choix multiples.
+>
+> **4 des 6 élèves sont en classe T.01** — ce qui confirme la difficulté structurelle de cette classe déjà identifiée (taux de réussite BB_J1 : 43.8%).
+
+---
+
+## 14. Annexes
 
 ### A. Sources des Données
 
