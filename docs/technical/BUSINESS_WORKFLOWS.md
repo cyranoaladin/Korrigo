@@ -1,7 +1,7 @@
 # Workflows Métier - Korrigo PMF
 
-> **Version**: 1.3.0  
-> **Date**: 20 février 2026  
+> **Version**: 2.0.0  
+> **Date**: 4 mars 2026  
 > **Public**: Product Owners, Développeurs, Utilisateurs
 
 Documentation complète des workflows métier de la plateforme Korrigo PMF, du scan des copies à la consultation par les élèves.
@@ -627,6 +627,6 @@ flowchart TD
 
 ---
 
-**Dernière mise à jour**: 25 janvier 2026  
+**Dernière mise à jour**: 4 mars 2026  
 **Auteur**: Alaeddine BEN RHOUMA  
 **Licence**: Propriétaire - AEFE/Éducation Nationale
