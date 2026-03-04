@@ -490,7 +490,7 @@ Exemples représentatifs :
 | Rang | Élève | Classe | Groupe | Examen | Note | Correcteur |
 |------|-------|--------|--------|--------|------|------------|
 | 209 | **SNOUSSI Yasmine** | T.03 | G5 | BB_J2 | **1.00** | Sami BEN TIBA |
-| 208 | **SATOURI Adem** | T.07 | G1 | BB_J1 | **1.45** | Selima KLIBI |
+| 208 | **SATOURI Adem** ⚠ | T.07 | G1 | BB_J1 | **1.45** | Selima KLIBI |
 | 207 | **CHANNOUFI Mohamed Yassine** | T.08 | G5 | BB_J2 | **2.00** | Edouard ROUSSEAU |
 | 206 | **MEZIOU Ines Celia** | T.03 | G4 | BB_J2 | **2.25** | Sami BEN TIBA |
 | 205 | **BEN MEZIANE Maya** | T.09 | G5 | BB_J2 | **2.50** | Chawki SAADI |
@@ -499,14 +499,14 @@ Exemples représentatifs :
 | 202 | **EBEYE Yahya** | T.09 | G4 | BB_J2 | **4.25** | Edouard ROUSSEAU |
 | 201 | **JARRAYA Abdelhamid** | T.10 | G6 | BB_J2 | **4.50** | Laroussi LAROUSSI |
 | 200 | **MAATOUG Safa** | T.08 | G3 | BB_J1 | **4.50** | Philippe CARR |
-| 199 | **BOUGHABA Sirine** | T.03 | G1 | BB_J1 | **4.60** | Patrick DUPONT |
+| 199 | **BOUGHABA Sirine** 🚩 | T.03 | G1 | BB_J1 | **4.60** | Patrick DUPONT |
 
 ### 11.2 Observations
 
 - **8 élèves sur 11 en dessous de 5/20 sont en BB_J2**, confirmant que le Jour 2 a été plus sélectif.
 - **4 élèves du groupe G5** figurent dans cette liste, cohérent avec la moyenne du groupe (9.70).
 - **SNOUSSI Yasmine** (1.00/20) : appréciation "???" — copie vraisemblablement vide ou quasi-vide, 0 remarque, 0 annotation.
-- **SATOURI Adem** (1.45/20) : seul élève BB_J1 sous 2/20.
+- **SATOURI Adem** (1.45/20) : seul élève BB_J1 sous 2/20. ⚠ Pattern QCM proche de la triche (4/5 positions matchent).
 
 ---
 
@@ -754,16 +754,16 @@ Le QCM BB_J1 comporte 5 questions à 1 point chacune, avec deux variantes de suj
 
 | # | Élève | Sujet | Classe | Groupe | Q1.1 | Q1.2 | Q1.3 | Q1.4 | Q1.5 | QCM | Note /20 | Correcteur |
 |--:|-------|-------|--------|--------|:----:|:----:|:----:|:----:|:----:|----:|--------:|------------|
-| 1 | ABID Youcef | A | T.01 | G3 | 0 | 1 | 0 | 1 | 0 | 2 | 13.85 | Alaeddine BEN RHOUMA |
-| 2 | ZARAA Lina | A | T.02 | G2 | 0 | 1 | 0 | 1 | 0 | 2 | 13.15 | Selima KLIBI |
-| 3 | CHAHED Seddik | A | T.09 | G1 | 0 | 1 | 0 | 1 | 0 | 2 | 12.10 | Patrick DUPONT |
-| 4 | HAMZAOUI Ismaël Satyavan | **B** | T.06 | T.06 | 0 | 1 | 0 | 1 | 0 | 2 | 11.15 | Philippe CARR |
-| 5 | AOUAOUI Chaima | A | T.05 | G2 | 0 | 1 | 0 | 1 | 0 | 2 | 11.10 | Alaeddine BEN RHOUMA |
-| 6 | BACCOUCHE Selima | A | T.05 | G3 | 0 | 1 | 0 | 1 | 0 | 2 | 10.75 | Alaeddine BEN RHOUMA |
-| 7 | JAAFAR Youssef | A | T.01 | G3 | 0 | 1 | 0 | 1 | 0 | 2 | 8.75 | Philippe CARR |
-| 8 | JAIDANE Mohamed-Seyf | A | T.07 | G1 | 0 | 1 | 0 | 1 | 0 | 2 | 8.25 | Philippe CARR |
-| 9 | BEN TURKIA Leith | A | T.06 | T.06 | 0 | 1 | 0 | 1 | 0 | 2 | 7.15 | Patrick DUPONT |
-| 10 | BOUGHABA Sirine | A | T.03 | G1 | 0 | 1 | 0 | 1 | 0 | 2 | 4.60 | Patrick DUPONT |
+| 1 | 🚩 ABID Youcef | A | T.01 | G3 | 0 | 1 | 0 | 1 | 0 | 2 | 13.85 | Alaeddine BEN RHOUMA |
+| 2 | 🚩 ZARAA Lina | A | T.02 | G2 | 0 | 1 | 0 | 1 | 0 | 2 | 13.15 | Selima KLIBI |
+| 3 | 🚩 CHAHED Seddik | A | T.09 | G1 | 0 | 1 | 0 | 1 | 0 | 2 | 12.10 | Patrick DUPONT |
+| 4 | 🚩 HAMZAOUI Ismaël Satyavan | **B** | T.06 | T.06 | 0 | 1 | 0 | 1 | 0 | 2 | 11.15 | Philippe CARR |
+| 5 | 🚩 AOUAOUI Chaima | A | T.05 | G2 | 0 | 1 | 0 | 1 | 0 | 2 | 11.10 | Alaeddine BEN RHOUMA |
+| 6 | 🚩 BACCOUCHE Selima | A | T.05 | G3 | 0 | 1 | 0 | 1 | 0 | 2 | 10.75 | Alaeddine BEN RHOUMA |
+| 7 | 🚩 JAAFAR Youssef | A | T.01 | G3 | 0 | 1 | 0 | 1 | 0 | 2 | 8.75 | Philippe CARR |
+| 8 | 🚩 JAIDANE Mohamed-Seyf | A | T.07 | G1 | 0 | 1 | 0 | 1 | 0 | 2 | 8.25 | Philippe CARR |
+| 9 | 🚩 BEN TURKIA Leith | A | T.06 | T.06 | 0 | 1 | 0 | 1 | 0 | 2 | 7.15 | Patrick DUPONT |
+| 10 | 🚩 BOUGHABA Sirine | A | T.03 | G1 | 0 | 1 | 0 | 1 | 0 | 2 | 4.60 | Patrick DUPONT |
 
 > **9 élèves sur Sujet A** et **1 élève sur Sujet B** présentent exactement le pattern `[0,1,0,1,0]`.
 >
