@@ -599,6 +599,124 @@
       </div>
     </div>
 
+    <!-- ============ TAB: QCM 5/5 ============ -->
+    <div v-show="activeTab === 'qcm'">
+      <!-- KPIs QCM -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <ClipboardList class="w-5 h-5 text-blue-600 mb-2" />
+          <p class="text-2xl font-bold text-neutralDark">70</p>
+          <p class="text-xs text-gray-500 mt-1">Élèves avec 5/5</p>
+          <p class="text-xs text-gray-400">33.5% des 209 copies</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <BarChart3 class="w-5 h-5 text-green-600 mb-2" />
+          <p class="text-2xl font-bold text-neutralDark">54</p>
+          <p class="text-xs text-gray-500 mt-1">BB_J1 — 50.9%</p>
+          <p class="text-xs text-gray-400">QCM très accessible</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <BarChart3 class="w-5 h-5 text-purple-600 mb-2" />
+          <p class="text-2xl font-bold text-neutralDark">16</p>
+          <p class="text-xs text-gray-500 mt-1">BB_J2 — 15.5%</p>
+          <p class="text-xs text-gray-400">QCM discriminant</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+          <AlertTriangle class="w-5 h-5 text-red-500 mb-2" />
+          <p class="text-2xl font-bold text-neutralDark">6</p>
+          <p class="text-xs text-gray-500 mt-1">5/5 mais &lt; 10/20</p>
+          <p class="text-xs text-gray-400">QCM > 50% de la note</p>
+        </div>
+      </div>
+
+      <!-- Distribution Ex1 -->
+      <div class="grid lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100 bg-green-50">
+            <h2 class="text-base font-semibold text-green-800">BB_J1 — Distribution Ex1 (moy 4.12/5)</h2>
+          </div>
+          <div class="px-5 py-4 space-y-2">
+            <div v-for="d in distJ1" :key="d.label" class="flex items-center gap-3">
+              <span class="w-10 text-xs text-gray-500 font-mono text-right shrink-0">{{ d.label }}</span>
+              <div class="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden relative">
+                <div class="h-full rounded-full bg-green-500" :style="{ width: (d.count / 54 * 100) + '%' }" />
+                <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold" :class="d.count >= 30 ? 'text-white' : 'text-gray-700'">{{ d.count }} ({{ d.pct }})</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100 bg-purple-50">
+            <h2 class="text-base font-semibold text-purple-800">BB_J2 — Distribution Ex1 (moy 2.93/5)</h2>
+          </div>
+          <div class="px-5 py-4 space-y-1.5">
+            <div v-for="d in distJ2" :key="d.label" class="flex items-center gap-3">
+              <span class="w-10 text-xs text-gray-500 font-mono text-right shrink-0">{{ d.label }}</span>
+              <div class="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden relative">
+                <div class="h-full rounded-full bg-purple-500" :style="{ width: (d.count / 20 * 100) + '%' }" />
+                <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold" :class="d.count >= 15 ? 'text-white' : 'text-gray-700'">{{ d.count }} ({{ d.pct }})</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table 70 élèves -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100">
+          <h2 class="text-lg font-semibold text-neutralDark">70 Élèves avec 5/5 à l'Exercice 1 (QCM)</h2>
+          <p class="text-xs text-gray-400 mt-1">Classement par note globale décroissante · Les lignes en rouge signalent un %Ex1 ≥ 50%</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-gray-50">
+                <th class="text-center px-2 py-2.5 font-medium text-gray-600 w-10">#</th>
+                <th class="text-left px-3 py-2.5 font-medium text-gray-600">Élève</th>
+                <th class="text-center px-2 py-2.5 font-medium text-gray-600">Exam</th>
+                <th class="text-center px-2 py-2.5 font-medium text-gray-600">Classe</th>
+                <th class="text-center px-2 py-2.5 font-medium text-gray-600">Grp</th>
+                <th class="text-center px-2 py-2.5 font-medium text-gray-600">Note</th>
+                <th class="text-center px-2 py-2.5 font-medium text-gray-600">%Ex1</th>
+                <th class="text-left px-3 py-2.5 font-medium text-gray-600">Correcteur</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(s, i) in qcmPerfect" :key="i" class="border-t border-gray-100" :class="s.pct >= 50 ? 'bg-red-50' : ''">
+                <td class="px-2 py-2 text-center text-gray-500 text-xs">{{ i + 1 }}</td>
+                <td class="px-3 py-2 font-medium text-gray-800" :class="s.pct >= 50 ? 'text-red-800' : ''">{{ s.name }}</td>
+                <td class="px-2 py-2 text-center">
+                  <span class="text-xs px-1.5 py-0.5 rounded-full font-medium" :class="s.exam === 'BB_J1' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'">{{ s.exam }}</span>
+                </td>
+                <td class="px-2 py-2 text-center text-gray-600">{{ s.classe }}</td>
+                <td class="px-2 py-2 text-center text-gray-600">{{ s.groupe }}</td>
+                <td class="px-2 py-2 text-center font-bold" :class="s.total < 10 ? 'text-red-700' : 'text-gray-800'">{{ s.total }}</td>
+                <td class="px-2 py-2 text-center font-semibold" :class="s.pct >= 50 ? 'text-red-700' : s.pct >= 40 ? 'text-amber-700' : 'text-gray-600'">{{ s.pct }}%</td>
+                <td class="px-3 py-2 text-gray-500 text-xs">{{ s.corrector }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Alerts -->
+      <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 mb-4">
+        <AlertTriangle class="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+        <div>
+          <p class="text-sm font-semibold text-red-800">6 élèves avec 5/5 au QCM mais note globale &lt; 10/20</p>
+          <p class="text-sm text-red-700 mt-1">Pour ces élèves, le QCM représente entre 50% et 80% de leur note totale. Sans le QCM, leur note effective serait entre 1.2 et 5.0 sur 15 points — <strong>fragilité extrême sur les exercices de rédaction</strong>.</p>
+          <p class="text-sm text-red-700 mt-1"><strong>4 des 6 sont en T.01</strong> — confirmation de la difficulté structurelle de cette classe (taux réussite BB_J1 : 43.8%).</p>
+        </div>
+      </div>
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+        <AlertTriangle class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <div>
+          <p class="text-sm font-semibold text-amber-800">Le QCM BB_J1 est très peu discriminant</p>
+          <p class="text-sm text-amber-700 mt-1">50.9% des candidats obtiennent 5/5 à BB_J1 contre seulement 15.5% à BB_J2. Le QCM BB_J2 différencie nettement mieux les niveaux (moyenne 2.93/5 vs 4.12/5).</p>
+        </div>
+      </div>
+    </div>
+
     <!-- ============ TAB: RECOMMANDATIONS ============ -->
     <div v-show="activeTab === 'recommendations'">
       <div class="space-y-6">
@@ -681,6 +799,7 @@ const tabs = [
   { id: 'questions', label: 'Questions', icon: Target },
   { id: 'palmares', label: 'Palmarès', icon: Trophy },
   { id: 'quality', label: 'Correction', icon: MessageSquare },
+  { id: 'qcm', label: 'QCM 5/5', icon: ClipboardList },
   { id: 'recommendations', label: 'Recommandations', icon: Lightbulb }
 ]
 
@@ -880,6 +999,101 @@ const constats = [
   { text: 'Qualité de correction : 19.4 remarques/copie, 100% d\'appréciations', icon: CheckCircle2, color: 'text-green-600' },
   { text: 'Questions discriminantes : Q2.2.4, Q3.7, Q4.2.6-7 très peu réussies', icon: Target, color: 'text-blue-600' },
   { text: '11 élèves sous 5/20 : suivi individualisé urgent', icon: AlertTriangle, color: 'text-red-600' }
+]
+
+const distJ1 = [
+  { label: '1/5', count: 2, pct: '1.9%' },
+  { label: '2/5', count: 14, pct: '13.2%' },
+  { label: '3/5', count: 7, pct: '6.6%' },
+  { label: '4/5', count: 29, pct: '27.4%' },
+  { label: '5/5', count: 54, pct: '50.9%' }
+]
+
+const distJ2 = [
+  { label: '0/5', count: 1, pct: '1.0%' },
+  { label: '0.5', count: 3, pct: '2.9%' },
+  { label: '1/5', count: 6, pct: '5.8%' },
+  { label: '1.5', count: 13, pct: '12.6%' },
+  { label: '2/5', count: 8, pct: '7.8%' },
+  { label: '2.5', count: 20, pct: '19.4%' },
+  { label: '3/5', count: 12, pct: '11.7%' },
+  { label: '3.5', count: 8, pct: '7.8%' },
+  { label: '4/5', count: 14, pct: '13.6%' },
+  { label: '4.5', count: 2, pct: '1.9%' },
+  { label: '5/5', count: 16, pct: '15.5%' }
+]
+
+const qcmPerfect = [
+  { name: 'BEN REGUIGA Nour', exam: 'BB_J2', classe: 'T.04', groupe: 'T.04', total: 20.00, pct: 25.0, corrector: 'Edouard ROUSSEAU' },
+  { name: 'HACHICH Selim', exam: 'BB_J1', classe: 'T.01', groupe: 'G3', total: 20.00, pct: 25.0, corrector: 'Philippe CARR' },
+  { name: 'BEN RAYANA Mohamed', exam: 'BB_J1', classe: 'T.07', groupe: 'G1', total: 19.95, pct: 25.1, corrector: 'Patrick DUPONT' },
+  { name: 'DRISS Yacine', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 19.95, pct: 25.1, corrector: 'Patrick DUPONT' },
+  { name: 'DOGGAZ Enis', exam: 'BB_J2', classe: 'T.09', groupe: 'G4', total: 19.75, pct: 25.3, corrector: 'Edouard ROUSSEAU' },
+  { name: 'BEN BRAHIM Jawad', exam: 'BB_J1', classe: 'T.08', groupe: 'G3', total: 19.50, pct: 25.6, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'BLOUZA Emna', exam: 'BB_J2', classe: 'T.04', groupe: 'T.04', total: 19.50, pct: 25.6, corrector: 'Edouard ROUSSEAU' },
+  { name: 'ISSA Mourad', exam: 'BB_J1', classe: 'T.06', groupe: 'T.06', total: 19.50, pct: 25.6, corrector: 'Philippe CARR' },
+  { name: 'AMARA Fares', exam: 'BB_J1', classe: 'T.06', groupe: 'T.06', total: 19.45, pct: 25.7, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'AMMAR Amal', exam: 'BB_J2', classe: 'T.04', groupe: 'T.04', total: 19.00, pct: 26.3, corrector: 'Chawki SAADI' },
+  { name: 'BENNANI Lilya', exam: 'BB_J2', classe: 'T.05', groupe: 'G6', total: 19.00, pct: 26.3, corrector: 'Chawki SAADI' },
+  { name: 'AMEUR Selim', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 18.95, pct: 26.4, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'BELCADHI Yoldez', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 18.95, pct: 26.4, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'SFIA Iyad Alex', exam: 'BB_J1', classe: 'T.06', groupe: 'T.06', total: 18.90, pct: 26.5, corrector: 'Selima KLIBI' },
+  { name: 'ALLANI Meriem', exam: 'BB_J1', classe: 'T.08', groupe: 'G3', total: 18.80, pct: 26.6, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'BEN AYED Salma', exam: 'BB_J1', classe: 'T.07', groupe: 'G1', total: 18.80, pct: 26.6, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'HAMAIED Emna', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 18.75, pct: 26.7, corrector: 'Philippe CARR' },
+  { name: 'JOMAA Emine', exam: 'BB_J1', classe: 'T.06', groupe: 'T.06', total: 18.60, pct: 26.9, corrector: 'Philippe CARR' },
+  { name: 'OUEDERNI Rafif', exam: 'BB_J1', classe: 'T.01', groupe: 'G3', total: 18.45, pct: 27.1, corrector: 'Selima KLIBI' },
+  { name: 'MEJRI Haroun', exam: 'BB_J1', classe: 'T.05', groupe: 'G2', total: 18.40, pct: 27.2, corrector: 'Selima KLIBI' },
+  { name: 'ALBOUCHI Adam', exam: 'BB_J2', classe: 'T.04', groupe: 'T.04', total: 18.25, pct: 27.4, corrector: 'Chawki SAADI' },
+  { name: 'AYADI Lina', exam: 'BB_J1', classe: 'T.06', groupe: 'T.06', total: 18.25, pct: 27.4, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'BCHATNIA Ikram', exam: 'BB_J2', classe: 'T.03', groupe: 'G4', total: 18.25, pct: 27.4, corrector: 'Chawki SAADI' },
+  { name: 'BELHAJ Sirine', exam: 'BB_J2', classe: 'T.01', groupe: 'G6', total: 18.25, pct: 27.4, corrector: 'Chawki SAADI' },
+  { name: 'BARCHICHE Ines Amelie', exam: 'BB_J1', classe: 'T.07', groupe: 'G1', total: 17.90, pct: 27.9, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'JALLOULI Amine', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 17.85, pct: 28.0, corrector: 'Philippe CARR' },
+  { name: 'BENOTHMAN Malek', exam: 'BB_J2', classe: 'T.04', groupe: 'T.04', total: 17.75, pct: 28.2, corrector: 'Chawki SAADI' },
+  { name: 'MRAD Mohamed-Aziz', exam: 'BB_J1', classe: 'T.09', groupe: 'G1', total: 17.70, pct: 28.2, corrector: 'Selima KLIBI' },
+  { name: 'SANTOS Sarra Christiane', exam: 'BB_J1', classe: 'T.06', groupe: 'T.06', total: 17.70, pct: 28.2, corrector: 'Selima KLIBI' },
+  { name: 'MECHICHI Mehdi', exam: 'BB_J1', classe: 'T.03', groupe: 'G2', total: 17.60, pct: 28.4, corrector: 'Philippe CARR' },
+  { name: 'MESTIRI Mahmoud', exam: 'BB_J1', classe: 'T.06', groupe: 'T.06', total: 17.60, pct: 28.4, corrector: 'Selima KLIBI' },
+  { name: 'DABOUSSI Iheb', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 17.55, pct: 28.5, corrector: 'Patrick DUPONT' },
+  { name: 'BEN GHORBAL Feryel', exam: 'BB_J2', classe: 'T.10', groupe: 'G6', total: 17.50, pct: 28.6, corrector: 'Chawki SAADI' },
+  { name: 'MESSEDI Khadija', exam: 'BB_J2', classe: 'T.03', groupe: 'G4', total: 17.50, pct: 28.6, corrector: 'Sami BEN TIBA' },
+  { name: 'RAHMOUNI Nesrine Sabrina', exam: 'BB_J1', classe: 'T.07', groupe: 'G1', total: 17.50, pct: 28.6, corrector: 'Selima KLIBI' },
+  { name: 'BEL HADJ KHALIFA Mohamed', exam: 'BB_J1', classe: 'T.07', groupe: 'G1', total: 17.45, pct: 28.7, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'KAMMOUN Aymar', exam: 'BB_J1', classe: 'T.09', groupe: 'G1', total: 16.65, pct: 30.0, corrector: 'Philippe CARR' },
+  { name: "M'HIRSI Rayene", exam: 'BB_J1', classe: 'T.03', groupe: 'G2', total: 16.40, pct: 30.5, corrector: 'Selima KLIBI' },
+  { name: 'ALOULOU Malek Loula', exam: 'BB_J1', classe: 'T.03', groupe: 'G2', total: 16.25, pct: 30.8, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'TRABELSI Skander-Aziz', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 16.25, pct: 30.8, corrector: 'Selima KLIBI' },
+  { name: 'GHORBAL Sophie', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 16.15, pct: 31.0, corrector: 'Patrick DUPONT' },
+  { name: 'SOUISSI Yomna', exam: 'BB_J1', classe: 'T.08', groupe: 'G3', total: 15.90, pct: 31.4, corrector: 'Selima KLIBI' },
+  { name: 'LANGAR Mohamed-Amine', exam: 'BB_J2', classe: 'T.04', groupe: 'T.04', total: 15.75, pct: 31.7, corrector: 'Laroussi LAROUSSI' },
+  { name: 'KHOUADJA Lina', exam: 'BB_J1', classe: 'T.05', groupe: 'G2', total: 15.50, pct: 32.3, corrector: 'Philippe CARR' },
+  { name: 'MARRAKCHI Ahmed', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 15.45, pct: 32.4, corrector: 'Philippe CARR' },
+  { name: 'SOUISSI Yosr', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 15.35, pct: 32.6, corrector: 'Selima KLIBI' },
+  { name: 'DABOUSSI Yasmine', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 15.15, pct: 33.0, corrector: 'Patrick DUPONT' },
+  { name: 'KAABI Omar-Mokhtar', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 15.00, pct: 33.3, corrector: 'Philippe CARR' },
+  { name: 'PERON Rayan', exam: 'BB_J1', classe: 'T.09', groupe: 'G1', total: 14.80, pct: 33.8, corrector: 'Selima KLIBI' },
+  { name: 'CHOUAYA Youssef', exam: 'BB_J1', classe: 'T.07', groupe: 'G1', total: 14.65, pct: 34.1, corrector: 'Patrick DUPONT' },
+  { name: 'AOUADI Ahmed', exam: 'BB_J2', classe: 'T.04', groupe: 'T.04', total: 14.50, pct: 34.5, corrector: 'Chawki SAADI' },
+  { name: 'KOUNDI Hedi', exam: 'BB_J2', classe: 'T.04', groupe: 'T.04', total: 14.50, pct: 34.5, corrector: 'Laroussi LAROUSSI' },
+  { name: 'TURKI Sami', exam: 'BB_J1', classe: 'T.06', groupe: 'T.06', total: 14.30, pct: 35.0, corrector: 'Selima KLIBI' },
+  { name: 'BEN AYED Hafedh', exam: 'BB_J1', classe: 'T.06', groupe: 'T.06', total: 14.10, pct: 35.5, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'BEN ALI Zeineb', exam: 'BB_J1', classe: 'T.02', groupe: 'G2', total: 14.00, pct: 35.7, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'BEN JEMAA Sadri', exam: 'BB_J1', classe: 'T.01', groupe: 'G3', total: 14.00, pct: 35.7, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'BEN JERAD Yassine', exam: 'BB_J1', classe: 'T.01', groupe: 'G3', total: 14.00, pct: 35.7, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'CHAOUCH Rima', exam: 'BB_J1', classe: 'T.09', groupe: 'G1', total: 12.95, pct: 38.6, corrector: 'Patrick DUPONT' },
+  { name: 'ALBANESE Alexandre', exam: 'BB_J1', classe: 'T.06', groupe: 'T.06', total: 12.00, pct: 41.7, corrector: 'Alaeddine BEN RHOUMA' },
+  { name: 'GRATI Mohamed-Mehdi', exam: 'BB_J1', classe: 'T.10', groupe: 'G1', total: 11.75, pct: 42.6, corrector: 'Philippe CARR' },
+  { name: 'NAJI Ines', exam: 'BB_J1', classe: 'T.01', groupe: 'G3', total: 11.75, pct: 42.6, corrector: 'Selima KLIBI' },
+  { name: 'BEN HTIRA Adonis', exam: 'BB_J2', classe: 'T.07', groupe: 'G6', total: 10.75, pct: 46.5, corrector: 'Chawki SAADI' },
+  { name: 'SGHAIER Lilia', exam: 'BB_J1', classe: 'T.06', groupe: 'T.06', total: 10.75, pct: 46.5, corrector: 'Selima KLIBI' },
+  { name: 'SOUISSI Mohamed Ali', exam: 'BB_J1', classe: 'T.06', groupe: 'T.06', total: 10.35, pct: 48.3, corrector: 'Selima KLIBI' },
+  { name: 'CHIHAOUI Ines', exam: 'BB_J1', classe: 'T.01', groupe: 'G3', total: 9.95, pct: 50.3, corrector: 'Patrick DUPONT' },
+  { name: 'MONTACER Rayen', exam: 'BB_J1', classe: 'T.01', groupe: 'G3', total: 9.70, pct: 51.5, corrector: 'Selima KLIBI' },
+  { name: 'HADROUG Mohamed-Aziz', exam: 'BB_J2', classe: 'T.09', groupe: 'G4', total: 9.00, pct: 55.6, corrector: 'Laroussi LAROUSSI' },
+  { name: 'GRAF Alia', exam: 'BB_J1', classe: 'T.01', groupe: 'G3', total: 7.25, pct: 69.0, corrector: 'Philippe CARR' },
+  { name: 'KHALSI Safe', exam: 'BB_J1', classe: 'T.01', groupe: 'G3', total: 6.25, pct: 80.0, corrector: 'Philippe CARR' },
+  { name: 'CHAMAM Jasim-Brahim', exam: 'BB_J1', classe: 'T.09', groupe: 'G1', total: 6.20, pct: 80.6, corrector: 'Patrick DUPONT' }
 ]
 </script>
 
