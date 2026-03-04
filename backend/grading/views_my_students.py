@@ -38,7 +38,7 @@ class MyStudentsListView(views.APIView):
         
         if not groupe:
             return Response({
-                'error': 'Aucun groupe associé à ce correcteur.',
+                'detail': 'Aucun groupe associé à ce correcteur.',
                 'students': []
             }, status=status.HTTP_200_OK)
         
@@ -109,7 +109,7 @@ class StudentBilanView(views.APIView):
         if not request.user.is_superuser:
             if student.groupe != groupe:
                 return Response({
-                    'error': 'Vous n\'avez pas accès à cet élève.'
+                    'detail': 'Vous n\'avez pas accès à cet élève.'
                 }, status=status.HTTP_403_FORBIDDEN)
         
         # Récupérer toutes les copies de l'élève
