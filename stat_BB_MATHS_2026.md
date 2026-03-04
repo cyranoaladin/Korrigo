@@ -694,6 +694,60 @@ L'investigation porte sur les **70 élèves** ayant obtenu la note maximale 5/5 
 >
 > **4 des 6 élèves sont en classe T.01** — ce qui confirme la difficulté structurelle de cette classe déjà identifiée (taux de réussite BB_J1 : 43.8%).
 
+### 13.5 Détection de Triche au QCM — BB_J1
+
+#### Méthodologie
+
+Le QCM BB_J1 comporte 5 questions à 1 point chacune, avec deux variantes de sujet (A et B). Les grilles de correction diffèrent entre les deux sujets. Un élève qui recopie les réponses du **mauvais sujet** (réponses du sujet B alors qu'il a le sujet A, ou inversement) obtient un **pattern de scores caractéristique** :
+
+- **Pattern triche** : `[0, 1, 0, 1, 0]` → score 2/5
+
+> Ce pattern est identique que l'on applique les réponses de A sur le barème de B ou l'inverse : les questions Q1.2 et Q1.4 ont les mêmes bonnes réponses sur les deux sujets.
+
+#### Répartition des sujets BB_J1
+
+| Sujet | Copies |
+|-------|--------|
+| A | 53 |
+| B | 53 |
+
+#### Résultat : 10 élèves détectés
+
+| # | Élève | Sujet | Classe | Groupe | Q1.1 | Q1.2 | Q1.3 | Q1.4 | Q1.5 | QCM | Note /20 | Correcteur |
+|--:|-------|-------|--------|--------|:----:|:----:|:----:|:----:|:----:|----:|--------:|------------|
+| 1 | ABID Youcef | A | T.01 | G3 | 0 | 1 | 0 | 1 | 0 | 2 | 13.85 | Alaeddine BEN RHOUMA |
+| 2 | ZARAA Lina | A | T.02 | G2 | 0 | 1 | 0 | 1 | 0 | 2 | 13.15 | Selima KLIBI |
+| 3 | CHAHED Seddik | A | T.09 | G1 | 0 | 1 | 0 | 1 | 0 | 2 | 12.10 | Patrick DUPONT |
+| 4 | HAMZAOUI Ismaël Satyavan | **B** | T.06 | T.06 | 0 | 1 | 0 | 1 | 0 | 2 | 11.15 | Philippe CARR |
+| 5 | AOUAOUI Chaima | A | T.05 | G2 | 0 | 1 | 0 | 1 | 0 | 2 | 11.10 | Alaeddine BEN RHOUMA |
+| 6 | BACCOUCHE Selima | A | T.05 | G3 | 0 | 1 | 0 | 1 | 0 | 2 | 10.75 | Alaeddine BEN RHOUMA |
+| 7 | JAAFAR Youssef | A | T.01 | G3 | 0 | 1 | 0 | 1 | 0 | 2 | 8.75 | Philippe CARR |
+| 8 | JAIDANE Mohamed-Seyf | A | T.07 | G1 | 0 | 1 | 0 | 1 | 0 | 2 | 8.25 | Philippe CARR |
+| 9 | BEN TURKIA Leith | A | T.06 | T.06 | 0 | 1 | 0 | 1 | 0 | 2 | 7.15 | Patrick DUPONT |
+| 10 | BOUGHABA Sirine | A | T.03 | G1 | 0 | 1 | 0 | 1 | 0 | 2 | 4.60 | Patrick DUPONT |
+
+> **9 élèves sur Sujet A** et **1 élève sur Sujet B** présentent exactement le pattern `[0,1,0,1,0]`.
+>
+> La forte asymétrie (9A vs 1B) suggère que ces 9 élèves du Sujet A ont probablement recopié les réponses d'un voisin ayant le Sujet B, tandis que HAMZAOUI (Sujet B) a probablement recopié les réponses d'un voisin ayant le Sujet A.
+
+#### Élèves proches du pattern triche (4/5 positions matchent)
+
+| Élève | Sujet | Classe | Scores | QCM | Positions match |
+|-------|-------|--------|--------|----:|:---------------:|
+| BOUASSIDA Ilyes | B | T.06 | [1,1,0,1,0] | 3/5 | 4/5 |
+| AYADI Sarra | B | T.03 | [1,1,0,1,0] | 3/5 | 4/5 |
+| DEBBECH Mohamed-Anas | A | T.05 | [0,1,0,1,1] | 3/5 | 4/5 |
+| SATOURI Adem | A | T.07 | [0,1,0,0,0] | 1/5 | 4/5 |
+
+> Ces 4 élèves supplémentaires présentent un pattern très proche mais non identique. Ils méritent une attention particulière mais ne constituent pas une preuve formelle.
+
+#### Analyse
+
+- **Taux de triche potentielle** : 10/106 copies soit **9.4%** des candidats BB_J1
+- **Impact sur la note** : ces 10 élèves obtiennent 2/5 au QCM au lieu de potentiellement 0/5 ou 5/5, ce qui représente un écart de +2 à -3 points selon la direction de la triche
+- **Note moyenne des tricheurs** : 10.09/20 — la plupart sont des élèves en difficulté (4 sous la moyenne)
+- **Classes les plus touchées** : T.01 (2), T.05 (2), T.06 (2), T.07 (1), T.02 (1), T.03 (1), T.09 (1)
+
 ---
 
 ## 14. Annexes
