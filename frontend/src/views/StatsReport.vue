@@ -665,7 +665,7 @@
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
         <div class="px-5 py-4 border-b border-gray-100">
           <h2 class="text-lg font-semibold text-neutralDark">70 Élèves avec 5/5 à l'Exercice 1 (QCM)</h2>
-          <p class="text-xs text-gray-400 mt-1">Classement par note globale décroissante · Les lignes en rouge signalent un %Ex1 ≥ 50%</p>
+          <p class="text-xs text-gray-400 mt-1">Classement par note globale décroissante · <span class="text-amber-600">Jaune</span> = %Ex1 &gt; 31.2% (seuil J2) · <span class="text-red-600">Rouge</span> = %Ex1 ≥ 50%</p>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -682,7 +682,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(s, i) in qcmPerfect" :key="i" class="border-t border-gray-100" :class="s.pct >= 50 ? 'bg-red-50' : ''">
+              <tr v-for="(s, i) in qcmPerfect" :key="i" class="border-t border-gray-100" :class="s.pct >= 50 ? 'bg-red-50' : s.pct > 31.2 && s.exam === 'BB_J1' ? 'bg-amber-50' : ''">
                 <td class="px-2 py-2 text-center text-gray-500 text-xs">{{ i + 1 }}</td>
                 <td class="px-3 py-2 font-medium text-gray-800" :class="s.pct >= 50 ? 'text-red-800' : ''">{{ s.name }}</td>
                 <td class="px-2 py-2 text-center">
@@ -700,6 +700,13 @@
       </div>
 
       <!-- Alerts -->
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 mb-4">
+        <AlertTriangle class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <div>
+          <p class="text-sm font-semibold text-amber-800">24 élèves BB_J1 avec %Ex1 supérieur au seuil BB_J2 (31.2%)</p>
+          <p class="text-sm text-amber-700 mt-1">Les 16 élèves BB_J2 ayant eu 5/5 ont un %Ex1 moyen de 31.2%. <strong>24 élèves BB_J1 sur 54</strong> (44.4%) dépassent ce seuil, indiquant un poids disproportionné du QCM dans leur note. Les écarts les plus extrêmes atteignent +49 points (CHAMAM, KHALSI).</p>
+        </div>
+      </div>
       <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 mb-4">
         <AlertTriangle class="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
         <div>
