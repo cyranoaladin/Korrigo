@@ -6,6 +6,7 @@ import Home from '../views/Home.vue'
 import GuideEnseignant from '../views/GuideEnseignant.vue'
 import GuideEtudiant from '../views/GuideEtudiant.vue'
 import DirectionConformite from '../views/DirectionConformite.vue'
+import StatsReport from '../views/StatsReport.vue'
 import Login from '../views/Login.vue'
 import AdminDashboard from '../views/AdminDashboard.vue'
 import CorrectorDashboard from '../views/CorrectorDashboard.vue'
@@ -60,6 +61,12 @@ const routes = [
                 name: 'Direction',
                 component: DirectionConformite,
                 meta: { title: 'Direction & Conformité', public: true }
+            },
+            {
+                path: 'stats-bb-maths-2026',
+                name: 'StatsReport',
+                component: StatsReport,
+                meta: { title: 'Rapport Statistique — BB Maths 2026', public: true }
             }
         ]
     },
