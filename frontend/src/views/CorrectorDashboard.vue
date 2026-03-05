@@ -135,7 +135,7 @@ onMounted(fetchCopies)
 
 const handleLogout = async () => {
     await authStore.logout()
-    router.push('/login')
+    router.push('/')
 }
 
 const handleChangePassword = async () => {
