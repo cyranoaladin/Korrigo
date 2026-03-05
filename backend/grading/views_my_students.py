@@ -6,6 +6,7 @@ from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from exams.permissions import IsTeacherOrAdmin
 
 from students.models import Student
 from exams.models import Copy
@@ -30,7 +31,7 @@ class MyStudentsListView(views.APIView):
     GET /api/grading/my-students/
     Liste les élèves du groupe du correcteur connecté avec leurs notes.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request):
         username = request.user.username
@@ -100,7 +101,7 @@ class StudentBilanView(views.APIView):
     GET /api/grading/students/<student_id>/bilan/
     Détails complets du bilan d'un élève: notes, remarques, annotations, appréciation.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request, student_id):
         username = request.user.username
