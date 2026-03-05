@@ -1,3 +1,7 @@
+# MAINTENANCE MODE - Pour bloquer: changer STUDENT_ACCESS_BLOCKED = True
+STUDENT_ACCESS_BLOCKED = False
+MAINTENANCE_MESSAGE = "L'accès élève est temporairement suspendu pour maintenance. Veuillez réessayer ultérieurement."
+
 from rest_framework import generics, filters, status, views
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
@@ -27,6 +31,12 @@ class StudentLoginView(views.APIView):
 
     @method_decorator(maybe_ratelimit(key='ip', rate='5/15m', method='POST', block=True))
     def post(self, request):
+        # MAINTENANCE MODE CHECK - Blocage temporaire des étudiants
+        if STUDENT_ACCESS_BLOCKED:
+            return Response({
+                'error': MAINTENANCE_MESSAGE,
+                'maintenance': True
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         from django.contrib.auth import authenticate, login as auth_login
         from django.contrib.auth.models import User
 
@@ -92,6 +102,12 @@ class StudentLogoutView(views.APIView):
     permission_classes = [AllowAny]  # Public endpoint - allow logout even if session expired
 
     def post(self, request):
+        # MAINTENANCE MODE CHECK - Blocage temporaire des étudiants
+        if STUDENT_ACCESS_BLOCKED:
+            return Response({
+                'error': MAINTENANCE_MESSAGE,
+                'maintenance': True
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         student_id = request.session.get('student_id')
         if student_id:
             # Audit trail: Logout élève
@@ -136,6 +152,12 @@ class StudentChangePasswordView(views.APIView):
 
     @method_decorator(maybe_ratelimit(key='ip', rate='5/h', method='POST', block=True))
     def post(self, request):
+        # MAINTENANCE MODE CHECK - Blocage temporaire des étudiants
+        if STUDENT_ACCESS_BLOCKED:
+            return Response({
+                'error': MAINTENANCE_MESSAGE,
+                'maintenance': True
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         from django.contrib.auth import update_session_auth_hash
         from django.contrib.auth.password_validation import validate_password
         from django.core.exceptions import ValidationError
@@ -201,6 +223,12 @@ class StudentImportView(views.APIView):
 
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request):
+        # MAINTENANCE MODE CHECK - Blocage temporaire des étudiants
+        if STUDENT_ACCESS_BLOCKED:
+            return Response({
+                'error': MAINTENANCE_MESSAGE,
+                'maintenance': True
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         import csv
         import io
         from datetime import datetime
