@@ -65,7 +65,10 @@ class MyStudentsListView(views.APIView):
                 score_obj = Score.objects.filter(copy=copy).first()
                 total_score = None
                 if score_obj and score_obj.scores_data:
-                    total_score = sum(score_obj.scores_data.values())
+                    total_score = sum(
+                        float(v) for v in score_obj.scores_data.values()
+                        if v is not None and v != ''
+                    )
                 
                 # Nom du correcteur
                 corrector_name = None
@@ -124,7 +127,10 @@ class StudentBilanView(views.APIView):
             final_comment = ''
             if score_obj:
                 scores_data = score_obj.scores_data or {}
-                total_score = sum(scores_data.values()) if scores_data else None
+                total_score = sum(
+                    float(v) for v in scores_data.values()
+                    if v is not None and v != ''
+                ) if scores_data else None
                 final_comment = score_obj.final_comment or ''
             
             # Remarques par question

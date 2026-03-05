@@ -62,7 +62,7 @@ const goToDashboard = () => {
 
 const handleLogout = async () => {
     await authStore.logout()
-    router.push('/login')
+    router.push('/')
 }
 
 const openPdf = () => {
@@ -290,6 +290,4 @@ onMounted(fetchBilan)
 
 .appreciation-box, .final-comment-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 1rem; color: #166534; line-height: 1.5; }
 
-.llm-summary-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 1rem; }
-.llm-summary-box pre { margin: 0; white-space: pre-wrap; font-family: inherit; color: #1e40af; line-height: 1.6; font-size: 0.9rem; }
 </style>

@@ -37,7 +37,7 @@ const goBack = () => {
 
 const handleLogout = async () => {
     await authStore.logout()
-    router.push('/login')
+    router.push('/')
 }
 
 const getStatusClass = (status) => {
