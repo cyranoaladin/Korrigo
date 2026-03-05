@@ -859,9 +859,9 @@
               <h3 class="text-sm font-semibold text-green-800">Processus de Correction</h3>
             </div>
             <ul class="px-4 py-3 space-y-2 text-sm text-gray-700">
-              <li class="flex items-start gap-2"><span class="text-green-500 mt-1">●</span>Finaliser 182 copies en READY</li>
+              <li class="flex items-start gap-2"><span class="text-green-500 mt-1">●</span>209/209 copies finalisées ✓</li>
               <li class="flex items-start gap-2"><span class="text-green-500 mt-1">●</span>Générer bilans LLM (167 restantes)</li>
-              <li class="flex items-start gap-2"><span class="text-green-500 mt-1">●</span>Déployer résultats portail élève</li>
+              <li class="flex items-start gap-2"><span class="text-green-500 mt-1">●</span>Portail élève déployé ✓</li>
             </ul>
           </div>
         </div>
@@ -871,7 +871,7 @@
     <!-- Footer -->
     <div class="mt-12 pt-6 border-t border-gray-200 text-center text-xs text-gray-400">
       <p>Rapport rédigé par la Commission de correction — Bac Blanc Mathématiques Spécialité 2026</p>
-      <p class="mt-1">Données extraites de la plateforme Korrigo — korrigo.labomaths.tn · 4 mars 2026</p>
+      <p class="mt-1">Données extraites de la plateforme Korrigo — korrigo.labomaths.tn · 5 mars 2026</p>
     </div>
   </section>
 </template>
@@ -901,20 +901,20 @@ const tabs = [
 ]
 
 const kpis = [
-  { label: 'Moyenne Globale', value: '13.25', sub: '/20 — 209 copies', icon: BarChart3, color: 'text-blue-600' },
+  { label: 'Moyenne Globale', value: '13.29', sub: '/20 — 209 copies', icon: BarChart3, color: 'text-blue-600' },
   { label: 'Taux de Réussite', value: '77.5%', sub: '162/209 ≥ 10', icon: TrendingUp, color: 'text-green-600' },
   { label: 'Mention TB', value: '32.1%', sub: '67 élèves ≥ 16', icon: Award, color: 'text-amber-500' },
   { label: 'En Difficulté', value: '22.5%', sub: '47 élèves < 10', icon: TrendingDown, color: 'text-red-500' }
 ]
 
 const descriptiveStats = [
-  { label: 'Moyenne', j1: '13.79', j2: '12.68', global: '13.25' },
-  { label: 'Médiane', j1: '14.48', j2: '13.25', global: '14.00' },
-  { label: 'Écart-type', j1: '4.29', j2: '4.48', global: '4.42' },
+  { label: 'Moyenne', j1: '13.79', j2: '12.77', global: '13.29' },
+  { label: 'Médiane', j1: '14.47', j2: '13.25', global: '14.00' },
+  { label: 'Écart-type', j1: '4.31', j2: '4.54', global: '4.44' },
   { label: 'Minimum', j1: '1.45', j2: '1.00', global: '1.00' },
   { label: 'Maximum', j1: '20.00', j2: '20.00', global: '20.00' },
   { label: 'Q1 (25%)', j1: '10.90', j2: '10.25', global: '10.75' },
-  { label: 'Q3 (75%)', j1: '17.60', j2: '16.00', global: '16.70' },
+  { label: 'Q3 (75%)', j1: '17.60', j2: '16.25', global: '16.75' },
   { label: '≥ 10/20', j1: '83', j2: '79', global: '162' },
   { label: '< 10/20', j1: '23', j2: '24', global: '47' },
   { label: 'Taux réussite', j1: '78.3%', j2: '76.7%', global: '77.5%' }
@@ -929,27 +929,27 @@ const globalDistribution = [
   { label: '[10;12[', count: 22, pct: '10.5%' },
   { label: '[12;14[', count: 31, pct: '14.8%' },
   { label: '[14;16[', count: 42, pct: '20.1%' },
-  { label: '[16;18[', count: 35, pct: '16.7%' },
-  { label: '[18;20]', count: 32, pct: '15.3%' }
+  { label: '[16;18[', count: 34, pct: '16.3%' },
+  { label: '[18;20]', count: 33, pct: '15.8%' }
 ]
 
 const mentions = [
-  { label: 'Très Bien', seuil: '≥ 16', j1: 39, j2: 28, global: 67, pct: '32.1%', labelColor: 'text-green-800', dotColor: 'bg-green-500' },
+  { label: 'Très Bien', seuil: '≥ 16', j1: 38, j2: 29, global: 67, pct: '32.1%', labelColor: 'text-green-800', dotColor: 'bg-green-500' },
   { label: 'Bien', seuil: '[14;16[', j1: 23, j2: 19, global: 42, pct: '20.1%', labelColor: 'text-blue-800', dotColor: 'bg-blue-500' },
-  { label: 'Assez Bien', seuil: '[12;14[', j1: 12, j2: 19, global: 31, pct: '14.8%', labelColor: 'text-cyan-800', dotColor: 'bg-cyan-500' },
+  { label: 'Assez Bien', seuil: '[12;14[', j1: 13, j2: 18, global: 31, pct: '14.8%', labelColor: 'text-cyan-800', dotColor: 'bg-cyan-500' },
   { label: 'Passable', seuil: '[10;12[', j1: 9, j2: 13, global: 22, pct: '10.5%', labelColor: 'text-amber-800', dotColor: 'bg-amber-500' },
   { label: 'Insuffisant', seuil: '< 10', j1: 23, j2: 24, global: 47, pct: '22.5%', labelColor: 'text-red-800', dotColor: 'bg-red-500' }
 ]
 
 const correctors = [
-  { name: 'Alaeddine BEN RHOUMA', initials: 'AB', exam: 'BB_J1', n: 26, finalized: 26, mean: 14.84, median: '14.85', std: '3.60', min: '5.65', max: '19.50', rate: '92.3%' },
-  { name: 'Selima KLIBI', initials: 'SK', exam: 'BB_J1', n: 27, finalized: 0, mean: 13.84, median: '15.35', std: '4.42', min: '1.45', max: '18.90', rate: '81.5%' },
-  { name: 'Patrick DUPONT', initials: 'PD', exam: 'BB_J1', n: 26, finalized: 0, mean: 13.34, median: '14.48', std: '4.50', min: '4.60', max: '19.95', rate: '69.2%' },
-  { name: 'Philippe CARR', initials: 'PC', exam: 'BB_J1', n: 27, finalized: 0, mean: 13.17, median: '14.00', std: '4.35', min: '4.50', max: '20.00', rate: '70.4%' },
-  { name: 'Chawki SAADI', initials: 'CS', exam: 'BB_J2', n: 25, finalized: 1, mean: 13.47, median: '14.00', std: '4.17', min: '2.50', max: '19.00', rate: '80.0%' },
-  { name: 'Edouard ROUSSEAU', initials: 'ER', exam: 'BB_J2', n: 26, finalized: 0, mean: 12.80, median: '14.25', std: '5.04', min: '2.00', max: '20.00', rate: '76.9%' },
-  { name: 'Sami BEN TIBA', initials: 'SB', exam: 'BB_J2', n: 26, finalized: 0, mean: 12.69, median: '13.00', std: '4.74', min: '1.00', max: '18.75', rate: '73.1%' },
-  { name: 'Laroussi LAROUSSI', initials: 'LL', exam: 'BB_J2', n: 26, finalized: 0, mean: 11.80, median: '12.38', std: '3.70', min: '2.75', max: '17.00', rate: '76.9%' }
+  { name: 'Alaeddine BEN RHOUMA', initials: 'AB', exam: 'BB_J1', n: 26, finalized: 26, mean: 14.84, median: '14.85', std: '3.67', min: '5.65', max: '19.50', rate: '92.3%' },
+  { name: 'Selima KLIBI', initials: 'SK', exam: 'BB_J1', n: 27, finalized: 27, mean: 13.84, median: '15.35', std: '4.51', min: '1.45', max: '18.90', rate: '81.5%' },
+  { name: 'Patrick DUPONT', initials: 'PD', exam: 'BB_J1', n: 26, finalized: 26, mean: 13.34, median: '14.47', std: '4.59', min: '4.60', max: '19.95', rate: '69.2%' },
+  { name: 'Philippe CARR', initials: 'PC', exam: 'BB_J1', n: 27, finalized: 27, mean: 13.17, median: '14.00', std: '4.43', min: '4.50', max: '20.00', rate: '70.4%' },
+  { name: 'Chawki SAADI', initials: 'CS', exam: 'BB_J2', n: 25, finalized: 25, mean: 13.48, median: '14.00', std: '4.27', min: '2.50', max: '19.00', rate: '80.0%' },
+  { name: 'Edouard ROUSSEAU', initials: 'ER', exam: 'BB_J2', n: 26, finalized: 26, mean: 12.87, median: '14.25', std: '5.09', min: '2.00', max: '20.00', rate: '76.9%' },
+  { name: 'Sami BEN TIBA', initials: 'SB', exam: 'BB_J2', n: 26, finalized: 26, mean: 12.95, median: '13.50', std: '5.00', min: '1.00', max: '19.25', rate: '73.1%' },
+  { name: 'Laroussi LAROUSSI', initials: 'LL', exam: 'BB_J2', n: 26, finalized: 26, mean: 11.80, median: '12.38', std: '3.77', min: '2.75', max: '17.00', rate: '76.9%' }
 ]
 
 const correctorsSorted = computed(() => [...correctors].sort((a, b) => b.mean - a.mean))
@@ -1028,21 +1028,21 @@ function difficultyClass(d) {
 }
 
 const top15 = [
-  { rank: 1, name: 'HACHICH Selim', classe: 'T.01', groupe: 'G3', exam: 'BB_J1', note: '20.00', corrector: 'Philippe CARR' },
   { rank: 1, name: 'BEN REGUIGA Nour', classe: 'T.04', groupe: 'T.04', exam: 'BB_J2', note: '20.00', corrector: 'Edouard ROUSSEAU' },
+  { rank: 1, name: 'HACHICH Selim', classe: 'T.01', groupe: 'G3', exam: 'BB_J1', note: '20.00', corrector: 'Philippe CARR' },
   { rank: 3, name: 'BEN RAYANA Mohamed', classe: 'T.07', groupe: 'G1', exam: 'BB_J1', note: '19.95', corrector: 'Patrick DUPONT' },
   { rank: 3, name: 'DRISS Yacine', classe: 'T.02', groupe: 'G2', exam: 'BB_J1', note: '19.95', corrector: 'Patrick DUPONT' },
   { rank: 5, name: 'DOGGAZ Enis', classe: 'T.09', groupe: 'G4', exam: 'BB_J2', note: '19.75', corrector: 'Edouard ROUSSEAU' },
   { rank: 6, name: 'BEN BRAHIM Jawad', classe: 'T.08', groupe: 'G3', exam: 'BB_J1', note: '19.50', corrector: 'Alaeddine BEN RHOUMA' },
-  { rank: 6, name: 'ISSA Mourad', classe: 'T.06', groupe: 'T.06', exam: 'BB_J1', note: '19.50', corrector: 'Philippe CARR' },
   { rank: 6, name: 'BLOUZA Emna', classe: 'T.04', groupe: 'T.04', exam: 'BB_J2', note: '19.50', corrector: 'Edouard ROUSSEAU' },
+  { rank: 6, name: 'ISSA Mourad', classe: 'T.06', groupe: 'T.06', exam: 'BB_J1', note: '19.50', corrector: 'Philippe CARR' },
   { rank: 9, name: 'AMARA Fares', classe: 'T.06', groupe: 'T.06', exam: 'BB_J1', note: '19.45', corrector: 'Alaeddine BEN RHOUMA' },
-  { rank: 10, name: 'AMMAR Amal', classe: 'T.04', groupe: 'T.04', exam: 'BB_J2', note: '19.00', corrector: 'Chawki SAADI' },
-  { rank: 10, name: 'BENNANI Lilya', classe: 'T.05', groupe: 'G6', exam: 'BB_J2', note: '19.00', corrector: 'Chawki SAADI' },
-  { rank: 12, name: 'AMEUR Selim', classe: 'T.02', groupe: 'G2', exam: 'BB_J1', note: '18.95', corrector: 'Alaeddine BEN RHOUMA' },
-  { rank: 12, name: 'BELCADHI Yoldez', classe: 'T.02', groupe: 'G2', exam: 'BB_J1', note: '18.95', corrector: 'Alaeddine BEN RHOUMA' },
-  { rank: 12, name: 'BOUKER Fares', classe: 'T.07', groupe: 'G1', exam: 'BB_J1', note: '18.95', corrector: 'Patrick DUPONT' },
-  { rank: 15, name: 'SFIA Iyad Alex', classe: 'T.06', groupe: 'T.06', exam: 'BB_J1', note: '18.90', corrector: 'Selima KLIBI' }
+  { rank: 10, name: 'SMAOUI Yassine', classe: 'T.10', groupe: 'G6', exam: 'BB_J2', note: '19.25', corrector: 'Sami BEN TIBA' },
+  { rank: 11, name: 'AMMAR Amal', classe: 'T.04', groupe: 'T.04', exam: 'BB_J2', note: '19.00', corrector: 'Chawki SAADI' },
+  { rank: 11, name: 'BENNANI Lilya', classe: 'T.05', groupe: 'G6', exam: 'BB_J2', note: '19.00', corrector: 'Chawki SAADI' },
+  { rank: 13, name: 'AMEUR Selim', classe: 'T.02', groupe: 'G2', exam: 'BB_J1', note: '18.95', corrector: 'Alaeddine BEN RHOUMA' },
+  { rank: 13, name: 'BELCADHI Yoldez', classe: 'T.02', groupe: 'G2', exam: 'BB_J1', note: '18.95', corrector: 'Alaeddine BEN RHOUMA' },
+  { rank: 13, name: 'BOUKER Fares', classe: 'T.07', groupe: 'G1', exam: 'BB_J1', note: '18.95', corrector: 'Patrick DUPONT' }
 ]
 
 const bottom11 = [
