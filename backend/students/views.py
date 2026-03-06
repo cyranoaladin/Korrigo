@@ -14,7 +14,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from .models import Student
 from .serializers import StudentSerializer
-from exams.permissions import IsStudent
+from exams.permissions import IsStudent, IsTeacherOrAdmin
 from core.utils.audit import log_authentication_attempt, log_audit
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -213,14 +213,14 @@ class StudentChangePasswordView(views.APIView):
 
 
 class StudentListView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]  # Teacher/Admin only - requires Django User auth
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]  # LOT 8 FIX: was IsAuthenticated only
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['first_name', 'last_name', 'email']
 
 class StudentImportView(views.APIView):
-    permission_classes = [IsAuthenticated] # Teacher/Admin only
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]  # LOT 8 FIX: was IsAuthenticated only
     parser_classes = [MultiPartParser, FormParser]
 
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))

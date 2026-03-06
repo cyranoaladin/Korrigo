@@ -30,6 +30,18 @@ class PassthroughRenderer(renderers.BaseRenderer):
 
 
 
+def _can_write_copy(user, copy: Copy) -> bool:
+    """
+    LOT 5: Check if user is allowed to write to this copy.
+    Admins/superusers always pass. Teachers must be the assigned_corrector.
+    """
+    if user.is_superuser or user.is_staff:
+        return True
+    if user.groups.filter(name=UserRole.ADMIN).exists():
+        return True
+    return copy.assigned_corrector_id == user.id
+
+
 def _handle_service_error(e, context="API"):
     """
     Formate les erreurs du service layer (ValueError, PermissionError, etc.) en réponses HTTP.
@@ -73,6 +85,10 @@ class AnnotationListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         copy_id = self.kwargs['copy_id']
         copy = get_object_or_404(Copy, id=copy_id)
+
+        # LOT 5: Only assigned corrector or admin can create annotations
+        if not _can_write_copy(request.user, copy):
+            return Response({"detail": "Seul le correcteur assigné peut annoter cette copie."}, status=status.HTTP_403_FORBIDDEN)
         
         try:
             annotation = AnnotationService.add_annotation(
@@ -103,9 +119,9 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         annotation = self.get_object()
         
-        if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
-             if annotation.created_by != request.user:
-                 return Response({"detail": "Vous ne pouvez pas modifier cette annotation."}, status=status.HTTP_403_FORBIDDEN)
+        # LOT 5 fix: use _can_write_copy for consistent permission check
+        if not _can_write_copy(request.user, annotation.copy):
+            return Response({"detail": "Seul le correcteur assigné ou un admin peut modifier cette annotation."}, status=status.HTTP_403_FORBIDDEN)
 
         try:
             updated = AnnotationService.update_annotation(
@@ -123,9 +139,9 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
     def destroy(self, request, *args, **kwargs):
         annotation = self.get_object()
         
-        if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
-             if annotation.created_by != request.user:
-                 return Response({"detail": "Vous ne pouvez pas supprimer cette annotation."}, status=status.HTTP_403_FORBIDDEN)
+        # LOT 5 fix: use _can_write_copy for consistent permission check
+        if not _can_write_copy(request.user, annotation.copy):
+            return Response({"detail": "Seul le correcteur assigné ou un admin peut supprimer cette annotation."}, status=status.HTTP_403_FORBIDDEN)
         
         try:
             AnnotationService.delete_annotation(annotation, request.user)
@@ -140,6 +156,12 @@ class CopyReadyView(APIView):
     permission_classes = [IsTeacherOrAdmin]
     def post(self, request, id):
         copy = get_object_or_404(Copy, id=id)
+        # LOT 8 FIX: Ownership check — only assigned corrector or admin
+        if not _can_write_copy(request.user, copy):
+            return Response(
+                {"detail": "Seul le correcteur assigné ou un admin peut valider cette copie."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         try:
             GradingService.ready_copy(copy, request.user)
             return Response({"status": copy.status})
@@ -150,6 +172,12 @@ class CopyFinalizeView(APIView):
     permission_classes = [IsTeacherOrAdmin]
     def post(self, request, id):
         copy = get_object_or_404(Copy, id=id)
+        # LOT 8 FIX: Ownership check — only assigned corrector or admin
+        if not _can_write_copy(request.user, copy):
+            return Response(
+                {"detail": "Seul le correcteur assigné ou un admin peut finaliser cette copie."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         if copy.status == Copy.Status.GRADED:
             return Response({"detail": "Copie déjà corrigée."}, status=status.HTTP_400_BAD_REQUEST)
         try:
@@ -240,6 +268,13 @@ class CopyFinalPdfView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
+            # LOT 8 FIX: Students can only access PDF after results are officially released
+            if not copy.exam or not copy.exam.results_released_at:
+                return Response(
+                    {"detail": "Les résultats ne sont pas encore publiés."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
         if not copy.final_pdf:
             return Response({"detail": "PDF final non disponible."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -247,7 +282,10 @@ class CopyFinalPdfView(APIView):
         from core.utils.audit import log_data_access
         log_data_access(request, 'Copy', copy.id, action_detail='download')
 
-        response = FileResponse(copy.final_pdf.open("rb"), content_type="application/pdf")
+        # LOT 2: Use X-Accel-Redirect for zero-copy file serving via Nginx
+        from django.http import HttpResponse
+        response = HttpResponse(content_type="application/pdf")
+        response['X-Accel-Redirect'] = f'/internal-media/{copy.final_pdf.name}'
         filename = f'copy_{copy.anonymous_id}_corrected.pdf'
         disposition = 'attachment' if request.query_params.get('download') == '1' else 'inline'
         response["Content-Disposition"] = f'{disposition}; filename="{filename}"'
@@ -291,6 +329,11 @@ class QuestionRemarkListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         copy_id = self.kwargs['copy_id']
         copy = get_object_or_404(Copy, id=copy_id)
+
+        # LOT 5: Only assigned corrector or admin can create/update remarks
+        if not _can_write_copy(request.user, copy):
+            return Response({"detail": "Seul le correcteur assigné peut modifier les remarques de cette copie."}, status=status.HTTP_403_FORBIDDEN)
+
         question_id = request.data.get('question_id')
         remark = request.data.get('remark', '')
 
@@ -341,13 +384,12 @@ class QuestionRemarkDetailView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         remark_obj = self.get_object()
 
-        # Permission check: only creator or admin can update
-        if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
-            if remark_obj.created_by != request.user:
-                return Response(
-                    {"detail": "Vous ne pouvez pas modifier cette remarque."},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+        # LOT 5 fix: use _can_write_copy for consistent permission check
+        if not _can_write_copy(request.user, remark_obj.copy):
+            return Response(
+                {"detail": "Seul le correcteur assigné ou un admin peut modifier cette remarque."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         partial = kwargs.pop('partial', False)
         serializer = self.get_serializer(remark_obj, data=request.data, partial=partial)
@@ -359,13 +401,12 @@ class QuestionRemarkDetailView(generics.RetrieveUpdateDestroyAPIView):
     def destroy(self, request, *args, **kwargs):
         remark_obj = self.get_object()
 
-        # Permission check: only creator or admin can delete
-        if not request.user.is_superuser and getattr(request.user, 'role', '') != 'Admin':
-            if remark_obj.created_by != request.user:
-                return Response(
-                    {"detail": "Vous ne pouvez pas supprimer cette remarque."},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+        # LOT 5 fix: use _can_write_copy for consistent permission check
+        if not _can_write_copy(request.user, remark_obj.copy):
+            return Response(
+                {"detail": "Seul le correcteur assigné ou un admin peut supprimer cette remarque."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         remark_obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -393,6 +434,11 @@ class CopyGlobalAppreciationView(APIView):
 
     def _update(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
+
+        # LOT 5: Only assigned corrector or admin can update appreciation
+        if not _can_write_copy(request.user, copy):
+            return Response({"detail": "Seul le correcteur assigné peut modifier l'appréciation de cette copie."}, status=status.HTTP_403_FORBIDDEN)
+
         global_appreciation = request.data.get('global_appreciation', '')
 
         copy.global_appreciation = global_appreciation
@@ -441,6 +487,10 @@ class CopyScoresView(APIView):
     def put(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
 
+        # LOT 5: Only assigned corrector or admin can save scores
+        if not _can_write_copy(request.user, copy):
+            return Response({"detail": "Seul le correcteur assigné peut modifier les notes de cette copie."}, status=status.HTTP_403_FORBIDDEN)
+
         if copy.status == Copy.Status.GRADED and not request.user.is_superuser:
             return Response(
                 {"detail": "Impossible de modifier les notes d'une copie déjà corrigée."},
@@ -458,37 +508,65 @@ class CopyScoresView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Validate score values are numeric
+        # Validate score values are numeric + non-negative
         for qid, val in scores_data.items():
             if val is not None and val != '':
                 try:
-                    float(val)
+                    fval = float(val)
                 except (TypeError, ValueError):
                     return Response(
                         {"detail": f"La note pour '{qid}' doit être numérique, reçu '{val}'."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
+                if fval < 0:
+                    return Response(
+                        {"detail": f"La note pour '{qid}' ne peut pas être négative ({fval})."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
-        score, created = Score.objects.update_or_create(
-            copy=copy,
-            defaults={
-                'scores_data': scores_data,
-                'final_comment': final_comment,
-            }
-        )
+        # LOT 6: Validate individual scores against barème max
+        from exams.views import StudentCopiesView
+        q_max = StudentCopiesView.Q_MAX_BY_EXAM.get(copy.exam.name, {})
+        if q_max:
+            overflow_warnings = []
+            for qid, val in scores_data.items():
+                if val is not None and val != '' and qid in q_max:
+                    fval = float(val)
+                    max_val = float(q_max[qid])
+                    if fval > max_val:
+                        overflow_warnings.append(f"'{qid}': {fval} > max {max_val}")
+            if overflow_warnings:
+                return Response(
+                    {"detail": f"Score(s) dépassant le barème: {'; '.join(overflow_warnings)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        # Audit trail: log every score save for traceability
-        try:
-            nq = len([v for v in scores_data.values() if v is not None and v != ''])
-            total = sum(float(v) for v in scores_data.values() if v is not None and v != '')
-            GradingEvent.objects.create(
+        # LOT 4 fix: select_for_update to prevent lost updates on concurrent PUT
+        from django.db import transaction
+        with transaction.atomic():
+            # Lock the Copy row to serialize concurrent score writes
+            Copy.objects.select_for_update().filter(id=copy.id).first()
+
+            score, created = Score.objects.update_or_create(
                 copy=copy,
-                actor=request.user,
-                action='scores_saved',
-                metadata={'nq': nq, 'total': round(total, 2), 'created': created},
+                defaults={
+                    'scores_data': scores_data,
+                    'final_comment': final_comment,
+                }
             )
-        except Exception:
-            logger.warning("Failed to create GradingEvent for score save on copy %s", copy_id)
+
+            # Audit trail: log every score save for traceability
+            try:
+                nq = len([v for v in scores_data.values() if v is not None and v != ''])
+                total = sum(float(v) for v in scores_data.values() if v is not None and v != '')
+                GradingEvent.objects.create(
+                    copy=copy,
+                    actor=request.user,
+                    action='scores_saved',
+                    metadata={'nq': nq, 'total': round(total, 2), 'created': created},
+                )
+            except Exception:
+                logger.warning("Failed to create GradingEvent for score save on copy %s", copy_id)
 
         return Response({
             'copy_id': str(copy.id),
@@ -523,12 +601,18 @@ class CorrectorStatsView(APIView):
             exam=exam, status__in=[Copy.Status.GRADED, Copy.Status.READY]
         ).select_related('assigned_corrector', 'student')
 
+        # LOT 7: Prefetch all scores in one query to avoid N+1
+        copy_ids = list(all_with_scores.values_list('id', flat=True))
+        scores_by_copy = {}
+        for s in Score.objects.filter(copy_id__in=copy_ids):
+            scores_by_copy[s.copy_id] = s
+
         # Get all copies for this exam
         total_copies = Copy.objects.filter(exam=exam).count()
-        graded_count = all_with_scores.count()
+        graded_count = len(copy_ids)
 
         # Calculate global scores
-        global_scores = self._get_scores_for_copies(all_with_scores)
+        global_scores = self._get_scores_for_copies(all_with_scores, scores_by_copy)
 
         result = {
             'exam_id': str(exam.id),
@@ -546,7 +630,7 @@ class CorrectorStatsView(APIView):
             lot_total = Copy.objects.filter(
                 exam=exam, assigned_corrector=request.user
             ).count()
-            lot_scores = self._get_scores_for_copies(lot_graded)
+            lot_scores = self._get_scores_for_copies(lot_graded, scores_by_copy)
 
             result['lot_stats'] = {
                 'total': lot_total,
@@ -557,12 +641,12 @@ class CorrectorStatsView(APIView):
             result['lot_distribution'] = self._compute_distribution(lot_scores)
 
         # Group-level stats
-        group_stats = self._compute_group_stats(all_with_scores, global_scores)
+        group_stats = self._compute_group_stats(all_with_scores, global_scores, scores_by_copy)
         result['group_stats'] = group_stats
 
         return Response(result)
 
-    def _compute_group_stats(self, copies_qs, global_scores):
+    def _compute_group_stats(self, copies_qs, global_scores, scores_by_copy=None):
         """Compute stats per student group (groupe field on Student model)."""
         from collections import defaultdict
         group_scores = defaultdict(list)
@@ -570,7 +654,8 @@ class CorrectorStatsView(APIView):
             if not copy.student:
                 continue
             groupe = copy.student.groupe or 'Non assigné'
-            score_obj = Score.objects.filter(copy=copy).first()
+            # LOT 7: Use prefetched scores dict instead of per-copy query
+            score_obj = scores_by_copy.get(copy.id) if scores_by_copy else Score.objects.filter(copy=copy).first()
             if score_obj and score_obj.scores_data:
                 total = 0
                 for val in score_obj.scores_data.values():
@@ -592,11 +677,12 @@ class CorrectorStatsView(APIView):
             result.append(stats)
         return result
 
-    def _get_scores_for_copies(self, copies_qs):
+    def _get_scores_for_copies(self, copies_qs, scores_by_copy=None):
         """Extract total scores from Score objects for given copies."""
         scores = []
         for copy in copies_qs:
-            score_obj = Score.objects.filter(copy=copy).first()
+            # LOT 7: Use prefetched scores dict instead of per-copy query
+            score_obj = scores_by_copy.get(copy.id) if scores_by_copy else Score.objects.filter(copy=copy).first()
             if score_obj and score_obj.scores_data:
                 total = 0
                 for val in score_obj.scores_data.values():
@@ -643,10 +729,22 @@ class ExamReleaseResultsView(APIView):
     """
     POST /api/exams/<uuid>/release-results/
     Mark exam results as released (students can see their grades).
+    LOT 8 FIX: Restricted to admin only — releasing results is an administrative action.
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsAuthenticated]
+
+    def _check_admin(self, request):
+        user = request.user
+        if user.is_superuser or user.is_staff:
+            return True
+        return user.groups.filter(name=UserRole.ADMIN).exists()
 
     def post(self, request, exam_id):
+        if not self._check_admin(request):
+            return Response(
+                {"detail": "Seul un administrateur peut publier les résultats."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         exam = get_object_or_404(Exam, id=exam_id)
 
         if exam.results_released_at:
@@ -669,10 +767,18 @@ class ExamUnreleaseResultsView(APIView):
     """
     POST /api/exams/<uuid>/unrelease-results/
     Revoke result visibility for students.
+    LOT 8 FIX: Restricted to admin only.
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, exam_id):
+        user = request.user
+        is_admin = user.is_superuser or user.is_staff or user.groups.filter(name=UserRole.ADMIN).exists()
+        if not is_admin:
+            return Response(
+                {"detail": "Seul un administrateur peut dépublier les résultats."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         exam = get_object_or_404(Exam, id=exam_id)
         exam.results_released_at = None
         exam.save(update_fields=['results_released_at'])

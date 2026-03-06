@@ -24,7 +24,9 @@ class BookletSerializer(serializers.ModelSerializer):
     def get_header_image_url(self, obj):
         request = self.context.get('request')
         if obj.header_image and request:
-            return request.build_absolute_uri(obj.header_image.url)
+            # LOT 2: Route through protected media endpoint
+            protected_path = f'/api/media/{obj.header_image.name}'
+            return request.build_absolute_uri(protected_path)
         return None
 
 class ExamPDFSerializer(serializers.ModelSerializer):
@@ -171,8 +173,10 @@ class CopySerializer(serializers.ModelSerializer):
         if obj.final_pdf:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.final_pdf.url)
-            return obj.final_pdf.url
+                # LOT 2: Route through protected media endpoint
+                protected_path = f'/api/media/{obj.final_pdf.name}'
+                return request.build_absolute_uri(protected_path)
+            return f'/api/media/{obj.final_pdf.name}'
         return None
 
     def get_booklet_ids(self, obj):

@@ -5,6 +5,8 @@ from django.db.models import F
 from django.db import transaction
 from .models import DraftState
 from exams.models import Copy
+from exams.permissions import IsTeacherOrAdmin
+from core.auth import UserRole
 import uuid
 import logging
 
@@ -23,6 +25,18 @@ def _handle_unexpected_error(e: Exception, context: str):
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
 
+def _can_write_copy_draft(user, copy: Copy) -> bool:
+    """
+    LOT 8 FIX: Check if user is allowed to write a draft for this copy.
+    Admins/superusers always pass. Teachers must be the assigned_corrector.
+    """
+    if user.is_superuser or user.is_staff:
+        return True
+    if user.groups.filter(name=UserRole.ADMIN).exists():
+        return True
+    return copy.assigned_corrector_id == user.id
+
+
 class DraftReturnView(views.APIView):
     """
     GET /api/copies/<uuid:copy_id>/draft/
@@ -30,8 +44,9 @@ class DraftReturnView(views.APIView):
 
     Gère le brouillon (Autosave). Pas de lock requis — l'assigned_corrector
     garantit qu'un seul correcteur accède à une copie.
+    LOT 8 FIX: Restricté à IsTeacherOrAdmin + ownership check sur PUT.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTeacherOrAdmin]
 
     def get(self, request, copy_id):
         try:
@@ -50,6 +65,13 @@ class DraftReturnView(views.APIView):
         context = "DraftReturnView.put"
         try:
             copy = get_object_or_404(Copy, id=copy_id)
+
+            # LOT 8 FIX: Ownership check — only assigned corrector or admin
+            if not _can_write_copy_draft(request.user, copy):
+                return Response(
+                    {"detail": "Vous n'êtes pas autorisé à modifier le brouillon de cette copie."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
             if copy.status == Copy.Status.GRADED:
                 return Response({"detail": "Impossible de sauvegarder un brouillon sur une copie corrigée."}, status=status.HTTP_400_BAD_REQUEST)
