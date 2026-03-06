@@ -62,6 +62,7 @@ services:
       - /var/www/labomaths/korrigo/overlay/core/views.py:/app/core/views.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_dev.py:/app/core/views_dev.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_health.py:/app/core/views_health.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_media.py:/app/core/views_media.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_metrics.py:/app/core/views_metrics.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_prometheus.py:/app/core/views_prometheus.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/management/commands/export_pronote.py:/app/exams/management/commands/export_pronote.py:ro
@@ -163,6 +164,7 @@ services:
       - /var/www/labomaths/korrigo/overlay/core/views.py:/app/core/views.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_dev.py:/app/core/views_dev.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_health.py:/app/core/views_health.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_media.py:/app/core/views_media.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_metrics.py:/app/core/views_metrics.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_prometheus.py:/app/core/views_prometheus.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/management/commands/export_pronote.py:/app/exams/management/commands/export_pronote.py:ro

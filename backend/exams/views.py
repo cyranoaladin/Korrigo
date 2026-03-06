@@ -337,13 +337,13 @@ class BookletHeaderView(APIView):
 
         booklet = get_object_or_404(Booklet, id=id)
 
-        # Case 1: header_image exists
+        # Case 1: header_image exists — LOT 2: X-Accel-Redirect
         if booklet.header_image:
             try:
-                return FileResponse(
-                    booklet.header_image.open('rb'),
-                    content_type='image/jpeg'
-                )
+                response = HttpResponse(content_type='image/jpeg')
+                response['X-Accel-Redirect'] = f'/internal-media/{booklet.header_image.name}'
+                response['Cache-Control'] = 'private, max-age=3600'
+                return response
             except Exception:
                 pass
 
@@ -699,21 +699,32 @@ class StudentCopiesView(generics.ListAPIView):
         if student_id:
             log_data_access(request, 'Copy', f'student_{student_id}_list', action_detail='list')
 
+        # LOT 7: Prefetch scores and remarks in bulk to avoid N+1 queries
+        copy_list = list(queryset)
+        copy_ids = [c.id for c in copy_list]
+
+        scores_by_copy = {}
+        for s in Score.objects.filter(copy_id__in=copy_ids):
+            scores_by_copy[s.copy_id] = s
+
+        from collections import defaultdict
+        remarks_by_copy = defaultdict(dict)
+        for r in QuestionRemark.objects.filter(copy_id__in=copy_ids):
+            if r.remark and r.remark.strip():
+                remarks_by_copy[r.copy_id][r.question_id] = r.remark
+
         data = []
-        for copy in queryset:
-            total_score = GradingService.compute_score(copy)
+        for copy in copy_list:
+            # Use prefetched score
+            score_obj = scores_by_copy.get(copy.id)
+            scores_data = score_obj.scores_data if score_obj and score_obj.scores_data else {}
+            total_score = sum(
+                float(v) for v in scores_data.values()
+                if v is not None and v != ''
+            ) if scores_data else 0
+            total_score = round(total_score, 2)
 
-            # Get detailed scores from Score model
-            scores_data = {}
-            score_obj = Score.objects.filter(copy=copy).first()
-            if score_obj and score_obj.scores_data:
-                scores_data = score_obj.scores_data
-
-            # Get question remarks (skip empty remarks)
-            remarks = {}
-            for remark in QuestionRemark.objects.filter(copy=copy):
-                if remark.remark and remark.remark.strip():
-                    remarks[remark.question_id] = remark.remark
+            remarks = remarks_by_copy.get(copy.id, {})
 
             # Build exercise_config from DB grading_structure (source of truth)
             exercise_config = self._build_exercise_config(copy.exam)

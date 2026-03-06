@@ -9,7 +9,7 @@ import os
 import logging
 
 # P0-OP-03: Module-level imports required for test patching
-from grading.services import GradingService
+from grading.services import GradingService, LockConflictError
 from grading.pdf_processor import PDFProcessor
 from exams.models import Copy, Exam
 
@@ -39,30 +39,35 @@ def async_finalize_copy(self, copy_id, user_id, lock_token=None, request_id=None
     Raises:
         Retry exception on transient failures (max 3 attempts)
     """
+    extra = {'request_id': request_id} if request_id else {}
+
+    # Non-retryable: missing data
     try:
-        try:
-            copy = Copy.objects.get(id=copy_id)
-        except Copy.DoesNotExist:
-            extra = {'request_id': request_id} if request_id else {}
-            logger.error(f"Copy {copy_id} not found", extra=extra)
-            return {
-                'copy_id': str(copy_id),
-                'status': 'error',
-                'detail': f'Copy {copy_id} not found'
-            }
+        copy = Copy.objects.get(id=copy_id)
+    except Copy.DoesNotExist:
+        logger.error(f"Copy {copy_id} not found", extra=extra)
+        return {
+            'copy_id': str(copy_id),
+            'status': 'error',
+            'detail': f'Copy {copy_id} not found'
+        }
 
+    try:
         user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        logger.error(f"User {user_id} not found", extra=extra)
+        return {
+            'copy_id': str(copy_id),
+            'status': 'error',
+            'detail': f'User {user_id} not found'
+        }
 
-        extra = {'request_id': request_id} if request_id else {}
-        logger.info(f"Starting async finalization for copy {copy_id} by user {user_id}", extra=extra)
+    logger.info(f"Starting async finalization for copy {copy_id} by user {user_id}", extra=extra)
 
-        # Execute synchronous finalize_copy (already has comprehensive error handling)
+    try:
         finalized_copy = GradingService.finalize_copy(copy, user, lock_token=lock_token)
 
-        # Success - return result
         final_score = GradingService.compute_score(finalized_copy)
-
-        extra = {'request_id': request_id} if request_id else {}
         logger.info(f"Successfully finalized copy {copy_id} with score {final_score}", extra=extra)
 
         return {
@@ -72,22 +77,27 @@ def async_finalize_copy(self, copy_id, user_id, lock_token=None, request_id=None
             'attempt': self.request.retries + 1
         }
 
+    except (ValueError, LockConflictError) as exc:
+        # Non-retryable business errors (status mismatch, lock conflict, etc.)
+        logger.warning(
+            f"Async finalization rejected for copy {copy_id}: {exc}",
+            extra=extra
+        )
+        return {
+            'copy_id': str(copy_id),
+            'status': 'error',
+            'detail': str(exc)
+        }
+
     except Exception as exc:
-        # Log the error
-        extra = {'request_id': request_id} if request_id else {}
+        # LOT 4: Transient failures → use Celery retry mechanism
         logger.error(
             f"Async finalization failed for copy {copy_id} "
             f"(attempt {self.request.retries + 1}/3): {exc}",
             exc_info=True,
             extra=extra
         )
-
-        # Return error dict for tests
-        return {
-            'copy_id': str(copy_id),
-            'status': 'error',
-            'detail': str(exc)
-        }
+        raise self.retry(exc=exc)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
@@ -197,6 +207,45 @@ def cleanup_orphaned_files():
     # TODO: Clean up orphaned page images (pages with no corresponding Copy)
     
     return {'removed_count': removed_count}
+
+
+@shared_task
+def cleanup_expired_locks():
+    """
+    LOT 9: Periodic task to clean up expired CopyLock entries.
+    Prevents stale locks from blocking editors after session abandonment.
+    Should be run every 5 minutes via Celery Beat.
+    """
+    from grading.models import CopyLock
+    from django.utils import timezone
+
+    now = timezone.now()
+    expired = CopyLock.objects.filter(expires_at__lte=now)
+    count = expired.count()
+    if count > 0:
+        expired.delete()
+        logger.info(f"Cleaned up {count} expired CopyLock entries")
+    return {'deleted': count}
+
+
+@shared_task
+def purge_old_audit_logs(retention_days=365):
+    """
+    LOT 9 RGPD: Purge AuditLog entries older than retention_days.
+    Default: 365 days (1 year). Conformité RGPD — minimisation des données.
+    Should be run daily via Celery Beat.
+    """
+    from core.models import AuditLog
+    from django.utils import timezone
+    import datetime
+
+    cutoff = timezone.now() - datetime.timedelta(days=retention_days)
+    old_entries = AuditLog.objects.filter(timestamp__lt=cutoff)
+    count = old_entries.count()
+    if count > 0:
+        old_entries.delete()
+        logger.info(f"Purged {count} AuditLog entries older than {retention_days} days")
+    return {'purged': count, 'cutoff': cutoff.isoformat()}
 
 
 @shared_task

@@ -323,6 +323,12 @@ class Copy(models.Model):
     class Meta:
         verbose_name = _("Copie")
         verbose_name_plural = _("Copies")
+        # LOT 8: Indexes for frequent query patterns
+        indexes = [
+            models.Index(fields=['status'], name='idx_copy_status'),
+            models.Index(fields=['exam', 'status'], name='idx_copy_exam_status'),
+            models.Index(fields=['assigned_corrector', 'status'], name='idx_copy_corrector_status'),
+        ]
 
     def __str__(self):
         return f"Copie {self.anonymous_id} ({self.get_status_display()})"

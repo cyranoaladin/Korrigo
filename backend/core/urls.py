@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from core import views
+from core import views_media
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
@@ -21,6 +22,8 @@ urlpatterns = [
     path('api/users/', views.UserListView.as_view(), name='user_list'),
     path('api/users/<int:pk>/', views.UserManageView.as_view(), name='user_manage'),
     path('api/users/<int:pk>/reset-password/', views.UserResetPasswordView.as_view(), name='user_reset_password'),
+    # LOT 2: Protected media serving via X-Accel-Redirect
+    path('api/media/<path:file_path>', views_media.ProtectedMediaView.as_view(), name='protected_media'),
 ]
 
 # API Documentation (DRF Spectacular)
