@@ -187,7 +187,7 @@ class GradingService:
                 float(v) for v in score_obj.scores_data.values()
                 if v is not None and v != ''
             )
-            return total
+            return round(total, 2)
         total = 0
         for annotation in copy.annotations.all():
             if annotation.score_delta is not None:
