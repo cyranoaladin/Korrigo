@@ -1,5 +1,7 @@
-# MAINTENANCE MODE - Pour bloquer: changer STUDENT_ACCESS_BLOCKED = True
-STUDENT_ACCESS_BLOCKED = False
+import os
+
+# MAINTENANCE MODE - Pour bloquer: STUDENT_ACCESS_BLOCKED=true dans .env
+STUDENT_ACCESS_BLOCKED = os.environ.get("STUDENT_ACCESS_BLOCKED", "false").lower() == "true"
 MAINTENANCE_MESSAGE = "L'accès élève est temporairement suspendu pour maintenance. Veuillez réessayer ultérieurement."
 
 from rest_framework import generics, filters, status, views

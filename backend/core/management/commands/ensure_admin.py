@@ -4,14 +4,19 @@ from django.contrib.auth.models import User
 from core.models import UserProfile
 
 class Command(BaseCommand):
-    help = 'Ensure admin user exists with default credentials (username: admin, password: admin)'
+    help = 'Ensure admin user exists (reads ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL from env)'
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('Ensuring admin user exists...'))
 
-        username = 'admin'
-        password = 'admin'
-        email = 'admin@example.com'
+        username = os.environ.get('ADMIN_USERNAME', 'admin')
+        password = os.environ.get('ADMIN_PASSWORD', 'admin')
+        email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
+
+        if password == 'admin':
+            self.stdout.write(self.style.WARNING(
+                'Using default admin password. Set ADMIN_PASSWORD env var for production.'
+            ))
 
         try:
             admin_user = User.objects.get(username=username)
@@ -42,5 +47,5 @@ class Command(BaseCommand):
             self.stdout.write('Admin profile already requires password change')
 
         self.stdout.write(self.style.SUCCESS('Admin user setup complete.'))
-        self.stdout.write(self.style.WARNING('Default credentials: username=admin, password=admin'))
+        self.stdout.write(self.style.WARNING(f'Credentials: username={username}, password=***'))
         self.stdout.write(self.style.WARNING('User will be forced to change password on first login'))
