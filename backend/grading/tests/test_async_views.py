@@ -67,8 +67,13 @@ class TaskStatusViewTests(TestCase):
         self.assertIn('error', response.data)
 
     @patch('grading.views_async.AsyncResult')
-    def test_task_cancel(self, mock_async_result):
-        """POST cancel revokes pending task"""
+    def test_task_cancel_by_admin(self, mock_async_result):
+        """POST cancel revokes pending task — admin only"""
+        admin = User.objects.create_superuser(
+            username='cancel_admin', email='cancel_admin@test.com', password='adminpass'
+        )
+        self.client.force_authenticate(user=admin)
+
         mock_result = Mock()
         mock_result.state = 'PENDING'
         mock_async_result.return_value = mock_result
@@ -76,11 +81,28 @@ class TaskStatusViewTests(TestCase):
         response = self.client.post('/api/grading/tasks/fake-task-id/cancel/')
         
         self.assertEqual(response.status_code, 200)
-        mock_result.revoke.assert_called_once()
+        mock_result.revoke.assert_called_once_with(terminate=False)
+
+    @patch('grading.views_async.AsyncResult')
+    def test_task_cancel_rejected_for_teacher(self, mock_async_result):
+        """Regular teacher (not is_staff) cannot cancel tasks"""
+        mock_result = Mock()
+        mock_result.state = 'PENDING'
+        mock_async_result.return_value = mock_result
+        
+        response = self.client.post('/api/grading/tasks/fake-task-id/cancel/')
+        
+        self.assertEqual(response.status_code, 403)
+        mock_result.revoke.assert_not_called()
 
     @patch('grading.views_async.AsyncResult')
     def test_task_cancel_completed_task_fails(self, mock_async_result):
-        """Cannot cancel completed task"""
+        """Cannot cancel completed task (even as admin)"""
+        admin = User.objects.create_superuser(
+            username='cancel_admin2', email='cancel_admin2@test.com', password='adminpass'
+        )
+        self.client.force_authenticate(user=admin)
+
         mock_result = Mock()
         mock_result.state = 'SUCCESS'
         mock_async_result.return_value = mock_result

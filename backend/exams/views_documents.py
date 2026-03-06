@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.auth import UserRole
+from exams.permissions import IsTeacherOrAdmin
 from exams.models import (
     Exam,
     ExamDocumentSet,
@@ -26,8 +27,8 @@ logger = logging.getLogger(__name__)
 
 
 def _is_admin(user):
-    """Vérifie si l'utilisateur est admin."""
-    return user.is_superuser or getattr(user, 'role', None) == UserRole.ADMIN
+    """Vérifie si l'utilisateur est admin via group membership (cohérent avec core.auth)."""
+    return user.is_superuser or user.is_staff or user.groups.filter(name=UserRole.ADMIN).exists()
 
 
 class DocumentSetUploadView(APIView):
@@ -169,8 +170,9 @@ class DocumentSetListView(APIView):
     GET /api/exams/<exam_id>/document-sets/
     
     Liste les lots documentaires d'un examen avec état d'extraction.
+    LOT 8 FIX: Restreint à IsTeacherOrAdmin.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
 
     def get(self, request, exam_id):
         exam = get_object_or_404(Exam, id=exam_id)

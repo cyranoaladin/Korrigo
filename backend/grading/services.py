@@ -293,6 +293,9 @@ class GradingService:
     @staticmethod
     @transaction.atomic
     def validate_copy(copy: Copy, user):
+        # P1-FIX: Lock the Copy row to prevent duplicate validation on double-click
+        copy = Copy.objects.select_for_update().get(id=copy.id)
+
         if copy.status != Copy.Status.STAGING:
              raise ValueError(f"Status mismatch: {copy.status} != STAGING")
         
@@ -417,3 +420,165 @@ class GradingService:
                 raise ValueError(f"Failed to generate final PDF: {error_msg}")
 
         return copy
+
+    # ------------------------------------------------------------------
+    # LOT 4: Lock service methods (referenced by views_lock.py)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    @transaction.atomic
+    def acquire_lock(copy: Copy, user, ttl_seconds: int = 1800):
+        """
+        Acquire an exclusive edit lock on a copy.
+
+        Returns:
+            tuple: (CopyLock instance, created: bool)
+
+        Raises:
+            LockConflictError: if the copy is already locked by another user
+                               and the lock has not expired.
+        """
+        from grading.models import CopyLock
+        now = timezone.now()
+        expires_at = now + datetime.timedelta(seconds=ttl_seconds)
+
+        # Try to get existing lock (row-level lock to prevent races)
+        try:
+            existing = CopyLock.objects.select_for_update().get(copy=copy)
+        except CopyLock.DoesNotExist:
+            existing = None
+
+        if existing is not None:
+            if existing.expires_at > now and existing.owner != user:
+                # Active lock by another user
+                grading_lock_conflicts_total.labels(conflict_type='lock_acquire').inc()
+                raise LockConflictError(
+                    f"Copie verrouillée par {existing.owner.username} "
+                    f"(expire à {existing.expires_at.isoformat()})"
+                )
+            if existing.owner == user:
+                # Same user: renew
+                existing.expires_at = expires_at
+                existing.save(update_fields=["expires_at"])
+                return existing, False
+            else:
+                # Expired lock by another user: take over
+                existing.owner = user
+                existing.token = uuid.uuid4()
+                existing.expires_at = expires_at
+                existing.save(update_fields=["owner", "token", "expires_at"])
+                return existing, False
+
+        # No existing lock: create
+        # P1-FIX: Catch IntegrityError from concurrent create (race between
+        # two select_for_update that both see DoesNotExist) and translate
+        # it into a business-level LockConflictError instead of a 500.
+        from django.db import IntegrityError
+        try:
+            lock = CopyLock.objects.create(
+                copy=copy,
+                owner=user,
+                expires_at=expires_at,
+            )
+        except IntegrityError:
+            grading_lock_conflicts_total.labels(conflict_type='lock_create_race').inc()
+            raise LockConflictError(
+                "Copie verrouillée par un autre utilisateur (accès simultané)."
+            )
+
+        GradingEvent.objects.create(
+            copy=copy,
+            action=GradingEvent.Action.LOCK,
+            actor=user,
+            metadata={"token": str(lock.token), "ttl": ttl_seconds},
+        )
+        return lock, True
+
+    @staticmethod
+    @transaction.atomic
+    def release_lock(copy: Copy, user, lock_token: str):
+        """
+        Release an edit lock on a copy.
+
+        Returns:
+            bool: True if a lock was deleted, False if none found.
+
+        Raises:
+            LockConflictError: if the token does not match.
+            PermissionError: if the user is not the lock owner (and not admin).
+        """
+        from grading.models import CopyLock
+        try:
+            lock = CopyLock.objects.select_for_update().get(copy=copy)
+        except CopyLock.DoesNotExist:
+            return False
+
+        if str(lock.token) != str(lock_token):
+            raise LockConflictError("Token de verrou invalide.")
+        if lock.owner != user and not user.is_superuser:
+            raise PermissionError("Seul le propriétaire du verrou peut le libérer.")
+
+        lock.delete()
+
+        GradingEvent.objects.create(
+            copy=copy,
+            action=GradingEvent.Action.UNLOCK,
+            actor=user,
+            metadata={"token": lock_token},
+        )
+        return True
+
+    @staticmethod
+    @transaction.atomic
+    def heartbeat_lock(copy: Copy, user, lock_token: str, ttl_seconds: int = 1800):
+        """
+        Extend the TTL of an existing lock (heartbeat keep-alive).
+
+        Returns:
+            CopyLock: the refreshed lock.
+
+        Raises:
+            LockConflictError: if lock not found, expired, or token mismatch.
+            PermissionError: if user is not the lock owner.
+        """
+        from grading.models import CopyLock
+        now = timezone.now()
+
+        try:
+            lock = CopyLock.objects.select_for_update().get(copy=copy)
+        except CopyLock.DoesNotExist:
+            raise LockConflictError("Lock not found or expired.")
+
+        if lock.expires_at <= now:
+            lock.delete()
+            raise LockConflictError("Lock expired.")
+
+        if str(lock.token) != str(lock_token):
+            raise LockConflictError("Token de verrou invalide.")
+
+        if lock.owner != user:
+            raise PermissionError("Seul le propriétaire du verrou peut le renouveler.")
+
+        lock.expires_at = now + datetime.timedelta(seconds=ttl_seconds)
+        lock.save(update_fields=["expires_at"])
+        return lock
+
+    @staticmethod
+    def get_lock_status(copy: Copy):
+        """
+        Return the current lock for a copy, or None if unlocked/expired.
+        Cleans up expired locks as a side effect.
+        """
+        from grading.models import CopyLock
+        now = timezone.now()
+
+        try:
+            lock = CopyLock.objects.select_related("owner").get(copy=copy)
+        except CopyLock.DoesNotExist:
+            return None
+
+        if lock.expires_at <= now:
+            lock.delete()
+            return None
+
+        return lock

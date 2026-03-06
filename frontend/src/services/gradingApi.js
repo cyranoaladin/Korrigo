@@ -1,6 +1,6 @@
 import api from './api';
 
-const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || '/media';
+const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || '/api/media';
 
 export default {
     /**
