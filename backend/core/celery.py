@@ -22,6 +22,16 @@ app.conf.beat_schedule = {
         'task': 'grading.tasks.update_copy_status_metrics',
         'schedule': 60.0,  # Run every 60 seconds
     },
+    # LOT 9: Clean up expired edit locks every 5 minutes
+    'cleanup-expired-locks': {
+        'task': 'grading.tasks.cleanup_expired_locks',
+        'schedule': 300.0,  # Every 5 minutes
+    },
+    # LOT 9 RGPD: Purge audit logs older than 1 year, daily at 03:00
+    'purge-old-audit-logs': {
+        'task': 'grading.tasks.purge_old_audit_logs',
+        'schedule': crontab(hour=3, minute=0),
+    },
 }
 
 @app.task(bind=True, ignore_result=True)

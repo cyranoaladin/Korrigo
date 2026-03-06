@@ -326,6 +326,10 @@ class Score(models.Model):
     class Meta:
         verbose_name = _("Score")
         verbose_name_plural = _("Scores")
+        # LOT 8: Enforce one Score per Copy at DB level (INV-3)
+        constraints = [
+            models.UniqueConstraint(fields=['copy'], name='uniq_score_per_copy'),
+        ]
 
     def __str__(self):
         return f"Score - {self.copy.anonymous_id}"

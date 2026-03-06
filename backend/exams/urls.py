@@ -9,6 +9,7 @@ from .views import (
     BulkSubjectVariantView, AutoDetectSubjectVariantView,
     ExamStudentListView,
 )
+from .views_stats import StatsReportView
 from .views_documents import (
     DocumentSetUploadView,
     DocumentSetListView,
@@ -62,6 +63,9 @@ urlpatterns = [
     
     # Student Portal
     path('student/copies/', StudentCopiesView.as_view(), name='student-copies'),
+
+    # Jury Report (dynamic stats)
+    path('stats-report/', StatsReportView.as_view(), name='stats-report'),
 
     # Document Management (sujet, corrigé, barème)
     path('<uuid:exam_id>/document-sets/', DocumentSetUploadView.as_view(), name='document-set-upload'),
