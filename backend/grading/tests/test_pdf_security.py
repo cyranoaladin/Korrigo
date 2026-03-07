@@ -82,10 +82,12 @@ class TestPDFDownloadSecurity(TransactionTestCase):
             is_staff=True
         )
         
-        # Create exam
+        # Create exam with results_released_at for student access
+        from django.utils import timezone
         self.exam = Exam.objects.create(
             name="PDF Security Test Exam",
-            date=date(2026, 1, 15)
+            date=date(2026, 1, 15),
+            results_released_at=timezone.now(),
         )
         
         # Create copies for Student A with different statuses

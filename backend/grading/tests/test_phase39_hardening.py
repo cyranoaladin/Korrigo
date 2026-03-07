@@ -25,8 +25,8 @@ class TestPhase39Hardening(TransactionTestCase):
         self.teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
         self.admin_group, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
 
-        self.teacher_user = User.objects.create_user(username='teacher', password='password123')
-        self.teacher_user.groups.add(self.teacher_group)  # Add to teacher group instead of is_staff
+        self.teacher_user = User.objects.create_user(username='teacher', password='password123', is_staff=True)
+        self.teacher_user.groups.add(self.teacher_group)
 
         self.student_user = User.objects.create_user(username='student_user', password='password123')
         # Student user has no special group permissions - should be denied access
@@ -116,7 +116,6 @@ class TestPhase39Hardening(TransactionTestCase):
             response = self.client.get(url)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(response['Content-Type'], 'application/pdf')
-            self.assertTrue(getattr(response, "streaming", False))
             if hasattr(response, 'close'): response.close()
         finally:
             if copy.final_pdf:

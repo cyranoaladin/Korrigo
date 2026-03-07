@@ -163,8 +163,8 @@ class CopyReadyView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
         try:
-            GradingService.ready_copy(copy, request.user)
-            return Response({"status": copy.status})
+            result = GradingService.ready_copy(copy, request.user)
+            return Response({"status": result.status})
         except (ValueError, PermissionError) as e:
             return _handle_service_error(e)
 
