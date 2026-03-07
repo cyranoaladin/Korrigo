@@ -107,40 +107,48 @@ jobs:
     needs: [build_and_push]
     environment: production
     steps:
-      - name: Sanity check deploy secrets
+      - name: Check deploy prerequisites
+        id: prereq
         shell: bash
         env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
-          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          VPS_PATH: ${{ secrets.VPS_PATH }}
-          GHCR_USER: ${{ secrets.GHCR_USER }}
-          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          _VPS_HOST: ${{ secrets.VPS_HOST }}
+          _VPS_USER: ${{ secrets.VPS_USER }}
+          _VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          _VPS_PATH: ${{ secrets.VPS_PATH }}
+          _GHCR_USER: ${{ secrets.GHCR_USER }}
+          _GHCR_PAT: ${{ secrets.GHCR_PAT }}
         run: |
-          set -euo pipefail
-          echo "Checking deploy secrets…"
-          
-          [ -n "$VPS_HOST" ] || { echo "❌ VPS_HOST missing"; exit 1; }
-          [ -n "$VPS_USER" ] || { echo "❌ VPS_USER missing"; exit 1; }
-          [ -n "$VPS_SSH_KEY" ] || { echo "❌ VPS_SSH_KEY missing"; exit 1; }
-          [ -n "$VPS_PATH" ] || { echo "❌ VPS_PATH missing. Set in Settings > Environments > production > Environment secrets (example: /home/ubuntu/korrigo)"; exit 1; }
-          [ -n "$GHCR_USER" ] || { echo "❌ GHCR_USER missing"; exit 1; }
-          [ -n "$GHCR_PAT" ] || { echo "❌ GHCR_PAT missing"; exit 1; }
-          
-          echo "🔍 VPS_PATH length: ${#VPS_PATH} chars"
-          echo "✅ Secrets OK"
+          missing=""
+          [ -n "$_VPS_HOST" ]   || missing="$missing VPS_HOST"
+          [ -n "$_VPS_USER" ]   || missing="$missing VPS_USER"
+          [ -n "$_VPS_SSH_KEY" ] || missing="$missing VPS_SSH_KEY"
+          [ -n "$_VPS_PATH" ]   || missing="$missing VPS_PATH"
+          [ -n "$_GHCR_USER" ]  || missing="$missing GHCR_USER"
+          [ -n "$_GHCR_PAT" ]   || missing="$missing GHCR_PAT"
+
+          if [ -n "$missing" ]; then
+            echo "::warning::Deploy secrets not configured — deployment skipped. Missing:$missing"
+            echo "  ➡️  Configure in: Settings > Environments > production > Secrets"
+            echo "deploy_ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "✅ All deploy secrets configured"
+            echo "deploy_ready=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup SSH
+        if: steps.prereq.outputs.deploy_ready == 'true'
         uses: webfactory/ssh-agent@v0.9.1
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
 
       - name: Add Known Hosts
+        if: steps.prereq.outputs.deploy_ready == 'true'
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: SSH Diagnostics (Safe)
+        if: steps.prereq.outputs.deploy_ready == 'true'
         run: |
           ssh -V
           ls -la ~/.ssh
@@ -148,9 +156,11 @@ jobs:
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "uptime" || echo "Test connection failed (expected if keys not set yet)"
 
       - name: Checkout code
+        if: steps.prereq.outputs.deploy_ready == 'true'
         uses: actions/checkout@v3
 
       - name: Sync compose files to VPS
+        if: steps.prereq.outputs.deploy_ready == 'true'
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
@@ -178,6 +188,7 @@ jobs:
           echo "✅ Sync complete"
 
       - name: Sync production .env to VPS
+        if: steps.prereq.outputs.deploy_ready == 'true'
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
@@ -225,6 +236,7 @@ jobs:
           echo "  ✅ .env synced to VPS"
 
       - name: Deploy
+        if: steps.prereq.outputs.deploy_ready == 'true'
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
