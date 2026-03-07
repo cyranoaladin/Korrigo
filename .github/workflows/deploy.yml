@@ -115,8 +115,6 @@ jobs:
           _VPS_USER: ${{ secrets.VPS_USER }}
           _VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           _VPS_PATH: ${{ secrets.VPS_PATH }}
-          _GHCR_USER: ${{ secrets.GHCR_USER }}
-          _GHCR_PAT: ${{ secrets.GHCR_PAT }}
         run: |
           missing=""
           [ -n "$_VPS_HOST" ]   || missing="$missing VPS_HOST"
@@ -184,53 +182,27 @@ jobs:
           
           echo "✅ Sync complete"
 
-      - name: Sync production .env to VPS
+      - name: Update deploy SHA in VPS .env
         if: steps.prereq.outputs.deploy_ready == 'true'
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_PATH: ${{ secrets.VPS_PATH }}
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
-          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
-          CSRF_TRUSTED_ORIGINS: ${{ secrets.CSRF_TRUSTED_ORIGINS }}
-          METRICS_TOKEN: ${{ secrets.METRICS_TOKEN }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-          TEACHER_PASSWORD: ${{ secrets.TEACHER_PASSWORD }}
           KORRIGO_SHA: ${{ github.sha }}
-          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
-          echo "📝 Syncing production .env to VPS..."
-          # Build .env using printf (safe from special chars in secret values)
-          {
-            printf 'KORRIGO_SHA=%s\n' "$KORRIGO_SHA"
-            printf 'GITHUB_REPOSITORY_OWNER=%s\n' "$GITHUB_REPOSITORY_OWNER"
-            printf 'SECRET_KEY=%s\n' "$SECRET_KEY"
-            printf 'DJANGO_ENV=production\n'
-            printf 'DEBUG=False\n'
-            printf 'ALLOWED_HOSTS=%s,localhost,127.0.0.1\n' "$ALLOWED_HOSTS"
-            printf 'DJANGO_ALLOWED_HOSTS=%s,localhost,127.0.0.1\n' "$ALLOWED_HOSTS"
-            printf 'POSTGRES_DB=%s\n' "$POSTGRES_DB"
-            printf 'POSTGRES_USER=%s\n' "$POSTGRES_USER"
-            printf 'POSTGRES_PASSWORD=%s\n' "$POSTGRES_PASSWORD"
-            printf 'CORS_ALLOWED_ORIGINS=%s\n' "$CORS_ALLOWED_ORIGINS"
-            printf 'CSRF_TRUSTED_ORIGINS=%s\n' "$CSRF_TRUSTED_ORIGINS"
-            printf 'METRICS_TOKEN=%s\n' "$METRICS_TOKEN"
-            printf 'SSL_ENABLED=True\n'
-            printf 'REDIS_HOST=redis\n'
-            printf 'REDIS_PORT=6379\n'
-            printf 'REDIS_DB=1\n'
-            printf 'CELERY_BROKER_URL=redis://redis:6379/0\n'
-            printf 'ADMIN_PASSWORD=%s\n' "$ADMIN_PASSWORD"
-            printf 'TEACHER_PASSWORD=%s\n' "$TEACHER_PASSWORD"
-          } > /tmp/prod.env
-          scp -o StrictHostKeyChecking=yes /tmp/prod.env "${VPS_USER}@${VPS_HOST}:${VPS_PATH}/.env"
-          rm -f /tmp/prod.env
-          echo "  ✅ .env synced to VPS"
+          echo "📝 Updating KORRIGO_SHA in server .env (preserving all other values)..."
+          ssh -o StrictHostKeyChecking=yes "${VPS_USER}@${VPS_HOST}" bash -c "'
+            set -euo pipefail
+            ENV_FILE=\"${VPS_PATH}/.env\"
+            test -f \"\${ENV_FILE}\" || { echo \"❌ .env not found at \${ENV_FILE} — server must have a pre-existing .env\"; exit 1; }
+            if grep -q \"^KORRIGO_SHA=\" \"\${ENV_FILE}\"; then
+              sed -i \"s|^KORRIGO_SHA=.*|KORRIGO_SHA=${KORRIGO_SHA}|\" \"\${ENV_FILE}\"
+            else
+              echo \"KORRIGO_SHA=${KORRIGO_SHA}\" >> \"\${ENV_FILE}\"
+            fi
+            echo \"  ✅ KORRIGO_SHA updated to ${KORRIGO_SHA}\"
+          '"
 
       - name: Deploy
         if: steps.prereq.outputs.deploy_ready == 'true'
@@ -304,12 +276,39 @@ jobs:
             fi
             
             # ═══════════════════════════════════════
-            # DEPLOYMENT
+            # DEPLOYMENT — GARDE-FOUS
             # ═══════════════════════════════════════
-            # Verify .env exists (synced in previous step)
-            test -f .env || { echo "❌ .env file missing — check 'Sync production .env' step"; exit 1; }
+            echo "🛡️ Pre-deployment safety checks..."
+            
+            # 1. Verify .env exists
+            test -f .env || { echo "❌ .env file missing on server — deploy aborted"; exit 1; }
             echo "  ✅ .env file found"
             
+            # 2. Verify critical variables are present in .env
+            MISSING_VARS=""
+            for VAR in POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD SECRET_KEY ALLOWED_HOSTS KORRIGO_SHA; do
+              grep -q "^\${VAR}=" .env || MISSING_VARS="\${MISSING_VARS} \${VAR}"
+            done
+            if [ -n "\${MISSING_VARS}" ]; then
+              echo "❌ .env is missing critical variables:\${MISSING_VARS}"
+              echo "  Server .env must be configured manually before CI deploy."
+              exit 1
+            fi
+            echo "  ✅ All critical .env variables present"
+            
+            # 3. Verify DB is reachable with current .env credentials
+            echo "🔌 Testing DB connectivity..."
+            set -a; source .env; set +a
+            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml exec -T db \
+              pg_isready -U "\${POSTGRES_USER}" -d "\${POSTGRES_DB}" || {
+              echo "❌ DB not reachable — deploy aborted before any destructive action"
+              exit 1
+            }
+            echo "  ✅ DB connectivity confirmed"
+            
+            # ═══════════════════════════════════════
+            # DEPLOYMENT
+            # ═══════════════════════════════════════
             # Optional: reset DB volume if requested via workflow_dispatch
             if [ "${RESET_DB}" = "true" ]; then
               echo "⚠️  RESET_DB requested — destroying all containers and volumes..."
