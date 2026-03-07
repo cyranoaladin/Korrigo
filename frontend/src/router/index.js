@@ -286,4 +286,25 @@ router.beforeEach(async (to, from, next) => {
     next()
 })
 
+// Handle stale chunk errors after deploy (old hash no longer exists).
+// Reload once to pick up the fresh index.html with updated asset hashes.
+router.onError((error, to) => {
+    if (
+        error.message?.includes('Failed to fetch dynamically imported module') ||
+        error.message?.includes('Importing a module script failed') ||
+        error.message?.includes('Loading chunk') ||
+        error.message?.includes('Loading CSS chunk')
+    ) {
+        const reloadKey = `chunk-reload:${to.fullPath}`
+        if (!sessionStorage.getItem(reloadKey)) {
+            sessionStorage.setItem(reloadKey, '1')
+            console.warn('[Router] Stale chunk detected, reloading page…', error.message)
+            window.location.assign(to.fullPath)
+        } else {
+            sessionStorage.removeItem(reloadKey)
+            console.error('[Router] Chunk reload already attempted, not retrying.', error)
+        }
+    }
+})
+
 export default router
