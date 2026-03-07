@@ -90,7 +90,13 @@ services:
       - /var/www/labomaths/korrigo/overlay/grading/views_annotation_bank.py:/app/grading/views_annotation_bank.py:ro
       - /var/www/labomaths/korrigo/overlay/grading/views_async.py:/app/grading/views_async.py:ro
       - /var/www/labomaths/korrigo/overlay/grading/views_draft.py:/app/grading/views_draft.py:ro
-      - /var/www/labomaths/korrigo/overlay/grading/views_lock.py:/app/grading/views_lock.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_my_students.py:/app/grading/views_my_students.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/tasks.py:/app/grading/tasks.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/pdf_processor.py:/app/grading/pdf_processor.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/migrations/0013_score_unique_copy_constraint.py:/app/grading/migrations/0013_score_unique_copy_constraint.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/views_stats.py:/app/exams/views_stats.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0022_copy_llm_summary.py:/app/exams/migrations/0022_copy_llm_summary.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0023_copy_performance_indexes_lot8.py:/app/exams/migrations/0023_copy_performance_indexes_lot8.py:ro
       - /var/www/labomaths/korrigo/overlay/identification/models.py:/app/identification/models.py:ro
       - /var/www/labomaths/korrigo/overlay/identification/services.py:/app/identification/services.py:ro
       - /var/www/labomaths/korrigo/overlay/identification/views.py:/app/identification/views.py:ro
@@ -192,7 +198,13 @@ services:
       - /var/www/labomaths/korrigo/overlay/grading/views_annotation_bank.py:/app/grading/views_annotation_bank.py:ro
       - /var/www/labomaths/korrigo/overlay/grading/views_async.py:/app/grading/views_async.py:ro
       - /var/www/labomaths/korrigo/overlay/grading/views_draft.py:/app/grading/views_draft.py:ro
-      - /var/www/labomaths/korrigo/overlay/grading/views_lock.py:/app/grading/views_lock.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_my_students.py:/app/grading/views_my_students.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/tasks.py:/app/grading/tasks.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/pdf_processor.py:/app/grading/pdf_processor.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/migrations/0013_score_unique_copy_constraint.py:/app/grading/migrations/0013_score_unique_copy_constraint.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/views_stats.py:/app/exams/views_stats.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0022_copy_llm_summary.py:/app/exams/migrations/0022_copy_llm_summary.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0023_copy_performance_indexes_lot8.py:/app/exams/migrations/0023_copy_performance_indexes_lot8.py:ro
       - /var/www/labomaths/korrigo/overlay/identification/models.py:/app/identification/models.py:ro
       - /var/www/labomaths/korrigo/overlay/identification/services.py:/app/identification/services.py:ro
       - /var/www/labomaths/korrigo/overlay/identification/views.py:/app/identification/views.py:ro
