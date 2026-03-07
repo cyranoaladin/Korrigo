@@ -128,6 +128,7 @@ services:
       DB_HOST: "db"
       DB_PORT: "5432"
       CELERY_BROKER_URL: "redis://redis:6379/0"
+      REDIS_HOST: "redis"
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:?err}"
       CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:?err}"
       METRICS_TOKEN: "${METRICS_TOKEN:?err}"
@@ -235,6 +236,7 @@ services:
       DB_PORT: "5432"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      REDIS_HOST: "redis"
     healthcheck:
       test: ["CMD-SHELL", "celery -A core inspect ping -d celery@$$HOSTNAME"]
       interval: 30s
@@ -264,6 +266,7 @@ services:
       DB_PORT: "5432"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      REDIS_HOST: "redis"
 
   nginx:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-nginx:${KORRIGO_SHA:-latest}
