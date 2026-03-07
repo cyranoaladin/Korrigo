@@ -111,16 +111,17 @@ class TestGradingServiceStrictUnit:
         copy.booklets.all.return_value = [booklet]
         
         # Action
-        # Mock GradingEvent.objects.create to bypass strict User type check
-        with patch('grading.models.GradingEvent.objects.create') as mock_ge_create:
-            GradingService.validate_copy(copy, user=MagicMock())
+        # Mock Copy.objects.select_for_update().get() to return the mock copy
+        # (P1-FIX added select_for_update to validate_copy)
+        mock_qs = MagicMock()
+        mock_qs.get.return_value = copy
+        with patch('exams.models.Copy.objects.select_for_update', return_value=mock_qs):
+            with patch('grading.models.GradingEvent.objects.create') as mock_ge_create:
+                GradingService.validate_copy(copy, user=MagicMock())
         
         # Assert
         assert copy.status == Copy.Status.READY
         copy.save.assert_called_once()
-        # Verify Audit Log creation attempt?
-        # Since GradingEvent.objects.create is static, we'd mock it to test strictly
-        # But here we assume basic logic is correct for unit scope.
 
     @pytest.mark.django_db
     def test_finalize_copy_rejects_staging(self):

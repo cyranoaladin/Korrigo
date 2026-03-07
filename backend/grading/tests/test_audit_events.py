@@ -85,7 +85,8 @@ class TestAuditEvents(TransactionTestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="AUDIT-ANN",
-            status=Copy.Status.READY
+            status=Copy.Status.READY,
+            assigned_corrector=self.teacher,
         )
 
         # Add a booklet with pages (required for annotation validation)

@@ -138,8 +138,12 @@ class TestDraftEndpoints:
     
     def test_save_draft_by_different_user(self, api_client, teacher_user, copy_factory):
         """AC-2.5: Two users can each have their own draft on the same copy."""
+        from django.contrib.auth.models import Group
+        from core.auth import UserRole
         copy = copy_factory()
-        other_user = User.objects.create_user(username='other', password='test')
+        other_user = User.objects.create_user(username='other', password='test', is_staff=True)
+        other_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        other_user.groups.add(other_group)
         
         # Teacher saves a draft
         api_client.force_authenticate(teacher_user)
