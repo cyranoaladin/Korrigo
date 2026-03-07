@@ -17,9 +17,9 @@ class TestFullSystemAudit:
         self.client = APIClient()
         # Create Admin
         self.admin_user = User.objects.create_superuser('admin', 'admin@example.com', 'adminpass')
-        # Create Teacher (needs group for IsTeacherOrAdmin permission checks)
+        # Create Teacher (group membership sufficient for IsTeacherOrAdmin; no is_staff to keep settings restricted)
         teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
-        self.teacher_user = User.objects.create_user('teacher', 'teacher@example.com', 'teacherpass', is_staff=True)
+        self.teacher_user = User.objects.create_user('teacher', 'teacher@example.com', 'teacherpass')
         self.teacher_user.groups.add(teacher_group)
         # Create Student with Django User
         student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
