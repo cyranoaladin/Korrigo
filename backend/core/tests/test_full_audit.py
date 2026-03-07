@@ -127,7 +127,17 @@ class TestFullSystemAudit:
             date_naissance="2005-05-15"
         ).exists()
 
-    def test_06_change_password(self):
+    def test_06_staff_teacher_cannot_modify_settings(self):
+        """N1-2: A teacher with is_staff=True must NOT modify global settings (superuser only)."""
+        staff_teacher = User.objects.create_user('staff_teacher', 'st@example.com', 'pass1234', is_staff=True)
+        teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
+        staff_teacher.groups.add(teacher_group)
+
+        self.client.force_authenticate(user=staff_teacher)
+        response = self.client.post('/api/settings/', {'institutionName': 'Hacked by staff'}, format='json')
+        assert response.status_code == 403, "Staff teacher should be forbidden from changing global settings"
+
+    def test_07_change_password(self):
         """Vérifie le changement de mot de passe"""
         self.client.force_authenticate(user=self.teacher_user)
         
