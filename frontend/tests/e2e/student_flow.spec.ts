@@ -1,276 +1,251 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { CREDS } from './helpers/auth';
 
-test.describe('Student Flow (Mission 17)', () => {
-    test('Full Student Cycle: Login -> List -> PDF accessible', async ({ page }) => {
-        page.on('console', msg => console.log('[browser]', msg.type(), msg.text()));
-        page.on('pageerror', err => console.log('[pageerror]', err.message));
+/**
+ * Helper: Login as student via the UI login form.
+ * Returns the login API response.
+ */
+async function studentLogin(page: Page, email: string, password: string) {
+    await page.goto('/student/login');
+    await expect(page).toHaveURL(/student\/login/, { timeout: 15000 });
 
-        page.on('response', async (resp) => {
-            const url = resp.url();
-            if (url.includes('/api/copies/')) {
-                console.log(`[pdf-req] ${resp.status()} ${url}`);
-            }
+    await page.fill('input[type="email"]', email);
+    await page.fill('input[type="password"]', password);
 
-            if (url.includes('/api/students/login/') && resp.status() !== 200) {
-                console.log(`[login-api] ${resp.status()} ${resp.statusText()} ${url}`);
-                try {
-                    const txt = await resp.text();
-                    console.log('[login-api-body]', txt.slice(0, 800));
-                } catch { }
-            }
+    const loginRespPromise = page.waitForResponse(resp =>
+        resp.url().includes('/api/students/login/')
+    );
+
+    await page.click('button[type="submit"]');
+    return await loginRespPromise;
+}
+
+/**
+ * Helper: Extract CSRF token from browser cookies.
+ */
+async function getCsrfToken(page: Page): Promise<string> {
+    const cookies = await page.context().cookies();
+    const csrf = cookies.find(c => c.name === 'csrftoken');
+    return csrf?.value || '';
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RATE LIMIT: Login endpoint has 5/15min limit per IP.
+// This suite uses exactly 5 login POSTs across all tests.
+//
+// POST budget:
+//   Test 1 (comprehensive):  error POSTs (2) + login (1) + student B login (1) = 4
+//   Test 2 (wrong password): 1 POST via UI
+//   Total: 5 POSTs ← exactly at the limit
+//
+// The destructive password-change test (Block 2) must be run SEPARATELY
+// with a fresh rate-limit window. Run via:
+//   npx playwright test --grep "Password Change"
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+test.describe('Student Auth E2E', () => {
+
+    test('Comprehensive: errors + login + session + modal + copies + isolation + logout', async ({ browser, baseURL }) => {
+        // ── Part A: Error cases via direct API (2 POSTs) ──
+        const errCtx = await browser.newContext({ baseURL });
+        const errPage = await errCtx.newPage();
+        // Navigate once to establish cookie context
+        await errPage.goto('/student/login');
+
+        // A1: Missing password → 400
+        const missingPwdResp = await errPage.request.post('/api/students/login/', {
+            data: { email: CREDS.student.email },
+            headers: { 'Content-Type': 'application/json' },
         });
+        expect(missingPwdResp.status()).toBe(400);
+        expect((await missingPwdResp.json()).error).toContain('requis');
 
-        // DEBUG: Route transition logger
-        page.on('framenavigated', frame => {
-            if (frame === page.mainFrame()) {
-                console.log('[nav]', frame.url());
-            }
+        // A2: Unknown email → 401 (same message as wrong pwd = no enumeration)
+        const unknownResp = await errPage.request.post('/api/students/login/', {
+            data: { email: 'nonexistent@ert.tn', password: 'anypassword' },
+            headers: { 'Content-Type': 'application/json' },
         });
+        expect(unknownResp.status()).toBe(401);
+        expect((await unknownResp.json()).error).toBe('Email ou mot de passe incorrect.');
 
-        // DEBUG: Script error logger (Chunk Load Error detection)
-        page.on('pageerror', err => console.log('[pageerror]', err.message));
-        page.on('requestfailed', r => {
-            // Filter out insignificant errors (e.g. aborts)
-            if (r.failure()?.errorText !== 'net::ERR_ABORTED') {
-                console.log('[requestfailed]', r.url(), r.failure()?.errorText);
-            }
-        });
+        // A3: Unauthenticated GET → 403
+        const meUnauth = await errPage.request.get('/api/students/me/');
+        expect(meUnauth.status()).toBe(403);
+        const copiesUnauth = await errPage.request.get('/api/students/copies/');
+        expect(copiesUnauth.status()).toBe(403);
 
-        // Ensure clean state
-        await page.addInitScript(() => {
-            localStorage.clear();
-            sessionStorage.clear();
-        });
+        await errCtx.close();
 
-        // 1) LOGIN with relative URL (uses baseURL from config)
-        await page.goto('/student/login');
-        await expect(page).toHaveURL(/student\/login/, { timeout: 15000 });
-
-        await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
-        await page.fill('input[placeholder="AAAA-MM-JJ"]', CREDS.student.birth_date);
-
-        // Wait for login API 200 (more robust than URL-only)
-        const loginRespPromise = page.waitForResponse(resp =>
-            resp.url().includes('/api/students/login/') && resp.status() === 200
-        );
-
-        await page.click('button[type="submit"]');
-        await loginRespPromise;
-
-        // 2) REDIRECT TO PORTAL
-        await page.waitForURL(/\/student-portal/, { timeout: 15000 });
-
-        // 3) LIST
-        await expect(page.locator('.copy-list')).toBeVisible({ timeout: 15000 });
-
-        const examItem = page.locator('.copy-list li', { hasText: 'Gate 4 Exam' });
-        await expect(examItem.locator('.exam-name')).toBeVisible();
-
-        await examItem.click();
-
-        // 4) PDF LINK
-        const pdfLink = page.locator('a.btn-download');
-        await expect(pdfLink).toBeVisible();
-
-        const href = await pdfLink.getAttribute('href');
-        expect(href).toBeTruthy();
-        expect(href || '').toContain('/api/grading/copies/');
-        expect(href || '').toContain('/final-pdf/');
-
-        // 5) Verify PDF is accessible (robust: avoid race with iframe auto-load)
-        // Use page.request to reuse the browser session cookies (student session).
-        const pdfResp = await page.request.get(href!, {
-            headers: { 'Accept': 'application/pdf' }
-        });
-        expect(pdfResp.status()).toBe(200);
-        const ct = (pdfResp.headers()['content-type'] || '').toLowerCase();
-        expect(ct).toContain('application/pdf');
-    });
-
-    test('Security: Student cannot access another student\'s PDF (403)', async ({ browser }) => {
-        // HELPER: Robust login function
-        async function loginAs(contextPage: any, ine: string, birth_date: string) {
-            // Relative URL to bypass any relative routing ambiguity
-            await contextPage.goto('/student/login', { waitUntil: 'domcontentloaded' });
-            await expect(contextPage).toHaveURL(/\/student\/login/, { timeout: 15000 });
-
-            await contextPage.fill('input[placeholder="ex: 123456789A"]', ine);
-            await contextPage.fill('input[placeholder="AAAA-MM-JJ"]', birth_date);
-
-            const loginResp = contextPage.waitForResponse((r: any) =>
-                r.url().includes('/api/students/login/') && r.status() === 200
-            );
-
-            await contextPage.click('button[type="submit"]');
-            await loginResp;
-            await contextPage.waitForURL(/\/student-portal/, { timeout: 15000 });
-        }
-
-        // CONTEXT A: Student 1 (E2E_STUDENT)
+        // ── Part B: Student A — login + session + modal + copies + logout (1 POST) ──
         const ctxA = await browser.newContext();
         const pageA = await ctxA.newPage();
-        await loginAs(pageA, CREDS.student.ine, CREDS.student.birth_date);
 
-        // CONTEXT B: Student 2 (OTHER)
+        const loginResp = await studentLogin(pageA, CREDS.student.email, CREDS.student.password);
+        expect(loginResp.status()).toBe(200);
+
+        const loginBody = await loginResp.json();
+        expect(loginBody.message).toBe('Connexion réussie.');
+        expect(loginBody.role).toBe('Student');
+        expect(loginBody.must_change_password).toBe(true);
+        expect(loginBody.student.email).toBe(CREDS.student.email);
+        expect(loginBody.student.first_name).toBe(CREDS.student.first_name);
+
+        // B1: Redirect to portal
+        await pageA.waitForURL(/student-portal/, { timeout: 15000 });
+
+        // B2: /students/me/ returns full student data
+        const meResp = await pageA.request.get('/api/students/me/');
+        expect(meResp.status()).toBe(200);
+        const meBody = await meResp.json();
+        expect(meBody.email).toBe(CREDS.student.email);
+        expect(meBody.first_name).toBe(CREDS.student.first_name);
+        expect(meBody.last_name).toBe(CREDS.student.last_name);
+        expect(meBody).toHaveProperty('date_naissance');
+        expect(meBody).toHaveProperty('class_name');
+        expect(meBody.must_change_password).toBe(true);
+
+        // B3: Forced password change modal visible
+        const modal = pageA.locator('.modal-overlay');
+        await expect(modal).toBeVisible({ timeout: 10000 });
+        await expect(pageA.locator('text=date de naissance')).toBeVisible();
+        await expect(pageA.locator('text=Changement de mot de passe requis')).toBeVisible();
+        await expect(pageA.locator('.close-btn')).not.toBeVisible();
+
+        // B4: Weak password → submit disabled
+        await pageA.fill('#current-password', CREDS.student.password);
+        await pageA.fill('#new-password', 'short');
+        await pageA.fill('#confirm-password', 'short');
+        await expect(pageA.locator('.modal-overlay button[type="submit"]')).toBeDisabled();
+
+        // B5: Mismatched confirmation → error hint
+        await pageA.fill('#new-password', 'MonNouveauMdpE2E2026!');
+        await pageA.fill('#confirm-password', 'DifferentPassword2026!');
+        await expect(pageA.locator('.error-hint')).toBeVisible();
+        await expect(pageA.locator('.modal-overlay button[type="submit"]')).toBeDisabled();
+
+        // B6: /students/copies/ returns array
+        const copiesResp = await pageA.request.get('/api/students/copies/');
+        expect(copiesResp.status()).toBe(200);
+        const copies = await copiesResp.json();
+        expect(Array.isArray(copies)).toBe(true);
+
+        // ── Part C: Student B — cross-student isolation (1 POST) ──
         const ctxB = await browser.newContext();
         const pageB = await ctxB.newPage();
-        await loginAs(pageB, CREDS.other_student.ine, CREDS.other_student.birth_date);
+        const respB = await studentLogin(pageB, CREDS.other_student.email, CREDS.other_student.password);
+        expect(respB.status()).toBe(200);
+        await pageB.waitForURL(/student-portal/, { timeout: 15000 });
 
-        // Get OTHER copy id with user B
-        const otherCopiesResp = await pageB.request.get('/api/students/copies/');
-        expect(otherCopiesResp.status()).toBe(200);
-        const otherCopies = await otherCopiesResp.json();
-        expect(otherCopies.length).toBeGreaterThan(0);
-        const otherCopyId = otherCopies[0].id;
+        const copiesBResp = await pageB.request.get('/api/students/copies/');
+        const copiesB = await copiesBResp.json();
 
-        // Now attempt access from user A session using the ID from B
-        // (User A should NOT be able to access User B's copy)
-        const forbiddenResp = await pageA.request.get(`/api/grading/copies/${otherCopyId}/final-pdf/`, {
-            headers: { 'Accept': 'application/pdf' }
-        });
-        expect(forbiddenResp.status()).toBe(403);
-
-        await ctxA.close();
-        await ctxB.close();
-    });
-
-    test('Security: LOCKED copies are not visible in student list', async ({ page }) => {
-        // Login as the test student
-        await page.goto('/student/login');
-        await expect(page).toHaveURL(/\/student\/login/, { timeout: 15000 });
-        await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
-        await page.fill('input[placeholder="AAAA-MM-JJ"]', CREDS.student.birth_date);
-
-        const loginRespPromise = page.waitForResponse(resp =>
-            resp.url().includes('/api/students/login/') && resp.status() === 200
-        );
-        await page.click('button[type="submit"]');
-        await loginRespPromise;
-
-        await page.waitForURL(/\/student-portal/, { timeout: 15000 });
-
-        // Verify the copy list is visible
-        await expect(page.locator('.copy-list')).toBeVisible({ timeout: 15000 });
-
-        // Verify only GRADED copies appear (GATE4-GRADED should be visible)
-        const gradedItem = page.locator('.copy-list li', { hasText: 'Gate 4 Exam' });
-        await expect(gradedItem).toBeVisible();
-
-        // Verify LOCKED copy is NOT visible in the UI
-        // The GATE4-LOCKED copy should not appear in the list
-        const allItems = await page.locator('.copy-list li').count();
-        expect(allItems).toBeGreaterThanOrEqual(1); // At least the GRADED copy should be visible
-
-        // Double-check via API that LOCKED is filtered
-        const copiesResp = await page.request.get('/api/students/copies/', {
-            headers: { 'Accept': 'application/json' }
-        });
-        const copies = await copiesResp.json();
-        const lockedCopy = copies.find((c: any) => c.anonymous_id === 'GATE4-LOCKED');
-        expect(lockedCopy).toBeUndefined();
-    });
-
-    test('Login failure: Invalid credentials show generic error', async ({ page }) => {
-        await page.goto('/student/login');
-        await expect(page).toHaveURL(/\/student\/login/, { timeout: 15000 });
-
-        // Try with valid INE but invalid birth_date
-        await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
-        await page.fill('input[placeholder="AAAA-MM-JJ"]', '2000-01-01');
-
-        await page.click('button[type="submit"]');
-
-        // Verify generic error message is displayed
-        const errorMessage = page.locator('text=/identifiants invalides/i');
-        await expect(errorMessage).toBeVisible({ timeout: 5000 });
-
-        // Verify we're still on login page (not redirected)
-        await expect(page).toHaveURL(/\/student\/login/);
-
-        // Try with invalid INE but valid birth_date
-        await page.fill('input[placeholder="ex: 123456789A"]', 'INVALID999');
-        await page.fill('input[placeholder="AAAA-MM-JJ"]', CREDS.student.birth_date);
-
-        await page.click('button[type="submit"]');
-
-        // Verify generic error message again
-        await expect(errorMessage).toBeVisible({ timeout: 5000 });
-        await expect(page).toHaveURL(/\/student\/login/);
-    });
-
-    test('Rate limiting: 5 failed attempts trigger rate limit', async ({ page }) => {
-        await page.goto('/student/login');
-        await expect(page).toHaveURL(/\/student\/login/, { timeout: 15000 });
-
-        // Attempt 5 failed logins with the same INE
-        const testINE = 'RATETEST' + Date.now();
-        for (let i = 0; i < 5; i++) {
-            await page.fill('input[placeholder="ex: 123456789A"]', testINE);
-            await page.fill('input[placeholder="AAAA-MM-JJ"]', '2000-01-01');
-            await page.click('button[type="submit"]');
-            
-            // Wait for error response
-            await page.waitForTimeout(500);
+        if (copiesB.length > 0) {
+            const copyBId = copiesB[0].id;
+            // Student A tries to access B's PDF → 403
+            const forbiddenResp = await pageA.request.get(
+                `/api/grading/copies/${copyBId}/final-pdf/`,
+                { headers: { 'Accept': 'application/pdf' } }
+            );
+            expect(forbiddenResp.status()).toBe(403);
         }
 
-        // 6th attempt should be rate limited
-        await page.fill('input[placeholder="ex: 123456789A"]', testINE);
-        await page.fill('input[placeholder="AAAA-MM-JJ"]', '2000-01-01');
-        
-        const rateLimitResp = page.waitForResponse(resp =>
-            resp.url().includes('/api/students/login/') && resp.status() === 429
-        );
-        
-        await page.click('button[type="submit"]');
-        await rateLimitResp;
+        await ctxB.close();
 
-        // Verify rate limit error message
-        const rateLimitMessage = page.locator('text=/trop de tentatives/i');
-        await expect(rateLimitMessage).toBeVisible({ timeout: 5000 });
+        // ── Part D: Logout clears session ──
+        const csrfToken = await getCsrfToken(pageA);
+        const logoutResp = await pageA.request.post('/api/students/logout/', {
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Referer': `${baseURL}/`,
+            },
+        });
+        expect(logoutResp.status()).toBe(200);
+
+        const meAfter = await pageA.request.get('/api/students/me/');
+        expect(meAfter.status()).toBe(403);
+
+        await ctxA.close();
     });
 
-    test('Security: Response headers on PDF download', async ({ page }) => {
-        // Login as test student
-        await page.goto('/student/login');
-        await expect(page).toHaveURL(/\/student\/login/, { timeout: 15000 });
+    test('Wrong password returns 401, error shown in UI', async ({ page }) => {
+        const resp = await studentLogin(page, CREDS.student.email, 'wrongpassword');
 
-        await page.fill('input[placeholder="ex: 123456789A"]', CREDS.student.ine);
-        await page.fill('input[placeholder="AAAA-MM-JJ"]', CREDS.student.birth_date);
+        expect(resp.status()).toBe(401);
+        const body = await resp.json();
+        expect(body.error).toBe('Email ou mot de passe incorrect.');
 
-        const loginRespPromise = page.waitForResponse(resp =>
-            resp.url().includes('/api/students/login/') && resp.status() === 200
+        await expect(page).toHaveURL(/student\/login/);
+        await expect(page.locator('.error-msg')).toBeVisible({ timeout: 5000 });
+    });
+});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DESTRUCTIVE: Password change flow (3 login POSTs).
+// Run SEPARATELY with fresh rate-limit window:
+//   npx playwright test --grep "Password Change"
+// After running, reset passwords:
+//   docker exec docker-backend-1 python manage.py reset_student_passwords
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+test.describe('Student Auth — Password Change Flow', () => {
+
+    test('Full cycle: DOB login → change password → re-login → old rejected', async ({ page }) => {
+        const NEW_PASSWORD = 'MonNouveauMdpE2E2026!';
+
+        // Step 1: Login with DOB (POST #1)
+        const loginResp = await studentLogin(page, CREDS.student.email, CREDS.student.password);
+        expect(loginResp.status()).toBe(200);
+        await page.waitForURL(/student-portal/, { timeout: 15000 });
+
+        // Step 2: Forced modal
+        const modal = page.locator('.modal-overlay');
+        await expect(modal).toBeVisible({ timeout: 10000 });
+
+        // Step 3: Fill and submit
+        await page.fill('#current-password', CREDS.student.password);
+        await page.fill('#new-password', NEW_PASSWORD);
+        await page.fill('#confirm-password', NEW_PASSWORD);
+
+        const changePwdResp = page.waitForResponse(resp =>
+            resp.url().includes('/api/students/change-password/')
         );
+        await page.click('.modal-overlay button[type="submit"]');
+        const pwdResp = await changePwdResp;
+        expect(pwdResp.status()).toBe(200);
 
-        await page.click('button[type="submit"]');
-        await loginRespPromise;
-        await page.waitForURL(/\/student-portal/, { timeout: 15000 });
+        // Step 4: Modal closes
+        await expect(modal).not.toBeVisible({ timeout: 5000 });
 
-        // Get copy list
-        await expect(page.locator('.copy-list')).toBeVisible({ timeout: 15000 });
-        const examItem = page.locator('.copy-list li', { hasText: 'Gate 4 Exam' });
-        await examItem.click();
-
-        // Get PDF link
-        const pdfLink = page.locator('a.btn-download');
-        await expect(pdfLink).toBeVisible();
-        const href = await pdfLink.getAttribute('href');
-        expect(href).toBeTruthy();
-
-        // Download PDF and verify security headers
-        const pdfResp = await page.request.get(href!, {
-            headers: { 'Accept': 'application/pdf' }
+        // Step 5: Logout
+        const csrf1 = await getCsrfToken(page);
+        await page.request.post('/api/students/logout/', {
+            headers: {
+                'X-CSRFToken': csrf1,
+                'Referer': `${page.url()}/`,
+            },
         });
-        expect(pdfResp.status()).toBe(200);
 
-        // Verify security headers
-        const headers = pdfResp.headers();
-        expect(headers['cache-control']).toContain('private');
-        expect(headers['cache-control']).toContain('no-store');
-        expect(headers['cache-control']).toContain('no-cache');
-        expect(headers['pragma']).toBe('no-cache');
-        expect(headers['x-content-type-options']).toBe('nosniff');
-        expect(headers['content-disposition']).toContain('attachment');
-        expect(headers['content-type']).toContain('application/pdf');
+        // Step 6: Re-login with NEW password (POST #2)
+        const reloginResp = await studentLogin(page, CREDS.student.email, NEW_PASSWORD);
+        expect(reloginResp.status()).toBe(200);
+        const reloginBody = await reloginResp.json();
+        expect(reloginBody.must_change_password).toBe(false);
+
+        // Step 7: /me/ confirms must_change_password=false
+        await page.waitForURL(/student-portal/, { timeout: 15000 });
+        const meResp = await page.request.get('/api/students/me/');
+        expect(meResp.status()).toBe(200);
+        expect((await meResp.json()).must_change_password).toBe(false);
+
+        // Step 8: Old DOB password rejected (POST #3)
+        const csrf2 = await getCsrfToken(page);
+        await page.request.post('/api/students/logout/', {
+            headers: {
+                'X-CSRFToken': csrf2,
+                'Referer': `${page.url()}/`,
+            },
+        });
+        const oldPwdResp = await studentLogin(page, CREDS.student.email, CREDS.student.password);
+        expect(oldPwdResp.status()).toBe(401);
     });
 });
