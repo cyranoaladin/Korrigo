@@ -287,7 +287,7 @@ jobs:
             _PG_USER=\$(grep '^POSTGRES_USER=' .env | cut -d= -f2)
             _PG_DB=\$(grep '^POSTGRES_DB=' .env | cut -d= -f2)
             docker compose --env-file .env -f infra/docker/docker-compose.prod.yml exec -T db \
-              pg_isready -U "\${_PG_USER}" -d "\${_PG_DB}" || {
+              pg_isready -U "\${_PG_USER}" -d "\${_PG_DB}" < /dev/null || {
               echo "❌ DB not reachable — deploy aborted before any destructive action"
               exit 1
             }
