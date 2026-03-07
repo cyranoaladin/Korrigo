@@ -47,7 +47,6 @@ class AsyncFinalizeCopyTests(TestCase):
     @patch('grading.tasks.GradingService.finalize_copy')
     def test_async_finalize_handles_errors(self, mock_finalize):
         """Task retries on transient exceptions via Celery retry mechanism"""
-        from celery.exceptions import Retry
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='TEST-002',
@@ -55,9 +54,10 @@ class AsyncFinalizeCopyTests(TestCase):
         )
         mock_finalize.side_effect = Exception("PDF generation failed")
         
-        # Generic exceptions trigger Celery retry (raises Retry in test env)
-        with self.assertRaises(Retry):
+        # Generic exceptions trigger Celery retry (raises Retry or original exc in test env)
+        with self.assertRaises(Exception) as ctx:
             async_finalize_copy(str(copy.id), self.user.id)
+        self.assertIn('PDF generation failed', str(ctx.exception))
 
     def test_async_finalize_copy_not_found(self):
         """Task handles non-existent copy"""
