@@ -310,20 +310,14 @@ jobs:
             test -f .env || { echo "❌ .env file missing — check 'Sync production .env' step"; exit 1; }
             echo "  ✅ .env file found"
             
-            echo "📥 Pulling latest images (SHA: \${KORRIGO_SHA})..."
-            
-            # Stop any running containers to avoid name conflicts
-            echo "🧹 Stopping existing containers..."
-            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml down 2>/dev/null || true
-            echo "  ✅ Existing containers stopped"
-            
             # Optional: reset DB volume if requested via workflow_dispatch
             if [ "${RESET_DB}" = "true" ]; then
-              echo "⚠️  RESET_DB requested — destroying PostgreSQL volume..."
+              echo "⚠️  RESET_DB requested — destroying all containers and volumes..."
               docker compose --env-file .env -f infra/docker/docker-compose.prod.yml down -v 2>/dev/null || true
               echo "  ✅ Volumes destroyed"
             fi
             
+            echo "📥 Pulling latest images (SHA: \${KORRIGO_SHA})..."
             docker compose --env-file .env -f infra/docker/docker-compose.prod.yml pull || {
               echo "❌ Failed to pull images"
               exit 1
