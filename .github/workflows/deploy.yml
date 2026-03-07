@@ -123,9 +123,6 @@ jobs:
           [ -n "$_VPS_USER" ]   || missing="$missing VPS_USER"
           [ -n "$_VPS_SSH_KEY" ] || missing="$missing VPS_SSH_KEY"
           [ -n "$_VPS_PATH" ]   || missing="$missing VPS_PATH"
-          [ -n "$_GHCR_USER" ]  || missing="$missing GHCR_USER"
-          [ -n "$_GHCR_PAT" ]   || missing="$missing GHCR_PAT"
-
           if [ -n "$missing" ]; then
             echo "::warning::Deploy secrets not configured — deployment skipped. Missing:$missing"
             echo "  ➡️  Configure in: Settings > Environments > production > Secrets"
@@ -298,11 +295,13 @@ jobs:
             # GHCR LOGIN
             # ═══════════════════════════════════════
             echo "🔐 Logging in to GitHub Container Registry..."
-            echo "\${GHCR_PAT}" | docker login ghcr.io -u "\${GHCR_USER}" --password-stdin || {
-              echo "❌ GHCR login failed"
-              exit 1
-            }
-            echo "  ✅ GHCR login successful"
+            if [ -n "\${GHCR_PAT:-}" ] && [ -n "\${GHCR_USER:-}" ]; then
+              echo "\${GHCR_PAT}" | docker login ghcr.io -u "\${GHCR_USER}" --password-stdin || {
+                echo "⚠️  GHCR login failed — continuing with anonymous pull (public images)"
+              }
+            else
+              echo "  ℹ️  GHCR credentials not set — using anonymous pull (public images)"
+            fi
             
             # ═══════════════════════════════════════
             # DEPLOYMENT
