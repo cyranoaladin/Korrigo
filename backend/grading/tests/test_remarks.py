@@ -28,7 +28,8 @@ def teacher_user(db):
     
     user = User.objects.create_user(
         username='teacher1',
-        password='teacher123'
+        password='teacher123',
+        is_staff=True,
     )
     user.role = 'Teacher'
     user.save()

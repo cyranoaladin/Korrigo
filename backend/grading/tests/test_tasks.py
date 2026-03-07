@@ -24,8 +24,8 @@ class AsyncFinalizeCopyTests(TestCase):
         teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
         self.user.groups.add(teacher_group)
         self.exam = Exam.objects.create(
-            title='Test Exam',
-            created_by=self.user
+            name='Test Exam',
+            date='2024-01-01'
         )
 
     @patch('grading.tasks.GradingService.finalize_copy')
@@ -34,8 +34,7 @@ class AsyncFinalizeCopyTests(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='TEST-001',
-            status=Copy.Status.LOCKED,
-            locked_by=self.user
+            status=Copy.Status.READY,
         )
         mock_finalize.return_value = copy
         
@@ -47,18 +46,18 @@ class AsyncFinalizeCopyTests(TestCase):
 
     @patch('grading.tasks.GradingService.finalize_copy')
     def test_async_finalize_handles_errors(self, mock_finalize):
-        """Task handles service exceptions gracefully"""
+        """Task retries on transient exceptions via Celery retry mechanism"""
+        from celery.exceptions import Retry
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='TEST-002',
-            status=Copy.Status.LOCKED
+            status=Copy.Status.READY
         )
         mock_finalize.side_effect = Exception("PDF generation failed")
         
-        result = async_finalize_copy(str(copy.id), self.user.id)
-
-        self.assertEqual(result['status'], 'error')
-        self.assertIn('PDF generation failed', result['detail'])
+        # Generic exceptions trigger Celery retry (raises Retry in test env)
+        with self.assertRaises(Retry):
+            async_finalize_copy(str(copy.id), self.user.id)
 
     def test_async_finalize_copy_not_found(self):
         """Task handles non-existent copy"""
@@ -80,8 +79,8 @@ class AsyncImportPDFTests(TestCase):
         teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
         self.user.groups.add(teacher_group)
         self.exam = Exam.objects.create(
-            title='Import Test Exam',
-            created_by=self.user
+            name='Import Test Exam',
+            date='2024-01-01'
         )
 
     @patch('grading.tasks.os.path.exists')

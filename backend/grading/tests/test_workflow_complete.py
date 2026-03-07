@@ -53,6 +53,8 @@ class TestWorkflowComplete(TransactionTestCase):
         self.assertEqual(copy.booklets.count(), 1)
         self.assertEqual(len(copy.booklets.first().pages_images), 2)
         
+        # LOT 8: Set assigned_corrector for ownership checks
+        copy.assigned_corrector = self.teacher
         # Transition to READY (Simulate Identification/Verification step)
         copy.status = Copy.Status.READY
         copy.save()
@@ -134,8 +136,7 @@ class TestWorkflowComplete(TransactionTestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp['Content-Type'], 'application/pdf')
-        self.assertTrue(getattr(resp, "streaming", False))
-        # DO NOT iterate streaming_content
+        # View now uses X-Accel-Redirect (HttpResponse), not StreamingHttpResponse
         if hasattr(resp, 'close'): resp.close()
         
         # 6. AUDIT TRAIL VERIFICATION

@@ -4,10 +4,15 @@ from core.auth import IsAdmin, IsTeacher, IsStudent, IsAdminOrTeacher, IsAdminOn
 class IsTeacherOrAdmin(permissions.BasePermission):
     """
     Allows access only to authenticated users with Teacher or Admin roles.
+    Includes is_superuser/is_staff for consistency with core.auth.IsAdminOrTeacher.
     """
     def has_permission(self, request, view):
         if not (request.user and request.user.is_authenticated):
             return False
+
+        # LOT 8 FIX: Align with IsAdminOrTeacher — superuser/staff are always authorized
+        if request.user.is_superuser or request.user.is_staff:
+            return True
 
         # Check if user belongs to Teacher or Admin group
         return (request.user.groups.filter(name=UserRole.TEACHER).exists() or
