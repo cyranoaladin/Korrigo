@@ -2,7 +2,7 @@
 Management command to provision Django User accounts for existing students.
 
 For each Student with an email but no linked User:
-  - Creates a Django User (username=email, password=default)
+  - Creates a Django User (username=email, password=date of birth DDMMYYYY or fallback)
   - Adds the user to the 'student' group
   - Links the User to the Student via student.user
 
