@@ -216,7 +216,7 @@ class LLMSummaryService:
         )
 
         try:
-            resp = urllib.request.urlopen(req, timeout=OLLAMA_TIMEOUT)
+            resp = urllib.request.urlopen(req, timeout=OLLAMA_TIMEOUT)  # nosec B310 — URL is hardcoded OLLAMA_URL (localhost)
             data = json.loads(resp.read())
             response_text = data.get('response', '').strip()
             if not response_text:
