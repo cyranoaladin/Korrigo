@@ -94,7 +94,7 @@ services:
       - backend
     environment:
       DEBUG: "False"
-      DATABASE_URL: "${DATABASE_URL:-postgres://korrigo_user:s22g4sLKZPviEqXan%2F4wm0yGMaznJIMSf3Xx%2FUsLtY0%3D@db:5432/korrigo_prod}"
+      DATABASE_URL: "${DATABASE_URL:-postgres://${POSTGRES_USER:-korrigo_user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-korrigo_prod}}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       # PRD-19: OCR configuration
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
