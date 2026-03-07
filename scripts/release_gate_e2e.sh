@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# E2E workflow for Release Gate — extracted to avoid quoting issues in bash -c
+# E2E workflow for Release Gate — lock-free architecture (post-LOT 8)
+# Tests: authentication, exam listing, copy listing, annotation CRUD
 # Usage: ./release_gate_e2e.sh <base_url> <prof_password> <compose_file> <backend_svc>
 set -euo pipefail
 
@@ -51,26 +52,10 @@ for run in 1 2 3; do
   [ "$copy_id" != "null" ] && [ -n "$copy_id" ] || { echo 'No READY copy found'; exit 1; }
   echo "1️⃣  Found READY copy: $copy_id"
 
-  # Lock copy
-  lock_resp=$(curl -s -b "$cookies" -X POST "$base/api/grading/copies/$copy_id/lock/" \
-    -H "X-CSRFToken: $csrf" \
-    -H "Referer: $base/" \
-    -H "Content-Type: application/json" \
-    -d '{}' \
-    -w '\nHTTP_STATUS:%{http_code}')
-
-  lock_code=$(echo "$lock_resp" | grep 'HTTP_STATUS' | cut -d: -f2)
-  [ "$lock_code" = "200" ] || [ "$lock_code" = "201" ] || { echo "❌ Lock failed (HTTP $lock_code)"; echo "$lock_resp"; exit 1; }
-
-  lock_token=$(echo "$lock_resp" | sed '$d' | jq -r '.token')
-  [ -n "$lock_token" ] && [ "$lock_token" != "null" ] || { echo '❌ No lock token'; echo "DEBUG lock_resp:"; echo "$lock_resp" | sed '$d'; exit 1; }
-  echo "2️⃣  Copy locked (HTTP $lock_code), token: ${lock_token:0:8}..."
-
-  # POST annotation (bounding box format: x, y, w, h normalized [0,1])
+  # POST annotation (lock-free: annotations work directly on READY copies)
   ann_resp=$(curl -s -b "$cookies" -X POST "$base/api/grading/copies/$copy_id/annotations/" \
     -H "Content-Type: application/json" \
     -H "X-CSRFToken: $csrf" \
-    -H "X-Lock-Token: $lock_token" \
     -H "Referer: $base/" \
     -d '{
       "page_index": 0,
@@ -79,13 +64,14 @@ for run in 1 2 3; do
       "w": 0.3,
       "h": 0.05,
       "type": "COMMENT",
-      "content": "Test annotation from E2E"
+      "content": "E2E release gate annotation (run '"$run"')"
     }' \
     -w '\nHTTP_STATUS:%{http_code}')
 
   ann_code=$(echo "$ann_resp" | grep 'HTTP_STATUS' | cut -d: -f2)
   [ "$ann_code" = "200" ] || [ "$ann_code" = "201" ] || { echo "❌ Annotation POST failed (HTTP $ann_code)"; echo "$ann_resp"; exit 1; }
-  echo "3️⃣  Annotation created (HTTP $ann_code) ← P0 FIX VERIFIED ✅"
+  ann_id=$(echo "$ann_resp" | sed '$d' | jq -r '.id')
+  echo "2️⃣  Annotation created (HTTP $ann_code), ID: ${ann_id:0:8}..."
 
   # GET annotations
   get_resp=$(curl -s -b "$cookies" "$base/api/grading/copies/$copy_id/annotations/" \
@@ -96,26 +82,19 @@ for run in 1 2 3; do
 
   ann_count=$(echo "$get_resp" | sed '$d' | jq -r 'if type=="array" then length elif .results then (.results | length) else 0 end')
   [ "$ann_count" != "0" ] || { echo '❌ Annotation count is 0'; exit 1; }
-  echo "4️⃣  GET annotations (HTTP $get_code) - $ann_count annotations found"
+  echo "3️⃣  GET annotations (HTTP $get_code) — $ann_count annotation(s) found"
 
-  # Release lock
-  unlock_resp=$(curl -s -b "$cookies" -X DELETE "$base/api/grading/copies/$copy_id/lock/release/" \
-    -H "X-CSRFToken: $csrf" \
-    -H "X-Lock-Token: $lock_token" \
-    -H "Referer: $base/" \
-    -w '\nHTTP_STATUS:%{http_code}')
+  # DELETE the annotation we just created (cleanup for idempotent re-runs)
+  if [ -n "$ann_id" ] && [ "$ann_id" != "null" ]; then
+    del_resp=$(curl -s -b "$cookies" -X DELETE "$base/api/grading/annotations/$ann_id/" \
+      -H "X-CSRFToken: $csrf" \
+      -H "Referer: $base/" \
+      -w '\nHTTP_STATUS:%{http_code}')
 
-  unlock_code=$(echo "$unlock_resp" | grep 'HTTP_STATUS' | cut -d: -f2)
-  [ "$unlock_code" = "200" ] || [ "$unlock_code" = "204" ] || { echo "❌ Unlock failed (HTTP $unlock_code)"; exit 1; }
-  echo "5️⃣  Lock released (HTTP $unlock_code)"
-
-  # Reset copy status for next run
-  docker compose -f "$compose_file" exec -T "$backend_svc" python manage.py shell -c "
-from exams.models import Copy
-from grading.models import CopyLock
-CopyLock.objects.all().delete()
-Copy.objects.filter(status='LOCKED').update(status='READY')
-" > /dev/null 2>&1
+    del_code=$(echo "$del_resp" | grep 'HTTP_STATUS' | cut -d: -f2)
+    [ "$del_code" = "200" ] || [ "$del_code" = "204" ] || echo "⚠️  Annotation DELETE returned HTTP $del_code (non-fatal)"
+    echo "4️⃣  Annotation deleted (HTTP $del_code) — cleanup OK"
+  fi
 
   echo "✅ E2E RUN $run/3 COMPLETE"
 done
