@@ -142,7 +142,7 @@ class GlobalSettingsView(APIView):
         })
         
     def post(self, request):
-        if not request.user.is_superuser and not request.user.is_staff:
+        if not request.user.is_superuser:
              return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
              
         from core.models import GlobalSettings
