@@ -24,8 +24,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--password',
             type=str,
-            default='passe123',
-            help='Default password for new student accounts (default: passe123)',
+            default=None,
+            help='Default password for new student accounts (default: date of birth DDMMYYYY)',
         )
         parser.add_argument(
             '--dry-run',
@@ -88,10 +88,20 @@ class Command(BaseCommand):
                     continue
 
                 # Create new User
+                # Use DOB (DDMMYYYY) as default password if no --password given
+                effective_password = password
+                if effective_password is None:
+                    if student.date_naissance:
+                        effective_password = student.date_naissance.strftime('%d%m%Y')
+                    else:
+                        effective_password = 'passe123'  # Fallback if no DOB
+                        self.stdout.write(self.style.WARNING(
+                            f"  [WARN] {email}: no DOB, using fallback password"
+                        ))
                 user = User.objects.create_user(
                     username=email,
                     email=email,
-                    password=password,
+                    password=effective_password,
                     first_name=student.first_name[:30],
                     last_name=student.last_name[:30],
                     is_active=True,
