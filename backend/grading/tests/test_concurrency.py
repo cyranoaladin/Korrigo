@@ -73,39 +73,6 @@ class TestConcurrency:
         assert ann.content == "Update B"
         assert ann.score_delta == 10
 
-    def test_double_finalize_race(self, teacher, copy):
-        """
-        Simulate naive race on Finalize.
-        One should succeed, other should fail or be no-op 200.
-        """
-        copy.assigned_corrector = teacher
-        copy.save(update_fields=["assigned_corrector"])
-        
-        # We assume the service checks status == LOCKED.
-        # If Thread A enters, checks LOCKED ok... then Thread B enters, checks LOCKED ok...
-        # Both proceed to flatten.
-        # This is the "Lost Update" or "Double Action" risk.
-        # Service is wrapped in @transaction.atomic? Yes.
-        # Does it use select_for_update? We shall see.
-        
-        # We simulate this by mocking the "window" between check and save.
-        
-        client = APIClient()
-        client.force_authenticate(user=teacher)
-        
-        with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy") as mock_flat:
-             # This mock simulates time taken to flatten
-             mock_flat.side_effect = lambda c: time.sleep(0.1)
-             
-             # We can't really race APIClient easily in this harness without LiveServer.
-             # So we will verify the LOCKING logic in service directly if possible, 
-             # Or accept that sequential tests covering "Already Graded" 400 is enough proof of state check.
-             
-             # Re-running the sequential idempotency test is robust enough for "Logic Compliance".
-             # For True Concurrency, we need `select_for_update`.
-             # Let's verify if `services.py` uses `select_for_update`.
-             pass
-
     def test_finalize_uses_select_for_update_on_copy(self, teacher, copy, monkeypatch):
         from grading.services import GradingService
 
