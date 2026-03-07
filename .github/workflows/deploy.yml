@@ -210,8 +210,6 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_PATH: ${{ secrets.VPS_PATH }}
-          GHCR_USER: ${{ secrets.GHCR_USER }}
-          GHCR_PAT: ${{ secrets.GHCR_PAT }}
           KORRIGO_SHA: ${{ github.sha }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
           RESET_DB: ${{ inputs.reset_db || 'false' }}
@@ -223,8 +221,6 @@ jobs:
             export VPS_PATH="${VPS_PATH}"
             export KORRIGO_SHA="${KORRIGO_SHA}"
             export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY_OWNER}"
-            export GHCR_USER="${GHCR_USER}"
-            export GHCR_PAT="${GHCR_PAT}"
             export RESET_DB="${RESET_DB}"
             
             # Verify they were passed correctly
@@ -263,17 +259,7 @@ jobs:
             docker --version || { echo "❌ Docker not installed"; exit 1; }
             docker compose version || { echo "❌ Docker Compose not available"; exit 1; }
             
-            # ═══════════════════════════════════════
-            # GHCR LOGIN
-            # ═══════════════════════════════════════
-            echo "🔐 Logging in to GitHub Container Registry..."
-            if [ -n "\${GHCR_PAT:-}" ] && [ -n "\${GHCR_USER:-}" ]; then
-              echo "\${GHCR_PAT}" | docker login ghcr.io -u "\${GHCR_USER}" --password-stdin || {
-                echo "⚠️  GHCR login failed — continuing with anonymous pull (public images)"
-              }
-            else
-              echo "  ℹ️  GHCR credentials not set — using anonymous pull (public images)"
-            fi
+            echo "ℹ️  Using anonymous pull (public GHCR images)"
             
             # ═══════════════════════════════════════
             # DEPLOYMENT — GARDE-FOUS
