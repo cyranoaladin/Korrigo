@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
 import { useRouter } from 'vue-router'
-import { LogOut, Download, ChevronDown, ChevronRight, BookOpen, Target, FileText, GraduationCap, MessageSquareText } from 'lucide-vue-next'
+import { LogOut, Download, ChevronDown, ChevronRight, BookOpen, Target, FileText, GraduationCap, MessageSquareText, ShieldCheck } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -136,6 +136,48 @@ onMounted(() => { fetchCopies() })
 
     <!-- MAIN -->
     <main v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+      <!-- TRANSPARENCY BANNER -->
+      <div class="relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-indigo-100">
+        <div class="absolute inset-0 bg-gradient-to-br from-indigo-50/80 via-blue-50/40 to-transparent"></div>
+        <div class="relative px-6 py-5 sm:px-8 sm:py-6">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-md shadow-indigo-200">
+              <ShieldCheck class="w-5 h-5 text-white" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <h3 class="text-sm font-bold text-indigo-900 tracking-tight mb-3">Garanties du processus de correction</h3>
+              <ul class="space-y-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                <li class="flex items-start gap-2">
+                  <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"></span>
+                  <span>Les copies ont été corrigées <strong class="text-slate-800">uniquement par les enseignants correcteurs</strong>.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"></span>
+                  <span><strong class="text-slate-800">Aucune intelligence artificielle</strong> n'a été utilisée pour corriger les copies.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"></span>
+                  <span>Les copies ont été <strong class="text-slate-800">anonymisées</strong> avant correction.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"></span>
+                  <span>Leur répartition entre les correcteurs a été effectuée de manière <strong class="text-slate-800">aléatoire</strong>.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"></span>
+                  <span>La correction a été réalisée à partir du <strong class="text-slate-800">sujet, du barème et des consignes</strong> de l'épreuve.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"></span>
+                  <span>Un <strong class="text-slate-800">contrôle complémentaire</strong> a été effectué après finalisation afin de vérifier que toutes les questions avaient bien été examinées.</span>
+                </li>
+              </ul>
+              <p class="mt-3 text-xs font-medium text-indigo-700/80 italic">Ce dispositif vise à garantir l'équité, la rigueur et la transparence du processus de correction.</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- EXAM TITLE -->
       <div class="text-center">

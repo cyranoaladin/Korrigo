@@ -1,0 +1,42 @@
+Exercice,Question,Points,Éléments de correction
+1,1.,"0,5",VERSION A (BBMATHS) :
+1,2.,1,D(0.5)  B(1)  D(1)  D(1)  A(0.5)  B(1)
+1,3.,1,
+1,4.,1,VERSION B (BBMATH) :
+1,5.,"0,5",D(1) A(0.5) B(1) D(0.5) B(1) D(1)
+1,6.,1,
+,,,
+2,A.1.,"0,25",Pas de points si une valeur est mauvaise. g(1)=0 et g(e) = e-2.
+2,A.2.,"0,5","0,25 pour la croissance comparée de x⋅ln(x) en 0; 0,25 pour la factorisation en +inf"
+2,A.3.,1,"0,25 pour la rédaction (formule dérivée d'un produit); 0,25 pour la dérivée de x⋅ln(x); 0,25 calcul correct; 0,25 étude de signe et variations"
+2,A.4.,"0,5","0,25 rédaction correcte (hypothèses TVI); 0,25 encadrement de alpha : 4,92 < alpha < 4,93"
+2,A.5.,"0,25",Justification avec sens de variation de g + annulation en alpha
+2,B.1.,"0,5","0,25 pour chaque limite"
+2,B.2.(a),"0,5","0,25 dérivées correctes de x⋅ln(x) et ln(x); 0,25 calcul correct"
+2,B.2.(b),"0,5","0,25 lien avec le signe de g; 0,25 tableau complet (décroissante / croissante / décroissante)."
+2,B.2.(c),"0,5","0,25 idée utilisation de g(alpha)=0; 0,25 calcul correct"
+2,B.3.,"0,5","0,25 lien signe f seconde et convexité ; 0,25 coordonnées point d'inflexion (2; 6 - 4⋅ln(2))"
+,,,
+3,1.(a),"0,5","moins 0,25 par erreur H(0; 4; 4) M(6; 0; 2) N(6; 4; 2)"
+3,1.(b),"0,5","0,25 pour la justification (mention d'un point et d'un vecteur directeur) et 0,25 pour la réponse correcte 
+x = 6t
+y = 4-4t
+z = 4-2t"
+3,2.,1,"0,25 pour l'équation du plan x = 4 ; 0,25 pour la méthode (système à 4 équations) ; 0,5 pour la résolution correcte"
+3,3.(a),"0,75","0,25 pour les coordonnées de PM(2; -4/3; -2/3) et PN(2; 8/3; -2/3) ; 0,25 pour la formule du produit scalaire ; 0,25 pour la réponse correcte = 8/9"
+3,3.(b),"0,5","0,25 pour la formule ; 0,25 pour le calcul correct = 2√14/3"
+3,3.(c),"0,75","0,25 pour la méthode (définition du produit scalaire) ; 0,25 pour le calcul de ||PN|| = 2√26/3  ; 0,25 pour la conclusion avec arccos = 84° le toit n'est pas construit"
+3,4.,1,"0,25 calcul aire de la base ; 0,5 méthode même infructeuse (recherche de la hauteur) ; 0,25 résultat"
+,,,
+4,A.1.,"0,5","0,25 justification suite géométrique ; 0,25 formule explicite"
+4,A.2.,"0,25",Argument sur la limite
+4,B.1.(a),"0,75","0,25 dérivée de g ; 0,25 étude du signe sur [0; 60] ; 0,25 rédaction globale et conclusion"
+4,B.1.(b),"0,5","0,25 méthode cohérente 0,25 résultats corrects"
+4,B.2.(a),"0,5","0,25 u_1 = g(u_0) = g(12) ≈ 12,938 ; 0,25 interprétation correcte"
+4,B.2.(b),1,"0,25 initialisation 0,5 rédaction correcte (hypothèse de récurrence, hérédité et conclusion) ; 0,25 argument g croissante sur [0; 60]"
+4,"B.2.(c)
+","0,5","0,25 hypothèses 0,25 conclusion"
+4,"B.2.(d)
+","0,5","0,25 hypothèses du théorème du point fixe énoncées correctement ; 0,25 conclusion sur la bonne limite"
+4,B.3.,"0,5","0 = n'importe quoi : 0,25 = des éléments corrects ; 0,5 = parfait"
+,,20,
