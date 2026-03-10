@@ -43,6 +43,7 @@
             Conformité
           </router-link>
           <router-link
+            v-if="canSeeStats"
             to="/korrigo/stats-bb-maths-2026"
             class="text-gray-600 hover:text-primary-700 font-medium transition"
           >
@@ -165,6 +166,7 @@
           Conformité
         </router-link>
         <router-link
+          v-if="canSeeStats"
           to="/korrigo/stats-bb-maths-2026"
           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
         >
@@ -200,8 +202,15 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useAuthStore } from '../stores/auth'
 import { LogIn, ChevronDown, PenTool, Settings, GraduationCap } from 'lucide-vue-next'
+
+const authStore = useAuthStore()
+const canSeeStats = computed(() => {
+  const role = authStore.user?.role
+  return role === 'Teacher' || role === 'Admin'
+})
 
 const isMobileMenuOpen = ref(false)
 const isLoginDropdownOpen = ref(false)
