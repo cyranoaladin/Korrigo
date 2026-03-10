@@ -1,7 +1,7 @@
 # Guide Utilisateur Élève - Korrigo PMF
 
-> **Version** : 1.0.0  
-> **Date** : 30 Janvier 2026  
+> **Version** : 1.3.0  
+> **Date** : 10 Mars 2026  
 > **Public** : Élèves (Lycéens)  
 > **Type** : Manuel Utilisateur
 
@@ -65,10 +65,10 @@ graph LR
 ### Obtenir Vos Identifiants
 
 Vos identifiants de connexion sont :
-- **Email** : Votre adresse email scolaire (ex: `prenom.nom@ecole.fr`)
-- **Mot de passe** : Un mot de passe provisoire vous est fourni à la rentrée.
+- **Email** : Votre adresse email scolaire (ex: `prenom.nom-e@ert.tn`)
+- **Mot de passe par défaut** : Votre **date de naissance au format JJMMAAAA** (ex: 15 mars 2007 → `15032007`)
 
-> 💡 **Important** : Si vous n'avez pas vos identifiants, contactez le professeur principal ou le secrétariat.
+> 💡 **Important** : À la première connexion, vous serez invité à changer votre mot de passe par défaut. Si vous n'avez pas vos identifiants, contactez le professeur principal ou le secrétariat.
 
 ### Se Connecter
 
@@ -103,14 +103,24 @@ Sur la page de connexion :
     ```
     
     1. **Saisissez votre Email** (celui communiqué par le lycée)
-    2. **Saisissez votre Mot de Passe** initial
-    3. Cliquez sur **« Se connecter »**
+    2. **Saisissez votre Mot de Passe** (date de naissance JJMMAAAA par défaut)
+    3. Cliquez sur **« Accéder à mes copies »**
     
-    > ℹ️ **Note** : À la première connexion, il peut vous être demandé de modifier votre mot de passe provisoire.
+    > ℹ️ **Note** : À la première connexion, vous devrez modifier votre mot de passe par défaut pour un mot de passe personnel sécurisé.
 
 #### Étape 3 : Accès au Tableau de Bord
 
-Si vos identifiants sont corrects, vous accédez à votre **tableau de bord** :
+Si vos identifiants sont corrects, vous accédez à votre **tableau de bord**.
+
+> 🛡️ **Bannière de transparence** : En haut du tableau de bord, un encart « Garanties du processus de correction » vous informe que :
+> - Les copies ont été corrigées **uniquement par les enseignants correcteurs**
+> - **Aucune intelligence artificielle** n'a été utilisée pour corriger les copies
+> - Les copies ont été **anonymisées** avant correction
+> - La répartition entre correcteurs a été **aléatoire**
+> - La correction a été réalisée à partir du **sujet, du barème et des consignes**
+> - Un **contrôle complémentaire** a été effectué après finalisation
+
+Voici le tableau de bord :
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -403,18 +413,23 @@ Vos données sont conservées pendant :
 #### Q1 : J'ai oublié mon mot de passe, que faire ?
 
 **Réponse** :
-- Vérifiez si vous avez reçu un email avec vos identifiants.
-- Contactez le **secrétariat** ou votre professeur principal pour qu'ils réinitialisent votre mot de passe.
+- Si vous n'avez jamais changé votre mot de passe, essayez votre **date de naissance au format JJMMAAAA** (ex: `15032007`).
+- Sinon, contactez le **secrétariat** ou votre professeur principal pour qu'ils réinitialisent votre mot de passe.
 - Il n'y a pas encore de lien "Mot de passe oublié" automatique sur le site.
 
 #### Q2 : « Email ou mot de passe incorrect », que faire ?
 
 **Réponse** : Vérifiez que :
-- Vous avez bien saisi votre **email complet**
+- Vous avez bien saisi votre **email complet** (ex: `prenom.nom-e@ert.tn`)
 - Vous respectez les majuscules/minuscules pour le mot de passe
 - Vous n'avez pas ajouté d'espaces avant/après
+- Si vous n'avez jamais changé votre mot de passe, utilisez votre **date de naissance JJMMAAAA**
 
 Si le problème persiste, contactez le **secrétariat**.
+
+#### Q2b : « Trop de tentatives de connexion », que faire ?
+
+**Réponse** : Ce message apparaît si trop de tentatives de connexion ont été effectuées depuis votre réseau (WiFi école, 4G, etc.). **Attendez quelques minutes** puis réessayez. Si le problème persiste après 15 minutes, contactez le support.
 
 #### Q3 : Je n'ai pas encore de copies corrigées, est-ce normal ?
 
@@ -618,6 +633,7 @@ Pour toute question sur :
 
 | Version | Date | Changements |
 |---------|------|-------------|
+| **1.3.0** | 10/03/2026 | 🛡️ **Transparence** : Bannière garanties correction, mot de passe par défaut (JJMMAAAA), FAQ rate limit |
 | **1.2.0** | 12/02/2026 | 🔑 **Mise à jour** : Authentification par Email + Mot de passe |
 | **1.1.0** | 01/02/2026 | 🔒 **Sécurité** : (Version obsolète - méthode non retenue) |
 | **1.0.0** | 30/01/2026 | Version initiale du guide élève |

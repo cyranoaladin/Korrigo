@@ -28,7 +28,7 @@ REST_FRAMEWORK = {
 | Endpoint | Classe | Justification |
 |---|---|---|
 | `POST /api/login/` | `LoginView` | Public. `csrf_exempt` + `authentication_classes = []`. Rate-limité 5/15min/IP. ✅ |
-| `POST /api/students/login/` | `StudentLoginView` | Public. `csrf_exempt` + `authentication_classes = []`. Rate-limité 5/15min/IP. ✅ |
+| `POST /api/students/login/` | `StudentLoginView` | Public. `csrf_exempt` + `authentication_classes = []`. Rate-limité 30/15min/IP (HTTP 429). ✅ |
 | `GET /api/csrf/` | `CSRFTokenView` | Distribue le cookie CSRF pour le SPA. `AllowAny` + `authentication_classes = []`. ✅ |
 
 ### 1.3 Endpoints AllowAny
@@ -88,7 +88,7 @@ Le login étudiant (`StudentLoginView`) :
 |---|---|---|---|---|
 | `/api/csrf/` | CSRFTokenView | GET | AllowAny | Non |
 | `/api/login/` | LoginView | POST | AllowAny | 5/15m/IP |
-| `/api/students/login/` | StudentLoginView | POST | AllowAny | 5/15m/IP |
+| `/api/students/login/` | StudentLoginView | POST | AllowAny | 30/15m/IP |
 | `/api/students/logout/` | StudentLogoutView | POST | AllowAny | Non |
 | `/api/health/` | health_check | GET | AllowAny | Non |
 | `/api/health/live/` | liveness_check | GET | AllowAny | Non |
