@@ -683,7 +683,7 @@ En cas de perte de connexion :
 
 #### « Trop de tentatives de connexion »
 
-**Cause** : Protection contre les attaques par force brute (5 tentatives en 15 minutes)
+**Cause** : Protection contre les attaques par force brute (30 tentatives par IP en 15 minutes)
 
 **Solution** :
 - Attendez **15 minutes** avant de réessayer

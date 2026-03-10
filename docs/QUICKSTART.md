@@ -156,10 +156,11 @@ StudentService.import_from_csv('/path/to/students.csv')
 
 1. Élève ouvre http://localhost:5173
 2. Clique **"Élève"**
-3. Se connecte avec:
-   - Nom de famille
-   - Date de naissance
-4. Consulte ses copies corrigées
+3. Se connecte avec :
+   - **Email** : adresse email scolaire (ex: `prenom.nom-e@ert.tn`)
+   - **Mot de passe** : date de naissance au format JJMMAAAA (par défaut)
+4. À la première connexion, changement de mot de passe obligatoire
+5. Consulte ses copies corrigées avec bannière de transparence
 
 ---
 
@@ -315,8 +316,8 @@ docker-compose exec redis redis-cli ping
 Maintenant que vous avez Korrigo en fonctionnement:
 
 1. **Comprendre l'Architecture**: [ARCHITECTURE.md](technical/ARCHITECTURE.md)
-2. **Développement Local**: [DEVELOPMENT_COMPLETE.md](development/DEVELOPMENT_COMPLETE.md)
-3. **Déploiement Production**: [DEPLOYMENT_COMPLETE.md](deployment/DEPLOYMENT_COMPLETE.md)
+2. **Développement Local**: [DEVELOPMENT_GUIDE.md](development/DEVELOPMENT_GUIDE.md)
+3. **Déploiement Production**: [DEPLOYMENT_GUIDE.md](deployment/DEPLOYMENT_GUIDE.md)
 4. **Documentation API**: http://localhost:8088/api/docs/
 5. **Guide Utilisateur**: [INDEX.md](INDEX.md)
 
@@ -335,7 +336,7 @@ Maintenant que vous avez Korrigo en fonctionnement:
 
 - **NE JAMAIS** utiliser `docker-compose.yml` en production
 - Utilisez `infra/docker/docker-compose.prod.yml`
-- Configurez SSL/TLS (voir [DEPLOYMENT_COMPLETE.md](deployment/DEPLOYMENT_COMPLETE.md))
+- Configurez SSL/TLS (voir [DEPLOYMENT_GUIDE.md](deployment/DEPLOYMENT_GUIDE.md))
 - Configurez les backups automatiques
 - Activez le monitoring (Prometheus + Grafana)
 
@@ -344,10 +345,10 @@ Maintenant que vous avez Korrigo en fonctionnement:
 ## 🆘 Besoin d'Aide?
 
 - **FAQ**: [FAQ.md](support/FAQ.md)
-- **Dépannage Complet**: [TROUBLESHOOTING.md](support/TROUBLESHOOTING.md)
+- **Dépannage Complet**: [DEPANNAGE.md](support/DEPANNAGE.md)
 - **Support**: [SUPPORT.md](support/SUPPORT.md)
 
 ---
 
-**Dernière mise à jour**: 4 février 2026  
-**Version**: 1.0
+**Dernière mise à jour**: 10 mars 2026  
+**Version**: 1.1

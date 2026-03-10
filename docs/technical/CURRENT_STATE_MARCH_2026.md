@@ -1,7 +1,7 @@
 # État Actuel du Projet Korrigo — Mars 2026
 
-> **Version** : 2.0  
-> **Date** : 4 mars 2026  
+> **Version** : 2.1  
+> **Date** : 10 mars 2026  
 > **Public** : Développeurs, Administrateurs, Product Owners
 
 Ce document décrit l'état actuel de l'application Korrigo PMF tel qu'implémenté dans le code source.
@@ -219,6 +219,11 @@ frontend/src/
 
 #### Portail Élève (`/student-portal`)
 
+**Bannière de Transparence :**
+- Encart « Garanties du processus de correction » en haut du dashboard
+- Icône `ShieldCheck` (Lucide)
+- Garanties affichées : correction humaine, anonymisation, répartition aléatoire, contrôle complémentaire
+
 **Contenu :**
 - Liste des copies corrigées (status GRADED)
 - Pour chaque copie :
@@ -227,8 +232,9 @@ frontend/src/
   - Bouton télécharger PDF
 
 **Authentification :**
-- Login par Email + Mot de passe
+- Login par Email + Mot de passe (date de naissance JJMMAAAA par défaut)
 - Changement mot de passe obligatoire première connexion
+- Rate limit : 30 tentatives / 15 min par IP (HTTP 429 avec message français)
 
 ---
 
