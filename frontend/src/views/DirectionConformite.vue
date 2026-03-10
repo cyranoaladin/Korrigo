@@ -152,7 +152,7 @@
                 <td class="px-3 py-2 border-b font-medium">
                   Authentification
                 </td><td class="px-3 py-2 border-b">
-                  Sessions sécurisées, rate limiting (5/15 min), cookies HttpOnly + SameSite
+                  Sessions sécurisées, rate limiting (5/15min admin, 30/15min élève par IP), cookies HttpOnly + SameSite
                 </td>
               </tr>
               <tr>
