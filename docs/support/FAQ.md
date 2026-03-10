@@ -1,7 +1,7 @@
 # Foire Aux Questions (FAQ) - Korrigo PMF
 
-> **Version**: 1.0.0  
-> **Date**: 30 Janvier 2026  
+> **Version**: 1.1.0  
+> **Date**: 10 Mars 2026  
 > **Public**: Tous les utilisateurs  
 > **Langue**: Français
 
@@ -610,18 +610,24 @@ Booklet 3 (pages 5-6)  ─────→ Copy de MARTIN Marie (READY)
 **Réponse**:
 **Vérifications** :
 1. **Identifiants corrects ?**
-   - Adresse email : Votre adresse **@ert.tn**
-   - Mot de passe : Celui reçu par email ou fourni par le lycée
+   - Adresse email : Votre adresse **@ert.tn** (ex: `prenom.nom-e@ert.tn`)
+   - Mot de passe par défaut : Votre **date de naissance au format JJMMAAAA** (ex: 15 mars 2007 → `15032007`)
+   - Si vous avez déjà changé votre mot de passe, utilisez le nouveau
 
 2. **Compte activé ?**
-   - Les comptes élèves sont activés après l'import Pronote
+   - Les comptes élèves sont activés après l'import depuis Pronote
    - Contactez le secrétariat si votre compte n'existe pas
 
-3. **Connexion Internet ?**
+3. **Message « Trop de tentatives de connexion » ?**
+   - Ce message apparaît si trop de tentatives ont été effectuées depuis votre réseau (WiFi école, 4G)
+   - **Attendez 15 minutes** puis réessayez
+   - C'est normal : tous les élèves sur le même WiFi partagent la même adresse IP
+
+4. **Connexion Internet ?**
    - Vérifiez que vous avez une connexion Internet fonctionnelle
    - La plateforme est accessible depuis n'importe où (lycée ou domicile)
 
-**Toujours bloqué ?** Contactez le secrétariat avec votre INE.
+**Toujours bloqué ?** Contactez le secrétariat avec votre nom, prénom et classe.
 
 
 ### Je ne vois pas ma copie corrigée, pourquoi ?

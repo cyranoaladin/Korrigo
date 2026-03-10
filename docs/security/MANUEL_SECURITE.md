@@ -1,8 +1,8 @@
 # Manuel de Sécurité Technique
 # Plateforme Korrigo PMF
 
-> **Version**: 1.0.0  
-> **Date**: 30 Janvier 2026  
+> **Version**: 1.1.0  
+> **Date**: 10 Mars 2026  
 > **Public**: Administrateurs techniques, DSI, RSSI, DPO  
 > **Classification**: Usage interne - Sensible  
 > **Référence**: SECURITY_PERMISSIONS_INVENTORY.md
@@ -185,8 +185,9 @@ request.session['student_id'] = student.id
 **Sécurité** :
 - ✅ **Standard** : Utilise l'infrastructure auth Django éprouvée
 - ✅ **Mot de passe** : Haché (PBKDF2)
-- ✅ **Rate Limiting** : 5 tentatives / 15 min
-- ⚠️ **Mot de passe initial** : Souvent générique ('passe123'), changement forcé recommandé
+- ✅ **Rate Limiting** : 30 tentatives / 15 min par IP (adapté aux NAT partagés)
+- ✅ **Réponse 429** : Message français clair en cas de dépassement
+- ✅ **Changement forcé** : Mot de passe initial (date de naissance JJMMAAAA) doit être changé à la première connexion
 
 ---
 
@@ -201,11 +202,19 @@ RATELIMIT_ENABLE = True  # Obligatoire en production
 @method_decorator(ratelimit(key='ip', rate='5/15m', method='POST'), name='dispatch')
 class LoginView(APIView):
     # Max 5 tentatives par IP toutes les 15 minutes
+
+# backend/students/views.py:StudentLoginView
+@method_decorator(maybe_ratelimit(key='ip', rate='30/15m', method='POST', block=False))
+def post(self, request):
+    if getattr(request, 'limited', False):
+        return Response({'error': '...', 'rate_limited': True}, status=429)
 ```
 
 **Endpoints protégés** :
-- `/api/login/` : 5 tentatives / 15 min
-- `/api/students/login/` : 5 tentatives / 15 min
+- `/api/login/` : 5 tentatives / 15 min (enseignants/admin)
+- `/api/students/login/` : 30 tentatives / 15 min par IP (adapté NAT partagé école/opérateur)
+
+> ℹ️ **Note** : Le rate limit élève est plus élevé car les élèves d'une même classe partagent souvent la même IP publique (NAT opérateur mobile, WiFi école). Le endpoint retourne HTTP 429 avec un message français clair au lieu du 403 générique DRF.
 
 **Limitation actuelle** :
 - ⚠️ Rate limiting par IP (contournable via VPN)

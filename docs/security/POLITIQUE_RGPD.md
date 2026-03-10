@@ -391,7 +391,7 @@ Formulaires types :
 
 | Catégorie | Mesures Implémentées | Niveau |
 |-----------|---------------------|--------|
-| **Authentification** | - Sessions Django sécurisées<br>- Rate limiting (5 tentatives/15min)<br>- Authentification double (User + Student session)<br>- Pas de mot de passe faible autorisé (min 6 car.) | ⚠️ Moyen |
+| **Authentification** | - Sessions Django sécurisées<br>- Rate limiting (5/15min admin, 30/15min élève par IP)<br>- Authentification double (User + Student session)<br>- Pas de mot de passe faible autorisé (min 6 car.) | ⚠️ Moyen |
 | **Contrôle d'accès** | - RBAC (Admin/Teacher/Student)<br>- Permission classes DRF<br>- Queryset filtering (élèves voient leurs données uniquement)<br>- Object-level permissions (annotations) | ✅ Fort |
 | **Chiffrement** | - HTTPS obligatoire (TLS 1.2+)<br>- HSTS (1 an, includeSubDomains, preload)<br>- Cookies sécurisés (SameSite=Lax)<br>- Base de données au repos (PostgreSQL) | ✅ Fort |
 | **Intégrité** | - CSRF protection (tokens)<br>- CORS strict (origines explicites)<br>- CSP (Content Security Policy) | ✅ Fort |

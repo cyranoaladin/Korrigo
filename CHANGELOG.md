@@ -7,6 +7,43 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [1.4.0] - 2026-03-10
+
+### 🎓 Portail Élève — Améliorations
+
+- **Bannière de transparence** : Ajout d'un encart "Garanties du processus de correction" en haut du dashboard élève (`ResultView.vue`)
+  - Correction humaine uniquement (pas d'IA)
+  - Anonymisation des copies avant correction
+  - Répartition aléatoire entre correcteurs
+  - Contrôle complémentaire post-finalisation
+- **Import Lucide** : Ajout de l'icône `ShieldCheck` pour la bannière
+
+### 🐛 Corrigé — Connexion Mobile Élèves
+
+- **Root cause** : Rate limiter trop agressif (`5/15m` par IP) bloquait les classes entières derrière un NAT partagé (opérateur mobile / WiFi école). Le 403 générique DRF causait une boucle de retry côté frontend.
+- **Backend** (`students/views.py`) :
+  - Rate limit porté de `5/15m` à `30/15m` (30 tentatives / 15 min par IP)
+  - Passage de `block=True` à `block=False` avec vérification manuelle `request.limited`
+  - Retour **HTTP 429** (au lieu de 403) avec message français clair : *"Trop de tentatives de connexion. Veuillez réessayer dans quelques minutes."*
+  - Champ `rate_limited: true` dans la réponse JSON pour identification côté frontend
+- **Frontend** (`errorMessages.js`) :
+  - Ajout case explicite `429` dans `getErrorMessage()` affichant le message serveur
+
+### 📚 Documentation — Mise à jour complète
+
+- **README.md** : Date actualisée, rate limiting mis à jour
+- **CHANGELOG.md** : Entrée v1.4.0
+- **docs/INDEX.md** : Version 1.5, date 10 mars 2026
+- **docs/README.md** : Version et date actualisées
+- **docs/security/MANUEL_SECURITE.md** : Rate limit 30/15m, HTTP 429, version mise à jour
+- **docs/security/SECURITY_PERMISSIONS_INVENTORY.md** : Valeurs rate limit corrigées
+- **docs/technical/API_REFERENCE.md** : Rate limit 30/15m, message 429 actualisé
+- **docs/users/GUIDE_ETUDIANT.md** : Bannière transparence, mot de passe par défaut (date de naissance), version
+- **docs/QUICKSTART.md** : Login élève email+mot de passe, date mise à jour
+- **docs/technical/CURRENT_STATE_MARCH_2026.md** : Bannière, rate limit, date
+
+---
+
 ## [1.3.0] - 2026-02-14
 
 ### 📚 Documentation — Mise à jour complète
@@ -180,17 +217,14 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 ## [Unreleased]
 
 ### 🔄 En Cours
-- Tests complets audit trail (Phase 1)
-- Tests rate limiting (Phase 1)
-- Tests CORS (Phase 2)
 - Atteindre 70% coverage code critique
-
-### 🎯 Prévu (Phase 3)
-- Monitoring production (Sentry, logs structurés)
-- Optimisation performance (N+1 queries, cache Redis)
-- CI/CD Pipeline (GitHub Actions, déploiement automatique)
 - Tests sécurité frontend (XSS, localStorage)
+
+### 🎯 Prévu
+- CI/CD Pipeline (GitHub Actions, déploiement automatique)
+- Optimisation performance (N+1 queries, cache Redis)
 - Validation fichiers PDF renforcée
+- Notifications email élèves (copies disponibles)
 
 ---
 
