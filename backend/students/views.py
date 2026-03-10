@@ -21,7 +21,7 @@ from core.utils.audit import log_authentication_attempt, log_audit
 class StudentLoginView(views.APIView):
     """
     Login endpoint for students.
-    Rate limited to 5 attempts per 15 minutes per IP.
+    Rate limited to 30 attempts per 15 minutes per IP.
     CSRF exempt: Public authentication endpoint, protected by rate limiting.
     
     Authentification par: Email + Mot de passe
@@ -31,8 +31,14 @@ class StudentLoginView(views.APIView):
     permission_classes = [AllowAny]  # Public endpoint - student authentication
     authentication_classes = []  # No auth required, bypass SessionAuth CSRF
 
-    @method_decorator(maybe_ratelimit(key='ip', rate='5/15m', method='POST', block=True))
+    @method_decorator(maybe_ratelimit(key='ip', rate='30/15m', method='POST', block=False))
     def post(self, request):
+        # Rate limit check — return clear French message instead of generic 403
+        if getattr(request, 'limited', False):
+            return Response({
+                'error': 'Trop de tentatives de connexion. Veuillez réessayer dans quelques minutes.',
+                'rate_limited': True
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
         # MAINTENANCE MODE CHECK - Blocage temporaire des étudiants
         if STUDENT_ACCESS_BLOCKED:
             return Response({
