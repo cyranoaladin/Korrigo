@@ -551,6 +551,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import {
   BarChart3, Users, GraduationCap, BookOpen, Award, PenTool,
@@ -561,17 +563,34 @@ import StatsQcmTab from '../components/stats/StatsQcmTab.vue'
 import StatsPalmaresTab from '../components/stats/StatsPalmaresTab.vue'
 import StatsQualityTab from '../components/stats/StatsQualityTab.vue'
 
+const router = useRouter()
+const authStore = useAuthStore()
+
 const activeTab = ref('overview')
 const loading = ref(true)
 const error = ref(null)
 const data = ref(null)
 
 onMounted(async () => {
+  // Defense-in-depth: redirect if not Teacher/Admin
+  if (!authStore.user) {
+    try { await authStore.fetchUser() } catch { /* ignore */ }
+  }
+  const role = authStore.user?.role
+  if (role !== 'Teacher' && role !== 'Admin') {
+    router.replace('/')
+    return
+  }
+
   try {
     const res = await api.get('/exams/stats-report/')
     data.value = res.data
   } catch (e) {
-    error.value = e.response?.data?.error || e.message || 'Erreur de chargement'
+    if (e.response?.status === 403) {
+      error.value = 'Accès réservé aux enseignants et à l\'administration.'
+    } else {
+      error.value = e.response?.data?.error || e.message || 'Erreur de chargement'
+    }
   } finally {
     loading.value = false
   }
