@@ -44,6 +44,10 @@ export function getErrorMessage(error) {
             }
             return ERROR_MESSAGES.FORBIDDEN;
         
+        case 429:
+            if (data?.error) return data.error;
+            return 'Trop de tentatives. Veuillez réessayer dans quelques minutes.';
+        
         case 404:
             return ERROR_MESSAGES.NOT_FOUND;
         
