@@ -1,6 +1,6 @@
 # Security & Permissions Inventory - Korrigo Platform
 
-**Audit Date**: 2026-01-27  
+**Audit Date**: 2026-03-10 (dernière mise à jour)  
 **Audit Phase**: Inventory - Security & Permissions  
 **Repository**: `/home/alaeddine/viatique__PMF` (main repo)
 
@@ -103,7 +103,7 @@ class UserRole:
 |----------|--------|------------|------------|------|-------|
 | `/api/login/` | POST | AllowAny | 5/15m | Exempt | Teacher/Admin login |
 | `/api/logout/` | POST | IsAuthenticated | - | Required | Teacher/Admin logout |
-| `/api/students/login/` | POST | AllowAny | 5/15m | Exempt | Student login |
+| `/api/students/login/` | POST | AllowAny | 30/15m | Exempt | Student login (HTTP 429 si dépassé) |
 | `/api/students/logout/` | POST | AllowAny | - | Required | Student logout (tolerant) |
 
 **Security Analysis**:
@@ -422,11 +422,13 @@ def maybe_ratelimit(*args, **kwargs):
 
 | Endpoint | Method | Rate | Block | Status |
 |----------|--------|------|-------|--------|
-| `/api/login/` | POST | 5/15m | Yes | ✅ Protected |
-| `/api/students/login/` | POST | 5/15m | Yes | ✅ Protected |
+| `/api/login/` | POST | 5/15m | Yes (block=True) | ✅ Protected |
+| `/api/students/login/` | POST | 30/15m | No (block=False, manual 429) | ✅ Protected |
 
 **Analysis**:
 - ✅ Login endpoints rate limited (brute force protection)
+- ✅ Student login: 30/15m per IP (adapted for shared NAT — school WiFi, mobile carrier)
+- ✅ Student login returns HTTP 429 with French error message (not generic 403)
 - ⚠️ No rate limiting on other endpoints (API abuse, DoS)
 - ⚠️ No rate limiting on file upload endpoints (resource exhaustion)
 
@@ -544,7 +546,7 @@ No P0 security risks identified. All baseline security controls are in place.
 |----------|--------|------------------|-------------------|------------|-----------|
 | `/api/login/` | POST | AllowAny | - | 5/15m | ✅ |
 | `/api/logout/` | POST | IsAuthenticated | - | - | ✅ |
-| `/api/students/login/` | POST | AllowAny | - | 5/15m | ✅ |
+| `/api/students/login/` | POST | AllowAny | - | 30/15m (429) | ✅ |
 | `/api/students/logout/` | POST | AllowAny | - | - | ✅ |
 | `/api/me/` | GET | IsAuthenticated | - | - | - |
 | `/api/settings/` | GET | IsAuthenticated | - | - | - |

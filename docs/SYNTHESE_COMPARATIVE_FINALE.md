@@ -15,7 +15,7 @@
 |---|---|---|
 | `BasicAuthentication` supprimée des defaults DRF | Audit permissions §1.1 | ✅ **Confirmé** — `core/settings.py:161` : commentaire `# LOT 3: BasicAuthentication removed` |
 | `SessionAuthentication` seul mécanisme actif | Audit permissions §1.1 | ✅ **Confirmé** |
-| Rate-limiting sur login (5/15min/IP) | Audit permissions §1.2 | ✅ **Confirmé** — `students/views.py:34`, `core/views.py` |
+| Rate-limiting sur login (30/15min/IP élève, 5/15min/IP admin) | Audit permissions §1.2 | ✅ **Confirmé** — `students/views.py`, `core/views.py` |
 | `IsStudent` session fallback supprimé | Audit permissions §4.2 | ✅ **Confirmé** — `core/auth.py:57-60` : exige `is_authenticated` + groupe student, PLUS de fallback session |
 | `IsAdmin`/`IsAdminOnly` unifié avec `is_superuser`/`is_staff` | Audit permissions §4.3 | ✅ **Confirmé** — `core/auth.py:28-40` et `77-89` : vérifient `is_superuser or is_staff or group` |
 | `IsAdminOrTeacher` unifié idem | Cohérence | ✅ **Confirmé** — `core/auth.py:62-75` : inclut `is_superuser or is_staff` |

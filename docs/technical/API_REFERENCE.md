@@ -908,14 +908,15 @@ Content-Type: application/json
 **Response** (429 Too Many Requests):
 ```json
 {
-  "error": "Trop de tentatives. Réessayez dans 15 minutes."
+  "error": "Trop de tentatives de connexion. Veuillez réessayer dans quelques minutes.",
+  "rate_limited": true
 }
 ```
 
 **Session**: `student_id` et `role='Student'` stockés dans session Django
 
 **Sécurité**:
-- Rate limiting: 5 tentatives par 15 minutes (par IP)
+- Rate limiting: 30 tentatives par 15 minutes (par IP) — adapté aux NAT partagés (école/opérateur mobile)
 - Messages d'erreur génériques (prévention user enumeration)
 - Audit logging: tous les succès/échecs enregistrés
 
@@ -959,8 +960,8 @@ Content-Type: application/json
 
 | Endpoint | Limite | Fenêtre |
 |----------|--------|---------|
-| `POST /api/auth/login/` | 5 requêtes | 5 minutes |
-| `POST /api/students/login/` | 5 requêtes | 15 minutes (par IP) |
+| `POST /api/auth/login/` | 5 requêtes | 15 minutes (par IP) |
+| `POST /api/students/login/` | 30 requêtes | 15 minutes (par IP) |
 | `POST /api/exams/upload/` | 10 requêtes | 1 heure |
 | Autres endpoints | 100 requêtes | 1 minute |
 

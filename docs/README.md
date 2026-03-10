@@ -1,7 +1,7 @@
 # Korrigo PMF — Documentation
 
-**Dernière mise à jour** : 14 février 2026  
-**Version** : 1.3  
+**Dernière mise à jour** : 10 mars 2026  
+**Version** : 1.5  
 **Production** : [https://korrigo.labomaths.tn](https://korrigo.labomaths.tn)
 
 ---
@@ -105,4 +105,4 @@ docs/
 ---
 
 **Maintenu par** : Alaeddine BEN RHOUMA — Labo Maths ERT  
-**Dernière revue** : 14 février 2026
+**Dernière revue** : 10 mars 2026

@@ -1,7 +1,7 @@
 # Guide de Dépannage - Korrigo PMF
 
-> **Version**: 1.0.0  
-> **Date**: 30 Janvier 2026  
+> **Version**: 1.1.0  
+> **Date**: 10 Mars 2026  
 > **Public**: Administrateurs techniques, Support IT  
 > **Langue**: Français (technique)
 
@@ -516,6 +516,44 @@ docker-compose exec backend python manage.py changepassword <username>
 # Ou côté serveur : Vider les sessions
 docker-compose exec backend python manage.py clearsessions
 ```
+
+### Problème : Élèves ne peuvent pas se connecter sur mobile
+
+**Symptômes** :
+- Message "Trop de tentatives de connexion" sur mobile (4G, WiFi école)
+- Plusieurs élèves bloqués simultanément
+
+**Cause** :
+Les élèves sur le même réseau (WiFi école, opérateur mobile) partagent la même adresse IP publique (NAT). Le rate limiter compte toutes les tentatives de tous les élèves comme provenant d'une seule source.
+
+**Limites actuelles** :
+- `/api/students/login/` : 30 tentatives / 15 minutes par IP
+- Réponse HTTP 429 avec message français clair
+
+**Solutions** :
+
+#### 1. Attente
+- Le rate limit se réinitialise automatiquement après **15 minutes**
+- Demandez aux élèves de patienter et réessayer
+
+#### 2. Vérification
+```bash
+# Vérifier les logs backend pour le rate limiting
+docker-compose logs backend | grep -i "rate_limited\|429\|limited"
+
+# Vérifier l'IP source
+docker-compose logs nginx | grep "students/login" | tail -20
+```
+
+#### 3. Désactivation temporaire (urgence uniquement)
+```python
+# Dans settings.py (NE PAS LAISSER EN PRODUCTION)
+RATELIMIT_ENABLE = False  # Désactive tout rate limiting
+```
+
+> ⚠️ **Important** : Toujours réactiver le rate limiting après l'urgence.
+
+---
 
 ### Problème : Erreur CSRF token
 
