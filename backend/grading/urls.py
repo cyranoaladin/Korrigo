@@ -30,6 +30,7 @@ from grading.views_annotation_bank import (
     AnnotationTemplateListView,
 )
 from grading.views_my_students import MyStudentsListView, StudentBilanView
+from grading.views_questionnaire import QuestionnaireResponseView, QuestionnaireBilanView
 
 urlpatterns = [
     # Drafts
@@ -85,4 +86,6 @@ urlpatterns = [
     # Mes Élèves (correcteur)
     path('my-students/', MyStudentsListView.as_view(), name='my-students-list'),
     path('students/<int:student_id>/bilan/', StudentBilanView.as_view(), name='student-bilan'),
+    path('questionnaire/', QuestionnaireResponseView.as_view(), name='questionnaire-response'),
+    path('questionnaire/bilan/', QuestionnaireBilanView.as_view(), name='questionnaire-bilan'),
 ]
