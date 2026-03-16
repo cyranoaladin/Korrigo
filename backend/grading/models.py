@@ -496,3 +496,30 @@ class UserAnnotation(models.Model):
 
     def __str__(self):
         return f"{self.user.username}: {self.text[:50]} (×{self.usage_count})"
+
+
+class QuestionnaireResponse(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='questionnaire_response',
+        verbose_name=_("Répondant")
+    )
+    payload = models.JSONField(
+        default=dict,
+        verbose_name=_("Réponses"),
+        help_text=_("Réponses complètes du questionnaire")
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de mise à jour"))
+
+    class Meta:
+        verbose_name = _("Réponse questionnaire")
+        verbose_name_plural = _("Réponses questionnaire")
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['updated_at']),
+        ]
+
+    def __str__(self):
+        return f"Questionnaire {self.user.username}"
