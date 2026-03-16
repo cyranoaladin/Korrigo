@@ -11,6 +11,7 @@ const authStore = useAuthStore()
 const router = useRouter()
 const exams = ref([])
 const loading = ref(true)
+const questionnaireSummary = ref({ is_available: false, responses_count: 0, total_eligible: 0 })
 
 // P9 FIX: Toast notification system (replaces native alert())
 const toast = ref({ show: false, message: '', type: 'success' })
@@ -31,6 +32,15 @@ const fetchExams = async () => {
         console.error("Failed to fetch exams", e)
     } finally {
         loading.value = false
+    }
+}
+
+const fetchQuestionnaireBilanStatus = async () => {
+    try {
+        const res = await api.get('/grading/questionnaire/bilan/')
+        questionnaireSummary.value = res.data.summary || questionnaireSummary.value
+    } catch (e) {
+        console.error("Failed to fetch questionnaire bilan status", e)
     }
 }
 
@@ -235,6 +245,7 @@ const subjectStats = () => {
 
 onMounted(() => {
     fetchExams()
+    fetchQuestionnaireBilanStatus()
 })
 </script>
 
@@ -252,7 +263,7 @@ onMounted(() => {
         >
       </div>
       <ul class="nav-links">
-        <li class="active">
+        <li :class="{ active: $route.name === 'AdminDashboard' }">
           Gestion Examens
         </li>
         <li 
@@ -266,6 +277,13 @@ onMounted(() => {
           @click="router.push({ name: 'Settings' })"
         >
           Paramètres
+        </li>
+        <li 
+          v-if="questionnaireSummary.is_available"
+          :class="{ active: $route.name === 'QuestionnaireBilan' }"
+          @click="router.push({ name: 'QuestionnaireBilan' })"
+        >
+          Bilan Questionnaire
         </li>
       </ul>
       <button
@@ -305,6 +323,13 @@ onMounted(() => {
             @click="openUploadModal"
           >
             Importer Examen
+          </button>
+          <button
+            v-if="questionnaireSummary.is_available"
+            class="btn btn-outline"
+            @click="router.push({ name: 'QuestionnaireBilan' })"
+          >
+            Bilan Questionnaire
           </button>
         </div>
                 

@@ -23,6 +23,7 @@ const basicStats = ref({ total: 0, graded: 0, todo: 0 })
 const examStats = ref(null)
 const statsLoading = ref(false)
 const showStats = ref(false)
+const questionnaireSummary = ref({ has_response: false, summary: { is_available: false } })
 
 const fetchCopies = async () => {
     isLoading.value = true
@@ -42,6 +43,18 @@ const fetchCopies = async () => {
         console.error("Failed to fetch copies", err)
     } finally {
         isLoading.value = false
+    }
+}
+
+const fetchQuestionnaireStatus = async () => {
+    try {
+        const res = await api.get('/grading/questionnaire/')
+        questionnaireSummary.value = {
+            has_response: !!res.data.has_response,
+            summary: res.data.summary || { is_available: false }
+        }
+    } catch (err) {
+        console.error("Failed to fetch questionnaire status", err)
     }
 }
 
@@ -131,7 +144,9 @@ const medianLineX = computed(() => {
     return m != null ? toX(m) : null
 })
 
-onMounted(fetchCopies)
+onMounted(async () => {
+    await Promise.all([fetchCopies(), fetchQuestionnaireStatus()])
+})
 
 const handleLogout = async () => {
     await authStore.logout()
@@ -178,6 +193,14 @@ const scrollToStats = async () => {
 const goToMyStudents = () => {
     router.push('/corrector/my-students')
 }
+
+const goToQuestionnaire = () => {
+    router.push('/corrector/questionnaire')
+}
+
+const goToQuestionnaireBilan = () => {
+    router.push({ name: 'QuestionnaireBilan' })
+}
 </script>
 
 <template>
@@ -209,6 +232,20 @@ const goToMyStudents = () => {
           @click="goToMyStudents"
         >
           👥 Mes Élèves
+        </button>
+        <button
+          v-if="!questionnaireSummary.has_response"
+          class="btn-questionnaire"
+          @click="goToQuestionnaire"
+        >
+          📝 Questionnaire
+        </button>
+        <button
+          v-if="questionnaireSummary.summary?.is_available"
+          class="btn-questionnaire-bilan"
+          @click="goToQuestionnaireBilan"
+        >
+          📈 Bilan Questionnaire
         </button>
         <a
           href="https://korrigo.labomaths.tn/korrigo/stats-bb-maths-2026"
@@ -517,6 +554,10 @@ const goToMyStudents = () => {
 .btn-nav-stats:hover { background: #4f46e5; }
 .btn-my-students { background: #10b981; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
 .btn-my-students:hover { background: #059669; }
+.btn-questionnaire { background: #b45309; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
+.btn-questionnaire:hover { background: #92400e; }
+.btn-questionnaire-bilan { background: #7c3aed; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
+.btn-questionnaire-bilan:hover { background: #6d28d9; }
 .btn-jury-report { display: inline-block; background: #f59e0b; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; text-decoration: none; }
 .btn-jury-report:hover { background: #d97706; }
 .btn-logout { border: 1px solid #ef4444; background: white; color: #ef4444; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; }

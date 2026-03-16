@@ -142,6 +142,12 @@ const routes = [
         meta: { requiresAuth: true, role: ['Teacher', 'Admin'] }
     },
     {
+        path: '/corrector/questionnaire',
+        name: 'CorrectorQuestionnaire',
+        component: () => import('../views/corrector/QuestionnaireView.vue'),
+        meta: { requiresAuth: true, role: 'Teacher', title: 'Questionnaire Correcteur' }
+    },
+    {
         path: '/corrector/student/:studentId/bilan',
         name: 'StudentBilan',
         component: () => import('../views/corrector/StudentBilan.vue'),
@@ -176,6 +182,12 @@ const routes = [
         name: 'Settings',
         component: () => import('../views/Settings.vue'),
         meta: { requiresAuth: true, role: 'Admin' }
+    },
+    {
+        path: '/questionnaire/bilan',
+        name: 'QuestionnaireBilan',
+        component: () => import('../views/admin/QuestionnaireBilan.vue'),
+        meta: { requiresAuth: true, role: ['Teacher', 'Admin'], title: 'Bilan Questionnaire Correcteurs' }
     },
     {
         path: '/exam/:examId/staple',
