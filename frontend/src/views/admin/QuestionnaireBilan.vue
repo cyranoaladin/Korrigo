@@ -205,11 +205,11 @@ onMounted(fetchBilan)
         </button>
         <div class="header-title">
           <h1>Bilan Questionnaire Correcteurs</h1>
-          <p class="header-subtitle">{{ summary.responses_count }} reponse(s) sur {{ summary.total_eligible }} correcteur(s)</p>
+          <p class="header-subtitle">{{ summary.responses_count }} réponse(s) sur {{ summary.total_eligible }} correcteur(s)</p>
         </div>
         <div class="header-actions">
           <span class="header-user">{{ authStore.user?.username }}</span>
-          <button class="header-btn logout" @click="handleLogout">Deconnexion</button>
+          <button class="header-btn logout" @click="handleLogout">Déconnexion</button>
         </div>
       </div>
     </header>
@@ -218,19 +218,19 @@ onMounted(fetchBilan)
     <nav class="tab-bar" v-if="!isLoading && !error">
       <div class="tab-bar-inner">
         <button :class="['tab', { active: activeTab === 'synthese' }]" @click="activeTab = 'synthese'">
-          <span class="tab-icon">&#x1F4CA;</span> Synthese
+          <span class="tab-icon">&#x1F4CA;</span> Synthèse
         </button>
         <button :class="['tab', { active: activeTab === 'bilan' }]" @click="activeTab = 'bilan'">
           <span class="tab-icon">&#x1F4C4;</span> Bilan complet
         </button>
         <button :class="['tab', { active: activeTab === 'donnees' }]" @click="activeTab = 'donnees'">
-          <span class="tab-icon">&#x1F4C8;</span> Donnees detaillees
+          <span class="tab-icon">&#x1F4C8;</span> Données détaillées
         </button>
         <button :class="['tab', { active: activeTab === 'retours' }]" @click="activeTab = 'retours'">
           <span class="tab-icon">&#x1F4AC;</span> Retours libres
         </button>
         <button :class="['tab', { active: activeTab === 'v2' }]" @click="activeTab = 'v2'">
-          <span class="tab-icon">&#x1F680;</span> Ameliorations V2
+          <span class="tab-icon">&#x1F680;</span> Améliorations V2
         </button>
       </div>
     </nav>
@@ -255,14 +255,14 @@ onMounted(fetchBilan)
           <p>{{ infoMessage }}</p>
         </div>
 
-        <!-- Tab: Synthese -->
+        <!-- Tab: Synthèse -->
         <div v-show="activeTab === 'synthese'" class="tab-panel">
           <section class="kpi-grid" data-testid="questionnaire-bilan-summary">
             <div class="kpi-card kpi-participation">
               <div class="kpi-accent"></div>
               <span class="kpi-label">Participation</span>
               <strong class="kpi-value">{{ summary.responses_count }} / {{ summary.total_eligible }}</strong>
-              <span class="kpi-sub">{{ summary.completion_rate }} % de completion</span>
+              <span class="kpi-sub">{{ summary.completion_rate }} % de complétion</span>
             </div>
             <div class="kpi-card kpi-nps">
               <div class="kpi-accent"></div>
@@ -274,7 +274,7 @@ onMounted(fetchBilan)
               <div class="kpi-accent"></div>
               <span class="kpi-label">Indice NPS</span>
               <strong class="kpi-value">{{ npsIndex ?? '—' }}</strong>
-              <span class="kpi-sub">promoteurs - detracteurs</span>
+              <span class="kpi-sub">promoteurs - détracteurs</span>
             </div>
             <div class="kpi-card kpi-ergo">
               <div class="kpi-accent"></div>
@@ -298,13 +298,13 @@ onMounted(fetchBilan)
 
           <section class="glass-card nps-explainer">
             <h3>Qu'est-ce que le NPS (Net Promoter Score) ?</h3>
-            <p>Le NPS mesure la probabilite qu'un utilisateur recommande l'outil a un collegue, sur une echelle de 0 a 10. Les repondants sont classes en trois categories :</p>
+            <p>Le NPS mesure la probabilité qu'un utilisateur recommande l'outil à un collègue, sur une échelle de 0 à 10. Les répondants sont classés en trois catégories :</p>
             <ul>
               <li><strong class="promoter">Promoteurs (9-10)</strong> — enthousiastes, ils recommandent activement</li>
               <li><strong class="passive">Passifs (7-8)</strong> — satisfaits mais sans enthousiasme</li>
-              <li><strong class="detractor">Detracteurs (0-6)</strong> — insatisfaits, risque de bouche-a-oreille negatif</li>
+              <li><strong class="detractor">Détracteurs (0-6)</strong> — insatisfaits, risque de bouche-à-oreille négatif</li>
             </ul>
-            <p><strong>Indice NPS</strong> = % Promoteurs - % Detracteurs. Le score varie de -100 a +100. Un NPS positif est considere comme bon, au-dessus de +50 comme excellent.</p>
+            <p><strong>Indice NPS</strong> = % Promoteurs − % Détracteurs. Le score varie de −100 à +100. Un NPS positif est considéré comme bon, au-dessus de +50 comme excellent.</p>
           </section>
 
           <section class="glass-card progress-section">
@@ -315,9 +315,6 @@ onMounted(fetchBilan)
             <div class="progress-track">
               <div class="progress-fill" :style="{ width: `${summary.completion_rate}%` }"></div>
             </div>
-            <p v-if="!summary.is_available" class="waiting-text">
-              Le bilan complet sera publie quand les {{ summary.remaining_count }} correcteur(s) restant(s) auront repondu.
-            </p>
           </section>
         </div>
 
@@ -325,7 +322,7 @@ onMounted(fetchBilan)
         <div v-show="activeTab === 'bilan'" class="tab-panel">
           <div v-if="!summary.is_available && !canSeePartialResponses && generatedBilan.status !== 'ready'" class="glass-card empty-card">
             <div class="empty-icon">&#x1F4CB;</div>
-            <p>Le bilan detaille n'est pas encore disponible.</p>
+            <p>Le bilan détaillé n'est pas encore disponible.</p>
           </div>
 
           <section v-if="generatedBilan.status === 'ready'" class="glass-card generated-bilan-section">
@@ -338,22 +335,22 @@ onMounted(fetchBilan)
 
           <section v-if="generatedBilan.status === 'pending'" class="glass-card info-card">
             <div class="loading-spinner small"></div>
-            <p>Le bilan automatique est en cours de generation.</p>
+            <p>Le bilan automatique est en cours de génération.</p>
           </section>
 
           <section v-if="generatedBilan.status === 'failed'" class="glass-card error-card">
-            <p>{{ generatedBilan.error || "Le bilan automatique n'a pas pu etre genere pour le moment." }}</p>
+            <p>{{ generatedBilan.error || "Le bilan automatique n'a pas pu être généré pour le moment." }}</p>
           </section>
         </div>
 
-        <!-- Tab: Donnees detaillees -->
+        <!-- Tab: Données détaillées -->
         <div v-show="activeTab === 'donnees'" class="tab-panel">
-          <template v-if="(summary.is_available || canSeePartialResponses) && responses.length">
+          <template v-if="responses.length">
             <section class="two-columns">
               <div class="glass-card">
                 <div class="section-head">
                   <h2>Sentiment global</h2>
-                  <span class="section-badge">{{ responses.length }} repondant(s)</span>
+                  <span class="section-badge">{{ responses.length }} répondant(s)</span>
                 </div>
                 <div class="stat-list">
                   <div v-for="item in sentimentStats" :key="item.label" class="stat-row">
@@ -371,7 +368,7 @@ onMounted(fetchBilan)
               <div class="glass-card">
                 <div class="section-head">
                   <h2>Recommandation prochain bac blanc</h2>
-                  <span class="section-badge">{{ responses.length }} repondant(s)</span>
+                  <span class="section-badge">{{ responses.length }} répondant(s)</span>
                 </div>
                 <div class="stat-list">
                   <div v-for="item in recommendationStats" :key="item.label" class="stat-row">
@@ -434,7 +431,7 @@ onMounted(fetchBilan)
           </template>
 
           <div v-else class="glass-card empty-card">
-            <p>Aucune donnee detaillee disponible pour le moment.</p>
+            <p>Aucune donnée détaillée disponible pour le moment.</p>
           </div>
         </div>
 
@@ -490,11 +487,11 @@ onMounted(fetchBilan)
           </div>
         </div>
 
-        <!-- Tab: Ameliorations V2 -->
+        <!-- Tab: Améliorations V2 -->
         <div v-show="activeTab === 'v2'" class="tab-panel">
           <div class="v2-intro glass-card">
             <h2>Ameliorations apportees — V2 (Mars 2026)</h2>
-            <p class="v2-subtitle">En reponse directe aux retours des correcteurs, les ameliorations suivantes ont ete developpees et deployees sur la plateforme.</p>
+            <p class="v2-subtitle">En réponse directe aux retours des correcteurs, les améliorations suivantes ont été développées et déployées sur la plateforme.</p>
           </div>
 
           <div class="v2-cards-grid">
@@ -520,7 +517,7 @@ onMounted(fetchBilan)
               <p class="v2-problem">Absence d'un outil de marquage rapide V/X correspondant au geste papier le plus frequent.</p>
               <p class="v2-source">Patrick Dupont, Philippe Carr</p>
               <div class="v2-solution">
-                <strong>Boutons V et F dans la barre d'outils :</strong> un clic sur le bouton active le mode tampon. Chaque rectangle dessine sur la copie cree instantanement un checkmark vert ou une croix rouge sans ouvrir d'editeur. Le tampon persiste sur le PDF final remis a l'eleve.
+                <strong>Boutons V et F dans la barre d'outils :</strong> un clic sur le bouton active le mode tampon. Chaque rectangle dessiné sur la copie crée instantanément un checkmark vert ou une croix rouge sans ouvrir d'éditeur. Le tampon persiste sur le PDF final remis à l'élève.
               </div>
             </div>
 
@@ -582,7 +579,7 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Deploye</span>
               </div>
               <h3>Commentaires non memorises entre copies</h3>
-              <p class="v2-problem">Les remarques saisies sur une copie ne pouvaient pas etre reutilisees sur la suivante.</p>
+              <p class="v2-problem">Les remarques saisies sur une copie ne pouvaient pas être réutilisées sur la suivante.</p>
               <p class="v2-source">Chawki Saadi</p>
               <div class="v2-solution">
                 <strong>Sauvegarde automatique dans la banque personnelle :</strong> chaque remarque substantielle (plus de 5 caracteres) est automatiquement enregistree dans la banque d'annotations personnelle du correcteur avec le contexte exercice/question. Les remarques frequentes sont proposees en priorite lors de la correction de la copie suivante.
@@ -595,10 +592,10 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Deploye</span>
               </div>
               <h3>Chargement lent des pages PDF</h3>
-              <p class="v2-problem">Delai perceptible lors du passage d'une page a l'autre.</p>
+              <p class="v2-problem">Délai perceptible lors du passage d'une page à l'autre.</p>
               <p class="v2-source">Sami Ben Tiba, Philippe Carr, Selima Klibi</p>
               <div class="v2-solution">
-                <strong>Prechargement des pages adjacentes :</strong> les pages precedente et suivante sont chargees en arriere-plan avant que le correcteur ne navigue. Resultat : affichage quasi-instantane lors du changement de page. Ajout d'une transition en fondu pour eliminer le flash blanc.
+                <strong>Prechargement des pages adjacentes :</strong> les pages précédente et suivante sont chargées en arrière-plan avant que le correcteur ne navigue. Résultat : affichage quasi-instantané lors du changement de page. Ajout d'une transition en fondu pour éliminer le flash blanc.
               </div>
             </div>
 
@@ -611,7 +608,7 @@ onMounted(fetchBilan)
               <p class="v2-problem">Le defilement des pages n'etait pas naturel et le zoom difficile a ajuster.</p>
               <p class="v2-source">Chawki Saadi, Philippe Carr</p>
               <div class="v2-solution">
-                <strong>Scroll fluide natif + zoom ameliore :</strong> activation du scroll smooth CSS, support du Ctrl+molette pour zoomer/dezoomer rapidement, bouton "Ajuster a la largeur", clic sur le pourcentage pour reinitialiser le zoom a 100 %. Temps de reponse au changement de page reduit de 400 ms a 300 ms.
+                <strong>Scroll fluide natif + zoom amélioré :</strong> activation du scroll smooth CSS, support du Ctrl+molette pour zoomer/dézoomer rapidement, bouton « Ajuster à la largeur », clic sur le pourcentage pour réinitialiser le zoom à 100 %. Temps de réponse au changement de page réduit de 400 ms à 300 ms.
               </div>
             </div>
 
@@ -621,19 +618,19 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Deploye</span>
               </div>
               <h3>Bareme non replie par defaut</h3>
-              <p class="v2-problem">Tous les exercices du bareme etaient deplies a l'ouverture, encombrant l'espace de travail.</p>
+              <p class="v2-problem">Tous les exercices du barème étaient dépliés à l'ouverture, encombrant l'espace de travail.</p>
               <p class="v2-source">Retour d'usage general</p>
               <div class="v2-solution">
-                <strong>Comportement accordeon :</strong> tous les exercices sont replies par defaut a l'ouverture de la copie. Cliquer sur un exercice le deplie et replie automatiquement le precedent. Un seul exercice est visible a la fois pour un confort d'affichage optimal.
+                <strong>Comportement accordéon :</strong> tous les exercices sont repliés par défaut à l'ouverture de la copie. Cliquer sur un exercice le déplie et replie automatiquement le précédent. Un seul exercice est visible à la fois pour un confort d'affichage optimal.
               </div>
             </div>
           </div>
 
           <div class="glass-card v2-footer-card">
             <p><strong>Date de deploiement :</strong> 23 mars 2026</p>
-            <p><strong>Perimetre :</strong> 10 ameliorations - 84 fichiers modifies - 15 338 lignes de code - 414 tests automatises</p>
+            <p><strong>Périmètre :</strong> 10 améliorations · 84 fichiers modifiés · 15 338 lignes de code · 414 tests automatisés</p>
             <div class="v2-note">
-              Ces ameliorations sont le resultat direct de l'analyse des 7 reponses au questionnaire et du bilan automatique. Chaque modification a ete testee, validee et deployee en production sans interruption de service ni perte de donnees.
+              Ces améliorations sont le résultat direct de l'analyse des 7 réponses au questionnaire et du bilan automatique. Chaque modification a été testée, validée et déployée en production sans interruption de service ni perte de données.
             </div>
           </div>
         </div>
