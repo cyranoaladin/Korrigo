@@ -1,7 +1,7 @@
 # Schéma Base de Données - Korrigo PMF
 
-> **Version**: 1.3.0  
-> **Date**: 14 février 2026  
+> **Version**: 2.0.0
+> **Date**: 23 Mars 2026
 > **SGBD**: PostgreSQL 15+  
 > **ORM**: Django 4.2 LTS (Python 3.11)
 
@@ -351,6 +351,8 @@ Format CSV : `Nom-Prenom,Date-naissance,Adresse-mail,Classe,Groupe`
 - `NOTE`: Note de correction
 - `CROIX`: Croix (erreur visuelle)
 - `COCHE`: Coche (validation visuelle)
+- `VRAI`: Vrai (tampon ✓)
+- `FAUX`: Faux (tampon ✗)
 
 **Versionnement optimiste** : Le champ `version` est incrémenté atomiquement (`F('version') + 1`) à chaque mise à jour. Le client peut envoyer `version` attendue pour détecter les modifications concurrentes.
 
@@ -388,6 +390,7 @@ y_pdf = y * page_height
 - `DELETE_ANN`: Suppression annotation
 - `FINALIZE`: Finalisation LOCKED → GRADED
 - `EXPORT`: Export PDF
+- `REOPEN`: Réouverture d'une copie finalisée
 
 **Index**:
 - `(copy_id, timestamp)`: Historique par copie
@@ -570,6 +573,7 @@ stateDiagram-v2
     GRADING_IN_PROGRESS --> GRADED: PDF Success
     GRADING_IN_PROGRESS --> GRADING_FAILED: PDF Error
     GRADING_FAILED --> GRADING_IN_PROGRESS: Retry (max 3)
+    GRADED --> READY: Reopen (Admin)
     GRADED --> [*]
     
     note right of STAGING
@@ -594,6 +598,17 @@ stateDiagram-v2
 ```
 
 ### Transitions Validées
+
+| État Source | Action | État Cible | Acteur |
+|-------------|--------|------------|--------|
+| STAGING | validate | READY | Admin |
+| READY | lock | LOCKED | Teacher |
+| LOCKED | unlock | READY | Teacher |
+| LOCKED | finalize | GRADING_IN_PROGRESS | Teacher |
+| GRADING_IN_PROGRESS | success | GRADED | System |
+| GRADING_IN_PROGRESS | error | GRADING_FAILED | System |
+| GRADING_FAILED | retry | GRADING_IN_PROGRESS | Teacher |
+| GRADED | reopen | READY | Superuser Admin |
 
 Chaque transition est:
 1. **Validée** par le service layer
@@ -696,6 +711,10 @@ Ajout champs:
 - `Copy.validated_at`
 - `Copy.locked_at`
 - `Copy.graded_at`
+
+### Migration VRAI/FAUX + REOPEN (grading/0015_add_vrai_faux_reopen)
+
+- **0015_add_vrai_faux_reopen**: Ajout des types d'annotation VRAI/FAUX et de l'action REOPEN
 
 ---
 
@@ -824,6 +843,6 @@ gunzip -c backup.sql.gz | docker-compose exec -T db psql -U korrigo_user korrigo
 
 ---
 
-**Dernière mise à jour** : 14 février 2026  
+**Dernière mise à jour** : 23 mars 2026
 **Auteur** : Alaeddine BEN RHOUMA  
 **Licence** : Propriétaire — AEFE/Éducation Nationale

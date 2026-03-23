@@ -1,7 +1,7 @@
 # Guide Utilisateur Administrateur - Korrigo PMF
 
-> **Version**: 1.0.0  
-> **Date**: 30 janvier 2026  
+> **Version**: 2.0.0
+> **Date**: 23 Mars 2026
 > **Public**: Administrateurs techniques (Admin NSI, IT staff, Proviseur Adjoint)  
 > **Langue**: Français (technique)
 
@@ -804,10 +804,17 @@ copies_finales_BAC_BLANC_MATHS_20260315.zip
 3. Cliquer sur [Fusionner et Identifier]
 4. Identifier l'élève (voir section 7.1)
 
-### 7.3 Déverrouiller une Copie Manuellement
+### 7.3 Déverrouiller une Copie (Force Unlock)
 
 **Cas d'Usage** : Enseignant a fermé son navigateur sans finaliser, copie reste verrouillée
 
+**V2 - Méthode recommandée (CorrectorDesk)** :
+1. Ouvrir la copie bloquée dans le CorrectorDesk
+2. Dans la **toolbar**, cliquer sur le bouton **"Déverrouiller"**
+3. Confirmer l'action dans la modale de confirmation
+4. La copie repasse au statut `READY`
+
+**Méthode alternative (Dashboard)** :
 **Chemin** : Dashboard → Examens → [Examen] → [Copies] → [Copie] → [Forcer Déverrouillage]
 
 ⚠️ **Avertissement** : Déverrouiller de force peut causer la perte de travail en cours.
@@ -824,13 +831,40 @@ copies_finales_BAC_BLANC_MATHS_20260315.zip
 4. Cliquer sur [Forcer Déverrouillage]
 5. Confirmation :
    ```
-   ⚠️ Êtes-vous sûr de vouloir forcer le déverrouillage ?
+   Êtes-vous sûr de vouloir forcer le déverrouillage ?
    Cela peut entraîner la perte de travail en cours.
    [Annuler] [Confirmer]
    ```
 6. La copie repasse au statut `READY`
 
-**Événement d'Audit** : `ADMIN_UNLOCK` enregistré
+**Événement d'Audit** : `FORCE_UNLOCK` enregistré via GradingEvent avec metadata completes (acteur, timestamp, copie, raison)
+
+### 7.3b Réouverture d'une Copie Finalisée (Reopen)
+
+**Cas d'Usage** : Une copie finalisée (statut `GRADED`) doit etre corrigee a nouveau (erreur de saisie, oubli d'annotation, etc.)
+
+**Restriction d'Acces** : **Superuser uniquement** (ni admin standard, ni enseignant)
+
+**V2 - Methode (CorrectorDesk)** :
+1. Ouvrir la copie finalisee dans le CorrectorDesk
+2. Dans la **toolbar**, cliquer sur le bouton **"Rouvrir"**
+3. Confirmer l'action dans la modale de confirmation
+4. La copie passe du statut `GRADED` au statut `READY`
+5. Un enseignant peut alors la re-verrouiller et modifier les annotations/notes
+
+**Transition de statut** : `GRADED` → `READY`
+
+**Evenement d'Audit** : `REOPEN` enregistre via GradingEvent avec metadata completes :
+- Acteur (superuser)
+- Timestamp
+- Copie concernee
+- Statut precedent (`GRADED`)
+- Statut cible (`READY`)
+
+⚠️ **Attention** :
+- Cette action est irreversible (la copie devra etre re-finalisee apres modification)
+- Toutes les reouvertures sont tracees dans le journal d'audit
+- Seuls les superusers ont acces a cette fonctionnalite
 
 ### 7.4 Nettoyer les Fichiers Orphelins
 

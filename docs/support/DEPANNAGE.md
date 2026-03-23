@@ -1,7 +1,7 @@
 # Guide de Dépannage - Korrigo PMF
 
-> **Version**: 1.1.0  
-> **Date**: 10 Mars 2026  
+> **Version**: 2.0.0
+> **Date**: 23 Mars 2026
 > **Public**: Administrateurs techniques, Support IT  
 > **Langue**: Français (technique)
 
@@ -877,7 +877,46 @@ docker-compose exec backend python manage.py unlock_expired_copies
 docker-compose exec backend python manage.py force_unlock_copy <copy_id>
 ```
 
-### Problème : Annotations ne se sauvegardent pas
+### Probleme : Copie bloquee en mode locked
+
+**Symptomes** :
+- La copie reste en statut `LOCKED` alors que l'enseignant n'est plus connecte
+- Impossible pour un autre enseignant de prendre la copie
+
+**Diagnostic** :
+- Verifier le statut de la copie dans le Dashboard (statut `LOCKED`, utilisateur verrouillant, horodatage)
+
+**Solution (V2)** :
+1. Ouvrir la copie dans le **CorrectorDesk**
+2. Cliquer sur le bouton **"Deverrouiller"** dans la toolbar (visible pour les administrateurs)
+3. Confirmer l'action
+4. La copie repasse au statut `READY`
+
+**Evenement d'audit** : `FORCE_UNLOCK` enregistre via GradingEvent
+
+---
+
+### Probleme : Besoin de modifier une copie deja finalisee
+
+**Symptomes** :
+- La copie est en statut `GRADED` (finalisee)
+- L'enseignant a repere une erreur de notation ou un oubli d'annotation
+
+**Solution (V2)** :
+1. Contacter un **superuser** (seul profil autorise)
+2. Le superuser ouvre la copie dans le **CorrectorDesk**
+3. Cliquer sur le bouton **"Rouvrir"** dans la toolbar
+4. Confirmer l'action
+5. La copie passe de `GRADED` a `READY`
+6. L'enseignant peut alors re-verrouiller et modifier la copie
+
+**Evenement d'audit** : `REOPEN` enregistre via GradingEvent
+
+**Important** : Si les notes ont deja ete exportees vers Pronote, un re-export sera necessaire apres la nouvelle finalisation.
+
+---
+
+### Probleme : Annotations ne se sauvegardent pas
 
 **Symptômes** :
 - Annotations disparaissent après rafraîchissement

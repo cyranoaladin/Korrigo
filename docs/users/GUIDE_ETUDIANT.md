@@ -1,7 +1,7 @@
-# Guide Utilisateur Élève - Korrigo PMF
+# Guide Utilisateur Élève - Korrigo
 
-> **Version** : 1.3.0  
-> **Date** : 10 Mars 2026  
+> **Version** : 2.0.0
+> **Date** : 23 Mars 2026
 > **Public** : Élèves (Lycéens)  
 > **Type** : Manuel Utilisateur
 
@@ -23,7 +23,7 @@
 
 ## Bienvenue
 
-Bienvenue sur **Korrigo PMF**, le portail de consultation de vos copies d'examens corrigées !
+Bienvenue sur **Korrigo**, le portail de consultation de vos copies d'examens corrigées !
 
 Ce guide vous explique comment :
 - ✅ Accéder à vos copies corrigées
@@ -37,7 +37,7 @@ Ce guide vous explique comment :
 
 ### Présentation Simple
 
-**Korrigo PMF** est une plateforme numérique qui permet à vos professeurs de corriger vos copies d'examens sur ordinateur, au lieu d'utiliser un stylo rouge.
+**Korrigo** est une plateforme numérique qui permet à vos professeurs de corriger vos copies d'examens sur ordinateur, au lieu d'utiliser un stylo rouge.
 
 ### Comment ça Marche ?
 
@@ -85,7 +85,7 @@ Sur la page de connexion :
     
     ```
     ┌─────────────────────────────────────────┐
-    │ 🎓 Portail Élève - Korrigo PMF          │
+    │ 🎓 Portail Élève - Korrigo        │
     ├─────────────────────────────────────────┤
     │                                         │
     │  Email :                               │
@@ -205,7 +205,7 @@ Pour chaque examen, vous voyez :
 
 ### Types d'Annotations
 
-Votre professeur peut ajouter **4 types d'annotations** sur votre copie :
+Votre professeur peut ajouter **6 types d'annotations** sur votre copie :
 
 | Type | Symbole | Couleur | Signification |
 |------|---------|---------|---------------|
@@ -213,6 +213,10 @@ Votre professeur peut ajouter **4 types d'annotations** sur votre copie :
 | **Surlignage** | 🟨 | Jaune | Passage mis en évidence |
 | **Erreur** | ❌ | Rouge | Erreur signalée, points retirés |
 | **Bonus** | ⭐ | Vert | Bonus, points ajoutés |
+| **Vrai** | ✓ | Vert | Indique une réponse correcte |
+| **Faux** | ✗ | Rouge | Indique une réponse incorrecte |
+
+> **Note** : Les tampons **✓ (Vrai)** et **✗ (Faux)** sont des marques rapides utilisées par les correcteurs pour indiquer les réponses correctes ou incorrectes, de la même manière qu'ils le feraient avec un stylo sur une copie papier. Ces marques sont purement visuelles et ne retirent ni n'ajoutent de points directement.
 
 ### Lire les Commentaires
 
@@ -269,6 +273,34 @@ Les **étoiles vertes** ⭐ indiquent un bonus :
 │                                     │
 │ ⭐ "Excellente initiative !"         │
 │     +0.5 point bonus                │
+└─────────────────────────────────────┘
+```
+
+#### Vrai (✓)
+
+Les **coches vertes** ✓ indiquent une réponse correcte :
+- Le professeur valide votre réponse
+- Aucun point n'est associé directement a cette marque (les points sont saisis dans le barème)
+
+**Exemple** :
+```
+┌─────────────────────────────────────┐
+│ Votre réponse : 2x + 3 = 7         │
+│                 x = 2  ✓            │
+└─────────────────────────────────────┘
+```
+
+#### Faux (✗)
+
+Les **croix rouges** ✗ indiquent une réponse incorrecte :
+- Le professeur signale que la réponse n'est pas correcte
+- Aucun point n'est associé directement a cette marque (les points sont saisis dans le barème)
+
+**Exemple** :
+```
+┌─────────────────────────────────────┐
+│ Votre réponse : 2x + 3 = 7         │
+│                 x = 3  ✗            │
 └─────────────────────────────────────┘
 ```
 
@@ -331,7 +363,7 @@ Le PDF téléchargé contient :
 
 ### Protection de Vos Données
 
-Korrigo PMF respecte vos droits en matière de **protection des données personnelles** (RGPD).
+Korrigo respecte vos droits en matière de **protection des données personnelles** (RGPD).
 
 #### Quelles Données sont Stockées ?
 
@@ -457,7 +489,7 @@ Si le problème persiste, contactez le support.
 
 #### Q6 : Pourquoi certaines annotations n'ont pas de commentaire ?
 
-**Réponse** : C'est normal. Les annotations de type **Surlignage** 🟨 n'ont généralement pas de commentaire. Les autres annotations peuvent avoir un commentaire ou non, selon le choix du professeur.
+**Réponse** : C'est normal. Les annotations de type **Surlignage** 🟨, **Vrai** ✓ et **Faux** ✗ n'ont généralement pas de commentaire. Ce sont des marques visuelles rapides. Les autres annotations peuvent avoir un commentaire ou non, selon le choix du professeur.
 
 ### Téléchargement
 
@@ -633,6 +665,7 @@ Pour toute question sur :
 
 | Version | Date | Changements |
 |---------|------|-------------|
+| **2.0.0** | 23/03/2026 | Ajout annotations **Vrai** (✓) et **Faux** (✗), mise a jour types d'annotations (6 types), note explicative tampons V/X |
 | **1.3.0** | 10/03/2026 | 🛡️ **Transparence** : Bannière garanties correction, mot de passe par défaut (JJMMAAAA), FAQ rate limit |
 | **1.2.0** | 12/02/2026 | 🔑 **Mise à jour** : Authentification par Email + Mot de passe |
 | **1.1.0** | 01/02/2026 | 🔒 **Sécurité** : (Version obsolète - méthode non retenue) |
@@ -640,7 +673,7 @@ Pour toute question sur :
 
 ---
 
-**© 2026 Korrigo PMF - Plateforme de Correction Numérique pour Lycées**
+**© 2026 Korrigo - Plateforme de Correction Numérique pour Lycées**
 
 > 📧 **Contact** : Pour toute question, contactez le support de votre lycée ou consultez la [FAQ](../support/FAQ.md).
 

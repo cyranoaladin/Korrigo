@@ -1,8 +1,8 @@
 # Manuel de Sécurité Technique
 # Plateforme Korrigo PMF
 
-> **Version**: 1.1.0  
-> **Date**: 10 Mars 2026  
+> **Version**: 2.0.0
+> **Date**: 23 Mars 2026
 > **Public**: Administrateurs techniques, DSI, RSSI, DPO  
 > **Classification**: Usage interne - Sensible  
 > **Référence**: SECURITY_PERMISSIONS_INVENTORY.md
@@ -876,14 +876,16 @@ class GradingEvent(models.Model):
     metadata = models.JSONField(default=dict)
 ```
 
-**Événements tracés** :
-- ✅ Import copies
-- ✅ Identification élève
-- ✅ Verrouillage/déverrouillage
-- ✅ Création/modification/suppression annotations
-- ✅ Finalisation copies
-- ✅ Téléchargements PDF
-- ✅ Connexions/déconnexions (Django logs)
+**Evenements traces** :
+- Import copies
+- Identification eleve
+- Verrouillage/deverrouillage
+- Creation/modification/suppression annotations
+- Finalisation copies
+- Telechargements PDF
+- Connexions/deconnexions (Django logs)
+- **Force Unlock (V2)** : Deverrouillage force d'une copie par un administrateur. Action reservee aux admins, enregistree via `GradingEvent` avec action `FORCE_UNLOCK` et metadata completes (acteur, copie, timestamp, ancien verrou). Piste d'audit complete pour investigation.
+- **Reopen (V2)** : Reouverture d'une copie finalisee (`GRADED` → `READY`) par un superuser. Action reservee exclusivement aux superusers, enregistree via `GradingEvent` avec action `REOPEN` et metadata completes (acteur, copie, statut precedent, statut cible, timestamp). Toute reouverture est tracable et auditable.
 
 ---
 

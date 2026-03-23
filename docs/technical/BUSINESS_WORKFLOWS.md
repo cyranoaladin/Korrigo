@@ -1,7 +1,7 @@
 # Workflows Métier - Korrigo PMF
 
-> **Version**: 2.0.0  
-> **Date**: 4 mars 2026  
+> **Version**: 2.1.0
+> **Date**: 23 Mars 2026
 > **Public**: Product Owners, Développeurs, Utilisateurs
 
 Documentation complète des workflows métier de la plateforme Korrigo PMF, du scan des copies à la consultation par les élèves.
@@ -99,6 +99,11 @@ sequenceDiagram
     System->>System: Générer PDF final
     System->>System: LOCKED → GRADED
     System-->>Teacher: Copie finalisée
+
+    Note over Teacher,System: Réouverture (V2) — Superuser uniquement
+    Admin->>System: Réouvrir copie finalisée
+    System->>System: GRADED → READY (reopen)
+    System-->>Admin: Copie réouverte (scores conservés)
 
     Teacher->>System: Générer bilan IA
     System->>Ollama: Prompt (Notes + Annotations)
@@ -360,6 +365,14 @@ flowchart TD
 └──────────────────────────┴──────────────────────────────────┘
 ```
 
+#### Outils de Correction V2
+
+| Outil | Description |
+|-------|-------------|
+| **Tampon V/X** | Outil tampon Vrai/Faux (V/X) pour marquage rapide des réponses |
+| **Vue scindée** | Split view PDF/Barème pour correction efficace côte à côte |
+| **Réouverture** | Réouverture d'une copie finalisée (GRADED → READY) par un superuser en cas d'erreur |
+
 #### Types d'Annotations
 
 | Type | Icône | Usage | Score Delta |
@@ -554,6 +567,28 @@ flowchart TD
 
 ---
 
+### Cas 5: Réouverture d'une copie finalisée
+
+**Scénario**: Un correcteur signale une erreur sur une copie déjà finalisée (GRADED)
+
+**Acteurs**: Teacher, Admin (Superuser)
+**Prérequis**: Copie en statut GRADED
+
+**Étapes**:
+1. Correcteur signale erreur à l'administrateur
+2. Admin (superuser) accède au dashboard
+3. Admin clique "Réouvrir" sur la copie concernée
+4. Système effectue la transition GRADED → READY
+5. Le PDF final est invalidé, graded_at et grading_retries sont réinitialisés
+6. Les scores, annotations, remarques et appréciation globale sont **conservés**
+7. Un événement GradingEvent.REOPEN est enregistré (traçabilité)
+8. Le correcteur peut verrouiller et corriger à nouveau la copie
+9. Après correction, le correcteur finalise (LOCKED → GRADED)
+
+**Résultat**: Erreur corrigée, traçabilité complète, intégrité préservée
+
+---
+
 ## Gestion des Erreurs
 
 ### Erreurs Courantes
@@ -627,6 +662,6 @@ flowchart TD
 
 ---
 
-**Dernière mise à jour**: 4 mars 2026  
+**Dernière mise à jour**: 23 Mars 2026  
 **Auteur**: Alaeddine BEN RHOUMA  
 **Licence**: Propriétaire - AEFE/Éducation Nationale
