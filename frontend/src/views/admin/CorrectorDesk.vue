@@ -729,23 +729,20 @@ const handleImageError = () => {
 const handleDrawComplete = async (normalizedRect) => {
     if (!canAnnotate.value) return;
 
-    // Quick mode: any toolbar button selected → instant annotation, no editor
-    const quickType = quickStampMode.value || preSelectedAnnotationType.value
-    if (quickType) {
+    // Stamp mode (V, F, Bonus): instant annotation, no editor needed
+    const stampType = quickStampMode.value || (preSelectedAnnotationType.value === 'BONUS' ? 'BONUS' : null)
+    if (stampType) {
         isSaving.value = true
         try {
-            const contentMap = {
-                'VRAI': 'V', 'FAUX': 'X',
-                'COMMENTAIRE': '', 'SURLIGNAGE': '', 'ERREUR': '', 'BONUS': ''
-            }
+            const contentMap = { 'VRAI': 'V', 'FAUX': 'X', 'BONUS': '' }
             const payload = {
                 page_index: currentPage.value - 1,
                 x: normalizedRect.x,
                 y: normalizedRect.y,
                 w: normalizedRect.w,
                 h: normalizedRect.h,
-                type: quickType,
-                content: contentMap[quickType] ?? ''
+                type: stampType,
+                content: contentMap[stampType] ?? ''
             }
             await gradingApi.createAnnotation(copyId, payload)
             await refreshAnnotations()
@@ -755,10 +752,10 @@ const handleDrawComplete = async (normalizedRect) => {
         return
     }
 
-    // No toolbar button selected: open editor overlay for full annotation
+    // Text mode (Commentaire, Surlignage, Erreur, or no selection): open editor for text input
     draftAnnotation.value = {
         rect: normalizedRect,
-        type: 'COMMENTAIRE',
+        type: preSelectedAnnotationType.value || 'COMMENTAIRE',
         content: ''
     }
     showEditor.value = true

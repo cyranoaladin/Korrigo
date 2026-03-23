@@ -86,19 +86,21 @@ const redraw = (ctx) => {
         const rh = ann.h * props.height
         const colors = typeColors[ann.type] || defaultColor
 
-        // Check if this is a stamp type (VRAI / FAUX)
-        const isStamp = ann.type === 'VRAI' || ann.type === 'FAUX'
+        // Stamp types: symbol only, no text
+        const isStamp = ann.type === 'VRAI' || ann.type === 'FAUX' || ann.type === 'BONUS'
+        // Surlignage: no label above, just fill + optional text
+        const isSurlignage = ann.type === 'SURLIGNAGE' || ann.type === 'HIGHLIGHT'
 
         // Rectangle fill + stroke
         ctx.fillStyle = colors.fill
         ctx.fillRect(rx, ry, rw, rh)
         ctx.strokeStyle = colors.stroke
-        ctx.lineWidth = 2
+        ctx.lineWidth = isSurlignage ? 1 : 2
         ctx.setLineDash([])
         ctx.strokeRect(rx, ry, rw, rh)
 
         if (isStamp) {
-            // Draw stamp symbol only (no label, no text content)
+            // Draw stamp symbol centered (no label, no text)
             const cx = rx + rw / 2
             const cy = ry + rh / 2
             const size = Math.min(rw, rh) * 0.35
@@ -109,15 +111,13 @@ const redraw = (ctx) => {
             ctx.lineWidth = 3.5
 
             if (ann.type === 'VRAI') {
-                // Green checkmark (✓)
                 ctx.strokeStyle = '#16a34a'
                 ctx.beginPath()
                 ctx.moveTo(cx - size, cy)
                 ctx.lineTo(cx - size * 0.3, cy + size * 0.7)
                 ctx.lineTo(cx + size, cy - size * 0.6)
                 ctx.stroke()
-            } else {
-                // Red X (✗)
+            } else if (ann.type === 'FAUX') {
                 ctx.strokeStyle = '#dc2626'
                 ctx.beginPath()
                 ctx.moveTo(cx - size * 0.7, cy - size * 0.7)
@@ -127,17 +127,26 @@ const redraw = (ctx) => {
                 ctx.moveTo(cx + size * 0.7, cy - size * 0.7)
                 ctx.lineTo(cx - size * 0.7, cy + size * 0.7)
                 ctx.stroke()
+            } else {
+                // BONUS: star symbol
+                ctx.fillStyle = '#16a34a'
+                ctx.font = `${Math.min(rw, rh) * 0.6}px sans-serif`
+                ctx.textAlign = 'center'
+                ctx.textBaseline = 'middle'
+                ctx.fillText('⭐', cx, cy)
+                ctx.textAlign = 'start'
+                ctx.textBaseline = 'alphabetic'
             }
             ctx.restore()
         } else {
-            // Type label above rectangle
-            if (ann.type) {
+            // Label above rectangle (skip for surlignage)
+            if (ann.type && !isSurlignage) {
                 ctx.fillStyle = colors.text
                 ctx.font = 'bold 11px sans-serif'
                 ctx.fillText(ann.type, rx + 2, ry - 4)
             }
 
-            // Content text inside rectangle (clipped to rect bounds)
+            // Content text inside rectangle
             if (ann.content) {
                 ctx.save()
                 ctx.beginPath()
