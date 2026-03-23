@@ -432,15 +432,17 @@ onMounted(fetchBilan)
             </div>
           </section>
 
-          <!-- Section V2: Améliorations apportées en réponse au bilan -->
-          <section class="panel v2-improvements-panel">
-            <div class="v2-header">
-              <h2>Améliorations apportées — V2 (Mars 2026)</h2>
-              <p class="v2-subtitle">En réponse directe aux retours des correcteurs, les améliorations suivantes ont été développées et déployées sur la plateforme.</p>
-            </div>
+        </template>
 
-            <table class="v2-table">
-              <thead>
+        <!-- Section V2: Améliorations apportées (toujours visible, hors du bloc conditionnel) -->
+        <section class="panel v2-improvements-panel">
+          <div class="v2-header">
+            <h2>Améliorations apportées — V2 (Mars 2026)</h2>
+            <p class="v2-subtitle">En réponse directe aux retours des correcteurs, les améliorations suivantes ont été développées et déployées sur la plateforme.</p>
+          </div>
+
+          <table class="v2-table">
+            <thead>
                 <tr>
                   <th class="col-priority">Priorité</th>
                   <th class="col-issue">Problème signalé</th>
@@ -579,7 +581,6 @@ onMounted(fetchBilan)
               <p class="v2-note">Ces améliorations sont le résultat direct de l'analyse des 7 réponses au questionnaire et du bilan automatique. Chaque modification a été testée, validée et déployée en production sans interruption de service ni perte de données.</p>
             </div>
           </section>
-        </template>
       </template>
     </main>
   </div>
