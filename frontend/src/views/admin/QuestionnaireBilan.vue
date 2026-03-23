@@ -431,6 +431,154 @@ onMounted(fetchBilan)
               </div>
             </div>
           </section>
+
+          <!-- Section V2: Améliorations apportées en réponse au bilan -->
+          <section class="panel v2-improvements-panel">
+            <div class="v2-header">
+              <h2>Améliorations apportées — V2 (Mars 2026)</h2>
+              <p class="v2-subtitle">En réponse directe aux retours des correcteurs, les améliorations suivantes ont été développées et déployées sur la plateforme.</p>
+            </div>
+
+            <table class="v2-table">
+              <thead>
+                <tr>
+                  <th class="col-priority">Priorité</th>
+                  <th class="col-issue">Problème signalé</th>
+                  <th class="col-source">Correcteur(s)</th>
+                  <th class="col-solution">Amélioration apportée</th>
+                  <th class="col-status">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="priority-badge critical">1</span></td>
+                  <td>
+                    <strong>Friction annotation / barème</strong><br>
+                    Le panneau barème se réinitialisait en haut à chaque retour depuis les annotations, dissuadant les correcteurs d'annoter.
+                  </td>
+                  <td>Selima Klibi, Patrick Dupont, Chawki Saadi</td>
+                  <td>
+                    <strong>Refonte complète du layout :</strong> le barème est désormais affiché en permanence dans le panneau latéral droit. Les outils d'annotation sont dans la barre d'outils au-dessus de la copie. Plus aucune navigation entre onglets n'est nécessaire — les deux sont visibles simultanément.
+                  </td>
+                  <td><span class="status-badge deployed">Déployé</span></td>
+                </tr>
+                <tr>
+                  <td><span class="priority-badge high">2</span></td>
+                  <td>
+                    <strong>Outil tampon Vrai/Faux manquant</strong><br>
+                    Absence d'un outil de marquage rapide V/X correspondant au geste papier le plus fréquent.
+                  </td>
+                  <td>Patrick Dupont, Philippe Carr</td>
+                  <td>
+                    <strong>Boutons ✓ V et ✗ F dans la barre d'outils :</strong> un clic sur le bouton active le mode tampon. Chaque rectangle dessiné sur la copie crée instantanément un checkmark vert (✓) ou une croix rouge (✗) sans ouvrir d'éditeur. Le tampon persiste sur le PDF final remis à l'élève.
+                  </td>
+                  <td><span class="status-badge deployed">Déployé</span></td>
+                </tr>
+                <tr>
+                  <td><span class="priority-badge high">3</span></td>
+                  <td>
+                    <strong>Outils d'annotation lents</strong><br>
+                    Le workflow création d'annotation nécessitait trop d'étapes (sélection outil, clic, saisie, validation).
+                  </td>
+                  <td>Ensemble des correcteurs</td>
+                  <td>
+                    <strong>6 boutons d'annotation rapide dans la barre d'outils :</strong> Commentaire (💬), Surlignage (🟨), Erreur (❌), Bonus (⭐), Vrai (✓), Faux (✗). Les 3 premiers ouvrent un éditeur de texte pour saisir un commentaire. Les 3 derniers créent un tampon visuel instantané sans éditeur.
+                  </td>
+                  <td><span class="status-badge deployed">Déployé</span></td>
+                </tr>
+                <tr>
+                  <td><span class="priority-badge blocking">4</span></td>
+                  <td>
+                    <strong>Copies bloquées en mode « locked »</strong><br>
+                    Des copies restaient verrouillées sans possibilité d'y accéder ni de les annoter.
+                  </td>
+                  <td>Patrick Dupont, Philippe Carr</td>
+                  <td>
+                    <strong>Bouton « Déverrouiller » (administrateur) :</strong> visible dans la barre d'outils pour les administrateurs. Force la suppression du verrou avec journalisation complète de l'action (qui a déverrouillé, quand, ancien propriétaire du verrou).
+                  </td>
+                  <td><span class="status-badge deployed">Déployé</span></td>
+                </tr>
+                <tr>
+                  <td><span class="priority-badge medium">5</span></td>
+                  <td>
+                    <strong>Impossible de revenir sur une copie finalisée</strong><br>
+                    Une fois la copie corrigée, aucune modification n'était possible même en cas d'erreur.
+                  </td>
+                  <td>Edouard Rousseau</td>
+                  <td>
+                    <strong>Bouton « Rouvrir » (superutilisateur) :</strong> permet de remettre une copie finalisée en statut « Prêt » pour correction. Le PDF final est invalidé, mais toutes les notes, annotations, remarques et appréciations sont conservées. Action entièrement tracée dans le journal d'audit.
+                  </td>
+                  <td><span class="status-badge deployed">Déployé</span></td>
+                </tr>
+                <tr>
+                  <td><span class="priority-badge medium">6</span></td>
+                  <td>
+                    <strong>Pas de suivi des questions non corrigées</strong><br>
+                    Aucun indicateur visuel pour savoir quelles questions du barème avaient reçu une note.
+                  </td>
+                  <td>Sami Ben Tiba</td>
+                  <td>
+                    <strong>Barre de progression segmentée par question :</strong> dans le tableau de bord correcteur, chaque copie affiche une barre visuelle indiquant les questions notées (vert) et non notées (gris), avec le pourcentage et le détail (ex : « 5/8 questions notées — 63 % »).
+                  </td>
+                  <td><span class="status-badge deployed">Déployé</span></td>
+                </tr>
+                <tr>
+                  <td><span class="priority-badge medium">7</span></td>
+                  <td>
+                    <strong>Commentaires non mémorisés entre copies</strong><br>
+                    Les remarques saisies sur une copie ne pouvaient pas être réutilisées sur la suivante.
+                  </td>
+                  <td>Chawki Saadi</td>
+                  <td>
+                    <strong>Sauvegarde automatique dans la banque personnelle :</strong> chaque remarque substantielle (plus de 5 caractères) est automatiquement enregistrée dans la banque d'annotations personnelle du correcteur avec le contexte exercice/question. Les remarques fréquentes sont proposées en priorité lors de la correction de la copie suivante.
+                  </td>
+                  <td><span class="status-badge deployed">Déployé</span></td>
+                </tr>
+                <tr>
+                  <td><span class="priority-badge medium">8</span></td>
+                  <td>
+                    <strong>Chargement lent des pages PDF</strong><br>
+                    Délai perceptible lors du passage d'une page à l'autre.
+                  </td>
+                  <td>Sami Ben Tiba, Philippe Carr, Selima Klibi</td>
+                  <td>
+                    <strong>Préchargement des pages adjacentes :</strong> les pages précédente et suivante sont chargées en arrière-plan avant que le correcteur ne navigue. Résultat : affichage quasi-instantané lors du changement de page. Ajout d'une transition en fondu pour éliminer le flash blanc.
+                  </td>
+                  <td><span class="status-badge deployed">Déployé</span></td>
+                </tr>
+                <tr>
+                  <td><span class="priority-badge medium">9</span></td>
+                  <td>
+                    <strong>Scroll et navigation non fluides</strong><br>
+                    Le défilement des pages n'était pas naturel et le zoom difficile à ajuster.
+                  </td>
+                  <td>Chawki Saadi, Philippe Carr</td>
+                  <td>
+                    <strong>Scroll fluide natif + zoom amélioré :</strong> activation du scroll smooth CSS, support du Ctrl+molette pour zoomer/dézoomer rapidement, bouton « Ajuster à la largeur » (↔), clic sur le pourcentage pour réinitialiser le zoom à 100 %. Temps de réponse au changement de page réduit de 400 ms à 300 ms.
+                  </td>
+                  <td><span class="status-badge deployed">Déployé</span></td>
+                </tr>
+                <tr>
+                  <td><span class="priority-badge medium">10</span></td>
+                  <td>
+                    <strong>Barème non replié par défaut</strong><br>
+                    Tous les exercices du barème étaient dépliés à l'ouverture, encombrant l'espace de travail.
+                  </td>
+                  <td>Retour d'usage général</td>
+                  <td>
+                    <strong>Comportement accordéon :</strong> tous les exercices sont repliés par défaut à l'ouverture de la copie. Cliquer sur un exercice le déplie et replie automatiquement le précédent. Un seul exercice est visible à la fois pour un confort d'affichage optimal.
+                  </td>
+                  <td><span class="status-badge deployed">Déployé</span></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="v2-footer">
+              <p><strong>Date de déploiement :</strong> 23 mars 2026</p>
+              <p><strong>Périmètre :</strong> 10 améliorations · 84 fichiers modifiés · 15 338 lignes de code · 414 tests automatisés</p>
+              <p class="v2-note">Ces améliorations sont le résultat direct de l'analyse des 7 réponses au questionnaire et du bilan automatique. Chaque modification a été testée, validée et déployée en production sans interruption de service ni perte de données.</p>
+            </div>
+          </section>
         </template>
       </template>
     </main>
@@ -890,6 +1038,117 @@ th {
   padding: 0.55rem 0.85rem;
   border-radius: 8px;
   cursor: pointer;
+}
+
+/* V2 Improvements Panel */
+.v2-improvements-panel {
+  border: 2px solid #3b82f6;
+  background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
+}
+
+.v2-header {
+  margin-bottom: 1.25rem;
+}
+
+.v2-header h2 {
+  margin: 0 0 0.5rem;
+  color: #1e40af;
+  font-size: 1.2rem;
+}
+
+.v2-subtitle {
+  margin: 0;
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.v2-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.v2-table thead {
+  background: #1e40af;
+  color: white;
+}
+
+.v2-table th {
+  padding: 0.75rem 0.65rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.v2-table td {
+  padding: 0.75rem 0.65rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.v2-table tbody tr:hover {
+  background: #f0f7ff;
+}
+
+.v2-table .col-priority { width: 60px; text-align: center; }
+.v2-table .col-issue { width: 25%; }
+.v2-table .col-source { width: 14%; font-size: 0.85rem; color: #64748b; }
+.v2-table .col-solution { width: 40%; }
+.v2-table .col-status { width: 80px; text-align: center; }
+
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: white;
+}
+
+.priority-badge.critical { background: #dc2626; }
+.priority-badge.high { background: #f59e0b; }
+.priority-badge.blocking { background: #7c3aed; }
+.priority-badge.medium { background: #3b82f6; }
+
+.status-badge.deployed {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.v2-footer {
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.v2-footer p {
+  margin: 0.3rem 0;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.v2-note {
+  margin-top: 0.75rem !important;
+  padding: 0.75rem 1rem;
+  background: #f0fdf4;
+  border-left: 4px solid #22c55e;
+  border-radius: 0 8px 8px 0;
+  color: #166534 !important;
+  font-size: 0.88rem !important;
+  line-height: 1.5;
 }
 
 @media (max-width: 1100px) {
