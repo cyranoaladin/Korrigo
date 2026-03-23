@@ -325,7 +325,8 @@ class TestQuestionnaireBilanEndpoint:
         assert len(response.data['participants']['responded']) == 1
         assert len(response.data['participants']['pending']) == 1
         assert response.data['participants']['pending'][0]['username'] == questionnaire_teacher_2.username
-        assert 'tous les correcteurs' in response.data['detail']
+        # detail is empty — bilan is accessible even before all teachers respond
+        assert response.data['detail'] == ''
 
     def test_admin_can_access_partial_detailed_responses_before_completion(
         self,
