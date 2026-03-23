@@ -1,7 +1,7 @@
 # Procédures Opérationnelles - Korrigo PMF
 
-> **Version**: 1.0.0  
-> **Date**: 30 janvier 2026  
+> **Version**: 2.0.0
+> **Date**: 23 Mars 2026
 > **Public**: Administrateurs, Personnel administratif, Équipe pédagogique  
 > **Langue**: Français (non-technique)
 
@@ -1060,6 +1060,60 @@ Une fois toutes les copies identifiées :
 
 ---
 
+## 10. Procedures V2 : Deverrouillage Force et Reouverture
+
+### 10.1 Procedure de Deverrouillage Force d'une Copie
+
+**Responsable** : Administrateur
+**Cas d'usage** : Une copie est bloquee en statut `LOCKED` (enseignant deconnecte, navigateur ferme, session expiree)
+
+#### Etapes
+
+1. **Verification prealable** :
+   - Confirmer que l'enseignant n'est plus en train de corriger la copie
+   - Contacter l'enseignant si possible pour eviter la perte de travail
+
+2. **Deverrouillage via CorrectorDesk** :
+   - Ouvrir la copie bloquee dans le CorrectorDesk
+   - Cliquer sur le bouton **"Deverrouiller"** dans la toolbar
+   - Confirmer dans la modale de confirmation
+
+3. **Resultat** :
+   - La copie repasse au statut `READY`
+   - L'evenement `FORCE_UNLOCK` est enregistre dans `GradingEvent` avec les metadata completes
+
+4. **Post-action** :
+   - Informer l'enseignant que la copie est de nouveau disponible
+   - Verifier dans les logs d'audit que l'evenement a ete correctement enregistre
+
+### 10.2 Procedure de Reouverture d'une Copie Finalisee
+
+**Responsable** : Superuser uniquement
+**Cas d'usage** : Une copie finalisee (`GRADED`) doit etre modifiee (erreur de notation, oubli d'annotation, contestation justifiee)
+
+#### Etapes
+
+1. **Verification prealable** :
+   - Confirmer la legitimite de la demande (erreur de saisie, oubli, etc.)
+   - S'assurer que les notes n'ont pas encore ete exportees vers Pronote
+
+2. **Reouverture via CorrectorDesk** :
+   - Ouvrir la copie finalisee dans le CorrectorDesk
+   - Cliquer sur le bouton **"Rouvrir"** dans la toolbar (visible uniquement pour les superusers)
+   - Confirmer dans la modale de confirmation
+
+3. **Resultat** :
+   - La copie passe du statut `GRADED` au statut `READY`
+   - L'evenement `REOPEN` est enregistre dans `GradingEvent` avec les metadata completes
+   - L'enseignant peut alors re-verrouiller la copie et effectuer les modifications
+
+4. **Post-action** :
+   - Informer l'enseignant que la copie est de nouveau disponible pour correction
+   - S'assurer que l'enseignant re-finalise la copie apres modification
+   - Si les notes avaient ete exportees, prevoir un re-export apres la nouvelle finalisation
+
+---
+
 ## Conclusion
 
 Ces procédures opérationnelles garantissent une utilisation fluide, sécurisée et conforme de Korrigo PMF dans un établissement scolaire. La rigueur dans leur application assure :
@@ -1079,5 +1133,5 @@ Ces procédures opérationnelles garantissent une utilisation fluide, sécurisé
 
 ---
 
-**Dernière Mise à Jour** : 30 janvier 2026  
-**Version du Document** : 1.0.0
+**Derniere Mise a Jour** : 23 Mars 2026
+**Version du Document** : 2.0.0

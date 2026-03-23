@@ -1,7 +1,7 @@
 # Guide de l'Administrateur du Lycée - Korrigo PMF
 
 > **Version**: 1.0.0  
-> **Date**: 30 janvier 2026  
+> **Date**: 23 Mars 2026
 > **Public**: Direction du lycée (Proviseur, Proviseur Adjoint, CPE)  
 > **Langue**: Français (non-technique)
 
@@ -34,10 +34,13 @@ Ce document constitue un guide complet pour les responsables d'établissement so
 
 - **Numérisation Intelligente** : Import de copies scannées en masse avec découpage automatique
 - **Identification Semi-Automatique** : Reconnaissance optique (OCR) des noms d'élèves assistée par validation humaine
-- **Correction Numérique** : Interface de correction avec annotations vectorielles, commentaires et barème
-- **Anonymisation** : Protection de l'impartialité de la correction
-- **Export Pronote** : Intégration directe avec votre système de gestion scolaire
-- **Portail Élève** : Consultation sécurisée des copies corrigées par les élèves
+- **Correction Numerique** : Interface de correction avec annotations vectorielles, commentaires et bareme
+- **Tampon Vrai/Faux (V2)** : Boutons V/X dans la barre d'outils pour marquer rapidement les reponses vrai/faux
+- **Vue Scindee (V2)** : Affichage simultane de la copie et du bareme (Split View) pour une correction plus efficace
+- **Anonymisation** : Protection de l'impartialite de la correction
+- **Force Unlock (V2)** : Deverrouillage force d'une copie bloquee par un administrateur via le CorrectorDesk
+- **Export Pronote** : Integration directe avec votre systeme de gestion scolaire
+- **Portail Eleve** : Consultation securisee des copies corrigees par les eleves
 
 ### 1.2 Bénéfices pour l'Établissement
 

@@ -22,6 +22,46 @@ const error = ref('')
 const infoMessage = ref('')
 const responses = ref([])
 const summary = ref({ responses_count: 0, total_eligible: 0, remaining_count: 0, completion_rate: 0, is_available: false })
+const generatedBilan = ref({ status: 'missing', html: '', generated_at: null, error: '' })
+const canSeePartialResponses = computed(() => authStore.user?.role === 'Admin' && responses.value.length > 0)
+const selectedResponseUserId = ref(null)
+
+const questionnaireQuestionMeta = QUESTIONNAIRE_SECTIONS.flatMap((section) => section.questions.map((question) => ({
+  id: question.id,
+  label: question.label,
+  sectionId: section.id,
+  sectionTitle: section.title
+}))).reduce((acc, item) => {
+  acc[item.id] = item
+  return acc
+}, {})
+
+const formatAnswerValue = (value) => {
+  if (Array.isArray(value)) return value.length ? value.join(', ') : '—'
+  if (value === null || value === undefined || value === '') return '—'
+  return value
+}
+
+const selectedDetailedResponse = computed(() => responses.value.find((response) => response.user_id === selectedResponseUserId.value) || responses.value[0] || null)
+
+const selectedDetailedSections = computed(() => {
+  if (!selectedDetailedResponse.value) return []
+  const grouped = Object.entries(selectedDetailedResponse.value.answers || {}).reduce((acc, [key, value]) => {
+    const meta = questionnaireQuestionMeta[key] || { sectionId: 'other', sectionTitle: 'Autres réponses', label: key }
+    const existing = acc[meta.sectionId] || { id: meta.sectionId, title: meta.sectionTitle, items: [] }
+    existing.items.push({
+      key,
+      label: meta.label,
+      value: formatAnswerValue(value)
+    })
+    acc[meta.sectionId] = existing
+    return acc
+  }, {})
+
+  const ordered = QUESTIONNAIRE_SECTIONS.map((section) => grouped[section.id]).filter(Boolean)
+  if (grouped.other) ordered.push(grouped.other)
+  return ordered
+})
 
 const getAnswer = (response, questionId) => response.answers?.[questionId]
 
@@ -125,7 +165,11 @@ const fetchBilan = async () => {
     const response = await api.get('/grading/questionnaire/bilan/')
     responses.value = response.data.responses || []
     summary.value = response.data.summary || summary.value
+    generatedBilan.value = response.data.generated_bilan || generatedBilan.value
     infoMessage.value = response.data.detail || ''
+    if (responses.value.length && !selectedResponseUserId.value) {
+      selectedResponseUserId.value = responses.value[0].user_id
+    }
   } catch (requestError) {
     console.error('Failed to load questionnaire bilan', requestError)
     error.value = requestError.response?.data?.detail || 'Erreur lors du chargement du bilan du questionnaire.'
@@ -220,6 +264,17 @@ onMounted(fetchBilan)
           </div>
         </section>
 
+        <section class="panel nps-explainer">
+          <h3>Qu'est-ce que le NPS (Net Promoter Score) ?</h3>
+          <p>Le NPS mesure la probabilité qu'un utilisateur recommande l'outil à un collègue, sur une échelle de 0 à 10. Les répondants sont classés en trois catégories :</p>
+          <ul>
+            <li><strong>Promoteurs (9-10)</strong> — enthousiastes, ils recommandent activement</li>
+            <li><strong>Passifs (7-8)</strong> — satisfaits mais sans enthousiasme</li>
+            <li><strong>Détracteurs (0-6)</strong> — insatisfaits, risque de bouche-à-oreille négatif</li>
+          </ul>
+          <p><strong>Indice NPS</strong> = % Promoteurs − % Détracteurs. Le score varie de −100 à +100. Un NPS positif est considéré comme bon, au-dessus de +50 comme excellent.</p>
+        </section>
+
         <section class="panel progress-panel">
           <div class="section-head">
             <h2>Participation</h2>
@@ -233,11 +288,27 @@ onMounted(fetchBilan)
           </p>
         </section>
 
-        <div v-if="!summary.is_available" class="panel empty-panel">
+        <div v-if="!summary.is_available && !canSeePartialResponses && generatedBilan.status !== 'ready'" class="panel empty-panel">
           Le bilan détaillé n'est pas encore disponible.
         </div>
 
-        <template v-else-if="responses.length">
+        <section v-if="generatedBilan.status === 'ready'" class="panel generated-bilan-panel">
+          <div class="section-head">
+            <h2>Bilan automatique</h2>
+            <span>{{ formatDate(generatedBilan.generated_at) }}</span>
+          </div>
+          <div class="generated-bilan-html" v-html="generatedBilan.html" />
+        </section>
+
+        <section v-if="generatedBilan.status === 'pending'" class="panel info-panel">
+          Le bilan automatique est en cours de génération.
+        </section>
+
+        <section v-if="generatedBilan.status === 'error'" class="panel error-panel">
+          {{ generatedBilan.error || "Le bilan automatique n'a pas pu être généré pour le moment." }}
+        </section>
+
+        <template v-if="(summary.is_available || canSeePartialResponses) && responses.length && generatedBilan.status !== 'ready'">
           <section class="two-columns">
             <div class="panel">
               <div class="section-head">
@@ -321,39 +392,6 @@ onMounted(fetchBilan)
             </div>
           </section>
 
-          <section class="panel">
-            <div class="section-head">
-              <h2>Détail par correcteur</h2>
-              <span>{{ respondentRows.length }} ligne(s)</span>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Correcteur</th>
-                    <th>NPS</th>
-                    <th>Sentiment</th>
-                    <th>Recommande</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="row in respondentRows" :key="`${row.username}-${row.submittedAt}`">
-                    <td>
-                      <div class="name-cell">
-                        <strong>{{ row.name }}</strong>
-                        <span>{{ row.username }}</span>
-                      </div>
-                    </td>
-                    <td>{{ row.nps ?? '—' }}</td>
-                    <td>{{ row.sentiment }}</td>
-                    <td>{{ row.recommendation }}</td>
-                    <td>{{ formatDate(row.submittedAt) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
 
           <section v-if="missingFeatures.length" class="panel">
             <div class="section-head">
@@ -465,6 +503,73 @@ onMounted(fetchBilan)
   color: #64748b;
 }
 
+.generated-bilan-panel {
+  line-height: 1.65;
+}
+
+.nps-explainer {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+  line-height: 1.6;
+}
+
+.nps-explainer h3 {
+  color: #0c4a6e;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.nps-explainer p {
+  color: #334155;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.nps-explainer ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.nps-explainer li {
+  color: #334155;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.generated-bilan-html :deep(h2),
+.generated-bilan-html :deep(h3) {
+  color: #0f172a;
+  margin-top: 1.1rem;
+}
+
+.generated-bilan-html :deep(p),
+.generated-bilan-html :deep(li),
+.generated-bilan-html :deep(blockquote),
+.generated-bilan-html :deep(td),
+.generated-bilan-html :deep(th) {
+  color: #334155;
+}
+
+.generated-bilan-html :deep(blockquote) {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #cbd5e1;
+  background: #f8fafc;
+}
+
+.generated-bilan-html :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.generated-bilan-html :deep(th),
+.generated-bilan-html :deep(td) {
+  border: 1px solid #e2e8f0;
+  padding: 0.65rem;
+  vertical-align: top;
+}
+
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -560,21 +665,138 @@ onMounted(fetchBilan)
   gap: 1rem;
 }
 
-.stat-list {
+.response-master-detail {
   display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.response-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.response-list-item {
+  width: 100%;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 0.9rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.response-list-item strong {
+  color: #0f172a;
+}
+
+.response-list-item span,
+.response-list-item small {
+  color: #64748b;
+}
+
+.response-list-item:hover,
+.response-list-item.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.response-detail {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 1rem;
+}
+
+.response-detail-head {
+  margin-bottom: 1rem;
+}
+
+.name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.name-cell strong {
+  color: #0f172a;
+}
+
+.name-cell span {
+  color: #64748b;
+}
+
+.response-detail-sections {
+  display: grid;
+  gap: 1rem;
+}
+
+.response-section-card {
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 0.95rem;
+}
+
+.response-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.response-section-header h3 {
+  margin: 0;
+  color: #1d4ed8;
+  font-size: 1rem;
+}
+
+.response-section-header span {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.response-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.response-detail-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: white;
+  padding: 0.85rem;
+}
+
+.response-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.response-value {
+  color: #0f172a;
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.stat-list {
+  display: flex;
+  flex-direction: column;
   gap: 0.85rem;
 }
 
 .stat-row {
   display: grid;
   gap: 0.4rem;
-}
-
-.stat-label-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  color: #334155;
 }
 
 .tool-grid {
@@ -616,7 +838,7 @@ table {
 }
 
 th,
- td {
+td {
   border-bottom: 1px solid #e2e8f0;
   padding: 0.8rem;
   text-align: left;
@@ -627,17 +849,6 @@ th {
   color: #64748b;
   font-size: 0.8rem;
   text-transform: uppercase;
-}
-
-.name-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.name-cell span {
-  color: #94a3b8;
-  font-size: 0.85rem;
 }
 
 .verbatim-list {
@@ -684,6 +895,15 @@ th {
 @media (max-width: 1100px) {
   .cards-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .cards-grid,
+  .two-columns,
+  .response-master-detail,
+  .response-detail-grid {
+    grid-template-columns: 1fr;
   }
 }
 

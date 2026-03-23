@@ -48,6 +48,8 @@ const lastSaveStatus = ref(null) // { source: 'LOCAL'|'SERVER', time: Date }
 
 // UI State
 const activeTab = ref('editor') // 'editor' | 'history' | 'grading'
+const splitView = ref(false) // When true, grading panel is always visible alongside the inspector
+const quickStampMode = ref(null) // null | 'VRAI' | 'FAUX' — for one-click stamp annotations
 
 // Editor
 const showEditor = ref(false) // Overlay editor
@@ -387,6 +389,8 @@ const saveRemark = async (questionId, remark) => {
     remarksSaving.value.set(questionId, true)
     try {
         await gradingApi.saveRemark(copyId, questionId, remark)
+        // Auto-save substantial remarks to personal annotation bank for reuse across copies
+        autoSaveRemarkToBank(questionId, remark)
         const newPending = new Set(pendingRemarksChanges.value)
         newPending.delete(questionId)
         pendingRemarksChanges.value = newPending
@@ -683,6 +687,36 @@ const handleDownload = () => {
   window.open(url, '_blank')
 }
 
+const handleForceUnlock = async () => {
+    if (!isAdmin.value) return
+    if (!confirm('Êtes-vous sûr de vouloir déverrouiller cette copie ? Le correcteur en cours perdra son verrou.')) return
+    if (isSaving.value) return
+    isSaving.value = true
+    try {
+        await gradingApi.forceUnlockCopy(copyId)
+        await fetchCopy()
+    } catch (err) {
+        error.value = err.response?.data?.detail || 'Échec du déverrouillage'
+    } finally {
+        isSaving.value = false
+    }
+}
+
+const handleReopenCopy = async () => {
+    if (!isAdmin.value || !isGraded.value) return
+    if (!confirm('Rouvrir cette copie invalidera le PDF final généré. Êtes-vous sûr de vouloir continuer ?')) return
+    if (isSaving.value) return
+    isSaving.value = true
+    try {
+        await gradingApi.reopenCopy(copyId)
+        await fetchCopy()
+    } catch (err) {
+        error.value = err.response?.data?.detail || 'Échec de la réouverture'
+    } finally {
+        isSaving.value = false
+    }
+}
+
 const handleImageLoad = (e) => {
     imageError.value = false
     imageLoaded.value = true
@@ -695,9 +729,34 @@ const handleImageError = () => {
 }
 
 // --- Annotation Editor ---
-const handleDrawComplete = (normalizedRect) => {
+const handleDrawComplete = async (normalizedRect) => {
     if (!canAnnotate.value) return;
-    activeTab.value = 'editor' // Switch to editor tab/view implicitly
+
+    // Quick stamp mode: instantly save V/X annotation without opening editor
+    if (quickStampMode.value) {
+        isSaving.value = true
+        try {
+            const payload = {
+                page_index: currentPage.value - 1,
+                x: normalizedRect.x,
+                y: normalizedRect.y,
+                w: normalizedRect.w,
+                h: normalizedRect.h,
+                type: quickStampMode.value,
+                content: quickStampMode.value === 'VRAI' ? 'V' : 'X'
+            }
+            await gradingApi.createAnnotation(copyId, payload)
+            await refreshAnnotations()
+        } catch (err) {
+            error.value = err.response?.data?.detail || "Échec de la création du tampon"
+        } finally { isSaving.value = false }
+        return
+    }
+
+    // Normal mode: open editor
+    if (!splitView.value) {
+        activeTab.value = 'editor'
+    }
     draftAnnotation.value = {
         rect: normalizedRect,
         type: 'COMMENTAIRE',
@@ -764,6 +823,15 @@ const openSuggestionsForRemark = (questionId) => {
     suggestionsQuestion.value = parts.length > 1 ? parts.slice(1).join('.') : null
     activeRemarkQuestionId.value = questionId
     showSuggestions.value = true
+}
+
+// Auto-save remarks to personal annotation bank when they are substantial
+const autoSaveRemarkToBank = (questionId, remark) => {
+    if (!remark || remark.trim().length < 5) return
+    const parts = questionId.split('.')
+    const exercise = parts.length > 0 ? parseInt(parts[0]) || null : null
+    const question = parts.length > 1 ? parts.slice(1).join('.') : null
+    gradingApi.autoSaveAnnotation(remark.trim(), exercise, question).catch(() => {})
 }
 
 const closeSuggestions = () => {
@@ -939,6 +1007,24 @@ onUnmounted(() => {
         >
           Télécharger
         </button>
+
+        <button
+          v-if="isAdmin"
+          :disabled="isSaving"
+          class="btn-warning"
+          @click="handleForceUnlock"
+        >
+          Déverrouiller
+        </button>
+
+        <button
+          v-if="isAdmin && isGraded"
+          :disabled="isSaving"
+          class="btn-orange"
+          @click="handleReopenCopy"
+        >
+          Rouvrir
+        </button>
       </div>
     </div>
 
@@ -1037,6 +1123,23 @@ onUnmounted(() => {
           >
             <span>Aucune page</span>
           </div>
+          <!-- Quick Stamp Buttons V/X -->
+          <div v-if="canAnnotate" class="quick-stamp-controls">
+            <button
+              :class="['btn-stamp', 'btn-stamp-vrai', { active: quickStampMode === 'VRAI' }]"
+              title="Tampon Vrai (cliquer puis dessiner sur la copie)"
+              @click="quickStampMode = quickStampMode === 'VRAI' ? null : 'VRAI'"
+            >
+              ✓ V
+            </button>
+            <button
+              :class="['btn-stamp', 'btn-stamp-faux', { active: quickStampMode === 'FAUX' }]"
+              title="Tampon Faux (cliquer puis dessiner sur la copie)"
+              @click="quickStampMode = quickStampMode === 'FAUX' ? null : 'FAUX'"
+            >
+              ✗ F
+            </button>
+          </div>
           <div class="zoom-controls">
             <button @click="scale = Math.max(0.2, scale - 0.1)">
               -
@@ -1046,6 +1149,15 @@ onUnmounted(() => {
               +
             </button>
           </div>
+          <!-- Split View Toggle -->
+          <button
+            class="btn-split-view"
+            :class="{ active: splitView }"
+            title="Afficher le barème à côté de la copie (vue scindée)"
+            @click="splitView = !splitView"
+          >
+            &#x25EB; Split
+          </button>
         </div>
         <div
           ref="scrollAreaRef"
@@ -1106,6 +1218,73 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <!-- Split-View: Grading panel pinned next to the viewer -->
+      <div v-if="splitView" class="split-grading-panel">
+        <div class="split-grading-header">
+          <strong>Barème</strong>
+          <button class="btn-sm btn-secondary" @click="splitView = false" title="Fermer la vue scindée">✕</button>
+        </div>
+        <div class="split-grading-body">
+          <div v-if="exercisesWithQuestions.length === 0" class="empty-list">
+            Aucun barème disponible.
+          </div>
+          <div v-else class="grading-content">
+            <div class="exercises-list">
+              <div v-for="exercise in exercisesWithQuestions" :key="'split-' + exercise.id" class="exercise-block">
+                <div
+                  class="exercise-header"
+                  :class="{ collapsed: collapsedExercises.has(exercise.id) }"
+                  @click="toggleExercise(exercise.id)"
+                >
+                  <span class="exercise-toggle">{{ collapsedExercises.has(exercise.id) ? '&#x25B6;' : '&#x25BC;' }}</span>
+                  <span class="exercise-label">{{ exercise.label }}</span>
+                  <span class="exercise-points">{{ exercise.totalPoints }} pts</span>
+                </div>
+                <div v-show="!collapsedExercises.has(exercise.id)" class="exercise-questions">
+                  <div v-for="question in exercise.questions" :key="'split-' + question.id" class="question-item">
+                    <div class="question-header">
+                      <span class="question-title">{{ question.title }}</span>
+                      <span class="question-max-score">/ {{ question.maxScore }} pts</span>
+                    </div>
+                    <div class="question-score-field">
+                      <label :for="'split-score-' + question.id">Note</label>
+                      <input
+                        :id="'split-score-' + question.id"
+                        type="number"
+                        step="0.25"
+                        min="0"
+                        :max="question.maxScore"
+                        :value="questionScores.get(question.id) ?? ''"
+                        :disabled="isReadOnly"
+                        :placeholder="isReadOnly ? '-' : '0'"
+                        class="score-input"
+                        :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
+                        @input="onScoreChange(question.id, $event.target.value)"
+                      >
+                    </div>
+                    <div class="question-remark-field">
+                      <label :for="'split-remark-' + question.id">Remarque</label>
+                      <textarea
+                        :id="'split-remark-' + question.id"
+                        :value="questionRemarks.get(question.id) || ''"
+                        :disabled="isReadOnly"
+                        placeholder="Remarque..."
+                        rows="1"
+                        @input="onRemarkChange(question.id, $event.target.value)"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="total-score-bar" :class="{ 'score-overflow': scoreExceeds20 }">
+                <span class="total-label">Total :</span>
+                <strong>{{ totalScore.toFixed(2) }}</strong> / 20
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Inspector -->
       <div class="inspector-panel">
         <div class="inspector-tabs">
@@ -1131,7 +1310,7 @@ onUnmounted(() => {
 
         <!-- Tab: Editor/List -->
         <div
-          v-if="activeTab === 'editor'"
+          v-show="activeTab === 'editor'"
           class="tab-content"
         >
           <div
@@ -1154,6 +1333,12 @@ onUnmounted(() => {
                 </option>
                 <option value="BONUS">
                   Bonus
+                </option>
+                <option value="VRAI">
+                  ✓ Vrai
+                </option>
+                <option value="FAUX">
+                  ✗ Faux
                 </option>
               </select>
             </div>
@@ -1235,7 +1420,7 @@ onUnmounted(() => {
 
         <!-- Tab: Grading -->
         <div
-          v-if="activeTab === 'grading'"
+          v-show="activeTab === 'grading'"
           class="tab-content grading-panel"
         >
           <div
@@ -1384,7 +1569,7 @@ onUnmounted(() => {
 
         <!-- Tab: History -->
         <div
-          v-if="activeTab === 'history'"
+          v-show="activeTab === 'history'"
           class="tab-content history-panel"
         >
           <ul class="history-list">
@@ -1432,6 +1617,7 @@ onUnmounted(() => {
 .btn-success { background: #28a745; color: white; border: none; }
 .btn-warning { background: #ffc107; border: none; }
 .btn-info { background: #17a2b8; color: white; border: none; }
+.btn-orange { background: #f97316; color: white; border: none; }
 .btn-secondary { background: #6c757d; color: white; border: none; }
 .btn-sm { padding: 2px 6px; font-size: 0.85rem; }
 
@@ -1577,4 +1763,26 @@ onUnmounted(() => {
 .btn-suggestion-trigger:hover { opacity: 1; }
 .remark-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
 .remark-label-row label { margin-bottom: 0; }
+
+/* Quick Stamp Buttons */
+.quick-stamp-controls { display: flex; gap: 4px; align-items: center; }
+.btn-stamp { padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: 700; font-size: 0.9rem; border: 2px solid transparent; transition: all 0.15s; }
+.btn-stamp-vrai { background: #dcfce7; color: #16a34a; border-color: #bbf7d0; }
+.btn-stamp-vrai:hover, .btn-stamp-vrai.active { background: #16a34a; color: white; border-color: #16a34a; }
+.btn-stamp-faux { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
+.btn-stamp-faux:hover, .btn-stamp-faux.active { background: #dc2626; color: white; border-color: #dc2626; }
+
+/* Split View Toggle */
+.btn-split-view { padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 600; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; transition: all 0.15s; }
+.btn-split-view:hover { background: #e2e8f0; }
+.btn-split-view.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+
+/* Split Grading Panel */
+.split-grading-panel { width: 320px; min-width: 280px; max-width: 400px; background: white; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; overflow: hidden; resize: horizontal; }
+.split-grading-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f1f5f9; border-bottom: 1px solid #dee2e6; }
+.split-grading-header strong { font-size: 0.95rem; color: #1e293b; }
+.split-grading-body { flex: 1; overflow-y: auto; }
+.split-grading-body .grading-content { padding: 10px; }
+.split-grading-body .question-item { margin-bottom: 12px; padding: 10px; }
+.split-grading-body .question-remark-field textarea { rows: 1; font-size: 0.85rem; }
 </style>
