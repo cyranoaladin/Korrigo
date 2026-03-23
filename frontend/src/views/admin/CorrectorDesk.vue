@@ -47,9 +47,7 @@ const clientId = ref(crypto.randomUUID())
 const lastSaveStatus = ref(null) // { source: 'LOCAL'|'SERVER', time: Date }
 
 // UI State
-const activeTab = ref('editor') // 'editor' | 'history'
 const quickStampMode = ref(null) // null | 'VRAI' | 'FAUX' — for one-click stamp annotations
-const showScoringBar = ref(true) // Collapsible scoring bar above the copy
 const preSelectedAnnotationType = ref(null) // Pre-selected annotation type for drawing
 
 // Editor
@@ -752,8 +750,7 @@ const handleDrawComplete = async (normalizedRect) => {
         return
     }
 
-    // Normal mode: open editor
-    activeTab.value = 'editor'
+    // Normal mode: open editor overlay
     draftAnnotation.value = {
         rect: normalizedRect,
         type: preSelectedAnnotationType.value || 'COMMENTAIRE',
@@ -1170,135 +1167,6 @@ onUnmounted(() => {
             </button>
           </div>
         </div>
-        <!-- Scoring Bar (above copy) -->
-        <div class="scoring-bar" v-if="exercisesWithQuestions.length > 0 && !isStaging">
-          <div class="scoring-bar-header" @click="showScoringBar = !showScoringBar">
-            <span class="scoring-bar-toggle">{{ showScoringBar ? '▼' : '▶' }}</span>
-            <strong>Barème</strong>
-            <span class="scoring-bar-total">{{ totalScore.toFixed(2) }} / 20</span>
-            <span v-if="scoresSaving" class="save-indicator small">Sauvegarde...</span>
-          </div>
-          <div v-show="showScoringBar" class="scoring-bar-body">
-            <div class="exercises-list">
-              <div v-for="exercise in exercisesWithQuestions" :key="'bar-' + exercise.id" class="exercise-block">
-                <div
-                  class="exercise-header"
-                  :class="{ collapsed: openExerciseId !== exercise.id }"
-                  @click="toggleExercise(exercise.id)"
-                >
-                  <span class="exercise-toggle">{{ openExerciseId !== exercise.id ? '▶' : '▼' }}</span>
-                  <span class="exercise-label">{{ exercise.label }}</span>
-                  <span class="exercise-points">{{ exercise.totalPoints }} pts</span>
-                </div>
-                <div v-show="openExerciseId === exercise.id" class="exercise-questions">
-                  <div v-for="question in exercise.questions" :key="'bar-' + question.id" class="question-item">
-                    <div class="question-header">
-                      <span class="question-title">{{ question.title }}</span>
-                      <span class="question-max-score">/ {{ question.maxScore }} pts</span>
-                    </div>
-                    <div class="question-score-field">
-                      <label :for="'bar-score-' + question.id">Note</label>
-                      <input
-                        :id="'bar-score-' + question.id"
-                        type="number"
-                        step="0.25"
-                        min="0"
-                        :max="question.maxScore"
-                        :value="questionScores.get(question.id) ?? ''"
-                        :disabled="isReadOnly"
-                        :placeholder="isReadOnly ? '-' : '0'"
-                        class="score-input"
-                        :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
-                        @input="onScoreChange(question.id, $event.target.value)"
-                      >
-                    </div>
-                    <div class="question-remark-field">
-                      <div class="remark-label-row">
-                        <label :for="'bar-remark-' + question.id">Remarque</label>
-                        <button
-                          v-if="examId && !isReadOnly"
-                          class="btn-suggestion-trigger"
-                          title="Suggestions d'annotations"
-                          @click="openSuggestionsForRemark(question.id)"
-                        >
-                          💡
-                        </button>
-                      </div>
-                      <textarea
-                        :id="'bar-remark-' + question.id"
-                        :value="questionRemarks.get(question.id) || ''"
-                        :disabled="isReadOnly"
-                        placeholder="Remarque..."
-                        rows="1"
-                        @focus="activeRemarkQuestionId = question.id"
-                        @input="onRemarkChange(question.id, $event.target.value)"
-                      />
-                      <AnnotationSuggestionsPanel
-                        v-if="examId && activeRemarkQuestionId === question.id && showSuggestions"
-                        :exam-id="examId"
-                        :exercise-number="suggestionsExercise"
-                        :question-number="suggestionsQuestion"
-                        :visible="true"
-                        @insert="handleSuggestionInsert"
-                        @close="closeSuggestions"
-                      />
-                      <span
-                        v-if="remarksSaving.get(question.id)"
-                        class="save-indicator small"
-                      >
-                        Enregistrement...
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <!-- Total score indicator -->
-              <div
-                class="total-score-bar"
-                :class="{ 'score-overflow': scoreExceeds20 }"
-              >
-                <span class="total-label">Note totale :</span>
-                <strong>{{ totalScore.toFixed(2) }}</strong> / 20
-                <span
-                  v-if="scoreExceeds20"
-                  class="overflow-warning"
-                >
-                  ⚠ La note dépasse 20 !
-                </span>
-              </div>
-              <div
-                v-if="scoresSaving"
-                class="scores-save-status"
-              >
-                Sauvegarde des notes...
-              </div>
-              <div
-                v-else-if="lastScoresSaveStatus"
-                class="scores-save-status"
-                :class="{ 'save-ok': lastScoresSaveStatus.success, 'save-err': !lastScoresSaveStatus.success }"
-              >
-                {{ lastScoresSaveStatus.success ? 'Notes sauvegardées' : 'Erreur sauvegarde notes' }}
-              </div>
-            </div>
-            <div class="global-appreciation-section">
-              <label for="bar-global-appreciation">Appréciation globale</label>
-              <textarea
-                id="bar-global-appreciation"
-                v-model="globalAppreciation"
-                :disabled="isReadOnly"
-                :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une appréciation globale...'"
-                rows="3"
-                @input="onAppreciationChange($event.target.value)"
-              />
-              <span
-                v-if="appreciationSaving"
-                class="save-indicator small"
-              >
-                Enregistrement...
-              </span>
-            </div>
-          </div>
-        </div>
         <div
           ref="scrollAreaRef"
           class="scroll-area"
@@ -1358,159 +1226,158 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Inspector -->
+      <!-- Annotation Editor Overlay (floats above copy when editing) -->
+      <div
+        v-if="showEditor"
+        class="annotation-editor-overlay"
+        data-testid="editor-panel"
+      >
+        <h4>Nouvelle annotation</h4>
+        <div class="form-group">
+          <label>Type</label>
+          <select v-model="draftAnnotation.type">
+            <option value="COMMENTAIRE">Commentaire</option>
+            <option value="SURLIGNAGE">Surlignage</option>
+            <option value="ERREUR">Erreur</option>
+            <option value="BONUS">Bonus</option>
+            <option value="VRAI">✓ Vrai</option>
+            <option value="FAUX">✗ Faux</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Contenu</label>
+          <textarea
+            ref="editorInputRef"
+            v-model="draftAnnotation.content"
+            placeholder="Saisir le texte de l'annotation..."
+            @keydown.ctrl.enter="saveAnnotation"
+          />
+        </div>
+        <div class="editor-actions">
+          <button
+            v-if="examId"
+            class="btn-sm btn-suggestions"
+            title="Suggestions"
+            @click="showSuggestions = !showSuggestions"
+          >💡</button>
+          <button class="btn-sm btn-secondary" @click="cancelEditor">Annuler</button>
+          <button class="btn-sm btn-primary" @click="saveAnnotation">Enregistrer</button>
+        </div>
+        <AnnotationSuggestionsPanel
+          v-if="examId"
+          :exam-id="examId"
+          :exercise-number="suggestionsExercise"
+          :question-number="suggestionsQuestion"
+          :visible="showSuggestions"
+          @insert="handleSuggestionInsert"
+          @close="closeSuggestions"
+        />
+      </div>
+
+      <!-- Sidebar: Barème (always visible) -->
       <div class="inspector-panel">
-        <div class="inspector-tabs">
-          <button
-            :class="{ active: activeTab === 'editor' }"
-            @click="activeTab = 'editor'"
-          >
-            Annotations
-          </button>
-          <button
-            :class="{ active: activeTab === 'history' }"
-            @click="activeTab = 'history'"
-          >
-            Historique
-          </button>
+        <div class="inspector-header">
+          <strong>Barème</strong>
+          <span class="inspector-total" :class="{ 'score-overflow': scoreExceeds20 }">{{ totalScore.toFixed(2) }} / 20</span>
+          <span v-if="scoresSaving" class="save-indicator small">...</span>
         </div>
 
-        <!-- Tab: Editor/List -->
-        <div
-          v-show="activeTab === 'editor'"
-          class="tab-content"
-        >
-          <div
-            v-if="showEditor"
-            class="editor-panel"
-            data-testid="editor-panel"
-          >
-            <h4>Nouvelle annotation</h4>
-            <div class="form-group">
-              <label>Type</label>
-              <select v-model="draftAnnotation.type">
-                <option value="COMMENTAIRE">
-                  Commentaire
-                </option>
-                <option value="SURLIGNAGE">
-                  Surlignage
-                </option>
-                <option value="ERREUR">
-                  Erreur
-                </option>
-                <option value="BONUS">
-                  Bonus
-                </option>
-                <option value="VRAI">
-                  ✓ Vrai
-                </option>
-                <option value="FAUX">
-                  ✗ Faux
-                </option>
-              </select>
+        <div class="grading-panel">
+          <div v-if="exercisesWithQuestions.length === 0" class="empty-list">
+            Aucun barème disponible.
+          </div>
+          <div v-else class="grading-content">
+            <div class="exercises-list">
+              <div v-for="exercise in exercisesWithQuestions" :key="exercise.id" class="exercise-block">
+                <div
+                  class="exercise-header"
+                  :class="{ collapsed: openExerciseId !== exercise.id }"
+                  @click="toggleExercise(exercise.id)"
+                >
+                  <span class="exercise-toggle">{{ openExerciseId !== exercise.id ? '▶' : '▼' }}</span>
+                  <span class="exercise-label">{{ exercise.label }}</span>
+                  <span class="exercise-points">{{ exercise.totalPoints }} pts</span>
+                </div>
+                <div v-show="openExerciseId === exercise.id" class="exercise-questions">
+                  <div v-for="question in exercise.questions" :key="question.id" class="question-item">
+                    <div class="question-header">
+                      <span class="question-title">{{ question.title }}</span>
+                      <span class="question-max-score">/ {{ question.maxScore }} pts</span>
+                    </div>
+                    <div class="question-score-field">
+                      <label :for="'score-' + question.id">Note</label>
+                      <input
+                        :id="'score-' + question.id"
+                        type="number"
+                        step="0.25"
+                        min="0"
+                        :max="question.maxScore"
+                        :value="questionScores.get(question.id) ?? ''"
+                        :disabled="isReadOnly"
+                        :placeholder="isReadOnly ? '-' : '0'"
+                        class="score-input"
+                        :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
+                        @input="onScoreChange(question.id, $event.target.value)"
+                      >
+                    </div>
+                    <div class="question-remark-field">
+                      <div class="remark-label-row">
+                        <label :for="'remark-' + question.id">Remarque</label>
+                        <button
+                          v-if="examId && !isReadOnly"
+                          class="btn-suggestion-trigger"
+                          title="Suggestions"
+                          @click="openSuggestionsForRemark(question.id)"
+                        >💡</button>
+                      </div>
+                      <textarea
+                        :id="'remark-' + question.id"
+                        :value="questionRemarks.get(question.id) || ''"
+                        :disabled="isReadOnly"
+                        :placeholder="isReadOnly ? 'Lecture seule' : 'Remarque...'"
+                        rows="2"
+                        @focus="activeRemarkQuestionId = question.id"
+                        @input="onRemarkChange(question.id, $event.target.value)"
+                      />
+                      <AnnotationSuggestionsPanel
+                        v-if="examId && activeRemarkQuestionId === question.id && showSuggestions"
+                        :exam-id="examId"
+                        :exercise-number="suggestionsExercise"
+                        :question-number="suggestionsQuestion"
+                        :visible="true"
+                        @insert="handleSuggestionInsert"
+                        @close="closeSuggestions"
+                      />
+                      <span v-if="remarksSaving.get(question.id)" class="save-indicator small">Enregistrement...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Total -->
+              <div class="total-score-bar" :class="{ 'score-overflow': scoreExceeds20 }">
+                <span class="total-label">Note totale :</span>
+                <strong>{{ totalScore.toFixed(2) }}</strong> / 20
+                <span v-if="scoreExceeds20" class="overflow-warning">⚠ Dépasse 20 !</span>
+              </div>
+              <div v-if="scoresSaving" class="scores-save-status">Sauvegarde des notes...</div>
+              <div v-else-if="lastScoresSaveStatus" class="scores-save-status" :class="{ 'save-ok': lastScoresSaveStatus.success, 'save-err': !lastScoresSaveStatus.success }">
+                {{ lastScoresSaveStatus.success ? 'Notes sauvegardées' : 'Erreur sauvegarde' }}
+              </div>
             </div>
-            <div class="form-group">
-              <label>Contenu</label>
+            <!-- Appréciation -->
+            <div class="global-appreciation-section">
+              <label for="global-appreciation">Appréciation globale</label>
               <textarea
-                ref="editorInputRef"
-                v-model="draftAnnotation.content"
-                placeholder="Saisir le texte de l'annotation..."
-                @keydown.ctrl.enter="saveAnnotation"
+                id="global-appreciation"
+                v-model="globalAppreciation"
+                :disabled="isReadOnly"
+                :placeholder="isReadOnly ? 'Lecture seule' : 'Appréciation globale...'"
+                rows="4"
+                @input="onAppreciationChange($event.target.value)"
               />
+              <span v-if="appreciationSaving" class="save-indicator small">Enregistrement...</span>
             </div>
-            <div class="editor-actions">
-              <button
-                v-if="examId"
-                class="btn-sm btn-suggestions"
-                title="Suggestions d'annotations (Ctrl+K)"
-                @click="showSuggestions = !showSuggestions"
-              >
-                💡
-              </button>
-              <button
-                class="btn-sm btn-secondary"
-                @click="cancelEditor"
-              >
-                Annuler
-              </button>
-              <button
-                class="btn-sm btn-primary"
-                @click="saveAnnotation"
-              >
-                Enregistrer
-              </button>
-            </div>
-            <AnnotationSuggestionsPanel
-              v-if="examId"
-              :exam-id="examId"
-              :exercise-number="suggestionsExercise"
-              :question-number="suggestionsQuestion"
-              :visible="showSuggestions"
-              @insert="handleSuggestionInsert"
-              @close="closeSuggestions"
-            />
           </div>
-          <div
-            v-else
-            class="list-panel"
-          >
-            <ul class="annotation-list">
-              <li
-                v-for="ann in currentAnnotations"
-                :key="ann.id"
-                class="annotation-item"
-                data-testid="annotation-item"
-              >
-                <div class="ann-header">
-                  <span class="ann-type">{{ ann.type }}</span>
-                  <button
-                    v-if="canAnnotate"
-                    class="btn-sm btn-delete"
-                    @click="handleDeleteAnnotation(ann.id)"
-                  >
-                    ×
-                  </button>
-                </div>
-                <div class="ann-content">
-                  {{ ann.content }}
-                </div>
-              </li>
-              <li
-                v-if="currentAnnotations.length === 0"
-                class="empty-list"
-              >
-                Aucune annotation sur cette page.
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- Tab: History -->
-        <div
-          v-show="activeTab === 'history'"
-          class="tab-content history-panel"
-        >
-          <ul class="history-list">
-            <li
-              v-for="log in historyLogs"
-              :key="log.id"
-              class="history-item"
-            >
-              <div class="log-meta">
-                <span class="log-actor">{{ log.actor_username }}</span>
-                <span class="log-date">{{ formatDate(log.timestamp) }}</span>
-              </div>
-              <div class="log-action">
-                <strong>{{ log.action_display }}</strong>
-              </div>
-            </li>
-            <li
-              v-if="historyLogs.length === 0"
-              class="empty-list"
-            >
-              Aucun historique disponible.
-            </li>
-          </ul>
         </div>
       </div>
     </div>
@@ -1582,15 +1449,14 @@ onUnmounted(() => {
 }
 .btn-reveal:hover { background: rgba(255,255,255,0.25); }
 
-.inspector-panel { width: 320px; background: white; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; }
-.inspector-tabs { display: flex; border-bottom: 1px solid #dee2e6; }
-.inspector-tabs button { flex: 1; padding: 10px; border: none; background: #f8f9fa; cursor: pointer; font-weight: bold; color: #666; }
-.inspector-tabs button.active { background: white; color: #007bff; border-bottom: 2px solid #007bff; }
+.inspector-panel { width: 340px; background: white; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; }
+.inspector-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #f1f5f9; border-bottom: 2px solid #dee2e6; }
+.inspector-header strong { font-size: 1rem; color: #1e293b; }
+.inspector-total { margin-left: auto; font-weight: 700; font-size: 0.95rem; color: #065f46; background: #ecfdf5; padding: 2px 10px; border-radius: 4px; border: 1px solid #a7f3d0; }
+.inspector-total.score-overflow { color: #991b1b; background: #fef2f2; border-color: #fecaca; }
 
-.tab-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-.list-panel, .history-panel { flex: 1; overflow-y: auto; }
-.editor-panel { padding: 15px; background: #fff3cd; border-bottom: 1px solid #ffeeba; }
+/* Annotation editor overlay (floats above copy area) */
+.annotation-editor-overlay { position: fixed; top: 120px; left: 50%; transform: translateX(-60%); z-index: 100; width: 380px; background: #fff3cd; border: 2px solid #fbbf24; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); padding: 16px; }
 
 .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
 .form-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
@@ -1690,24 +1556,6 @@ onUnmounted(() => {
 .btn-stamp-faux { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
 .btn-stamp-faux:hover, .btn-stamp-faux.active { background: #dc2626; color: white; border-color: #dc2626; }
 
-/* Scoring Bar (above copy) */
-.scoring-bar { background: #f8f9fa; border-bottom: 2px solid #dee2e6; }
-.scoring-bar-header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; user-select: none; transition: background 0.15s; }
-.scoring-bar-header:hover { background: #e9ecef; }
-.scoring-bar-toggle { font-size: 0.75rem; color: #64748b; width: 14px; }
-.scoring-bar-total { margin-left: auto; font-weight: 700; font-size: 0.95rem; color: #065f46; background: #ecfdf5; padding: 2px 10px; border-radius: 4px; border: 1px solid #a7f3d0; }
-.scoring-bar-body { max-height: 300px; overflow-y: auto; padding: 8px 12px; }
-.scoring-bar-body .exercises-list { margin-bottom: 8px; }
-.scoring-bar-body .exercise-block { margin-bottom: 4px; }
-.scoring-bar-body .exercise-header { padding: 6px 10px; }
-.scoring-bar-body .exercise-questions { padding: 4px 6px 6px; }
-.scoring-bar-body .question-item { margin-bottom: 8px; padding: 8px 10px; font-size: 0.9rem; }
-.scoring-bar-body .question-header { margin-bottom: 6px; }
-.scoring-bar-body .question-remark-field textarea { font-size: 0.85rem; }
-.scoring-bar-body .global-appreciation-section { padding: 10px; margin-top: 4px; }
-.scoring-bar-body .global-appreciation-section textarea { rows: 2; font-size: 0.9rem; }
-.scoring-bar-body .total-score-bar { margin-top: 6px; padding: 6px 10px; font-size: 0.9rem; }
-.scoring-bar-body .scores-save-status { padding: 4px; font-size: 0.75rem; margin-top: 4px; }
 
 /* Annotation Type Quick Selectors */
 .annotation-type-controls { display: flex; gap: 3px; align-items: center; }
