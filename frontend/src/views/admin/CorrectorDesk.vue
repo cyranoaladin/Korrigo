@@ -158,6 +158,21 @@ const currentPageImageUrl = computed(() => {
     return gradingApi.getMediaUrl(path)
 })
 
+// Preload adjacent pages for instant navigation
+const preloadedImages = ref(new Map())
+const preloadAdjacentPages = () => {
+    const pagesToPreload = [currentPage.value, currentPage.value + 1, currentPage.value - 1]
+    pagesToPreload.forEach(p => {
+        if (p >= 1 && p <= pages.value.length && !preloadedImages.value.has(p)) {
+            const img = new Image()
+            img.src = gradingApi.getMediaUrl(pages.value[p - 1])
+            preloadedImages.value.set(p, img)
+        }
+    })
+}
+watch(currentPage, preloadAdjacentPages)
+watch(pages, preloadAdjacentPages)
+
 const currentAnnotations = computed(() => {
     return annotations.value.filter(a => a.page_index === (currentPage.value - 1))
 })
@@ -232,30 +247,43 @@ const goPrevPage = () => {
     if (currentPage.value > 1) currentPage.value--
 }
 
-// --- Scroll-wheel page change (fires when at scroll boundary) ---
+// --- Fit to width helper ---
+const fitToWidth = () => {
+    if (!scrollAreaRef.value || !pdfDimensions.value.width) return
+    const availableWidth = scrollAreaRef.value.clientWidth - 40 // 20px padding each side
+    const newScale = availableWidth / pdfDimensions.value.width
+    scale.value = Math.max(0.3, Math.min(3.0, +(newScale.toFixed(2))))
+}
+
+// --- Scroll-wheel: Ctrl+wheel = zoom, plain wheel at edge = page change ---
 const onScrollAreaWheel = (e) => {
     const el = scrollAreaRef.value
-    if (!el || wheelCooldown.value) return
+    if (!el) return
+
+    // Ctrl+wheel or pinch-zoom → zoom in/out
+    if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        const delta = e.deltaY > 0 ? -0.1 : 0.1
+        scale.value = Math.max(0.3, Math.min(3.0, +(scale.value + delta).toFixed(1)))
+        return
+    }
+
+    if (wheelCooldown.value) return
 
     const atTop = el.scrollTop <= 1
     const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
 
     if (e.deltaY < 0 && atTop) {
-        // Scrolling up at top edge → previous page
         e.preventDefault()
         goPrevPage()
-        // Cooldown prevents rapid multi-page skips
         wheelCooldown.value = true
-        setTimeout(() => { wheelCooldown.value = false }, 400)
-        // Scroll to bottom of new page so user continues scrolling up naturally
+        setTimeout(() => { wheelCooldown.value = false }, 300)
         nextTick(() => { if (el) el.scrollTop = el.scrollHeight })
     } else if (e.deltaY > 0 && atBottom) {
-        // Scrolling down at bottom edge → next page
         e.preventDefault()
         goNextPage()
         wheelCooldown.value = true
-        setTimeout(() => { wheelCooldown.value = false }, 400)
-        // Scroll to top of new page
+        setTimeout(() => { wheelCooldown.value = false }, 300)
         nextTick(() => { if (el) el.scrollTop = 0 })
     }
 }
@@ -1160,12 +1188,17 @@ onUnmounted(() => {
             >⭐</button>
           </div>
           <div class="zoom-controls">
-            <button @click="scale = Math.max(0.2, scale - 0.1)">
+            <button @click="scale = Math.max(0.3, +(scale - 0.1).toFixed(1))">
               -
             </button>
-            <span>{{ Math.round(scale * 100) }}%</span>
-            <button @click="scale = Math.min(3.0, scale + 0.1)">
+            <button class="zoom-reset" @click="scale = 1.0" title="Réinitialiser zoom">
+              {{ Math.round(scale * 100) }}%
+            </button>
+            <button @click="scale = Math.min(3.0, +(scale + 0.1).toFixed(1))">
               +
+            </button>
+            <button @click="fitToWidth" title="Ajuster à la largeur" class="btn-fit">
+              ↔
             </button>
           </div>
         </div>
@@ -1410,12 +1443,17 @@ onUnmounted(() => {
 
 .workspace { display: flex; flex: 1; overflow: hidden; }
 .viewer-container { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.viewer-toolbar { padding: 10px; background: white; border-bottom: 1px solid #dee2e6; display: flex; justify-content: center; gap: 20px; align-items: center; }
-.scroll-area { flex: 1; overflow: auto; background: #525659; display: flex; justify-content: center; padding: 20px; }
+.viewer-toolbar { padding: 8px 12px; background: white; border-bottom: 1px solid #dee2e6; display: flex; justify-content: center; gap: 12px; align-items: center; flex-wrap: wrap; }
+.zoom-controls { display: flex; align-items: center; gap: 4px; }
+.zoom-controls button { padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px; background: #f8f9fa; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+.zoom-controls button:hover { background: #e9ecef; }
+.zoom-reset { min-width: 52px; text-align: center; }
+.btn-fit { font-size: 1rem; }
+.scroll-area { flex: 1; overflow: auto; background: #525659; display: flex; justify-content: center; padding: 20px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; will-change: scroll-position; }
 
-.canvas-wrapper { position: relative; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); }
-.page-image { width: 100%; height: 100%; display: block; }
-.page-image--loading { visibility: hidden; }
+.canvas-wrapper { position: relative; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); will-change: transform; }
+.page-image { width: 100%; height: 100%; display: block; opacity: 1; transition: opacity 0.15s ease-in; image-rendering: auto; }
+.page-image--loading { opacity: 0; }
 
 .anonymization-overlay {
     position: absolute;
