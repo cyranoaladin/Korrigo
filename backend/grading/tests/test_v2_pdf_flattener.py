@@ -118,7 +118,8 @@ def _build_mock_fitz():
     mock_fitz.open.side_effect = fitz_open_side_effect
     mock_fitz.Rect = lambda *a: MagicMock(width=595, height=842)
     mock_fitz.Point = lambda x, y: (x, y)
-    mock_fitz.TextWriter = MagicMock
+    # TextWriter must be a callable that returns a simple mock (not a spec'd one)
+    mock_fitz.TextWriter = lambda *a, **kw: MagicMock()
 
     return mock_fitz, mock_shape, mock_doc
 
