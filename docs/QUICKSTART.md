@@ -350,5 +350,5 @@ Maintenant que vous avez Korrigo en fonctionnement:
 
 ---
 
-**Dernière mise à jour**: 10 mars 2026  
-**Version**: 1.1
+**Dernière mise à jour**: 23 mars 2026
+**Version**: 2.0

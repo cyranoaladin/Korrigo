@@ -1,7 +1,7 @@
 # Guide de Référence Rapide - Korrigo
 
 **Auteur** : Alaeddine BEN RHOUMA
-**Date** : 20 Février 2026
+**Date** : 23 Mars 2026
 
 ---
 
@@ -124,8 +124,8 @@ documentation/
 1. Login professeur
 2. Liste des copies assignées
 3. Ouvrir copie
-4. Annoter PDF
-5. Attribuer notes par question
+4. Annoter PDF (surlignage, commentaires, tampon V/X)
+5. Attribuer notes par question (split view disponible)
 6. Ajouter commentaires
 7. Sauvegarder (auto-save)
 8. Finaliser (lock)
@@ -224,10 +224,12 @@ POST /api/exams/upload/            # Upload PDF
 ### Copies
 
 ```http
-GET /api/grading/copies/           # Liste
-GET /api/grading/copies/{id}/      # Détails
-PATCH /api/grading/copies/{id}/    # Modifier
-POST /api/grading/copies/{id}/lock/ # Verrouiller
+GET /api/grading/copies/                    # Liste
+GET /api/grading/copies/{id}/               # Détails
+PATCH /api/grading/copies/{id}/             # Modifier
+POST /api/grading/copies/{id}/lock/         # Verrouiller
+POST /api/grading/copies/{id}/force-unlock/ # Déverrouillage forcé (admin)
+POST /api/grading/copies/{id}/reopen/       # Réouverture GRADED→READY (admin)
 ```
 
 ### Identification
@@ -445,4 +447,4 @@ docker compose exec redis redis-cli LLEN celery
 **Document rédigé par :**
 **Alaeddine BEN RHOUMA**
 *Lead Senior Documentation & Architecture*
-Date : 20 Février 2026
+Date : 23 Mars 2026

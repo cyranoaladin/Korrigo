@@ -54,6 +54,8 @@ const redraw = (ctx) => {
         'ERREUR':      { stroke: '#dc2626', fill: 'rgba(220, 38, 38, 0.12)', text: '#991b1b' },
         'ERROR':       { stroke: '#dc2626', fill: 'rgba(220, 38, 38, 0.12)', text: '#991b1b' },
         'BONUS':       { stroke: '#16a34a', fill: 'rgba(22, 163, 74, 0.12)', text: '#166534' },
+        'VRAI':        { stroke: '#16a34a', fill: 'rgba(22, 163, 74, 0.10)', text: '#16a34a' },
+        'FAUX':        { stroke: '#dc2626', fill: 'rgba(220, 38, 38, 0.10)', text: '#dc2626' },
     }
     const defaultColor = { stroke: '#2563eb', fill: 'rgba(37, 99, 235, 0.12)', text: '#1e40af' }
 
@@ -84,6 +86,9 @@ const redraw = (ctx) => {
         const rh = ann.h * props.height
         const colors = typeColors[ann.type] || defaultColor
 
+        // Check if this is a stamp type (VRAI / FAUX)
+        const isStamp = ann.type === 'VRAI' || ann.type === 'FAUX'
+
         // Rectangle fill + stroke
         ctx.fillStyle = colors.fill
         ctx.fillRect(rx, ry, rw, rh)
@@ -92,35 +97,69 @@ const redraw = (ctx) => {
         ctx.setLineDash([])
         ctx.strokeRect(rx, ry, rw, rh)
 
-        // Type label above rectangle
-        if (ann.type) {
-            ctx.fillStyle = colors.text
-            ctx.font = 'bold 11px sans-serif'
-            ctx.fillText(ann.type, rx + 2, ry - 4)
-        }
+        if (isStamp) {
+            // Draw stamp symbol only (no label, no text content)
+            const cx = rx + rw / 2
+            const cy = ry + rh / 2
+            const size = Math.min(rw, rh) * 0.35
 
-        // Content text inside rectangle (clipped to rect bounds)
-        if (ann.content) {
             ctx.save()
-            ctx.beginPath()
-            ctx.rect(rx + 4, ry + 2, rw - 8, rh - 4)
-            ctx.clip()
+            ctx.lineCap = 'round'
+            ctx.lineJoin = 'round'
+            ctx.lineWidth = 3.5
 
-            const fontSize = Math.max(10, Math.min(13, rh * 0.25))
-            const font = `600 ${fontSize}px sans-serif`
-            const lines = wrapText(ann.content, rw - 10, font)
-            const lineHeight = fontSize * 1.3
-
-            ctx.font = font
-            ctx.fillStyle = colors.text
-            ctx.textBaseline = 'top'
-            const startY = ry + 4
-            for (let i = 0; i < lines.length; i++) {
-                const ly = startY + i * lineHeight
-                if (ly + lineHeight > ry + rh) break
-                ctx.fillText(lines[i], rx + 5, ly)
+            if (ann.type === 'VRAI') {
+                // Green checkmark (✓)
+                ctx.strokeStyle = '#16a34a'
+                ctx.beginPath()
+                ctx.moveTo(cx - size, cy)
+                ctx.lineTo(cx - size * 0.3, cy + size * 0.7)
+                ctx.lineTo(cx + size, cy - size * 0.6)
+                ctx.stroke()
+            } else {
+                // Red X (✗)
+                ctx.strokeStyle = '#dc2626'
+                ctx.beginPath()
+                ctx.moveTo(cx - size * 0.7, cy - size * 0.7)
+                ctx.lineTo(cx + size * 0.7, cy + size * 0.7)
+                ctx.stroke()
+                ctx.beginPath()
+                ctx.moveTo(cx + size * 0.7, cy - size * 0.7)
+                ctx.lineTo(cx - size * 0.7, cy + size * 0.7)
+                ctx.stroke()
             }
             ctx.restore()
+        } else {
+            // Type label above rectangle
+            if (ann.type) {
+                ctx.fillStyle = colors.text
+                ctx.font = 'bold 11px sans-serif'
+                ctx.fillText(ann.type, rx + 2, ry - 4)
+            }
+
+            // Content text inside rectangle (clipped to rect bounds)
+            if (ann.content) {
+                ctx.save()
+                ctx.beginPath()
+                ctx.rect(rx + 4, ry + 2, rw - 8, rh - 4)
+                ctx.clip()
+
+                const fontSize = Math.max(10, Math.min(13, rh * 0.25))
+                const font = `600 ${fontSize}px sans-serif`
+                const lines = wrapText(ann.content, rw - 10, font)
+                const lineHeight = fontSize * 1.3
+
+                ctx.font = font
+                ctx.fillStyle = colors.text
+                ctx.textBaseline = 'top'
+                const startY = ry + 4
+                for (let i = 0; i < lines.length; i++) {
+                    const ly = startY + i * lineHeight
+                    if (ly + lineHeight > ry + rh) break
+                    ctx.fillText(lines[i], rx + 5, ly)
+                }
+                ctx.restore()
+            }
         }
     })
 

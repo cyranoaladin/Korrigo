@@ -82,6 +82,41 @@ def finalize_copy(copy):
     copy.save()
 ```
 
+## Mise à jour V2 (Mars 2026)
+
+### Nouvelle transition : GRADED → READY (Réouverture)
+
+Suite au retour d'expérience du premier déploiement (Bac Blanc Mars 2026), un correcteur a demandé la possibilité de revenir sur une copie finalisée pour corriger une erreur. La transition GRADED → READY a été ajoutée avec les garde-fous suivants :
+
+- **Accès restreint** : Superuser uniquement (pas les enseignants standard)
+- **Effets de bord** : Invalidation du PDF final, reset de graded_at et grading_retries
+- **Traçabilité** : Nouvel événement GradingEvent.REOPEN avec métadonnées (ancien statut, ancien PDF)
+- **Conservation** : Notes (Score), annotations, remarques et appréciation globale sont conservées
+
+### Diagramme de Transitions Mis à Jour
+
+```
+STAGING ──(validate)──> READY
+                         ↓
+                      (lock)
+                         ↓
+                       LOCKED ←─(unlock, si erreur)─┐
+                         ↓                           │
+                    (finalize)                       │
+                         ↓                           │
+                       GRADED ──(reopen, admin)──> READY
+```
+
+### Transitions Autorisées (V2)
+
+| État Actuel | Action      | État Suivant | Qui               |
+|-------------|-------------|--------------|-------------------|
+| STAGING     | validate    | READY        | Professeur        |
+| READY       | lock        | LOCKED       | Professeur        |
+| LOCKED      | unlock      | READY        | Même prof ou Admin |
+| LOCKED      | finalize    | GRADED       | Professeur        |
+| GRADED      | reopen      | READY        | Superuser Admin   |
+
 ## Conséquences
 
 ### Positives
@@ -92,7 +127,7 @@ def finalize_copy(copy):
 - ✅ État GRADED immutable (intégrité)
 
 ### Négatives
-- ❌ Rollback complexe si erreur après GRADED
+- ❌ ~~Rollback complexe si erreur après GRADED~~ — Résolu en V2 via la transition GRADED → READY
 - ❌ Besoin de procédure admin pour cas exceptionnels
 - ❌ Tests de toutes les transitions nécessaires
 
