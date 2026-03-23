@@ -92,7 +92,7 @@ class QuestionnaireBilanView(views.APIView):
             generated_bilan = get_questionnaire_bilan_state(serialized, summary)
         if generated_bilan['status'] == 'pending':
             detail = 'Toutes les réponses ont été reçues. Le bilan automatique est en cours de génération.'
-        elif generated_bilan['status'] == 'error':
+        elif generated_bilan['status'] == 'failed':
             detail = 'Le bilan automatique n’a pas pu être généré pour le moment.'
         else:
             detail = ''

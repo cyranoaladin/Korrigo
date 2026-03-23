@@ -324,7 +324,7 @@ def get_questionnaire_bilan_state(serialized_responses, summary):
             'status': 'pending',
             'html': '',
             'generated_at': None,
-            'error': '',
+            'detail': '',
             'auto': True,
             'fingerprint': fingerprint,
         }
@@ -332,7 +332,7 @@ def get_questionnaire_bilan_state(serialized_responses, summary):
         'status': 'missing',
         'html': '',
         'generated_at': None,
-        'error': '',
+        'detail': '',
         'auto': True,
         'fingerprint': fingerprint,
     }
@@ -379,7 +379,7 @@ def generate_questionnaire_bilan(force=False):
             'status': 'ready',
             'html': html,
             'generated_at': timezone.now().isoformat(),
-            'error': '',
+            'detail': '',
             'auto': True,
             'fingerprint': fingerprint,
             'responses_count': summary['responses_count'],
@@ -391,10 +391,10 @@ def generate_questionnaire_bilan(force=False):
     except Exception as exc:
         logger.exception('Questionnaire bilan generation failed')
         error_result = {
-            'status': 'error',
+            'status': 'failed',
             'html': '',
             'generated_at': timezone.now().isoformat(),
-            'error': str(exc)[:500],
+            'detail': str(exc)[:500],
             'auto': True,
             'fingerprint': fingerprint,
         }
