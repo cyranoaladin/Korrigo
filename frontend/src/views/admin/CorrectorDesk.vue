@@ -47,9 +47,10 @@ const clientId = ref(crypto.randomUUID())
 const lastSaveStatus = ref(null) // { source: 'LOCAL'|'SERVER', time: Date }
 
 // UI State
-const activeTab = ref('editor') // 'editor' | 'history' | 'grading'
-const splitView = ref(false) // When true, grading panel is always visible alongside the inspector
+const activeTab = ref('editor') // 'editor' | 'history'
 const quickStampMode = ref(null) // null | 'VRAI' | 'FAUX' — for one-click stamp annotations
+const showScoringBar = ref(true) // Collapsible scoring bar above the copy
+const preSelectedAnnotationType = ref(null) // Pre-selected annotation type for drawing
 
 // Editor
 const showEditor = ref(false) // Overlay editor
@@ -193,16 +194,14 @@ const flatQuestions = computed(() => {
     return flattenQuestions(gradingStructure.value)
 })
 
-// Collapsible exercises: track which exercises are collapsed
-const collapsedExercises = ref(new Set())
+// Accordion: only one exercise open at a time, all collapsed by default
+const openExerciseId = ref(null)
 const toggleExercise = (exerciseId) => {
-    const newSet = new Set(collapsedExercises.value)
-    if (newSet.has(exerciseId)) {
-        newSet.delete(exerciseId)
+    if (openExerciseId.value === exerciseId) {
+        openExerciseId.value = null // Close if already open
     } else {
-        newSet.add(exerciseId)
+        openExerciseId.value = exerciseId // Open this one, close others
     }
-    collapsedExercises.value = newSet
 }
 
 // Hierarchical structure: exercises with their sub-questions
@@ -754,12 +753,10 @@ const handleDrawComplete = async (normalizedRect) => {
     }
 
     // Normal mode: open editor
-    if (!splitView.value) {
-        activeTab.value = 'editor'
-    }
+    activeTab.value = 'editor'
     draftAnnotation.value = {
         rect: normalizedRect,
-        type: 'COMMENTAIRE',
+        type: preSelectedAnnotationType.value || 'COMMENTAIRE',
         content: ''
     }
     showEditor.value = true
@@ -1140,6 +1137,29 @@ onUnmounted(() => {
               ✗ F
             </button>
           </div>
+          <!-- Annotation Type Quick Selectors -->
+          <div v-if="canAnnotate" class="annotation-type-controls">
+            <button
+              :class="['btn-annot-type', { active: preSelectedAnnotationType === 'COMMENTAIRE' }]"
+              title="Commentaire"
+              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'COMMENTAIRE' ? null : 'COMMENTAIRE'"
+            >💬</button>
+            <button
+              :class="['btn-annot-type', { active: preSelectedAnnotationType === 'SURLIGNAGE' }]"
+              title="Surlignage"
+              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'SURLIGNAGE' ? null : 'SURLIGNAGE'"
+            >🟨</button>
+            <button
+              :class="['btn-annot-type', { active: preSelectedAnnotationType === 'ERREUR' }]"
+              title="Erreur"
+              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'ERREUR' ? null : 'ERREUR'"
+            >❌</button>
+            <button
+              :class="['btn-annot-type', { active: preSelectedAnnotationType === 'BONUS' }]"
+              title="Bonus"
+              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'BONUS' ? null : 'BONUS'"
+            >⭐</button>
+          </div>
           <div class="zoom-controls">
             <button @click="scale = Math.max(0.2, scale - 0.1)">
               -
@@ -1149,15 +1169,135 @@ onUnmounted(() => {
               +
             </button>
           </div>
-          <!-- Split View Toggle -->
-          <button
-            class="btn-split-view"
-            :class="{ active: splitView }"
-            title="Afficher le barème à côté de la copie (vue scindée)"
-            @click="splitView = !splitView"
-          >
-            &#x25EB; Split
-          </button>
+        </div>
+        <!-- Scoring Bar (above copy) -->
+        <div class="scoring-bar" v-if="exercisesWithQuestions.length > 0 && !isStaging">
+          <div class="scoring-bar-header" @click="showScoringBar = !showScoringBar">
+            <span class="scoring-bar-toggle">{{ showScoringBar ? '▼' : '▶' }}</span>
+            <strong>Barème</strong>
+            <span class="scoring-bar-total">{{ totalScore.toFixed(2) }} / 20</span>
+            <span v-if="scoresSaving" class="save-indicator small">Sauvegarde...</span>
+          </div>
+          <div v-show="showScoringBar" class="scoring-bar-body">
+            <div class="exercises-list">
+              <div v-for="exercise in exercisesWithQuestions" :key="'bar-' + exercise.id" class="exercise-block">
+                <div
+                  class="exercise-header"
+                  :class="{ collapsed: openExerciseId !== exercise.id }"
+                  @click="toggleExercise(exercise.id)"
+                >
+                  <span class="exercise-toggle">{{ openExerciseId !== exercise.id ? '▶' : '▼' }}</span>
+                  <span class="exercise-label">{{ exercise.label }}</span>
+                  <span class="exercise-points">{{ exercise.totalPoints }} pts</span>
+                </div>
+                <div v-show="openExerciseId === exercise.id" class="exercise-questions">
+                  <div v-for="question in exercise.questions" :key="'bar-' + question.id" class="question-item">
+                    <div class="question-header">
+                      <span class="question-title">{{ question.title }}</span>
+                      <span class="question-max-score">/ {{ question.maxScore }} pts</span>
+                    </div>
+                    <div class="question-score-field">
+                      <label :for="'bar-score-' + question.id">Note</label>
+                      <input
+                        :id="'bar-score-' + question.id"
+                        type="number"
+                        step="0.25"
+                        min="0"
+                        :max="question.maxScore"
+                        :value="questionScores.get(question.id) ?? ''"
+                        :disabled="isReadOnly"
+                        :placeholder="isReadOnly ? '-' : '0'"
+                        class="score-input"
+                        :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
+                        @input="onScoreChange(question.id, $event.target.value)"
+                      >
+                    </div>
+                    <div class="question-remark-field">
+                      <div class="remark-label-row">
+                        <label :for="'bar-remark-' + question.id">Remarque</label>
+                        <button
+                          v-if="examId && !isReadOnly"
+                          class="btn-suggestion-trigger"
+                          title="Suggestions d'annotations"
+                          @click="openSuggestionsForRemark(question.id)"
+                        >
+                          💡
+                        </button>
+                      </div>
+                      <textarea
+                        :id="'bar-remark-' + question.id"
+                        :value="questionRemarks.get(question.id) || ''"
+                        :disabled="isReadOnly"
+                        placeholder="Remarque..."
+                        rows="1"
+                        @focus="activeRemarkQuestionId = question.id"
+                        @input="onRemarkChange(question.id, $event.target.value)"
+                      />
+                      <AnnotationSuggestionsPanel
+                        v-if="examId && activeRemarkQuestionId === question.id && showSuggestions"
+                        :exam-id="examId"
+                        :exercise-number="suggestionsExercise"
+                        :question-number="suggestionsQuestion"
+                        :visible="true"
+                        @insert="handleSuggestionInsert"
+                        @close="closeSuggestions"
+                      />
+                      <span
+                        v-if="remarksSaving.get(question.id)"
+                        class="save-indicator small"
+                      >
+                        Enregistrement...
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Total score indicator -->
+              <div
+                class="total-score-bar"
+                :class="{ 'score-overflow': scoreExceeds20 }"
+              >
+                <span class="total-label">Note totale :</span>
+                <strong>{{ totalScore.toFixed(2) }}</strong> / 20
+                <span
+                  v-if="scoreExceeds20"
+                  class="overflow-warning"
+                >
+                  ⚠ La note dépasse 20 !
+                </span>
+              </div>
+              <div
+                v-if="scoresSaving"
+                class="scores-save-status"
+              >
+                Sauvegarde des notes...
+              </div>
+              <div
+                v-else-if="lastScoresSaveStatus"
+                class="scores-save-status"
+                :class="{ 'save-ok': lastScoresSaveStatus.success, 'save-err': !lastScoresSaveStatus.success }"
+              >
+                {{ lastScoresSaveStatus.success ? 'Notes sauvegardées' : 'Erreur sauvegarde notes' }}
+              </div>
+            </div>
+            <div class="global-appreciation-section">
+              <label for="bar-global-appreciation">Appréciation globale</label>
+              <textarea
+                id="bar-global-appreciation"
+                v-model="globalAppreciation"
+                :disabled="isReadOnly"
+                :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une appréciation globale...'"
+                rows="3"
+                @input="onAppreciationChange($event.target.value)"
+              />
+              <span
+                v-if="appreciationSaving"
+                class="save-indicator small"
+              >
+                Enregistrement...
+              </span>
+            </div>
+          </div>
         </div>
         <div
           ref="scrollAreaRef"
@@ -1218,73 +1358,6 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Split-View: Grading panel pinned next to the viewer -->
-      <div v-if="splitView" class="split-grading-panel">
-        <div class="split-grading-header">
-          <strong>Barème</strong>
-          <button class="btn-sm btn-secondary" @click="splitView = false" title="Fermer la vue scindée">✕</button>
-        </div>
-        <div class="split-grading-body">
-          <div v-if="exercisesWithQuestions.length === 0" class="empty-list">
-            Aucun barème disponible.
-          </div>
-          <div v-else class="grading-content">
-            <div class="exercises-list">
-              <div v-for="exercise in exercisesWithQuestions" :key="'split-' + exercise.id" class="exercise-block">
-                <div
-                  class="exercise-header"
-                  :class="{ collapsed: collapsedExercises.has(exercise.id) }"
-                  @click="toggleExercise(exercise.id)"
-                >
-                  <span class="exercise-toggle">{{ collapsedExercises.has(exercise.id) ? '&#x25B6;' : '&#x25BC;' }}</span>
-                  <span class="exercise-label">{{ exercise.label }}</span>
-                  <span class="exercise-points">{{ exercise.totalPoints }} pts</span>
-                </div>
-                <div v-show="!collapsedExercises.has(exercise.id)" class="exercise-questions">
-                  <div v-for="question in exercise.questions" :key="'split-' + question.id" class="question-item">
-                    <div class="question-header">
-                      <span class="question-title">{{ question.title }}</span>
-                      <span class="question-max-score">/ {{ question.maxScore }} pts</span>
-                    </div>
-                    <div class="question-score-field">
-                      <label :for="'split-score-' + question.id">Note</label>
-                      <input
-                        :id="'split-score-' + question.id"
-                        type="number"
-                        step="0.25"
-                        min="0"
-                        :max="question.maxScore"
-                        :value="questionScores.get(question.id) ?? ''"
-                        :disabled="isReadOnly"
-                        :placeholder="isReadOnly ? '-' : '0'"
-                        class="score-input"
-                        :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
-                        @input="onScoreChange(question.id, $event.target.value)"
-                      >
-                    </div>
-                    <div class="question-remark-field">
-                      <label :for="'split-remark-' + question.id">Remarque</label>
-                      <textarea
-                        :id="'split-remark-' + question.id"
-                        :value="questionRemarks.get(question.id) || ''"
-                        :disabled="isReadOnly"
-                        placeholder="Remarque..."
-                        rows="1"
-                        @input="onRemarkChange(question.id, $event.target.value)"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="total-score-bar" :class="{ 'score-overflow': scoreExceeds20 }">
-                <span class="total-label">Total :</span>
-                <strong>{{ totalScore.toFixed(2) }}</strong> / 20
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Inspector -->
       <div class="inspector-panel">
         <div class="inspector-tabs">
@@ -1293,12 +1366,6 @@ onUnmounted(() => {
             @click="activeTab = 'editor'"
           >
             Annotations
-          </button>
-          <button
-            :class="{ active: activeTab === 'grading' }"
-            @click="activeTab = 'grading'"
-          >
-            Barème
           </button>
           <button
             :class="{ active: activeTab === 'history' }"
@@ -1415,155 +1482,6 @@ onUnmounted(() => {
                 Aucune annotation sur cette page.
               </li>
             </ul>
-          </div>
-        </div>
-
-        <!-- Tab: Grading -->
-        <div
-          v-show="activeTab === 'grading'"
-          class="tab-content grading-panel"
-        >
-          <div
-            v-if="exercisesWithQuestions.length === 0"
-            class="empty-list"
-          >
-            Aucun barème disponible pour cet examen.
-          </div>
-          <div
-            v-else
-            class="grading-content"
-          >
-            <div class="exercises-list">
-              <div
-                v-for="exercise in exercisesWithQuestions"
-                :key="exercise.id"
-                class="exercise-block"
-              >
-                <div
-                  class="exercise-header"
-                  :class="{ collapsed: collapsedExercises.has(exercise.id) }"
-                  @click="toggleExercise(exercise.id)"
-                >
-                  <span class="exercise-toggle">{{ collapsedExercises.has(exercise.id) ? '▶' : '▼' }}</span>
-                  <span class="exercise-label">{{ exercise.label }}</span>
-                  <span class="exercise-points">{{ exercise.totalPoints }} pts</span>
-                </div>
-                <div
-                  v-show="!collapsedExercises.has(exercise.id)"
-                  class="exercise-questions"
-                >
-                  <div
-                    v-for="question in exercise.questions"
-                    :key="question.id"
-                    class="question-item"
-                  >
-                    <div class="question-header">
-                      <span class="question-title">{{ question.title }}</span>
-                      <span class="question-max-score">/ {{ question.maxScore }} pts</span>
-                    </div>
-                    <div class="question-score-field">
-                      <label :for="'score-' + question.id">Note</label>
-                      <input
-                        :id="'score-' + question.id"
-                        type="number"
-                        step="0.25"
-                        min="0"
-                        :max="question.maxScore"
-                        :value="questionScores.get(question.id) ?? ''"
-                        :disabled="isReadOnly"
-                        :placeholder="isReadOnly ? '-' : '0'"
-                        class="score-input"
-                        :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
-                        @input="onScoreChange(question.id, $event.target.value)"
-                      >
-                    </div>
-                    <div class="question-remark-field">
-                      <div class="remark-label-row">
-                        <label :for="'remark-' + question.id">Remarque (facultatif)</label>
-                        <button
-                          v-if="examId && !isReadOnly"
-                          class="btn-suggestion-trigger"
-                          title="Suggestions d'annotations"
-                          @click="openSuggestionsForRemark(question.id)"
-                        >
-                          💡
-                        </button>
-                      </div>
-                      <textarea
-                        :id="'remark-' + question.id"
-                        :value="questionRemarks.get(question.id) || ''"
-                        :disabled="isReadOnly"
-                        :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une remarque...'"
-                        rows="2"
-                        @focus="activeRemarkQuestionId = question.id"
-                        @input="onRemarkChange(question.id, $event.target.value)"
-                      />
-                      <AnnotationSuggestionsPanel
-                        v-if="examId && activeRemarkQuestionId === question.id && showSuggestions"
-                        :exam-id="examId"
-                        :exercise-number="suggestionsExercise"
-                        :question-number="suggestionsQuestion"
-                        :visible="true"
-                        @insert="handleSuggestionInsert"
-                        @close="closeSuggestions"
-                      />
-                      <span
-                        v-if="remarksSaving.get(question.id)"
-                        class="save-indicator small"
-                      >
-                        Enregistrement...
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <!-- Total score indicator -->
-              <div
-                class="total-score-bar"
-                :class="{ 'score-overflow': scoreExceeds20 }"
-              >
-                <span class="total-label">Note totale :</span>
-                <strong>{{ totalScore.toFixed(2) }}</strong> / 20
-                <span
-                  v-if="scoreExceeds20"
-                  class="overflow-warning"
-                >
-                  ⚠ La note dépasse 20 !
-                </span>
-              </div>
-
-              <div
-                v-if="scoresSaving"
-                class="scores-save-status"
-              >
-                Sauvegarde des notes...
-              </div>
-              <div
-                v-else-if="lastScoresSaveStatus"
-                class="scores-save-status"
-                :class="{ 'save-ok': lastScoresSaveStatus.success, 'save-err': !lastScoresSaveStatus.success }"
-              >
-                {{ lastScoresSaveStatus.success ? 'Notes sauvegardées' : 'Erreur sauvegarde notes' }}
-              </div>
-            </div>
-            
-            <div class="global-appreciation-section">
-              <label for="global-appreciation">Appréciation globale</label>
-              <textarea
-                id="global-appreciation"
-                v-model="globalAppreciation"
-                :disabled="isReadOnly"
-                :placeholder="isReadOnly ? 'Lecture seule' : 'Ajouter une appréciation globale...'"
-                rows="5"
-                @input="onAppreciationChange($event.target.value)"
-              />
-              <span
-                v-if="appreciationSaving"
-                class="save-indicator small"
-              >
-                Enregistrement...
-              </span>
-            </div>
           </div>
         </div>
 
@@ -1772,17 +1690,28 @@ onUnmounted(() => {
 .btn-stamp-faux { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
 .btn-stamp-faux:hover, .btn-stamp-faux.active { background: #dc2626; color: white; border-color: #dc2626; }
 
-/* Split View Toggle */
-.btn-split-view { padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 600; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; transition: all 0.15s; }
-.btn-split-view:hover { background: #e2e8f0; }
-.btn-split-view.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+/* Scoring Bar (above copy) */
+.scoring-bar { background: #f8f9fa; border-bottom: 2px solid #dee2e6; }
+.scoring-bar-header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; user-select: none; transition: background 0.15s; }
+.scoring-bar-header:hover { background: #e9ecef; }
+.scoring-bar-toggle { font-size: 0.75rem; color: #64748b; width: 14px; }
+.scoring-bar-total { margin-left: auto; font-weight: 700; font-size: 0.95rem; color: #065f46; background: #ecfdf5; padding: 2px 10px; border-radius: 4px; border: 1px solid #a7f3d0; }
+.scoring-bar-body { max-height: 300px; overflow-y: auto; padding: 8px 12px; }
+.scoring-bar-body .exercises-list { margin-bottom: 8px; }
+.scoring-bar-body .exercise-block { margin-bottom: 4px; }
+.scoring-bar-body .exercise-header { padding: 6px 10px; }
+.scoring-bar-body .exercise-questions { padding: 4px 6px 6px; }
+.scoring-bar-body .question-item { margin-bottom: 8px; padding: 8px 10px; font-size: 0.9rem; }
+.scoring-bar-body .question-header { margin-bottom: 6px; }
+.scoring-bar-body .question-remark-field textarea { font-size: 0.85rem; }
+.scoring-bar-body .global-appreciation-section { padding: 10px; margin-top: 4px; }
+.scoring-bar-body .global-appreciation-section textarea { rows: 2; font-size: 0.9rem; }
+.scoring-bar-body .total-score-bar { margin-top: 6px; padding: 6px 10px; font-size: 0.9rem; }
+.scoring-bar-body .scores-save-status { padding: 4px; font-size: 0.75rem; margin-top: 4px; }
 
-/* Split Grading Panel */
-.split-grading-panel { width: 320px; min-width: 280px; max-width: 400px; background: white; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; overflow: hidden; resize: horizontal; }
-.split-grading-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f1f5f9; border-bottom: 1px solid #dee2e6; }
-.split-grading-header strong { font-size: 0.95rem; color: #1e293b; }
-.split-grading-body { flex: 1; overflow-y: auto; }
-.split-grading-body .grading-content { padding: 10px; }
-.split-grading-body .question-item { margin-bottom: 12px; padding: 10px; }
-.split-grading-body .question-remark-field textarea { rows: 1; font-size: 0.85rem; }
+/* Annotation Type Quick Selectors */
+.annotation-type-controls { display: flex; gap: 3px; align-items: center; }
+.btn-annot-type { padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 1rem; border: 2px solid transparent; background: #f1f5f9; transition: all 0.15s; line-height: 1; }
+.btn-annot-type:hover { background: #e2e8f0; border-color: #94a3b8; }
+.btn-annot-type.active { background: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
 </style>
