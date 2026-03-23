@@ -729,31 +729,36 @@ const handleImageError = () => {
 const handleDrawComplete = async (normalizedRect) => {
     if (!canAnnotate.value) return;
 
-    // Quick stamp mode: instantly save V/X annotation without opening editor
-    if (quickStampMode.value) {
+    // Quick mode: any toolbar button selected → instant annotation, no editor
+    const quickType = quickStampMode.value || preSelectedAnnotationType.value
+    if (quickType) {
         isSaving.value = true
         try {
+            const contentMap = {
+                'VRAI': 'V', 'FAUX': 'X',
+                'COMMENTAIRE': '', 'SURLIGNAGE': '', 'ERREUR': '', 'BONUS': ''
+            }
             const payload = {
                 page_index: currentPage.value - 1,
                 x: normalizedRect.x,
                 y: normalizedRect.y,
                 w: normalizedRect.w,
                 h: normalizedRect.h,
-                type: quickStampMode.value,
-                content: quickStampMode.value === 'VRAI' ? 'V' : 'X'
+                type: quickType,
+                content: contentMap[quickType] ?? ''
             }
             await gradingApi.createAnnotation(copyId, payload)
             await refreshAnnotations()
         } catch (err) {
-            error.value = err.response?.data?.detail || "Échec de la création du tampon"
+            error.value = err.response?.data?.detail || "Échec de la création de l'annotation"
         } finally { isSaving.value = false }
         return
     }
 
-    // Normal mode: open editor overlay
+    // No toolbar button selected: open editor overlay for full annotation
     draftAnnotation.value = {
         rect: normalizedRect,
-        type: preSelectedAnnotationType.value || 'COMMENTAIRE',
+        type: 'COMMENTAIRE',
         content: ''
     }
     showEditor.value = true
