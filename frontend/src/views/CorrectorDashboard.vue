@@ -23,7 +23,98 @@ const basicStats = ref({ total: 0, graded: 0, todo: 0 })
 const examStats = ref(null)
 const statsLoading = ref(false)
 const showStats = ref(false)
+const questionnaireStatusLoaded = ref(false)
 const questionnaireSummary = ref({ has_response: false, summary: { is_available: false } })
+
+// --- Per-copy scoring progress ---
+const copyScores = ref({})       // { copyId: { scored: N, total: N, questions: [{id, label, scored}] } }
+const scoresLoading = ref(false)
+
+/**
+ * Extract leaf (scorable) questions from the grading_structure tree.
+ * Leaf nodes are those without children or with empty children arrays.
+ */
+const flattenLeafQuestions = (structure, prefix = '') => {
+    const leaves = []
+    if (!Array.isArray(structure)) return leaves
+    for (const item of structure) {
+        const itemId = prefix ? `${prefix}.${item.id}` : item.id
+        const children = item.children || item.sub_questions || []
+        if (children.length > 0) {
+            leaves.push(...flattenLeafQuestions(children, itemId))
+        } else {
+            leaves.push({ id: itemId, label: item.label || item.title || itemId, points: item.points || 0 })
+        }
+    }
+    return leaves
+}
+
+/**
+ * Get scoring progress for a given copy.
+ * Returns { scored, total, percent, questions }
+ */
+const getCopyProgress = (copy) => {
+    const progress = copyScores.value[copy.id]
+    if (progress) return progress
+
+    // Fallback based on status alone
+    const structure = copy.exam?.grading_structure || []
+    const leaves = flattenLeafQuestions(structure)
+    const total = leaves.length
+
+    if (copy.status === 'GRADED') {
+        return { scored: total, total, percent: 100, questions: leaves.map(q => ({ ...q, scored: true })) }
+    }
+    if (copy.status === 'STAGING') {
+        return { scored: 0, total, percent: 0, questions: leaves.map(q => ({ ...q, scored: false })) }
+    }
+    // READY or GRADING_IN_PROGRESS: unknown until scores fetched
+    return { scored: 0, total, percent: 0, questions: leaves.map(q => ({ ...q, scored: false })), pending: true }
+}
+
+/**
+ * Fetch scores for copies that may have partial grading (READY / GRADING_IN_PROGRESS).
+ * Also fetches for GRADED to show accurate count.
+ */
+const fetchAllCopyScores = async (copiesList) => {
+    const relevantCopies = copiesList.filter(c =>
+        c.status === 'READY' || c.status === 'GRADING_IN_PROGRESS' || c.status === 'GRADED'
+    )
+    if (!relevantCopies.length) return
+
+    scoresLoading.value = true
+    const results = {}
+
+    // Fetch scores in parallel (batches of 6 to avoid overwhelming the server)
+    const batchSize = 6
+    for (let i = 0; i < relevantCopies.length; i += batchSize) {
+        const batch = relevantCopies.slice(i, i + batchSize)
+        const promises = batch.map(async (copy) => {
+            try {
+                const data = await gradingApi.fetchScores(copy.id)
+                const scoresData = data.scores_data || {}
+                const structure = copy.exam?.grading_structure || []
+                const leaves = flattenLeafQuestions(structure)
+                const total = leaves.length
+
+                const questions = leaves.map(q => ({
+                    ...q,
+                    scored: scoresData[q.id] !== undefined && scoresData[q.id] !== null && scoresData[q.id] !== ''
+                }))
+                const scored = questions.filter(q => q.scored).length
+                const percent = total > 0 ? Math.round((scored / total) * 100) : 0
+
+                results[copy.id] = { scored, total, percent, questions }
+            } catch (err) {
+                // Silently ignore — progress just won't show for this copy
+            }
+        })
+        await Promise.all(promises)
+    }
+
+    copyScores.value = { ...copyScores.value, ...results }
+    scoresLoading.value = false
+}
 
 const fetchCopies = async () => {
     isLoading.value = true
@@ -39,6 +130,9 @@ const fetchCopies = async () => {
             showStats.value = true
             await fetchStats()
         }
+
+        // Fetch per-question scoring progress in background
+        fetchAllCopyScores(data)
     } catch (err) {
         console.error("Failed to fetch copies", err)
     } finally {
@@ -47,6 +141,7 @@ const fetchCopies = async () => {
 }
 
 const fetchQuestionnaireStatus = async () => {
+    questionnaireStatusLoaded.value = false
     try {
         const res = await api.get('/grading/questionnaire/')
         questionnaireSummary.value = {
@@ -55,6 +150,8 @@ const fetchQuestionnaireStatus = async () => {
         }
     } catch (err) {
         console.error("Failed to fetch questionnaire status", err)
+    } finally {
+        questionnaireStatusLoaded.value = true
     }
 }
 
@@ -234,14 +331,14 @@ const goToQuestionnaireBilan = () => {
           👥 Mes Élèves
         </button>
         <button
-          v-if="!questionnaireSummary.has_response"
+          v-if="questionnaireStatusLoaded && !questionnaireSummary.has_response"
           class="btn-questionnaire"
           @click="goToQuestionnaire"
         >
           📝 Questionnaire
         </button>
         <button
-          v-if="questionnaireSummary.summary?.is_available"
+          v-if="questionnaireStatusLoaded && questionnaireSummary.has_response"
           class="btn-questionnaire-bilan"
           @click="goToQuestionnaireBilan"
         >
@@ -513,24 +610,47 @@ const goToQuestionnaireBilan = () => {
             data-testid="copy-card"
             :data-copy-anon="copy.anonymous_id"
           >
-            <div class="copy-info">
-              <div class="exam-name">
-                {{ copy.exam_name || 'Examen' }}
+            <div class="copy-main-row">
+              <div class="copy-info">
+                <div class="exam-name">
+                  {{ copy.exam_name || 'Examen' }}
+                </div>
+                <div class="copy-id">
+                  Anonymat: {{ copy.anonymous_id }}
+                </div>
               </div>
-              <div class="copy-id">
-                Anonymat: {{ copy.anonymous_id }}
+              <div :class="['copy-status', copy.status.toLowerCase()]">
+                {{ getStatusLabel(copy.status) }}
               </div>
+              <button
+                class="btn-action"
+                data-testid="copy-action"
+                @click="goToDesk(copy.id)"
+              >
+                {{ copy.status === 'GRADED' ? 'Voir' : 'Corriger' }}
+              </button>
             </div>
-            <div :class="['copy-status', copy.status.toLowerCase()]">
-              {{ getStatusLabel(copy.status) }}
-            </div>
-            <button
-              class="btn-action"
-              data-testid="copy-action"
-              @click="goToDesk(copy.id)"
+            <!-- Per-question scoring progress bar -->
+            <div
+              v-if="getCopyProgress(copy).total > 0"
+              class="copy-progress"
             >
-              {{ copy.status === 'GRADED' ? 'Voir' : 'Corriger' }}
-            </button>
+              <div class="progress-label">
+                <span class="progress-text">
+                  {{ getCopyProgress(copy).scored }}/{{ getCopyProgress(copy).total }} questions notées
+                </span>
+                <span class="progress-percent">{{ getCopyProgress(copy).percent }}%</span>
+              </div>
+              <div class="progress-bar-track">
+                <div
+                  v-for="(q, idx) in getCopyProgress(copy).questions"
+                  :key="idx"
+                  :class="['progress-segment', q.scored ? 'scored' : 'unscored']"
+                  :style="{ width: (100 / getCopyProgress(copy).total) + '%' }"
+                  :title="q.label + (q.scored ? ' (notée)' : ' (non notée)')"
+                />
+              </div>
+            </div>
           </div>
           <div
             v-if="copies.length === 0"
@@ -613,7 +733,8 @@ const goToQuestionnaireBilan = () => {
 .group-stats-table tfoot .global-row td { border-top: 2px solid #cbd5e1; font-size: 0.85rem; }
 
 .task-list h2 { font-size: 1.25rem; color: #1e293b; margin-bottom: 1rem; }
-.copy-card { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+.copy-card { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+.copy-main-row { display: flex; justify-content: space-between; align-items: center; }
 .exam-name { font-weight: 600; color: #334155; }
 .copy-id { font-size: 0.875rem; color: #64748b; }
 .copy-status { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; }
@@ -621,6 +742,20 @@ const goToQuestionnaireBilan = () => {
 .copy-status.locked { background: #fef3c7; color: #92400e; }
 .copy-status.graded { background: #dcfce7; color: #166534; }
 .copy-status.staging { background: #f1f5f9; color: #64748b; }
+.copy-status.grading_in_progress { background: #fef3c7; color: #92400e; }
+
+/* Per-copy scoring progress */
+.copy-progress { margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; }
+.progress-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.progress-text { font-size: 0.78rem; color: #64748b; font-weight: 500; }
+.progress-percent { font-size: 0.75rem; color: #94a3b8; font-weight: 600; }
+.progress-bar-track { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #f1f5f9; gap: 1px; }
+.progress-segment { height: 100%; transition: background-color 0.3s ease; }
+.progress-segment.scored { background: #10b981; }
+.progress-segment.unscored { background: #e2e8f0; }
+.progress-segment:first-child { border-radius: 4px 0 0 4px; }
+.progress-segment:last-child { border-radius: 0 4px 4px 0; }
+.progress-segment:only-child { border-radius: 4px; }
 
 .btn-action { padding: 0.5rem 1rem; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; }
 .btn-action:hover { background: #1d4ed8; }

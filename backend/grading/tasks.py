@@ -9,12 +9,18 @@ import os
 import logging
 
 # P0-OP-03: Module-level imports required for test patching
+from grading.questionnaire_bilan import generate_questionnaire_bilan
 from grading.services import GradingService, LockConflictError
 from grading.pdf_processor import PDFProcessor
 from exams.models import Copy, Exam
 
 logger = logging.getLogger('grading')
 User = get_user_model()
+
+
+@shared_task
+def generate_questionnaire_bilan_task(force=False):
+    return generate_questionnaire_bilan(force=force)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)

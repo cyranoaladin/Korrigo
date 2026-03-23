@@ -1,7 +1,7 @@
 # Architecture Frontend Korrigo
 
-> **Version**: 1.0  
-> **Date**: Février 2026  
+> **Version**: 2.0
+> **Date**: 23 Mars 2026
 > **Public**: Développeurs Frontend, Architectes
 
 Ce document décrit l'architecture complète du frontend de la plateforme Korrigo, une application Vue.js 3 moderne avec TypeScript.
@@ -104,6 +104,8 @@ frontend/
 │   │   ├── GradingScaleBuilder.vue
 │   │   ├── CopyCard.vue
 │   │   ├── ExamCard.vue
+│   │   ├── TrueFalseTool.vue     # V2 — Tampon V/X (VRAI/FAUX)
+│   │   ├── ProgressDashboard.vue  # V2 — Indicateurs de progression
 │   │   └── Navbar.vue
 │   │
 │   ├── utils/
@@ -512,6 +514,10 @@ export const studentsAPI = {
 - Autosave (draft)
 - Lock/Unlock automatique
 - Finalisation
+- **V2** — Mode split view : copie de l'élève et corrigé officiel côte à côte
+- **V2** — Quick stamp mode : boutons V (vert) et X (rouge) pour tampon rapide VRAI/FAUX
+- **V2** — Force unlock : déverrouillage forcé d'une copie bloquée
+- **V2** — Reopen : réouverture d'une copie finalisée (GRADED -> READY)
 
 **Architecture**:
 ```vue
@@ -759,6 +765,6 @@ npm run typecheck
 
 ---
 
-**Dernière mise à jour**: 4 février 2026  
+**Dernière mise à jour**: 23 mars 2026  
 **Auteur**: Alaeddine BEN RHOUMA  
 **Licence**: Propriétaire - AEFE/Éducation Nationale

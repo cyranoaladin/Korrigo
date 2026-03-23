@@ -5,33 +5,16 @@ from rest_framework.response import Response
 from core.auth import IsTeacher, UserRole
 from exams.permissions import IsTeacherOrAdmin
 from grading.models import QuestionnaireResponse
+from grading.questionnaire_bilan import (
+    build_display_name,
+    build_questionnaire_participants,
+    build_questionnaire_summary,
+    get_questionnaire_bilan_state,
+    serialize_questionnaire_responses,
+    trigger_questionnaire_bilan_generation,
+)
 
 User = get_user_model()
-
-
-def build_display_name(user):
-    full_name = f"{user.first_name} {user.last_name}".strip()
-    return full_name or user.username
-
-
-def get_teacher_queryset():
-    return User.objects.filter(groups__name=UserRole.TEACHER).distinct()
-
-
-def build_questionnaire_summary():
-    total_eligible = get_teacher_queryset().count()
-    responses_count = QuestionnaireResponse.objects.filter(
-        user__groups__name=UserRole.TEACHER
-    ).distinct().count()
-    completion_rate = round((responses_count / total_eligible) * 100, 1) if total_eligible else 0
-    remaining_count = max(total_eligible - responses_count, 0)
-    return {
-        'responses_count': responses_count,
-        'total_eligible': total_eligible,
-        'remaining_count': remaining_count,
-        'completion_rate': completion_rate,
-        'is_available': total_eligible > 0 and responses_count >= total_eligible,
-    }
 
 
 class QuestionnaireResponseView(views.APIView):
@@ -67,42 +50,57 @@ class QuestionnaireResponseView(views.APIView):
             user=request.user,
             payload=answers,
         )
+        summary = build_questionnaire_summary()
+        if summary['is_available']:
+            trigger_questionnaire_bilan_generation()
 
         return Response({
             'status': 'ok',
             'submitted_at': response.updated_at.isoformat(),
             'has_response': True,
-            'summary': build_questionnaire_summary(),
+            'summary': summary,
         })
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        return super().finalize_response(request, response, *args, **kwargs)
 
 
 class QuestionnaireBilanView(views.APIView):
     permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request):
-        responses = QuestionnaireResponse.objects.select_related('user').order_by('-updated_at')
         summary = build_questionnaire_summary()
-        serialized = []
-
-        for item in responses:
-            if not item.user.groups.filter(name=UserRole.TEACHER).exists():
-                continue
-            serialized.append({
-                'user_id': item.user_id,
-                'username': item.user.username,
-                'display_name': build_display_name(item.user),
-                'email': item.user.email,
-                'submitted_at': item.updated_at.isoformat(),
-                'answers': item.payload,
-            })
-        if not summary['is_available']:
+        serialized = serialize_questionnaire_responses()
+        participants = build_questionnaire_participants(serialized)
+        generated_bilan = get_questionnaire_bilan_state(serialized, summary)
+        is_admin = bool(
+            request.user.is_superuser
+            or request.user.is_staff
+            or request.user.groups.filter(name=UserRole.ADMIN).exists()
+        )
+        # Show generated bilan for admins even if not all correctors responded
+        if not summary['is_available'] and not (is_admin and generated_bilan['status'] == 'ready'):
             return Response({
-                'responses': [],
+                'responses': serialized if is_admin else [],
+                'participants': participants,
                 'summary': summary,
+                'generated_bilan': generated_bilan,
                 'detail': 'Le bilan sera disponible une fois que tous les correcteurs auront répondu au questionnaire.',
             })
+        if generated_bilan['status'] == 'missing':
+            trigger_questionnaire_bilan_generation()
+            generated_bilan = get_questionnaire_bilan_state(serialized, summary)
+        if generated_bilan['status'] == 'pending':
+            detail = 'Toutes les réponses ont été reçues. Le bilan automatique est en cours de génération.'
+        elif generated_bilan['status'] == 'error':
+            detail = 'Le bilan automatique n’a pas pu être généré pour le moment.'
+        else:
+            detail = ''
 
         return Response({
             'responses': serialized,
+            'participants': participants,
             'summary': summary,
+            'generated_bilan': generated_bilan,
+            'detail': detail,
         })

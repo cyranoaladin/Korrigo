@@ -7,6 +7,45 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [2.0.0] - 2026-03-23
+
+### Améliorations V2 — Réponse au bilan correcteurs (NPS -29 → objectif NPS > 0)
+
+Suite au bilan du premier déploiement (Bac Blanc Mathématiques Mars 2026, 7/8 correcteurs, NPS -29), cette version majeure adresse les 7 recommandations prioritaires identifiées.
+
+#### Correction & Annotations
+
+- **Correction du reset de position du barème** : Le panneau barème conserve désormais sa position de scroll lors des allers-retours entre onglets (Annotations ↔ Barème). Les onglets utilisent `v-show` au lieu de `v-if` pour préserver le DOM.
+- **Outil tampon Vrai/Faux (V/✗)** : Nouveau type d'annotation rapide permettant d'apposer un checkmark vert (✓) ou une croix rouge (✗) en un clic, reproduisant le geste papier le plus fréquent. Rendu canvas + PDF final. Demandé par Philippe Carr et Patrick Dupont.
+- **Mode tampon rapide** : Boutons V/X dans la barre d'outils du viewer. Un clic active le mode, puis chaque rectangle dessiné crée instantanément un tampon sans ouvrir l'éditeur d'annotation.
+- **Mémorisation automatique des remarques** : Les remarques substantielles (>5 caractères) sont automatiquement sauvegardées dans la banque personnelle d'annotations pour réutilisation entre copies. Contexte exercice/question préservé.
+
+#### Interface de Correction (CorrectorDesk)
+
+- **Vue scindée (Split View)** : Nouveau bouton "Split" permettant d'afficher le barème en permanence à côté de la copie PDF, éliminant les allers-retours constants entre panneaux. Panneau redimensionnable (320px). Demandé par Chawki Saadi.
+- **Types d'annotation étendus** : L'éditeur d'annotation propose désormais 6 types : Commentaire, Surlignage, Erreur, Bonus, Vrai (✓), Faux (✗).
+
+#### Administration
+
+- **Déverrouillage admin (Force Unlock)** : Nouvel endpoint `POST /grading/copies/{id}/force-unlock/` et bouton "Déverrouiller" dans la toolbar admin. Résout le bug bloquant des copies en mode "locked" signalé par Patrick Dupont et Philippe Carr.
+- **Réouverture de copie finalisée (GRADED → READY)** : Nouvel endpoint `POST /grading/copies/{id}/reopen/` et bouton "Rouvrir" (superuser uniquement). Permet de corriger une erreur après finalisation, avec invalidation du PDF final. Demandé par Edouard Rousseau.
+- **Nouvel événement d'audit REOPEN** : Traçabilité complète des réouvertures dans le journal d'événements.
+
+#### Tableau de Bord Correcteur
+
+- **Indicateur de progression par question** : Chaque copie affiche une barre de progression segmentée montrant les questions notées vs non notées (ex: "5/8 questions notées — 63%"). Demandé par Sami Ben Tiba.
+
+#### Backend & Base de Données
+
+- **Migration 0015** : Ajout des types d'annotation VRAI/FAUX et de l'action GradingEvent REOPEN.
+- **PDF Flattener** : Support du rendu des tampons V/✗ dans le PDF final généré (symboles vectoriels).
+
+#### Documentation
+
+- Mise à jour complète de toute la documentation (guides utilisateurs, référence API, schéma BDD, workflows, ADR).
+
+---
+
 ## [1.4.0] - 2026-03-10
 
 ### 🎓 Portail Élève — Améliorations

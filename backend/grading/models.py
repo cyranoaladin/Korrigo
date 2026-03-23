@@ -15,6 +15,8 @@ class Annotation(models.Model):
         HIGHLIGHT = 'HIGHLIGHT', _("Surligné")
         ERROR = 'ERROR', _("Erreur")
         BONUS = 'BONUS', _("Bonus")
+        VRAI = 'VRAI', _("Vrai")
+        FAUX = 'FAUX', _("Faux")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     copy = models.ForeignKey(
@@ -122,6 +124,7 @@ class GradingEvent(models.Model):
         DELETE_ANN = 'DELETE_ANN', _("Suppression Annotation")
         FINALIZE = 'FINALIZE', _("Finalisation (LOCKED→GRADED)")
         EXPORT = 'EXPORT', _("Export PDF")
+        REOPEN = 'REOPEN', _("Réouverture (GRADED→READY)")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     copy = models.ForeignKey(

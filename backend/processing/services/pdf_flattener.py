@@ -101,18 +101,42 @@ class PDFFlattener:
             # Couleur selon type
             color = self._get_annotation_color(annot.type)
 
-            # Dessiner rectangle d'annotation
+            # Coordonnées du rectangle
             rect = fitz.Rect(x_pdf, y_pdf, x_pdf + w_pdf, y_pdf + h_pdf)
-            shape.draw_rect(rect)
-            shape.finish(color=color, width=2, dashes="[3 3]")  # Pointillé
 
-            # Ajouter texte si content non vide
-            if annot.content:
-                # Position texte légèrement décalée
-                text_point = fitz.Point(x_pdf + 5, y_pdf - 5 if y_pdf > 20 else y_pdf + h_pdf + 15)
-                # Limiter longueur du texte affiché
-                display_text = annot.content[:50] + "..." if len(annot.content) > 50 else annot.content
-                shape.insert_text(text_point, display_text, fontsize=10, color=color)
+            # Rendu spécial pour les tampons V/X
+            is_stamp = annot.type in (Annotation.Type.VRAI, Annotation.Type.FAUX)
+
+            if is_stamp:
+                # Tampons V/X : dessiner le symbole centré, pas de rectangle pointillé
+                cx = x_pdf + w_pdf / 2
+                cy = y_pdf + h_pdf / 2
+                size = min(w_pdf, h_pdf) * 0.35
+
+                if annot.type == Annotation.Type.VRAI:
+                    # Dessiner un checkmark ✓
+                    shape.draw_line(fitz.Point(cx - size, cy), fitz.Point(cx - size * 0.3, cy + size * 0.7))
+                    shape.finish(color=color, width=3)
+                    shape.draw_line(fitz.Point(cx - size * 0.3, cy + size * 0.7), fitz.Point(cx + size, cy - size * 0.5))
+                    shape.finish(color=color, width=3)
+                else:
+                    # Dessiner un X ✗
+                    shape.draw_line(fitz.Point(cx - size, cy - size), fitz.Point(cx + size, cy + size))
+                    shape.finish(color=color, width=3)
+                    shape.draw_line(fitz.Point(cx + size, cy - size), fitz.Point(cx - size, cy + size))
+                    shape.finish(color=color, width=3)
+            else:
+                # Annotations normales : rectangle pointillé + texte
+                shape.draw_rect(rect)
+                shape.finish(color=color, width=2, dashes="[3 3]")  # Pointillé
+
+                # Ajouter texte si content non vide
+                if annot.content:
+                    # Position texte légèrement décalée
+                    text_point = fitz.Point(x_pdf + 5, y_pdf - 5 if y_pdf > 20 else y_pdf + h_pdf + 15)
+                    # Limiter longueur du texte affiché
+                    display_text = annot.content[:50] + "..." if len(annot.content) > 50 else annot.content
+                    shape.insert_text(text_point, display_text, fontsize=10, color=color)
 
             # Ajouter score_delta si présent
             if annot.score_delta is not None:
@@ -131,6 +155,8 @@ class PDFFlattener:
             Annotation.Type.HIGHLIGHT: (1, 1, 0),    # Jaune
             Annotation.Type.ERROR: (1, 0, 0),       # Rouge
             Annotation.Type.BONUS: (0, 0.5, 0),       # Vert
+            Annotation.Type.VRAI: (0, 0.6, 0),       # Vert (tampon V)
+            Annotation.Type.FAUX: (1, 0, 0),         # Rouge (tampon X)
         }
         return colors.get(annotation_type, (0, 0, 0))  # Noir par défaut
 

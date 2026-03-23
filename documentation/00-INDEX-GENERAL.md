@@ -9,8 +9,8 @@
 | Propriété | Valeur |
 |-----------|--------|
 | **Projet** | Korrigo - Système de Correction d'Examens |
-| **Version** | 2.1 (Production - GPT-4o-mini Vision + Ollama) |
-| **Date de dernière mise à jour** | 20 Février 2026 |
+| **Version** | 2.2 (Production - GPT-4o-mini Vision + Ollama) |
+| **Date de dernière mise à jour** | 23 Mars 2026 |
 | **Auteur** | **Alaeddine BEN RHOUMA** |
 | **Statut** | Production |
 | **Commit actuel** | HEAD |
@@ -150,6 +150,8 @@ Documentation complète de toutes les APIs REST.
   - PATCH /api/grading/copies/{id}/
   - POST /api/grading/copies/{id}/lock/
   - POST /api/grading/copies/{id}/unlock/
+  - POST /api/grading/copies/{id}/force-unlock/ (v2.2)
+  - POST /api/grading/copies/{id}/reopen/ (v2.2)
 
 - **[03.4-API-Identification.md](./03-api/03.4-API-Identification.md)**
   - GET /api/identification/copies/{id}/ocr-candidates/
@@ -369,7 +371,7 @@ Informations complémentaires et références.
 ✓ **Complète** : Tous les aspects du système sont documentés
 ✓ **Détaillée** : Chaque fonctionnalité est expliquée en profondeur
 ✓ **Autosuffisante** : Aucune source externe n'est nécessaire
-✓ **À jour** : Version actuelle (commit 43b3409, 3 février 2026)
+✓ **À jour** : Version actuelle v2.2 (23 mars 2026)
 ✓ **Structurée** : Organisation logique et navigation facile
 ✓ **Illustrée** : Diagrammes, tableaux et exemples concrets
 ✓ **Traçable** : Historique des modifications
@@ -398,4 +400,14 @@ Cette documentation est propriété de l'auteur et ne peut être reproduite, dis
 **Alaeddine BEN RHOUMA**
 *Lead Senior Documentation & Architecture*
 
-Date de signature : 20 Février 2026
+Date de signature : 23 Mars 2026
+
+---
+
+## Historique des Versions
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 2.0 | 03 Février 2026 | Version initiale production |
+| 2.1 | 20 Février 2026 | GPT-4o-mini Vision + Ollama, rate limiting, documentation |
+| 2.2 | 23 Mars 2026 | Tampon V/X (VRAI/FAUX), split view correction, force-unlock et reopen copies (admin), TrueFalseTool.vue, CanvasLayer V/X rendering |
