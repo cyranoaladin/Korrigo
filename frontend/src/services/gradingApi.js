@@ -42,6 +42,16 @@ export default {
         return response.data;
     },
 
+    async forceUnlockCopy(copyId) {
+        const response = await api.post(`/grading/copies/${copyId}/force-unlock/`);
+        return response.data;
+    },
+
+    async reopenCopy(copyId) {
+        const response = await api.post(`/grading/copies/${copyId}/reopen/`);
+        return response.data;
+    },
+
     async createAnnotation(copyId, payload) {
         const response = await api.post(`/grading/copies/${copyId}/annotations/`, payload);
         return response.data;

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.http import FileResponse
 from rest_framework.permissions import IsAuthenticated
-from .models import Annotation, GradingEvent, QuestionRemark, Score
+from .models import Annotation, CopyLock, GradingEvent, QuestionRemark, Score
 from exams.models import Copy, Exam
 from .serializers import AnnotationSerializer, GradingEventSerializer, QuestionRemarkSerializer
 from exams.permissions import IsTeacherOrAdmin
@@ -846,4 +846,104 @@ class CopyLLMSummaryView(APIView):
             'copy_id': str(copy.id),
             'anonymous_id': copy.anonymous_id,
             'llm_summary': summary,
+        })
+
+
+class AdminForceUnlockView(APIView):
+    """
+    POST /api/grading/copies/<uuid>/force-unlock/
+    Force-deletes the CopyLock for the given copy.
+    Admin-only (superuser or staff).
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, copy_id):
+        if not (request.user.is_superuser or request.user.is_staff):
+            return Response(
+                {"detail": "Seul un administrateur peut forcer le déverrouillage."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        copy = get_object_or_404(Copy, id=copy_id)
+
+        try:
+            lock = CopyLock.objects.get(copy=copy)
+            lock_owner = lock.owner.username
+            lock.delete()
+        except CopyLock.DoesNotExist:
+            # No lock exists — log and return 204
+            GradingEvent.objects.create(
+                copy=copy,
+                actor=request.user,
+                action=GradingEvent.Action.UNLOCK,
+                metadata={'admin_force': True, 'had_lock': False},
+            )
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        GradingEvent.objects.create(
+            copy=copy,
+            actor=request.user,
+            action=GradingEvent.Action.UNLOCK,
+            metadata={
+                'admin_force': True,
+                'had_lock': True,
+                'previous_lock_owner': lock_owner,
+            },
+        )
+
+        return Response({
+            'message': f'Verrou supprimé avec succès (ancien propriétaire: {lock_owner}).',
+            'copy_id': str(copy.id),
+        })
+
+
+class CopyReopenView(APIView):
+    """
+    POST /api/grading/copies/<uuid>/reopen/
+    Reopen a GRADED copy back to READY status.
+    Admin-only (superuser).
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request, copy_id):
+        if not request.user.is_superuser:
+            return Response(
+                {"detail": "Seul un superutilisateur peut rouvrir une copie corrigée."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        copy = get_object_or_404(Copy, id=copy_id)
+
+        if copy.status != Copy.Status.GRADED:
+            return Response(
+                {"detail": f"La copie doit être en statut GRADED pour être rouverte (statut actuel: {copy.status})."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        previous_status = copy.status
+        previous_final_pdf = str(copy.final_pdf) if copy.final_pdf else None
+        previous_graded_at = copy.graded_at.isoformat() if copy.graded_at else None
+
+        copy.status = Copy.Status.READY
+        copy.final_pdf = None
+        copy.graded_at = None
+        copy.grading_retries = 0
+        copy.save(update_fields=['status', 'final_pdf', 'graded_at', 'grading_retries'])
+
+        GradingEvent.objects.create(
+            copy=copy,
+            actor=request.user,
+            action=GradingEvent.Action.REOPEN,
+            metadata={
+                'previous_status': previous_status,
+                'previous_final_pdf': previous_final_pdf,
+                'previous_graded_at': previous_graded_at,
+            },
+        )
+
+        return Response({
+            'message': 'Copie rouverte avec succès.',
+            'copy_id': str(copy.id),
+            'anonymous_id': copy.anonymous_id,
+            'status': copy.status,
         })

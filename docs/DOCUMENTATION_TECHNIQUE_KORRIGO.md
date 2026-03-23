@@ -1,7 +1,7 @@
 # Korrigo — Documentation Technique Complète
 
 **Plateforme de Correction Numérique Anonymisée d'Examens**
-Version 1.0 — Mars 2026
+Version 2.0 — 23 Mars 2026
 
 > Document à vocation **commerciale**, **pédagogique** et **technique**.
 > Destiné aux décideurs, enseignants, équipes IT et partenaires institutionnels.
@@ -37,7 +37,7 @@ Version 1.0 — Mars 2026
 
 ### 1.1 Qu'est-ce que Korrigo ?
 
-Korrigo PMF est une plateforme web de **correction numérique anonymisée** d'examens sur papier, conçue pour les établissements scolaires du réseau AEFE et de l'Éducation Nationale. Elle digitalise intégralement le processus de correction tout en garantissant :
+Korrigo est une plateforme web de **correction numérique anonymisée** d'examens sur papier, conçue pour les établissements scolaires du réseau AEFE et de l'Éducation Nationale. Elle digitalise intégralement le processus de correction tout en garantissant :
 
 - **L'anonymat strict** des copies pendant toute la phase de correction
 - **La traçabilité complète** de chaque action (audit trail RGPD)
@@ -49,7 +49,7 @@ Korrigo PMF est une plateforme web de **correction numérique anonymisée** d'ex
 | Acteur | Fonctionnalités principales |
 |--------|---------------------------|
 | **Administrateur** | Création d'examens, import de copies, gestion du barème, dispatch des correcteurs, publication des résultats, gestion des utilisateurs, rapports statistiques |
-| **Correcteur (Enseignant)** | Correction copie par copie avec barème interactif, annotations visuelles, remarques par question, appréciation globale, suivi de progression |
+| **Correcteur (Enseignant)** | Correction copie par copie avec barème interactif, annotations visuelles (dont tampons V/X), remarques par question, appréciation globale, suivi de progression, mode split view (copie/corrigé côte à côte), réouverture de copies finalisées |
 | **Élève** | Consultation de ses résultats, détail des notes par question, téléchargement du PDF corrigé, lecture du bilan pédagogique IA |
 
 ### 1.3 Contexte de déploiement
@@ -276,15 +276,17 @@ L'administrateur publie les résultats en un clic :
 
 ```
 STAGING ──▶ READY ──▶ GRADING_IN_PROGRESS ──▶ GRADED
-   │           │              │
-   │           │              ▼
-   │           │        GRADING_FAILED
-   │           │              │
+   │           │              │                    │
+   │           │              ▼                    │
+   │           │        GRADING_FAILED             │
+   │           │              │                    │
    │           │              └──▶ (retry → GRADING_IN_PROGRESS)
-   │           │
+   │           │                                   │
    │           └──▶ LOCKED (soft lock pour édition concurrente)
-   │
-   └──▶ PENDING_IDENTIFICATION (si OCR nécessaire)
+   │                                               │
+   └──▶ PENDING_IDENTIFICATION (si OCR nécessaire) │
+                                                   │
+   GRADED ──▶ READY  (reopen : réouverture par admin/enseignant)
 ```
 
 | Statut | Signification | Transitions possibles |
@@ -293,7 +295,7 @@ STAGING ──▶ READY ──▶ GRADING_IN_PROGRESS ──▶ GRADED
 | `READY` | Prête à corriger | → `GRADING_IN_PROGRESS` |
 | `GRADING_IN_PROGRESS` | Finalisation en cours (génération PDF) | → `GRADED` ou `GRADING_FAILED` |
 | `GRADING_FAILED` | Échec de génération PDF | → `GRADING_IN_PROGRESS` (retry, max 3) |
-| `GRADED` | Corrigée et finalisée | Terminal |
+| `GRADED` | Corrigée et finalisée | → `READY` (reopen) |
 
 ### 5.2 Modèle de données Copy
 
@@ -520,7 +522,7 @@ Le `CorrectorDesk` est l'interface centrale de correction, composée de :
 
 #### Annotations visuelles
 - Click & drag sur l'image pour créer une annotation
-- 4 types : **Commentaire** (bleu), **Surligné** (jaune), **Erreur** (rouge), **Bonus** (vert)
+- 6 types : **Commentaire** (bleu), **Surligné** (jaune), **Erreur** (rouge), **Bonus** (vert), **VRAI** (vert, tampon V), **FAUX** (rouge, tampon X)
 - Coordonnées normalisées `[0,1]` (ADR-002) pour indépendance résolution
 - CRUD complet avec **verrouillage optimiste** (champ `version` incrémenté atomiquement)
 
@@ -537,6 +539,29 @@ Le `CorrectorDesk` est l'interface centrale de correction, composée de :
 #### Appréciation globale
 - Champ texte libre (`Copy.global_appreciation`)
 - Autosave avec debounce
+
+#### Tampon Vrai/Faux (V2)
+- Boutons **V** (vert) et **X** (rouge) pour apposer rapidement un tampon sur la copie
+- Mode **quick stamp** : un clic sur la copie dépose directement le tampon sélectionné
+- Composant dédié : `TrueFalseTool.vue`
+
+#### Mode Split View (V2)
+- Affichage côte à côte : copie de l'élève à gauche, corrigé officiel à droite
+- Synchronisation du zoom et de la navigation entre les deux panneaux
+- Activation via bouton dans la barre d'outils du CorrectorDesk
+
+#### Force Unlock (V2)
+- Un administrateur ou l'enseignant propriétaire peut forcer le déverrouillage d'une copie bloquée
+- Utile en cas de déconnexion ou de session expirée d'un autre correcteur
+
+#### Réouverture de copie (V2)
+- Transition `GRADED → READY` permettant de rouvrir une copie déjà finalisée
+- Permet de corriger une erreur de notation après finalisation
+- Accessible par l'enseignant ou l'administrateur
+
+#### Indicateurs de progression (V2)
+- Barre de progression dans le CorrectorDashboard montrant l'avancement de la correction
+- Composant dédié : `ProgressDashboard.vue`
 
 #### Finalisation
 - Bouton "Finaliser" → `POST /api/grading/copies/<id>/finalize/`
@@ -1134,5 +1159,5 @@ Schéma OpenAPI : `https://korrigo.labomaths.tn/api/schema/`
 
 ---
 
-*Document généré le 10 mars 2026 — Korrigo PMF v1.0*
-*Contact : Alaeddine BEN RHOUMA — contact@korrigo.edu*
+*Document généré le 10 mars 2026 — Korrigo v1.0*
+*Contact : Alaeddine BEN RHOUMA — contact@nexusreussite.academy*

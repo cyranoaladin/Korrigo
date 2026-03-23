@@ -1,12 +1,12 @@
-# Korrigo PMF 🚀
+# Korrigo 🚀
 
-**Korrigo** est une plateforme de correction numérique d'examens scannés de bout en bout, conçue spécifiquement pour le Lycée Pierre Mendès France (Tunis, AEFE). Elle permet de gérer tout le cycle de vie d'un examen dématérialisé : de l'ingestion des scans PDF à la publication des résultats pour les élèves, en passant par l'anonymisation, le dispatch intelligent, l'annotation vectorielle et la génération de bilans pédagogiques par IA.
+**Korrigo** est une plateforme de correction numérique d'examens scannés de bout en bout. Elle permet de gérer tout le cycle de vie d'un examen dématérialisé : de l'ingestion des scans PDF à la publication des résultats pour les élèves, en passant par l'anonymisation, le dispatch intelligent, l'annotation vectorielle et la génération de bilans pédagogiques par IA.
 
-**Production** : [https://korrigo.labomaths.tn](https://korrigo.labomaths.tn)
+**Production** : [https://korrigo.nexusreussite.academy](https://korrigo.nexusreussite.academy)
 
 ---
 
-## 🏗 Architecture Technique (v2.1)
+## 🏗 Architecture Technique (v2.2)
 
 Le projet repose sur une architecture moderne, robuste et conteneurisée, privilégiant la sécurité et l'expérience utilisateur.
 
@@ -62,6 +62,10 @@ Le projet repose sur une architecture moderne, robuste et conteneurisée, privil
 - **Sauvegarde Auto (DraftState)** : Protection contre la perte de données en cas de déconnexion.
 - **Barème Hiérarchique** : Structure imbriquée (Exercice > Question > Sous-question).
 - **Banque d'Annotations** : Templates partagés, annotations perso et suggestions contextuelles.
+- **Tampon Vrai/Faux (V/✗)** : Marquage rapide des réponses (geste papier numérisé).
+- **Vue Scindée** : Barème affiché en permanence à côté de la copie PDF.
+- **Déverrouillage Admin** : Déblocage forcé des copies verrouillées par l'administrateur.
+- **Réouverture Copie Finalisée** : Transition GRADED → READY par admin si correction à revoir.
 
 ### 3. Intelligence Artificielle (Korrigo AI)
 - **OCR Vision** : Identification automatique des élèves via lecture manuscrite par GPT-4o-mini.
@@ -81,10 +85,12 @@ Le projet repose sur une architecture moderne, robuste et conteneurisée, privil
 
 ```
 STAGING ──validate──→ READY ──lock──→ LOCKED ──finalize──→ GRADING_IN_PROGRESS ──→ GRADED
-                        ↑              │                           │
-                        └──unlock──────┘                    GRADING_FAILED
-                                                                │
-                                                                └──retry──→ GRADING_IN_PROGRESS
+                        ↑              │                           │                 │
+                        └──unlock──────┘                    GRADING_FAILED           │
+                        ↑                                       │                    │
+                        │                                       └──retry──→ GRADING_IN_PROGRESS
+                        │
+                        └───────────────────reopen (admin)───────────────────────────┘
 ```
 
 ### Tables Principales
@@ -174,9 +180,9 @@ Korrigo dispose d'une documentation exhaustive organisée par rôle et par thém
 
 ## 📜 Crédits & Licence
 
-**Concepteur** : Alaeddine BEN RHOUMA — Labo Maths ERT  
-**Contexte** : Lycée Pierre Mendès France, Tunis (AEFE)  
+**Concepteur** : Alaeddine BEN RHOUMA   
+**Contexte** : Nexus Réussite  
 **Licence** : Propriétaire — Usage institutionnel uniquement.
 
 ---
-*Dernière mise à jour : 10 mars 2026*
+*Dernière mise à jour : 23 mars 2026*

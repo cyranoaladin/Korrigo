@@ -1,7 +1,7 @@
-# Guide de Navigation UI - Korrigo PMF
+# Guide de Navigation UI - Korrigo
 
-> **Version** : 2.0.0  
-> **Date** : 4 mars 2026  
+> **Version** : 2.1.0
+> **Date** : 23 Mars 2026
 > **Public** : Tous les utilisateurs (Administrateurs, Enseignants, Élèves)  
 > **Type** : Référence Complète de l'Interface Utilisateur
 
@@ -26,7 +26,7 @@
 
 ### Objectif de ce Document
 
-Ce guide fournit une **référence complète** de toutes les interfaces utilisateur de la plateforme Korrigo PMF. Il décrit :
+Ce guide fournit une **référence complète** de toutes les interfaces utilisateur de la plateforme Korrigo. Il décrit :
 - Toutes les pages et vues
 - Les éléments d'interface
 - Les workflows de navigation
@@ -60,10 +60,10 @@ Ce guide fournit une **référence complète** de toutes les interfaces utilisat
 
 ### Vue d'Ensemble
 
-Korrigo PMF est une **application web monopage (SPA)** construite avec Vue.js 3. L'interface est divisée en **trois portails distincts** selon le rôle utilisateur :
+Korrigo est une **application web monopage (SPA)** construite avec Vue.js 3. L'interface est divisée en **trois portails distincts** selon le rôle utilisateur :
 
 ```
-Korrigo PMF
+Korrigo
 ├── Portail Administrateur (Admin + Enseignants)
 │   ├── Tableau de bord
 │   ├── Gestion des examens
@@ -125,7 +125,7 @@ Korrigo PMF
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                                                              │
-│                    🎓 Korrigo PMF                            │
+│                    🎓 Korrigo                            │
 │                 Plateforme de Correction                     │
 │                                                              │
 │  ┌────────────────────────────────────────────────────┐     │
@@ -203,7 +203,7 @@ Korrigo PMF
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                                                              │
-│                    🎓 Korrigo PMF                            │
+│                    🎓 Korrigo                            │
 │                   Portail Élève                              │
 │                                                              │
 │  ┌────────────────────────────────────────────────────┐     │
@@ -614,6 +614,9 @@ Progression: ████████████░░░░░░░░ 12/25 
 │  │ Copies à corriger : 12/25                          │     │
 │  │ Progression: ████████████░░░░░░░░ 52%              │     │
 │  │                                                    │     │
+│  │ Copie en cours : 5/8 questions notées — 63%       │     │
+│  │ [▓▓▓▓▓░░░] (barre segmentée par question)        │     │
+│  │                                                    │     │
 │  │ [Accéder aux copies]                               │     │
 │  └────────────────────────────────────────────────────┘     │
 │                                                              │
@@ -627,6 +630,22 @@ Progression: ████████████░░░░░░░░ 12/25 
 │                                                              │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+#### Indicateur de Progression par Copie
+
+Chaque carte d'examen dans le tableau de bord enseignant affiche un **indicateur de progression par copie** sous forme de barre segmentee :
+
+```
+5/8 questions notées — 63%
+[▓▓▓▓▓░░░]
+```
+
+- Chaque segment represente une **question du bareme**
+- Les segments remplis (▓) indiquent les questions deja notees
+- Les segments vides (░) indiquent les questions restantes
+- Le pourcentage et le ratio (ex: « 5/8 questions notees — 63% ») s'affichent au-dessus de la barre
+
+Cet indicateur permet au correcteur de voir d'un coup d'oeil ou il en est dans la notation de la copie en cours.
 
 #### Différences avec Dashboard Admin
 
@@ -726,34 +745,40 @@ Progression: ████████████░░░░░░░░ 12/25 
 ├────────────────────────────┬─────────────────────────────────┤
 │                            │                                 │
 │                            │  📊 Barème et Notation          │
-│                            │                                 │
-│   📄 Visualiseur PDF       │  ┌────────────────────────┐    │
-│                            │  │ ☑ Ex1 (10 pts) [10/10] │    │
-│   [PDF de la copie]        │  │   ☑ Q1.a (3) [3/3]     │    │
-│   Page 1/4                 │  │   ☑ Q1.b (7) [7/7]     │    │
-│                            │  │                        │    │
-│   🔍 Zoom: 100%            │  │ ☐ Ex2 (8 pts) [0/8]    │    │
-│   [➖] [100%] [➕]          │  │   ☐ Q2.a (4) [__/4]    │    │
-│                            │  │   ☐ Q2.b (4) [__/4]    │    │
-│   🛠️ Outils d'Annotation    │  │                        │    │
-│   ┌──────────────────┐     │  │ ☐ Ex3 (2 pts) [__/2]   │    │
-│   │ ✏️ Commentaire    │     │  │                        │    │
-│   │ 🟨 Surligner     │     │  │ Total: 10/20           │    │
-│   │ ❌ Erreur        │     │  │                        │    │
+│   📄 Visualiseur PDF       │                                 │
+│                            │  ┌────────────────────────┐    │
+│   [PDF de la copie]        │  │ ☑ Ex1 (10 pts) [10/10] │    │
+│   Page 1/4                 │  │   ☑ Q1.a (3) [3/3]     │    │
+│                            │  │   ☑ Q1.b (7) [7/7]     │    │
+│   🔍 Zoom: 100%            │  │                        │    │
+│   [➖] [100%] [➕]          │  │ ☐ Ex2 (8 pts) [0/8]    │    │
+│                            │  │   ☐ Q2.a (4) [__/4]    │    │
+│   🛠️ Outils d'Annotation    │  │   ☐ Q2.b (4) [__/4]    │    │
+│   ┌──────────────────┐     │  │                        │    │
+│   │ ✏️ Commentaire    │     │  │ ☐ Ex3 (2 pts) [__/2]   │    │
+│   │ 🟨 Surligner     │     │  │                        │    │
+│   │ ❌ Erreur        │     │  │ Total: 10/20           │    │
 │   │ ⭐ Bonus         │     │  └────────────────────────┘    │
-│   └──────────────────┘     │                                 │
-│                            │  📝 Annotations (3)             │
-│   ◀️ Page préc. | Page suiv.▶️│  ┌────────────────────────┐  │
+│   │ ✓  Vrai (V)      │     │                                 │
+│   │ ✗  Faux (F)      │     │  📝 Annotations (3)             │
+│   └──────────────────┘     │  ┌────────────────────────┐    │
 │                            │  │ 💬 "Erreur ligne 3"     │    │
-│                            │  │    Page 1 (-0.5 pts)   │    │
-│                            │  │    [Modifier] [Suppr]  │    │
+│   Quick Stamps:            │  │    Page 1 (-0.5 pts)   │    │
+│   [✓ V] [✗ F]             │  │    [Modifier] [Suppr]  │    │
 │                            │  └────────────────────────┘    │
-│                            │                                 │
+│   Vue: [◫ Split]           │                                 │
 │                            │  [💾 Sauvegarder]               │
-│                            │  [✅ Finaliser la copie]        │
+│   ◀️ Page préc. | Page suiv.▶️│  [✅ Finaliser la copie]      │
+│                            │                                 │
+│                            │  🔧 Admin uniquement :          │
+│                            │  [🔓 Déverrouiller] [🔄 Rouvrir]│
 │                            │                                 │
 └────────────────────────────┴─────────────────────────────────┘
 ```
+
+#### Mode Split View (◫)
+
+Le bouton **◫ Split** active le mode **vue partagée** : le PDF et le panneau de notation s'affichent cote-a-cote avec un panneau de notation intégré directement dans la zone de visualisation, permettant de noter tout en consultant la copie sans défilement.
 
 #### Zones de l'Interface
 
@@ -764,7 +789,9 @@ Progression: ████████████░░░░░░░░ 12/25 
 | **PDF Canvas** | Affiche le PDF avec annotations superposées |
 | **Zoom** | Contrôle zoom: 50%, 75%, 100%, 125%, 150%, 200% |
 | **Navigation pages** | Boutons « ◀️ Précédent » et « Suivant ▶️ » |
-| **Outils annotation** | Sélection outil actif (surbrillance) |
+| **Outils annotation** | Sélection outil actif (surbrillance) — 6 types |
+| **Quick stamps V/X** | Boutons rapides `[✓ V]` et `[✗ F]` pour tamponner Vrai/Faux |
+| **Split View** | Bouton `[◫ Split]` pour basculer en vue partagée |
 
 ##### Zone 2 : Barre de Notation (Droite - 40%)
 
@@ -775,6 +802,7 @@ Progression: ████████████░░░░░░░░ 12/25 
 | **Total** | Calcul automatique de la note finale |
 | **Liste annotations** | Liste des annotations créées (cliquables pour modifier) |
 | **Boutons action** | Sauvegarder, Finaliser |
+| **Boutons admin** | `[🔓 Déverrouiller]` (déverrouiller une copie bloquée), `[🔄 Rouvrir]` (rouvrir une copie finalisée) — visibles uniquement pour les administrateurs |
 
 #### Workflow de Création d'Annotation
 
@@ -860,6 +888,26 @@ Progression: ████████████░░░░░░░░ 12/25 
 │                                      │
 └──────────────────────────────────────┘
 ```
+
+##### 5. Annotation « Vrai » ✓ (Quick Stamp V)
+
+**Actions** :
+1. Clic sur le bouton rapide `[✓ V]` dans la barre d'outils
+2. Clic sur le PDF a l'emplacement souhaite
+3. Un tampon vert **✓** est place immediatement (pas de modal)
+4. Annotation enregistree automatiquement
+
+> Ce tampon rapide reproduit le geste classique du correcteur qui coche une reponse correcte sur papier. Aucun point n'est associe directement : il sert d'indicateur visuel.
+
+##### 6. Annotation « Faux » ✗ (Quick Stamp F)
+
+**Actions** :
+1. Clic sur le bouton rapide `[✗ F]` dans la barre d'outils
+2. Clic sur le PDF a l'emplacement souhaite
+3. Un tampon rouge **✗** est place immediatement (pas de modal)
+4. Annotation enregistree automatiquement
+
+> Ce tampon rapide reproduit le geste classique du correcteur qui marque une reponse incorrecte sur papier. Aucun point n'est associe directement : il sert d'indicateur visuel.
 
 #### Finalisation de la Copie
 
@@ -1253,6 +1301,9 @@ ou une tablette pour corriger les copies."
 | `Espace` | Cocher checkbox, activer bouton |
 | `Échap` | Fermer modal |
 | `←` `→` | Navigation pages PDF |
+| `V` | Activer outil Quick Stamp Vrai (✓) |
+| `F` | Activer outil Quick Stamp Faux (✗) |
+| `S` | Basculer le mode Split View (◫) |
 
 ### Contraste
 
@@ -1307,10 +1358,12 @@ ou une tablette pour corriger les copies."
 
 | Version | Date | Changements |
 |---------|------|-------------|
+| **2.1.0** | 23/03/2026 | Quick stamps V/X, annotations VRAI/FAUX, Split View, boutons admin (Déverrouiller, Rouvrir), indicateur progression par copie |
+| **2.0.0** | 04/03/2026 | Refonte majeure de l'interface |
 | **1.0.0** | 30/01/2026 | Version initiale du guide de navigation UI |
 
 ---
 
-**© 2026 Korrigo PMF - Plateforme de Correction Numérique pour Lycées**
+**© 2026 Korrigo - Plateforme de Correction Numérique pour Lycées**
 
 > 📧 **Contact** : Pour toute question, consultez les autres guides utilisateur ou contactez le support.
