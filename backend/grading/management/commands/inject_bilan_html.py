@@ -70,7 +70,7 @@ class Command(BaseCommand):
             'status': 'ready',
             'html': final_html,
             'generated_at': timezone.now().isoformat(),
-            'error': '',
+            'detail': '',
             'auto': True,
             'fingerprint': fingerprint,
             'responses_count': summary['responses_count'],
