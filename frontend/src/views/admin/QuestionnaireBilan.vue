@@ -209,7 +209,6 @@ onMounted(fetchBilan)
         </div>
         <div class="header-actions">
           <span class="header-user">{{ authStore.user?.username }}</span>
-          <button class="header-btn" @click="exportJson">Exporter JSON</button>
           <button class="header-btn logout" @click="handleLogout">Deconnexion</button>
         </div>
       </div>
