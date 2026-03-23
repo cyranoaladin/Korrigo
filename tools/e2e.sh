@@ -30,6 +30,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo "==> Up docker env (prod-like)"
+docker compose -f "$COMPOSE_FILE" down -v --remove-orphans
 docker compose -f "$COMPOSE_FILE" up -d --build
 
 echo "==> Wait health (timeout: ${HEALTH_TIMEOUT}s)"
@@ -47,6 +48,10 @@ until curl -fsS "$HEALTH_URL" >/dev/null 2>&1; do
   SECONDS_WAITED=$((SECONDS_WAITED + 2))
 done
 echo "  ✓ Backend healthy"
+
+echo "==> Run migrations"
+docker compose -f "$COMPOSE_FILE" exec -T backend \
+  bash -lc "export PYTHONPATH=/app && python manage.py migrate"
 
 echo "==> Seed E2E (inside backend container)"
 docker compose -f "$COMPOSE_FILE" exec -T backend \

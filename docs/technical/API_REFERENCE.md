@@ -1,7 +1,7 @@
 # API Reference - Korrigo PMF
 
-> **Version**: 1.4.0
-> **Date**: 1 Février 2026  
+> **Version**: 2.0.0
+> **Date**: 23 Mars 2026
 > **Base URL**: `http://localhost:8088/api/` (dev) | `https://korrigo.example.com/api/` (prod)
 
 Documentation complète de l'API REST de la plateforme Korrigo PMF.
@@ -622,6 +622,55 @@ X-Content-Type-Options: nosniff
 
 ---
 
+### Force Unlock (Admin)
+
+```http
+POST /api/grading/copies/{copy_id}/force-unlock/
+```
+
+**Permissions**: `IsTeacherOrAdmin` + superuser/staff uniquement
+
+**Description**: Force la suppression du verrou (CopyLock) sur une copie bloquée. Usage admin pour débloquer une copie en mode "locked" que le correcteur ne peut plus libérer.
+
+**Response** (200 OK):
+```json
+{
+  "message": "Verrou supprimé avec succès (ancien propriétaire: dupont.marie).",
+  "copy_id": "uuid-..."
+}
+```
+
+**Response** (204 No Content): Aucun verrou n'existait.
+
+**Response** (403 Forbidden): Utilisateur non superuser/staff.
+
+---
+
+### Réouverture Copie (Admin)
+
+```http
+POST /api/grading/copies/{copy_id}/reopen/
+```
+
+**Permissions**: `IsTeacherOrAdmin` + superuser uniquement
+
+**Description**: Réouvre une copie finalisée (GRADED → READY). Le PDF final est invalidé, les notes et annotations sont conservées. Permet de corriger une erreur après finalisation.
+
+**Response** (200 OK):
+```json
+{
+  "message": "Copie rouverte avec succès.",
+  "copy_id": "uuid-...",
+  "anonymous_id": "A3F7B2E1",
+  "status": "READY"
+}
+```
+
+**Response** (400 Bad Request): Copie pas en statut GRADED.
+**Response** (403 Forbidden): Utilisateur non superuser.
+
+---
+
 ### Historique d'Audit
 
 ```http
@@ -715,7 +764,7 @@ Content-Type: application/json
 **Validations**:
 - `page_index`: >= 0, < nombre de pages
 - `x, y, w, h`: Entre 0.0 et 1.0 (coordonnées normalisées)
-- `type`: `COMMENT`, `HIGHLIGHT`, `ERROR`, `BONUS`
+- `type`: `COMMENT`, `HIGHLIGHT`, `ERROR`, `BONUS`, `VRAI`, `FAUX`
 
 **Response** (201 Created):
 ```json
@@ -1119,6 +1168,6 @@ http://localhost:8088/api/schema/redoc/
 
 ---
 
-**Dernière mise à jour**: 25 janvier 2026  
+**Dernière mise à jour**: 23 mars 2026
 **Auteur**: Alaeddine BEN RHOUMA  
 **Licence**: Propriétaire - AEFE/Éducation Nationale

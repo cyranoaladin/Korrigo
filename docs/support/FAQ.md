@@ -1,7 +1,7 @@
 # Foire Aux Questions (FAQ) - Korrigo PMF
 
-> **Version**: 1.1.0  
-> **Date**: 10 Mars 2026  
+> **Version**: 2.0.0
+> **Date**: 23 Mars 2026
 > **Public**: Tous les utilisateurs  
 > **Langue**: Français
 
@@ -316,6 +316,32 @@ docker-compose logs -f
 
 **Automatisation** : Configurez un export automatique après finalisation de toutes les copies.
 
+### Comment debloquer une copie verrouillee ?
+
+**Reponse**:
+Une copie peut rester bloquee en statut `LOCKED` si un enseignant a ferme son navigateur sans liberer le verrou.
+
+**Procedure (V2)** :
+1. Ouvrir la copie dans le **CorrectorDesk**
+2. Cliquer sur le bouton **"Deverrouiller"** dans la toolbar admin
+3. Confirmer l'action dans la modale
+
+La copie repasse au statut `READY` et un evenement `FORCE_UNLOCK` est enregistre dans le journal d'audit.
+
+### Comment corriger une copie deja finalisee ?
+
+**Reponse**:
+Une copie finalisee (`GRADED`) est normalement verrouillee. Seul un **superuser** peut la rouvrir.
+
+**Procedure (V2)** :
+1. Ouvrir la copie dans le **CorrectorDesk**
+2. Cliquer sur le bouton **"Rouvrir"** dans la toolbar (visible uniquement pour les superusers)
+3. Confirmer l'action
+4. La copie passe de `GRADED` a `READY`
+5. L'enseignant peut alors re-verrouiller et modifier la copie
+
+Un evenement `REOPEN` est enregistre dans le journal d'audit avec toutes les metadata.
+
 ---
 
 ## FAQ Enseignant
@@ -472,11 +498,29 @@ L'administrateur sera notifié et pourra corriger le problème.
 4. **Pauses** : Faites des pauses régulières pour éviter la fatigue
 5. **Révision** : Relisez les premières copies corrigées après avoir terminé (pour ajuster si nécessaire)
 
-**Statistiques** : Le système calcule votre moyenne, médiane, écart-type pour détecter les incohérences.
+**Statistiques** : Le systeme calcule votre moyenne, mediane, ecart-type pour detecter les incoherences.
+
+### Comment marquer rapidement Vrai/Faux sur les copies ?
+
+**Reponse**:
+La V2 introduit les **boutons V/X** dans la barre d'outils du CorrectorDesk :
+1. Selectionnez l'outil **V** (Vrai) ou **X** (Faux) dans la toolbar
+2. Cliquez sur la zone de la copie a annoter
+3. Un tampon vert (V) ou rouge (X) est appose directement sur la copie
+4. Cela accelere considerablement la correction des QCM et exercices vrai/faux
+
+### Comment voir le bareme en meme temps que la copie ?
+
+**Reponse**:
+La V2 propose la **Vue Scindee** (Split View) :
+1. Cliquer sur le bouton **"Split"** dans la toolbar du CorrectorDesk
+2. L'ecran se divise en deux panneaux : la copie a gauche, le bareme a droite
+3. Les deux panneaux sont navigables independamment
+4. Pour revenir a la vue normale, cliquer de nouveau sur le bouton **"Split"**
 
 ---
 
-## FAQ Secrétariat
+## FAQ Secretariat
 
 ### L'OCR ne reconnaît pas le nom de l'élève, que faire ?
 

@@ -1,7 +1,7 @@
-# Guide Utilisateur Enseignant - Korrigo PMF
+# Guide Utilisateur Enseignant - Korrigo
 
-> **Version** : 1.0.0  
-> **Date** : 30 Janvier 2026  
+> **Version** : 2.0.0
+> **Date** : 23 Mars 2026
 > **Public** : Enseignants (Professeurs)  
 > **Type** : Manuel Utilisateur
 
@@ -14,23 +14,28 @@
 3. [Workflow de Correction](#workflow-de-correction)
 4. [Interface de Correction](#interface-de-correction)
 5. [Les Annotations](#les-annotations)
-6. [La Barre de Notation](#la-barre-de-notation)
-7. [Finalisation des Copies](#finalisation-des-copies)
-8. [Bonnes Pratiques](#bonnes-pratiques)
-9. [Résolution des Problèmes](#résolution-des-problèmes)
-10. [Support et Assistance](#support-et-assistance)
+6. [Outil Tampon Vrai/Faux](#tampon-vraifaux-vx)
+7. [La Barre de Notation](#la-barre-de-notation)
+8. [Vue Scindée (Split View)](#vue-scindée-split-view)
+9. [Indicateur de Progression](#indicateur-de-progression)
+10. [Finalisation des Copies](#finalisation-des-copies)
+11. [Bonnes Pratiques](#bonnes-pratiques)
+12. [Résolution des Problèmes](#résolution-des-problèmes)
+13. [Support et Assistance](#support-et-assistance)
 
 ---
 
 ## Introduction
 
-### Qu'est-ce que Korrigo PMF ?
+### Qu'est-ce que Korrigo ?
 
 **Korrigo PMF** est une plateforme de correction numérique d'examens qui permet aux enseignants de :
 - **Corriger les copies numériquement** sans impression
 - **Annoter directement sur les PDF** avec des outils vectoriels
 - **Noter selon un barème préétabli** avec calcul automatique du total
 - **Sauvegarder automatiquement** leur travail
+- **Tamponner rapidement** les réponses avec l'outil Vrai/Faux
+- **Afficher le barème en permanence** grâce à la vue scindée
 - **Générer des PDF finaux** pour les élèves
 
 ### Avantages de la Correction Numérique
@@ -43,7 +48,7 @@
 
 ### Prérequis
 
-Pour utiliser Korrigo PMF, vous devez :
+Pour utiliser Korrigo, vous devez :
 - Disposer d'un compte enseignant (fourni par l'administration)
 - Utiliser un navigateur moderne (Chrome, Firefox, Edge recommandés)
 - Disposer d'une connexion internet stable
@@ -205,28 +210,28 @@ Si vous fermez votre navigateur puis revenez, vous pouvez **reprendre** votre co
 L'interface de correction est divisée en **deux zones principales** :
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│ Copie A3F7B2E1 - Bac Blanc Maths TG                         │
-├────────────────────────────┬─────────────────────────────────┤
-│                            │                                 │
-│                            │  📊 Barème                      │
-│   📄 Visualiseur PDF       │  ┌────────────────────────┐    │
-│                            │  │ ☐ Ex1 (10 pts)         │    │
-│   [PDF de la copie]        │  │   ☐ Q1.a (3 pts) [/3]  │    │
-│                            │  │   ☐ Q1.b (7 pts) [/7]  │    │
-│   Page 1/4                 │  │                        │    │
-│                            │  │ ☐ Ex2 (8 pts)          │    │
-│   🛠️ Outils                 │  │   ☐ Q2.a (4 pts) [/4]  │    │
-│   ✏️ Commentaire            │  │   ☐ Q2.b (4 pts) [/4]  │    │
-│   🟨 Surligner             │  │                        │    │
-│   ❌ Erreur                 │  │ ☐ Ex3 (2 pts)          │    │
-│   ⭐ Bonus                  │  │                        │    │
-│                            │  │ Total: 0/20            │    │
-│                            │  └────────────────────────┘    │
-│                            │                                 │
-│                            │  [💾 Sauvegarder] [✅ Finaliser]│
-│                            │                                 │
-└────────────────────────────┴─────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│ Barre d'outils : [← Préc.] Page 1/4 [Suiv. →] [✓V] [✗F] [◫ Split] │
+├────────────────────────────┬─────────────────────────────────────┤
+│                            │                                     │
+│                            │  📊 Barème                          │
+│   📄 Visualiseur PDF       │  ┌────────────────────────┐        │
+│                            │  │ ☐ Ex1 (10 pts)         │        │
+│   [PDF de la copie]        │  │   ☐ Q1.a (3 pts) [/3]  │        │
+│                            │  │   ☐ Q1.b (7 pts) [/7]  │        │
+│   🛠️ Outils                │  │                        │        │
+│   ✏️ Commentaire            │  │ ☐ Ex2 (8 pts)          │        │
+│   🟨 Surligner             │  │   ☐ Q2.a (4 pts) [/4]  │        │
+│   ❌ Erreur                │  │   ☐ Q2.b (4 pts) [/4]  │        │
+│   ⭐ Bonus                 │  │                        │        │
+│   ✓ Vrai / ✗ Faux         │  │ ☐ Ex3 (2 pts)          │        │
+│                            │  │                        │        │
+│                            │  │ Total: 0/20            │        │
+│                            │  └────────────────────────┘        │
+│                            │                                     │
+│                            │  [💾 Sauvegarder] [✅ Finaliser]    │
+│                            │                                     │
+└────────────────────────────┴─────────────────────────────────────┘
 ```
 
 ### Zone de Gauche : Visualiseur PDF
@@ -236,9 +241,10 @@ L'interface de correction est divisée en **deux zones principales** :
 | Fonction | Description | Raccourci |
 |----------|-------------|-----------|
 | **Zoom** | Ajuster la taille d'affichage | `Ctrl + / Ctrl -` |
-| **Navigation** | Passer à la page suivante/précédente | `← →` |
+| **Navigation** | Passer à la page suivante/précédente | `← →` ou `PageUp/PageDown` |
 | **Défilement** | Faire défiler la page | `Molette` |
 | **Rotation** | Faire pivoter le PDF (si besoin) | Bouton rotation |
+| **Tampon V/X** | Marquer Vrai (✓) ou Faux (✗) rapidement | Boutons `[✓V]` `[✗F]` dans la barre d'outils |
 
 #### Navigation entre Pages
 
@@ -266,7 +272,7 @@ Voir section [La Barre de Notation](#la-barre-de-notation) pour plus de détails
 
 ### Types d'Annotations Disponibles
 
-Korrigo PMF propose **4 types d'annotations** :
+Korrigo PMF propose **6 types d'annotations** :
 
 | Type | Icône | Couleur | Usage | Score |
 |------|-------|---------|-------|-------|
@@ -274,6 +280,8 @@ Korrigo PMF propose **4 types d'annotations** :
 | **Surligner** | 🟨 | Jaune | Mettre en évidence un passage | 0 |
 | **Erreur** | ❌ | Rouge | Signaler une erreur | Négatif |
 | **Bonus** | ⭐ | Vert | Récompenser un bonus | Positif |
+| **Vrai (✓)** | ✓ | Vert | Marquer une réponse correcte | 0 |
+| **Faux (✗)** | ✗ | Rouge | Marquer une réponse incorrecte | 0 |
 
 ### 1. Annotation « Commentaire »
 
@@ -403,6 +411,32 @@ Utilisée pour :
 
 > 💡 **Astuce** : Utilisez les bonus avec parcimonie pour valoriser l'excellence.
 
+### 5. Tampon Vrai/Faux (V/✗)
+
+#### Usage
+
+Le tampon Vrai/Faux est l'outil le plus rapide pour corriger :
+- Marquer une réponse correcte (✓ vert)
+- Marquer une réponse incorrecte (✗ rouge)
+- Corriger des QCM ou exercices courts
+
+#### Mode Tampon Rapide
+
+1. Dans la barre d'outils au-dessus de la copie, cliquez sur **✓ V** (Vrai) ou **✗ F** (Faux)
+2. Le bouton s'active (fond coloré)
+3. **Dessinez un rectangle** sur la copie à l'endroit voulu
+4. Le tampon est créé **instantanément** sans ouvrir l'éditeur
+5. Continuez à tamponner autant de fois que nécessaire
+6. Cliquez à nouveau sur le bouton pour désactiver le mode
+
+> **Astuce** : Le mode tampon reste actif tant que vous ne le désactivez pas. Idéal pour corriger rapidement une série de questions.
+
+#### Rendu
+
+- **Vrai (✓)** : Checkmark vert dans un rectangle léger
+- **Faux (✗)** : Croix rouge dans un rectangle léger
+- Les tampons apparaissent sur la copie et dans le PDF final remis à l'élève
+
 ### Modification et Suppression d'Annotations
 
 #### Modifier une Annotation
@@ -422,7 +456,7 @@ Utilisée pour :
 
 ### Banque de Commentaires Personnelle
 
-Pour gagner du temps, Korrigo PMF enregistre automatiquement vos commentaires fréquents.
+Pour gagner du temps, Korrigo enregistre automatiquement vos commentaires fréquents.
 
 #### Fonctionnement
 
@@ -504,6 +538,64 @@ Pour ajouter un ajustement global (non lié à une question spécifique) :
 1. Utilisez une annotation **Bonus** ⭐ ou **Erreur** ❌
 2. Placez-la n'importe où sur le PDF
 3. Le score sera ajouté/retiré du total final
+
+---
+
+## Vue Scindée (Split View)
+
+### Le Problème Résolu
+
+Lors du premier déploiement, plusieurs correcteurs ont signalé la difficulté d'alterner entre le panneau d'annotations et le barème. La vue scindée résout ce problème.
+
+### Activer la Vue Scindée
+
+1. Dans la barre d'outils, cliquez sur le bouton **◫ Split**
+2. Le barème s'affiche en permanence à droite de la copie, à côté du panneau d'inspection
+3. Vous pouvez noter les questions **tout en voyant la copie et en annotant**
+
+### Disposition de l'Écran en Mode Split
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ Barre d'outils : [← Préc.] Page 2/4 [Suiv. →] [✓V] [✗F] [◫ Split] │
+├──────────────────┬──────────────────┬────────────────────────────┤
+│                  │                  │ Panneau Inspection         │
+│  Copie PDF       │  Barème (split)  │ (Annotations / Historique) │
+│  + Annotations   │  Notes + Remarques│                           │
+│                  │  Total: 14.5/20  │                            │
+└──────────────────┴──────────────────┴────────────────────────────┘
+```
+
+### Avantages
+
+- Plus besoin d'alterner entre onglets Annotations et Barème
+- Visualisation simultanée de la copie, du barème et des annotations
+- Le panneau barème en split est redimensionnable
+- La position de scroll du barème est toujours préservée
+
+---
+
+## Indicateur de Progression
+
+### Vue d'Ensemble
+
+L'indicateur de progression vous permet de suivre en temps réel l'avancement de la correction pour chaque examen.
+
+### Informations Affichées
+
+- **Nombre de copies corrigées** par rapport au total
+- **Barre de progression visuelle** avec pourcentage
+- **Copies restantes** à corriger
+- **Temps moyen estimé** par copie (basé sur votre historique)
+
+### Où le Trouver
+
+L'indicateur de progression est visible :
+- Sur le **tableau de bord** pour chaque examen
+- Dans la **liste des copies** en haut de page
+- Dans la **barre d'outils** de l'interface de correction (copie actuelle / total)
+
+> **Astuce** : Utilisez l'indicateur de progression pour planifier vos sessions de correction et estimer le temps restant.
 
 ---
 
@@ -605,7 +697,14 @@ Si vous avez finalisé une copie par erreur, un **administrateur** peut :
 - ✅ **Transparence** : Expliquez les retraits de points
 - ✅ **Bonus** : Récompensez les initiatives et démarches originales
 
-#### 4. Utilisation du Système
+#### 4. Tampon Vrai/Faux et Vue Scindée
+
+- ✅ **QCM et exercices courts** : Utilisez le tampon Vrai/Faux pour corriger rapidement les réponses binaires
+- ✅ **Mode tampon** : Restez en mode tampon pour enchaîner les corrections sans cliquer à chaque fois
+- ✅ **Vue scindée** : Activez le mode Split pour noter le barème tout en voyant la copie et les annotations
+- ✅ **Combinaison optimale** : Utilisez le tampon V/X pour les QCM, puis la vue scindée pour les exercices rédactionnels
+
+#### 5. Utilisation du Système
 
 - ✅ **Sauvegarde automatique** : Activée par défaut toutes les 30 secondes
 - ✅ **Vérifiez votre connexion** : Avant de commencer une longue session
@@ -887,16 +986,19 @@ Merci de votre aide.
 | **Lock (Verrouillage)** | Mécanisme garantissant qu'une seule personne corrige une copie à la fois |
 | **PDF Final** | PDF généré après finalisation, avec annotations intégrées |
 | **Score** | Note attribuée à une question, un exercice ou une copie |
+| **Split View** | Mode d'affichage scindé montrant la copie, le barème et les annotations simultanément |
 | **Statut** | État de la copie (PRÊT, VERROUILLÉE, CORRIGÉE) |
+| **Tampon V/X** | Outil rapide pour marquer les réponses correctes (✓) ou incorrectes (✗) |
 
 ### Changelog
 
 | Version | Date | Changements |
 |---------|------|-------------|
+| **2.0.0** | 23/03/2026 | Ajout outil Tampon Vrai/Faux, Vue Scindée (Split View), Indicateur de Progression |
 | **1.0.0** | 30/01/2026 | Version initiale du guide enseignant |
 
 ---
 
-**© 2026 Korrigo PMF - Plateforme de Correction Numérique pour Lycées**
+**© 2026 Korrigo - Plateforme de Correction Numérique pour Lycées**
 
 > 📧 **Contact** : Pour toute question, contactez l'administrateur système de votre lycée.

@@ -1,8 +1,8 @@
 # Documentation Korrigo - Index Principal
 
-> **Version**: 1.5  
-> **Date**: 10 mars 2026  
-> **Statut**: Documentation mise à jour — fidèle à l'état actuel du projet
+> **Version**: 2.0
+> **Date**: 23 mars 2026
+> **Statut**: Documentation mise à jour — fidèle à l'état actuel du projet (V2)
 
 ---
 
@@ -267,8 +267,8 @@
 
 - **Projet**: Korrigo - Plateforme de Correction Numérique
 - **Production**: [https://korrigo.labomaths.tn](https://korrigo.labomaths.tn)
-- **Version Documentation**: 1.5
-- **Date de Mise à Jour**: 10 mars 2026
+- **Version Documentation**: 2.0
+- **Date de Mise à Jour**: 23 mars 2026
 - **Stack**: Django 4.2 (Python 3.11) + Vue.js 3 + PostgreSQL 15 + Redis + Celery
 - **OCR**: GPT-4o-mini Vision + Tesseract (fallback)
 - **Langues**: Français (documentation utilisateur), Anglais (documentation technique)
@@ -325,6 +325,7 @@ docs/
 
 | Version | Date | Changements |
 |---------|------|-------------|
+| 2.0 | 2026-03-23 | **V2 Correction** : tampon V/X (VRAI/FAUX), split view copie/corrigé, force unlock, réouverture copie (GRADED -> READY), indicateurs de progression, composants TrueFalseTool et ProgressDashboard |
 | 1.5 | 2026-03-10 | Bannière transparence dashboard élève, fix login mobile (rate limit 30/15m + HTTP 429), documentation complète synchronisée |
 | 1.4 | 2026-03-04 | Synchronisation avec état production : 26/26 copies alaeddine GRADED, appréciations globales complètes, nouveau bilan mars 2026 |
 | 1.3 | 2026-02-14 | Mise à jour complète : README réécrit, stack technique actualisée (Python 3.11, GPT-4o-mini, mode INDIVIDUAL_A4), API exhaustive, modèle de données complet |

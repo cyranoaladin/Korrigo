@@ -1,7 +1,7 @@
 # État Actuel du Projet Korrigo — Mars 2026
 
-> **Version** : 2.1  
-> **Date** : 10 mars 2026  
+> **Version** : 2.2
+> **Date** : 23 Mars 2026
 > **Public** : Développeurs, Administrateurs, Product Owners
 
 Ce document décrit l'état actuel de l'application Korrigo PMF tel qu'implémenté dans le code source.
@@ -74,6 +74,8 @@ frontend/src/
     ├── CanvasLayer.vue            # Annotations sur PDF
     ├── AnnotationSuggestionsPanel.vue
     ├── ExamUploadModal.vue
+    ├── TrueFalseTool.vue            # Outil tampon V/✗ (V2)
+    ├── ProgressDashboard.vue        # Indicateur progression (V2)
     └── ...
 ```
 
@@ -271,6 +273,17 @@ frontend/src/
 | **Autosave** | Dual-layer (localStorage 300ms + serveur 2s) |
 | **Suggestions** | Banque d'annotations contextuelles |
 
+### 3b. Améliorations Correction V2
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| **Outil tampon Vrai/Faux (V/X)** | Marquage rapide des réponses via tampon visuel |
+| **Vue scindée (Split View)** | Affichage PDF et barème côte à côte pour correction efficace |
+| **Déverrouillage admin** | Force-unlock d'une copie verrouillée par un admin |
+| **Réouverture copie finalisée** | Transition GRADED → READY par superuser pour corriger une erreur |
+| **Indicateur de progression par question** | Visualisation de l'avancement de la correction question par question |
+| **Mémorisation des remarques entre copies** | Les remarques saisies sont suggérées pour les copies suivantes |
+
 ### 4. Statistiques
 
 | Fonctionnalité | Description |
@@ -336,8 +349,10 @@ frontend/src/
 
 ```
 STAGING ──validate──→ READY ──lock──→ LOCKED ──finalize──→ GRADED
-    ↑                   ↑              │
-    └─── reject ────────┘──── unlock ──┘
+    ↑                   ↑              │                     │
+    └─── reject ────────┘──── unlock ──┘                     │
+                        ↑                                    │
+                        └────── reopen (admin, V2) ──────────┘
 ```
 
 ---
@@ -365,6 +380,8 @@ STAGING ──validate──→ READY ──lock──→ LOCKED ──finalize�
 - `GET /api/grading/copies/:id/` — Détails copie
 - `POST /api/grading/copies/:id/lock/` — Verrouiller
 - `POST /api/grading/copies/:id/finalize/` — Finaliser
+- `POST /api/grading/copies/:id/force-unlock/` — Déverrouillage admin (V2)
+- `POST /api/grading/copies/:id/reopen/` — Réouverture copie finalisée (V2, superuser)
 
 #### Correction
 - `GET /api/grading/copies/:id/scores/` — Scores
@@ -413,4 +430,4 @@ STAGING ──validate──→ READY ──lock──→ LOCKED ──finalize�
 
 ---
 
-*Document généré le 4 mars 2026*
+*Document généré le 23 Mars 2026*

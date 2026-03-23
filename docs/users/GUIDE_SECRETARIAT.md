@@ -1,8 +1,8 @@
-# Guide Utilisateur Secrétariat - Korrigo PMF
+# Guide Utilisateur Secrétariat - Korrigo
 
-> **Version** : 1.0.0  
-> **Date** : 30 Janvier 2026  
-> **Public** : Personnel de Secrétariat (Bureau d'Identification)  
+> **Version** : 1.1.0
+> **Date** : 23 Mars 2026
+> **Public** : Personnel de Secrétariat (Bureau d'Identification)
 > **Type** : Manuel Utilisateur
 
 ---
@@ -26,9 +26,9 @@
 
 ## Introduction
 
-### Qu'est-ce que Korrigo PMF ?
+### Qu'est-ce que Korrigo ?
 
-**Korrigo PMF** est une plateforme de correction numérique d'examens. Votre rôle en tant que personnel de secrétariat est **crucial** dans le processus de traitement des copies.
+**Korrigo** est une plateforme de correction numérique d'examens. Votre rôle en tant que personnel de secrétariat est **crucial** dans le processus de traitement des copies.
 
 ### Votre Mission
 
@@ -515,6 +515,7 @@ Le contrôle qualité garantit que :
 - ✅ **Aucune copie** n'est oubliée
 - ✅ **Aucune erreur** d'identification
 - ✅ **Toutes les copies** sont prêtes pour correction
+- ✅ **Note V2** : une copie déjà corrigée (GRADED) peut être réouverte par l'enseignant ou l'administrateur (passage GRADED -> READY) pour correction complémentaire. Ce processus ne nécessite pas de ré-identification.
 
 ### Vérifications à Effectuer
 
@@ -655,7 +656,7 @@ Si aucune solution :
 **Problème** : L'examen est **volontairement anonyme** (pas de nom sur la copie).
 
 **Solution** :
-- Ce cas ne devrait **pas se produire** avec Korrigo PMF
+- Ce cas ne devrait **pas se produire** avec Korrigo
 - Le système génère automatiquement des **numéros d'anonymat** après identification
 - Si l'examen est anonyme **dès le départ**, contactez l'administrateur
 
@@ -884,6 +885,6 @@ Merci de votre aide.
 
 ---
 
-**© 2026 Korrigo PMF - Plateforme de Correction Numérique pour Lycées**
+**© 2026 Korrigo - Plateforme de Correction Numérique pour Lycées**
 
 > 📧 **Contact** : Pour toute question, contactez l'administrateur système de votre lycée.

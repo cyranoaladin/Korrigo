@@ -18,6 +18,8 @@ from grading.views import (
     ExamUnreleaseResultsView,
     ExamLLMSummaryView,
     CopyLLMSummaryView,
+    AdminForceUnlockView,
+    CopyReopenView,
 )
 from grading.views_draft import DraftReturnView
 from grading.views_async import task_status, cancel_task
@@ -82,6 +84,12 @@ urlpatterns = [
     path('my-annotations/auto-save/', AutoSaveAnnotationView.as_view(), name='user-annotation-auto-save'),
     path('my-annotations/<uuid:pk>/', UserAnnotationDetailView.as_view(), name='user-annotation-detail'),
     path('my-annotations/<uuid:pk>/use/', UserAnnotationUseView.as_view(), name='user-annotation-use'),
+
+    # Admin Force Unlock
+    path('copies/<uuid:copy_id>/force-unlock/', AdminForceUnlockView.as_view(), name='copy-force-unlock'),
+
+    # Reopen (GRADED → READY)
+    path('copies/<uuid:copy_id>/reopen/', CopyReopenView.as_view(), name='copy-reopen'),
 
     # Mes Élèves (correcteur)
     path('my-students/', MyStudentsListView.as_view(), name='my-students-list'),

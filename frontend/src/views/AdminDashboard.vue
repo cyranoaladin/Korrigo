@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import ExamUploadModal from '../components/ExamUploadModal.vue'
+import { QUESTIONNAIRE_SECTIONS } from '../questionnaire/config'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import UploadAnalyticsDashboard from '../components/UploadAnalyticsDashboard.vue'
 
@@ -12,6 +13,67 @@ const router = useRouter()
 const exams = ref([])
 const loading = ref(true)
 const questionnaireSummary = ref({ is_available: false, responses_count: 0, total_eligible: 0 })
+const questionnaireParticipants = ref({ responded: [], pending: [] })
+const questionnaireResponses = ref([])
+const questionnaireGeneratedBilan = ref({ status: 'missing', html: '', generated_at: null, error: '' })
+const questionnaireLoading = ref(true)
+const selectedQuestionnaireResponse = ref(null)
+
+const questionnaireQuestionMeta = QUESTIONNAIRE_SECTIONS.flatMap(section =>
+    section.questions.map(question => ({
+        id: question.id,
+        label: question.label,
+        sectionId: section.id,
+        sectionTitle: section.title,
+        type: question.type
+    }))
+).reduce((acc, item) => {
+    acc[item.id] = item
+    return acc
+}, {})
+
+const formatAnswerValue = (value) => {
+    if (Array.isArray(value)) return value.length ? value.join(', ') : '—'
+    if (value === null || value === undefined || value === '') return '—'
+    return value
+}
+
+const selectedResponseDetails = computed(() => {
+    if (!selectedQuestionnaireResponse.value) {
+        return []
+    }
+    return Object.entries(selectedQuestionnaireResponse.value.answers || {}).map(([key, value]) => ({
+        key,
+        label: questionnaireQuestionMeta[key]?.label || key,
+        sectionId: questionnaireQuestionMeta[key]?.sectionId || 'other',
+        sectionTitle: questionnaireQuestionMeta[key]?.sectionTitle || 'Autres réponses',
+        type: questionnaireQuestionMeta[key]?.type || 'text',
+        value: formatAnswerValue(value)
+    }))
+})
+
+const selectedResponseSections = computed(() => {
+    const grouped = selectedResponseDetails.value.reduce((acc, item) => {
+        const existing = acc[item.sectionId] || {
+            id: item.sectionId,
+            title: item.sectionTitle,
+            items: []
+        }
+        existing.items.push(item)
+        acc[item.sectionId] = existing
+        return acc
+    }, {})
+
+    const orderedSections = QUESTIONNAIRE_SECTIONS
+        .map(section => grouped[section.id])
+        .filter(Boolean)
+
+    if (grouped.other) {
+        orderedSections.push(grouped.other)
+    }
+
+    return orderedSections
+})
 
 // P9 FIX: Toast notification system (replaces native alert())
 const toast = ref({ show: false, message: '', type: 'success' })
@@ -36,12 +98,30 @@ const fetchExams = async () => {
 }
 
 const fetchQuestionnaireBilanStatus = async () => {
+    questionnaireLoading.value = true
     try {
         const res = await api.get('/grading/questionnaire/bilan/')
         questionnaireSummary.value = res.data.summary || questionnaireSummary.value
+        questionnaireParticipants.value = res.data.participants || questionnaireParticipants.value
+        questionnaireResponses.value = res.data.responses || []
+        questionnaireGeneratedBilan.value = res.data.generated_bilan || questionnaireGeneratedBilan.value
+        if (questionnaireResponses.value.length && !selectedQuestionnaireResponse.value) {
+            selectedQuestionnaireResponse.value = questionnaireResponses.value[0]
+        }
     } catch (e) {
         console.error("Failed to fetch questionnaire bilan status", e)
+    } finally {
+        questionnaireLoading.value = false
     }
+}
+
+const formatDate = (value) => {
+    if (!value) return '—'
+    return new Date(value).toLocaleString('fr-FR')
+}
+
+const openQuestionnaireBilan = () => {
+    router.push({ name: 'QuestionnaireBilan' })
 }
 
 const handleLogout = async () => {
@@ -325,13 +405,186 @@ onMounted(() => {
             Importer Examen
           </button>
           <button
-            v-if="questionnaireSummary.is_available"
             class="btn btn-outline"
-            @click="router.push({ name: 'QuestionnaireBilan' })"
+            @click="openQuestionnaireBilan"
           >
-            Bilan Questionnaire
+            Questionnaire Correcteurs
           </button>
         </div>
+
+        <section class="questionnaire-panel">
+          <div class="section-title-row">
+            <div>
+              <h2>Suivi Questionnaire Correcteurs</h2>
+              <p>
+                {{ questionnaireSummary.responses_count }} réponse(s) sur {{ questionnaireSummary.total_eligible }} correcteur(s)
+              </p>
+            </div>
+            <div class="questionnaire-actions">
+              <button
+                class="btn btn-outline"
+                @click="fetchQuestionnaireBilanStatus"
+              >
+                Actualiser
+              </button>
+              <button
+                class="btn btn-primary"
+                @click="openQuestionnaireBilan"
+              >
+                Ouvrir la vue bilan
+              </button>
+            </div>
+          </div>
+
+          <div v-if="questionnaireLoading" class="loading">
+            Chargement du questionnaire...
+          </div>
+
+          <template v-else>
+            <div class="questionnaire-metrics">
+              <div class="summary-card">
+                <span class="summary-label">Participation</span>
+                <strong>{{ questionnaireSummary.responses_count }} / {{ questionnaireSummary.total_eligible }}</strong>
+                <span>{{ questionnaireSummary.completion_rate || 0 }} %</span>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">Ont répondu</span>
+                <strong>{{ questionnaireParticipants.responded?.length || 0 }}</strong>
+                <span>correcteur(s)</span>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">En attente</span>
+                <strong>{{ questionnaireParticipants.pending?.length || 0 }}</strong>
+                <span>correcteur(s)</span>
+              </div>
+              <div class="summary-card">
+                <span class="summary-label">Bilan auto</span>
+                <strong>{{ questionnaireGeneratedBilan.status || 'missing' }}</strong>
+                <span>{{ formatDate(questionnaireGeneratedBilan.generated_at) }}</span>
+              </div>
+            </div>
+
+            <div class="questionnaire-columns">
+              <div class="questionnaire-card">
+                <div class="card-title-row">
+                  <h3>Correcteurs ayant répondu</h3>
+                  <span>{{ questionnaireParticipants.responded?.length || 0 }}</span>
+                </div>
+                <div v-if="questionnaireParticipants.responded?.length" class="participant-list">
+                  <div
+                    v-for="item in questionnaireParticipants.responded"
+                    :key="`responded-${item.user_id}`"
+                    class="participant-item participant-answered"
+                  >
+                    <div>
+                      <strong>{{ item.display_name }}</strong>
+                      <span>{{ item.username }}</span>
+                    </div>
+                    <small>{{ formatDate(item.submitted_at) }}</small>
+                  </div>
+                </div>
+                <div v-else class="empty-inline">
+                  Aucune réponse enregistrée.
+                </div>
+              </div>
+
+              <div class="questionnaire-card">
+                <div class="card-title-row">
+                  <h3>Correcteurs n’ayant pas répondu</h3>
+                  <span>{{ questionnaireParticipants.pending?.length || 0 }}</span>
+                </div>
+                <div v-if="questionnaireParticipants.pending?.length" class="participant-list">
+                  <div
+                    v-for="item in questionnaireParticipants.pending"
+                    :key="`pending-${item.user_id}`"
+                    class="participant-item participant-pending"
+                  >
+                    <div>
+                      <strong>{{ item.display_name }}</strong>
+                      <span>{{ item.username }}</span>
+                    </div>
+                    <small>{{ item.email || '—' }}</small>
+                  </div>
+                </div>
+                <div v-else class="empty-inline">
+                  Tous les correcteurs ont répondu.
+                </div>
+              </div>
+            </div>
+
+            <div class="questionnaire-columns questionnaire-columns-stacked">
+              <div class="questionnaire-card questionnaire-card-large">
+                <div class="card-title-row">
+                  <h3>Réponses déjà soumises</h3>
+                  <span>{{ questionnaireResponses.length }}</span>
+                </div>
+                <div v-if="questionnaireResponses.length" class="response-master-detail">
+                  <div class="response-list">
+                    <button
+                      v-for="item in questionnaireResponses"
+                      :key="`${item.user_id}-${item.submitted_at}`"
+                      class="response-list-item"
+                      :class="{ active: selectedQuestionnaireResponse?.user_id === item.user_id }"
+                      @click="selectedQuestionnaireResponse = item"
+                    >
+                      <strong>{{ item.display_name }}</strong>
+                      <span>{{ item.username }}</span>
+                      <small>{{ formatDate(item.submitted_at) }}</small>
+                    </button>
+                  </div>
+                  <div class="response-detail" v-if="selectedQuestionnaireResponse">
+                    <div class="card-title-row">
+                      <h4>{{ selectedQuestionnaireResponse.display_name }}</h4>
+                      <span>{{ formatDate(selectedQuestionnaireResponse.submitted_at) }}</span>
+                    </div>
+                    <div class="response-detail-sections">
+                      <div
+                        v-for="section in selectedResponseSections"
+                        :key="`${selectedQuestionnaireResponse.user_id}-${section.id}`"
+                        class="response-section-card"
+                      >
+                        <div class="response-section-header">
+                          <h5>{{ section.title }}</h5>
+                          <span>{{ section.items.length }} réponse(s)</span>
+                        </div>
+                        <div class="response-detail-grid">
+                          <div
+                            v-for="item in section.items"
+                            :key="`${selectedQuestionnaireResponse.user_id}-${item.key}`"
+                            class="response-detail-item"
+                          >
+                            <span class="response-label">{{ item.label }}</span>
+                            <strong class="response-value">{{ item.value }}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="empty-inline">
+                  Aucune réponse détaillée disponible pour le moment.
+                </div>
+              </div>
+            </div>
+
+            <div class="questionnaire-card questionnaire-card-large">
+              <div class="card-title-row">
+                <h3>Bilan généré</h3>
+                <span>{{ questionnaireGeneratedBilan.status || 'missing' }}</span>
+              </div>
+              <div v-if="questionnaireGeneratedBilan.status === 'ready'" class="generated-bilan-preview" v-html="questionnaireGeneratedBilan.html" />
+              <div v-else-if="questionnaireGeneratedBilan.status === 'pending'" class="empty-inline">
+                Le bilan automatique est en cours de génération.
+              </div>
+              <div v-else-if="questionnaireGeneratedBilan.status === 'error'" class="empty-inline error-inline">
+                {{ questionnaireGeneratedBilan.error || 'Le bilan automatique n’a pas pu être généré pour le moment.' }}
+              </div>
+              <div v-else class="empty-inline">
+                Le bilan automatique sera visible ici une fois généré.
+              </div>
+            </div>
+          </template>
+        </section>
                 
         <div
           v-if="loading"
@@ -800,6 +1053,267 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 .user-info { font-weight: 500; color: #64748b; }
 
+.questionnaire-panel {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.section-title-row h2 {
+  margin: 0 0 0.25rem;
+  color: #0f172a;
+}
+
+.section-title-row p {
+  margin: 0;
+  color: #64748b;
+}
+
+.questionnaire-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.questionnaire-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.summary-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: #f8fafc;
+}
+
+.summary-card strong {
+  color: #0f172a;
+  font-size: 1.4rem;
+}
+
+.summary-label {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.questionnaire-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.questionnaire-columns-stacked {
+  grid-template-columns: 1fr;
+}
+
+.questionnaire-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #fff;
+}
+
+.questionnaire-card-large {
+  padding: 1rem;
+}
+
+.card-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+.card-title-row h3,
+.card-title-row h4 {
+  margin: 0;
+  color: #0f172a;
+}
+
+.card-title-row span {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.participant-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.participant-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.participant-item strong,
+.response-list-item strong {
+  display: block;
+  color: #0f172a;
+}
+
+.participant-item span,
+.response-list-item span {
+  display: block;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.participant-item small,
+.response-list-item small {
+  color: #94a3b8;
+}
+
+.participant-answered {
+  background: #f0fdf4;
+}
+
+.participant-pending {
+  background: #fff7ed;
+}
+
+.empty-inline {
+  color: #64748b;
+  padding: 0.5rem 0;
+}
+
+.error-inline {
+  color: #b91c1c;
+}
+
+.response-master-detail {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1rem;
+}
+
+.response-list {
+  display: grid;
+  gap: 0.75rem;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.response-list-item {
+  text-align: left;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.response-list-item.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.response-detail {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+  background: #f8fafc;
+}
+
+.response-detail-sections {
+  display: grid;
+  gap: 1rem;
+}
+
+.response-section-card {
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 0.9rem;
+}
+
+.response-section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.response-section-header h5 {
+  margin: 0;
+  color: #1d4ed8;
+  font-size: 1rem;
+}
+
+.response-section-header span {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.response-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.response-detail-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: white;
+  padding: 0.75rem;
+}
+
+.response-label {
+  display: block;
+  color: #64748b;
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.response-value {
+  color: #0f172a;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-weight: 600;
+}
+
+.generated-bilan-preview {
+  line-height: 1.65;
+}
+
+.generated-bilan-preview :deep(h2),
+.generated-bilan-preview :deep(h3) {
+  color: #0f172a;
+}
+
+.generated-bilan-preview :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.generated-bilan-preview :deep(th),
+.generated-bilan-preview :deep(td) {
+  border: 1px solid #e2e8f0;
+  padding: 0.65rem;
+}
+
 .actions-bar { margin-bottom: 1.5rem; display: flex; gap: 1rem; }
 .btn { padding: 0.6rem 1.2rem; border-radius: 6px; border: none; font-weight: 500; cursor: pointer; }
 .btn-primary { background: #2563eb; color: white; }
@@ -1012,4 +1526,13 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 .btn-ocr { background: #f59e0b; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
 .btn-ocr:hover:not(:disabled) { background: #d97706; }
 .btn-ocr:disabled { opacity: 0.6; cursor: wait; }
+
+@media (max-width: 1100px) {
+  .questionnaire-metrics,
+  .questionnaire-columns,
+  .response-master-detail,
+  .response-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
