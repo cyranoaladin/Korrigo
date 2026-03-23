@@ -78,14 +78,15 @@ class QuestionnaireBilanView(views.APIView):
             or request.user.is_staff
             or request.user.groups.filter(name=UserRole.ADMIN).exists()
         )
-        # Show generated bilan for admins even if not all correctors responded
-        if not summary['is_available'] and not (is_admin and generated_bilan['status'] == 'ready'):
+        # If bilan is already generated, show it to everyone regardless of is_available
+        # Only block if bilan is NOT ready AND user is not admin
+        if not summary['is_available'] and generated_bilan['status'] != 'ready' and not is_admin:
             return Response({
-                'responses': serialized if is_admin else [],
+                'responses': [],
                 'participants': participants,
                 'summary': summary,
                 'generated_bilan': generated_bilan,
-                'detail': 'Le bilan sera disponible une fois que tous les correcteurs auront répondu au questionnaire.',
+                'detail': '',
             })
         if generated_bilan['status'] == 'missing':
             trigger_questionnaire_bilan_generation()

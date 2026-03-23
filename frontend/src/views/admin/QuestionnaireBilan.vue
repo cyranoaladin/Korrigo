@@ -250,11 +250,6 @@ onMounted(fetchBilan)
       </div>
 
       <template v-else>
-        <!-- Info message -->
-        <div v-if="infoMessage" class="glass-card info-card">
-          <p>{{ infoMessage }}</p>
-        </div>
-
         <!-- Tab: Synthèse -->
         <div v-show="activeTab === 'synthese'" class="tab-panel">
           <section class="kpi-grid" data-testid="questionnaire-bilan-summary">
@@ -386,8 +381,8 @@ onMounted(fetchBilan)
 
             <section class="glass-card">
               <div class="section-head">
-                <h2>Utilite des outils de correction</h2>
-                <span class="section-badge">{{ QUESTIONNAIRE_SECTIONS[1].questions.length - 2 }} items evalues</span>
+                <h2>Utilité des outils de correction</h2>
+                <span class="section-badge">{{ QUESTIONNAIRE_SECTIONS[1].questions.length - 2 }} items évalués</span>
               </div>
               <div class="tool-grid">
                 <div v-for="tool in toolStats" :key="tool.id" class="tool-card">
@@ -413,7 +408,7 @@ onMounted(fetchBilan)
 
             <section class="glass-card">
               <div class="section-head">
-                <h2>Points de blocage signales</h2>
+                <h2>Points de blocage signalés</h2>
                 <span class="section-badge">Question multiple</span>
               </div>
               <div class="stat-list">
@@ -431,16 +426,16 @@ onMounted(fetchBilan)
           </template>
 
           <div v-else class="glass-card empty-card">
-            <p>Aucune donnée détaillée disponible pour le moment.</p>
+            <p>Les données détaillées seront affichées dès réception des premières réponses.</p>
           </div>
         </div>
 
         <!-- Tab: Retours libres -->
         <div v-show="activeTab === 'retours'" class="tab-panel">
-          <template v-if="(summary.is_available || canSeePartialResponses) && responses.length">
+          <template v-if="responses.length">
             <section v-if="missingFeatures.length" class="glass-card">
               <div class="section-head">
-                <h2>Fonctionnalites manquantes</h2>
+                <h2>Fonctionnalités manquantes</h2>
                 <span class="section-badge">{{ missingFeatures.length }} verbatim(s)</span>
               </div>
               <div class="verbatim-list">
@@ -453,7 +448,7 @@ onMounted(fetchBilan)
 
             <section v-if="bugReports.length" class="glass-card">
               <div class="section-head">
-                <h2>Bugs et problemes signales</h2>
+                <h2>Bugs et problèmes signalés</h2>
                 <span class="section-badge">{{ bugReports.length }} verbatim(s)</span>
               </div>
               <div class="verbatim-list">
@@ -483,14 +478,14 @@ onMounted(fetchBilan)
           </template>
 
           <div v-else class="glass-card empty-card">
-            <p>Les retours libres ne sont pas encore disponibles.</p>
+            <p>Les retours libres seront affichés dès réception des premières réponses.</p>
           </div>
         </div>
 
         <!-- Tab: Améliorations V2 -->
         <div v-show="activeTab === 'v2'" class="tab-panel">
           <div class="v2-intro glass-card">
-            <h2>Ameliorations apportees — V2 (Mars 2026)</h2>
+            <h2>Améliorations apportées — V2 (Mars 2026)</h2>
             <p class="v2-subtitle">En réponse directe aux retours des correcteurs, les améliorations suivantes ont été développées et déployées sur la plateforme.</p>
           </div>
 
@@ -498,23 +493,23 @@ onMounted(fetchBilan)
             <div class="v2-card">
               <div class="v2-card-header">
                 <span class="priority-badge critical">1</span>
-                <span class="status-badge deployed">Deploye</span>
+                <span class="status-badge deployed">Déployé</span>
               </div>
-              <h3>Friction annotation / bareme</h3>
-              <p class="v2-problem">Le panneau bareme se reinitialisait en haut a chaque retour depuis les annotations, dissuadant les correcteurs d'annoter.</p>
+              <h3>Friction annotation / barème</h3>
+              <p class="v2-problem">Le panneau barème se réinitialisait en haut à chaque retour depuis les annotations, dissuadant les correcteurs d'annoter.</p>
               <p class="v2-source">Selima Klibi, Patrick Dupont, Chawki Saadi</p>
               <div class="v2-solution">
-                <strong>Refonte complete du layout :</strong> le bareme est desormais affiche en permanence dans le panneau lateral droit. Les outils d'annotation sont dans la barre d'outils au-dessus de la copie. Plus aucune navigation entre onglets n'est necessaire — les deux sont visibles simultanement.
+                <strong>Refonte complète du layout :</strong> le barème est désormais affiché en permanence dans le panneau lateral droit. Les outils d'annotation sont dans la barre d'outils au-dessus de la copie. Plus aucune navigation entre onglets n'est nécessaire — les deux sont visibles simultanément.
               </div>
             </div>
 
             <div class="v2-card">
               <div class="v2-card-header">
                 <span class="priority-badge high">2</span>
-                <span class="status-badge deployed">Deploye</span>
+                <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Outil tampon Vrai/Faux manquant</h3>
-              <p class="v2-problem">Absence d'un outil de marquage rapide V/X correspondant au geste papier le plus frequent.</p>
+              <p class="v2-problem">Absence d'un outil de marquage rapide V/X correspondant au geste papier le plus fréquent.</p>
               <p class="v2-source">Patrick Dupont, Philippe Carr</p>
               <div class="v2-solution">
                 <strong>Boutons V et F dans la barre d'outils :</strong> un clic sur le bouton active le mode tampon. Chaque rectangle dessiné sur la copie crée instantanément un checkmark vert ou une croix rouge sans ouvrir d'éditeur. Le tampon persiste sur le PDF final remis à l'élève.
@@ -524,88 +519,88 @@ onMounted(fetchBilan)
             <div class="v2-card">
               <div class="v2-card-header">
                 <span class="priority-badge high">3</span>
-                <span class="status-badge deployed">Deploye</span>
+                <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Outils d'annotation lents</h3>
-              <p class="v2-problem">Le workflow creation d'annotation necessitait trop d'etapes (selection outil, clic, saisie, validation).</p>
+              <p class="v2-problem">Le workflow de création d'annotation nécessitait trop d'étapes (sélection outil, clic, saisie, validation).</p>
               <p class="v2-source">Ensemble des correcteurs</p>
               <div class="v2-solution">
-                <strong>6 boutons d'annotation rapide dans la barre d'outils :</strong> Commentaire, Surlignage, Erreur, Bonus, Vrai, Faux. Les 3 premiers ouvrent un editeur de texte pour saisir un commentaire. Les 3 derniers creent un tampon visuel instantane sans editeur.
+                <strong>6 boutons d'annotation rapide dans la barre d'outils :</strong> Commentaire, Surlignage, Erreur, Bonus, Vrai, Faux. Les 3 premiers ouvrent un éditeur de texte pour saisir un commentaire. Les 3 derniers créent un tampon visuel instantané sans éditeur.
               </div>
             </div>
 
             <div class="v2-card">
               <div class="v2-card-header">
                 <span class="priority-badge blocking">4</span>
-                <span class="status-badge deployed">Deploye</span>
+                <span class="status-badge deployed">Déployé</span>
               </div>
-              <h3>Copies bloquees en mode "locked"</h3>
-              <p class="v2-problem">Des copies restaient verrouillees sans possibilite d'y acceder ni de les annoter.</p>
+              <h3>Copies bloquées en mode "locked"</h3>
+              <p class="v2-problem">Des copies restaient verrouillées sans possibilité d'y accéder ni de les annoter.</p>
               <p class="v2-source">Patrick Dupont, Philippe Carr</p>
               <div class="v2-solution">
-                <strong>Bouton "Deverrouiller" (administrateur) :</strong> visible dans la barre d'outils pour les administrateurs. Force la suppression du verrou avec journalisation complete de l'action (qui a deverrouille, quand, ancien proprietaire du verrou).
+                <strong>Bouton "Déverrouiller" (administrateur) :</strong> visible dans la barre d'outils pour les administrateurs. Force la suppression du verrou avec journalisation complète de l'action (qui a déverrouillé, quand, ancien propriétaire du verrou).
               </div>
             </div>
 
             <div class="v2-card">
               <div class="v2-card-header">
                 <span class="priority-badge medium">5</span>
-                <span class="status-badge deployed">Deploye</span>
+                <span class="status-badge deployed">Déployé</span>
               </div>
-              <h3>Impossible de revenir sur une copie finalisee</h3>
-              <p class="v2-problem">Une fois la copie corrigee, aucune modification n'etait possible meme en cas d'erreur.</p>
+              <h3>Impossible de revenir sur une copie finalisée</h3>
+              <p class="v2-problem">Une fois la copie corrigée, aucune modification n'était possible même en cas d'erreur.</p>
               <p class="v2-source">Edouard Rousseau</p>
               <div class="v2-solution">
-                <strong>Bouton "Rouvrir" (superutilisateur) :</strong> permet de remettre une copie finalisee en statut "Pret" pour correction. Le PDF final est invalide, mais toutes les notes, annotations, remarques et appreciations sont conservees. Action entierement tracee dans le journal d'audit.
+                <strong>Bouton "Rouvrir" (superutilisateur) :</strong> permet de remettre une copie finalisée en statut "Pret" pour correction. Le PDF final est invalidé, mais toutes les notes, annotations, remarques et appréciations sont conservées. Action entièrement tracée dans le journal d'audit.
               </div>
             </div>
 
             <div class="v2-card">
               <div class="v2-card-header">
                 <span class="priority-badge medium">6</span>
-                <span class="status-badge deployed">Deploye</span>
+                <span class="status-badge deployed">Déployé</span>
               </div>
-              <h3>Pas de suivi des questions non corrigees</h3>
-              <p class="v2-problem">Aucun indicateur visuel pour savoir quelles questions du bareme avaient recu une note.</p>
+              <h3>Pas de suivi des questions non corrigées</h3>
+              <p class="v2-problem">Aucun indicateur visuel pour savoir quelles questions du barème avaient reçu une note.</p>
               <p class="v2-source">Sami Ben Tiba</p>
               <div class="v2-solution">
-                <strong>Barre de progression segmentee par question :</strong> dans le tableau de bord correcteur, chaque copie affiche une barre visuelle indiquant les questions notees (vert) et non notees (gris), avec le pourcentage et le detail (ex : "5/8 questions notees — 63 %").
+                <strong>Barre de progression segmentée par question :</strong> dans le tableau de bord correcteur, chaque copie affiche une barre visuelle indiquant les questions notées (vert) et non notées (gris), avec le pourcentage et le détail (ex : "5/8 questions notées — 63 %").
               </div>
             </div>
 
             <div class="v2-card">
               <div class="v2-card-header">
                 <span class="priority-badge medium">7</span>
-                <span class="status-badge deployed">Deploye</span>
+                <span class="status-badge deployed">Déployé</span>
               </div>
-              <h3>Commentaires non memorises entre copies</h3>
+              <h3>Commentaires non mémorisés entre copies</h3>
               <p class="v2-problem">Les remarques saisies sur une copie ne pouvaient pas être réutilisées sur la suivante.</p>
               <p class="v2-source">Chawki Saadi</p>
               <div class="v2-solution">
-                <strong>Sauvegarde automatique dans la banque personnelle :</strong> chaque remarque substantielle (plus de 5 caracteres) est automatiquement enregistree dans la banque d'annotations personnelle du correcteur avec le contexte exercice/question. Les remarques frequentes sont proposees en priorite lors de la correction de la copie suivante.
+                <strong>Sauvegarde automatique dans la banque personnelle :</strong> chaque remarque substantielle (plus de 5 caractères) est automatiquement enregistrée dans la banque d'annotations personnelle du correcteur avec le contexte exercice/question. Les remarques fréquentes sont proposées en priorité lors de la correction de la copie suivante.
               </div>
             </div>
 
             <div class="v2-card">
               <div class="v2-card-header">
                 <span class="priority-badge medium">8</span>
-                <span class="status-badge deployed">Deploye</span>
+                <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Chargement lent des pages PDF</h3>
               <p class="v2-problem">Délai perceptible lors du passage d'une page à l'autre.</p>
               <p class="v2-source">Sami Ben Tiba, Philippe Carr, Selima Klibi</p>
               <div class="v2-solution">
-                <strong>Prechargement des pages adjacentes :</strong> les pages précédente et suivante sont chargées en arrière-plan avant que le correcteur ne navigue. Résultat : affichage quasi-instantané lors du changement de page. Ajout d'une transition en fondu pour éliminer le flash blanc.
+                <strong>Préchargement des pages adjacentes :</strong> les pages précédente et suivante sont chargées en arrière-plan avant que le correcteur ne navigue. Résultat : affichage quasi-instantané lors du changement de page. Ajout d'une transition en fondu pour éliminer le flash blanc.
               </div>
             </div>
 
             <div class="v2-card">
               <div class="v2-card-header">
                 <span class="priority-badge medium">9</span>
-                <span class="status-badge deployed">Deploye</span>
+                <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Scroll et navigation non fluides</h3>
-              <p class="v2-problem">Le defilement des pages n'etait pas naturel et le zoom difficile a ajuster.</p>
+              <p class="v2-problem">Le défilement des pages n'était pas naturel et le zoom difficile à ajuster.</p>
               <p class="v2-source">Chawki Saadi, Philippe Carr</p>
               <div class="v2-solution">
                 <strong>Scroll fluide natif + zoom amélioré :</strong> activation du scroll smooth CSS, support du Ctrl+molette pour zoomer/dézoomer rapidement, bouton « Ajuster à la largeur », clic sur le pourcentage pour réinitialiser le zoom à 100 %. Temps de réponse au changement de page réduit de 400 ms à 300 ms.
@@ -615,11 +610,11 @@ onMounted(fetchBilan)
             <div class="v2-card">
               <div class="v2-card-header">
                 <span class="priority-badge medium">10</span>
-                <span class="status-badge deployed">Deploye</span>
+                <span class="status-badge deployed">Déployé</span>
               </div>
-              <h3>Bareme non replie par defaut</h3>
+              <h3>Barème non replié par défaut</h3>
               <p class="v2-problem">Tous les exercices du barème étaient dépliés à l'ouverture, encombrant l'espace de travail.</p>
-              <p class="v2-source">Retour d'usage general</p>
+              <p class="v2-source">Retour d'usage général</p>
               <div class="v2-solution">
                 <strong>Comportement accordéon :</strong> tous les exercices sont repliés par défaut à l'ouverture de la copie. Cliquer sur un exercice le déplie et replie automatiquement le précédent. Un seul exercice est visible à la fois pour un confort d'affichage optimal.
               </div>
@@ -627,7 +622,7 @@ onMounted(fetchBilan)
           </div>
 
           <div class="glass-card v2-footer-card">
-            <p><strong>Date de deploiement :</strong> 23 mars 2026</p>
+            <p><strong>Date de déploiement :</strong> 23 mars 2026</p>
             <p><strong>Périmètre :</strong> 10 améliorations · 84 fichiers modifiés · 15 338 lignes de code · 414 tests automatisés</p>
             <div class="v2-note">
               Ces améliorations sont le résultat direct de l'analyse des 7 réponses au questionnaire et du bilan automatique. Chaque modification a été testée, validée et déployée en production sans interruption de service ni perte de données.
