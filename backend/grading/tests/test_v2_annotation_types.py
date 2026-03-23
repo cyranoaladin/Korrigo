@@ -8,7 +8,7 @@ import uuid
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 
-from exams.models import Exam, Copy
+from exams.models import Exam, Copy, Booklet
 from grading.models import Annotation, GradingEvent
 
 User = get_user_model()
@@ -33,12 +33,17 @@ def exam(db):
 
 @pytest.fixture
 def copy_ready(db, exam, teacher_user):
-    return Copy.objects.create(
+    copy = Copy.objects.create(
         exam=exam,
         status=Copy.Status.READY,
         assigned_corrector=teacher_user,
         anonymous_id=f"ANON-{uuid.uuid4().hex[:8]}",
     )
+    booklet = Booklet.objects.create(
+        exam=exam, start_page=0, end_page=1, pages_images=["p0.png"]
+    )
+    copy.booklets.add(booklet)
+    return copy
 
 
 def _annotation_payload(ann_type="COMMENT", **overrides):
