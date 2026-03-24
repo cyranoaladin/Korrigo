@@ -289,7 +289,7 @@ def _call_ollama(prompt):
         data=payload,
         headers={'Content-Type': 'application/json'},
     )
-    response = urllib.request.urlopen(request, timeout=OLLAMA_TIMEOUT)
+    response = urllib.request.urlopen(request, timeout=OLLAMA_TIMEOUT)  # nosec B310 — internal Ollama URL, not user-controlled
     data = json.loads(response.read())
     text = (data.get('response') or '').strip()
     if not text:
