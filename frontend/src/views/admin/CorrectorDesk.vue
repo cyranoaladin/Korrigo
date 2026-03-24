@@ -757,8 +757,8 @@ const handleImageError = () => {
 const handleDrawComplete = async (normalizedRect) => {
     if (!canAnnotate.value) return;
 
-    // Stamp mode (V, F, Bonus): instant annotation, no editor needed
-    const stampType = quickStampMode.value || (preSelectedAnnotationType.value === 'BONUS' ? 'BONUS' : null)
+    // Stamp mode (V, F): instant annotation, no editor needed
+    const stampType = quickStampMode.value
     if (stampType) {
         isSaving.value = true
         try {
@@ -1152,14 +1152,14 @@ onUnmounted(() => {
             <button
               :class="['btn-stamp', 'btn-stamp-vrai', { active: quickStampMode === 'VRAI' }]"
               title="Tampon Vrai (cliquer puis dessiner sur la copie)"
-              @click="quickStampMode = quickStampMode === 'VRAI' ? null : 'VRAI'"
+              @click="quickStampMode = quickStampMode === 'VRAI' ? null : 'VRAI'; preSelectedAnnotationType = null"
             >
               ✓ V
             </button>
             <button
               :class="['btn-stamp', 'btn-stamp-faux', { active: quickStampMode === 'FAUX' }]"
               title="Tampon Faux (cliquer puis dessiner sur la copie)"
-              @click="quickStampMode = quickStampMode === 'FAUX' ? null : 'FAUX'"
+              @click="quickStampMode = quickStampMode === 'FAUX' ? null : 'FAUX'; preSelectedAnnotationType = null"
             >
               ✗ F
             </button>
@@ -1169,22 +1169,22 @@ onUnmounted(() => {
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'COMMENTAIRE' }]"
               title="Commentaire"
-              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'COMMENTAIRE' ? null : 'COMMENTAIRE'"
+              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'COMMENTAIRE' ? null : 'COMMENTAIRE'; quickStampMode = null"
             >💬</button>
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'SURLIGNAGE' }]"
               title="Surlignage"
-              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'SURLIGNAGE' ? null : 'SURLIGNAGE'"
+              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'SURLIGNAGE' ? null : 'SURLIGNAGE'; quickStampMode = null"
             >🟨</button>
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'ERREUR' }]"
               title="Erreur"
-              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'ERREUR' ? null : 'ERREUR'"
+              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'ERREUR' ? null : 'ERREUR'; quickStampMode = null"
             >❌</button>
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'BONUS' }]"
               title="Bonus"
-              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'BONUS' ? null : 'BONUS'"
+              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'BONUS' ? null : 'BONUS'; quickStampMode = null"
             >⭐</button>
           </div>
           <div class="zoom-controls">
