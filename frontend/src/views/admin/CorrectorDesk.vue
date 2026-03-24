@@ -46,9 +46,19 @@ const localSaveTimer = ref(null)
 const clientId = ref(crypto.randomUUID())
 const lastSaveStatus = ref(null) // { source: 'LOCAL'|'SERVER', time: Date }
 
-// UI State
-const quickStampMode = ref(null) // null | 'VRAI' | 'FAUX' — for one-click stamp annotations
-const preSelectedAnnotationType = ref(null) // Pre-selected annotation type for drawing
+// UI State — Single annotation mode (structurally prevents conflicting active states)
+// group: 'stamp' (V/F) | 'type' (Commentaire/Surlignage/Erreur/Bonus) | null
+// value: 'VRAI'|'FAUX' | 'COMMENTAIRE'|'SURLIGNAGE'|'ERREUR'|'BONUS' | null
+const annotationMode = ref({ group: null, value: null })
+const setAnnotationMode = (group, value) => {
+    if (annotationMode.value.group === group && annotationMode.value.value === value) {
+        annotationMode.value = { group: null, value: null }
+    } else {
+        annotationMode.value = { group, value }
+    }
+}
+const quickStampMode = computed(() => annotationMode.value.group === 'stamp' ? annotationMode.value.value : null)
+const preSelectedAnnotationType = computed(() => annotationMode.value.group === 'type' ? annotationMode.value.value : null)
 
 // Editor
 const showEditor = ref(false) // Overlay editor
@@ -1152,14 +1162,14 @@ onUnmounted(() => {
             <button
               :class="['btn-stamp', 'btn-stamp-vrai', { active: quickStampMode === 'VRAI' }]"
               title="Tampon Vrai (cliquer puis dessiner sur la copie)"
-              @click="quickStampMode = quickStampMode === 'VRAI' ? null : 'VRAI'; preSelectedAnnotationType = null"
+              @click="setAnnotationMode('stamp', 'VRAI')"
             >
               ✓ V
             </button>
             <button
               :class="['btn-stamp', 'btn-stamp-faux', { active: quickStampMode === 'FAUX' }]"
               title="Tampon Faux (cliquer puis dessiner sur la copie)"
-              @click="quickStampMode = quickStampMode === 'FAUX' ? null : 'FAUX'; preSelectedAnnotationType = null"
+              @click="setAnnotationMode('stamp', 'FAUX')"
             >
               ✗ F
             </button>
@@ -1169,22 +1179,22 @@ onUnmounted(() => {
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'COMMENTAIRE' }]"
               title="Commentaire"
-              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'COMMENTAIRE' ? null : 'COMMENTAIRE'; quickStampMode = null"
+              @click="setAnnotationMode('type', 'COMMENTAIRE')"
             >💬</button>
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'SURLIGNAGE' }]"
               title="Surlignage"
-              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'SURLIGNAGE' ? null : 'SURLIGNAGE'; quickStampMode = null"
+              @click="setAnnotationMode('type', 'SURLIGNAGE')"
             >🟨</button>
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'ERREUR' }]"
               title="Erreur"
-              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'ERREUR' ? null : 'ERREUR'; quickStampMode = null"
+              @click="setAnnotationMode('type', 'ERREUR')"
             >❌</button>
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'BONUS' }]"
               title="Bonus"
-              @click="preSelectedAnnotationType = preSelectedAnnotationType === 'BONUS' ? null : 'BONUS'; quickStampMode = null"
+              @click="setAnnotationMode('type', 'BONUS')"
             >⭐</button>
           </div>
           <div class="zoom-controls">
