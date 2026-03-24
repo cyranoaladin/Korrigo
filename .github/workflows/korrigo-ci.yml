@@ -91,7 +91,8 @@ jobs:
         run: |
           # Deployable gate: audit production dependencies only (requirements.txt)
           # Dev tools (pip-audit, pytest, etc.) are not deployed and excluded from gate
-          pip-audit -r requirements.txt || (echo "pip-audit failed" && exit 1)
+          # CVE-2026-4539: pygments 2.19.2 (latest) — no fix available yet, ignore until patched
+          pip-audit -r requirements.txt --ignore-vuln CVE-2026-4539 || (echo "pip-audit failed" && exit 1)
 
       - name: Bandit (backend)
         working-directory: backend
