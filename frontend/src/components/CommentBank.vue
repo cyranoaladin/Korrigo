@@ -18,7 +18,8 @@ const fetchHistory = async () => {
     error.value = null
     try {
         const response = await api.get('/grading/annotations/history/')
-        historyTexts.value = response.data.history || []
+        // Response is [{content: "texte", type: "COMMENTAIRE"}], extract just the texts
+        historyTexts.value = (response.data || []).map(item => item.content)
     } catch (err) {
         error.value = "Erreur lors du chargement de l'historique de vos annotations."
         console.error(err)
