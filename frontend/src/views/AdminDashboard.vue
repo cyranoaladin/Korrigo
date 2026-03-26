@@ -7,6 +7,7 @@ import ExamUploadModal from '../components/ExamUploadModal.vue'
 import { QUESTIONNAIRE_SECTIONS } from '../questionnaire/config'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import UploadAnalyticsDashboard from '../components/UploadAnalyticsDashboard.vue'
+import JuryReportsModal from '../components/JuryReportsModal.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -97,6 +98,35 @@ const fetchExams = async () => {
     }
 }
 
+const examsByType = computed(() => {
+  const groups = {}
+  const others = []
+  
+  ;(exams.value || []).forEach(exam => {
+    if (exam.exam_type_details) {
+      const typeId = exam.exam_type_details.id || exam.exam_type
+      if (!groups[typeId]) {
+        groups[typeId] = {
+           details: exam.exam_type_details,
+           exams: []
+        }
+      }
+      groups[typeId].exams.push(exam)
+    } else {
+      others.push(exam)
+    }
+  })
+  
+  const result = Object.values(groups)
+  if (others.length > 0) {
+     result.push({
+        details: { name: 'Autres Examens', icon: '📁', color: '#64748b' },
+        exams: others
+     })
+  }
+  return result
+})
+
 const fetchQuestionnaireBilanStatus = async () => {
     questionnaireLoading.value = true
     try {
@@ -140,9 +170,14 @@ const goToIdentification = (id) => {
 // Upload modal
 const showUploadModal = ref(false)
 const showAnalytics = ref(false) // eslint-disable-line @typescript-eslint/no-unused-vars
+const showJuryReportsModal = ref(false)
 
 const openUploadModal = () => {
     showUploadModal.value = true
+}
+
+const openJuryReportsModal = () => {
+    showJuryReportsModal.value = true
 }
 
 const handleExamUploaded = async (examData) => {
@@ -151,21 +186,32 @@ const handleExamUploaded = async (examData) => {
 }
 
 const showCreateModal = ref(false)
-const newExam = ref({ name: '', date: new Date().toISOString().split('T')[0] })
+const newExam = ref({ name: '', date: new Date().toISOString().split('T')[0], exam_type: '' })
+const examTypes = ref([])
+
+const fetchExamTypes = async () => {
+    try {
+        const response = await api.get('/exams/types/')
+        examTypes.value = response.data
+    } catch (err) {
+        console.error('Failed to fetch exam types', err)
+    }
+}
 
 const openCreateModal = () => {
-    newExam.value = { name: '', date: new Date().toISOString().split('T')[0] }
+    newExam.value = { name: '', date: new Date().toISOString().split('T')[0], exam_type: '' }
     showCreateModal.value = true
 }
 
 const createExam = async () => {
-    if (!newExam.value.name) return
+    if (!newExam.value.name || !newExam.value.exam_type) return
     
     try {
         await api.post('/exams/', newExam.value)
         showToast('Examen créé avec succès')
         showCreateModal.value = false
-        fetchExams()
+        newExam.value = { name: '', date: new Date().toISOString().split('T')[0], exam_type: '' }
+        await fetchExams()
     } catch (e) {
         console.error("Create exam failed", e)
         showToast(e.response?.data?.error || e.message, 'error')
@@ -324,6 +370,7 @@ const subjectStats = () => {
 }
 
 onMounted(() => {
+    fetchExamTypes()
     fetchExams()
     fetchQuestionnaireBilanStatus()
 })
@@ -403,6 +450,12 @@ onMounted(() => {
             @click="openUploadModal"
           >
             Importer Examen
+          </button>
+          <button
+            class="btn btn-outline"
+            @click="openJuryReportsModal"
+          >
+            Rapports de Jury
           </button>
           <button
             class="btn btn-outline"
@@ -592,100 +645,60 @@ onMounted(() => {
         >
           Chargement des examens...
         </div>
-                
-        <table
-          v-else
-          class="data-table"
-          data-testid="exams.list"
-        >
-          <thead>
-            <tr>
-              <th>Nom</th>
-              <th>Date</th>
-              <th>État</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="exam in (exams || [])"
-              :key="exam?.id"
-              :data-testid="exam ? `exam.row.${exam.id}` : ''"
-            >
-              <td>{{ exam?.name }}</td>
-              <td>{{ exam?.date }}</td>
-              <td>
-                <span
-                  v-if="exam?.is_processed"
-                  class="badge status-import"
-                >Importé</span>
-                <span
-                  v-else
-                  class="badge status-pending"
-                >En création</span>
-              </td>
-              <td>
-                <button
-                  class="btn-sm"
-                  @click="router.push({ name: 'StapleView', params: { examId: exam.id } })"
+                <div v-else>
+          <div v-if="exams.length === 0" class="empty-state">
+            Aucun examen trouvé. Créez-en un ou importez des scans.
+          </div>
+          
+          <div v-for="group in examsByType" :key="group.details.name" class="exam-group-section">
+            <h3 class="exam-group-title" :style="{ borderLeftColor: group.details.color || '#6366f1' }">
+              <span class="exam-type-icon">{{ group.details.icon || '📝' }}</span> 
+              {{ group.details.name }}
+            </h3>
+            
+            <table class="data-table" data-testid="exams.list">
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Date</th>
+                  <th>État</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="exam in group.exams"
+                  :key="exam?.id"
+                  :data-testid="exam ? `exam.row.${exam.id}` : ''"
                 >
-                  Agrafer
-                </button>
-                <button
-                  class="btn-sm"
-                  @click="router.push({ name: 'MarkingSchemeView', params: { examId: exam.id } })"
-                >
-                  Barème
-                </button>
-                <button 
-                  v-if="exam?.id"
-                  class="btn-sm btn-action" 
-                  @click="goToIdentification(exam.id)"
-                >
-                  Video-Coding
-                </button>
-                <button 
-                  class="btn-sm" 
-                  title="Assigner des correcteurs"
-                  @click="openCorrectorModal(exam)"
-                >
-                  Correcteurs
-                </button>
-                <button 
-                  class="btn-sm btn-subject"
-                  title="Assigner Sujet A / Sujet B"
-                  @click="openSubjectModal(exam)"
-                >
-                  Sujets A/B
-                </button>
-                <button 
-                  class="btn-sm btn-dispatch"
-                  :class="{ 'btn-disabled': !canDispatch(exam) }"
-                  :disabled="!canDispatch(exam)"
-                  :title="canDispatch(exam) ? 'Distribuer les copies' : 'Aucun correcteur assigné'"
-                  @click="openDispatchModal(exam)"
-                >
-                  Dispatcher
-                </button>
-                <button 
-                  class="btn-sm btn-students"
-                  title="Voir la liste des élèves et notes"
-                  @click="router.push({ name: 'ExamStudentList', params: { examId: exam.id } })"
-                >
-                  Élèves
-                </button>
-              </td>
-            </tr>
-            <tr v-if="exams.length === 0">
-              <td
-                colspan="4"
-                class="empty-cell"
-              >
-                Aucun examen trouvé. Créez-en un ou importez des scans.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  <td>{{ exam?.name }}</td>
+                  <td>{{ exam?.date }}</td>
+                  <td>
+                    <span v-if="exam?.is_processed" class="badge status-import">Importé</span>
+                    <span v-else class="badge status-pending">En création</span>
+                  </td>
+                  <td>
+                    <button class="btn-sm" @click="router.push({ name: 'StapleView', params: { examId: exam.id } })">Agrafer</button>
+                    <button class="btn-sm" @click="router.push({ name: 'MarkingSchemeView', params: { examId: exam.id } })">Barème</button>
+                    <button v-if="exam?.id" class="btn-sm btn-action" @click="goToIdentification(exam.id)">Video-Coding</button>
+                    <button class="btn-sm" title="Assigner des correcteurs" @click="openCorrectorModal(exam)">Correcteurs</button>
+                    <button class="btn-sm btn-subject" title="Assigner Sujet A / Sujet B" @click="openSubjectModal(exam)">Sujets A/B</button>
+                    <button 
+                      class="btn-sm btn-dispatch"
+                      :class="{ 'btn-disabled': !canDispatch(exam) }"
+                      :disabled="!canDispatch(exam)"
+                      :title="canDispatch(exam) ? 'Distribuer les copies' : 'Aucun correcteur assigné'"
+                      @click="openDispatchModal(exam)"
+                    >
+                      Dispatcher
+                    </button>
+                    <button class="btn-sm btn-students" title="Voir la liste des élèves et notes" @click="router.push({ name: 'ExamStudentList', params: { examId: exam.id } })">Élèves</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
     </main>
 
@@ -744,6 +757,14 @@ onMounted(() => {
         <p class="modal-subtitle">
           Pour: {{ selectedExamName }}
         </p>
+        
+        <div class="form-group">
+          <label>Matière / Rubrique</label>
+          <select v-model="newExam.exam_type" class="form-input">
+            <option disabled value="">-- Choisir une matière --</option>
+            <option v-for="e in examTypes" :key="e.id" :value="e.id">{{ e.name }}</option>
+          </select>
+        </div>
         
         <div class="form-group">
           <div v-if="loadingTeachers">
@@ -1016,6 +1037,13 @@ onMounted(() => {
       :show="showUploadModal"
       @close="showUploadModal = false"
       @uploaded="handleExamUploaded"
+    />
+
+    <!-- Jury Reports Modal -->
+    <JuryReportsModal
+      v-if="showJuryReportsModal"
+      :visible="showJuryReportsModal"
+      @close="showJuryReportsModal = false"
     />
 
     <!-- Toast Notification -->
@@ -1329,6 +1357,31 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 }
 .btn-outline { background: white; border: 1px solid #cbd5e1; color: #475569; }
 .btn-sm { padding: 4px 8px; font-size: 0.8rem; margin-right: 5px; cursor: pointer; }
+
+.exam-group-section {
+  margin-bottom: 3rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.exam-group-title {
+  margin: 0;
+  padding: 1.25rem 1.5rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  border-left: 4px solid #6366f1;
+  color: #1e293b;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.exam-type-icon {
+  font-size: 1.25rem;
+}
 
 .data-table { width: 100%; background: white; border-radius: 8px; border-collapse: collapse; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 .data-table th, .data-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }

@@ -889,6 +889,11 @@ class CorrectorCopiesView(generics.ListAPIView):
                         Copy.Status.GRADING_IN_PROGRESS]
         ).select_related('exam').order_by('exam__date', 'anonymous_id')
 
+        # Filtrage optionnel par Type d'Examen
+        exam_type_id = self.request.query_params.get('exam_type_id')
+        if exam_type_id:
+            base_qs = base_qs.filter(exam__exam_type_id=exam_type_id)
+
         # Admin sees all; teacher sees only assigned
         if user.is_superuser:
             return base_qs
@@ -1402,4 +1407,80 @@ class ExamStudentListView(APIView):
         }
 
         return Response({"summary": summary, "copies": data})
+
+
+class ExamTypeListView(generics.ListCreateAPIView):
+    """
+    GET /api/exams/types/
+    POST /api/exams/types/
+    """
+    from .permissions import IsTeacherOrAdmin
+    permission_classes = [IsTeacherOrAdmin]
+    from .models import ExamType
+    queryset = ExamType.objects.all().order_by('sort_order', 'name')
+    from .serializers import ExamTypeSerializer
+    serializer_class = ExamTypeSerializer
+
+
+class ExamTypeDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET, PUT, PATCH, DELETE /api/exams/types/<id>/
+    """
+    from .permissions import IsTeacherOrAdmin
+    permission_classes = [IsTeacherOrAdmin]
+    from .models import ExamType
+    queryset = ExamType.objects.all()
+    from .serializers import ExamTypeSerializer
+    serializer_class = ExamTypeSerializer
+    lookup_field = 'id'
+
+
+class JuryReportListView(generics.ListCreateAPIView):
+    """
+    GET /api/exams/reports/
+    POST /api/exams/reports/
+    """
+    from .permissions import IsTeacherOrAdmin
+    permission_classes = [IsTeacherOrAdmin]
+    from .serializers import JuryReportSerializer
+    serializer_class = JuryReportSerializer
+
+    def get_queryset(self):
+        from .models import JuryReport
+        queryset = JuryReport.objects.all()
+        user = self.request.user
+        
+        is_admin = user.groups.filter(name='Admin').exists() or user.is_superuser or user.is_staff
+        if not is_admin:
+            # Le correcteur accède aux rapports liés au Type d'Examen (Matière) 
+            # dont il corrige au moins un examen
+            queryset = queryset.filter(exam_type__exams__correctors=user, is_published=True).distinct()
+            
+        exam_type_id = self.request.query_params.get('exam_type_id')
+        if exam_type_id:
+            queryset = queryset.filter(exam_type_id=exam_type_id)
+        return queryset.order_by('-created_at')
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+
+class JuryReportDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET, PUT, PATCH, DELETE /api/exams/reports/<id>/
+    """
+    from .permissions import IsTeacherOrAdmin
+    permission_classes = [IsTeacherOrAdmin]
+    from .serializers import JuryReportSerializer
+    serializer_class = JuryReportSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        from .models import JuryReport
+        queryset = JuryReport.objects.all()
+        user = self.request.user
+        is_admin = user.groups.filter(name='Admin').exists() or user.is_superuser or user.is_staff
+        if not is_admin:
+            queryset = queryset.filter(exam__correctors=user)
+        return queryset
 

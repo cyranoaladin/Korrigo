@@ -7,7 +7,10 @@ from .views import (
     BookletHeaderView, ExamDispatchView, IndividualPDFUploadView, PronoteExportView,
     CopyValidationView, BulkCopyValidationView,
     BulkSubjectVariantView, AutoDetectSubjectVariantView,
+    BulkSubjectVariantView, AutoDetectSubjectVariantView,
     ExamStudentListView,
+    ExamTypeListView, ExamTypeDetailView,
+    JuryReportListView, JuryReportDetailView,
 )
 from .views_stats import StatsReportView
 from .views_documents import (
@@ -23,6 +26,12 @@ urlpatterns = [
     path('', ExamListView.as_view(), name='exam-list'),
     path('<uuid:id>/', ExamDetailView.as_view(), name='exam-detail'),
     path('<uuid:pk>/upload/', ExamSourceUploadView.as_view(), name='exam-source-upload'),
+
+    # Exam Types and Jury Reports
+    path('types/', ExamTypeListView.as_view(), name='examtype-list'),
+    path('types/<uuid:id>/', ExamTypeDetailView.as_view(), name='examtype-detail'),
+    path('reports/', JuryReportListView.as_view(), name='juryreport-list'),
+    path('reports/<uuid:id>/', JuryReportDetailView.as_view(), name='juryreport-detail'),
     
     # New Import Routes
     path('<uuid:exam_id>/copies/import/', CopyImportView.as_view(), name='copy-import'),

@@ -11,7 +11,7 @@ from django.conf import settings
 
 # Configurer Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings_test')
-sys.path.insert(0, '/home/alaeddine/viatique__PMF/backend')
+sys.path.insert(0, '/home/alaeddine/Bureau/KORRIGO/korrigo_v2_improved/backend')
 django.setup()
 
 from exams.models import Exam, Copy, Booklet

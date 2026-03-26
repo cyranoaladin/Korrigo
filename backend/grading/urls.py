@@ -5,6 +5,7 @@ from django.urls import path
 from grading.views import (
     AnnotationListCreateView,
     AnnotationDetailView,
+    AnnotationHistoryView,
     CopyFinalizeView,
     CopyReadyView,
     CopyFinalPdfView,
@@ -41,6 +42,7 @@ urlpatterns = [
     # Annotations
     path('copies/<uuid:copy_id>/annotations/', AnnotationListCreateView.as_view(), name='annotation-list-create'),
     path('annotations/<uuid:pk>/', AnnotationDetailView.as_view(), name='annotation-detail'),
+    path('annotations/history/', AnnotationHistoryView.as_view(), name='annotation-history'),
 
     # Workflow Copy
     path('copies/<uuid:id>/ready/', CopyReadyView.as_view(), name='copy-ready'),

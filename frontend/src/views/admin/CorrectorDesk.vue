@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import gradingApi from '../../services/gradingApi'
 import CanvasLayer from '../../components/CanvasLayer.vue'
 import AnnotationSuggestionsPanel from '../../components/AnnotationSuggestionsPanel.vue'
+import CommentBank from '../../components/CommentBank.vue'
 // Removed date-fns, using native Intl
 import { useAuthStore } from '../../stores/auth'
 
@@ -101,6 +102,8 @@ const syncStatusLevel = computed(() => {
 const showSuggestions = ref(false)
 const suggestionsExercise = ref(null)
 const suggestionsQuestion = ref(null)
+
+const showCommentBank = ref(false)
 const activeRemarkQuestionId = ref(null)
 
 // --- Computed ---
@@ -282,6 +285,14 @@ const onScrollAreaWheel = (e) => {
 
     const atTop = el.scrollTop <= 1
     const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
+
+    if (wheelCooldown.value) {
+        if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+            e.preventDefault()
+            e.stopPropagation()
+        }
+        return
+    }
 
     if (e.deltaY < 0 && atTop) {
         e.preventDefault()
@@ -800,6 +811,79 @@ const handleDrawComplete = async (normalizedRect) => {
     nextTick(() => { if (editorInputRef.value) editorInputRef.value.focus() })
 }
 
+const handleDragStart = (type, e) => {
+    e.dataTransfer.setData('text/plain', type)
+    e.dataTransfer.effectAllowed = 'copy'
+}
+
+const handleDrop = async (e) => {
+    e.preventDefault()
+    if (!canAnnotate.value || showEditor.value) return
+
+    const textData = e.dataTransfer.getData('text/plain')
+    let typeValue = textData
+    let contentValue = ''
+
+    if (textData.startsWith('COMMENTBANK|')) {
+        typeValue = 'COMMENTAIRE'
+        contentValue = textData.replace('COMMENTBANK|', '')
+    }
+
+    if (!['VRAI', 'FAUX', 'COMMENTAIRE', 'SURLIGNAGE', 'ERREUR', 'BONUS'].includes(typeValue)) return
+
+    const wrapper = e.currentTarget
+    const rect = wrapper.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+
+    const normX = x / rect.width
+    const normY = y / rect.height
+    // Default size for drop annotation
+    const normW = 30 / pdfDimensions.value.width
+    const normH = 30 / pdfDimensions.value.height
+    
+    // Safety bounds
+    const safeX = Math.max(0, Math.min(1 - normW, normX))
+    const safeY = Math.max(0, Math.min(1 - normH, normY))
+
+    const normalizedRect = { x: safeX, y: safeY, w: normW, h: normH }
+
+    if (typeValue === 'COMMENTAIRE' && contentValue) {
+        // Direct creation from CommentBank
+        isSaving.value = true
+        try {
+            await gradingApi.createAnnotation(copyId, {
+                page_index: currentPage.value - 1,
+                x: normalizedRect.x,
+                y: normalizedRect.y,
+                w: normalizedRect.w,
+                h: normalizedRect.h,
+                type: 'COMMENTAIRE',
+                content: contentValue
+            })
+            await refreshAnnotations()
+            // We consciously avoid fetchHistory() here to prevent browser saturation with fast consecutive drops
+        } catch (err) {
+            error.value = err.response?.data?.detail || "Échec de l'ajout depuis l'historique"
+        } finally { isSaving.value = false; }
+        return
+    }
+
+    // Use handleDrawComplete logic wrapper
+    const oldStamp = quickStampMode.value
+    const oldType = preSelectedAnnotationType.value
+    
+    if (['VRAI', 'FAUX', 'BONUS'].includes(typeValue)) {
+        quickStampMode.value = typeValue
+        await handleDrawComplete(normalizedRect)
+        quickStampMode.value = oldStamp
+    } else {
+        preSelectedAnnotationType.value = typeValue
+        await handleDrawComplete(normalizedRect)
+        preSelectedAnnotationType.value = oldType
+    }
+}
+
 const saveAnnotation = async () => {
     if (!draftAnnotation.value) return;
     isSaving.value = true;
@@ -821,7 +905,7 @@ const saveAnnotation = async () => {
         restoreAvailable.value = null;
 
         await refreshAnnotations()
-        await fetchHistory() // Update log
+        // fetchHistory() is omitted during individual creations to avoid UI saturation
         cancelEditor()
     } catch (err) {
         error.value = err.response?.data?.detail || "Échec de la création de l'annotation"
@@ -1161,14 +1245,18 @@ onUnmounted(() => {
           <div v-if="canAnnotate" class="quick-stamp-controls">
             <button
               :class="['btn-stamp', 'btn-stamp-vrai', { active: quickStampMode === 'VRAI' }]"
-              title="Tampon Vrai (cliquer puis dessiner sur la copie)"
+              title="Tampon Vrai (Glisser-Déposer ou Clic)"
+              draggable="true"
+              @dragstart="handleDragStart('VRAI', $event)"
               @click="setAnnotationMode('stamp', 'VRAI')"
             >
               ✓ V
             </button>
             <button
               :class="['btn-stamp', 'btn-stamp-faux', { active: quickStampMode === 'FAUX' }]"
-              title="Tampon Faux (cliquer puis dessiner sur la copie)"
+              title="Tampon Faux (Glisser-Déposer ou Clic)"
+              draggable="true"
+              @dragstart="handleDragStart('FAUX', $event)"
               @click="setAnnotationMode('stamp', 'FAUX')"
             >
               ✗ F
@@ -1178,25 +1266,35 @@ onUnmounted(() => {
           <div v-if="canAnnotate" class="annotation-type-controls">
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'COMMENTAIRE' }]"
-              title="Commentaire"
+              title="Commentaire (Glisser-Déposer)"
+              draggable="true"
+              @dragstart="handleDragStart('COMMENTAIRE', $event)"
               @click="setAnnotationMode('type', 'COMMENTAIRE')"
             >💬</button>
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'SURLIGNAGE' }]"
-              title="Surlignage"
+              title="Surlignage (Glisser-Déposer)"
+              draggable="true"
+              @dragstart="handleDragStart('SURLIGNAGE', $event)"
               @click="setAnnotationMode('type', 'SURLIGNAGE')"
             >🟨</button>
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'ERREUR' }]"
-              title="Erreur"
+              title="Erreur (Glisser-Déposer)"
+              draggable="true"
+              @dragstart="handleDragStart('ERREUR', $event)"
               @click="setAnnotationMode('type', 'ERREUR')"
             >❌</button>
             <button
-              :class="['btn-annot-type', { active: preSelectedAnnotationType === 'BONUS' }]"
-              title="Bonus"
-              @click="setAnnotationMode('type', 'BONUS')"
+              :class="['btn-annot-type', { active: showCommentBank }]"
+              title="Historique des commentaires"
+              @click="showCommentBank = !showCommentBank"
             >⭐</button>
           </div>
+          <CommentBank 
+            :visible="showCommentBank" 
+            @close="showCommentBank = false"
+          />
           <div class="zoom-controls">
             <button @click="scale = Math.max(0.3, +(scale - 0.1).toFixed(1))">
               -
@@ -1220,6 +1318,8 @@ onUnmounted(() => {
             v-if="currentPageImageUrl && !imageError"
             class="canvas-wrapper" 
             :style="{ width: displayWidth + 'px', height: displayHeight + 'px' }"
+            @dragover.prevent
+            @drop="handleDrop"
           >
             <!-- Anonymization overlay: v-show keeps DOM mounted (no insert delay), percentage height is paint-immediate -->
             <div

@@ -6,7 +6,7 @@ const props = defineProps({
   height: { type: Number, required: true }, // CSS height
   scale: { type: Number, default: 1.0 }, // Used for line width calculation
   initialAnnotations: { type: Array, default: () => [] },
-  enabled: { type: Boolean, default: true }
+  enabled: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['annotation-created'])
@@ -256,12 +256,12 @@ const stopDrawing = () => {
 </script>
 
 <template>
-  <canvas 
+  <canvas
     ref="canvasRef"
     :width="canvasWidth"
     :height="canvasHeight"
-    :style="{ 
-      width: width + 'px', 
+    :style="{
+      width: width + 'px',
       height: height + 'px',
     }"
     :class="{ 'canvas-layer': true, 'disabled': !enabled }"
@@ -281,10 +281,8 @@ const stopDrawing = () => {
   z-index: 10;
   touch-action: none;
   cursor: crosshair;
-  pointer-events: auto;
 }
 .canvas-layer.disabled {
     cursor: not-allowed;
-    pointer-events: none;
 }
 </style>

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.core.validators import FileExtensionValidator
 from django.utils.translation import gettext_lazy as _
-from .models import Exam, Booklet, Copy, ExamPDF
+from .models import Exam, Booklet, Copy, ExamPDF, ExamType, JuryReport
 from .validators import (
     validate_pdf_size,
     validate_pdf_not_empty,
@@ -62,14 +62,21 @@ class ExamSerializer(serializers.ModelSerializer):
         validators=[FileExtensionValidator(allowed_extensions=['csv'])]
     )
 
+    exam_type_details = serializers.SerializerMethodField()
+
     class Meta:
         model = Exam
         fields = [
             'id', 'name', 'date', 'upload_mode', 'grading_structure',
             'is_processed', 'booklet_count', 'individual_pdfs_count',
             'pdf_source', 'students_csv', 'correctors', 'pages_per_booklet',
-            'results_released_at',
+            'results_released_at', 'exam_type', 'exam_type_details',
         ]
+
+    def get_exam_type_details(self, obj):
+        if obj.exam_type:
+            return ExamTypeSerializer(obj.exam_type).data
+        return None
 
     def get_booklet_count(self, obj):
         return obj.booklets.count()
@@ -187,12 +194,15 @@ class CopySerializer(serializers.ModelSerializer):
         # Include full booklet data for frontend pages computation
         representation['booklets'] = BookletSerializer(instance.booklets.all(), many=True, context=self.context).data
         # Include exam metadata needed by frontend (anonymization, grading)
-        representation['exam'] = {
+        exam_data = {
             'id': str(instance.exam.id),
             'name': instance.exam.name,
             'pages_per_booklet': instance.exam.pages_per_booklet,
             'grading_structure': instance.exam.grading_structure,
         }
+        if instance.exam.exam_type:
+            exam_data['exam_type_details'] = ExamTypeSerializer(instance.exam.exam_type).data
+        representation['exam'] = exam_data
         # Hide student identity from non-admin users (correctors must not see student info)
         request = self.context.get('request')
         user = getattr(request, 'user', None) if request else None
@@ -206,3 +216,18 @@ class CopySerializer(serializers.ModelSerializer):
                 booklet.pop('header_image_url', None)
         return representation
 
+
+class ExamTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExamType
+        fields = '__all__'
+
+
+class JuryReportSerializer(serializers.ModelSerializer):
+    exam_type_name = serializers.CharField(source='exam_type.name', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+
+    class Meta:
+        model = JuryReport
+        fields = '__all__'
+        read_only_fields = ['created_by']
