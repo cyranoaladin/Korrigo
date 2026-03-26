@@ -833,27 +833,43 @@ const handleDrop = async (e) => {
         return
     }
 
-    // Use handleDrawComplete logic wrapper
-    const oldStamp = quickStampMode.value
-    const oldType = preSelectedAnnotationType.value
-
+    // Handle stamp types directly - do not use quickStampMode which is shared state
     if (['VRAI', 'FAUX', 'BONUS'].includes(typeValue)) {
-        quickStampMode.value = typeValue
-        await handleDrawComplete(normalizedRect)
-        quickStampMode.value = oldStamp
-    } else {
-        preSelectedAnnotationType.value = typeValue
-        await handleDrawComplete(normalizedRect)
-        preSelectedAnnotationType.value = oldType
+        isSaving.value = true
+        try {
+            const contentMap = { 'VRAI': 'V', 'FAUX': 'X', 'BONUS': '' }
+            const payload = {
+                page_index: currentPage.value - 1,
+                x: normalizedRect.x,
+                y: normalizedRect.y,
+                w: normalizedRect.w,
+                h: normalizedRect.h,
+                type: typeValue,
+                content: contentMap[typeValue] ?? ''
+            }
+            await gradingApi.createAnnotation(copyId, payload)
+            await refreshAnnotations()
+        } catch (err) {
+            error.value = err.response?.data?.detail || "Échec de la création de l'annotation"
+        } finally { isSaving.value = false }
+        return
     }
+
+    // Text-based annotation types - open editor
+    // Note: we don't use overrideType here because handleDrawComplete needs to know the type
+    // to open the editor, but we pass it through preSelectedAnnotationType
+    preSelectedAnnotationType.value = typeValue
+    await handleDrawComplete(normalizedRect)
+    preSelectedAnnotationType.value = null
 }
 
 // --- Annotation Editor ---
-const handleDrawComplete = async (normalizedRect) => {
+const handleDrawComplete = async (normalizedRect, overrideType = null) => {
     if (!canAnnotate.value) return;
 
     // Stamp mode (V, F): instant annotation, no editor needed
-    const stampType = quickStampMode.value
+    // Use overrideType if provided (from drag-and-drop), otherwise check quickStampMode (from click)
+    const stampType = overrideType || quickStampMode.value
     if (stampType) {
         isSaving.value = true
         try {
