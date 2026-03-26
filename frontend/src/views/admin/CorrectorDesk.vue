@@ -774,6 +774,80 @@ const handleImageError = () => {
     error.value = "Échec du chargement de l'image de la page."
 }
 
+// --- Drag and Drop Handlers ---
+const handleDragStart = (type, e) => {
+    e.dataTransfer.setData('text/plain', type)
+    e.dataTransfer.effectAllowed = 'copy'
+}
+
+const handleDrop = async (e) => {
+    e.preventDefault()
+    if (!canAnnotate.value || showEditor.value) return
+
+    const textData = e.dataTransfer.getData('text/plain')
+    let typeValue = textData
+    let contentValue = ''
+
+    if (textData.startsWith('COMMENTBANK|')) {
+        typeValue = 'COMMENTAIRE'
+        contentValue = textData.replace('COMMENTBANK|', '')
+    }
+
+    if (!['VRAI', 'FAUX', 'COMMENTAIRE', 'SURLIGNAGE', 'ERREUR', 'BONUS'].includes(typeValue)) return
+
+    const wrapper = e.currentTarget
+    const rect = wrapper.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+
+    const normX = x / rect.width
+    const normY = y / rect.height
+    // Default size for drop annotation
+    const normW = 30 / pdfDimensions.value.width
+    const normH = 30 / pdfDimensions.value.height
+
+    // Safety bounds
+    const safeX = Math.max(0, Math.min(1 - normW, normX))
+    const safeY = Math.max(0, Math.min(1 - normH, normY))
+
+    const normalizedRect = { x: safeX, y: safeY, w: normW, h: normH }
+
+    if (typeValue === 'COMMENTAIRE' && contentValue) {
+        // Direct creation from CommentBank
+        isSaving.value = true
+        try {
+            await gradingApi.createAnnotation(copyId, {
+                page_index: currentPage.value - 1,
+                x: normalizedRect.x,
+                y: normalizedRect.y,
+                w: normalizedRect.w,
+                h: normalizedRect.h,
+                type: 'COMMENTAIRE',
+                content: contentValue
+            })
+            await refreshAnnotations()
+            // We consciously avoid fetchHistory() here to prevent browser saturation with fast consecutive drops
+        } catch (err) {
+            error.value = err.response?.data?.detail || "Échec de l'ajout depuis l'historique"
+        } finally { isSaving.value = false; }
+        return
+    }
+
+    // Use handleDrawComplete logic wrapper
+    const oldStamp = quickStampMode.value
+    const oldType = preSelectedAnnotationType.value
+
+    if (['VRAI', 'FAUX', 'BONUS'].includes(typeValue)) {
+        quickStampMode.value = typeValue
+        await handleDrawComplete(normalizedRect)
+        quickStampMode.value = oldStamp
+    } else {
+        preSelectedAnnotationType.value = typeValue
+        await handleDrawComplete(normalizedRect)
+        preSelectedAnnotationType.value = oldType
+    }
+}
+
 // --- Annotation Editor ---
 const handleDrawComplete = async (normalizedRect) => {
     if (!canAnnotate.value) return;
@@ -811,79 +885,6 @@ const handleDrawComplete = async (normalizedRect) => {
     nextTick(() => { if (editorInputRef.value) editorInputRef.value.focus() })
 }
 
-const handleDragStart = (type, e) => {
-    e.dataTransfer.setData('text/plain', type)
-    e.dataTransfer.effectAllowed = 'copy'
-}
-
-const handleDrop = async (e) => {
-    e.preventDefault()
-    if (!canAnnotate.value || showEditor.value) return
-
-    const textData = e.dataTransfer.getData('text/plain')
-    let typeValue = textData
-    let contentValue = ''
-
-    if (textData.startsWith('COMMENTBANK|')) {
-        typeValue = 'COMMENTAIRE'
-        contentValue = textData.replace('COMMENTBANK|', '')
-    }
-
-    if (!['VRAI', 'FAUX', 'COMMENTAIRE', 'SURLIGNAGE', 'ERREUR', 'BONUS'].includes(typeValue)) return
-
-    const wrapper = e.currentTarget
-    const rect = wrapper.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-
-    const normX = x / rect.width
-    const normY = y / rect.height
-    // Default size for drop annotation
-    const normW = 30 / pdfDimensions.value.width
-    const normH = 30 / pdfDimensions.value.height
-    
-    // Safety bounds
-    const safeX = Math.max(0, Math.min(1 - normW, normX))
-    const safeY = Math.max(0, Math.min(1 - normH, normY))
-
-    const normalizedRect = { x: safeX, y: safeY, w: normW, h: normH }
-
-    if (typeValue === 'COMMENTAIRE' && contentValue) {
-        // Direct creation from CommentBank
-        isSaving.value = true
-        try {
-            await gradingApi.createAnnotation(copyId, {
-                page_index: currentPage.value - 1,
-                x: normalizedRect.x,
-                y: normalizedRect.y,
-                w: normalizedRect.w,
-                h: normalizedRect.h,
-                type: 'COMMENTAIRE',
-                content: contentValue
-            })
-            await refreshAnnotations()
-            // We consciously avoid fetchHistory() here to prevent browser saturation with fast consecutive drops
-        } catch (err) {
-            error.value = err.response?.data?.detail || "Échec de l'ajout depuis l'historique"
-        } finally { isSaving.value = false; }
-        return
-    }
-
-    // Use handleDrawComplete logic wrapper
-    const oldStamp = quickStampMode.value
-    const oldType = preSelectedAnnotationType.value
-    
-    if (['VRAI', 'FAUX', 'BONUS'].includes(typeValue)) {
-        quickStampMode.value = typeValue
-        await handleDrawComplete(normalizedRect)
-        quickStampMode.value = oldStamp
-    } else {
-        preSelectedAnnotationType.value = typeValue
-        await handleDrawComplete(normalizedRect)
-        preSelectedAnnotationType.value = oldType
-    }
-}
-
 const saveAnnotation = async () => {
     if (!draftAnnotation.value) return;
     isSaving.value = true;
@@ -898,7 +899,7 @@ const saveAnnotation = async () => {
             content: draftAnnotation.value.content
         }
         await gradingApi.createAnnotation(copyId, payload)
-        
+
         // Clear Drafts on Success
         localStorage.removeItem(getStorageKey());
         try { await gradingApi.deleteDraft(copyId); } catch{}
