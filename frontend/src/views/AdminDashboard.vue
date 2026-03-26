@@ -711,14 +711,27 @@ onMounted(() => {
         <h3>Nouvel Examen</h3>
         
         <div class="form-group">
-          <label>Nom de l'examen</label>
+          <label>Nom de l'examen <span class="required">*</span></label>
           <input 
             v-model="newExam.name" 
             type="text" 
-            placeholder="Ex: Bac Blanc Maths 2026" 
+            placeholder="Ex: Bac Blanc Maths J1 2026" 
             class="form-input" 
             autofocus
           >
+        </div>
+
+        <div class="form-group">
+          <label>Type d'examen (Rubrique) <span class="required">*</span></label>
+          <select v-model="newExam.exam_type" class="form-input">
+            <option disabled value="">-- Choisir un type --</option>
+            <option v-for="t in examTypes" :key="t.id" :value="t.id">
+              {{ t.name }}
+            </option>
+          </select>
+          <p v-if="!newExam.exam_type" class="field-hint">
+            ⚠️ Sans type, l'examen sera invisible pour les correcteurs.
+          </p>
         </div>
         
         <div class="form-group">
@@ -739,6 +752,7 @@ onMounted(() => {
           </button>
           <button 
             class="btn btn-primary"
+            :disabled="!newExam.name || !newExam.exam_type"
             @click="createExam" 
           >
             Créer
@@ -746,6 +760,7 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
 
     <!-- Assign Correctors Modal -->
     <div 
@@ -1395,6 +1410,8 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 .form-group label { display: block; margin-bottom: 0.5rem; color: #475569; font-size: 0.9rem; }
 .form-input { width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 4px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
+.required { color: #ef4444; margin-left: 2px; }
+.field-hint { font-size: 0.8rem; color: #b45309; background: #fef3c7; padding: 4px 8px; border-radius: 4px; margin-top: 4px; margin-bottom: 0; }
 
 /* Checkbox List Styles */
 .checkbox-list {

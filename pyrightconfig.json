@@ -1,0 +1,32 @@
+{
+  "include": ["backend"],
+  "exclude": [
+    "venv",
+    ".venv",
+    "backend/.test_venv",
+    "**/__pycache__",
+    "frontend"
+  ],
+  "venvPath": ".",
+  "venv": "venv",
+  "pythonPath": "./venv/bin/python",
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux",
+  "executionEnvironments": [
+    {
+      "root": "backend",
+      "pythonVersion": "3.12",
+      "extraPaths": ["backend"]
+    }
+  ],
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "information",
+  "reportMissingModuleSource": "none",
+  "reportAttributeAccessIssue": "warning",
+  "reportIndexIssue": "warning",
+  "reportOperatorIssue": "warning",
+  "reportArgumentType": "warning",
+  "reportReturnType": "warning",
+  "reportGeneralTypeIssues": "warning",
+  "useLibraryCodeForTypes": true
+}

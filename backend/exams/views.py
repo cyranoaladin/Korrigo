@@ -32,13 +32,15 @@ def generate_anonymous_id(exam, index: int) -> str:
     Format: XXXX-NNN where XXXX = first 4 chars of exam UUID, NNN = sequential number.
     Falls back to longer UUID segment if collision detected.
     """
-    prefix = str(exam.id).replace('-', '')[:4].upper()
+    exam_id_clean: str = str(exam.id).replace('-', '')
+    prefix = exam_id_clean[:4].upper()  # type: ignore[misc]
     existing_count = Copy.objects.filter(exam=exam).count()
     seq = existing_count + index + 1
     candidate = f"{prefix}-{seq:03d}"
     # Safety: check uniqueness, extend if collision
     if Copy.objects.filter(anonymous_id=candidate).exists():
-        candidate = f"{prefix}-{str(uuid.uuid4()).replace('-', '')[:6].upper()}"
+        uid_clean: str = str(uuid.uuid4()).replace('-', '')
+        candidate = f"{prefix}-{uid_clean[:6].upper()}"  # type: ignore[misc]
     return candidate
 
 class ExamUploadView(APIView):
@@ -718,11 +720,12 @@ class StudentCopiesView(generics.ListAPIView):
             # Use prefetched score
             score_obj = scores_by_copy.get(copy.id)
             scores_data = score_obj.scores_data if score_obj and score_obj.scores_data else {}
-            total_score = sum(
-                float(v) for v in scores_data.values()
+            total_score: float = sum(
+                float(v)  # type: ignore[arg-type]
+                for v in scores_data.values()
                 if v is not None and v != ''
-            ) if scores_data else 0
-            total_score = round(total_score, 2)
+            ) if scores_data else 0.0
+            total_score = float(round(total_score, 2))  # type: ignore[call-overload]
 
             remarks = remarks_by_copy.get(copy.id, {})
 
@@ -1230,7 +1233,7 @@ class BulkSubjectVariantView(APIView):
                 val = var if var in ('A', 'B') else None
                 count = Copy.objects.filter(exam=exam, id=copy_id).update(subject_variant=val)
                 updated += count
-            result = {'updated': updated}
+            result: dict[str, object] = {'updated': updated}
             if errors:
                 result['errors'] = errors
             return Response(result)
@@ -1266,12 +1269,15 @@ class AutoDetectSubjectVariantView(APIView):
         ]
 
         copies = Copy.objects.filter(exam=exam).order_by('anonymous_id')
-        results = {'detected': 0, 'failed': 0, 'errors': [], 'copies': []}
+        results: dict[str, object] = {'detected': 0, 'failed': 0, 'errors': [], 'copies': []}
 
         for copy in copies:
+            _errors: list = results['errors']  # type: ignore[assignment]
+            _copies_list: list = results['copies']  # type: ignore[assignment]
+
             if not copy.pdf_source:
-                results['errors'].append({'id': str(copy.id), 'error': 'No PDF source'})
-                results['failed'] += 1
+                _errors.append({'id': str(copy.id), 'error': 'No PDF source'})
+                results['failed'] = int(results['failed']) + 1  # type: ignore[arg-type]
                 continue
 
             # Find the actual file
@@ -1283,8 +1289,8 @@ class AutoDetectSubjectVariantView(APIView):
                     break
 
             if not pdf_path:
-                results['errors'].append({'id': str(copy.id), 'error': 'PDF file not found'})
-                results['failed'] += 1
+                _errors.append({'id': str(copy.id), 'error': 'PDF file not found'})
+                results['failed'] = int(results['failed']) + 1  # type: ignore[arg-type]
                 continue
 
             try:
@@ -1309,16 +1315,16 @@ class AutoDetectSubjectVariantView(APIView):
                 if variant:
                     copy.subject_variant = variant
                     copy.save(update_fields=['subject_variant'])
-                    results['detected'] += 1
+                    results['detected'] = int(results['detected']) + 1  # type: ignore[arg-type]
                 else:
-                    results['errors'].append({
+                    _errors.append({
                         'id': str(copy.id),
                         'anonymous_id': copy.anonymous_id,
                         'error': f'No reference found in OCR text: {text.strip()[:100]}'
                     })
-                    results['failed'] += 1
+                    results['failed'] = int(results['failed']) + 1  # type: ignore[arg-type]
 
-                results['copies'].append({
+                _copies_list.append({
                     'id': str(copy.id),
                     'anonymous_id': copy.anonymous_id,
                     'subject_variant': variant,
@@ -1327,8 +1333,8 @@ class AutoDetectSubjectVariantView(APIView):
 
             except Exception as e:
                 logger.error(f"OCR failed for copy {copy.id}: {e}")
-                results['errors'].append({'id': str(copy.id), 'error': str(e)[:200]})
-                results['failed'] += 1
+                _errors.append({'id': str(copy.id), 'error': str(e)[:200]})
+                results['failed'] = int(results['failed']) + 1  # type: ignore[arg-type]
 
         return Response(results)
 
@@ -1367,10 +1373,14 @@ class ExamStudentListView(APIView):
                 student_groupe = None
 
             # Score
-            total_score = None
+            total_score: float | None = None
             score_obj = Score.objects.filter(copy=copy).first()
             if score_obj and score_obj.scores_data:
-                total_score = round(sum(float(v) for v in score_obj.scores_data.values() if v), 2)
+                _sd: dict = score_obj.scores_data  # type: ignore[assignment]
+                total_score = float(round(  # type: ignore[call-overload]
+                    sum(float(v) for v in _sd.values() if v is not None and v != ''),  # type: ignore[arg-type]
+                    2
+                ))
 
             # Corrector
             corrector_name = None
@@ -1401,7 +1411,9 @@ class ExamStudentListView(APIView):
             "ready": sum(1 for d in data if d['status'] == 'READY'),
             "staging": sum(1 for d in data if d['status'] == 'STAGING'),
             "with_scores": len(scored),
-            "average": round(sum(d['total_score'] for d in scored) / len(scored), 2) if scored else None,
+            "average": float(round(  # type: ignore[call-overload]
+                sum(d['total_score'] for d in scored) / len(scored), 2  # type: ignore[arg-type]
+            )) if scored else None,
             "min_score": min(d['total_score'] for d in scored) if scored else None,
             "max_score": max(d['total_score'] for d in scored) if scored else None,
         }
@@ -1413,13 +1425,30 @@ class ExamTypeListView(generics.ListCreateAPIView):
     """
     GET /api/exams/types/
     POST /api/exams/types/
+    Admin voit tous les types actifs.
+    Correcteur voit uniquement les types où il a des copies assignées.
     """
     from .permissions import IsTeacherOrAdmin
     permission_classes = [IsTeacherOrAdmin]
-    from .models import ExamType
-    queryset = ExamType.objects.all().order_by('sort_order', 'name')
     from .serializers import ExamTypeSerializer
     serializer_class = ExamTypeSerializer
+
+    def get_queryset(self):
+        from .models import ExamType
+        user = self.request.user
+        qs = ExamType.objects.filter(is_active=True).order_by('sort_order', 'name')
+
+        # Admin et superuser voient tous les types
+        if user.is_superuser or user.is_staff:
+            return qs
+
+        # Correcteur : uniquement les types liés à ses copies assignées
+        return qs.filter(
+            exams__copies__assigned_corrector=user,
+            exams__copies__status__in=[
+                'READY', 'GRADED', 'GRADING_IN_PROGRESS'
+            ]
+        ).distinct()
 
 
 class ExamTypeDetailView(generics.RetrieveUpdateDestroyAPIView):
