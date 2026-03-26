@@ -117,7 +117,7 @@ onMounted(() => {
         </div>
         
         <div v-if="loading" class="loading">Chargement...</div>
-        <table v-else-if="reports.length > 0" class="data-table">
+        <table v-else-if="reports && reports.length > 0" class="data-table">
           <thead>
             <tr>
               <th>Matière/Rubrique</th>
@@ -154,7 +154,7 @@ onMounted(() => {
           <label>Matière / Rubrique</label>
           <select v-model="formData.exam_type" class="form-input" :disabled="!isAdmin">
             <option disabled value="">-- Choisir une matière --</option>
-            <option v-for="e in examTypes" :key="e.id" :value="e.id">{{ e.name }}</option>
+            <option v-for="e in examTypes" :key="e?.id" :value="e?.id">{{ e?.name }}</option>
           </select>
         </div>
         <div class="form-group">

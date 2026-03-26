@@ -41,23 +41,31 @@ class IsAdmin(BasePermission):
 
 class IsTeacher(BasePermission):
     """
-    Permission pour les enseignants
-    """
-    def has_permission(self, request, view):
-        if request.user.is_authenticated:
-            return request.user.groups.filter(name=UserRole.TEACHER).exists()
-        return False
-
-class IsStudent(BasePermission):
-    """
-    Permission pour les élèves.
-    Exige un user authentifié dans le groupe 'student'.
-    Le fallback session legacy a été supprimé (audit permissions 2026-03-10).
+    Permission pour les enseignants. 
+    Autorise également les administrateurs pour le monitoring.
     """
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
             return False
-        return request.user.groups.filter(name=UserRole.STUDENT).exists()
+        return (
+            request.user.is_superuser 
+            or request.user.is_staff 
+            or request.user.groups.filter(name=UserRole.TEACHER).exists()
+        )
+
+class IsStudent(BasePermission):
+    """
+    Permission pour les élèves.
+    Autorise également les administrateurs pour le support/audit.
+    """
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+        return (
+            request.user.is_superuser 
+            or request.user.is_staff 
+            or request.user.groups.filter(name=UserRole.STUDENT).exists()
+        )
 
 class IsAdminOrTeacher(BasePermission):
     """

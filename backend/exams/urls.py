@@ -7,7 +7,6 @@ from .views import (
     BookletHeaderView, ExamDispatchView, IndividualPDFUploadView, PronoteExportView,
     CopyValidationView, BulkCopyValidationView,
     BulkSubjectVariantView, AutoDetectSubjectVariantView,
-    BulkSubjectVariantView, AutoDetectSubjectVariantView,
     ExamStudentListView,
     ExamTypeListView, ExamTypeDetailView,
     JuryReportListView, JuryReportDetailView,
