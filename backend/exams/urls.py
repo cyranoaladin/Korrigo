@@ -21,17 +21,17 @@ from .views_documents import (
 )
 
 urlpatterns = [
+    # Exam Types and Jury Reports (Moved UP to avoid shadowing)
+    path('types/', ExamTypeListView.as_view(), name='examtype-list'),
+    path('types/<uuid:id>/', ExamTypeDetailView.as_view(), name='examtype-detail'),
+    path('reports/', JuryReportListView.as_view(), name='juryreport-list'),
+    path('reports/<uuid:id>/', JuryReportDetailView.as_view(), name='juryreport-detail'),
+
     # Mission 14: Upload & List
     path('upload/', ExamUploadView.as_view(), name='exam-upload'),
     path('', ExamListView.as_view(), name='exam-list'),
     path('<uuid:id>/', ExamDetailView.as_view(), name='exam-detail'),
     path('<uuid:pk>/upload/', ExamSourceUploadView.as_view(), name='exam-source-upload'),
-
-    # Exam Types and Jury Reports
-    path('types/', ExamTypeListView.as_view(), name='examtype-list'),
-    path('types/<uuid:id>/', ExamTypeDetailView.as_view(), name='examtype-detail'),
-    path('reports/', JuryReportListView.as_view(), name='juryreport-list'),
-    path('reports/<uuid:id>/', JuryReportDetailView.as_view(), name='juryreport-detail'),
     
     # New Import Routes
     path('<uuid:exam_id>/copies/import/', CopyImportView.as_view(), name='copy-import'),
