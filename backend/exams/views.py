@@ -12,8 +12,11 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.decorators import method_decorator
 from django.db import transaction
 from core.utils.ratelimit import maybe_ratelimit
-from .models import Exam, Booklet, Copy, ExamPDF
-from .serializers import ExamSerializer, BookletSerializer, CopySerializer, ExamPDFSerializer
+from .models import Exam, Booklet, Copy, ExamPDF, ExamType, JuryReport
+from .serializers import (
+    ExamSerializer, BookletSerializer, CopySerializer, ExamPDFSerializer,
+    ExamTypeSerializer, JuryReportSerializer
+)
 from processing.services.vision import HeaderDetector
 from grading.services import GradingService
 from .permissions import IsTeacherOrAdmin
@@ -1428,9 +1431,7 @@ class ExamTypeListView(generics.ListCreateAPIView):
     Admin voit tous les types actifs.
     Correcteur voit uniquement les types où il a des copies assignées.
     """
-    from .permissions import IsTeacherOrAdmin
     permission_classes = [IsTeacherOrAdmin]
-    from .serializers import ExamTypeSerializer
     serializer_class = ExamTypeSerializer
 
     def get_queryset(self):
@@ -1455,11 +1456,11 @@ class ExamTypeDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     GET, PUT, PATCH, DELETE /api/exams/types/<id>/
     """
-    from .permissions import IsTeacherOrAdmin
+    
     permission_classes = [IsTeacherOrAdmin]
-    from .models import ExamType
+    
     queryset = ExamType.objects.all()
-    from .serializers import ExamTypeSerializer
+    
     serializer_class = ExamTypeSerializer
     lookup_field = 'id'
 
@@ -1469,9 +1470,7 @@ class JuryReportListView(generics.ListCreateAPIView):
     GET /api/exams/reports/
     POST /api/exams/reports/
     """
-    from .permissions import IsTeacherOrAdmin
     permission_classes = [IsTeacherOrAdmin]
-    from .serializers import JuryReportSerializer
     serializer_class = JuryReportSerializer
 
     def get_queryset(self):
@@ -1498,9 +1497,7 @@ class JuryReportDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     GET, PUT, PATCH, DELETE /api/exams/reports/<id>/
     """
-    from .permissions import IsTeacherOrAdmin
     permission_classes = [IsTeacherOrAdmin]
-    from .serializers import JuryReportSerializer
     serializer_class = JuryReportSerializer
     lookup_field = 'id'
 
