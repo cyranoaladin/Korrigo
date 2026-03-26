@@ -802,9 +802,30 @@ const handleDrop = async (e) => {
 
     const normX = x / rect.width
     const normY = y / rect.height
-    // Default size for drop annotation
-    const normW = 30 / pdfDimensions.value.width
-    const normH = 30 / pdfDimensions.value.height
+
+    // Calculate size based on content for COMMENTAIRE from CommentBank
+    let normW, normH
+    if (typeValue === 'COMMENTAIRE' && contentValue) {
+        // Estimate dimensions based on text length
+        // Approximate: 7px per character width, 14px line height, max 200px width
+        const charWidth = 7
+        const lineHeight = 18
+        const padding = 16
+        const maxWidth = 250
+        const minWidth = 80
+        const minHeight = 30
+
+        const textWidth = Math.min(maxWidth, Math.max(minWidth, contentValue.length * charWidth + padding))
+        const numLines = Math.ceil((contentValue.length * charWidth) / (maxWidth - padding))
+        const textHeight = Math.max(minHeight, numLines * lineHeight + padding)
+
+        normW = textWidth / rect.width
+        normH = textHeight / rect.height
+    } else {
+        // Default size for stamps and other annotations
+        normW = 30 / pdfDimensions.value.width
+        normH = 30 / pdfDimensions.value.height
+    }
 
     // Safety bounds
     const safeX = Math.max(0, Math.min(1 - normW, normX))
