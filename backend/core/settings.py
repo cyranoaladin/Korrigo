@@ -508,11 +508,13 @@ if not DEBUG:
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
     SERVER_EMAIL = os.environ.get('SERVER_EMAIL', 'korrigo@example.com')
     
-    LOGGING['handlers']['mail_admins'] = {
+    _logging_handlers: dict = LOGGING['handlers']  # type: ignore[index]
+    _logging_handlers['mail_admins'] = {
         'level': 'ERROR',
         'class': 'django.utils.log.AdminEmailHandler',
         'filters': ['require_debug_false'],
     }
-    LOGGING['loggers']['django']['handlers'].append('mail_admins')
+    _logging_loggers: dict = LOGGING['loggers']  # type: ignore[index]
+    _logging_loggers['django']['handlers'].append('mail_admins')
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

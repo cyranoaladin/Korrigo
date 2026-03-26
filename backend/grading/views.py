@@ -8,6 +8,7 @@ from .models import Annotation, CopyLock, GradingEvent, QuestionRemark, Score
 from exams.models import Copy, Exam
 from .serializers import AnnotationSerializer, GradingEventSerializer, QuestionRemarkSerializer
 from exams.permissions import IsTeacherOrAdmin
+from typing import cast as _cast
 from django.shortcuts import get_object_or_404
 from grading.services import AnnotationService, GradingService, LockConflictError
 from core.auth import UserRole
@@ -16,6 +17,11 @@ import statistics
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _trunc(s: str, n: int = 300) -> str:
+    """Truncate a string to n characters (Pyre2-safe alternative to s[:n])."""
+    return s[:n]  # type: ignore[return-value]
 
 
 class PassthroughRenderer(renderers.BaseRenderer):
@@ -544,13 +550,13 @@ class CopyScoresView(APIView):
         from exams.views import StudentCopiesView
         q_max = StudentCopiesView.Q_MAX_BY_EXAM.get(copy.exam.name, {})
         if q_max:
-            overflow_warnings = []
+            overflow_warnings: list[str] = []
             for qid, val in scores_data.items():
                 if val is not None and val != '' and qid in q_max:
                     fval = float(val)
                     max_val = float(q_max[qid])
                     if fval > max_val:
-                        overflow_warnings.append(f"'{qid}': {fval} > max {max_val}")
+                        overflow_warnings.append(str(f"'{qid}': {fval} > max {max_val}"))
             if overflow_warnings:
                 return Response(
                     {"detail": f"Score(s) dépassant le barème: {'; '.join(overflow_warnings)}"},
@@ -574,12 +580,12 @@ class CopyScoresView(APIView):
             # Audit trail: log every score save for traceability
             try:
                 nq = len([v for v in scores_data.values() if v is not None and v != ''])
-                total = sum(float(v) for v in scores_data.values() if v is not None and v != '')
+                total: float = sum(float(v) for v in scores_data.values() if v is not None and v != '')
                 GradingEvent.objects.create(
                     copy=copy,
                     actor=request.user,
                     action='scores_saved',
-                    metadata={'nq': nq, 'total': round(total, 2), 'created': created},
+                metadata={'nq': nq, 'total': float(round(total, 2)), 'created': created},  # type: ignore[call-overload]
                 )
             except Exception:
                 logger.warning("Failed to create GradingEvent for score save on copy %s", copy_id)
@@ -673,19 +679,21 @@ class CorrectorStatsView(APIView):
             # LOT 7: Use prefetched scores dict instead of per-copy query
             score_obj = scores_by_copy.get(copy.id) if scores_by_copy else Score.objects.filter(copy=copy).first()
             if score_obj and score_obj.scores_data:
-                total = 0
-                for val in score_obj.scores_data.values():
+                _sd_g: dict[str, object] = _cast(dict, score_obj.scores_data)
+                total: float = 0.0
+                for val in _sd_g.values():
                     try:
-                        total += float(val) if val is not None and val != '' else 0
+                        total += float(val) if val is not None and val != '' else 0.0  # type: ignore[arg-type]
                     except (TypeError, ValueError):
                         pass
-                group_scores[groupe].append(total)
+                _gs: list = group_scores[groupe]  # type: ignore[assignment]
+                _gs.append(total)
 
-        global_mean = statistics.mean(global_scores) if global_scores else 0
-        result = []
+        global_mean: float = float(statistics.mean(global_scores)) if global_scores else 0.0
+        result: list[dict[str, object]] = []
         for groupe in sorted(group_scores.keys()):
             scores = group_scores[groupe]
-            stats = self._compute_stats(scores)
+            stats: dict[str, object] = dict(self._compute_stats(scores))
             stats['groupe'] = groupe
             stats['above_mean'] = sum(1 for s in scores if s >= global_mean)
             stats['below_mean'] = sum(1 for s in scores if s < global_mean)
@@ -700,16 +708,17 @@ class CorrectorStatsView(APIView):
             # LOT 7: Use prefetched scores dict instead of per-copy query
             score_obj = scores_by_copy.get(copy.id) if scores_by_copy else Score.objects.filter(copy=copy).first()
             if score_obj and score_obj.scores_data:
-                total = 0
-                for val in score_obj.scores_data.values():
+                _sd_s: dict[str, object] = _cast(dict, score_obj.scores_data)
+                total: float = 0.0
+                for val in _sd_s.values():
                     try:
-                        total += float(val) if val is not None and val != '' else 0
+                        total += float(val) if val is not None and val != '' else 0.0  # type: ignore[arg-type]
                     except (TypeError, ValueError):
                         pass
                 scores.append(total)
         return scores
 
-    def _compute_stats(self, scores):
+    def _compute_stats(self, scores: list) -> dict[str, object]:
         """Compute statistical indicators."""
         if not scores:
             return {
@@ -717,11 +726,11 @@ class CorrectorStatsView(APIView):
                 'min': None, 'max': None, 'count': 0,
             }
         return {
-            'mean': round(statistics.mean(scores), 2),
-            'median': round(statistics.median(scores), 2),
-            'std_dev': round(statistics.stdev(scores), 2) if len(scores) > 1 else 0,
-            'min': round(min(scores), 2),
-            'max': round(max(scores), 2),
+            'mean': float(round(statistics.mean(scores), 2)),
+            'median': float(round(statistics.median(scores), 2)),
+            'std_dev': float(round(statistics.stdev(scores), 2)) if len(scores) > 1 else 0.0,
+            'min': float(round(min(scores), 2)),
+            'max': float(round(max(scores), 2)),
             'count': len(scores),
         }
 
@@ -731,7 +740,9 @@ class CorrectorStatsView(APIView):
             return []
         bins = []
         for note in range(21):
-            count = sum(1 for s in scores if note <= round(s, 1) < note + 1)
+            def _safe_round_note(score: float) -> float:
+                return float(round(score, 1))  # type: ignore[call-overload]
+            count = sum(1 for s in scores if note <= _safe_round_note(float(s)) < note + 1)
             bins.append({
                 'range': str(note),
                 'start': note,
@@ -819,7 +830,7 @@ class ExamLLMSummaryView(APIView):
             stats = LLMSummaryService.generate_batch(str(exam.id), force=force)
         except Exception as e:
             return Response(
-                {'detail': f'Erreur lors de la génération des bilans: {str(e)[:300]}'},
+                {'detail': f'Erreur lors de la génération des bilans: {_trunc(str(e))}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -854,7 +865,7 @@ class CopyLLMSummaryView(APIView):
             summary = LLMSummaryService.generate_summary(copy)
         except Exception as e:
             return Response(
-                {'detail': f'Erreur LLM: {str(e)[:300]}'},
+                {'detail': f'Erreur LLM: {_trunc(str(e))}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

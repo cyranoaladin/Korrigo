@@ -210,6 +210,23 @@ const fetchStats = async () => {
     }
 }
 
+// Grouper les copies par examen (un même type peut avoir plusieurs examens)
+const copiesByExam = computed(() => {
+    const groups = {}
+    for (const copy of copies.value) {
+        const examId = copy.exam?.id || 'unknown'
+        const examName = copy.exam?.name || copy.exam_name || 'Examen'
+        const examDate = copy.exam?.date || ''
+        const examTypeDetails = copy.exam?.exam_type_details || null
+        if (!groups[examId]) {
+            groups[examId] = { examId, examName, examDate, examTypeDetails, copies: [] }
+        }
+        groups[examId].copies.push(copy)
+    }
+    // Trier par nom d'examen
+    return Object.values(groups).sort((a, b) => a.examName.localeCompare(b.examName))
+})
+
 // SVG chart dimensions
 const chartW = 700
 const chartH = 220
@@ -654,58 +671,74 @@ const goToQuestionnaireBilan = () => {
           Chargement...
         </div>
         <template v-else>
+          <!-- Groupement par examen -->
           <div
-            v-for="copy in copies"
-            :key="copy.id"
-            class="copy-card"
-            data-testid="copy-card"
-            :data-copy-anon="copy.anonymous_id"
+            v-for="group in copiesByExam"
+            :key="group.examId"
+            class="exam-group"
           >
-            <div class="copy-main-row">
-              <div class="copy-info">
-                <div class="exam-name">
-                  <span v-if="copy.exam?.exam_type_details" class="exam-type-badge" :style="{ backgroundColor: copy.exam.exam_type_details.color || '#6366f1' }" :title="copy.exam.exam_type_details.description">
-                    {{ copy.exam.exam_type_details.icon || '📝' }} {{ copy.exam.exam_type_details.code }}
-                  </span>
-                  {{ copy.exam_name || 'Examen' }}
-                </div>
-                <div class="copy-id">
-                  Anonymat: {{ copy.anonymous_id }}
-                </div>
-              </div>
-              <div :class="['copy-status', copy.status.toLowerCase()]">
-                {{ getStatusLabel(copy.status) }}
-              </div>
-              <button
-                class="btn-action"
-                data-testid="copy-action"
-                @click="goToDesk(copy.id)"
-              >
-                {{ copy.status === 'GRADED' ? 'Voir' : 'Corriger' }}
-              </button>
-            </div>
-            <!-- Per-question scoring progress bar -->
-            <div
-              v-if="getCopyProgress(copy).total > 0"
-              class="copy-progress"
-            >
-              <div class="progress-label">
-                <span class="progress-text">
-                  {{ getCopyProgress(copy).scored }}/{{ getCopyProgress(copy).total }} questions notées
+            <div class="exam-group-header">
+              <div class="exam-group-title">
+                <span v-if="group.examTypeDetails" class="exam-type-badge inline" :style="{ backgroundColor: group.examTypeDetails.color + '20', color: group.examTypeDetails.color }">
+                  {{ group.examTypeDetails.icon || '📝' }}
                 </span>
-                <span class="progress-percent">{{ getCopyProgress(copy).percent }}%</span>
+                <strong>{{ group.examName }}</strong>
+                <span v-if="group.examDate" class="exam-date-tag">{{ group.examDate }}</span>
               </div>
-              <div class="progress-bar-track">
-                <div
-                  v-for="(q, idx) in getCopyProgress(copy).questions"
-                  :key="idx"
-                  :class="['progress-segment', q.scored ? 'scored' : 'unscored']"
-                  :style="{ width: (100 / getCopyProgress(copy).total) + '%' }"
-                  :title="q.label + (q.scored ? ' (notée)' : ' (non notée)')"
-                />
+              <div class="exam-group-meta">
+                <span class="meta-chip todo">{{ group.copies.filter(c => c.status === 'READY').length }} à corriger</span>
+                <span class="meta-chip done">{{ group.copies.filter(c => c.status === 'GRADED').length }} corrigées</span>
+              </div>
+            </div>
+
+            <div
+              v-for="copy in group.copies"
+              :key="copy.id"
+              class="copy-card"
+              data-testid="copy-card"
+              :data-copy-anon="copy.anonymous_id"
+            >
+              <div class="copy-main-row">
+                <div class="copy-info">
+                  <div class="copy-id">
+                    Anonymat : <strong>{{ copy.anonymous_id }}</strong>
+                  </div>
+                </div>
+                <div :class="['copy-status', copy.status.toLowerCase()]">
+                  {{ getStatusLabel(copy.status) }}
+                </div>
+                <button
+                  class="btn-action"
+                  data-testid="copy-action"
+                  @click="goToDesk(copy.id)"
+                >
+                  {{ copy.status === 'GRADED' ? 'Voir' : 'Corriger' }}
+                </button>
+              </div>
+              <!-- Barre de progression par question -->
+              <div
+                v-if="getCopyProgress(copy).total > 0"
+                class="copy-progress"
+              >
+                <div class="progress-label">
+                  <span class="progress-text">
+                    {{ getCopyProgress(copy).scored }}/{{ getCopyProgress(copy).total }} questions notées
+                  </span>
+                  <span class="progress-percent">{{ getCopyProgress(copy).percent }}%</span>
+                </div>
+                <div class="progress-bar-track">
+                  <div
+                    v-for="(q, idx) in getCopyProgress(copy).questions"
+                    :key="idx"
+                    :class="['progress-segment', q.scored ? 'scored' : 'unscored']"
+                    :style="{ width: (100 / getCopyProgress(copy).total) + '%' }"
+                    :title="q.label + (q.scored ? ' (notée)' : ' (non notée)')"
+                  />
+                </div>
               </div>
             </div>
           </div>
+
           <div
             v-if="copies.length === 0"
             class="empty-state"
@@ -796,9 +829,50 @@ const goToQuestionnaireBilan = () => {
 .group-stats-table tfoot .global-row td { border-top: 2px solid #cbd5e1; font-size: 0.85rem; }
 
 .task-list h2 { font-size: 1.25rem; color: #1e293b; margin-bottom: 1rem; }
-.copy-card { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+
+/* Groupement par examen */
+.exam-group { margin-bottom: 2rem; }
+.exam-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border-left: 4px solid #6366f1;
+  padding: 0.75rem 1rem;
+  border-radius: 6px 6px 0 0;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.exam-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+.exam-date-tag { font-size: 0.78rem; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 400; }
+.exam-group-meta { display: flex; gap: 0.5rem; align-items: center; }
+.meta-chip { font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+.meta-chip.todo { background: #dbeafe; color: #1d4ed8; }
+.meta-chip.done { background: #dcfce7; color: #166534; }
+.exam-group .copy-card { border-top: none; border-radius: 0; border-color: #e2e8f0; }
+.exam-group .copy-card:last-child { border-radius: 0 0 8px 8px; }
+
+.exam-type-badge.inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.copy-card { background: white; padding: 1rem; margin-bottom: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
 .copy-main-row { display: flex; justify-content: space-between; align-items: center; }
-.exam-name { font-weight: 600; color: #334155; }
 .copy-id { font-size: 0.875rem; color: #64748b; }
 .copy-status { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; }
 .copy-status.ready { background: #dbeafe; color: #1d4ed8; }

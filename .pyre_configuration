@@ -1,0 +1,19 @@
+{
+  "site_package_search_strategy": "all",
+  "source_directories": [
+    {
+      "root": "backend"
+    }
+  ],
+  "search_path": [
+    "/home/alaeddine/Bureau/KORRIGO/korrigo_v2_improved/venv/lib/python3.12/site-packages"
+  ],
+  "python_version": "3.12",
+  "python_path": "/home/alaeddine/Bureau/KORRIGO/korrigo_v2_improved/venv/bin/python",
+  "exclude_search_in_directory_roots": [
+    "venv",
+    ".venv",
+    "backend/.test_venv",
+    "frontend"
+  ]
+}
