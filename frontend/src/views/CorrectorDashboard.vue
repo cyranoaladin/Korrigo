@@ -214,10 +214,10 @@ const fetchStats = async () => {
 const copiesByExam = computed(() => {
     const groups = {}
     for (const copy of copies.value) {
-        const examId = copy.exam?.id || 'unknown'
-        const examName = copy.exam?.name || copy.exam_name || 'Examen'
-        const examDate = copy.exam?.date || ''
-        const examTypeDetails = copy.exam?.exam_type_details || null
+        const examId = copy.exam_details?.id || copy.exam || 'unknown'
+        const examName = copy.exam_details?.name || copy.exam_name || 'Examen'
+        const examDate = copy.exam_details?.date || ''
+        const examTypeDetails = copy.exam_details?.exam_type_details || null
         if (!groups[examId]) {
             groups[examId] = { examId, examName, examDate, examTypeDetails, copies: [] }
         }
