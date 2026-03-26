@@ -1436,6 +1436,7 @@ class ExamTypeListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         from .models import ExamType
+        from django.db.models import Q
         user = self.request.user
         qs = ExamType.objects.filter(is_active=True).order_by('sort_order', 'name')
 
@@ -1443,12 +1444,10 @@ class ExamTypeListView(generics.ListCreateAPIView):
         if user.is_superuser or user.is_staff:
             return qs
 
-        # Correcteur : uniquement les types liés à ses copies assignées
+        # Correcteur : types liés aux examens auxquels il est assigné OU types de ses copies
         return qs.filter(
-            exams__copies__assigned_corrector=user,
-            exams__copies__status__in=[
-                'READY', 'GRADED', 'GRADING_IN_PROGRESS'
-            ]
+            Q(exams__correctors=user) | 
+            Q(exams__copies__assigned_corrector=user, exams__copies__status__in=['READY', 'GRADED', 'GRADING_IN_PROGRESS'])
         ).distinct()
 
 

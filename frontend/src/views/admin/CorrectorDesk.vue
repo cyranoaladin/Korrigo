@@ -44,7 +44,16 @@ const wheelCooldown = ref(false)
 const restoreAvailable = ref(null) // { source: 'LOCAL'|'SERVER', payload: ... }
 const autosaveTimer = ref(null)
 const localSaveTimer = ref(null)
-const clientId = ref(crypto.randomUUID())
+const getSessionClientId = () => {
+    const key = `korrigo_client_id_${copyId}`
+    let id = sessionStorage.getItem(key)
+    if (!id) {
+        id = crypto.randomUUID()
+        sessionStorage.setItem(key, id)
+    }
+    return id
+}
+const clientId = ref(getSessionClientId())
 const lastSaveStatus = ref(null) // { source: 'LOCAL'|'SERVER', time: Date }
 
 // UI State — Single annotation mode (structurally prevents conflicting active states)

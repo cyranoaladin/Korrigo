@@ -84,11 +84,10 @@ class DraftReturnView(views.APIView):
 
             try:
                 existing_draft = DraftState.objects.get(copy=copy, owner=request.user)
-                if existing_draft.client_id and str(existing_draft.client_id) != str(client_id):
-                    return Response(
-                        {"detail": "Conflit de brouillon : modifié par une autre session."},
-                        status=status.HTTP_409_CONFLICT,
-                    )
+                # We relax the client_id check: if it's the same user, we allow takeover.
+                # The client_id is still useful to detect multiple tabs if we want, 
+                # but 409 is too aggressive for simple page refreshes.
+                pass 
             except DraftState.DoesNotExist:
                 pass
 
