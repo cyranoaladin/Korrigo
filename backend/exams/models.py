@@ -11,6 +11,27 @@ from .validators import (
     validate_pdf_integrity,
 )
 
+class ExamType(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    code = models.CharField(max_length=50, unique=True, verbose_name=_("Code (ex: BAC_BLANC)"))
+    name = models.CharField(max_length=255, verbose_name=_("Nom du type"))
+    description = models.TextField(blank=True, null=True, verbose_name=_("Description"))
+    color = models.CharField(max_length=20, default="#3B82F6", verbose_name=_("Couleur UI"))
+    icon = models.CharField(max_length=50, blank=True, null=True, verbose_name=_("Icône UI"))
+    is_active = models.BooleanField(default=True, verbose_name=_("Actif"))
+    sort_order = models.IntegerField(default=0, verbose_name=_("Ordre de tri"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+
+    class Meta:
+        verbose_name = _("Type d'examen")
+        verbose_name_plural = _("Types d'examens")
+        ordering = ['sort_order', 'name']
+
+    def __str__(self):
+        return self.name
+
+
 class Exam(models.Model):
     class UploadMode(models.TextChoices):
         BATCH_A3 = 'BATCH_A3', _("Scan par lots (A3) - Découpage automatique")
@@ -19,6 +40,15 @@ class Exam(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, verbose_name=_("Nom de l'examen"))
     date = models.DateField(verbose_name=_("Date de l'examen"))
+    
+    exam_type = models.ForeignKey(
+        'ExamType',
+        on_delete=models.RESTRICT,
+        null=True,
+        blank=True,
+        related_name='exams',
+        verbose_name=_("Type d'examen")
+    )
     
     # Upload mode selection
     upload_mode = models.CharField(
@@ -643,3 +673,36 @@ class DocumentChunk(models.Model):
         ex = f"Ex{self.exercise_number}" if self.exercise_number else ""
         q = f" Q{self.question_label}" if self.question_label else ""
         return f"Chunk {self.chunk_index} {ex}{q} - {self.extraction.document}"
+
+
+class JuryReport(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    exam_type = models.ForeignKey(
+        'ExamType',
+        on_delete=models.CASCADE,
+        related_name='jury_reports',
+        verbose_name=_("Type d'Examen"),
+        null=True, blank=True
+    )
+    title = models.CharField(max_length=255, verbose_name=_("Titre"))
+    content = models.TextField(verbose_name=_("Contenu"))
+    is_published = models.BooleanField(default=False, verbose_name=_("Publié"))
+    published_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Date de publication"))
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='jury_reports',
+        verbose_name=_("Créé par")
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+
+    class Meta:
+        verbose_name = _("Rapport de Jury")
+        verbose_name_plural = _("Rapports de Jury")
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Rapport: {self.title} ({self.exam_type.name if self.exam_type else 'N/A'})"

@@ -4,6 +4,8 @@ import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
 import gradingApi from '../services/gradingApi'
 import api from '../services/api'
+import JuryReportsModal from '../components/JuryReportsModal.vue'
+import ExamTypeSelectionModal from '../components/ExamTypeSelectionModal.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -23,8 +25,42 @@ const basicStats = ref({ total: 0, graded: 0, todo: 0 })
 const examStats = ref(null)
 const statsLoading = ref(false)
 const showStats = ref(false)
+
+// --- Exam Type Selection ---
+const selectedExamType = ref(null)
+
+const storedType = localStorage.getItem('korrigo_selected_exam_type')
+if (storedType) {
+    try {
+        selectedExamType.value = JSON.parse(storedType)
+    } catch (e) { }
+}
+
+const showExamTypeModal = computed(() => !selectedExamType.value)
+
+const handleExamTypeSelect = (type) => {
+    selectedExamType.value = type
+    localStorage.setItem('korrigo_selected_exam_type', JSON.stringify(type))
+    fetchCopies()
+}
+
+const handleChangeExamType = () => {
+    selectedExamType.value = null
+    localStorage.removeItem('korrigo_selected_exam_type')
+    copies.value = []
+    basicStats.value = { total: 0, graded: 0, todo: 0 }
+    showStats.value = false
+    examStats.value = null
+}
+// ---------------------------
+
 const questionnaireStatusLoaded = ref(false)
 const questionnaireSummary = ref({ has_response: false, summary: { is_available: false } })
+
+const showJuryReportsModal = ref(false)
+const openJuryReportsModal = () => {
+    showJuryReportsModal.value = true
+}
 
 // --- Per-copy scoring progress ---
 const copyScores = ref({})       // { copyId: { scored: N, total: N, questions: [{id, label, scored}] } }
@@ -117,9 +153,11 @@ const fetchAllCopyScores = async (copiesList) => {
 }
 
 const fetchCopies = async () => {
+    if (!selectedExamType.value) return;
+
     isLoading.value = true
     try {
-        const data = await gradingApi.listCopies()
+        const data = await gradingApi.listCopies({ exam_type_id: selectedExamType.value.id })
         copies.value = data
         basicStats.value.total = data.length
         basicStats.value.graded = data.filter(c => c.status === 'GRADED').length
@@ -242,7 +280,11 @@ const medianLineX = computed(() => {
 })
 
 onMounted(async () => {
-    await Promise.all([fetchCopies(), fetchQuestionnaireStatus()])
+    const promises = [fetchQuestionnaireStatus()]
+    if (selectedExamType.value) {
+        promises.push(fetchCopies())
+    }
+    await Promise.all(promises)
 })
 
 const handleLogout = async () => {
@@ -309,6 +351,16 @@ const goToQuestionnaireBilan = () => {
       <div class="brand">
         Korrigo — Correcteur
       </div>
+
+      <div v-if="selectedExamType" class="exam-type-indicator">
+        <span class="type-badge" :style="{ backgroundColor: selectedExamType.color + '20', color: selectedExamType.color }">
+          {{ selectedExamType.name }}
+        </span>
+        <button class="btn-text btn-change-type" @click="handleChangeExamType">
+          Changer
+        </button>
+      </div>
+
       <div class="user-menu">
         <span>{{ authStore.user?.username }}</span>
         <button
@@ -344,13 +396,12 @@ const goToQuestionnaireBilan = () => {
         >
           📈 Bilan Questionnaire
         </button>
-        <a
-          href="https://korrigo.labomaths.tn/korrigo/stats-bb-maths-2026"
-          target="_blank"
+        <button
           class="btn-jury-report"
+          @click="openJuryReportsModal"
         >
           📋 Rapport du jury
-        </a>
+        </button>
         <button
           class="btn-logout"
           @click="handleLogout"
@@ -613,6 +664,9 @@ const goToQuestionnaireBilan = () => {
             <div class="copy-main-row">
               <div class="copy-info">
                 <div class="exam-name">
+                  <span v-if="copy.exam?.exam_type_details" class="exam-type-badge" :style="{ backgroundColor: copy.exam.exam_type_details.color || '#6366f1' }" :title="copy.exam.exam_type_details.description">
+                    {{ copy.exam.exam_type_details.icon || '📝' }} {{ copy.exam.exam_type_details.code }}
+                  </span>
                   {{ copy.exam_name || 'Examen' }}
                 </div>
                 <div class="copy-id">
@@ -661,6 +715,15 @@ const goToQuestionnaireBilan = () => {
         </template>
       </div>
     </main>
+
+    <JuryReportsModal
+      :visible="showJuryReportsModal"
+      @close="showJuryReportsModal = false"
+    />
+    <ExamTypeSelectionModal
+      :visible="showExamTypeModal"
+      @select="handleExamTypeSelect"
+    />
   </div>
 </template>
 
@@ -743,6 +806,19 @@ const goToQuestionnaireBilan = () => {
 .copy-status.graded { background: #dcfce7; color: #166534; }
 .copy-status.staging { background: #f1f5f9; color: #64748b; }
 .copy-status.grading_in_progress { background: #fef3c7; color: #92400e; }
+
+/* ExamType Badge */
+.exam-type-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: white;
+    font-size: 0.70rem;
+    font-weight: 600;
+    margin-right: 6px;
+    vertical-align: middle;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
 
 /* Per-copy scoring progress */
 .copy-progress { margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; }

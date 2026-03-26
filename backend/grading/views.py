@@ -152,6 +152,22 @@ class AnnotationDetailView(generics.RetrieveUpdateDestroyAPIView):
             return _handle_unexpected_error(e, context="AnnotationDetailView.destroy")
 
 
+class AnnotationHistoryView(APIView):
+    """
+    GET /api/grading/annotations/history/
+    Retourne l'historique des textes de commentaires distincts utilisés par le correcteur.
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def get(self, request):
+        texts = Annotation.objects.filter(
+            created_by=request.user,
+            type__in=[Annotation.Type.COMMENT, "COMMENTAIRE"]
+        ).exclude(content='').values_list('content', flat=True).distinct()
+        
+        return Response([{"content": text, "type": "COMMENTAIRE"} for text in texts])
+
+
 class CopyReadyView(APIView):
     permission_classes = [IsTeacherOrAdmin]
     def post(self, request, id):
