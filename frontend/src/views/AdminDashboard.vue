@@ -103,11 +103,11 @@ const examsByType = computed(() => {
   const others = []
   
   ;(exams.value || []).forEach(exam => {
-    if (exam.exam_type_details) {
+    if (exam?.exam_type_details) {
       const typeId = exam.exam_type_details.id || exam.exam_type
       if (!groups[typeId]) {
         groups[typeId] = {
-           details: exam.exam_type_details,
+           details: exam.exam_type_details || { name: 'Inconnu', icon: '❓', color: '#94a3b8' },
            exams: []
         }
       }
@@ -650,10 +650,10 @@ onMounted(() => {
             Aucun examen trouvé. Créez-en un ou importez des scans.
           </div>
           
-          <div v-for="group in examsByType" :key="group.details.name" class="exam-group-section">
-            <h3 class="exam-group-title" :style="{ borderLeftColor: group.details.color || '#6366f1' }">
-              <span class="exam-type-icon">{{ group.details.icon || '📝' }}</span> 
-              {{ group.details.name }}
+          <div v-for="group in examsByType" :key="group.details?.name || Math.random()" class="exam-group-section">
+            <h3 class="exam-group-title" :style="{ borderLeftColor: group.details?.color || '#6366f1' }">
+              <span class="exam-type-icon">{{ group.details?.icon || '📝' }}</span> 
+              {{ group.details?.name || 'Autres' }}
             </h3>
             
             <table class="data-table" data-testid="exams.list">
