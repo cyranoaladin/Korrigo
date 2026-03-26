@@ -194,6 +194,7 @@ class CopySerializer(serializers.ModelSerializer):
         # Include full booklet data for frontend pages computation
         representation['booklets'] = BookletSerializer(instance.booklets.all(), many=True, context=self.context).data
         # Include exam metadata needed by frontend (anonymization, grading)
+        # We put it in 'exam_details' to avoid breaking code that expects 'exam' to be a UUID ID string.
         exam_data = {
             'id': str(instance.exam.id),
             'name': instance.exam.name,
@@ -202,7 +203,7 @@ class CopySerializer(serializers.ModelSerializer):
         }
         if instance.exam.exam_type:
             exam_data['exam_type_details'] = ExamTypeSerializer(instance.exam.exam_type).data
-        representation['exam'] = exam_data
+        representation['exam_details'] = exam_data
         # Hide student identity from non-admin users (correctors must not see student info)
         request = self.context.get('request')
         user = getattr(request, 'user', None) if request else None
