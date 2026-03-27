@@ -54,6 +54,16 @@ class ExamUploadView(APIView):
     @method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True))
     def post(self, request, *args, **kwargs):
         logger = logging.getLogger(__name__)
+
+        # Early guard: BATCH_A3 upload requires a pdf_source file.
+        # (ExamListView handles metadata-only creation without a PDF.)
+        upload_mode_raw = request.data.get('upload_mode', Exam.UploadMode.BATCH_A3)
+        if upload_mode_raw == Exam.UploadMode.BATCH_A3 and 'pdf_source' not in request.FILES:
+            return Response(
+                {'pdf_source': [_('Le fichier PDF source est obligatoire en mode BATCH_A3')]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = ExamSerializer(data=request.data)
         
         # Validate serializer and handle errors
