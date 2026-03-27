@@ -111,10 +111,13 @@ const getCopyProgress = (copy) => {
 /**
  * Fetch scores for copies that may have partial grading (READY / GRADING_IN_PROGRESS).
  * Also fetches for GRADED to show accurate count.
+ * Only fetches for copies assigned to the current user (to avoid 403 errors).
  */
 const fetchAllCopyScores = async (copiesList) => {
+    // Only fetch scores for copies with exam data (to compute progress)
     const relevantCopies = copiesList.filter(c =>
-        c.status === 'READY' || c.status === 'GRADING_IN_PROGRESS' || c.status === 'GRADED'
+        (c.status === 'READY' || c.status === 'GRADING_IN_PROGRESS' || c.status === 'GRADED') &&
+        c.exam?.grading_structure && c.exam.grading_structure.length > 0
     )
     if (!relevantCopies.length) return
 
@@ -142,7 +145,8 @@ const fetchAllCopyScores = async (copiesList) => {
 
                 results[copy.id] = { scored, total, percent, questions }
             } catch (err) {
-                // Silently ignore — progress just won't show for this copy
+                // Silently ignore 403/404 errors — progress just won't show for this copy
+                // This can happen if the copy is not assigned to this corrector
             }
         })
         await Promise.all(promises)
