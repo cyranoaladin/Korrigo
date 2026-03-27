@@ -43,7 +43,7 @@ def _can_write_copy(user, copy: Copy) -> bool:
     """
     if user.is_superuser or user.is_staff:
         return True
-    if user.groups.filter(name=UserRole.ADMIN).exists():
+    if user.groups.filter(name__iexact=UserRole.ADMIN).exists():
         return True
     return copy.assigned_corrector_id == user.id
 
@@ -263,7 +263,8 @@ class CopyFinalPdfView(APIView):
             getattr(request.user, "is_authenticated", False) and (
                 getattr(request.user, "is_staff", False) or
                 getattr(request.user, "is_superuser", False) or
-                request.user.groups.filter(name=UserRole.TEACHER).exists()
+                request.user.groups.filter(name__iexact=UserRole.TEACHER).exists() or
+                request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
             )
         )
         
@@ -610,7 +611,7 @@ class CorrectorStatsView(APIView):
 
         # Determine if current user is a corrector for this exam
         is_corrector = exam.correctors.filter(id=request.user.id).exists()
-        is_admin = request.user.is_superuser or request.user.groups.filter(name=UserRole.ADMIN).exists()
+        is_admin = request.user.is_superuser or request.user.is_staff or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
 
         if not is_corrector and not is_admin:
             return Response(
@@ -764,7 +765,7 @@ class ExamReleaseResultsView(APIView):
         user = request.user
         if user.is_superuser or user.is_staff:
             return True
-        return user.groups.filter(name=UserRole.ADMIN).exists()
+        return user.groups.filter(name__iexact=UserRole.ADMIN).exists()
 
     def post(self, request, exam_id):
         if not self._check_admin(request):

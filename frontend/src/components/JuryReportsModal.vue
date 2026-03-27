@@ -128,7 +128,7 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="r in reports" :key="r.id">
+            <tr v-for="r in (reports || []).filter(item => !!item)" :key="r.id">
               <td>{{ r.exam_type_name || 'Rubrique ' + r.exam_type }}</td>
               <td>{{ r.title }}</td>
               <td>{{ r.created_by_username }}</td>

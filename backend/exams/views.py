@@ -23,6 +23,7 @@ from .permissions import IsTeacherOrAdmin
 
 import fitz  # PyMuPDF
 import logging
+from core.auth import UserRole
 import os
 import uuid
 
@@ -901,7 +902,7 @@ class CorrectorCopiesView(generics.ListAPIView):
             base_qs = base_qs.filter(exam__exam_type_id=exam_type_id)
 
         # Admin sees all; teacher sees only assigned
-        if user.is_superuser:
+        if user.is_superuser or user.is_staff:
             return base_qs
         return base_qs.filter(assigned_corrector=user)
 
@@ -1441,7 +1442,7 @@ class ExamTypeListView(generics.ListCreateAPIView):
         qs = ExamType.objects.filter(is_active=True).order_by('sort_order', 'name')
 
         # Admin et superuser voient tous les types
-        if user.is_superuser or user.is_staff:
+        if user.is_superuser or user.is_staff or user.groups.filter(name=UserRole.ADMIN).exists():
             return qs
 
         # Correcteur : types liés aux examens auxquels il est assigné OU types de ses copies
@@ -1477,7 +1478,7 @@ class JuryReportListView(generics.ListCreateAPIView):
         queryset = JuryReport.objects.all()
         user = self.request.user
         
-        is_admin = user.groups.filter(name='Admin').exists() or user.is_superuser or user.is_staff
+        is_admin = user.groups.filter(name__iexact=UserRole.ADMIN).exists() or user.is_superuser or user.is_staff
         if not is_admin:
             # Le correcteur accède aux rapports liés au Type d'Examen (Matière) 
             # dont il corrige au moins un examen
@@ -1504,7 +1505,7 @@ class JuryReportDetailView(generics.RetrieveUpdateDestroyAPIView):
         from .models import JuryReport
         queryset = JuryReport.objects.all()
         user = self.request.user
-        is_admin = user.groups.filter(name='Admin').exists() or user.is_superuser or user.is_staff
+        is_admin = user.groups.filter(name__iexact=UserRole.ADMIN).exists() or user.is_superuser or user.is_staff
         if not is_admin:
             queryset = queryset.filter(exam__correctors=user)
         return queryset

@@ -187,7 +187,7 @@ onMounted(() => { fetchCopies() })
 
       <!-- COPY SELECTOR (if multiple) -->
       <div v-if="copies.length > 1" class="flex gap-3 overflow-x-auto pb-2">
-        <button v-for="copy in copies" :key="copy.id" @click="selectCopy(copy)"
+        <button v-for="copy in (copies || []).filter(c => !!c)" :key="copy.id" @click="selectCopy(copy)"
           :class="['px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap',
             selectedCopy?.id === copy.id
               ? 'bg-white text-indigo-700 shadow-md shadow-indigo-100 ring-1 ring-indigo-200'
@@ -228,7 +228,8 @@ onMounted(() => { fetchCopies() })
               </span>
               <!-- Exercise mini bars -->
               <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div v-for="(ex, exNum) in exerciseBreakdown" :key="'mini-'+exNum" class="bg-slate-50/80 rounded-xl px-3 py-2.5">
+                <div v-for="(ex, exNum) in exerciseBreakdown" :key="'mini-'+exNum">
+                  <div v-if="ex" class="bg-slate-50/80 rounded-xl px-3 py-2.5">
                   <div class="flex justify-between items-baseline mb-1.5">
                     <span class="text-xs font-semibold text-slate-500">Ex. {{ exNum }}</span>
                     <span class="text-xs font-bold text-slate-700">{{ ex.total.toFixed(2) }}/{{ ex.max }}</span>
@@ -249,6 +250,7 @@ onMounted(() => { fetchCopies() })
           </div>
         </div>
       </div>
+      </div>
 
       <!-- ═══════════════ TABS ═══════════════ -->
       <div v-if="selectedCopy" class="flex gap-1 bg-white/60 backdrop-blur rounded-xl p-1 shadow-sm ring-1 ring-slate-100 w-fit">
@@ -265,8 +267,9 @@ onMounted(() => { fetchCopies() })
 
       <!-- ═══════════════ TAB: SCORES ═══════════════ -->
       <div v-if="selectedCopy && activeTab==='scores'" class="space-y-4">
-        <div v-for="(ex, exNum) in exerciseBreakdown" :key="'ex-'+exNum"
-          class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 overflow-hidden transition-all">
+        <div v-for="(ex, exNum) in exerciseBreakdown" :key="'ex-'+exNum">
+          <div v-if="ex"
+            class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 overflow-hidden transition-all">
           <!-- Exercise header -->
           <button @click="toggleEx(exNum)" class="w-full px-6 py-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
             <div class="flex items-center gap-4">
@@ -291,7 +294,7 @@ onMounted(() => { fetchCopies() })
           </button>
           <!-- Questions -->
           <div v-if="expandedExercises[exNum]" class="border-t border-slate-100">
-            <div v-for="(q, qi) in ex.questions" :key="q.qid"
+            <div v-for="(q, qi) in (ex.questions || []).filter(item => !!item)" :key="q.qid"
               :class="['px-6 py-4', qi < ex.questions.length-1 ? 'border-b border-slate-50' : '']">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -312,6 +315,7 @@ onMounted(() => { fetchCopies() })
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       <!-- ═══════════════ TAB: APPRECIATION ═══════════════ -->

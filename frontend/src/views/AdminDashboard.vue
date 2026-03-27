@@ -103,14 +103,20 @@ const examsByType = computed(() => {
   const others = []
   
   ;(exams.value || []).forEach(exam => {
-    if (exam?.exam_type_details) {
-      const typeId = exam.exam_type_details.id || exam.exam_type
-      if (!groups[typeId]) {
+    if (!exam || typeof exam !== 'object') return // Robust filter
+    
+    const typeDetails = exam.exam_type_details
+    if (typeDetails && (typeDetails.id || exam.exam_type)) {
+      const typeId = typeDetails.id || exam.exam_type
         groups[typeId] = {
-           details: exam.exam_type_details || { name: 'Inconnu', icon: '❓', color: '#94a3b8' },
+           details: {
+               name: typeDetails?.name || 'Inconnu',
+               icon: typeDetails?.icon || '📁',
+               color: typeDetails?.color || '#64748b',
+               id: typeId
+           },
            exams: []
         }
-      }
       groups[typeId].exams.push(exam)
     } else {
       others.push(exam)
@@ -139,7 +145,11 @@ const fetchQuestionnaireBilanStatus = async () => {
             selectedQuestionnaireResponse.value = questionnaireResponses.value[0]
         }
     } catch (e) {
-        console.error("Failed to fetch questionnaire bilan status", e)
+        console.error("DEBUG [AdminDashboard]: Failed to fetch questionnaire bilan status", {
+            error: e,
+            status: e.response?.status,
+            data: e.response?.data
+        })
     } finally {
         questionnaireLoading.value = false
     }
@@ -194,7 +204,12 @@ const fetchExamTypes = async () => {
         const response = await api.get('/exams/types/')
         examTypes.value = response.data
     } catch (err) {
-        console.error('Failed to fetch exam types', err)
+        console.error("DEBUG [AdminDashboard]: Failed to fetch exam types", {
+            error: err,
+            status: err.response?.status,
+            data: err.response?.data
+        })
+        showToast('Erreur lors du chargement des rubriques', 'error')
     }
 }
 
@@ -525,8 +540,8 @@ onMounted(() => {
                 </div>
                 <div v-if="questionnaireParticipants.responded?.length" class="participant-list">
                   <div
-                    v-for="item in questionnaireParticipants.responded"
-                    :key="`responded-${item.user_id}`"
+                    v-for="item in (questionnaireParticipants.responded || []).filter(r => !!r)"
+                    :key="`responded-${item?.user_id || Math.random()}`"
                     class="participant-item participant-answered"
                   >
                     <div>
@@ -548,8 +563,8 @@ onMounted(() => {
                 </div>
                 <div v-if="questionnaireParticipants.pending?.length" class="participant-list">
                   <div
-                    v-for="item in questionnaireParticipants.pending"
-                    :key="`pending-${item.user_id}`"
+                    v-for="item in (questionnaireParticipants.pending || []).filter(r => !!r)"
+                    :key="`pending-${item?.user_id || Math.random()}`"
                     class="participant-item participant-pending"
                   >
                     <div>
@@ -678,21 +693,21 @@ onMounted(() => {
                     <span v-else class="badge status-pending">En création</span>
                   </td>
                   <td>
-                    <button class="btn-sm" @click="router.push({ name: 'StapleView', params: { examId: exam.id } })">Agrafer</button>
-                    <button class="btn-sm" @click="router.push({ name: 'MarkingSchemeView', params: { examId: exam.id } })">Barème</button>
+                    <button class="btn-sm" @click="exam?.id && router.push({ name: 'StapleView', params: { examId: exam.id } })">Agrafer</button>
+                    <button class="btn-sm" @click="exam?.id && router.push({ name: 'MarkingSchemeView', params: { examId: exam.id } })">Barème</button>
                     <button v-if="exam?.id" class="btn-sm btn-action" @click="goToIdentification(exam.id)">Video-Coding</button>
-                    <button class="btn-sm" title="Assigner des correcteurs" @click="openCorrectorModal(exam)">Correcteurs</button>
-                    <button class="btn-sm btn-subject" title="Assigner Sujet A / Sujet B" @click="openSubjectModal(exam)">Sujets A/B</button>
+                    <button class="btn-sm" title="Assigner des correcteurs" @click="exam && openCorrectorModal(exam)">Correcteurs</button>
+                    <button class="btn-sm btn-subject" title="Assigner Sujet A / Sujet B" @click="exam && openSubjectModal(exam)">Sujets A/B</button>
                     <button 
                       class="btn-sm btn-dispatch"
-                      :class="{ 'btn-disabled': !canDispatch(exam) }"
-                      :disabled="!canDispatch(exam)"
-                      :title="canDispatch(exam) ? 'Distribuer les copies' : 'Aucun correcteur assigné'"
-                      @click="openDispatchModal(exam)"
+                      :class="{ 'btn-disabled': !exam || !canDispatch(exam) }"
+                      :disabled="!exam || !canDispatch(exam)"
+                      :title="exam && canDispatch(exam) ? 'Distribuer les copies' : 'Configuration incomplète'"
+                      @click="exam && openDispatchModal(exam)"
                     >
                       Dispatcher
                     </button>
-                    <button class="btn-sm btn-students" title="Voir la liste des élèves et notes" @click="router.push({ name: 'ExamStudentList', params: { examId: exam.id } })">Élèves</button>
+                    <button class="btn-sm btn-students" title="Voir la liste des élèves et notes" @click="exam?.id && router.push({ name: 'ExamStudentList', params: { examId: exam.id } })">Élèves</button>
                   </td>
                 </tr>
               </tbody>
@@ -725,7 +740,7 @@ onMounted(() => {
           <label>Type d'examen (Rubrique) <span class="required">*</span></label>
           <select v-model="newExam.exam_type" class="form-input">
             <option disabled value="">-- Choisir un type --</option>
-            <option v-for="t in examTypes" :key="t.id" :value="t.id">
+            <option v-for="t in (examTypes || []).filter(item => !!item)" :key="t.id" :value="t.id">
               {{ t.name }}
             </option>
           </select>
@@ -777,7 +792,7 @@ onMounted(() => {
           <label>Matière / Rubrique</label>
           <select v-model="newExam.exam_type" class="form-input">
             <option disabled value="">-- Choisir une matière --</option>
-            <option v-for="e in examTypes" :key="e.id" :value="e.id">{{ e.name }}</option>
+            <option v-for="e in (examTypes || []).filter(item => !!item)" :key="e.id" :value="e.id">{{ e.name }}</option>
           </select>
         </div>
         
@@ -790,7 +805,7 @@ onMounted(() => {
             class="checkbox-list"
           >
             <label 
-              v-for="teacher in teachersList" 
+              v-for="teacher in (teachersList || []).filter(item => !!item)" 
               :key="teacher.id" 
               class="checkbox-item"
             >
@@ -997,7 +1012,7 @@ onMounted(() => {
               </thead>
               <tbody>
                 <tr
-                  v-for="copy in subjectCopies"
+                  v-for="copy in (subjectCopies || []).filter(item => !!item)"
                   :key="copy.id"
                 >
                   <td>{{ copy.anonymous_id || '—' }}</td>

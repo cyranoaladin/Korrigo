@@ -14,9 +14,9 @@ class IsTeacherOrAdmin(permissions.BasePermission):
         if request.user.is_superuser or request.user.is_staff:
             return True
 
-        # Check if user belongs to Teacher or Admin group
-        return (request.user.groups.filter(name=UserRole.TEACHER).exists() or
-                request.user.groups.filter(name=UserRole.ADMIN).exists())
+        # Check if user belongs to Teacher or Admin group (case-insensitive)
+        return (request.user.groups.filter(name__iexact=UserRole.TEACHER).exists() or
+                request.user.groups.filter(name__iexact=UserRole.ADMIN).exists())
 
 class IsOwnerOrAdmin(permissions.BasePermission):
     """

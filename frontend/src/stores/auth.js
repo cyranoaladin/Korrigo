@@ -78,32 +78,31 @@ export const useAuthStore = defineStore('auth', () => {
         isChecking.value = true
         lastCheckedAt = now
         try {
-            // Run both checks in parallel to avoid sequential 403 delays
-            const [adminResult, studentResult] = await Promise.allSettled([
-                preferStudent ? Promise.reject('skipped') : api.get('/me/'),
-                api.get('/students/me/')
-            ])
-
-            // Prefer admin/teacher result unless preferStudent
-            if (!preferStudent && adminResult.status === 'fulfilled') {
-                user.value = adminResult.value.data
-                user.value.role = user.value.role || 'Admin'
-                return
+            // Step 1: Try Admin/Teacher endpoint first
+            if (!preferStudent) {
+                try {
+                    const adminRes = await api.get('/me/')
+                    user.value = adminRes.data
+                    user.value.role = user.value.role || 'Admin'
+                    return
+                } catch (e) {
+                    // Admin check failed, continue to student
+                }
             }
 
-            // Fallback to student
-            if (studentResult.status === 'fulfilled') {
-                const studentData = studentResult.value.data
+            // Step 2: Try Student endpoint
+            try {
+                const studentRes = await api.get('/students/me/')
+                const studentData = studentRes.data
                 user.value = { ...studentData, role: 'Student' }
-                // Propagate must_change_password from /students/me/ response
                 if (studentData.must_change_password !== undefined) {
                     user.value.must_change_password = studentData.must_change_password
                 }
                 return
+            } catch (e) {
+                // Silently handle discovery failure
+                user.value = null
             }
-
-            // Both failed — not authenticated
-            user.value = null
         } catch (e) {
             user.value = null
         } finally {

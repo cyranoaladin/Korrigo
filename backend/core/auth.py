@@ -36,7 +36,7 @@ class IsAdmin(BasePermission):
         return (
             request.user.is_superuser
             or request.user.is_staff
-            or request.user.groups.filter(name=UserRole.ADMIN).exists()
+            or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
         )
 
 class IsTeacher(BasePermission):
@@ -50,7 +50,7 @@ class IsTeacher(BasePermission):
         return (
             request.user.is_superuser 
             or request.user.is_staff 
-            or request.user.groups.filter(name=UserRole.TEACHER).exists()
+            or request.user.groups.filter(name__iexact=UserRole.TEACHER).exists()
         )
 
 class IsStudent(BasePermission):
@@ -64,7 +64,7 @@ class IsStudent(BasePermission):
         return (
             request.user.is_superuser 
             or request.user.is_staff 
-            or request.user.groups.filter(name=UserRole.STUDENT).exists()
+            or request.user.groups.filter(name__iexact=UserRole.STUDENT).exists()
         )
 
 class IsAdminOrTeacher(BasePermission):
@@ -78,8 +78,8 @@ class IsAdminOrTeacher(BasePermission):
         return (
             request.user.is_superuser
             or request.user.is_staff
-            or request.user.groups.filter(name=UserRole.ADMIN).exists()
-            or request.user.groups.filter(name=UserRole.TEACHER).exists()
+            or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+            or request.user.groups.filter(name__iexact=UserRole.TEACHER).exists()
         )
 
 class IsAdminOnly(BasePermission):
@@ -93,5 +93,5 @@ class IsAdminOnly(BasePermission):
         return (
             request.user.is_superuser
             or request.user.is_staff
-            or request.user.groups.filter(name=UserRole.ADMIN).exists()
+            or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
         )
