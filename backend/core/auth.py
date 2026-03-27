@@ -95,3 +95,22 @@ class IsAdminOnly(BasePermission):
             or request.user.is_staff
             or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
         )
+
+
+class IsKorrigoAdmin(BasePermission):
+    """
+    Strict Korrigo application-level admin permission.
+    Grants access only to:
+      - Django superusers (is_superuser=True)
+      - Users explicitly in the Korrigo Admin group
+    Deliberately excludes is_staff alone: Django staff status (access to the
+    Django admin panel) must not implicitly grant Korrigo admin rights such as
+    user management or global-settings modification.
+    """
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+        return (
+            request.user.is_superuser
+            or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+        )

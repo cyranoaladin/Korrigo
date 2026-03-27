@@ -14,6 +14,12 @@ DJANGO_ENV = "production"
 DEBUG = False
 
 SECRET_KEY = _get_required_env("SECRET_KEY")
+_INSECURE_PREFIXES = ("django-insecure-", "CHANGE_ME", "CHANGE_THIS")
+if any(SECRET_KEY.startswith(p) for p in _INSECURE_PREFIXES):
+    raise ValueError(
+        "SECRET_KEY looks like a placeholder. "
+        "Generate a real key with: python -c \"from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())\""
+    )
 
 DJANGO_ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [h.strip() for h in DJANGO_ALLOWED_HOSTS.split(",") if h.strip()]
