@@ -206,7 +206,9 @@ const examTypes = ref([])
 const fetchExamTypes = async () => {
     try {
         const response = await api.get('/exams/types/')
-        examTypes.value = response.data
+        examTypes.value = Array.isArray(response.data)
+            ? response.data
+            : (response.data.results || [])
     } catch (err) {
         console.error("DEBUG [AdminDashboard]: Failed to fetch exam types", {
             error: err,
@@ -796,7 +798,7 @@ onMounted(() => {
           <label>Matière / Rubrique</label>
           <select v-model="newExam.exam_type" class="form-input">
             <option disabled value="">-- Choisir une matière --</option>
-            <option v-for="e in (examTypes || []).filter(item => !!item)" :key="e.id" :value="e.id">{{ e.name }}</option>
+            <option v-for="e in (examTypes || []).filter(item => item && item.id)" :key="e.id" :value="e.id">{{ e.name }}</option>
           </select>
         </div>
         
@@ -1016,7 +1018,7 @@ onMounted(() => {
               </thead>
               <tbody>
                 <tr
-                  v-for="copy in (subjectCopies || []).filter(item => !!item)"
+                  v-for="copy in (subjectCopies || []).filter(item => item && item.id)"
                   :key="copy.id"
                 >
                   <td>{{ copy.anonymous_id || '—' }}</td>

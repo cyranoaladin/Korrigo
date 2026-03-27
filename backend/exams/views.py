@@ -1434,6 +1434,7 @@ class ExamTypeListView(generics.ListCreateAPIView):
     """
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = ExamTypeSerializer
+    pagination_class = None  # Frontend expects a flat array; exam types are always a small list
 
     def get_queryset(self):
         from .models import ExamType
