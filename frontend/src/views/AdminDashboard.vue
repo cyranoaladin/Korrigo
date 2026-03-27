@@ -226,16 +226,39 @@ const openCreateModal = () => {
 
 const createExam = async () => {
     if (!newExam.value.name || !newExam.value.exam_type) return
-    
+
     try {
-        await api.post('/exams/', newExam.value)
+        // Préparer les données: convertir les chaînes vides en null pour les champs optionnels
+        const payload = {
+            ...newExam.value,
+            exam_type: newExam.value.exam_type || null,
+        }
+        await api.post('/exams/', payload)
         showToast('Examen créé avec succès')
         showCreateModal.value = false
         newExam.value = { name: '', date: new Date().toISOString().split('T')[0], exam_type: '' }
         await fetchExams()
     } catch (e) {
-        console.error("Create exam failed", e)
-        showToast(e.response?.data?.error || e.message, 'error')
+        console.error("Create exam failed", e, "Response data:", e.response?.data)
+        // Afficher le détail de l'erreur de validation
+        const errorData = e.response?.data
+        let errorMsg = 'Erreur lors de la création'
+        if (errorData) {
+            if (typeof errorData === 'string') {
+                errorMsg = errorData
+            } else if (errorData.error) {
+                errorMsg = errorData.error
+            } else if (errorData.detail) {
+                errorMsg = errorData.detail
+            } else {
+                // Extraire les erreurs de validation DRF
+                const errors = Object.entries(errorData)
+                    .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+                    .join(' | ')
+                errorMsg = errors || JSON.stringify(errorData)
+            }
+        }
+        showToast(errorMsg, 'error')
     }
 }
 

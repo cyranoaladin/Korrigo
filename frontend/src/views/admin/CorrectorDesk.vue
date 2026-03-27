@@ -38,6 +38,7 @@ const pdfDimensions = ref({ width: 0, height: 0 })
 const imageError = ref(false)
 const imageLoaded = ref(false)
 const scrollAreaRef = ref(null)
+const canvasWrapperRef = ref(null)
 const wheelCooldown = ref(false)
 
 // Autosave State
@@ -789,8 +790,27 @@ const handleDragStart = (type, e) => {
     e.dataTransfer.effectAllowed = 'copy'
 }
 
+// Feedback visuel pour le drag-and-drop
+const handleDragEnter = (e) => {
+    e.preventDefault()
+    if (canvasWrapperRef.value) {
+        canvasWrapperRef.value.classList.add('drag-over')
+    }
+}
+
+const handleDragLeave = (e) => {
+    // Ne retirer la classe que si on quitte vraiment le wrapper (pas un enfant)
+    if (canvasWrapperRef.value && !canvasWrapperRef.value.contains(e.relatedTarget)) {
+        canvasWrapperRef.value.classList.remove('drag-over')
+    }
+}
+
 const handleDrop = async (e) => {
     e.preventDefault()
+    // Retirer le feedback visuel
+    if (canvasWrapperRef.value) {
+        canvasWrapperRef.value.classList.remove('drag-over')
+    }
     if (!canAnnotate.value || showEditor.value) return
 
     const textData = e.dataTransfer.getData('text/plain')
@@ -1259,6 +1279,12 @@ onUnmounted(() => {
       v-else
       class="workspace"
     >
+      <!-- Panneau des commentaires mémorisés (à gauche, hors du sidebar barème) -->
+      <CommentBank
+        :visible="showCommentBank"
+        @close="showCommentBank = false"
+      />
+
       <!-- Viewer -->
       <div class="viewer-container">
         <div class="viewer-toolbar">
@@ -1333,15 +1359,11 @@ onUnmounted(() => {
               @click="setAnnotationMode('type', 'ERREUR')"
             >❌</button>
             <button
-              :class="['btn-annot-type', { active: showCommentBank }]"
-              title="Historique des commentaires"
+              :class="['btn-annot-type', 'btn-comment-bank', { active: showCommentBank }]"
+              title="Mes commentaires mémorisés"
               @click="showCommentBank = !showCommentBank"
             >⭐</button>
           </div>
-          <CommentBank 
-            :visible="showCommentBank" 
-            @close="showCommentBank = false"
-          />
           <div class="zoom-controls">
             <button @click="scale = Math.max(0.3, +(scale - 0.1).toFixed(1))">
               -
@@ -1363,9 +1385,12 @@ onUnmounted(() => {
         >
           <div
             v-if="currentPageImageUrl && !imageError"
-            class="canvas-wrapper" 
+            ref="canvasWrapperRef"
+            class="canvas-wrapper"
             :style="{ width: displayWidth + 'px', height: displayHeight + 'px' }"
             @dragover.prevent
+            @dragenter="handleDragEnter"
+            @dragleave="handleDragLeave"
             @drop="handleDrop"
           >
             <!-- Anonymization overlay: v-show keeps DOM mounted (no insert delay), percentage height is paint-immediate -->
@@ -1759,4 +1784,12 @@ onUnmounted(() => {
 .btn-annot-type { padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 1rem; border: 2px solid transparent; background: #f1f5f9; transition: all 0.15s; line-height: 1; }
 .btn-annot-type:hover { background: #e2e8f0; border-color: #94a3b8; }
 .btn-annot-type.active { background: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
+
+/* Bouton banque de commentaires */
+.btn-comment-bank { background: #fef3c7; border-color: #fbbf24; }
+.btn-comment-bank:hover { background: #fde68a; border-color: #f59e0b; }
+.btn-comment-bank.active { background: #f59e0b; border-color: #d97706; color: white; }
+
+/* Zone de drop visuelle sur le canvas */
+.canvas-wrapper.drag-over { box-shadow: 0 0 0 4px #3b82f6, 0 0 20px rgba(59,130,246,0.3); }
 </style>

@@ -162,16 +162,41 @@ class AnnotationHistoryView(APIView):
     """
     GET /api/grading/annotations/history/
     Retourne l'historique des textes de commentaires distincts utilisés par le correcteur.
+    Les doublons sont éliminés en normalisant le texte (trim).
+    Les résultats sont triés par fréquence d'utilisation.
     """
     permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request):
-        texts = Annotation.objects.filter(
-            created_by=request.user,
-            type__in=[Annotation.Type.COMMENT, "COMMENTAIRE"]
-        ).exclude(content='').values_list('content', flat=True).distinct()
-        
-        return Response([{"content": text, "type": "COMMENTAIRE"} for text in texts])
+        from django.db.models import Count
+        from django.db.models.functions import Trim
+
+        # Annoter avec le contenu nettoyé (trimé) et compter les occurrences
+        texts_with_count = (
+            Annotation.objects.filter(
+                created_by=request.user,
+                type__in=[Annotation.Type.COMMENT, "COMMENTAIRE"]
+            )
+            .exclude(content='')
+            .exclude(content__isnull=True)
+            .annotate(trimmed_content=Trim('content'))
+            .exclude(trimmed_content='')
+            .values('trimmed_content')
+            .annotate(usage_count=Count('id'))
+            .order_by('-usage_count')[:100]  # Limiter à 100 commentaires max
+        )
+
+        # Dé-duplication finale avec un set (insensible à la casse pour comparaison)
+        seen = set()
+        unique_results = []
+        for item in texts_with_count:
+            text = item['trimmed_content']
+            normalized = text.strip().lower()
+            if normalized not in seen:
+                seen.add(normalized)
+                unique_results.append({"content": text, "type": "COMMENTAIRE"})
+
+        return Response(unique_results)
 
 
 class CopyReadyView(APIView):
