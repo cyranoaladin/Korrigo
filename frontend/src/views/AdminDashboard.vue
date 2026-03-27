@@ -21,15 +21,17 @@ const questionnaireLoading = ref(true)
 const selectedQuestionnaireResponse = ref(null)
 
 const questionnaireQuestionMeta = QUESTIONNAIRE_SECTIONS.flatMap(section =>
-    section.questions.map(question => ({
-        id: question.id,
-        label: question.label,
-        sectionId: section.id,
-        sectionTitle: section.title,
-        type: question.type
+    (section?.questions || []).filter(q => !!q).map(question => ({
+        id: question?.id,
+        label: question?.label,
+        sectionId: section?.id,
+        sectionTitle: section?.title,
+        type: question?.type
     }))
 ).reduce((acc, item) => {
-    acc[item.id] = item
+    if (item && item.id) {
+        acc[item.id] = item
+    }
     return acc
 }, {})
 
@@ -108,15 +110,17 @@ const examsByType = computed(() => {
     const typeDetails = exam.exam_type_details
     if (typeDetails && (typeDetails.id || exam.exam_type)) {
       const typeId = typeDetails.id || exam.exam_type
-        groups[typeId] = {
-           details: {
-               name: typeDetails?.name || 'Inconnu',
-               icon: typeDetails?.icon || '📁',
-               color: typeDetails?.color || '#64748b',
-               id: typeId
-           },
-           exams: []
-        }
+      if (!groups[typeId]) {
+         groups[typeId] = {
+            details: {
+                name: typeDetails?.name || 'Inconnu',
+                icon: typeDetails?.icon || '📁',
+                color: typeDetails?.color || '#64748b',
+                id: typeId
+            },
+            exams: []
+         }
+      }
       groups[typeId].exams.push(exam)
     } else {
       others.push(exam)
@@ -607,8 +611,8 @@ onMounted(() => {
                     </div>
                     <div class="response-detail-sections">
                       <div
-                        v-for="section in selectedResponseSections"
-                        :key="`${selectedQuestionnaireResponse.user_id}-${section.id}`"
+                        v-for="section in (selectedResponseSections || []).filter(s => !!s)"
+                        :key="`${selectedQuestionnaireResponse?.user_id || 'no-user'}-${section?.id || Math.random()}`"
                         class="response-section-card"
                       >
                         <div class="response-section-header">
@@ -616,11 +620,11 @@ onMounted(() => {
                           <span>{{ section.items.length }} réponse(s)</span>
                         </div>
                         <div class="response-detail-grid">
-                          <div
-                            v-for="item in section.items"
-                            :key="`${selectedQuestionnaireResponse.user_id}-${item.key}`"
-                            class="response-detail-item"
-                          >
+                            <div
+                              v-for="item in (section?.items || []).filter(i => !!i)"
+                              :key="`${selectedQuestionnaireResponse?.user_id || 'no-user'}-${item?.key || Math.random()}`"
+                              class="response-detail-item"
+                            >
                             <span class="response-label">{{ item.label }}</span>
                             <strong class="response-value">{{ item.value }}</strong>
                           </div>
@@ -682,7 +686,7 @@ onMounted(() => {
               </thead>
               <tbody>
                 <tr
-                  v-for="exam in group.exams"
+                  v-for="exam in (group.exams || []).filter(Boolean)"
                   :key="exam?.id"
                   :data-testid="exam ? `exam.row.${exam.id}` : ''"
                 >
@@ -740,7 +744,7 @@ onMounted(() => {
           <label>Type d'examen (Rubrique) <span class="required">*</span></label>
           <select v-model="newExam.exam_type" class="form-input">
             <option disabled value="">-- Choisir un type --</option>
-            <option v-for="t in (examTypes || []).filter(item => !!item)" :key="t.id" :value="t.id">
+            <option v-for="t in (examTypes || []).filter(t => t && t.id)" :key="t.id" :value="t.id">
               {{ t.name }}
             </option>
           </select>
