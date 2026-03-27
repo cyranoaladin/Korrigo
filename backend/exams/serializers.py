@@ -83,25 +83,50 @@ class ExamSerializer(serializers.ModelSerializer):
     
     def get_individual_pdfs_count(self, obj):
         return obj.individual_pdfs.count()
-    
+
+    def validate_exam_type(self, value):
+        """Convert empty string to None for exam_type field."""
+        if value == '' or value is None:
+            return None
+        return value
+
+    def to_internal_value(self, data):
+        """Clean up input data before validation."""
+        # Convert empty string exam_type to None before DRF tries to validate it as UUID
+        if 'exam_type' in data and data['exam_type'] == '':
+            data = data.copy()
+            data['exam_type'] = None
+        return super().to_internal_value(data)
+
     def validate(self, data):
         """
         Validate that the correct fields are provided based on upload_mode.
         Only enforce pdf_source requirement on creation, not on partial updates (PATCH).
+
+        Note: For simple exam creation (just name/date/exam_type), pdf_source is NOT required.
+        The PDF can be uploaded later via ExamSourceUploadView.
         """
         # Skip pdf_source validation on update (instance already exists)
         if self.instance is not None:
             return data
 
-        upload_mode = data.get('upload_mode', Exam.UploadMode.BATCH_A3)
+        # pdf_source is only required if explicitly provided upload_mode=BATCH_A3 AND we're uploading now
+        # For simple exam creation (metadata only), pdf_source is optional
+        upload_mode = data.get('upload_mode')
         pdf_source = data.get('pdf_source')
-        
-        if upload_mode == Exam.UploadMode.BATCH_A3:
-            if not pdf_source:
+
+        # Only enforce pdf_source if:
+        # 1. upload_mode is explicitly set to BATCH_A3
+        # 2. AND we're actually trying to process a PDF (indicated by presence of pdf_source or explicit mode)
+        if upload_mode == Exam.UploadMode.BATCH_A3 and pdf_source is None:
+            # Check if this is an upload request (has file) or just metadata creation
+            request = self.context.get('request')
+            if request and request.FILES:
+                # Only raise error if we're in an upload context but pdf_source is missing
                 raise serializers.ValidationError({
                     'pdf_source': _("Le fichier PDF source est obligatoire en mode BATCH_A3")
                 })
-        
+
         return data
 
     def validate_grading_structure(self, value):
