@@ -247,12 +247,13 @@ class TestQuestionnaireResponseEndpoint:
 
         assert response.status_code == 403
 
-    def test_admin_is_rejected_from_questionnaire(self, api_client, questionnaire_admin):
+    def test_admin_can_access_questionnaire(self, api_client, questionnaire_admin):
+        # IsTeacher explicitly allows is_superuser/is_staff for monitoring (see core/auth.py)
         api_client.force_authenticate(questionnaire_admin)
 
         response = api_client.get('/api/grading/questionnaire/')
 
-        assert response.status_code == 403
+        assert response.status_code == 200
 
 
 @pytest.mark.django_db

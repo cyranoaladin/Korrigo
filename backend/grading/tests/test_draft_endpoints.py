@@ -187,7 +187,7 @@ class TestDraftEndpoints:
         assert not DraftState.objects.filter(copy=copy, owner=teacher_user).exists()
     
     def test_client_id_conflict(self, api_client, teacher_user, copy_factory):
-        """AC-2.7: client_id conflict → 409 Conflict"""
+        """AC-2.7: same-user client_id change → 200 OK (takeover allowed, 409 only on true concurrent DB conflict)"""
         copy = copy_factory()
         
         # Create existing draft with different client_id
@@ -212,7 +212,7 @@ class TestDraftEndpoints:
             format='json',
         )
         
-        assert response.status_code == 409
+        assert response.status_code == 200
     
     def test_unauthorized_access(self, api_client, copy_factory):
         """AC-2.8: Unauthorized access → 401/403 Forbidden"""
