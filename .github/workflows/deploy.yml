@@ -24,11 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # --- Frontend CI ---
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
@@ -52,7 +52,7 @@ jobs:
 
       # --- Backend CI ---
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -74,7 +74,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -84,7 +84,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & push backend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./backend
           push: true
@@ -93,7 +93,7 @@ jobs:
             ${{ env.IMAGE_PREFIX }}-backend:latest
 
       - name: Build & push nginx (frontend) image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./infra/nginx/Dockerfile
@@ -152,7 +152,7 @@ jobs:
 
       - name: Checkout code
         if: steps.prereq.outputs.deploy_ready == 'true'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Sync compose files to VPS
         if: steps.prereq.outputs.deploy_ready == 'true'
