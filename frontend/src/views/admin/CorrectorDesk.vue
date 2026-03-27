@@ -1480,7 +1480,7 @@ onUnmounted(() => {
           </div>
           <div v-else class="grading-content">
             <div class="exercises-list">
-              <div v-for="exercise in exercisesWithQuestions" :key="exercise.id" class="exercise-block">
+              <div v-for="exercise in (exercisesWithQuestions || []).filter(i => !!i)" :key="exercise.id" class="exercise-block">
                 <div
                   class="exercise-header"
                   :class="{ collapsed: openExerciseId !== exercise.id }"
@@ -1491,7 +1491,7 @@ onUnmounted(() => {
                   <span class="exercise-points">{{ exercise.totalPoints }} pts</span>
                 </div>
                 <div v-show="openExerciseId === exercise.id" class="exercise-questions">
-                  <div v-for="question in exercise.questions" :key="question.id" class="question-item">
+                  <div v-for="question in (exercise.questions || []).filter(i => !!i)" :key="question.id" class="question-item">
                     <div class="question-header">
                       <span class="question-title">{{ question.title }}</span>
                       <span class="question-max-score">/ {{ question.maxScore }} pts</span>

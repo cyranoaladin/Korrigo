@@ -348,7 +348,7 @@ onMounted(fetchBilan)
                   <span class="section-badge">{{ responses.length }} répondant(s)</span>
                 </div>
                 <div class="stat-list">
-                  <div v-for="item in sentimentStats" :key="item.label" class="stat-row">
+                  <div v-for="item in (sentimentStats || []).filter(i => !!i)" :key="item.label" class="stat-row">
                     <div class="stat-label-row">
                       <span>{{ item.label }}</span>
                       <strong>{{ item.count }}</strong>
@@ -366,7 +366,7 @@ onMounted(fetchBilan)
                   <span class="section-badge">{{ responses.length }} répondant(s)</span>
                 </div>
                 <div class="stat-list">
-                  <div v-for="item in recommendationStats" :key="item.label" class="stat-row">
+                  <div v-for="item in (recommendationStats || []).filter(i => !!i)" :key="item.label" class="stat-row">
                     <div class="stat-label-row">
                       <span>{{ item.label }}</span>
                       <strong>{{ item.count }}</strong>
@@ -385,9 +385,9 @@ onMounted(fetchBilan)
                 <span class="section-badge">{{ QUESTIONNAIRE_SECTIONS[1].questions.length - 2 }} items évalués</span>
               </div>
               <div class="tool-grid">
-                <div v-for="tool in toolStats" :key="tool.id" class="tool-card">
+                <div v-for="tool in (toolStats || []).filter(i => !!i)" :key="tool.id" class="tool-card">
                   <h3>{{ tool.label }}</h3>
-                  <div v-for="level in tool.levels" :key="level.label" class="tool-level-row">
+                  <div v-for="level in (tool.levels || []).filter(i => !!i)" :key="level.label" class="tool-level-row">
                     <span>{{ level.label }}</span>
                     <div class="mini-bar tool-bar">
                       <div
@@ -412,7 +412,7 @@ onMounted(fetchBilan)
                 <span class="section-badge">Question multiple</span>
               </div>
               <div class="stat-list">
-                <div v-for="item in blockingStats" :key="item.label" class="stat-row">
+                <div v-for="item in (blockingStats || []).filter(i => !!i)" :key="item.label" class="stat-row">
                   <div class="stat-label-row">
                     <span>{{ item.label }}</span>
                     <strong>{{ item.count }}</strong>
@@ -439,7 +439,7 @@ onMounted(fetchBilan)
                 <span class="section-badge">{{ missingFeatures.length }} verbatim(s)</span>
               </div>
               <div class="verbatim-list">
-                <div v-for="item in missingFeatures" :key="`${item.author}-${item.submittedAt}-q54`" class="verbatim-card">
+                <div v-for="item in (missingFeatures || []).filter(i => !!i)" :key="`${item.author}-${item.submittedAt}-q54`" class="verbatim-card">
                   <p>{{ item.text }}</p>
                   <span class="verbatim-meta">{{ item.author }} — {{ formatDate(item.submittedAt) }}</span>
                 </div>
@@ -452,7 +452,7 @@ onMounted(fetchBilan)
                 <span class="section-badge">{{ bugReports.length }} verbatim(s)</span>
               </div>
               <div class="verbatim-list">
-                <div v-for="item in bugReports" :key="`${item.author}-${item.submittedAt}-q55`" class="verbatim-card bug">
+                <div v-for="item in (bugReports || []).filter(i => !!i)" :key="`${item.author}-${item.submittedAt}-q55`" class="verbatim-card bug">
                   <p>{{ item.text }}</p>
                   <span class="verbatim-meta">{{ item.author }} — {{ formatDate(item.submittedAt) }}</span>
                 </div>
@@ -465,7 +465,7 @@ onMounted(fetchBilan)
                 <span class="section-badge">{{ finalComments.length }} verbatim(s)</span>
               </div>
               <div class="verbatim-list">
-                <div v-for="item in finalComments" :key="`${item.author}-${item.submittedAt}-q62`" class="verbatim-card comment">
+                <div v-for="item in (finalComments || []).filter(i => !!i)" :key="`${item.author}-${item.submittedAt}-q62`" class="verbatim-card comment">
                   <p>{{ item.text }}</p>
                   <span class="verbatim-meta">{{ item.author }} — {{ formatDate(item.submittedAt) }}</span>
                 </div>

@@ -1,5 +1,5 @@
 {
-  "include": ["backend"],
+  "include": ["."],
   "exclude": [
     "venv",
     ".venv",
@@ -9,24 +9,14 @@
   ],
   "venvPath": ".",
   "venv": "venv",
-  "pythonPath": "./venv/bin/python",
   "pythonVersion": "3.12",
   "pythonPlatform": "Linux",
-  "executionEnvironments": [
-    {
-      "root": "backend",
-      "pythonVersion": "3.12",
-      "extraPaths": ["backend"]
-    }
+  "extraPaths": [
+    "backend",
+    "venv/lib/python3.12/site-packages"
   ],
   "typeCheckingMode": "basic",
-  "reportMissingImports": "information",
+  "reportMissingImports": "warning",
   "reportMissingModuleSource": "none",
-  "reportAttributeAccessIssue": "warning",
-  "reportIndexIssue": "warning",
-  "reportOperatorIssue": "warning",
-  "reportArgumentType": "warning",
-  "reportReturnType": "warning",
-  "reportGeneralTypeIssues": "warning",
   "useLibraryCodeForTypes": true
 }
