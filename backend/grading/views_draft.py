@@ -32,7 +32,7 @@ def _can_write_copy_draft(user, copy: Copy) -> bool:
     """
     if user.is_superuser or user.is_staff:
         return True
-    if user.groups.filter(name=UserRole.ADMIN).exists():
+    if user.groups.filter(name__iexact=UserRole.ADMIN).exists():
         return True
     return copy.assigned_corrector_id == user.id
 

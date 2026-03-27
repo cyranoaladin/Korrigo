@@ -497,7 +497,7 @@ class CopyGlobalAppreciationView(APIView):
             GradingEvent.objects.create(
                 copy=copy,
                 actor=request.user,
-                action='apprec_saved',
+                action=GradingEvent.Action.SAVE_APPRECIATION,
                 metadata={'length': len(global_appreciation)},
             )
         except Exception:
@@ -573,8 +573,8 @@ class CopyScoresView(APIView):
                     )
 
         # LOT 6: Validate individual scores against barème max
-        from exams.views import StudentCopiesView
-        q_max = StudentCopiesView.Q_MAX_BY_EXAM.get(copy.exam.name, {})
+        from exams.score_constraints import Q_MAX_BY_EXAM
+        q_max = Q_MAX_BY_EXAM.get(copy.exam.name, {})
         if q_max:
             overflow_warnings: list[str] = []
             for qid, val in scores_data.items():

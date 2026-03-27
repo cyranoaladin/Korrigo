@@ -24,6 +24,7 @@ from .permissions import IsTeacherOrAdmin
 import fitz  # PyMuPDF
 import logging
 from core.auth import UserRole
+from exams.score_constraints import Q_MAX_BY_EXAM
 import os
 import uuid
 
@@ -663,29 +664,6 @@ class StudentCopiesView(generics.ListAPIView):
             except Student.DoesNotExist:
                 return Copy.objects.none()
 
-    # Per-question max scores (keyed by question ID as used in scores_data)
-    Q_MAX_BY_EXAM = {
-        'BB_J1': {
-            '1.1':1,'1.2':1,'1.3':1,'1.4':1,'1.5':1,
-            '2.1':0.25,'2.2':0.50,'2.3':0.50,'2.4':0.75,'2.5':0.25,
-            '2.6':0.75,'2.7':0.50,'2.8':0.25,'2.9':0.75,'2.10':0.50,
-            '3.1':0.75,'3.2':0.50,'3.3':0.50,'3.4':1.00,'3.5':0.50,'3.6':0.75,
-            '4.1':0.25,'4.2':0.25,'4.3':0.25,'4.4':0.75,'4.5':0.50,
-            '4.6':0.75,'4.7':0.50,'4.8':1.00,'4.9':0.25,'4.10':0.25,
-            '4.11':1.00,'4.12':0.25,
-        },
-        'BB_J2': {
-            '1':5.0,
-            '2.1.1':0.25,'2.1.2':0.50,'2.1.3':1.00,'2.1.4':0.50,'2.1.5':0.25,
-            '2.2.1':0.50,'2.2.2':0.50,'2.2.3':0.50,'2.2.4':0.50,'2.2.5':0.50,
-            '3.1':0.50,'3.2':0.50,'3.3':1.00,'3.4':0.75,'3.5':0.50,
-            '3.6':0.75,'3.7':1.00,
-            '4.1.1':0.50,'4.1.2':0.25,
-            '4.2.1':0.75,'4.2.2':0.50,'4.2.3':0.50,'4.2.4':1.00,
-            '4.2.5':0.50,'4.2.6':0.50,'4.2.7':0.50,
-        },
-    }
-
     @staticmethod
     def _build_exercise_config(exam):
         """Build exercise_config from exam.grading_structure (DB source of truth)."""
@@ -745,7 +723,7 @@ class StudentCopiesView(generics.ListAPIView):
 
             # Build exercise_config from DB grading_structure (source of truth)
             exercise_config = self._build_exercise_config(copy.exam)
-            q_max = self.Q_MAX_BY_EXAM.get(copy.exam.name, {})
+            q_max = Q_MAX_BY_EXAM.get(copy.exam.name, {})
 
             data.append({
                 "id": copy.id,

@@ -131,4 +131,14 @@ backend/rebuild_full.py
 backend/import_j1_copies.py
 backend/fix_matching*.py
 backend/ocr_matching.py
+
+# Dev scripts and test artifacts that must not be in production
+backend/create_test_pdf.py
+backend/test_new_student_structure.py
+backend/seed_demo_exam.py
+backend/verify_fixtures.py
+backend/verify_mission20.py
+backend/test_results_backend.txt
+backend/test_results_draft_specific.txt
+backend/test_exam.pdf
 arborescence_complete.txt

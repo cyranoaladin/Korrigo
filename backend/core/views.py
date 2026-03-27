@@ -9,7 +9,18 @@ from core.utils.ratelimit import maybe_ratelimit
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from core.utils.audit import log_authentication_attempt
-from core.auth import UserRole
+from core.auth import UserRole, IsKorrigoAdmin
+
+
+def _is_admin_user(user) -> bool:
+    """True if user has Korrigo admin privileges (superuser or Admin group).
+    Deliberately excludes is_staff alone to prevent Django staff status
+    from granting application-level admin rights.
+    """
+    return (
+        user.is_superuser
+        or user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+    )
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
@@ -142,7 +153,7 @@ class GlobalSettingsView(APIView):
         })
         
     def post(self, request):
-        if not request.user.is_superuser:
+        if not _is_admin_user(request.user):
              return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
              
         from core.models import GlobalSettings
@@ -187,12 +198,9 @@ class ChangePasswordView(APIView):
         return Response({"message": "Mot de passe mis à jour."})
 
 class UserListView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsKorrigoAdmin]
 
     def get(self, request):
-        # Allow admins to view users
-        if not request.user.is_superuser and not request.user.is_staff:
-            return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
             
         role = request.query_params.get('role', None) 
         queryset = User.objects.all().order_by('username')
@@ -219,9 +227,6 @@ class UserListView(APIView):
 
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request):
-        # Allow admins to create users
-        if not request.user.is_superuser and not request.user.is_staff:
-            return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
             
         data = request.data
         username = data.get('username')
@@ -253,12 +258,9 @@ class UserListView(APIView):
 
 
 class UserManageView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsKorrigoAdmin]
 
     def put(self, request, pk):
-        # Allow admins to edit users
-        if not request.user.is_superuser and not request.user.is_staff:
-            return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
             
         try:
             user = User.objects.get(pk=pk)
@@ -281,9 +283,6 @@ class UserManageView(APIView):
         return Response({"message": "Utilisateur mis à jour."})
 
     def delete(self, request, pk):
-        # Allow admins to delete users
-        if not request.user.is_superuser and not request.user.is_staff:
-            return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
             
         try:
             user = User.objects.get(pk=pk)
@@ -298,12 +297,10 @@ class UserManageView(APIView):
 
 
 class UserResetPasswordView(APIView):
-    permission_classes = [IsAuthenticated]
-    
+    permission_classes = [IsKorrigoAdmin]
+
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request, pk):
-        if not request.user.is_superuser and not request.user.is_staff:
-            return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
         
         try:
             user = User.objects.get(pk=pk)
