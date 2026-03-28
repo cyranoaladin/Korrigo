@@ -8,6 +8,7 @@ import { QUESTIONNAIRE_SECTIONS } from '../questionnaire/config'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import UploadAnalyticsDashboard from '../components/UploadAnalyticsDashboard.vue'
 import JuryReportsModal from '../components/JuryReportsModal.vue'
+import ExamTypeIcon from '../components/ExamTypeIcon.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -695,8 +696,10 @@ onMounted(() => {
           </div>
           
           <div v-for="group in examsByType" :key="group.details?.name || Math.random()" class="exam-group-section">
-            <h3 class="exam-group-title" :style="{ borderLeftColor: group.details?.color || '#6366f1' }">
-              <span class="exam-type-icon">{{ group.details?.icon || '📝' }}</span> 
+            <h3 class="exam-group-title" :style="{ borderLeftColor: group.details?.color || '#6366f1', color: group.details?.color || '#1e293b' }">
+              <span class="exam-type-icon" :style="{ color: group.details?.color || '#6366f1' }">
+                <ExamTypeIcon :icon="group.details?.icon" :size="18" />
+              </span>
               {{ group.details?.name || 'Autres' }}
             </h3>
             
@@ -724,7 +727,7 @@ onMounted(() => {
                   <td>
                     <button class="btn-sm" @click="exam?.id && router.push({ name: 'StapleView', params: { examId: exam.id } })">Agrafer</button>
                     <button class="btn-sm" @click="exam?.id && router.push({ name: 'MarkingSchemeView', params: { examId: exam.id } })">Barème</button>
-                    <button v-if="exam?.id" class="btn-sm btn-action" @click="goToIdentification(exam.id)">Video-Coding</button>
+                    <button v-if="exam?.id" class="btn-sm btn-action" @click="goToIdentification(exam.id)">Identification</button>
                     <button class="btn-sm" title="Assigner des correcteurs" @click="exam && openCorrectorModal(exam)">Correcteurs</button>
                     <button class="btn-sm btn-subject" title="Assigner Sujet A / Sujet B" @click="exam && openSubjectModal(exam)">Sujets A/B</button>
                     <button 
@@ -734,7 +737,7 @@ onMounted(() => {
                       :title="exam && canDispatch(exam) ? 'Distribuer les copies' : 'Configuration incomplète'"
                       @click="exam && openDispatchModal(exam)"
                     >
-                      Dispatcher
+                      Distribuer
                     </button>
                     <button class="btn-sm btn-students" title="Voir la liste des élèves et notes" @click="exam?.id && router.push({ name: 'ExamStudentList', params: { examId: exam.id } })">Élèves</button>
                   </td>

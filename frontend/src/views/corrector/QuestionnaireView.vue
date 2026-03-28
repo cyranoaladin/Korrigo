@@ -135,9 +135,9 @@ onMounted(fetchResponse)
     <header class="top-nav">
       <div class="brand">
         <button class="btn-back" @click="goBack">
-          ← Dashboard
+          ← Tableau de bord
         </button>
-        <span>Questionnaire Correcteur</span>
+        <span>Questionnaire correcteur</span>
       </div>
       <div class="user-menu">
         <span>{{ authStore.user?.username }}</span>
