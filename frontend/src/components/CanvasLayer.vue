@@ -16,6 +16,9 @@ const isDrawing = ref(false)
 const startPos = ref({ x: 0, y: 0 })
 const currentRect = ref(null)
 
+// Palm rejection: track active pen pointer IDs; when a pen is down, ignore touch events
+const activePenPointers = new Set()
+
 const dpr = window.devicePixelRatio || 1
 
 // Dimensions in device pixels
@@ -203,6 +206,13 @@ const getCoords = (e) => {
 
 const startDrawing = (e) => {
   if (!props.enabled) return
+  // Palm rejection: ignore touch when a pen/stylus pointer is active
+  if (e.pointerType === 'touch' && activePenPointers.size > 0) return
+  // Track pen pointers for palm rejection
+  if (e.pointerType === 'pen') activePenPointers.add(e.pointerId)
+  // Capture pointer so move/up events fire even if cursor leaves the canvas
+  e.currentTarget.setPointerCapture(e.pointerId)
+
   isDrawing.value = true
   const coords = getCoords(e)
   startPos.value = coords
@@ -213,42 +223,49 @@ const startDrawing = (e) => {
 const draw = (e) => {
   if (!isDrawing.value) return
   const coords = getCoords(e)
-  
-  const w = coords.x - startPos.value.x
-  const h = coords.y - startPos.value.y
-  
   currentRect.value = {
       x: startPos.value.x,
       y: startPos.value.y,
-      w: w,
-      h: h
+      w: coords.x - startPos.value.x,
+      h: coords.y - startPos.value.y,
   }
   requestAnimationFrame(() => redraw())
 }
 
-const stopDrawing = () => {
+const stopDrawing = (e) => {
   if (!isDrawing.value) return
   isDrawing.value = false
-  
-  // Normalize and Emit
+  if (e?.pointerType === 'pen') activePenPointers.delete(e.pointerId)
+
+  // Quick stamp on tap: tiny movement → emit a small fixed-size annotation rect
+  if (currentRect.value && Math.abs(currentRect.value.w) <= 5 && Math.abs(currentRect.value.h) <= 5) {
+      const STAMP_PX = 30
+      const normalized = {
+          x: Math.max(0, (startPos.value.x - STAMP_PX / 2) / props.width),
+          y: Math.max(0, (startPos.value.y - STAMP_PX / 2) / props.height),
+          w: STAMP_PX / props.width,
+          h: STAMP_PX / props.height,
+      }
+      emit('annotation-created', normalized)
+      currentRect.value = null
+      requestAnimationFrame(() => redraw())
+      return
+  }
+
+  // Normalize and emit regular drag rect
   if (currentRect.value && Math.abs(currentRect.value.w) > 5 && Math.abs(currentRect.value.h) > 5) {
       let x = currentRect.value.x
       let y = currentRect.value.y
       let w = currentRect.value.w
       let h = currentRect.value.h
-      
-      // Handle negative dims
       if (w < 0) { x += w; w = Math.abs(w); }
       if (h < 0) { y += h; h = Math.abs(h); }
-      
-      const normalized = {
+      emit('annotation-created', {
           x: x / props.width,
           y: y / props.height,
           w: w / props.width,
-          h: h / props.height
-      }
-      
-      emit('annotation-created', normalized)
+          h: h / props.height,
+      })
   }
   currentRect.value = null
   requestAnimationFrame(() => redraw())
@@ -266,10 +283,10 @@ const stopDrawing = () => {
     }"
     :class="{ 'canvas-layer': true, 'disabled': !enabled }"
     data-testid="canvas-layer"
-    @mousedown="startDrawing"
-    @mousemove="draw"
-    @mouseup="stopDrawing"
-    @mouseleave="stopDrawing"
+    @pointerdown="startDrawing"
+    @pointermove="draw"
+    @pointerup="stopDrawing"
+    @pointercancel="stopDrawing"
   />
 </template>
 
