@@ -18,7 +18,7 @@ const fetchExamTypes = async () => {
     loading.value = true
     error.value = null
     try {
-        const response = await api.get('/api/exams/types/')
+        const response = await api.get('/exams/types/')
         examTypes.value = response.data
     } catch (err) {
         error.value = 'Impossible de charger les types d\'examen. Veuillez réessayer.'
@@ -34,7 +34,7 @@ const handleSubmit = async () => {
     submitting.value = true
     error.value = null
     try {
-        const response = await api.post('/api/exams/', {
+        const response = await api.post('/exams/', {
             name: name.value.trim(),
             date: date.value,
             exam_type: examType.value,

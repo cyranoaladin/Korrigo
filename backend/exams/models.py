@@ -183,9 +183,9 @@ class Copy(models.Model):
     Entité finale validée. Une copie peut être composée de plusieurs fascicules fusionnés.
     """
     class Status(models.TextChoices):
-        READY = 'READY', _("Prêt")
+        READY = 'READY', _("Pret")
         IN_PROGRESS = 'IN_PROGRESS', _("En cours")
-        FINALIZED = 'FINALIZED', _("Finalisée")
+        FINALIZED = 'FINALIZED', _("Finalisee")
 
     class SubjectVariant(models.TextChoices):
         A = 'A', _("Sujet A")
@@ -285,7 +285,7 @@ class Copy(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Date de validation"),
-        help_text=_("Timestamp de validation")
+        help_text=_("Timestamp STAGING → READY")
     )
     
     # P0-DI-004: Error tracking for failed grading operations
@@ -304,7 +304,7 @@ class Copy(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Date de verrouillage"),
-        help_text=_("Non utilisé")
+        help_text=_("Timestamp READY → LOCKED")
     )
     locked_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -318,13 +318,7 @@ class Copy(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Date de notation"),
-        help_text=_("Timestamp de finalisation")
-    )
-    finalizing_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name=_("Finalisation en cours depuis"),
-        help_text=_("Marqueur atomique anti-doublon : sert de mutex pour éviter deux finalisations simultanées")
+        help_text=_("Timestamp LOCKED → GRADED")
     )
     
     # Global appreciation for the copy

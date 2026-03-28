@@ -49,7 +49,7 @@ const triggerExport = async () => {
     isLoading.value = true
     message.value = "Génération des PDF en cours..."
     try {
-        const res = await api.post(`/exams/${examId}/export_all/`)
+        const res = await api.post(`/exams/${examId}/export-pdf/`)
         message.value = `Succès: ${res.data.message}`
     } catch (e) {
         console.error(e)
@@ -60,7 +60,7 @@ const triggerExport = async () => {
 }
 
 const downloadCSV = () => {
-    window.open(`/api/exams/${examId}/csv/`, '_blank')
+    window.open(`/api/exams/${examId}/export-csv/`, '_blank')
 }
 
 onMounted(() => {

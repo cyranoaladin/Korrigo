@@ -334,29 +334,23 @@ class GradingService:
     @staticmethod
     @transaction.atomic
     def _finalize_copy_inner(copy: Copy, user, lock_token=None):
-        # Atomic claim: only one concurrent request can proceed to flatten_copy.
-        # UPDATE ... WHERE finalizing_at IS NULL is a single atomic SQL statement;
-        # exactly one concurrent caller gets claimed=1, all others get claimed=0.
-        claimed = (
-            Copy.objects
-            .filter(
-                id=copy.id,
-                status__in=(Copy.Status.READY, Copy.Status.IN_PROGRESS),
-                finalizing_at__isnull=True,
-            )
-            .update(finalizing_at=timezone.now())
-        )
-        if claimed != 1:
-            # Reload to give a precise error message.
-            current = Copy.objects.filter(id=copy.id).values('status', 'finalizing_at').first()
-            if current and current['status'] == Copy.Status.FINALIZED:
-                raise LockConflictError("Copie déjà finalisée.")
+        # Atomic concurrency guard: select_for_update(nowait=True) raises
+        # OperationalError immediately if another transaction holds the row lock.
+        # Exactly one concurrent caller proceeds; all others get LockConflictError
+        # (translated from OperationalError by the outer finalize_copy handler).
+        try:
+            copy = Copy.objects.select_for_update(nowait=True).get(id=copy.id)
+        except OperationalError as e:
             raise LockConflictError(
                 "Finalization en cours par une autre requête — réessayez."
-            )
+            ) from e
 
-        # Reload with row lock for the rest of the write.
-        copy = Copy.objects.select_for_update().get(id=copy.id)
+        # Idempotency: already finalized → reject cleanly.
+        if copy.status == Copy.Status.FINALIZED:
+            raise LockConflictError("Copie déjà finalisée.")
+
+        if copy.status not in (Copy.Status.READY, Copy.Status.IN_PROGRESS):
+            raise ValueError(f"Impossible de finaliser une copie en statut {copy.status}")
 
         final_score = GradingService.compute_score(copy)
 
@@ -375,8 +369,7 @@ class GradingService:
                 copy.status = Copy.Status.FINALIZED
                 copy.graded_at = timezone.now()
                 copy.grading_error_message = None
-                copy.finalizing_at = None  # clear claim on success
-                copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf", "finalizing_at"])
+                copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf"])
 
                 GradingEvent.objects.get_or_create(
                     copy=copy,
@@ -388,9 +381,7 @@ class GradingService:
             except OperationalError:
                 raise
             except Exception as e:
-                # No explicit cleanup needed: @transaction.atomic rolls back the entire
-                # transaction (including the UPDATE SET finalizing_at=NOW() claim),
-                # so finalizing_at returns to NULL automatically on failure.
+                # @transaction.atomic rolls back automatically on any exception.
                 error_msg = str(e)[:500]
                 logger.error(f"PDF generation failed for copy {copy.id}: {e}", exc_info=True)
                 raise ValueError(f"Échec de la génération du PDF final : {error_msg}")
