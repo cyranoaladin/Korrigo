@@ -171,7 +171,7 @@ onMounted(() => {
                 {{ copy.anonymous_id }}
               </td>
               <td class="text-muted">
-                {{ copy.updated_at }}
+                {{ copy.graded_at || '—' }}
               </td>
               <td>
                 <span :class="['status-badge', copy.status.toLowerCase()]">
