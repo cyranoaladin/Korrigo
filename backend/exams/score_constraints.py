@@ -11,6 +11,12 @@ named exam sessions.
 """
 
 Q_MAX_BY_EXAM: dict[str, dict[str, float]] = {
+    # ── DNB BLANC MATHS 2026 ──────────────────────────────────────────────────
+    # Examen unique (pas de sujet A/B). Clé = exam.name = 'DNB_2026'.
+    # À compléter avec le barème réel lorsqu'il sera disponible.
+    'DNB_2026': {},
+
+    # ── BAC BLANC MATHS 2026 ─────────────────────────────────────────────────
     'BB_J1': {
         '1.1': 1, '1.2': 1, '1.3': 1, '1.4': 1, '1.5': 1,
         '2.1': 0.25, '2.2': 0.50, '2.3': 0.50, '2.4': 0.75, '2.5': 0.25,
