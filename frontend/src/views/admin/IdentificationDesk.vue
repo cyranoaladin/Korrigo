@@ -14,7 +14,7 @@
         to="/admin-dashboard"
         class="text-indigo-600 hover:text-indigo-800"
       >
-        Retour Dashboard
+        ← Tableau de bord
       </router-link>
     </header>
 

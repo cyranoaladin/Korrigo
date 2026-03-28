@@ -6,6 +6,7 @@ import gradingApi from '../services/gradingApi'
 import api from '../services/api'
 import JuryReportsModal from '../components/JuryReportsModal.vue'
 import ExamTypeSelectionModal from '../components/ExamTypeSelectionModal.vue'
+import ExamTypeIcon from '../components/ExamTypeIcon.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -378,12 +379,12 @@ const goToQuestionnaireBilan = () => {
           {{ selectedExamType.name }}
         </span>
         <button class="btn-text btn-change-type" @click="handleChangeExamType">
-          Changer
+          Changer d'examen
         </button>
       </div>
 
       <div class="user-menu">
-        <span>{{ authStore.user?.username }}</span>
+        <span class="user-name">{{ authStore.user?.first_name || authStore.user?.username }}</span>
         <button
           class="btn-text"
           @click="handleChangePassword"
@@ -415,7 +416,7 @@ const goToQuestionnaireBilan = () => {
           class="btn-questionnaire-bilan"
           @click="goToQuestionnaireBilan"
         >
-          📈 Bilan Questionnaire
+          📈 Bilan du questionnaire
         </button>
         <button
           class="btn-jury-report"
@@ -667,12 +668,12 @@ const goToQuestionnaireBilan = () => {
       </div>
 
       <div class="task-list">
-        <h2>Vos Copies à Corriger</h2>
+        <h2>Vos copies à corriger</h2>
         <div
           v-if="isLoading"
           class="loading"
         >
-          Chargement...
+          Chargement des copies…
         </div>
         <template v-else>
           <!-- Groupement par examen -->
@@ -684,7 +685,7 @@ const goToQuestionnaireBilan = () => {
             <div class="exam-group-header">
               <div class="exam-group-title">
                 <span v-if="group.examTypeDetails" class="exam-type-badge inline" :style="{ backgroundColor: group.examTypeDetails.color + '20', color: group.examTypeDetails.color }">
-                  {{ group.examTypeDetails.icon || '📝' }}
+                  <ExamTypeIcon :icon="group.examTypeDetails.icon" :size="14" />
                 </span>
                 <strong>{{ group.examName }}</strong>
                 <span v-if="group.examDate" class="exam-date-tag">{{ group.examDate }}</span>
@@ -716,7 +717,7 @@ const goToQuestionnaireBilan = () => {
                   data-testid="copy-action"
                   @click="goToDesk(copy.id)"
                 >
-                  {{ copy.status === 'GRADED' ? 'Voir' : 'Corriger' }}
+                  {{ copy.status === 'GRADED' ? 'Consulter' : 'Corriger' }}
                 </button>
               </div>
               <!-- Barre de progression par question -->
@@ -726,7 +727,7 @@ const goToQuestionnaireBilan = () => {
               >
                 <div class="progress-label">
                   <span class="progress-text">
-                    {{ getCopyProgress(copy).scored }}/{{ getCopyProgress(copy).total }} questions notées
+                    {{ getCopyProgress(copy).scored }}/{{ getCopyProgress(copy).total }} question{{ getCopyProgress(copy).total > 1 ? 's' : '' }} notée{{ getCopyProgress(copy).total > 1 ? 's' : '' }}
                   </span>
                   <span class="progress-percent">{{ getCopyProgress(copy).percent }}%</span>
                 </div>

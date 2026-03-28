@@ -393,7 +393,7 @@ const copyToClipboard = () => {
           v-if="modalMode === 'create'" 
           class="form-group"
         >
-          <label>Identifiant (Login)</label>
+          <label>Identifiant de connexion</label>
           <input 
             v-model="newUser.username" 
             type="text" 
@@ -403,11 +403,11 @@ const copyToClipboard = () => {
         </div>
     
         <div class="form-group">
-          <label>Email (Optionnel)</label>
+          <label>Courriel (facultatif)</label>
           <input 
             v-model="newUser.email" 
             type="email" 
-            placeholder="email@exemple.com" 
+            placeholder="prenom.nom@exemple.fr" 
             class="form-input" 
           >
         </div>
