@@ -1059,6 +1059,48 @@ const retryAllPending = async () => {
     }
 }
 
+// --- Touch gesture handlers (pinch-to-zoom + swipe page navigation) ---
+const touchState = { startX: 0, startY: 0, startDistance: 0, startScale: 1.0, isMultiTouch: false }
+
+const onScrollAreaTouchStart = (e) => {
+    if (e.touches.length === 2) {
+        touchState.isMultiTouch = true
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        touchState.startDistance = Math.hypot(dx, dy)
+        touchState.startScale = scale.value
+    } else if (e.touches.length === 1) {
+        touchState.isMultiTouch = false
+        touchState.startX = e.touches[0].clientX
+        touchState.startY = e.touches[0].clientY
+    }
+}
+
+const onScrollAreaTouchMove = (e) => {
+    if (e.touches.length === 2) {
+        e.preventDefault()
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        const distance = Math.hypot(dx, dy)
+        const ratio = distance / touchState.startDistance
+        scale.value = Math.max(0.3, Math.min(3.0, +(touchState.startScale * ratio).toFixed(2)))
+    }
+}
+
+const onScrollAreaTouchEnd = (e) => {
+    // Swipe page navigation only when no annotation mode is active and single touch
+    if (!touchState.isMultiTouch && e.changedTouches.length === 1 && annotationMode.value.group === null) {
+        const dx = e.changedTouches[0].clientX - touchState.startX
+        const dy = e.changedTouches[0].clientY - touchState.startY
+        // Horizontal swipe > 60px, more horizontal than vertical
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            if (dx > 0) goPrevPage()
+            else goNextPage()
+        }
+    }
+    touchState.isMultiTouch = false
+}
+
 onMounted(async () => {
   await fetchCopy()
   if (isReady.value) checkDrafts()
@@ -1071,6 +1113,9 @@ onMounted(async () => {
     nextTick(() => {
         if (scrollAreaRef.value) {
             scrollAreaRef.value.addEventListener('wheel', onScrollAreaWheel, { passive: false })
+            scrollAreaRef.value.addEventListener('touchstart', onScrollAreaTouchStart, { passive: true })
+            scrollAreaRef.value.addEventListener('touchmove', onScrollAreaTouchMove, { passive: false })
+            scrollAreaRef.value.addEventListener('touchend', onScrollAreaTouchEnd, { passive: true })
         }
     })
 })
@@ -1087,6 +1132,9 @@ onUnmounted(() => {
     window.removeEventListener('offline', onOffline)
     if (scrollAreaRef.value) {
         scrollAreaRef.value.removeEventListener('wheel', onScrollAreaWheel)
+        scrollAreaRef.value.removeEventListener('touchstart', onScrollAreaTouchStart)
+        scrollAreaRef.value.removeEventListener('touchmove', onScrollAreaTouchMove)
+        scrollAreaRef.value.removeEventListener('touchend', onScrollAreaTouchEnd)
     }
 })
 </script>
@@ -1483,6 +1531,7 @@ onUnmounted(() => {
                       <input
                         :id="'score-' + question.id"
                         type="number"
+                        inputmode="decimal"
                         step="0.25"
                         min="0"
                         :max="question.maxScore"
@@ -1685,7 +1734,7 @@ onUnmounted(() => {
 .question-max-score { font-size: 0.85rem; color: #666; background: #e9ecef; padding: 2px 8px; border-radius: 4px; }
 .question-score-field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .question-score-field label { font-size: 0.85rem; color: #333; font-weight: 600; min-width: 40px; }
-.score-input { width: 80px; padding: 6px 8px; border: 2px solid #ced4da; border-radius: 4px; font-size: 1rem; font-weight: 600; text-align: center; transition: border-color 0.2s; }
+.score-input { width: 80px; min-height: 44px; padding: 6px 8px; border: 2px solid #ced4da; border-radius: 4px; font-size: 1rem; font-weight: 600; text-align: center; transition: border-color 0.2s; }
 .score-input:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25); }
 .score-input.score-filled { border-color: #28a745; background: #f0fff4; }
 .score-input:disabled { background: #e9ecef; cursor: not-allowed; }
@@ -1741,4 +1790,33 @@ onUnmounted(() => {
 
 /* Zone de drop visuelle sur le canvas */
 .canvas-wrapper.drag-over { box-shadow: 0 0 0 4px #3b82f6, 0 0 20px rgba(59,130,246,0.3); }
+
+/* ── Responsive — Tablette paysage (768–1023px) ─────────────────────────── */
+@media (max-width: 1023px) and (min-width: 768px) {
+  .inspector-panel { width: 280px; }
+  .toolbar { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .actions button { min-height: 44px; padding: 8px 12px; }
+  .btn-stamp { min-height: 44px; padding: 6px 12px; }
+  .btn-annot-type { min-height: 44px; min-width: 44px; }
+  .zoom-controls button { min-height: 44px; min-width: 44px; }
+}
+
+/* ── Responsive — Tablette portrait / mobile (<768px) ──────────────────── */
+@media (max-width: 767px) {
+  .workspace { flex-direction: column; }
+  .inspector-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #dee2e6;
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+  .toolbar { flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
+  .actions button { min-height: 44px; padding: 8px 12px; }
+  .viewer-toolbar { gap: 6px; flex-wrap: wrap; }
+  .btn-stamp { min-height: 44px; padding: 6px 12px; font-size: 1rem; }
+  .btn-annot-type { min-height: 44px; min-width: 44px; }
+  .zoom-controls button { min-height: 44px; min-width: 44px; }
+  .annotation-editor-overlay { width: calc(100vw - 32px); left: 16px; transform: none; top: 80px; }
+}
 </style>
