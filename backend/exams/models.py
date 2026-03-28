@@ -320,6 +320,12 @@ class Copy(models.Model):
         verbose_name=_("Date de notation"),
         help_text=_("Timestamp de finalisation")
     )
+    finalizing_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Finalisation en cours depuis"),
+        help_text=_("Marqueur atomique anti-doublon : sert de mutex pour éviter deux finalisations simultanées")
+    )
     
     # Global appreciation for the copy
     global_appreciation = models.TextField(
