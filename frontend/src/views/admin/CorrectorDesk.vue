@@ -143,22 +143,6 @@ const isReadOnly = computed(() => isFinalized.value && !isAdmin.value && !isAssi
 const canAnnotate = computed(() => (isReady.value || (isFinalized.value && (isAdmin.value || isAssignedCorrector.value))) && !isReadOnly.value)
 const examId = computed(() => copy.value?.exam?.id || null)
 
-// Subject variant (Sujet A / Sujet B)
-const subjectVariant = computed(() => copy.value?.subject_variant || null)
-const subjectVariantSaving = ref(false)
-const handleSubjectVariantChange = async (variant) => {
-    if (subjectVariantSaving.value) return
-    subjectVariantSaving.value = true
-    try {
-        const value = variant === '' ? null : variant
-        await gradingApi.updateSubjectVariant(copyId, value)
-        if (copy.value) copy.value.subject_variant = value
-    } catch (err) {
-        error.value = err.response?.data?.detail || 'Échec de la mise à jour du sujet'
-    } finally {
-        subjectVariantSaving.value = false
-    }
-}
 
 const pages = computed(() => {
     if (!copy.value || !copy.value.booklets) return []
@@ -1119,38 +1103,6 @@ onUnmounted(() => {
           <strong>{{ copy.anonymous_id }}</strong> 
           <span :class="'status-badge status-' + copy.status.toLowerCase()">{{ getStatusLabel(copy.status) }}</span>
         </span>
-        <!-- Subject Variant (Sujet A / Sujet B) -->
-        <div
-          v-if="copy"
-          class="subject-variant-control"
-        >
-          <span
-            v-if="subjectVariant"
-            :class="'subject-badge subject-' + subjectVariant.toLowerCase()"
-          >
-            Sujet {{ subjectVariant }}
-          </span>
-          <select
-            :value="subjectVariant || ''"
-            :disabled="isReadOnly || subjectVariantSaving"
-            class="subject-select"
-            @change="handleSubjectVariantChange($event.target.value)"
-          >
-            <option value="">
-              -- Sujet --
-            </option>
-            <option value="A">
-              Sujet A
-            </option>
-            <option value="B">
-              Sujet B
-            </option>
-          </select>
-          <span
-            v-if="subjectVariantSaving"
-            class="save-indicator small"
-          >...</span>
-        </div>
       </div>
       
       <div
@@ -1752,14 +1704,6 @@ onUnmounted(() => {
 .global-appreciation-section textarea:focus { outline: none; border-color: #ffc107; box-shadow: 0 0 0 0.2rem rgba(255,193,7,0.25); }
 .global-appreciation-section textarea:disabled { background: #e9ecef; cursor: not-allowed; }
 
-/* Subject Variant (Sujet A / Sujet B) */
-.subject-variant-control { display: flex; align-items: center; gap: 8px; margin-left: 15px; }
-.subject-badge { padding: 3px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
-.subject-a { background: #3b82f6; color: white; }
-.subject-b { background: #f59e0b; color: white; }
-.subject-select { padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 0.85rem; cursor: pointer; appearance: auto; }
-.subject-select:disabled { opacity: 0.5; cursor: not-allowed; }
-.subject-select option { color: #333; background: white; }
 
 /* Suggestions */
 .btn-suggestions { background: #fef3c7; border: 1px solid #fbbf24; border-radius: 4px; cursor: pointer; font-size: 14px; padding: 4px 8px; transition: background 0.15s; }
