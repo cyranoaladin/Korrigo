@@ -29,7 +29,7 @@ test.describe('Authentication Flow', () => {
     await page.locator('[data-testid="login.submit"]').click()
 
     // Should redirect to admin dashboard
-    await page.waitForURL('**/admin-dashboard', { timeout: 10000 })
+    await page.waitForURL('**/admin/dashboard', { timeout: 10000 })
     await expect(page.locator('[data-testid="admin-dashboard"]')).toBeVisible()
   })
 
@@ -106,7 +106,7 @@ test.describe('Authentication Flow', () => {
     await page.locator('[data-testid="login.username"]').fill(ADMIN_USER)
     await page.locator('[data-testid="login.password"]').fill(ADMIN_PASS)
     await page.locator('[data-testid="login.submit"]').click()
-    await page.waitForURL('**/admin-dashboard', { timeout: 10000 })
+    await page.waitForURL('**/admin/dashboard', { timeout: 10000 })
 
     // Click logout
     await page.locator('[data-testid="logout-button"]').click()
@@ -127,7 +127,7 @@ test.describe('Authentication Flow', () => {
     await page.locator('[data-testid="login.username"]').fill(ADMIN_USER)
     await page.locator('[data-testid="login.password"]').fill(ADMIN_PASS)
     await page.locator('[data-testid="login.submit"]').click()
-    await page.waitForURL('**/admin-dashboard', { timeout: 10000 })
+    await page.waitForURL('**/admin/dashboard', { timeout: 10000 })
 
     // Refresh the page
     await page.reload()
@@ -143,7 +143,7 @@ test.describe('Authentication Flow', () => {
 
   test('unauthenticated user accessing protected route is redirected to portal', async ({ page }) => {
     // Navigate directly to a protected route without logging in
-    await page.goto('/admin-dashboard')
+    await page.goto('/admin/dashboard')
     await page.waitForLoadState('networkidle')
 
     // Should be redirected to / (portal) because requiresAuth guard kicks in
@@ -162,7 +162,7 @@ test.describe('Authentication Flow', () => {
     await page.locator('[data-testid="login.username"]').fill(ADMIN_USER)
     await page.locator('[data-testid="login.password"]').fill(ADMIN_PASS)
     await page.locator('[data-testid="login.submit"]').click()
-    await page.waitForURL('**/admin-dashboard', { timeout: 10000 })
+    await page.waitForURL('**/admin/dashboard', { timeout: 10000 })
     await expect(page.locator('[data-testid="admin-dashboard"]')).toBeVisible()
 
     // Logout
@@ -180,7 +180,7 @@ test.describe('Authentication Flow', () => {
       // If the page rendered from bfcache, it should detect no session and redirect
       await page.waitForURL(/^\/$|\/admin\/login/, { timeout: 5000 })
     }
-    expect(page.url()).not.toContain('/admin-dashboard')
+    expect(page.url()).not.toContain('/admin/dashboard')
   })
 
   // ────────────────────────────────────────

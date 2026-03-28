@@ -20,7 +20,7 @@ async function loginAsAdmin(page: Page) {
   await page.locator('[data-testid="login.username"]').fill(ADMIN_USER)
   await page.locator('[data-testid="login.password"]').fill(ADMIN_PASS)
   await page.locator('[data-testid="login.submit"]').click()
-  await page.waitForURL('**/admin-dashboard', { timeout: 10000 })
+  await page.waitForURL('**/admin/dashboard', { timeout: 10000 })
 }
 
 async function loginAsStudent(page: Page) {
