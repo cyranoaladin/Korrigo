@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import MainLayout from '../layouts/MainLayout.vue'
+import AdminLayout from '../layouts/AdminLayout.vue'
 import HomeView from '../views/HomeView.vue'
 import Home from '../views/Home.vue'
 import GuideEnseignant from '../views/GuideEnseignant.vue'
@@ -8,13 +9,12 @@ import GuideEtudiant from '../views/GuideEtudiant.vue'
 import DirectionConformite from '../views/DirectionConformite.vue'
 import StatsReport from '../views/StatsReport.vue'
 import Login from '../views/Login.vue'
-import AdminDashboard from '../views/AdminDashboard.vue'
 import CorrectorDashboard from '../views/CorrectorDashboard.vue'
 import ImportCopies from '../views/admin/ImportCopies.vue'
 import LoginStudent from '../views/student/LoginStudent.vue'
 
 function getDashboardForRole(role) {
-    if (role === 'Admin') return '/admin-dashboard'
+    if (role === 'Admin') return '/admin/dashboard'
     if (role === 'Teacher') return '/corrector-dashboard'
     if (role === 'Student') return '/student-portal'
     return '/'
@@ -90,7 +90,7 @@ const routes = [
         path: '/login',
         redirect: '/'
     },
-    // Legacy routes redirect to /korrigo/*
+    // Legacy landing redirects
     {
         path: '/guide-enseignant',
         redirect: '/korrigo/guide-enseignant'
@@ -110,13 +110,101 @@ const routes = [
         meta: { public: true }
     },
 
-    // ── Authenticated app routes ──
+    // ── Admin app (with persistent sidebar) ──
     {
-        path: '/admin-dashboard',
-        name: 'AdminDashboard',
-        component: AdminDashboard,
+        path: '/admin',
+        component: AdminLayout,
+        meta: { requiresAuth: true, role: 'Admin' },
+        children: [
+            { path: '', redirect: 'dashboard' },
+            {
+                path: 'dashboard',
+                name: 'AdminDashboard',
+                component: () => import('../views/admin/AdminOverview.vue'),
+                meta: { title: 'Vue d\'ensemble — Admin' }
+            },
+            {
+                path: 'exams',
+                name: 'ExamsList',
+                component: () => import('../views/admin/ExamsList.vue'),
+                meta: { title: 'Examens' }
+            },
+            {
+                path: 'exams/new',
+                name: 'CreateExam',
+                component: () => import('../views/admin/CreateExam.vue'),
+                meta: { title: 'Nouvel Examen' }
+            },
+            {
+                path: 'exams/:examId',
+                redirect: to => `/admin/exams/${to.params.examId}/overview`
+            },
+            {
+                path: 'exams/:examId/overview',
+                name: 'ExamOverview',
+                component: () => import('../views/admin/ExamOverview.vue'),
+                meta: { title: 'Résumé Examen' }
+            },
+            {
+                path: 'exams/:examId/copies',
+                name: 'ExamCopies',
+                component: () => import('../views/admin/ExamCopies.vue'),
+                meta: { title: 'Copies' }
+            },
+            {
+                path: 'exams/:examId/correctors',
+                name: 'ExamCorrectors',
+                component: () => import('../views/admin/ExamCorrectors.vue'),
+                meta: { title: 'Correcteurs' }
+            },
+            {
+                path: 'exams/:examId/scale',
+                name: 'MarkingSchemeView',
+                component: () => import('../views/admin/MarkingSchemeView.vue'),
+                meta: { title: 'Barème' }
+            },
+            {
+                path: 'exams/:examId/results',
+                name: 'ExamStudentList',
+                component: () => import('../views/admin/ExamStudentList.vue'),
+                meta: { title: 'Résultats' }
+            },
+            {
+                path: 'users',
+                name: 'UserManagement',
+                component: () => import('../views/admin/UserManagement.vue'),
+                meta: { title: 'Utilisateurs' }
+            },
+            {
+                path: 'settings',
+                name: 'Settings',
+                component: () => import('../views/Settings.vue'),
+                meta: { title: 'Paramètres' }
+            },
+            {
+                path: 'questionnaire',
+                name: 'QuestionnaireBilan',
+                component: () => import('../views/admin/QuestionnaireBilan.vue'),
+                meta: { title: 'Bilan Questionnaire Correcteurs' }
+            }
+        ]
+    },
+
+    // ── Admin (standalone — full-screen, no sidebar) ──
+    {
+        path: '/admin/exams/:examId/identification',
+        name: 'IdentificationDesk',
+        component: () => import('../views/admin/IdentificationDesk.vue'),
         meta: { requiresAuth: true, role: 'Admin' }
     },
+    {
+        path: '/admin/exams/:examId/staple',
+        name: 'StapleView',
+        component: () => import('../views/admin/StapleView.vue'),
+        meta: { requiresAuth: true, role: 'Admin' }
+    },
+
+    // ── Teacher / corrector routes ──
     {
         path: '/corrector-dashboard',
         name: 'CorrectorDashboard',
@@ -153,12 +241,8 @@ const routes = [
         component: () => import('../views/corrector/StudentBilan.vue'),
         meta: { requiresAuth: true, role: ['Teacher', 'Admin'] }
     },
-    {
-        path: '/exam/:examId/identification',
-        name: 'IdentificationDesk',
-        component: () => import('../views/admin/IdentificationDesk.vue'),
-        meta: { requiresAuth: true, role: 'Admin' }
-    },
+
+    // ── Student routes ──
     {
         path: '/student/change-password',
         name: 'StudentChangePassword',
@@ -171,42 +255,14 @@ const routes = [
         component: () => import('../views/student/ResultView.vue'),
         meta: { requiresAuth: true, role: 'Student' }
     },
-    {
-        path: '/admin/users',
-        name: 'UserManagement',
-        component: () => import('../views/admin/UserManagement.vue'),
-        meta: { requiresAuth: true, role: 'Admin' }
-    },
-    {
-        path: '/admin/settings',
-        name: 'Settings',
-        component: () => import('../views/Settings.vue'),
-        meta: { requiresAuth: true, role: 'Admin' }
-    },
-    {
-        path: '/questionnaire/bilan',
-        name: 'QuestionnaireBilan',
-        component: () => import('../views/admin/QuestionnaireBilan.vue'),
-        meta: { requiresAuth: true, role: ['Teacher', 'Admin'], title: 'Bilan Questionnaire Correcteurs' }
-    },
-    {
-        path: '/exam/:examId/staple',
-        name: 'StapleView',
-        component: () => import('../views/admin/StapleView.vue'),
-        meta: { requiresAuth: true, role: 'Admin' }
-    },
-    {
-        path: '/exam/:examId/grading-scale',
-        name: 'MarkingSchemeView',
-        component: () => import('../views/admin/MarkingSchemeView.vue'),
-        meta: { requiresAuth: true, role: 'Admin' }
-    },
-    {
-        path: '/exam/:examId/students',
-        name: 'ExamStudentList',
-        component: () => import('../views/admin/ExamStudentList.vue'),
-        meta: { requiresAuth: true, role: 'Admin' }
-    },
+
+    // ── Legacy redirects (backward compatibility) ──
+    { path: '/admin-dashboard', redirect: '/admin/dashboard' },
+    { path: '/exam/:examId/identification', redirect: to => `/admin/exams/${to.params.examId}/identification` },
+    { path: '/exam/:examId/staple', redirect: to => `/admin/exams/${to.params.examId}/staple` },
+    { path: '/exam/:examId/grading-scale', redirect: to => `/admin/exams/${to.params.examId}/scale` },
+    { path: '/exam/:examId/students', redirect: to => `/admin/exams/${to.params.examId}/results` },
+    { path: '/questionnaire/bilan', redirect: '/admin/questionnaire' },
 
     // ── Catch-all ──
     {

@@ -184,7 +184,7 @@ const goToDashboard = () => {
     router.push('/corrector-dashboard')
     return
   }
-  router.push('/admin-dashboard')
+  router.push('/admin/dashboard')
 }
 
 const handleLogout = async () => {
