@@ -339,7 +339,12 @@ class GradingService:
     @staticmethod
     @transaction.atomic
     def _finalize_copy_inner(copy: Copy, user, lock_token=None):
-        copy = Copy.objects.select_for_update().get(id=copy.id)
+        try:
+            copy = Copy.objects.select_for_update(nowait=True).get(id=copy.id)
+        except OperationalError as e:
+            raise LockConflictError(
+                "Finalization en cours par une autre requête — réessayez."
+            ) from e
 
         if copy.status == Copy.Status.GRADED:
             logger.warning(f"Copy {copy.id} already graded — rejecting duplicate request")
