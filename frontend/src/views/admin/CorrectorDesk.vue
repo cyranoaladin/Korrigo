@@ -1580,6 +1580,7 @@ onUnmounted(() => {
                               :placeholder="isReadOnly ? '-' : '0'"
                               class="score-input"
                               :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
+                              @wheel.prevent
                               @input="onScoreChange(question.id, $event.target.value)"
                             >
                           </div>
