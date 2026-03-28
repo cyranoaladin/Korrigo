@@ -4,7 +4,9 @@ import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
 
 const props = defineProps({
-  visible: Boolean
+  visible: Boolean,
+  examTypeCode: { type: String, default: '' },
+  examTypeName: { type: String, default: '' },
 })
 
 const emit = defineEmits(['close'])
@@ -15,6 +17,23 @@ const examTypes = ref([])
 const loading = ref(false)
 const saving = ref(false)
 const error = ref(null)
+
+// Correctors only see published reports for their exam type.
+// Admins see all reports and can edit/delete.
+const visibleReports = computed(() => {
+  if (!reports.value) return []
+  const all = (reports.value || []).filter(r => !!r)
+  if (isAdmin.value) return all
+  return all.filter(r =>
+    r.is_published &&
+    (!props.examTypeCode || r.exam_type_code === props.examTypeCode)
+  )
+})
+
+const modalTitle = computed(() => {
+  if (props.examTypeName) return `Rapport du Jury — ${props.examTypeName}`
+  return 'Rapports du Jury'
+})
 
 const showForm = ref(false)
 const formData = ref({
@@ -40,8 +59,14 @@ const fetchReports = async () => {
   loading.value = true
   error.value = null
   try {
-    const response = await api.get('/exams/reports/')
-    reports.value = response.data
+    // Scope API request to the current exam type for non-admins
+    const params = (!isAdmin.value && props.examTypeCode)
+      ? { exam_type_code: props.examTypeCode }
+      : {}
+    const response = await api.get('/exams/reports/', { params })
+    reports.value = Array.isArray(response.data)
+      ? response.data
+      : (response.data.results || [])
   } catch (err) {
     error.value = 'Erreur lors du chargement des rapports.'
     console.error(err)
@@ -102,7 +127,7 @@ onMounted(() => {
   <div v-if="visible" class="modal-overlay">
     <div class="modal-card modal-card-large jury-modal">
       <div class="modal-header-nav">
-        <h3>Gérer les Rapports de Jury</h3>
+        <h3>{{ isAdmin ? 'Gérer les rapports du jury' : modalTitle }}</h3>
         <button class="btn-close" @click="emit('close')">×</button>
       </div>
       
@@ -116,11 +141,11 @@ onMounted(() => {
           <button v-if="isAdmin" class="btn-primary" @click="openCreate">Nouveau Rapport</button>
         </div>
         
-        <div v-if="loading" class="loading">Chargement...</div>
-        <table v-else-if="reports && reports.length > 0" class="data-table">
+        <div v-if="loading" class="loading">Chargement…</div>
+        <table v-else-if="visibleReports.length > 0" class="data-table">
           <thead>
             <tr>
-              <th>Matière/Rubrique</th>
+              <th v-if="isAdmin">Matière</th>
               <th>Titre</th>
               <th>Auteur</th>
               <th>Statut</th>
@@ -128,8 +153,8 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="r in (reports || []).filter(item => !!item)" :key="r.id">
-              <td>{{ r.exam_type_name || 'Rubrique ' + r.exam_type }}</td>
+            <tr v-for="r in visibleReports" :key="r.id">
+              <td v-if="isAdmin">{{ r.exam_type_name || r.exam_type_code || '—' }}</td>
               <td>{{ r.title }}</td>
               <td>{{ r.created_by_username }}</td>
               <td>
@@ -138,7 +163,7 @@ onMounted(() => {
                 </span>
               </td>
               <td class="actions-cell">
-                <button class="btn-sm" @click="editReport(r)">Lire / Éditer</button>
+                <button class="btn-sm" @click="editReport(r)">{{ isAdmin ? 'Lire / Modifier' : 'Consulter' }}</button>
                 <button v-if="isAdmin" class="btn-sm btn-danger" @click="deleteReport(r.id)">Supprimer</button>
               </td>
             </tr>

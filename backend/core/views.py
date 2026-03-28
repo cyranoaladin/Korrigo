@@ -130,13 +130,45 @@ class UserDetailView(APIView):
         except Exception:
             pass
         
+        # Compute which exam-type codes this corrector actually has copies in.
+        # Admins/superusers get the full list so their dashboards work correctly.
+        from grading.models import Copy
+        from exams.models import ExamType
+        if _is_admin_user(user):
+            assigned_codes = list(
+                ExamType.objects.values_list('code', flat=True)
+            )
+        else:
+            assigned_codes = list(
+                Copy.objects.filter(assigned_corrector=user)
+                .values_list('exam__exam_type__code', flat=True)
+                .distinct()
+            )
+        assigned_codes = [c for c in assigned_codes if c]  # strip None
+
+        # Feature flags — business rules live here, not in the frontend.
+        # show_questionnaire: only the dedicated questionnaire coordinator.
+        QUESTIONNAIRE_USER = 'laroussi.laroussi@ert.tn'
+        features = {
+            # Rapport du jury is scoped to BAC BLANC MATHS 2026 correctors only.
+            'show_jury_report_bac_blanc': 'BBM2026' in assigned_codes,
+            # Questionnaire is only for the designated coordinator.
+            'show_questionnaire': (
+                user.username == QUESTIONNAIRE_USER
+                or user.email == QUESTIONNAIRE_USER
+            ),
+        }
+
         return Response({
             "id": user.id,
             "username": user.username,
+            "first_name": user.first_name,
             "email": user.email,
             "role": role,
             "is_superuser": user.is_superuser,
-            "must_change_password": must_change_password
+            "must_change_password": must_change_password,
+            "assigned_exam_type_codes": assigned_codes,
+            "features": features,
         })
 
 class GlobalSettingsView(APIView):
