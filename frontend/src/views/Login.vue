@@ -42,7 +42,7 @@ const handleLogin = async () => {
     
     if (success) {
         if (authStore.user?.role === 'Admin') {
-            router.push('/admin-dashboard')
+            router.push('/admin/dashboard')
         } else if (authStore.user?.role === 'Teacher') {
             router.push('/corrector-dashboard')
         } else {

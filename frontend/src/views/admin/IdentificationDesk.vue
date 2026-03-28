@@ -11,10 +11,10 @@
         Korrigo — Identification
       </h1>
       <router-link
-        to="/admin-dashboard"
+        :to="`/admin/exams/${$route.params.examId}/overview`"
         class="text-indigo-600 hover:text-indigo-800"
       >
-        ← Tableau de bord
+        ← Retour à l'examen
       </router-link>
     </header>
 
