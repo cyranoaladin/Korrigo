@@ -82,7 +82,7 @@ onMounted(fetchExams)
     <header class="bg-white border-b border-slate-200 px-6 py-4">
       <div class="max-w-7xl mx-auto flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Vue d'ensemble</h1>
+          <h1 data-testid="admin-dashboard-title" class="text-2xl font-bold text-slate-800 tracking-tight">Vue d'ensemble</h1>
           <p class="text-sm text-slate-500 mt-0.5">Tableau de bord administrateur</p>
         </div>
         <div class="flex items-center gap-3">
