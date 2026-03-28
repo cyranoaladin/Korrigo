@@ -182,12 +182,12 @@ class TestExamSourceUploadProtection:
             date='2024-01-15',
             upload_mode='BATCH_A3'
         )
-        
-        # Create a READY copy (simulating already validated)
+
+        # Create an IN_PROGRESS copy (correction has started — must block re-upload)
         Copy.objects.create(
             exam=exam,
             anonymous_id='BLOCK-001',
-            status=Copy.Status.READY
+            status=Copy.Status.IN_PROGRESS
         )
         
         pdf_bytes = create_valid_pdf(pages=4)
