@@ -77,7 +77,7 @@ onMounted(fetchExams)
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50">
+  <div data-testid="admin-dashboard" class="min-h-screen bg-slate-50">
     <!-- Header -->
     <header class="bg-white border-b border-slate-200 px-6 py-4">
       <div class="max-w-7xl mx-auto flex items-center justify-between">

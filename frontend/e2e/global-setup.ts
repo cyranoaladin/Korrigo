@@ -79,7 +79,7 @@ export default async function globalSetup() {
 
         // Navigate to dashboard to verify auth works (protected route)
         // This triggers the real app hydration via router guard
-        await page.goto(`${baseURL}/admin-dashboard`, { waitUntil: 'networkidle', timeout: 30000 });
+        await page.goto(`${baseURL}/admin/dashboard`, { waitUntil: 'networkidle', timeout: 30000 });
 
         // Verify dashboard UI is visible, confirming real code hydration
         await expect(page.getByTestId('admin-dashboard')).toBeVisible({ timeout: 15000 });
