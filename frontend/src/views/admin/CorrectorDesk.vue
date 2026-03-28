@@ -123,16 +123,20 @@ const isGraded = isFinalized // alias for backward compatibility
 // Anonymization: hide student identity on header pages (1+4*N) and last page (annexe)
 const isAdmin = computed(() => authStore.user?.is_superuser || authStore.user?.role === 'Admin')
 const showIdentity = ref(false) // Only admin can toggle this
+const isLastPage = computed(() => {
+    const total = pages.value.length
+    return total > 0 && currentPage.value === total
+})
 const isHeaderPage = computed(() => {
     const ppb = copy.value?.exam?.pages_per_booklet || 4
     const page = currentPage.value
-    const total = pages.value.length
     // Pages 1, 5, 9, 13... (formula: 1 + 4*N) have identity headers
     const isPeriodicHeader = ((page - 1) % ppb) === 0
     // Last page is the annexe, also has an identity header
-    const isLastPage = total > 0 && page === total
-    return isPeriodicHeader || isLastPage
+    return isPeriodicHeader || isLastPage.value
 })
+// Last page (annexe) has a smaller identity header (~8% vs ~22% for booklet pages)
+const overlayHeight = computed(() => isLastPage.value ? '10%' : '27%')
 
 const isAssignedCorrector = computed(() => {
     const userId = authStore.user?.id
@@ -1348,6 +1352,7 @@ onUnmounted(() => {
             <div
               v-show="isHeaderPage && !showIdentity"
               class="anonymization-overlay"
+              :style="{ height: overlayHeight }"
             >
               <div class="anonymization-label">
                 🔒 Zone d'identification masquée
