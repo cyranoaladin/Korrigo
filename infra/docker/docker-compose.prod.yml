@@ -94,9 +94,12 @@ services:
       - /var/www/labomaths/korrigo/overlay/grading/tasks.py:/app/grading/tasks.py:ro
       - /var/www/labomaths/korrigo/overlay/grading/pdf_processor.py:/app/grading/pdf_processor.py:ro
       - /var/www/labomaths/korrigo/overlay/grading/migrations/0013_score_unique_copy_constraint.py:/app/grading/migrations/0013_score_unique_copy_constraint.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/migrations/0017_alter_gradingevent_action.py:/app/grading/migrations/0017_alter_gradingevent_action.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/migrations/0018_alter_gradingevent_action.py:/app/grading/migrations/0018_alter_gradingevent_action.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/views_stats.py:/app/exams/views_stats.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/migrations/0022_copy_llm_summary.py:/app/exams/migrations/0022_copy_llm_summary.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/migrations/0023_copy_performance_indexes_lot8.py:/app/exams/migrations/0023_copy_performance_indexes_lot8.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0029_remove_copy_finalizing_at_alter_copy_status.py:/app/exams/migrations/0029_remove_copy_finalizing_at_alter_copy_status.py:ro
       - /var/www/labomaths/korrigo/overlay/identification/models.py:/app/identification/models.py:ro
       - /var/www/labomaths/korrigo/overlay/identification/services.py:/app/identification/services.py:ro
       - /var/www/labomaths/korrigo/overlay/identification/views.py:/app/identification/views.py:ro
@@ -203,9 +206,12 @@ services:
       - /var/www/labomaths/korrigo/overlay/grading/tasks.py:/app/grading/tasks.py:ro
       - /var/www/labomaths/korrigo/overlay/grading/pdf_processor.py:/app/grading/pdf_processor.py:ro
       - /var/www/labomaths/korrigo/overlay/grading/migrations/0013_score_unique_copy_constraint.py:/app/grading/migrations/0013_score_unique_copy_constraint.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/migrations/0017_alter_gradingevent_action.py:/app/grading/migrations/0017_alter_gradingevent_action.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/migrations/0018_alter_gradingevent_action.py:/app/grading/migrations/0018_alter_gradingevent_action.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/views_stats.py:/app/exams/views_stats.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/migrations/0022_copy_llm_summary.py:/app/exams/migrations/0022_copy_llm_summary.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/migrations/0023_copy_performance_indexes_lot8.py:/app/exams/migrations/0023_copy_performance_indexes_lot8.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0029_remove_copy_finalizing_at_alter_copy_status.py:/app/exams/migrations/0029_remove_copy_finalizing_at_alter_copy_status.py:ro
       - /var/www/labomaths/korrigo/overlay/identification/models.py:/app/identification/models.py:ro
       - /var/www/labomaths/korrigo/overlay/identification/services.py:/app/identification/services.py:ro
       - /var/www/labomaths/korrigo/overlay/identification/views.py:/app/identification/views.py:ro
@@ -276,6 +282,7 @@ services:
     volumes:
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
+      - /var/www/labomaths/korrigo/frontend:/usr/share/nginx/html:ro
     depends_on:
       - backend
     healthcheck:
