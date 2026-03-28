@@ -185,11 +185,14 @@ const redraw = (ctx) => {
     }
 }
 
-// Watchers
+// Watchers — flush:'post' ensures the watcher runs AFTER Vue updates the canvas
+// width/height attributes (which auto-clear the canvas). Calling setupCanvas()
+// synchronously here means clear + redraw happen before the browser paints,
+// so there is never a blank-canvas frame visible to the user.
 watch(
-    [() => props.width, () => props.height, () => props.scale, () => props.initialAnnotations], 
-    () =>  requestAnimationFrame(() => setupCanvas()),
-    { deep: true }
+    [() => props.width, () => props.height, () => props.scale, () => props.initialAnnotations],
+    () => setupCanvas(),
+    { deep: true, flush: 'post' }
 )
 
 onMounted(() => {
