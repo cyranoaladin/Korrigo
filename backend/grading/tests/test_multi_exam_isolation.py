@@ -121,7 +121,8 @@ def test_corrector_bac_sees_only_bac_copies(bac_exam, dnb_exam, corrector_bac, c
     # Via /api/exams/{bac_id}/copies/
     resp = client.get(f"/api/exams/{bac_exam.id}/copies/")
     assert resp.status_code == http_status.HTTP_200_OK
-    ids = [c["anonymous_id"] for c in resp.data]
+    results = resp.data.get("results", resp.data) if isinstance(resp.data, dict) else resp.data
+    ids = [c["anonymous_id"] for c in results]
     assert "BAC-001" in ids
     assert "DNB-001" not in ids
 
@@ -138,7 +139,8 @@ def test_corrector_dnb_sees_only_dnb_copies(bac_exam, dnb_exam, corrector_bac, c
 
     resp = client.get(f"/api/exams/{dnb_exam.id}/copies/")
     assert resp.status_code == http_status.HTTP_200_OK
-    ids = [c["anonymous_id"] for c in resp.data]
+    results = resp.data.get("results", resp.data) if isinstance(resp.data, dict) else resp.data
+    ids = [c["anonymous_id"] for c in results]
     assert "DNB-001" in ids
     assert "BAC-001" not in ids
 
@@ -155,12 +157,14 @@ def test_admin_sees_all_copies(bac_exam, dnb_exam, admin_user, bac_copy, dnb_cop
 
     resp_bac = client.get(f"/api/exams/{bac_exam.id}/copies/")
     assert resp_bac.status_code == http_status.HTTP_200_OK
-    bac_ids = [c["anonymous_id"] for c in resp_bac.data]
+    bac_results = resp_bac.data.get("results", resp_bac.data) if isinstance(resp_bac.data, dict) else resp_bac.data
+    bac_ids = [c["anonymous_id"] for c in bac_results]
     assert "BAC-001" in bac_ids
 
     resp_dnb = client.get(f"/api/exams/{dnb_exam.id}/copies/")
     assert resp_dnb.status_code == http_status.HTTP_200_OK
-    dnb_ids = [c["anonymous_id"] for c in resp_dnb.data]
+    dnb_results = resp_dnb.data.get("results", resp_dnb.data) if isinstance(resp_dnb.data, dict) else resp_dnb.data
+    dnb_ids = [c["anonymous_id"] for c in dnb_results]
     assert "DNB-001" in dnb_ids
 
 
