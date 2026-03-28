@@ -45,16 +45,16 @@ class Command(BaseCommand):
 
         total_recovered = 0
 
-        # Recovery: GRADING_IN_PROGRESS copies abandoned for too long
+        # Recovery: IN_PROGRESS copies abandoned for too long
         locked_cutoff = timezone.now() - timedelta(minutes=locked_threshold)
         stuck_in_progress = Copy.objects.filter(
-            status=Copy.Status.GRADING_IN_PROGRESS,
+            status=Copy.Status.IN_PROGRESS,
             assigned_at__lt=locked_cutoff
         ).select_related('exam')
 
         in_progress_count = stuck_in_progress.count()
         if in_progress_count > 0:
-            self.stdout.write(f'\nFound {in_progress_count} abandoned GRADING_IN_PROGRESS copies (older than {locked_threshold} min)')
+            self.stdout.write(f'\nFound {in_progress_count} abandoned IN_PROGRESS copies (older than {locked_threshold} min)')
             for copy in stuck_in_progress:
                 self.stdout.write(f'  - Copy {copy.id} (exam: {copy.exam.name})')
                 if not dry_run:

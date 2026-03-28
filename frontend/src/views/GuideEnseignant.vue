@@ -58,10 +58,9 @@
           Statuts des copies :
         </h4>
         <ul class="space-y-2 text-sm">
-          <li><span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-2" /><strong>PRÊT :</strong> Copie identifiée, prête à corriger. Cliquez pour verrouiller et commencer.</li>
-          <li><span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-2" /><strong>VERROUILLÉE (par vous) :</strong> Vous êtes en train de corriger. Cliquez pour continuer.</li>
-          <li><span class="inline-block w-3 h-3 rounded-full bg-orange-500 mr-2" /><strong>VERROUILLÉE (autre) :</strong> Un collègue corrige cette copie. Attendez la libération.</li>
-          <li><span class="inline-block w-3 h-3 rounded-full bg-gray-400 mr-2" /><strong>CORRIGÉE :</strong> Correction finalisée (GRADED). Consultation uniquement.</li>
+          <li><span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-2" /><strong>PRÊT (READY) :</strong> Copie identifiée, prête à corriger. Cliquez pour verrouiller et commencer.</li>
+          <li><span class="inline-block w-3 h-3 rounded-full bg-amber-400 mr-2" /><strong>EN COURS (IN_PROGRESS) :</strong> Correction en cours (par vous ou un collègue). Heartbeat actif.</li>
+          <li><span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-2" /><strong>FINALISÉE (FINALIZED) :</strong> Correction finalisée. PDF généré. Consultation uniquement.</li>
         </ul>
       </div>
       <p class="mb-3">

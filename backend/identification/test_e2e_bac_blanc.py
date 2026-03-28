@@ -173,7 +173,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         print("=== ÉTAPE 5: Finalisation ===")
         
         # Finaliser la copie
-        copy.status = Copy.Status.GRADED
+        copy.status = Copy.Status.FINALIZED
         copy.graded_at = timezone.now()
         copy.save()
         
@@ -191,7 +191,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         
         # Vérifier l'état final
         copy.refresh_from_db()
-        self.assertEqual(copy.status, Copy.Status.GRADED)
+        self.assertEqual(copy.status, Copy.Status.FINALIZED)
         self.assertIsNotNone(copy.graded_at)
         
         # Vérifier les annotations
@@ -222,7 +222,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         print(f"   - Données prêtes pour export: {export_data}")
         
         # Vérifier que toutes les étapes sont complètes
-        self.assertEqual(export_data['status'], Copy.Status.GRADED)
+        self.assertEqual(export_data['status'], Copy.Status.FINALIZED)
         self.assertEqual(export_data['student_name'], "Jean BacBlanc")
         self.assertEqual(export_data['annotations_count'], 1)
         self.assertGreaterEqual(export_data['events_count'], 2)
@@ -263,13 +263,13 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         self.assertEqual(copy.status, Copy.Status.READY)
         
         # Transition: READY → GRADED (via finalisation, simplified workflow)
-        copy.status = Copy.Status.GRADED
+        copy.status = Copy.Status.FINALIZED
         copy.graded_at = timezone.now()
         copy.save()
         
         copy.refresh_from_db()
         print(f"   - Transition READY → GRADED: {copy.status}")
-        self.assertEqual(copy.status, Copy.Status.GRADED)
+        self.assertEqual(copy.status, Copy.Status.FINALIZED)
         
         print("✅ TRANSITIONS ÉTATS VALIDES!")
         
@@ -321,7 +321,7 @@ class BacBlancSecurityTest(TestCase):
         self.copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="SECURITY_TEST",
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             student=self.student1,
             is_identified=True
         )

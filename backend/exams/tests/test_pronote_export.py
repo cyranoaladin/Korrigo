@@ -134,7 +134,7 @@ class PronoteExporterGradeCalculationTests(TestCase):
             anonymous_id='COPY001',
             student=self.student,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         
         self.user = User.objects.create_user(
@@ -202,7 +202,7 @@ class PronoteExporterGradeCalculationTests(TestCase):
             anonymous_id='COPY002',
             student=self.student,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         # Create annotations with score_delta: 16 + 14 = 30 out of 40
         Annotation.objects.create(
@@ -246,7 +246,7 @@ class PronoteExporterGradeCalculationTests(TestCase):
             anonymous_id='COPY003',
             student=self.student,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         Annotation.objects.create(
             copy=copy2,
@@ -273,7 +273,7 @@ class PronoteExporterGradeCalculationTests(TestCase):
             anonymous_id='COPY_EMPTY',
             student=self.student,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         
         with self.assertRaises(ValueError) as cm:
@@ -318,7 +318,7 @@ class PronoteExporterValidationTests(TestCase):
         Copy.objects.create(
             exam=self.exam,
             anonymous_id='STAGING001',
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
         
         result = self.exporter.validate_export_eligibility()
@@ -331,7 +331,7 @@ class PronoteExporterValidationTests(TestCase):
         Copy.objects.create(
             exam=self.exam,
             anonymous_id='GRADED001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=False
         )
         
@@ -347,7 +347,7 @@ class PronoteExporterValidationTests(TestCase):
             anonymous_id='COPY_NO_STUDENT',
             student=None,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         
         result = self.exporter.validate_export_eligibility()
@@ -363,7 +363,7 @@ class PronoteExporterValidationTests(TestCase):
             anonymous_id='VALID001',
             student=self.student,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         Annotation.objects.create(
             copy=copy,
@@ -386,7 +386,7 @@ class PronoteExporterValidationTests(TestCase):
             anonymous_id='COMMENT001',
             student=self.student,
             is_identified=True,
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             global_appreciation="Bien; mais peut mieux faire"
         )
         Annotation.objects.create(
@@ -440,7 +440,7 @@ class PronoteExporterCSVGenerationTests(TestCase):
             anonymous_id='CSV001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             global_appreciation="Excellent travail"
         )
         Annotation.objects.create(
@@ -470,14 +470,14 @@ class PronoteExporterCSVGenerationTests(TestCase):
             anonymous_id='MULTI001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         copy2 = Copy.objects.create(
             exam=self.exam,
             anonymous_id='MULTI002',
             student=self.student2,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         
         Annotation.objects.create(
@@ -508,7 +508,7 @@ class PronoteExporterCSVGenerationTests(TestCase):
             exam=self.exam,
             anonymous_id='INVALID001',
             is_identified=False,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         
         with self.assertRaises(ValidationError):
@@ -523,7 +523,7 @@ class PronoteExporterCSVGenerationTests(TestCase):
             anonymous_id='COEFF001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         Annotation.objects.create(
             copy=copy,

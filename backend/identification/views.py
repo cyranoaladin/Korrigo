@@ -73,7 +73,7 @@ class ManualIdentifyView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
         # Vérifier que la copie n'est pas déjà finalisée
-        if copy.status == Copy.Status.GRADED:
+        if copy.status == Copy.Status.FINALIZED:
             return Response({
                 'error': f'Impossible d\'identifier une copie déjà finalisée'
             }, status=status.HTTP_400_BAD_REQUEST)

@@ -133,16 +133,16 @@ class StatsReportView(APIView):
 
         # Gather scores
         j1_pairs = self._scores_for_copies(
-            Copy.objects.filter(exam=bb_j1, status='GRADED'))
+            Copy.objects.filter(exam=bb_j1, status='FINALIZED'))
         j2_pairs = self._scores_for_copies(
-            Copy.objects.filter(exam=bb_j2, status='GRADED'))
+            Copy.objects.filter(exam=bb_j2, status='FINALIZED'))
 
         j1_scores = sorted([t for _, t in j1_pairs])
         j2_scores = sorted([t for _, t in j2_pairs])
         all_scores = sorted(j1_scores + j2_scores)
 
         n_correctors = (
-            Copy.objects.filter(status='GRADED')
+            Copy.objects.filter(status='FINALIZED')
             .values('assigned_corrector').distinct().count()
         )
 
@@ -374,7 +374,7 @@ class StatsReportView(APIView):
         q_max = _get_leaves(exam.grading_structure)
 
         all_sd = []
-        for c in Copy.objects.filter(exam=exam, status='GRADED'):
+        for c in Copy.objects.filter(exam=exam, status='FINALIZED'):
             score_obj = Score.objects.filter(copy=c).first()
             if score_obj and score_obj.scores_data:
                 all_sd.append(score_obj.scores_data)
@@ -473,7 +473,7 @@ class StatsReportView(APIView):
     # ------------------------------------------------------------------ quality
     def _compute_quality(self):
         """Quality KPIs: remarks, annotations, appreciations, LLM summaries."""
-        total_copies = Copy.objects.filter(status='GRADED').count()
+        total_copies = Copy.objects.filter(status='FINALIZED').count()
 
         remarks_count = QuestionRemark.objects.count()
         copies_with_remarks = (
@@ -486,14 +486,14 @@ class StatsReportView(APIView):
         )
 
         copies_with_appreciation = (
-            Copy.objects.filter(status='GRADED')
+            Copy.objects.filter(status='FINALIZED')
             .exclude(Q(global_appreciation__isnull=True) | Q(global_appreciation=''))
             .count()
         )
         appreciation_rate = round(copies_with_appreciation / total_copies * 100) if total_copies else 0
 
         copies_with_llm = (
-            Copy.objects.filter(status='GRADED')
+            Copy.objects.filter(status='FINALIZED')
             .exclude(Q(llm_summary__isnull=True) | Q(llm_summary=''))
             .count()
         )
@@ -529,7 +529,7 @@ class StatsReportView(APIView):
             ('Ensemble Correct', ['ensemble correct']),
         ]
         appreciations = list(
-            Copy.objects.filter(status='GRADED')
+            Copy.objects.filter(status='FINALIZED')
             .exclude(Q(global_appreciation__isnull=True) | Q(global_appreciation=''))
             .values_list('global_appreciation', flat=True)
         )

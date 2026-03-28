@@ -132,7 +132,7 @@ class ProtectedMediaView(APIView):
         # Get all copy IDs for this student where results are released
         student_copies = Copy.objects.filter(
             student=student,
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             exam__results_released_at__isnull=False,
         )
 

@@ -46,9 +46,9 @@ const getStatusClass = (status) => {
 
 const getStatusLabel = (status) => {
     const labels = {
-        'STAGING': 'En attente',
         'READY': 'Prêt',
-        'GRADED': 'Corrigé',
+        'IN_PROGRESS': 'En cours',
+        'FINALIZED': 'Finalisée',
     }
     return labels[status] || status
 }
@@ -176,9 +176,9 @@ onMounted(fetchStudents)
 .copy-summary { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
 .exam-name { color: #475569; font-weight: 500; min-width: 60px; }
 .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
-.status-badge.graded { background: #dcfce7; color: #166534; }
+.status-badge.finalized { background: #dcfce7; color: #166534; }
 .status-badge.ready { background: #dbeafe; color: #1d4ed8; }
-.status-badge.staging { background: #f1f5f9; color: #64748b; }
+.status-badge.in_progress { background: #FEF3C7; color: #92400e; }
 .score { font-weight: 700; color: #0f172a; min-width: 50px; text-align: right; }
 .score.pending { color: #94a3b8; }
 .corrector-name { color: #6366f1; font-size: 0.75rem; font-weight: 500; background: #eef2ff; padding: 2px 6px; border-radius: 4px; }

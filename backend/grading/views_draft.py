@@ -73,8 +73,8 @@ class DraftReturnView(views.APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-            if copy.status == Copy.Status.GRADED:
-                return Response({"detail": "Impossible de sauvegarder un brouillon sur une copie corrigée."}, status=status.HTTP_400_BAD_REQUEST)
+            if copy.status == Copy.Status.FINALIZED:
+                return Response({"detail": "Impossible de sauvegarder un brouillon sur une copie finalisée."}, status=status.HTTP_400_BAD_REQUEST)
 
             payload = request.data.get('payload', {})
             client_id = request.data.get('client_id')

@@ -53,7 +53,7 @@ class Command(BaseCommand):
         
         # We need at least 1 Staging, 1 Ready, 1 Locked
         # Let's map indices to strict targets
-        targets = [Copy.Status.READY, Copy.Status.STAGING]
+        targets = [Copy.Status.READY, Copy.Status.READY]
         
         for i in range(num_copies):
             target = targets[i % len(targets)]
@@ -64,7 +64,7 @@ class Command(BaseCommand):
                 id=copy_uuid,
                 exam=exam,
                 anonymous_id=f"ROBUST-{i+1}",
-                status=Copy.Status.STAGING 
+                status=Copy.Status.READY 
             )
             
             # PDF & Media
@@ -85,7 +85,7 @@ class Command(BaseCommand):
             
             images_url_sample = pages_images[0] if pages_images else "N/A"
             
-            if target == Copy.Status.STAGING:
+            if target == Copy.Status.READY:
                 # Done, leave as STAGING
                 self.stdout.write(f"  [STAGING] UUID: {copy.id}")
                 

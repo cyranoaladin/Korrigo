@@ -21,8 +21,8 @@ const refreshInterval = ref(null)
 // Computed
 const stats = computed(() => {
   const total = copies.value.length
-  const graded = copies.value.filter(c => c.status === 'GRADED').length
-  const inProgress = copies.value.filter(c => c.status === 'GRADING_IN_PROGRESS').length
+  const graded = copies.value.filter(c => c.status === 'FINALIZED').length
+  const inProgress = copies.value.filter(c => c.status === 'IN_PROGRESS').length
   const ready = copies.value.filter(c => c.status === 'READY').length
   
   return {
@@ -116,22 +116,18 @@ const selectCopy = (copy) => {
 
 const getStatusColor = (status) => {
   const colors = {
-    'GRADED': '#4caf50',
-    'GRADING_IN_PROGRESS': '#ff9800',
+    'FINALIZED': '#4caf50',
+    'IN_PROGRESS': '#ff9800',
     'READY': '#2196f3',
-    'STAGING': '#9e9e9e',
-    'GRADING_FAILED': '#f44336'
   }
   return colors[status] || '#9e9e9e'
 }
 
 const getStatusLabel = (status) => {
   const labels = {
-    'GRADED': 'Corrigé',
-    'GRADING_IN_PROGRESS': 'En cours',
+    'FINALIZED': 'Finalisée',
+    'IN_PROGRESS': 'En cours',
     'READY': 'Prêt',
-    'STAGING': 'En attente',
-    'GRADING_FAILED': 'Échec'
   }
   return labels[status] || status
 }

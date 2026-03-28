@@ -86,7 +86,7 @@ class TestAnonymizationInvariant(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="ANON-LINK-001",
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
         )
         self.assertIsNone(copy.student)
         self.assertFalse(copy.is_identified)
@@ -232,7 +232,7 @@ class TestScoreInvariants(TestCase):
         # Negative score
         copy_neg = Copy.objects.create(
             exam=self.exam, anonymous_id="CLAMP-NEG",
-            status=Copy.Status.GRADED, is_identified=True
+            status=Copy.Status.FINALIZED, is_identified=True
         )
         Annotation.objects.create(
             copy=copy_neg, page_index=0, x=0.1, y=0.1, w=0.1, h=0.1,
@@ -244,7 +244,7 @@ class TestScoreInvariants(TestCase):
         # Over-20 score
         copy_over = Copy.objects.create(
             exam=self.exam, anonymous_id="CLAMP-OVER",
-            status=Copy.Status.GRADED, is_identified=True
+            status=Copy.Status.FINALIZED, is_identified=True
         )
         Annotation.objects.create(
             copy=copy_over, page_index=0, x=0.1, y=0.1, w=0.1, h=0.1,
@@ -268,7 +268,7 @@ class TestStateMachineInvariants(TestCase):
     def test_cannot_finalize_graded_copy_raises_lock_conflict(self):
         """Already-GRADED copies raise LockConflictError on finalize attempt."""
         copy = Copy.objects.create(
-            exam=self.exam, anonymous_id="SM-001", status=Copy.Status.GRADED
+            exam=self.exam, anonymous_id="SM-001", status=Copy.Status.FINALIZED
         )
         with self.assertRaises(LockConflictError):
             GradingService.finalize_copy(copy, self.teacher)
@@ -282,12 +282,12 @@ class TestStateMachineInvariants(TestCase):
         with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy", return_value=b"%PDF-test"):
             GradingService.finalize_copy(copy, self.teacher)
         copy.refresh_from_db()
-        self.assertEqual(copy.status, Copy.Status.GRADED)
+        self.assertEqual(copy.status, Copy.Status.FINALIZED)
 
     def test_cannot_validate_graded_copy(self):
         """GRADED copies cannot be re-validated."""
         copy = Copy.objects.create(
-            exam=self.exam, anonymous_id="SM-004", status=Copy.Status.GRADED
+            exam=self.exam, anonymous_id="SM-004", status=Copy.Status.FINALIZED
         )
         with self.assertRaises(ValueError):
             GradingService.validate_copy(copy, self.teacher)
@@ -295,7 +295,7 @@ class TestStateMachineInvariants(TestCase):
     def test_double_finalize_raises_lock_conflict(self):
         """Finalizing an already-GRADED copy raises LockConflictError."""
         copy = Copy.objects.create(
-            exam=self.exam, anonymous_id="SM-005", status=Copy.Status.GRADED
+            exam=self.exam, anonymous_id="SM-005", status=Copy.Status.FINALIZED
         )
         with self.assertRaises(LockConflictError):
             GradingService.finalize_copy(copy, self.teacher)
@@ -322,7 +322,7 @@ class TestPronoteExportFormat(TestCase):
         )
         self.copy = Copy.objects.create(
             exam=self.exam, anonymous_id="EXPORT-001",
-            status=Copy.Status.GRADED, is_identified=True,
+            status=Copy.Status.FINALIZED, is_identified=True,
             student=self.student,
             global_appreciation="Très bien; effort remarquable"
         )

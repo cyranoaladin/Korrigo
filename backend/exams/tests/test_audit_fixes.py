@@ -56,7 +56,7 @@ class TestGenerateAnonymousId:
         Copy.objects.create(
             exam=exam,
             anonymous_id=f"{prefix}-001",
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
         
         # generate_anonymous_id should detect collision and use fallback
@@ -79,7 +79,7 @@ class TestGenerateAnonymousId:
             Copy.objects.create(
                 exam=exam,
                 anonymous_id=new_id,
-                status=Copy.Status.STAGING
+                status=Copy.Status.READY
             )
 
 
@@ -131,7 +131,7 @@ class TestAutoValidation:
         copy = Copy.objects.create(
             exam=exam,
             anonymous_id='TEST-001',
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
         copy.booklets.add(booklet)
         
@@ -155,7 +155,7 @@ class TestAutoValidation:
         copy = Copy.objects.create(
             exam=exam,
             anonymous_id='TEST-002',
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
         copy.booklets.add(booklet)
         
@@ -215,7 +215,7 @@ class TestExamSourceUploadProtection:
         Copy.objects.create(
             exam=exam,
             anonymous_id='ALLOW-001',
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
         
         pdf_file = create_uploadedfile(pdf_bytes, filename="reupload.pdf")
@@ -267,7 +267,7 @@ class TestDispatchFilter:
         Copy.objects.create(
             exam=exam,
             anonymous_id='DISP-002',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             graded_at=timezone.now()
         )
         

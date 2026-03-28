@@ -30,8 +30,8 @@ const fetchData = async () => {
   } finally { loading.value = false }
 }
 
-const statusLabel = (s) => ({ GRADED:'Corrigée', READY:'Prête', STAGING:'En attente' }[s] || s)
-const statusColor = (s) => ({ GRADED:'bg-emerald-100 text-emerald-700', READY:'bg-blue-100 text-blue-700', STAGING:'bg-amber-100 text-amber-700' }[s] || 'bg-gray-100 text-gray-600')
+const statusLabel = (s) => ({ FINALIZED:'Finalisée', READY:'Prête', IN_PROGRESS:'En cours' }[s] || s)
+const statusColor = (s) => ({ FINALIZED:'bg-emerald-100 text-emerald-700', READY:'bg-blue-100 text-blue-700', IN_PROGRESS:'bg-amber-100 text-amber-700' }[s] || 'bg-gray-100 text-gray-600')
 const scoreColor = (score) => {
   if (score === null) return 'text-gray-400'
   if (score >= 16) return 'text-emerald-600 font-bold'
@@ -143,9 +143,9 @@ onMounted(fetchData)
           </select>
           <select v-model="filterStatus" class="px-4 py-2.5 bg-white rounded-xl ring-1 ring-slate-200 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
             <option value="all">Tous les statuts</option>
-            <option value="GRADED">Corrigées</option>
+            <option value="FINALIZED">Finalisées</option>
             <option value="READY">Prêtes</option>
-            <option value="STAGING">En attente</option>
+            <option value="IN_PROGRESS">En cours</option>
           </select>
           <span class="text-xs text-slate-400">{{ filteredCopies.length }} résultat(s)</span>
         </div>

@@ -250,12 +250,19 @@ class StudentImportView(views.APIView):
         try:
             decoded_file = file_obj.read().decode('utf-8')
             io_string = io.StringIO(decoded_file)
-            
+
             # Auto-detect if it looks like XML
             if decoded_file.strip().startswith('<'):
                  return Response({'error': "XML Sconet parsing not fully implemented yet, please use CSV format"}, status=status.HTTP_501_NOT_IMPLEMENTED)
-            
-            reader = csv.reader(io_string, delimiter=',')
+
+            # Auto-detect separator
+            sample = decoded_file[:4096]
+            try:
+                dialect = csv.Sniffer().sniff(sample, delimiters=',;\t')
+                delimiter = dialect.delimiter
+            except csv.Error:
+                delimiter = ';'  # fallback to French standard
+            reader = csv.reader(io_string, delimiter=delimiter)
             
             for idx, row in enumerate(reader):
                 line_num = idx + 1

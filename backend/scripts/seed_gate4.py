@@ -77,14 +77,14 @@ def seed_gate4(student_date_naissance=None, student_lastname=None, student_first
         exam=exam,
         anonymous_id="GATE4-GRADED",
         defaults={
-            "status": Copy.Status.GRADED,
+            "status": Copy.Status.FINALIZED,
             "student": student,
             "is_identified": True
         }
     )
     # Ensure it is graded (idempotent seed)
-    if copy_graded.status != Copy.Status.GRADED:
-        copy_graded.status = Copy.Status.GRADED
+    if copy_graded.status != Copy.Status.FINALIZED:
+        copy_graded.status = Copy.Status.FINALIZED
         copy_graded.student = student
         copy_graded.is_identified = True
         copy_graded.save(update_fields=["status", "student", "is_identified"])
@@ -103,13 +103,13 @@ def seed_gate4(student_date_naissance=None, student_lastname=None, student_first
         exam=exam,
         anonymous_id="GATE4-LOCKED",
         defaults={
-            "status": Copy.Status.GRADING_IN_PROGRESS,
+            "status": Copy.Status.IN_PROGRESS,
             "student": student,
             "is_identified": True
         }
     )
-    if copy_locked.status != Copy.Status.GRADING_IN_PROGRESS:
-        copy_locked.status = Copy.Status.GRADING_IN_PROGRESS
+    if copy_locked.status != Copy.Status.IN_PROGRESS:
+        copy_locked.status = Copy.Status.IN_PROGRESS
         copy_locked.student = student
         copy_locked.is_identified = True
         copy_locked.save(update_fields=["status", "student", "is_identified"])
@@ -135,13 +135,13 @@ def seed_gate4(student_date_naissance=None, student_lastname=None, student_first
         exam=exam,
         anonymous_id="GATE4-OTHER",
         defaults={
-            "status": Copy.Status.GRADED,
+            "status": Copy.Status.FINALIZED,
             "student": other_student,
             "is_identified": True
         }
     )
-    if copy_other.status != Copy.Status.GRADED:
-        copy_other.status = Copy.Status.GRADED
+    if copy_other.status != Copy.Status.FINALIZED:
+        copy_other.status = Copy.Status.FINALIZED
         copy_other.student = other_student
         copy_other.is_identified = True
         copy_other.save(update_fields=["status", "student", "is_identified"])

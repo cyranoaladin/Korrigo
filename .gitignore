@@ -72,6 +72,7 @@ PROOF_PACK_FINAL/
 RELEASE_PACK/
 PROOF_PACK_FINAL/
 /release/
+proofs/
 proofs/artifacts/
 *.zip
 *.tar.gz

@@ -309,7 +309,15 @@ class Command(BaseCommand):
 
         result: dict[str, list[str]] = {}
         with open(CLASSES_CSV, newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
+            # Auto-detect separator
+            sample = f.read(4096)
+            f.seek(0)
+            try:
+                dialect = csv.Sniffer().sniff(sample, delimiters=',;\t')
+                delimiter = dialect.delimiter
+            except csv.Error:
+                delimiter = ';'  # fallback to French standard
+            reader = csv.DictReader(f, delimiter=delimiter)
             for row in reader:
                 classe = row.get("Classe", "").strip()
                 mail = row.get("Mail", "").strip().lower()

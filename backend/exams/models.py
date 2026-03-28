@@ -183,9 +183,9 @@ class Copy(models.Model):
     Entité finale validée. Une copie peut être composée de plusieurs fascicules fusionnés.
     """
     class Status(models.TextChoices):
-        READY = 'READY', _("Prêt à corriger")
-        GRADING_IN_PROGRESS = 'GRADING_IN_PROGRESS', _("Correction en cours")
-        GRADED = 'GRADED', _("Finalisée")
+        READY = 'READY', _("Prêt")
+        IN_PROGRESS = 'IN_PROGRESS', _("En cours")
+        FINALIZED = 'FINALIZED', _("Finalisée")
 
     class SubjectVariant(models.TextChoices):
         A = 'A', _("Sujet A")

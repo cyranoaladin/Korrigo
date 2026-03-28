@@ -269,10 +269,10 @@ class PronoteExporter:
             return result
         
         # Get graded copies
-        graded_copies = all_copies.filter(status=Copy.Status.GRADED)
-        
+        graded_copies = all_copies.filter(status=Copy.Status.FINALIZED)
+
         if not graded_copies.exists():
-            result.add_error("Aucune copie notée trouvée. Toutes les copies doivent être dans l'état GRADED")
+            result.add_error("Aucune copie notée trouvée. Toutes les copies doivent être dans l'état FINALIZED")
             return result
         
         # Check identification
@@ -353,7 +353,7 @@ class PronoteExporter:
         from exams.models import Copy
         copies = Copy.objects.filter(
             exam=self.exam,
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=True
         ).select_related('student').prefetch_related('annotations')
         

@@ -262,7 +262,7 @@ def seed_prod():
         exam=exam,
         anonymous_id="PROD-GRADED-1",
         defaults={
-            'status': Copy.Status.GRADED,
+            'status': Copy.Status.FINALIZED,
             'student': students[0],  # Assign to first student
             'is_identified': True,
         }
@@ -271,8 +271,8 @@ def seed_prod():
         print(f"  ✓ Created GRADED copy: {copy_graded.anonymous_id} (ID: {copy_graded.id})")
     else:
         # Update status and student if different
-        if copy_graded.status != Copy.Status.GRADED or copy_graded.student != students[0]:
-            copy_graded.status = Copy.Status.GRADED
+        if copy_graded.status != Copy.Status.FINALIZED or copy_graded.student != students[0]:
+            copy_graded.status = Copy.Status.FINALIZED
             copy_graded.student = students[0]
             copy_graded.is_identified = True
             copy_graded.save(update_fields=['status', 'student', 'is_identified'])
@@ -304,8 +304,8 @@ def seed_prod():
     print(f"  - Total Exams: {Exam.objects.count()}")
     print(f"  - Total Copies: {Copy.objects.count()}")
     print(f"    - READY: {Copy.objects.filter(status=Copy.Status.READY).count()}")
-    print(f"    - GRADED: {Copy.objects.filter(status=Copy.Status.GRADED).count()}")
-    print(f"    - LOCKED: {Copy.objects.filter(status=Copy.Status.GRADING_IN_PROGRESS).count()}")
+    print(f"    - GRADED: {Copy.objects.filter(status=Copy.Status.FINALIZED).count()}")
+    print(f"    - LOCKED: {Copy.objects.filter(status=Copy.Status.IN_PROGRESS).count()}")
     print("="*60)
 
 if __name__ == "__main__":

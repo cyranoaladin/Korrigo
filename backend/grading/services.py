@@ -68,7 +68,7 @@ class AnnotationService:
         if total_pages > 0 and page_index >= total_pages:
             raise ValueError(f"page_index must be in [0, {total_pages - 1}]")
 
-    _ACTIVE_STATUSES = (Copy.Status.READY, Copy.Status.GRADING_IN_PROGRESS)
+    _ACTIVE_STATUSES = (Copy.Status.READY, Copy.Status.IN_PROGRESS)
 
     @staticmethod
     @transaction.atomic
@@ -76,7 +76,7 @@ class AnnotationService:
         if copy.status not in AnnotationService._ACTIVE_STATUSES:
             raise ValueError(f"Impossible d'annoter une copie en statut {copy.status}")
         if copy.status == Copy.Status.READY:
-            copy.status = Copy.Status.GRADING_IN_PROGRESS
+            copy.status = Copy.Status.IN_PROGRESS
             copy.save(update_fields=['status'])
 
         AnnotationService.validate_page_index(copy, payload['page_index'])
@@ -180,7 +180,7 @@ class AnnotationService:
 class GradingService:
     """
     Service pour la gestion du workflow:
-    IMPORT -> READY -> GRADING_IN_PROGRESS -> GRADED -> EXPORT
+    IMPORT -> READY -> IN_PROGRESS -> FINALIZED -> EXPORT
     """
 
     @staticmethod
@@ -299,7 +299,7 @@ class GradingService:
     @transaction.atomic
     def validate_copy(copy: Copy, user):
         copy = Copy.objects.select_for_update().get(id=copy.id)
-        if copy.status == Copy.Status.GRADED:
+        if copy.status == Copy.Status.FINALIZED:
             raise ValueError(f"La copie est déjà finalisée.")
         copy.validated_at = timezone.now()
         copy.save(update_fields=['validated_at'])
@@ -341,11 +341,11 @@ class GradingService:
                 "Finalization en cours par une autre requête — réessayez."
             ) from e
 
-        if copy.status == Copy.Status.GRADED:
-            logger.warning(f"Copy {copy.id} already graded — rejecting duplicate request")
+        if copy.status == Copy.Status.FINALIZED:
+            logger.warning(f"Copy {copy.id} already finalized — rejecting duplicate request")
             raise LockConflictError("Copie déjà finalisée.")
 
-        if copy.status not in (Copy.Status.READY, Copy.Status.GRADING_IN_PROGRESS):
+        if copy.status not in (Copy.Status.READY, Copy.Status.IN_PROGRESS):
             raise ValueError(f"Impossible de finaliser une copie en statut {copy.status}")
 
         final_score = GradingService.compute_score(copy)
@@ -362,7 +362,7 @@ class GradingService:
                     output_filename = f"copy_{copy.id}_corrected.pdf"
                     copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
 
-                copy.status = Copy.Status.GRADED
+                copy.status = Copy.Status.FINALIZED
                 copy.graded_at = timezone.now()
                 copy.grading_error_message = None
                 copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf"])

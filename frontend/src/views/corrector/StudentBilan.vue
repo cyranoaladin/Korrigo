@@ -74,7 +74,7 @@ const openPdf = () => {
 const getStatusClass = (status) => status?.toLowerCase() || 'unknown'
 
 const getStatusLabel = (status) => {
-    const labels = { 'STAGING': 'En attente', 'READY': 'Prêt', 'GRADED': 'Corrigé' }
+    const labels = { 'READY': 'Prêt', 'IN_PROGRESS': 'En cours', 'FINALIZED': 'Finalisée' }
     return labels[status] || status
 }
 
@@ -112,7 +112,7 @@ onMounted(fetchBilan)
             </div>
           </div>
           <div v-if="selectedCopy" class="score-display">
-            <div class="score-value" :class="{ graded: selectedCopy.status === 'GRADED' }">
+            <div class="score-value" :class="{ graded: selectedCopy.status === 'FINALIZED' }">
               {{ totalScore !== null ? totalScore.toFixed(2) : '—' }}
             </div>
             <div class="score-label">/ 20</div>
@@ -258,8 +258,9 @@ onMounted(fetchBilan)
 
 .status-bar { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 0.75rem 1rem; background: white; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 .status-badge { padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
-.status-badge.graded { background: #dcfce7; color: #166534; }
+.status-badge.finalized { background: #dcfce7; color: #166534; }
 .status-badge.ready { background: #dbeafe; color: #1d4ed8; }
+.status-badge.in_progress { background: #FEF3C7; color: #92400e; }
 .anon-id { color: #64748b; font-size: 0.85rem; }
 .btn-pdf { margin-left: auto; background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.85rem; }
 .btn-pdf:hover { background: #1d4ed8; }

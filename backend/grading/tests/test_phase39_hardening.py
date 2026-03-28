@@ -110,8 +110,8 @@ class TestPhase39Hardening(TransactionTestCase):
             response = self.client.get(url)
             self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
             
-            # GRADED -> 200
-            copy.status = Copy.Status.GRADED
+            # FINALIZED -> 200
+            copy.status = Copy.Status.FINALIZED
             copy.save()
             response = self.client.get(url)
             self.assertEqual(response.status_code, status.HTTP_200_OK)

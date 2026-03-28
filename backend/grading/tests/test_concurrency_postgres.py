@@ -91,6 +91,6 @@ def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user)
     assert calls["count"] == 1, f"flatten_copy called {calls['count']} times, expected 1"
 
     copy.refresh_from_db()
-    assert copy.status == Copy.Status.GRADED
+    assert copy.status == Copy.Status.FINALIZED
     assert bool(copy.final_pdf) is True
     assert copy.final_pdf.size and copy.final_pdf.size > 0

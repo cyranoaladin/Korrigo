@@ -71,7 +71,7 @@ def graded_copy_with_pdf(exam, booklet_with_pages, admin_user):
     copy = Copy.objects.create(
         exam=exam,
         anonymous_id="TEST-GRADED",
-        status=Copy.Status.GRADED,
+        status=Copy.Status.FINALIZED,
         graded_at=timezone.now()
     )
     copy.booklets.add(booklet_with_pages)
@@ -102,10 +102,10 @@ def test_finalize_sets_status_graded(authenticated_client, ready_copy_with_annot
         response = authenticated_client.post(url, {}, format="json")
 
         assert response.status_code == 200
-        assert response.data["status"] == "GRADED"
-        
+        assert response.data["status"] == "FINALIZED"
+
         copy.refresh_from_db()
-        assert copy.status == Copy.Status.GRADED
+        assert copy.status == Copy.Status.FINALIZED
         assert copy.graded_at is not None
 
 
@@ -214,8 +214,8 @@ def test_finalize_computes_score_from_annotations(authenticated_client, ready_co
 
         # Deterministic contract for unit test: must succeed
         assert response.status_code == 200
-        assert response.data["status"] == "GRADED"
-        
+        assert response.data["status"] == "FINALIZED"
+
         # Verify score recorded in audit event
         from grading.models import GradingEvent
         event = GradingEvent.objects.filter(copy=copy, action=GradingEvent.Action.FINALIZE).latest('timestamp')

@@ -12,11 +12,9 @@ const authStore = useAuthStore()
 const router = useRouter()
 
 const statusLabels = {
-  'STAGING': 'En attente',
   'READY': 'Prêt',
-  'GRADED': 'Corrigé',
-  'GRADING_IN_PROGRESS': 'Correction en cours',
-  'GRADING_FAILED': 'Échec',
+  'IN_PROGRESS': 'En cours',
+  'FINALIZED': 'Finalisée',
 }
 const getStatusLabel = (status) => statusLabels[status] || status
 
@@ -99,25 +97,22 @@ const getCopyProgress = (copy) => {
     const leaves = flattenLeafQuestions(structure)
     const total = leaves.length
 
-    if (copy.status === 'GRADED') {
+    if (copy.status === 'FINALIZED') {
         return { scored: total, total, percent: 100, questions: leaves.map(q => ({ ...q, scored: true })) }
     }
-    if (copy.status === 'STAGING') {
-        return { scored: 0, total, percent: 0, questions: leaves.map(q => ({ ...q, scored: false })) }
-    }
-    // READY or GRADING_IN_PROGRESS: unknown until scores fetched
+    // READY or IN_PROGRESS: unknown until scores fetched
     return { scored: 0, total, percent: 0, questions: leaves.map(q => ({ ...q, scored: false })), pending: true }
 }
 
 /**
- * Fetch scores for copies that may have partial grading (READY / GRADING_IN_PROGRESS).
- * Also fetches for GRADED to show accurate count.
+ * Fetch scores for copies that may have partial grading (READY / IN_PROGRESS).
+ * Also fetches for FINALIZED to show accurate count.
  * Only fetches for copies assigned to the current user (to avoid 403 errors).
  */
 const fetchAllCopyScores = async (copiesList) => {
     // Only fetch scores for copies with exam data (to compute progress)
     const relevantCopies = copiesList.filter(c =>
-        (c.status === 'READY' || c.status === 'GRADING_IN_PROGRESS' || c.status === 'GRADED') &&
+        (c.status === 'READY' || c.status === 'IN_PROGRESS' || c.status === 'FINALIZED') &&
         c.exam?.grading_structure && c.exam.grading_structure.length > 0
     )
     if (!relevantCopies.length) return
@@ -165,7 +160,7 @@ const fetchCopies = async () => {
         const data = await gradingApi.listCopies({ exam_type_id: selectedExamType.value.id })
         copies.value = data
         basicStats.value.total = data.length
-        basicStats.value.graded = data.filter(c => c.status === 'GRADED').length
+        basicStats.value.graded = data.filter(c => c.status === 'FINALIZED').length
         basicStats.value.todo = data.filter(c => c.status === 'READY').length
 
         // Auto-fetch stats when at least 1 copy is graded
@@ -704,7 +699,7 @@ const canSeeQuestionnaire = computed(() =>
               </div>
               <div class="exam-group-meta">
                 <span class="meta-chip todo">{{ group.copies.filter(c => c.status === 'READY').length }} à corriger</span>
-                <span class="meta-chip done">{{ group.copies.filter(c => c.status === 'GRADED').length }} corrigées</span>
+                <span class="meta-chip done">{{ group.copies.filter(c => c.status === 'FINALIZED').length }} finalisées</span>
               </div>
             </div>
 
@@ -729,7 +724,7 @@ const canSeeQuestionnaire = computed(() =>
                   data-testid="copy-action"
                   @click="goToDesk(copy.id)"
                 >
-                  {{ copy.status === 'GRADED' ? 'Consulter' : 'Corriger' }}
+                  {{ copy.status === 'FINALIZED' ? 'Consulter' : 'Corriger' }}
                 </button>
               </div>
               <!-- Barre de progression par question -->

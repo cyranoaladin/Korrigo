@@ -73,7 +73,7 @@ class TestIntegrationReal:
         
         # 2. VERIFY DB
         copy = Copy.objects.get(id=copy_id)
-        assert copy.status == Copy.Status.STAGING
+        assert copy.status == Copy.Status.READY
         assert copy.booklets.count() == 1
         booklet = copy.booklets.first()
         assert len(booklet.pages_images) == 3
@@ -99,7 +99,7 @@ class TestIntegrationReal:
         copy = Copy.objects.create(exam=exam, anonymous_id="SECURE_TEST")
         
         # 1. Final PDF Gate
-        copy.status = Copy.Status.GRADING_IN_PROGRESS
+        copy.status = Copy.Status.IN_PROGRESS
         copy.save()
         resp = client.get(f"/api/grading/copies/{copy.id}/final-pdf/")
         assert resp.status_code == 403

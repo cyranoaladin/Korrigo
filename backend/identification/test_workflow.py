@@ -84,12 +84,12 @@ class IdentificationWorkflowTest(TestCase):
         locked_copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="DEF456",
-            status=Copy.Status.GRADING_IN_PROGRESS
+            status=Copy.Status.IN_PROGRESS
         )
         
         # Essayer d'identifier cette copie devrait échouer
         # (ceci serait géré dans la logique métier, testons simplement le concept)
-        self.assertEqual(locked_copy.status, Copy.Status.GRADING_IN_PROGRESS)
+        self.assertEqual(locked_copy.status, Copy.Status.IN_PROGRESS)
         
         # Passer à un état où l'identification est autorisée
         locked_copy.status = Copy.Status.READY

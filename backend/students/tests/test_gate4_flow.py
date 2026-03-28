@@ -43,7 +43,7 @@ class TestGate4StudentFlow(TransactionTestCase):
         self.copy_graded = Copy.objects.create(
             exam=self.exam,
             anonymous_id="GATE4-GRADED",
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             student=self.student,
             is_identified=True
         )
@@ -52,7 +52,7 @@ class TestGate4StudentFlow(TransactionTestCase):
         self.copy_locked = Copy.objects.create(
             exam=self.exam,
             anonymous_id="GATE4-IN-PROGRESS",
-            status=Copy.Status.GRADING_IN_PROGRESS, # Not Graded
+            status=Copy.Status.IN_PROGRESS, # Not Graded
             student=self.student,
             is_identified=True
         )
@@ -76,7 +76,7 @@ class TestGate4StudentFlow(TransactionTestCase):
         self.copy_other = Copy.objects.create(
             exam=self.exam,
             anonymous_id="GATE4-OTHER",
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             student=self.other_student,
             is_identified=True
         )

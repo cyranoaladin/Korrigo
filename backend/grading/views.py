@@ -225,8 +225,8 @@ class CopyFinalizeView(APIView):
                 {"detail": "Seul le correcteur assigné ou un admin peut finaliser cette copie."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        if copy.status == Copy.Status.GRADED:
-            return Response({"detail": "Copie déjà corrigée."}, status=status.HTTP_400_BAD_REQUEST)
+        if copy.status == Copy.Status.FINALIZED:
+            return Response({"detail": "Copie déjà finalisée."}, status=status.HTTP_400_BAD_REQUEST)
         try:
             finalized = GradingService.finalize_copy(copy, request.user)
             return Response({"status": finalized.status})
@@ -253,8 +253,8 @@ class CopyFinalPdfView(APIView):
     SECURITY GATES (enforced in view logic):
     -----------------------------------------
     Gate 1 - Status Check (line 179):
-        - Only GRADED copies are accessible
-        - Even admins cannot access non-GRADED copies
+        - Only FINALIZED copies are accessible
+        - Even admins cannot access non-FINALIZED copies
     
     Gate 2 - Permission Check (lines 186-215):
         - Teachers/Admins: Verified via is_staff/is_superuser/Teachers group
@@ -275,11 +275,11 @@ class CopyFinalPdfView(APIView):
     def get(self, request, id):
         copy = get_object_or_404(Copy, id=id)
 
-        # ---- Status gate: Final PDF only available for GRADED copies ----
-        # Even teachers/admins cannot access PDF for non-GRADED copies (403)
-        if copy.status != Copy.Status.GRADED:
+        # ---- Status gate: Final PDF only available for FINALIZED copies ----
+        # Even teachers/admins cannot access PDF for non-FINALIZED copies (403)
+        if copy.status != Copy.Status.FINALIZED:
             return Response(
-                {"detail": "Final PDF is only available when copy is GRADED."},
+                {"detail": "Final PDF is only available when copy is FINALIZED."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -491,7 +491,7 @@ class CopyGlobalAppreciationView(APIView):
 
         update_fields = ['global_appreciation']
         if copy.status == Copy.Status.READY:
-            copy.status = Copy.Status.GRADING_IN_PROGRESS
+            copy.status = Copy.Status.IN_PROGRESS
             update_fields.append('status')
         copy.global_appreciation = global_appreciation
         copy.save(update_fields=update_fields)
@@ -543,13 +543,13 @@ class CopyScoresView(APIView):
         if not _can_write_copy(request.user, copy):
             return Response({"detail": "Seul le correcteur assigné peut modifier les notes de cette copie."}, status=status.HTTP_403_FORBIDDEN)
 
-        if copy.status == Copy.Status.GRADED and not request.user.is_superuser:
+        if copy.status == Copy.Status.FINALIZED and not request.user.is_superuser:
             return Response(
                 {"detail": "Impossible de modifier les notes d'une copie déjà finalisée."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        if copy.status == Copy.Status.GRADED and request.user.is_superuser:
-            logger.info("Admin %s overriding GRADED status for copy %s", request.user.username, copy_id)
+        if copy.status == Copy.Status.FINALIZED and request.user.is_superuser:
+            logger.info("Admin %s overriding FINALIZED status for copy %s", request.user.username, copy_id)
 
         scores_data = request.data.get('scores_data', {})
         final_comment = request.data.get('final_comment', '')
@@ -597,7 +597,7 @@ class CopyScoresView(APIView):
         with transaction.atomic():
             Copy.objects.select_for_update().filter(id=copy.id).first()
             if copy.status == Copy.Status.READY:
-                copy.status = Copy.Status.GRADING_IN_PROGRESS
+                copy.status = Copy.Status.IN_PROGRESS
                 copy.save(update_fields=['status'])
 
             score, created = Score.objects.update_or_create(
@@ -649,9 +649,9 @@ class CorrectorStatsView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Get all copies with scores (GRADED or READY with scores_data)
+        # Get all copies with scores (FINALIZED or IN_PROGRESS with scores_data)
         all_with_scores = Copy.objects.filter(
-            exam=exam, status__in=[Copy.Status.GRADED, Copy.Status.GRADING_IN_PROGRESS]
+            exam=exam, status__in=[Copy.Status.FINALIZED, Copy.Status.IN_PROGRESS]
         ).select_related('assigned_corrector', 'student')
 
         # LOT 7: Prefetch all scores in one query to avoid N+1
@@ -847,7 +847,7 @@ class ExamUnreleaseResultsView(APIView):
 class ExamLLMSummaryView(APIView):
     """
     POST /api/grading/exams/<uuid>/generate-summaries/
-    Génère les bilans LLM pour toutes les copies GRADED d'un examen.
+    Génère les bilans LLM pour toutes les copies FINALIZED d'un examen.
     Query param ?force=true pour régénérer les bilans existants.
     """
     permission_classes = [IsTeacherOrAdmin]
@@ -878,16 +878,16 @@ class ExamLLMSummaryView(APIView):
 class CopyLLMSummaryView(APIView):
     """
     POST /api/grading/copies/<uuid>/generate-summary/
-    Génère le bilan LLM pour une seule copie GRADED.
+    Génère le bilan LLM pour une seule copie FINALIZED.
     """
     permission_classes = [IsTeacherOrAdmin]
 
     def post(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
 
-        if copy.status != Copy.Status.GRADED:
+        if copy.status != Copy.Status.FINALIZED:
             return Response(
-                {'detail': 'Seules les copies finalisées (GRADED) peuvent avoir un bilan LLM.'},
+                {'detail': 'Seules les copies finalisées peuvent avoir un bilan LLM.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -958,7 +958,7 @@ class AdminForceUnlockView(APIView):
 class CopyReopenView(APIView):
     """
     POST /api/grading/copies/<uuid>/reopen/
-    Reopen a GRADED copy back to READY status.
+    Reopen a FINALIZED copy back to READY status.
     Admin-only (superuser).
     """
     permission_classes = [IsTeacherOrAdmin]
@@ -972,9 +972,9 @@ class CopyReopenView(APIView):
 
         copy = get_object_or_404(Copy, id=copy_id)
 
-        if copy.status != Copy.Status.GRADED:
+        if copy.status != Copy.Status.FINALIZED:
             return Response(
-                {"detail": f"La copie doit être en statut GRADED pour être rouverte (statut actuel: {copy.status})."},
+                {"detail": f"La copie doit être en statut FINALIZED pour être rouverte (statut actuel: {copy.status})."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
