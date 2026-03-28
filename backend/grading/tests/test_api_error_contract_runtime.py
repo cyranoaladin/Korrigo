@@ -48,7 +48,7 @@ def graded_copy(exam, booklet_with_pages, teacher_user):
     copy = Copy.objects.create(
         exam=exam,
         anonymous_id="CONTRACT-GRADED",
-        status=Copy.Status.GRADED,
+        status=Copy.Status.FINALIZED,
         assigned_corrector=teacher_user,
     )
     copy.booklets.add(booklet_with_pages)

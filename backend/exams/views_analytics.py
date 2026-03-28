@@ -35,7 +35,7 @@ class UploadAnalyticsView(APIView):
         # Copy stats
         total_copies = Copy.objects.filter(exam__in=exams).count()
         ready_copies = Copy.objects.filter(exam__in=exams, status=Copy.Status.READY).count()
-        graded_copies = Copy.objects.filter(exam__in=exams, status=Copy.Status.GRADED).count()
+        graded_copies = Copy.objects.filter(exam__in=exams, status=Copy.Status.FINALIZED).count()
         
         response_data = {
             'period': {

@@ -169,7 +169,7 @@ class TestDraftEndpoints:
     
     def test_save_to_graded_copy_forbidden(self, api_client, teacher_user, copy_factory):
         """AC-2.6: Save to GRADED copy → 400 Bad Request"""
-        copy = copy_factory(status=Copy.Status.GRADED)
+        copy = copy_factory(status=Copy.Status.FINALIZED)
         
         api_client.force_authenticate(teacher_user)
         response = api_client.put(

@@ -45,7 +45,7 @@ class BackupRestoreTest(TestCase):
         self.copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="BACKUP123",
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
 
     def test_backup_process(self):

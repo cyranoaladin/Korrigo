@@ -208,7 +208,7 @@ class PronoteExportTests(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='TEST001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=True,
             student=self.student1
         )
@@ -224,7 +224,7 @@ class PronoteExportTests(TestCase):
         copy1 = Copy.objects.create(
             exam=self.exam,
             anonymous_id='COPY001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=True,
             student=self.student1,
             global_appreciation='Bon travail'
@@ -237,7 +237,7 @@ class PronoteExportTests(TestCase):
         copy2 = Copy.objects.create(
             exam=self.exam,
             anonymous_id='COPY002',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=True,
             student=self.student2
         )
@@ -270,7 +270,7 @@ class PronoteExportTests(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='ROUND001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=True,
             student=self.student1
         )
@@ -291,7 +291,7 @@ class PronoteExportTests(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='WHOLE001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=True,
             student=self.student1
         )
@@ -325,13 +325,13 @@ class PronoteExportTests(TestCase):
         self.assertIn('error', response.data)
         # Errors are now in 'details' list
         details_str = str(response.data.get('details', []))
-        self.assertTrue('GRADED' in details_str or 'notée' in details_str)
+        self.assertTrue('FINALIZED' in details_str or 'notée' in details_str)
 
     def test_export_reject_unidentified_copies(self):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='UNIDENT001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=False
         )
         Score.objects.create(
@@ -353,7 +353,7 @@ class PronoteExportTests(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='NOSTUDENT001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=True,
             student=None
         )
@@ -385,7 +385,7 @@ class PronoteExportTests(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='DELIM001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=True,
             student=self.student1
         )
@@ -409,7 +409,7 @@ class PronoteExportTests(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='COMMENT001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=True,
             student=self.student1,
             global_appreciation='Commentaire avec\nnouvelle ligne\ret tabulation'
@@ -432,7 +432,7 @@ class PronoteExportTests(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='FILE001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=True,
             student=self.student1
         )
@@ -452,7 +452,7 @@ class PronoteExportTests(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='ZERO001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=True,
             student=self.student1
         )
@@ -473,7 +473,7 @@ class PronoteExportTests(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id='MAX001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=True,
             student=self.student1
         )

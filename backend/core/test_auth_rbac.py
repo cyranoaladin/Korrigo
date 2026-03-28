@@ -66,7 +66,7 @@ class RBACPermissionsTest(TestCase):
         self.copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="ABC123",
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
         
         self.booklet = Booklet.objects.create(

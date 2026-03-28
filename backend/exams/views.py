@@ -401,7 +401,7 @@ class BookletDetailView(generics.RetrieveDestroyAPIView):
 
     def perform_destroy(self, instance):
         # Mission 1.3: Prevent modification if attached to a locked/graded copy
-        if instance.assigned_copy.filter(status__in=[Copy.Status.GRADING_IN_PROGRESS, Copy.Status.GRADED]).exists():
+        if instance.assigned_copy.filter(status__in=[Copy.Status.IN_PROGRESS, Copy.Status.FINALIZED]).exists():
              raise 	serializers.ValidationError(
                  {"error": _("Impossible de supprimer un fascicule associé à une copie validée ou corrigée.")}
              )
@@ -414,7 +414,7 @@ class BookletSplitView(APIView):
         booklet = get_object_or_404(Booklet, id=id)
         
         # Mission 1.3: Protocol Enforce
-        if booklet.assigned_copy.filter(status__in=[Copy.Status.GRADING_IN_PROGRESS, Copy.Status.GRADED]).exists():
+        if booklet.assigned_copy.filter(status__in=[Copy.Status.IN_PROGRESS, Copy.Status.FINALIZED]).exists():
              return Response(
                  {"error": _("Impossible de scinder un fascicule associé à une copie validée.")},
                  status=status.HTTP_403_FORBIDDEN
@@ -650,7 +650,7 @@ class StudentCopiesView(generics.ListAPIView):
         # Try to get student_id from session (legacy) or from user association (new)
         student_id = self.request.session.get('student_id')
         base_filter = {
-            'status': Copy.Status.GRADED,
+            'status': Copy.Status.FINALIZED,
             'exam__results_released_at__isnull': False,
         }
         if student_id:
@@ -750,7 +750,7 @@ class ExamSourceUploadView(APIView):
         if 'pdf_source' not in request.FILES:
             return Response({"error": "pdf_source field required"}, status=status.HTTP_400_BAD_REQUEST)
         
-        in_progress_or_graded = exam.copies.filter(status__in=[Copy.Status.GRADING_IN_PROGRESS, Copy.Status.GRADED]).count()
+        in_progress_or_graded = exam.copies.filter(status__in=[Copy.Status.IN_PROGRESS, Copy.Status.FINALIZED]).count()
         if in_progress_or_graded > 0:
             return Response(
                 {"error": _(f"Impossible de re-uploader: {in_progress_or_graded} copie(s) sont déjà en cours de correction ou corrigées.")},
@@ -878,8 +878,8 @@ class CorrectorCopiesView(generics.ListAPIView):
         user = self.request.user
 
         base_qs = Copy.objects.filter(
-            status__in=[Copy.Status.READY, Copy.Status.GRADED,
-                        Copy.Status.GRADING_IN_PROGRESS]
+            status__in=[Copy.Status.READY, Copy.Status.FINALIZED,
+                        Copy.Status.IN_PROGRESS]
         ).select_related('exam').order_by('exam__date', 'anonymous_id')
 
         # Filtrage optionnel par Type d'Examen
@@ -1397,9 +1397,9 @@ class ExamStudentListView(APIView):
             "exam_name": exam.name,
             "exam_date": str(exam.date) if exam.date else None,
             "total_copies": len(data),
-            "graded": sum(1 for d in data if d['status'] == 'GRADED'),
+            "graded": sum(1 for d in data if d['status'] == 'FINALIZED'),
             "ready": sum(1 for d in data if d['status'] == 'READY'),
-            "en_cours": sum(1 for d in data if d['status'] == 'GRADING_IN_PROGRESS'),
+            "en_cours": sum(1 for d in data if d['status'] == 'IN_PROGRESS'),
             "with_scores": len(scored),
             "average": float(round(  # type: ignore[call-overload]
                 sum(d['total_score'] for d in scored) / len(scored), 2  # type: ignore[arg-type]
@@ -1435,7 +1435,7 @@ class ExamTypeListView(generics.ListCreateAPIView):
         # Correcteur : types liés aux examens auxquels il est assigné OU types de ses copies
         return qs.filter(
             Q(exams__correctors=user) | 
-            Q(exams__copies__assigned_corrector=user, exams__copies__status__in=['READY', 'GRADED', 'GRADING_IN_PROGRESS'])
+            Q(exams__copies__assigned_corrector=user, exams__copies__status__in=['READY', 'FINALIZED', 'IN_PROGRESS'])
         ).distinct()
 
 

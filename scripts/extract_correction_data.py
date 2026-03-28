@@ -9,6 +9,29 @@ Produit un répertoire /tmp/korrigo_extract/ contenant :
   - exams_bareme.json : barèmes des examens
   - summary.json : statistiques globales
 
+Format de sortie copies_data.json (par examen) :
+{
+  "exam_id": "...",
+  "exam_name": "...",
+  "export_date": "...",
+  "copies": [
+    {
+      "anonymous_id": "...",
+      "student": {"last_name": "...", "first_name": "...", "ddn": "..."},
+      "status": "FINALIZED",
+      "assigned_corrector": "username",
+      "global_appreciation": "...",
+      "subject_variant": "A",
+      "llm_summary": "...",
+      "scores": {...},
+      "final_score": 14.5,
+      "annotations": [...],
+      "question_remarks": [...],
+      "grading_events": [...]
+    }
+  ]
+}
+
 AUCUNE ÉCRITURE en base de données.
 """
 import json
@@ -65,11 +88,10 @@ print(f"  -> exams_bareme.json written ({len(exams_data)} exams)")
 
 
 # =============================================================================
-# 2. Extract all copies with full data
+# 2. Extract all copies with full data, grouped by exam
 # =============================================================================
 print("\n--- Extracting copies with scores, annotations, remarks, appreciations ---")
 
-copies_data = []
 pages_manifest = {}
 stats = {
     "total_copies": 0,
@@ -86,12 +108,24 @@ stats = {
 }
 
 all_copies = Copy.objects.select_related(
-    'exam', 'student', 'student__user', 'assigned_corrector'
+    'exam', 'student', 'assigned_corrector'
 ).prefetch_related(
-    'booklets', 'annotations', 'scores', 'question_remarks'
+    'booklets', 'annotations', 'scores', 'question_remarks', 'grading_events',
+    'grading_events__actor',
 ).order_by('exam__name', 'anonymous_id')
 
+# Group copies by exam
+copies_by_exam = {}
 for copy in all_copies:
+    exam_id = str(copy.exam.id)
+    if exam_id not in copies_by_exam:
+        copies_by_exam[exam_id] = {
+            "exam_id": exam_id,
+            "exam_name": copy.exam.name,
+            "export_date": datetime.now().isoformat(),
+            "copies": [],
+        }
+
     stats["total_copies"] += 1
     exam_name = copy.exam.name
     stats["by_exam"].setdefault(exam_name, 0)
@@ -99,42 +133,45 @@ for copy in all_copies:
     stats["by_status"].setdefault(copy.status, 0)
     stats["by_status"][copy.status] += 1
 
-    corrector_name = copy.assigned_corrector.username if copy.assigned_corrector else "unassigned"
-    stats["by_corrector"].setdefault(corrector_name, {"total": 0, "with_scores": 0})
-    stats["by_corrector"][corrector_name]["total"] += 1
+    corrector_username = copy.assigned_corrector.username if copy.assigned_corrector else None
+    corrector_label = corrector_username or "unassigned"
+    stats["by_corrector"].setdefault(corrector_label, {"total": 0, "with_scores": 0})
+    stats["by_corrector"][corrector_label]["total"] += 1
 
     # --- Student info ---
     student_info = None
-    if copy.student and copy.student.user:
+    if copy.student:
         student_info = {
-            "id": copy.student.id,
-            "first_name": copy.student.user.first_name,
-            "last_name": copy.student.user.last_name,
-            "email": copy.student.user.email,
+            "last_name": copy.student.last_name or "",
+            "first_name": copy.student.first_name or "",
+            "ddn": copy.student.date_naissance.isoformat() if copy.student.date_naissance else None,
         }
 
     # --- Scores ---
     score_obj = Score.objects.filter(copy=copy).first()
     scores_dict = None
-    total_score = None
+    final_score = None
     final_comment = None
     if score_obj:
         scores_dict = score_obj.scores_data or {}
         final_comment = score_obj.final_comment or ""
         if scores_dict:
-            total_score = sum(
-                float(v) for v in scores_dict.values()
-                if v is not None and v != ''
-            )
+            try:
+                final_score = round(sum(
+                    float(v) for v in scores_dict.values()
+                    if v is not None and v != ''
+                ), 2)
+            except (TypeError, ValueError):
+                final_score = None
             stats["copies_with_scores"] += 1
-            stats["by_corrector"][corrector_name]["with_scores"] += 1
+            stats["by_corrector"][corrector_label]["with_scores"] += 1
 
     # --- Annotations ---
     annotations_list = []
     for annot in copy.annotations.all().order_by('page_index', 'created_at'):
         annotations_list.append({
             "id": str(annot.id),
-            "page_index": annot.page_index,
+            "page": annot.page_index,
             "x": annot.x,
             "y": annot.y,
             "w": annot.w,
@@ -163,6 +200,17 @@ for copy in all_copies:
         stats["copies_with_remarks"] += 1
         stats["total_remarks"] += len(remarks_list)
 
+    # --- Grading Events (audit trail) ---
+    grading_events_list = []
+    for event in copy.grading_events.all().order_by('timestamp'):
+        grading_events_list.append({
+            "id": str(event.id),
+            "action": event.action,
+            "actor": event.actor.username if event.actor else None,
+            "timestamp": event.timestamp.isoformat() if event.timestamp else None,
+            "details": event.details if hasattr(event, 'details') else None,
+        })
+
     # --- Global appreciation ---
     if copy.global_appreciation:
         stats["copies_with_appreciation"] += 1
@@ -184,19 +232,19 @@ for copy in all_copies:
         "media_root": settings.MEDIA_ROOT,
     }
 
-    # --- Build copy record ---
+    # --- Build copy record (required output format) ---
     copy_record = {
         "id": str(copy.id),
         "anonymous_id": copy.anonymous_id,
         "exam_name": exam_name,
-        "exam_id": str(copy.exam.id),
+        "exam_id": exam_id,
         "status": copy.status,
         "student": student_info,
-        "corrector": corrector_name,
+        "assigned_corrector": corrector_username,
         "subject_variant": copy.subject_variant,
         # Scores
-        "total_score": total_score,
-        "scores_data": scores_dict,
+        "scores": scores_dict,
+        "final_score": final_score,
         "final_comment": final_comment,
         # Appreciation & LLM
         "global_appreciation": copy.global_appreciation or "",
@@ -207,6 +255,8 @@ for copy in all_copies:
         # Remarks
         "question_remarks": remarks_list,
         "remarks_count": len(remarks_list),
+        # Audit trail
+        "grading_events": grading_events_list,
         # Pages info
         "pages_count": len(page_paths),
         "pages_paths": page_paths,
@@ -214,12 +264,14 @@ for copy in all_copies:
         "graded_at": copy.graded_at.isoformat() if copy.graded_at else None,
         "assigned_at": copy.assigned_at.isoformat() if copy.assigned_at else None,
     }
-    copies_data.append(copy_record)
+    copies_by_exam[exam_id]["copies"].append(copy_record)
 
-# Write copies
+# Write copies grouped by exam
+copies_all_exams = list(copies_by_exam.values())
 with open(os.path.join(OUTPUT_DIR, "copies_data.json"), "w", encoding="utf-8") as f:
-    json.dump(copies_data, f, indent=2, ensure_ascii=False, default=serialize_uuid)
-print(f"  -> copies_data.json written ({len(copies_data)} copies)")
+    json.dump(copies_all_exams, f, indent=2, ensure_ascii=False, default=serialize_uuid)
+total_copies_written = sum(len(e["copies"]) for e in copies_all_exams)
+print(f"  -> copies_data.json written ({total_copies_written} copies across {len(copies_all_exams)} exams)")
 
 # Write pages manifest
 with open(os.path.join(OUTPUT_DIR, "pages_manifest.json"), "w", encoding="utf-8") as f:

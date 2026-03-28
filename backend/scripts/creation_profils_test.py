@@ -64,7 +64,7 @@ def run():
         anonymous_id="TEST-COPY-01",
         defaults={
             "exam": exam,
-            "status": "GRADED", # Important pour visibility portail élève
+            "status": "FINALIZED", # Important pour visibility portail élève
             "student": student,
             "is_identified": True
         }
@@ -76,8 +76,8 @@ def run():
             copy.student = student
             copy.save()
             print(f"ℹ️ Copie réassignée à l'élève de test")
-        if copy.status != "GRADED":
-            copy.status = "GRADED"
+        if copy.status != "FINALIZED":
+            copy.status = "FINALIZED"
             copy.save()
             print(f"ℹ️ Copie passée en statut GRADED")
 

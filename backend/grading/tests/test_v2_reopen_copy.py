@@ -39,7 +39,7 @@ def copy_graded(db, exam, teacher_user):
     """A copy in GRADED status with final_pdf, graded_at and retries set."""
     return Copy.objects.create(
         exam=exam,
-        status=Copy.Status.GRADED,
+        status=Copy.Status.FINALIZED,
         assigned_corrector=teacher_user,
         anonymous_id=f"ANON-{uuid.uuid4().hex[:8]}",
         final_pdf="copies/final/test.pdf",
@@ -62,7 +62,7 @@ def copy_ready(db, exam, teacher_user):
 def copy_staging(db, exam, teacher_user):
     return Copy.objects.create(
         exam=exam,
-        status=Copy.Status.STAGING,
+        status=Copy.Status.READY,
         assigned_corrector=teacher_user,
         anonymous_id=f"ANON-{uuid.uuid4().hex[:8]}",
     )
@@ -242,7 +242,7 @@ class TestCopyReopen:
         assert events.count() == 1
         event = events.first()
         assert event.actor == admin_user
-        assert event.metadata["previous_status"] == Copy.Status.GRADED
+        assert event.metadata["previous_status"] == Copy.Status.FINALIZED
 
     # -- 404 ---------------------------------------------------------------
 

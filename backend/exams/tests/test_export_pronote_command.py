@@ -68,7 +68,7 @@ class ExportPronoteCommandTests(TestCase):
             anonymous_id='VAL001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         Annotation.objects.create(
             copy=copy,
@@ -106,7 +106,7 @@ class ExportPronoteCommandTests(TestCase):
         Copy.objects.create(
             exam=self.exam,
             anonymous_id='UNID001',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=False
         )
         
@@ -122,7 +122,7 @@ class ExportPronoteCommandTests(TestCase):
             anonymous_id='NOSTUDENT001',
             student=None,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         Annotation.objects.create(
             copy=copy,
@@ -144,7 +144,7 @@ class ExportPronoteCommandTests(TestCase):
             anonymous_id='FILE001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             global_appreciation="Excellent"
         )
         Annotation.objects.create(
@@ -213,7 +213,7 @@ class ExportPronoteCommandTests(TestCase):
             anonymous_id='STDOUT001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         Annotation.objects.create(
             copy=copy,
@@ -248,7 +248,7 @@ class ExportPronoteCommandTests(TestCase):
             anonymous_id='COEFF001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         Annotation.objects.create(
             copy=copy,
@@ -281,14 +281,14 @@ class ExportPronoteCommandTests(TestCase):
             anonymous_id='MULTI001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         copy2 = Copy.objects.create(
             exam=self.exam,
             anonymous_id='MULTI002',
             student=self.student2,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         
         Annotation.objects.create(
@@ -351,7 +351,7 @@ class ExportPronoteCommandTests(TestCase):
             anonymous_id='WARN001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             global_appreciation="Comment with ; semicolon"
         )
         Annotation.objects.create(
@@ -392,7 +392,7 @@ class ExportPronoteCommandTests(TestCase):
             anonymous_id='ACCENT001',
             student=student_accent,
             is_identified=True,
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             global_appreciation="Très bien!"
         )
         Annotation.objects.create(
@@ -434,7 +434,7 @@ class ExportPronoteCommandTests(TestCase):
             anonymous_id='ANNOT001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         
         # Add annotations instead of Score
@@ -473,7 +473,7 @@ class ExportPronoteCommandTests(TestCase):
             anonymous_id='WRITEERR001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         Annotation.objects.create(
             copy=copy,

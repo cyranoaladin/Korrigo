@@ -141,7 +141,7 @@ class PronoteExportAPIValidationTests(TestCase):
         Copy.objects.create(
             exam=self.exam,
             anonymous_id='STAGING001',
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
         
         response = self.client.post(
@@ -158,7 +158,7 @@ class PronoteExportAPIValidationTests(TestCase):
         Copy.objects.create(
             exam=self.exam,
             anonymous_id='GRADED_UNID',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=False
         )
         
@@ -178,7 +178,7 @@ class PronoteExportAPIValidationTests(TestCase):
             anonymous_id='MISSING_STUDENT',
             student=None,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         Annotation.objects.create(
             copy=copy,
@@ -258,7 +258,7 @@ class PronoteExportAPISuccessTests(TestCase):
             anonymous_id='VALID001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             global_appreciation="Excellent travail"
         )
         copy2 = Copy.objects.create(
@@ -266,7 +266,7 @@ class PronoteExportAPISuccessTests(TestCase):
             anonymous_id='VALID002',
             student=self.student2,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         
         Annotation.objects.create(
@@ -328,7 +328,7 @@ class PronoteExportAPISuccessTests(TestCase):
             anonymous_id='COEFF001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         Annotation.objects.create(
             copy=copy,
@@ -365,7 +365,7 @@ class PronoteExportAPISuccessTests(TestCase):
             anonymous_id='ACCENT001',
             student=student_accent,
             is_identified=True,
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             global_appreciation="Très bien; effort remarquable!"
         )
         Annotation.objects.create(
@@ -399,7 +399,7 @@ class PronoteExportAPISuccessTests(TestCase):
             anonymous_id='WARN001',
             student=self.student1,
             is_identified=True,
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             global_appreciation="Comment with ; semicolon"
         )
         Annotation.objects.create(
@@ -458,7 +458,7 @@ class PronoteExportAPIRateLimitTests(TestCase):
             anonymous_id='RATE001',
             student=self.student,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         Annotation.objects.create(
             copy=copy,
@@ -552,7 +552,7 @@ class PronoteExportAPIAuditTests(TestCase):
             anonymous_id='AUDIT_SUCCESS',
             student=self.student,
             is_identified=True,
-            status=Copy.Status.GRADED
+            status=Copy.Status.FINALIZED
         )
         Annotation.objects.create(
             copy=copy,
@@ -594,7 +594,7 @@ class PronoteExportAPIAuditTests(TestCase):
         Copy.objects.create(
             exam=self.exam,
             anonymous_id='AUDIT_FAIL',
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             is_identified=False
         )
         

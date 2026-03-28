@@ -263,7 +263,7 @@ class TestCopyFinalPdfStudentRelease(TestCase):
         self.copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="PDF-001",
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             student=self.student,
         )
         self.client = APIClient()

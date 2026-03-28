@@ -53,7 +53,7 @@ class TestCrossStudentAccessPrevention(TransactionTestCase):
         self.copy_a_graded = Copy.objects.create(
             exam=self.exam,
             anonymous_id="COPY-A-GRADED",
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             student=self.student_a,
             is_identified=True
         )
@@ -70,7 +70,7 @@ class TestCrossStudentAccessPrevention(TransactionTestCase):
         self.copy_a_locked = Copy.objects.create(
             exam=self.exam,
             anonymous_id="COPY-A-IN-PROGRESS",
-            status=Copy.Status.GRADING_IN_PROGRESS,
+            status=Copy.Status.IN_PROGRESS,
             student=self.student_a,
             is_identified=True
         )
@@ -78,7 +78,7 @@ class TestCrossStudentAccessPrevention(TransactionTestCase):
         self.copy_b_graded = Copy.objects.create(
             exam=self.exam,
             anonymous_id="COPY-B-GRADED",
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             student=self.student_b,
             is_identified=True
         )

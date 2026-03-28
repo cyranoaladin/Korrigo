@@ -170,7 +170,7 @@ class TestAuditEvents(TransactionTestCase):
 
         self.assertEqual(resp.status_code, 200)
         copy.refresh_from_db()
-        self.assertEqual(copy.status, Copy.Status.GRADED)
+        self.assertEqual(copy.status, Copy.Status.FINALIZED)
 
         # Assert FINALIZE event created with success metadata
         events = GradingEvent.objects.filter(copy=copy, action=GradingEvent.Action.FINALIZE)

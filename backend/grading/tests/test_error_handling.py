@@ -102,7 +102,7 @@ def test_permission_error_returns_403_detail(authenticated_client, ready_copy, a
     # Change copy to GRADED (annotations become read-only)
     from exams.models import Copy
     copy, _lock = ready_copy
-    copy.status = Copy.Status.GRADED
+    copy.status = Copy.Status.FINALIZED
     copy.save()
 
     url = f"/api/grading/annotations/{annotation.id}/"
@@ -156,7 +156,7 @@ def test_all_workflow_endpoints_use_detail_format(authenticated_client, exam):
     copy = Copy.objects.create(
         exam=exam,
         anonymous_id="TEST-WRONG-STATE",
-        status=Copy.Status.GRADED  # Wrong state for all transitions
+        status=Copy.Status.FINALIZED  # Wrong state for all transitions
     )
 
     # Test ready (expects STAGING)

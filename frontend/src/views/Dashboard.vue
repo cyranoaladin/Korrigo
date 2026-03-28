@@ -8,11 +8,9 @@ const examId = route.params.examId
 const copies = ref([])
 
 const statusLabels = {
-  'STAGING': 'En attente',
   'READY': 'Prêt',
-  'GRADED': 'Corrigé',
-  'GRADING_IN_PROGRESS': 'Correction en cours',
-  'GRADING_FAILED': 'Échec',
+  'IN_PROGRESS': 'En cours',
+  'FINALIZED': 'Finalisée',
 }
 const getStatusLabel = (s) => statusLabels[s] || s
 const exam = ref(null)
@@ -21,11 +19,11 @@ const message = ref('')
 
 // Computed Stats
 const totalCopies = computed(() => copies.value.length)
-const gradedCopies = computed(() => copies.value.filter(c => c.status === 'GRADED').length)
+const gradedCopies = computed(() => copies.value.filter(c => c.status === 'FINALIZED').length)
 const averageScore = computed(() => {
     if (gradedCopies.value === 0) return 0
     const total = copies.value
-        .filter(c => c.status === 'GRADED')
+        .filter(c => c.status === 'FINALIZED')
         .reduce((sum, c) => sum + (c.total_score || 0), 0)
     return (total / gradedCopies.value).toFixed(2)
 })
@@ -36,15 +34,8 @@ const fetchCopies = async () => {
       const res = await api.get(`/exams/${examId}/`)
       exam.value = res.data
       
-      // Mock data until Copy Listing endpoint is ready
-      // This allows UI validation without backend changes yet
-      copies.value = [
-          { id: '1', anonymous_id: 'A7F93', status: 'GRADED', total_score: 14.5, updated_at: '2026-06-02' },
-          { id: '2', anonymous_id: 'B2X41', status: 'READY', total_score: 0, updated_at: '2026-06-02' },
-          { id: '3', anonymous_id: 'C8L99', status: 'GRADED', total_score: 18.0, updated_at: '2026-06-02' },
-          { id: '4', anonymous_id: 'D4K22', status: 'PROCESSING', total_score: 0, updated_at: '2026-06-02' },
-          { id: '5', anonymous_id: 'E1M77', status: 'GRADED', total_score: 10.0, updated_at: '2026-06-02' },
-      ]
+      const copiesRes = await api.get(`/exams/${examId}/copies/`)
+      copies.value = copiesRes.data
       
   } catch (e) {
       console.error(e)
@@ -188,7 +179,7 @@ onMounted(() => {
                 </span>
               </td>
               <td class="font-bold">
-                <span v-if="copy.status === 'GRADED'">{{ copy.total_score }}</span>
+                <span v-if="copy.status === 'FINALIZED'">{{ copy.total_score }}</span>
                 <span
                   v-else
                   class="text-muted"
@@ -274,9 +265,9 @@ onMounted(() => {
 
 /* Badges & Text Utilities */
 .status-badge { padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; }
-.status-badge.graded { background: #def7ec; color: #03543f; }
-.status-badge.ready { background: #feecdc; color: #9c4221; }
-.status-badge.processing { background: #ebf8ff; color: #2c5282; }
+.status-badge.finalized { background: #D1FAE5; color: #03543f; }
+.status-badge.ready { background: #DBEAFE; color: #1e40af; }
+.status-badge.in_progress { background: #FEF3C7; color: #92400e; }
 
 .font-medium { font-weight: 500; }
 .font-bold { font-weight: 600; }

@@ -124,7 +124,7 @@ class TestGradingServiceStrictUnit:
         from grading.services import LockConflictError
         exam = Exam.objects.create(name="Finalize Test", date=d.today())
         copy = Copy.objects.create(
-            exam=exam, anonymous_id="GRADED-REJ", status=Copy.Status.GRADED
+            exam=exam, anonymous_id="GRADED-REJ", status=Copy.Status.FINALIZED
         )
         user = MagicMock()
 

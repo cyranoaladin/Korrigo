@@ -35,7 +35,7 @@ class LLMSummaryService:
         Retourne le texte du bilan.
         Raises ValueError si la copie n'est pas GRADED.
         """
-        if copy.status != Copy.Status.GRADED:
+        if copy.status != Copy.Status.FINALIZED:
             raise ValueError(f"Copie {copy.id} n'est pas finalisée (status={copy.status})")
 
         # --- Collecter les données ---
@@ -236,7 +236,7 @@ class LLMSummaryService:
         """
         from exams.models import Exam
         exam = Exam.objects.get(id=exam_id)
-        copies = Copy.objects.filter(exam=exam, status=Copy.Status.GRADED)
+        copies = Copy.objects.filter(exam=exam, status=Copy.Status.FINALIZED)
 
         stats = {'success': 0, 'skipped': 0, 'errors': 0, 'details': []}
 

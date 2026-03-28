@@ -94,7 +94,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         self.copy_a_graded = Copy.objects.create(
             exam=self.exam,
             anonymous_id="COPY-A-GRADED",
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             student=self.student_a,
             is_identified=True
         )
@@ -116,7 +116,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         self.copy_a_locked = Copy.objects.create(
             exam=self.exam,
             anonymous_id="COPY-A-LOCKED",
-            status=Copy.Status.GRADING_IN_PROGRESS,
+            status=Copy.Status.IN_PROGRESS,
             student=self.student_a,
             is_identified=True
         )
@@ -125,7 +125,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         self.copy_b_graded = Copy.objects.create(
             exam=self.exam,
             anonymous_id="COPY-B-GRADED",
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             student=self.student_b,
             is_identified=True
         )
@@ -139,7 +139,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         self.copy_no_pdf = Copy.objects.create(
             exam=self.exam,
             anonymous_id="COPY-NO-PDF",
-            status=Copy.Status.GRADED,
+            status=Copy.Status.FINALIZED,
             student=self.student_a,
             is_identified=True
         )
@@ -240,7 +240,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         )
         
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn('GRADED', str(resp.data.get('detail', '')))
+        self.assertIn('FINALIZED', str(resp.data.get('detail', '')))
         
         if hasattr(resp, 'close'):
             resp.close()
@@ -263,7 +263,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         )
         
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn('GRADED', str(resp.data.get('detail', '')))
+        self.assertIn('FINALIZED', str(resp.data.get('detail', '')))
         
         if hasattr(resp, 'close'):
             resp.close()

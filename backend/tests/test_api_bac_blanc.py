@@ -126,7 +126,7 @@ class BacBlancE2ETest(TestCase):
         copy = Copy.objects.create(
             exam=exam,
             anonymous_id="TEST123",
-            status=Copy.Status.STAGING  # Initially in staging
+            status=Copy.Status.READY  # Initially in staging
         )
         copy.booklets.add(booklet)
         
@@ -168,7 +168,7 @@ class BacBlancE2ETest(TestCase):
         )
         
         # Step 7: Finalize the copy
-        copy.status = Copy.Status.GRADED
+        copy.status = Copy.Status.FINALIZED
         copy.graded_at = timezone.now()
         copy.save()
         
@@ -182,7 +182,7 @@ class BacBlancE2ETest(TestCase):
         
         # Step 8: Verify the complete workflow
         copy.refresh_from_db()
-        self.assertEqual(copy.status, Copy.Status.GRADED)
+        self.assertEqual(copy.status, Copy.Status.FINALIZED)
         self.assertEqual(copy.student, self.student)
         self.assertIsNotNone(copy.graded_at)
         
@@ -216,7 +216,7 @@ class BacBlancE2ETest(TestCase):
         copy = Copy.objects.create(
             exam=exam,
             anonymous_id="TEST456",
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
         copy.booklets.add(booklet)
         
@@ -259,7 +259,7 @@ class BacBlancE2ETest(TestCase):
         copy = Copy.objects.create(
             exam=exam,
             anonymous_id="STU789",
-            status=Copy.Status.GRADED,  # Already graded
+            status=Copy.Status.FINALIZED,  # Already graded
             student=self.student,
             is_identified=True
         )
@@ -285,4 +285,4 @@ class BacBlancE2ETest(TestCase):
         data = json.loads(response.content)
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]['id'], str(copy.id))
-        self.assertEqual(data[0]['status'], 'GRADED')
+        self.assertEqual(data[0]['status'], 'FINALIZED')

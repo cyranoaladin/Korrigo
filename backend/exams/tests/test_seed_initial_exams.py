@@ -306,7 +306,7 @@ class TestSeedCommand(TestCase):
         original_corrector = first_copy.assigned_corrector
 
         # Simulate grading started
-        first_copy.status = Copy.Status.GRADED
+        first_copy.status = Copy.Status.FINALIZED
         first_copy.save()
 
         # Re-run seed
@@ -362,7 +362,7 @@ class TestCopyGradedRules(TestCase):
 
     def test_copy_not_graded_without_scores(self):
         """A copy without scores is not graded."""
-        assert self.copy.status != Copy.Status.GRADED
+        assert self.copy.status != Copy.Status.FINALIZED
 
     def test_scores_stored_as_json(self):
         """Per-question scores are stored in JSON format."""

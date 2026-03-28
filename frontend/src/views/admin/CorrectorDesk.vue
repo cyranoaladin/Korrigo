@@ -15,11 +15,9 @@ const copyId = route.params.copyId
 
 // --- Labels FR ---
 const statusLabels = {
-  'STAGING': 'En attente',
   'READY': 'Prêt',
-  'GRADED': 'Corrigé',
-  'GRADING_IN_PROGRESS': 'Correction en cours',
-  'GRADING_FAILED': 'Échec',
+  'IN_PROGRESS': 'En cours',
+  'FINALIZED': 'Finalisée',
 }
 const getStatusLabel = (status) => statusLabels[status] || status
 
@@ -117,9 +115,10 @@ const showCommentBank = ref(false)
 const activeRemarkQuestionId = ref(null)
 
 // --- Computed ---
-const isStaging = computed(() => copy.value?.status === 'STAGING')
+const isStaging = computed(() => false)
 const isReady = computed(() => copy.value?.status === 'READY')
-const isGraded = computed(() => copy.value?.status === 'GRADED')
+const isFinalized = computed(() => copy.value?.status === 'FINALIZED')
+const isGraded = isFinalized // alias for backward compatibility
 
 // Anonymization: hide student identity on header pages (1+4*N) and last page (annexe)
 const isAdmin = computed(() => authStore.user?.is_superuser || authStore.user?.role === 'Admin')
@@ -140,8 +139,8 @@ const isAssignedCorrector = computed(() => {
     const correctorId = copy.value?.assigned_corrector?.id || copy.value?.assigned_corrector
     return userId && correctorId && String(userId) === String(correctorId)
 })
-const isReadOnly = computed(() => isGraded.value && !isAdmin.value && !isAssignedCorrector.value)
-const canAnnotate = computed(() => (isReady.value || (isGraded.value && (isAdmin.value || isAssignedCorrector.value))) && !isReadOnly.value)
+const isReadOnly = computed(() => isFinalized.value && !isAdmin.value && !isAssignedCorrector.value)
+const canAnnotate = computed(() => (isReady.value || (isFinalized.value && (isAdmin.value || isAssignedCorrector.value))) && !isReadOnly.value)
 const examId = computed(() => copy.value?.exam?.id || null)
 
 // Subject variant (Sujet A / Sujet B)

@@ -154,7 +154,15 @@ class Command(BaseCommand):
         errors = 0
 
         with open(csv_path, newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f, delimiter=";")
+            # Auto-detect separator
+            sample = f.read(4096)
+            f.seek(0)
+            try:
+                dialect = csv.Sniffer().sniff(sample, delimiters=',;\t')
+                delimiter = dialect.delimiter
+            except csv.Error:
+                delimiter = ';'  # fallback to French standard
+            reader = csv.DictReader(f, delimiter=delimiter)
             rows = list(reader)
 
         self.stdout.write(f"\n  Import de {len(rows)} élèves depuis {csv_path.name}…")
@@ -232,7 +240,15 @@ class Command(BaseCommand):
 
         added = 0
         with open(ENSEIGNANTS_CSV, newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
+            # Auto-detect separator
+            sample = f.read(4096)
+            f.seek(0)
+            try:
+                dialect = csv.Sniffer().sniff(sample, delimiters=',;\t')
+                delimiter = dialect.delimiter
+            except csv.Error:
+                delimiter = ';'  # fallback to French standard
+            reader = csv.DictReader(f, delimiter=delimiter)
             for row in reader:
                 email = row.get("mail", "").strip().lower()
                 if not email:

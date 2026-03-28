@@ -62,7 +62,7 @@ class TestAntiLoss:
         Annotating a GRADED copy must be rejected (400).
         Replaces old lock idempotency test — locks removed.
         """
-        copy.status = Copy.Status.GRADED
+        copy.status = Copy.Status.FINALIZED
         copy.save(update_fields=["status"])
 
         client = APIClient()

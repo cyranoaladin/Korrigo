@@ -72,7 +72,7 @@ class TestExamUploadValidation:
         copy = Copy.objects.first()
         assert copy.exam == exam
         # P1 FIX: Copies are now auto-validated to READY after successful split
-        assert copy.status in [Copy.Status.READY, Copy.Status.STAGING]
+        assert copy.status in [Copy.Status.READY, Copy.Status.READY]
         assert copy.is_identified is False
         assert copy.booklets.count() == 1
     
@@ -725,7 +725,7 @@ class TestIndividualPDFUpload:
         assert exam_pdf.student_identifier == 'martin_jean'
         
         copy = Copy.objects.get(id=uploaded['copy_id'])
-        assert copy.status == Copy.Status.STAGING
+        assert copy.status == Copy.Status.READY
         assert copy.is_identified is False
     
     def test_upload_multiple_individual_pdfs(self, teacher_client):
