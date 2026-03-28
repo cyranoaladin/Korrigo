@@ -135,8 +135,8 @@ const isHeaderPage = computed(() => {
     // Last page is the annexe, also has an identity header
     return isPeriodicHeader || isLastPage.value
 })
-// Last page (annexe) has a smaller identity header (~8% vs ~22% for booklet pages)
-const overlayHeight = computed(() => isLastPage.value ? '10%' : '27%')
+// Last page (annexe) has a smaller identity header (~7% vs ~20% for booklet pages)
+const overlayHeight = computed(() => isLastPage.value ? '8%' : '20%')
 
 const isAssignedCorrector = computed(() => {
     const userId = authStore.user?.id
