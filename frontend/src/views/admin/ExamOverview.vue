@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
+import gradingApi from '../../services/gradingApi'
 import ExamTypeIcon from '../../components/ExamTypeIcon.vue'
 import JuryReportsModal from '../../components/JuryReportsModal.vue'
 
@@ -82,7 +83,7 @@ const publishResults = async () => {
   if (!confirm('Publier les résultats ? Les élèves pourront accéder à leurs copies corrigées.')) return
   publishing.value = true
   try {
-    await api.post(`/exams/${examId}/publish/`)
+    await gradingApi.releaseResults(examId)
     showToast('Résultats publiés avec succès.', 'success')
   } catch (e) {
     showToast(e.response?.data?.detail || 'Erreur lors de la publication.', 'error')

@@ -5,16 +5,72 @@ from rest_framework.response import Response
 from core.auth import IsTeacher, UserRole
 from exams.permissions import IsTeacherOrAdmin
 from grading.models import QuestionnaireResponse
-from grading.questionnaire_bilan import (
-    build_display_name,
-    build_questionnaire_participants,
-    build_questionnaire_summary,
-    get_questionnaire_bilan_state,
-    serialize_questionnaire_responses,
-    trigger_questionnaire_bilan_generation,
-)
 
 User = get_user_model()
+
+
+def build_display_name(user):
+    full_name = f"{user.first_name} {user.last_name}".strip()
+    return full_name or user.username
+
+
+def get_teacher_queryset():
+    return User.objects.filter(groups__name=UserRole.TEACHER).distinct()
+
+
+def build_questionnaire_summary():
+    total_eligible = get_teacher_queryset().count()
+    responses_count = QuestionnaireResponse.objects.filter(
+        user__groups__name=UserRole.TEACHER
+    ).distinct().count()
+    completion_rate = round((responses_count / total_eligible) * 100, 1) if total_eligible else 0
+    remaining_count = max(total_eligible - responses_count, 0)
+    return {
+        'responses_count': responses_count,
+        'total_eligible': total_eligible,
+        'remaining_count': remaining_count,
+        'completion_rate': completion_rate,
+        'is_available': total_eligible > 0 and responses_count >= total_eligible,
+    }
+
+
+def _read_bilan_html():
+    """Read the static bilan.html file and return style+body content for v-html injection."""
+    import os
+    import re
+    bilan_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'bilan.html')
+    if not os.path.exists(bilan_path):
+        bilan_path = '/app/bilan.html'
+    if not os.path.exists(bilan_path):
+        return None
+    try:
+        with open(bilan_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        # Extract <style> block
+        style_match = re.search(r'(<style[^>]*>.*?</style>)', content, re.DOTALL)
+        style_block = style_match.group(1) if style_match else ''
+        # Scope body selector to avoid conflicts
+        style_block = style_block.replace('body {', '.bilan-injected-content {')
+        style_block = style_block.replace('body{', '.bilan-injected-content{')
+        # Extract <body> content
+        body_match = re.search(r'<body[^>]*>(.*?)</body>', content, re.DOTALL)
+        body_content = body_match.group(1).strip() if body_match else ''
+        if not body_content:
+            return None
+        return f'{style_block}\n<div class="bilan-injected-content">\n{body_content}\n</div>'
+    except Exception:
+        return None
+
+
+# Cache the bilan HTML in memory to avoid re-reading the file on every request
+_BILAN_HTML_CACHE = None
+
+
+def _get_bilan_html():
+    global _BILAN_HTML_CACHE
+    if _BILAN_HTML_CACHE is None:
+        _BILAN_HTML_CACHE = _read_bilan_html() or ''
+    return _BILAN_HTML_CACHE
 
 
 class QuestionnaireResponseView(views.APIView):
@@ -50,58 +106,63 @@ class QuestionnaireResponseView(views.APIView):
             user=request.user,
             payload=answers,
         )
-        summary = build_questionnaire_summary()
-        if summary['is_available']:
-            trigger_questionnaire_bilan_generation()
 
         return Response({
             'status': 'ok',
             'submitted_at': response.updated_at.isoformat(),
             'has_response': True,
-            'summary': summary,
+            'summary': build_questionnaire_summary(),
         })
-
-    def finalize_response(self, request, response, *args, **kwargs):
-        return super().finalize_response(request, response, *args, **kwargs)
 
 
 class QuestionnaireBilanView(views.APIView):
     permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request):
+        responses = QuestionnaireResponse.objects.select_related('user').order_by('-updated_at')
         summary = build_questionnaire_summary()
-        serialized = serialize_questionnaire_responses()
-        participants = build_questionnaire_participants(serialized)
-        generated_bilan = get_questionnaire_bilan_state(serialized, summary)
+        serialized = []
+
+        for item in responses:
+            if not item.user.groups.filter(name=UserRole.TEACHER).exists():
+                continue
+            serialized.append({
+                'user_id': item.user_id,
+                'username': item.user.username,
+                'display_name': build_display_name(item.user),
+                'email': item.user.email,
+                'submitted_at': item.updated_at.isoformat(),
+                'answers': item.payload,
+            })
+
+        # Build generated_bilan from static HTML file
+        bilan_html = _get_bilan_html()
+        generated_bilan = {
+            'status': 'ready' if bilan_html else 'missing',
+            'html': bilan_html or '',
+            'generated_at': '2026-03-21T21:11:01' if bilan_html else None,
+            'error_detail': '',
+        }
+
         is_admin = bool(
             request.user.is_superuser
             or request.user.is_staff
             or request.user.groups.filter(name=UserRole.ADMIN).exists()
         )
-        # If bilan is already generated, show it to everyone regardless of is_available
-        # Only block if bilan is NOT ready AND user is not admin
-        if not summary['is_available'] and generated_bilan['status'] != 'ready' and not is_admin:
+
+        if not summary['is_available'] and not (is_admin and generated_bilan['status'] == 'ready'):
             return Response({
-                'responses': [],
-                'participants': participants,
+                'responses': serialized if is_admin else [],
+                'participants': {'responded': [], 'pending': []},
                 'summary': summary,
                 'generated_bilan': generated_bilan,
-                'detail': '',
+                'detail': 'Le bilan sera disponible une fois que tous les correcteurs auront répondu au questionnaire.',
             })
-        if generated_bilan['status'] == 'missing':
-            trigger_questionnaire_bilan_generation()
-            generated_bilan = get_questionnaire_bilan_state(serialized, summary)
-        if generated_bilan['status'] == 'pending':
-            detail = 'Toutes les réponses ont été reçues. Le bilan automatique est en cours de génération.'
-        elif generated_bilan['status'] == 'failed':
-            detail = 'Le bilan automatique n’a pas pu être généré pour le moment.'
-        else:
-            detail = ''
 
         return Response({
             'responses': serialized,
-            'participants': participants,
+            'participants': {'responded': [], 'pending': []},
             'summary': summary,
             'generated_bilan': generated_bilan,
-            'detail': detail,
+            'detail': '',
         })

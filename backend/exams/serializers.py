@@ -182,10 +182,11 @@ class CopySerializer(serializers.ModelSerializer):
     final_pdf_url = serializers.SerializerMethodField()
     booklet_ids = serializers.SerializerMethodField()
     assigned_corrector_username = serializers.CharField(
-        source='assigned_corrector.username', 
-        read_only=True, 
+        source='assigned_corrector.username',
+        read_only=True,
         allow_null=True
     )
+    total_score = serializers.SerializerMethodField()
 
     class Meta:
         model = Copy
@@ -193,13 +194,23 @@ class CopySerializer(serializers.ModelSerializer):
             'id', 'exam', 'exam_name', 'anonymous_id', 'final_pdf',
             'final_pdf_url', 'status', 'is_identified', 'student',
             'booklet_ids', 'assigned_corrector', 'assigned_corrector_username',
-            'dispatch_run_id', 'assigned_at', 'global_appreciation',
-            'subject_variant'
+            'dispatch_run_id', 'assigned_at', 'graded_at', 'global_appreciation',
+            'subject_variant', 'total_score',
         ]
         read_only_fields = [
             'id', 'exam_name', 'final_pdf_url', 'booklet_ids',
-            'assigned_corrector_username', 'dispatch_run_id', 'assigned_at'
+            'assigned_corrector_username', 'dispatch_run_id', 'assigned_at',
+            'graded_at', 'total_score',
         ]
+
+    def get_total_score(self, obj):
+        score = obj.scores.first()
+        if not score or not score.scores_data:
+            return None
+        try:
+            return sum(float(v) for v in score.scores_data.values() if v is not None and v != '')
+        except (TypeError, ValueError):
+            return None
 
     def get_final_pdf_url(self, obj):
         if obj.final_pdf:
@@ -251,7 +262,6 @@ class ExamTypeSerializer(serializers.ModelSerializer):
 
 class JuryReportSerializer(serializers.ModelSerializer):
     exam_type_name = serializers.CharField(source='exam_type.name', read_only=True)
-    exam_type_code = serializers.CharField(source='exam_type.code', read_only=True)
     created_by_username = serializers.CharField(source='created_by.username', read_only=True)
 
     class Meta:
