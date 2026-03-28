@@ -35,7 +35,7 @@ const fetchCopies = async () => {
       exam.value = res.data
       
       const copiesRes = await api.get(`/exams/${examId}/copies/`)
-      copies.value = copiesRes.data
+      copies.value = copiesRes.data.results ?? copiesRes.data
       
   } catch (e) {
       console.error(e)

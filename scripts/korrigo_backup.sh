@@ -6,6 +6,7 @@
 # Backs up:
 #   1. Full PostgreSQL dump
 #   2. JSON export of all corrections data (scores, annotations, remarks, appreciations)
+#   3. Media files (PDFs source, PDFs finaux, pages PNG)
 #
 # Retention: keeps last 48 backups (24 hours at 30min intervals)
 # Location: /var/www/labomaths/korrigo/backups/automated/
@@ -60,9 +61,28 @@ else
 fi
 
 # -------------------------------------------------------
-# 3. Cleanup old backups (keep last RETENTION_COUNT)
+# 3. Media backup (PDFs source, PDFs finaux, pages PNG)
 # -------------------------------------------------------
-log "Step 3: Cleanup (keeping last ${RETENTION_COUNT} backups)..."
+log "Step 3: Media backup..."
+MEDIA_VOLUME="/var/lib/docker/volumes/docker_media_volume/_data"
+MEDIA_ARCHIVE="${BACKUP_DIR}/media_${TIMESTAMP}.tar.gz"
+
+# Only back up the sub-directories that contain real data (skip uploads in progress)
+if tar -czf "${MEDIA_ARCHIVE}" \
+    -C "${MEDIA_VOLUME}" \
+    --exclude="./tmp" \
+    --exclude="./.cache" \
+    . 2>>"${LOG_FILE}"; then
+    MEDIA_SIZE=$(du -sh "${MEDIA_ARCHIVE}" | cut -f1)
+    log "  -> Media backup OK: ${MEDIA_SIZE}"
+else
+    log "  -> WARNING: Media backup failed (non-fatal)"
+fi
+
+# -------------------------------------------------------
+# 4. Cleanup old backups (keep last RETENTION_COUNT)
+# -------------------------------------------------------
+log "Step 4: Cleanup (keeping last ${RETENTION_COUNT} backups)..."
 BACKUP_COUNT=$(ls -1d "${BACKUP_BASE}"/2* 2>/dev/null | wc -l)
 if [ "${BACKUP_COUNT}" -gt "${RETENTION_COUNT}" ]; then
     REMOVE_COUNT=$((BACKUP_COUNT - RETENTION_COUNT))
@@ -76,7 +96,7 @@ else
 fi
 
 # -------------------------------------------------------
-# 4. Final summary
+# 5. Final summary
 # -------------------------------------------------------
 TOTAL_SIZE=$(du -sh "${BACKUP_DIR}" | cut -f1)
 log "=== Backup ${TIMESTAMP} complete: ${TOTAL_SIZE} ==="
