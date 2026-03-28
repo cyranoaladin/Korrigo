@@ -254,18 +254,18 @@ const collectLeafQuestions = (nodes) => {
 const flatQuestions = computed(() => collectLeafQuestions(exercisesWithQuestions.value))
 
 // Accordion state: Set of open IDs for exercises and sub-groups independently
-const openExerciseIds = ref(new Set())
-const openGroupIds = ref(new Set())
+const openExerciseId = ref(null)
+const openGroupId = ref(null)
 const toggleExercise = (id) => {
-    const s = new Set(openExerciseIds.value)
-    s.has(id) ? s.delete(id) : s.add(id)
-    openExerciseIds.value = s
+    openExerciseId.value = openExerciseId.value === id ? null : id
+    openGroupId.value = null // ferme tout sous-groupe quand on change d'exercice
 }
 const toggleGroup = (id) => {
-    const s = new Set(openGroupIds.value)
-    s.has(id) ? s.delete(id) : s.add(id)
-    openGroupIds.value = s
+    openGroupId.value = openGroupId.value === id ? null : id
 }
+// Compat: les templates utilisent .has() — on expose des pseudo-Sets via computed
+const openExerciseIds = computed(() => ({ has: (id) => openExerciseId.value === id }))
+const openGroupIds = computed(() => ({ has: (id) => openGroupId.value === id }))
 
 // Hierarchical structure: top-level exercises, each may have groups (sub-exercises)
 const exercisesWithQuestions = computed(() => {
