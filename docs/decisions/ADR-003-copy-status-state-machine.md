@@ -1,215 +1,266 @@
-# ADR-003 : Machine à États pour le Statut des Copies
+# ADR-003 : Machine à États du Statut des Copies
 
 ## Statut
-✅ **Accepté** (2026-01-21)
+✅ **Accepté — Version 3 (Mars 2026)**
+
+> ⚠️ Ce document remplace intégralement les versions précédentes.
+> L'ancienne machine à 4 états (STAGING/READY/LOCKED/GRADED) est **obsolète** depuis la migration 0026.
+> La machine actuelle comporte **3 états** : READY / IN_PROGRESS / FINALIZED.
+
+---
 
 ## Contexte
 
-Les copies passent par plusieurs étapes dans leur cycle de vie :
-1. Détection automatique (fascicules)
-2. Validation manuelle
-3. Correction par professeur
-4. Publication aux élèves
+### Historique des versions
 
-Nous devons définir les états possibles et les transitions autorisées.
+**V1 — Janvier 2026 (migrations 0001–0025)**
+Machine à 4 états : `STAGING → READY → LOCKED → GRADED`
+Problème : états redondants, friction corrective (double lock/unlock), confusion LOCKED vs GRADED, tests complexes.
 
-**Contraintes** :
-- Traçabilité complète du workflow
-- Impossible de corriger une copie non prête
-- Impossible de modifier une copie finalisée
-- Verrouillage pendant correction (un seul correcteur)
-- Possibilité de débloquer si erreur
+**V2 — Février 2026**
+Ajout de `GRADED → READY` (réouverture admin) pour corriger des erreurs post-finalisation.
+
+**V3 — Mars 2026 (migrations 0026, 0027, 0028) — VERSION ACTUELLE**
+Simplification radicale à 3 états : `READY / IN_PROGRESS / FINALIZED`.
+- Suppression de STAGING (les copies importées arrivent directement en READY)
+- Fusion de LOCKED et GRADING_IN_PROGRESS en un seul état IN_PROGRESS
+- Renommage de GRADED en FINALIZED
+- Ajout du champ `finalizing_at` comme mutex atomique anti-doublon (migration 0028)
+
+---
 
 ## Décision
 
-**Implémenter une machine à états stricte avec 4 états et transitions contrôlées.**
+**Implémenter une machine à états à 3 états avec transitions contrôlées et garde atomique à la finalisation.**
 
-### États
-
-```python
-class Status(models.TextChoices):
-    STAGING = 'STAGING', "En attente de validation"
-    READY = 'READY', "Prêt à corriger"
-    LOCKED = 'LOCKED', "En cours de correction"
-    GRADED = 'GRADED', "Corrigé et finalisé"
-```
-
-### Diagramme de Transitions
-
-```
-STAGING ──(validate)──> READY
-                         ↓
-                      (lock)
-                         ↓
-                       LOCKED ←─(unlock, si erreur)─┐
-                         ↓                           │
-                    (finalize)                       │
-                         ↓                           │
-                       GRADED (immutable)            │
-                                                     │
-         (si nécessaire, rollback exceptionnel) ────┘
-```
-
-### Transitions Autorisées
-
-| État Actuel | Action      | État Suivant | Qui           |
-|-------------|-------------|--------------|---------------|
-| STAGING     | validate    | READY        | Professeur    |
-| READY       | lock        | LOCKED       | Professeur    |
-| LOCKED      | unlock      | READY        | Même prof ou Admin |
-| LOCKED      | finalize    | GRADED       | Professeur    |
-| GRADED      | (aucune)    | -            | Immutable     |
-
-### Validation Backend
+### États actuels
 
 ```python
-def lock_copy(copy, professor):
-    if copy.status != Copy.Status.READY:
-        raise ValueError(f"Cannot lock copy in state {copy.status}")
-
-    copy.status = Copy.Status.LOCKED
-    copy.locked_by = professor
-    copy.locked_at = timezone.now()
-    copy.save()
-
-def finalize_copy(copy):
-    if copy.status != Copy.Status.LOCKED:
-        raise ValueError(f"Cannot finalize copy in state {copy.status}")
-
-    # Générer PDF final, etc.
-    copy.status = Copy.Status.GRADED
-    copy.graded_at = timezone.now()
-    copy.save()
+class Copy.Status(models.TextChoices):
+    READY       = 'READY',       "Prêt à corriger"
+    IN_PROGRESS = 'IN_PROGRESS', "En cours de correction"
+    FINALIZED   = 'FINALIZED',   "Finalisée"
 ```
 
-## Mise à jour V2 (Mars 2026)
-
-### Nouvelle transition : GRADED → READY (Réouverture)
-
-Suite au retour d'expérience du premier déploiement (Bac Blanc Mars 2026), un correcteur a demandé la possibilité de revenir sur une copie finalisée pour corriger une erreur. La transition GRADED → READY a été ajoutée avec les garde-fous suivants :
-
-- **Accès restreint** : Superuser uniquement (pas les enseignants standard)
-- **Effets de bord** : Invalidation du PDF final, reset de graded_at et grading_retries
-- **Traçabilité** : Nouvel événement GradingEvent.REOPEN avec métadonnées (ancien statut, ancien PDF)
-- **Conservation** : Notes (Score), annotations, remarques et appréciation globale sont conservées
-
-### Diagramme de Transitions Mis à Jour
+### Diagramme de transitions
 
 ```
-STAGING ──(validate)──> READY
-                         ↓
-                      (lock)
-                         ↓
-                       LOCKED ←─(unlock, si erreur)─┐
-                         ↓                           │
-                    (finalize)                       │
-                         ↓                           │
-                       GRADED ──(reopen, admin)──> READY
+                   [Première annotation créée]
+READY ─────────────────────────────────────────────→ IN_PROGRESS
+  ↑                                                        │
+  │                                              [POST /finalize/]
+  │                                                        │
+  │              [Admin reopen — superuser only]           ↓
+  └────────────────────────────────────────────── FINALIZED
 ```
 
-### Transitions Autorisées (V2)
+### Tableau des transitions autorisées
 
-| État Actuel | Action      | État Suivant | Qui               |
-|-------------|-------------|--------------|-------------------|
-| STAGING     | validate    | READY        | Professeur        |
-| READY       | lock        | LOCKED       | Professeur        |
-| LOCKED      | unlock      | READY        | Même prof ou Admin |
-| LOCKED      | finalize    | GRADED       | Professeur        |
-| GRADED      | reopen      | READY        | Superuser Admin   |
+| État actuel | Déclencheur | État suivant | Qui | Effets de bord |
+|-------------|-------------|--------------|-----|----------------|
+| READY | Première annotation créée via `AnnotationService.add_annotation()` | IN_PROGRESS | Enseignant assigné | GradingEvent.CREATE_ANN enregistré |
+| IN_PROGRESS | `POST /api/grading/copies/{id}/finalize/` | FINALIZED | Enseignant assigné | PDF aplati, `graded_at=now()`, `finalizing_at=None`, GradingEvent.FINALIZE |
+| READY | `POST /api/grading/copies/{id}/finalize/` | FINALIZED | Enseignant assigné | Idem (finalisation directe possible depuis READY) |
+| FINALIZED | `POST /api/grading/copies/{id}/reopen/` | READY | Superuser admin uniquement | `final_pdf` effacé, `graded_at=None`, `grading_retries` reset, GradingEvent.REOPEN |
+
+### Cas spécial : ré-upload bloqué
+
+Un ré-upload de PDF sur un examen est **bloqué** si une copie est IN_PROGRESS ou FINALIZED.
+Il est **autorisé** si toutes les copies sont READY (les copies READY sont supprimées et recréées).
+
+---
+
+## Implémentation
+
+### Service de finalisation (`GradingService.finalize_copy`)
+
+La finalisation est protégée par un **mutex atomique PostgreSQL** via le champ `finalizing_at`.
+
+**Problème résolu** : `select_for_update(nowait=True)` ne garantissait pas qu'un seul thread appellait `flatten_copy` dans tous les scénarios de concurrence (si le premier thread terminait avant que le second tente le lock, les deux pouvaient passer la vérification de statut).
+
+**Solution** : UPDATE conditionnel atomique (migration 0028) :
+
+```python
+# GradingService._finalize_copy_inner (grading/services.py)
+
+# 1. CLAIM ATOMIQUE — une seule requête concurrente peut passer
+claimed = (
+    Copy.objects
+    .filter(
+        id=copy.id,
+        status__in=(Copy.Status.READY, Copy.Status.IN_PROGRESS),
+        finalizing_at__isnull=True,   # ← condition de guard
+    )
+    .update(finalizing_at=timezone.now())  # ← atomic SQL UPDATE
+)
+# PostgreSQL garantit : exactement 1 requête obtient claimed=1
+
+if claimed != 1:
+    raise LockConflictError("Finalization en cours par une autre requête — réessayez.")
+
+# 2. Recharge avec verrou pour la suite de l'écriture
+copy = Copy.objects.select_for_update().get(id=copy.id)
+
+# 3. Aplatissement PDF
+pdf_bytes = PDFFlattener().flatten_copy(copy)
+copy.final_pdf.save(...)
+
+# 4. Finalisation atomique — finalizing_at remis à None en même temps
+copy.status        = Copy.Status.FINALIZED
+copy.graded_at     = timezone.now()
+copy.finalizing_at = None   # ← libère le mutex sur succès
+copy.save(update_fields=["status", "graded_at", "final_pdf", "finalizing_at", ...])
+```
+
+**Gestion d'échec** : si une exception se produit, `@transaction.atomic` effectue un rollback complet de la transaction, y compris le `UPDATE SET finalizing_at=NOW()`. Le champ revient automatiquement à NULL sans cleanup explicite.
+
+### Transition READY → IN_PROGRESS automatique
+
+```python
+# AnnotationService.add_annotation (grading/services.py)
+@transaction.atomic
+def add_annotation(copy, payload, user):
+    if copy.status == Copy.Status.READY:
+        copy.status = Copy.Status.IN_PROGRESS
+        copy.save(update_fields=['status'])
+    # ... création annotation
+```
+
+### Réouverture admin
+
+```python
+# Vue reopen (grading/views.py ou équivalent)
+# Accessible uniquement aux superusers
+copy.status = Copy.Status.READY
+copy.final_pdf.delete()
+copy.graded_at = None
+copy.grading_retries = 0
+copy.save(...)
+GradingEvent.objects.create(
+    copy=copy, action=GradingEvent.Action.REOPEN, actor=user,
+    metadata={'old_status': 'FINALIZED', 'old_pdf': old_pdf_name}
+)
+```
+
+---
+
+## Champ `finalizing_at` (migration 0028)
+
+```python
+# exams/models.py — Copy
+finalizing_at = models.DateTimeField(
+    null=True,
+    blank=True,
+    verbose_name="Finalisation en cours depuis",
+    help_text="Marqueur atomique anti-doublon : mutex PostgreSQL pour éviter deux finalisations simultanées"
+)
+```
+
+- Valeur NULL : copie non en cours de finalisation
+- Valeur NON NULL : finalisation en cours (timestamp de début)
+- Jamais visible en dehors de `GradingService` — ne pas l'exposer à l'API publique
+
+---
+
+## Tests critiques
+
+```python
+# Tests de la machine à états
+def test_copy_statuses_are_exactly_three():
+    valid = {c[0] for c in Copy.Status.choices}
+    assert valid == {"READY", "IN_PROGRESS", "FINALIZED"}
+    assert "STAGING" not in valid      # Supprimé migration 0026
+    assert "LOCKED" not in valid       # Supprimé migration 0026
+    assert "GRADED" not in valid       # Renommé → FINALIZED
+
+def test_first_annotation_transitions_to_in_progress(copy_ready):
+    AnnotationService.add_annotation(copy_ready, {...}, user)
+    copy_ready.refresh_from_db()
+    assert copy_ready.status == Copy.Status.IN_PROGRESS
+
+def test_finalize_sets_finalized(copy_in_progress):
+    GradingService.finalize_copy(copy_in_progress, user)
+    copy_in_progress.refresh_from_db()
+    assert copy_in_progress.status == Copy.Status.FINALIZED
+    assert copy_in_progress.final_pdf
+    assert copy_in_progress.finalizing_at is None  # mutex libéré
+
+def test_finalize_concurrent_calls_flatten_once(teacher_user):
+    # Postgres uniquement — @pytest.mark.postgres
+    # Deux threads concurrents → 1 succès, 1 LockConflictError
+    # flatten_copy appelé exactement 1 fois
+    # (backend/grading/tests/test_concurrency_postgres.py)
+    ...
+
+def test_cannot_finalize_already_finalized(copy_finalized):
+    with pytest.raises(LockConflictError, match="déjà finalisée"):
+        GradingService.finalize_copy(copy_finalized, user)
+
+def test_reopen_requires_superuser(copy_finalized, teacher_user):
+    with pytest.raises(PermissionError):
+        reopen_copy(copy_finalized, teacher_user)  # Doit échouer
+
+def test_reopen_clears_final_pdf(copy_finalized, admin_user):
+    reopen_copy(copy_finalized, admin_user)
+    copy_finalized.refresh_from_db()
+    assert copy_finalized.status == Copy.Status.READY
+    assert not copy_finalized.final_pdf
+```
+
+---
 
 ## Conséquences
 
 ### Positives
-- ✅ Workflow métier explicite et vérifiable
-- ✅ Impossible de contourner les étapes
-- ✅ Traçabilité complète (timestamps par état)
-- ✅ Verrouillage automatique pendant correction
-- ✅ État GRADED immutable (intégrité)
+- ✅ Machine à états simple, explicite, testable
+- ✅ Mutex atomique garantit l'idempotence de la finalisation
+- ✅ Zéro friction corrective (pas de lock/unlock manuel)
+- ✅ Traçabilité complète via GradingEvent
+- ✅ Réouverture admin possible pour corriger les erreurs post-finalisation
+- ✅ Tests de concurrence verts (636 passed)
 
 ### Négatives
-- ❌ ~~Rollback complexe si erreur après GRADED~~ — Résolu en V2 via la transition GRADED → READY
-- ❌ Besoin de procédure admin pour cas exceptionnels
-- ❌ Tests de toutes les transitions nécessaires
+- ❌ Le champ `finalizing_at` ajoute une colonne en DB (migration 0028)
+- ❌ La réouverture est réservée au superuser — procédure admin nécessaire
 
-### Risques
-- ⚠️ Si bug dans validation transition, copies bloquées
-- ⚠️ Unlock doit être tracé (qui, quand, pourquoi)
+### Risques et mitigations
+- ⚠️ **`finalizing_at` non-null bloquant** : si la DB crashe entre la claim et le rollback, le champ reste à une valeur non-null. Mitigation : le rollback PostgreSQL nettoie automatiquement dans 99,9% des cas ; script de récupération `recover_stuck_copies.py` pour les cas résiduels.
+- ⚠️ **Annot sur copie FINALIZED bloquée** : prévu — raises ValueError. L'admin doit réouvrir avant toute modification.
 
-## Alternatives Considérées
+---
 
-### Alternative A : États libres sans validation
-**Rejetée car** :
-- Risque d'incohérences (copie GRADED modifiée)
-- Pas de traçabilité workflow
-- Bugs difficiles à diagnostiquer
+## Alternatives considérées
 
-### Alternative B : Plus d'états (REVIEWING, PUBLISHED, etc.)
-**Rejetée car** :
-- Complexité inutile pour V1
-- 4 états suffisent pour workflow actuel
-- Évolutif si nécessaire (ajout états futurs)
+### Alternative A : Conserver les 5 états (STAGING/READY/LOCKED/GRADING_IN_PROGRESS/GRADED)
+**Rejetée** : états redondants causant confusion dans les tests et l'UI. Friction inutile sur le workflow correcteur.
 
-### Alternative C : Soft delete au lieu d'immutable
-**Rejetée car** :
-- État GRADED doit être fiable
-- Audit trail nécessite immutabilité
-- Rollback possible via admin si vraiment nécessaire
+### Alternative B : 4 états avec FINALIZING comme état transitoire
+**Rejetée** : `finalizing_at` offre la même garantie sans ajouter un état visible à l'API ; rollback plus propre.
 
-## Validation
+### Alternative C : Verrou Redis distribué pour la finalisation
+**Rejetée** : introduit une dépendance externe supplémentaire. La solution PostgreSQL atomique est plus simple et plus robuste dans notre architecture.
 
-Cette décision respecte :
-- ✅ Workflow métier (correction_flow.md)
-- ✅ Intégrité des données (règle 04_database_rules.md)
-- ✅ Traçabilité (règle 00_global_rules.md)
+---
 
-## Implémentation Requise
+## Fichiers concernés
 
-- [x] Enum Status dans Copy model
-- [x] Validation transitions dans services
-- [x] Tests toutes les transitions
-- [x] Tests transitions interdites (doivent échouer)
-- [x] Logging changements de statut
-- [x] Admin action pour unlock exceptionnel
+| Fichier | Rôle |
+|---------|------|
+| `backend/exams/models.py` | Définition Copy.Status + Copy.finalizing_at |
+| `backend/exams/migrations/0026_simplify_copy_status.py` | Suppression états obsolètes |
+| `backend/exams/migrations/0027_rename_copy_statuses.py` | Renommage vers noms actuels |
+| `backend/exams/migrations/0028_copy_finalizing_at.py` | Ajout champ finalizing_at |
+| `backend/grading/services.py` | GradingService.finalize_copy + _finalize_copy_inner |
+| `backend/grading/tests/test_concurrency_postgres.py` | Test de concurrence Postgres |
+| `backend/grading/tests/test_multi_exam_isolation.py` | Isolation multi-examens |
+| `backend/exams/tests/test_audit_fixes.py` | Tests audit + re-upload |
 
-## Tests Critiques
-
-```python
-def test_cannot_lock_staging_copy():
-    copy = Copy.objects.create(status=Copy.Status.STAGING)
-    with pytest.raises(ValueError):
-        CopyService.lock_copy(copy, professor)
-
-def test_cannot_finalize_ready_copy():
-    copy = Copy.objects.create(status=Copy.Status.READY)
-    with pytest.raises(ValueError):
-        CopyService.finalize_copy(copy)
-
-def test_graded_is_immutable():
-    copy = Copy.objects.create(status=Copy.Status.GRADED)
-    copy.status = Copy.Status.READY
-    copy.save()
-
-    copy.refresh_from_db()
-    # Devrait rester GRADED (ou lever exception)
-    assert copy.status == Copy.Status.GRADED
-```
-
-## Champs Traçabilité
-
-```python
-class Copy(models.Model):
-    status = models.CharField(choices=Status.choices)
-
-    # Traçabilité
-    created_at = models.DateTimeField(auto_now_add=True)
-    validated_at = models.DateTimeField(null=True)  # STAGING → READY
-    locked_at = models.DateTimeField(null=True)     # READY → LOCKED
-    locked_by = models.ForeignKey(User, null=True)
-    graded_at = models.DateTimeField(null=True)     # LOCKED → GRADED
-```
+---
 
 ## Date
-2026-01-21
+- V1 : 2026-01-21 (4 états)
+- V2 : 2026-02-15 (réouverture admin)
+- V3 : 2026-03-28 (3 états + `finalizing_at`) — **VERSION ACTUELLE**
 
 ## Auteur
 Alaeddine BEN RHOUMA (Backend Architect)

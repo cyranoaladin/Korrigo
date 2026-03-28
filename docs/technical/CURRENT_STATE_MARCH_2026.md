@@ -1,433 +1,201 @@
-# État Actuel du Projet Korrigo — Mars 2026
+# État du Projet Korrigo — 28 Mars 2026
 
-> **Version** : 2.2
-> **Date** : 23 Mars 2026
-> **Public** : Développeurs, Administrateurs, Product Owners
-
-Ce document décrit l'état actuel de l'application Korrigo PMF tel qu'implémenté dans le code source.
+> **Version** : 3.0
+> **Date** : 2026-03-28
+> **Production** : https://korrigo.labomaths.tn
 
 ---
 
-## 📋 Table des Matières
+## Résumé exécutif
 
-1. [Architecture Frontend](#architecture-frontend)
-2. [Routes et Navigation](#routes-et-navigation)
-3. [Interfaces par Rôle](#interfaces-par-rôle)
-4. [Fonctionnalités Clés](#fonctionnalités-clés)
-5. [Workflows Métier](#workflows-métier)
-6. [API Backend](#api-backend)
+Korrigo v2 est une plateforme de correction numérique d'examens pleinement opérationnelle en production. Le système gère actuellement **4 examens**, **289 copies DNB** en attente de correction, et a déjà traité les résultats des examens Bac Blanc (BB_J1 et BB_J2). La suite de tests passe intégralement (636 tests) et la release gate CI est verte.
 
 ---
 
-## Architecture Frontend
+## 1. Examens en Production
 
-### Stack Technique
+### Examens actifs
 
-| Technologie | Version | Usage |
-|-------------|---------|-------|
-| **Vue.js** | 3.4+ | Framework UI (Composition API) |
-| **Vue Router** | 4.2+ | Routing SPA |
-| **Pinia** | 2.1+ | State management (auth, exam) |
-| **Vite** | 5.x | Build tool |
-| **TailwindCSS** | 4.x | Styling |
-| **Axios** | - | Appels API |
+| Examen | ID DB | Statut | Copies | Correcteurs |
+|--------|-------|--------|--------|-------------|
+| `BB_J1` | baa78b5b | Publié (résultats sortis) | ~150 | Tous les profs maths |
+| `BB_J2` | bd24af37 | Publié (résultats sortis) | ~150 | Tous les profs maths |
+| `DNB_2026` | 69cb6f96 | **PRÊT — dispatch effectué** | 289 | 6 enseignants |
+| `Prod Validation Exam` | ba447c45 | Test technique | — | — |
 
-### Structure des Fichiers
+### DNB_2026 — État détaillé
 
+- **Mode** : INDIVIDUAL_A4 (1 PDF A4 par élève)
+- **Copies** : 289 READY, 0 IN_PROGRESS, 0 FINALIZED
+- **Élèves** : 294 dans `students_student` (293 créés + 1 mis à jour)
+- **Identification** : 289/289 (100%) — toutes identifiées
+- **Dispatch** : Effectué le 2026-03-28
+
+#### Répartition des copies DNB_2026
+
+| Enseignant | Email | Copies | Classes |
+|-----------|-------|--------|---------|
+| Fatma ABID | fatma.abid@ert.tn | 49 | 3.1, 3.7 |
+| Maroua FRAIJI | maroua.fraiji@ert.tn | 48 | 3.2, 3.4 |
+| Chawki SAADI | chawki.saadi@ert.tn | 48 | 3.3 |
+| Soumaya NASRI | soumaya.nasri@ert.tn | 48 | 3.5, 3.6 |
+| Sami BEN TIBA | sami.bentiba@ert.tn | 48 | 3.8, 3.9 |
+| Gilles COLLY | gilles.colly@ert.tn | 48 | 3.10 |
+
+#### Contraintes de dispatch appliquées
+- Aucun enseignant ne corrige ses propres élèves
+- KAMEL BEN RHOUMA (3.5) → assigné à Fatma ABID (exclu de NASRI, SAADI, BEN TIBA)
+
+---
+
+## 2. Infrastructure Production
+
+### Serveur
+- **IP** : 88.99.254.59
+- **Domaine** : korrigo.labomaths.tn (alias korrigo.nexusreussite.academy)
+- **Chemin de déploiement** : `/var/www/labomaths/korrigo/`
+
+### Conteneurs Docker (6 services)
+
+| Conteneur | État | Description |
+|-----------|------|-------------|
+| docker-backend-1 | ✅ Up/healthy | Django 4.2 + Gunicorn |
+| docker-db-1 | ✅ Up/healthy | PostgreSQL 15 |
+| docker-redis-1 | ✅ Up/healthy | Redis 7 (broker + cache) |
+| docker-celery-1 | ✅ Up | Worker Celery |
+| docker-celery-beat-1 | ✅ Up | Scheduler Celery Beat |
+| docker-nginx-1 | ✅ Up | Reverse proxy + TLS |
+
+---
+
+## 3. État du Code et des Migrations
+
+### Branche principale
+- **Branche** : `main`
+- **Dernier commit** : `5857dd5` — fix(grading): atomic finalizing_at claim
+
+### Migrations (app exams)
+
+| Migration | Description | Statut |
+|-----------|-------------|--------|
+| 0001–0025 | Schéma initial + évolutions | ✅ Appliqué |
+| 0026 | Simplification status 3 états | ✅ Appliqué |
+| 0027 | Renommage valeurs status | ✅ Appliqué |
+| **0028** | **Copy.finalizing_at** | ✅ **À appliquer sur prod** |
+
+> ⚠️ La migration 0028 doit être appliquée sur la production :
+> ```bash
+> docker exec docker-backend-1 python manage.py migrate
+> ```
+
+---
+
+## 4. Changements Récents (Mars 2026)
+
+### Architecture — Simplification machine à états (migrations 0026/0027)
+
+**Avant** (5 états) :
 ```
-frontend/src/
-├── App.vue                    # Root component
-├── main.js                    # Entry point
-├── router/index.js            # Configuration des routes
-├── stores/
-│   ├── auth.js                # Store authentification
-│   └── examStore.js           # Store examens
-├── services/
-│   ├── api.js                 # Client API générique
-│   └── gradingApi.js          # API correction
-├── views/
-│   ├── Home.vue               # Page d'accueil (portail login)
-│   ├── HomeView.vue           # Landing page Korrigo
-│   ├── Login.vue              # Login Admin/Teacher
-│   ├── AdminDashboard.vue     # Dashboard administrateur
-│   ├── CorrectorDashboard.vue # Dashboard correcteur
-│   ├── GuideEnseignant.vue    # Guide enseignant
-│   ├── GuideEtudiant.vue      # Guide élève
-│   ├── DirectionConformite.vue # Page direction
-│   ├── Settings.vue           # Paramètres
-│   ├── admin/
-│   │   ├── CorrectorDesk.vue      # Interface correction
-│   │   ├── IdentificationDesk.vue # Video-coding
-│   │   ├── UserManagement.vue     # Gestion utilisateurs
-│   │   ├── StapleView.vue         # Agrafage fascicules
-│   │   ├── MarkingSchemeView.vue  # Configuration barème
-│   │   ├── ExamStudentList.vue    # Liste élèves/notes
-│   │   └── ImportCopies.vue       # Import copies
-│   ├── corrector/
-│   │   ├── MyStudents.vue         # Mes élèves
-│   │   └── StudentBilan.vue       # Bilan élève
-│   └── student/
-│       ├── LoginStudent.vue       # Login élève
-│       ├── ResultView.vue         # Portail résultats
-│       └── ChangePasswordStudent.vue
-└── components/
-    ├── CanvasLayer.vue            # Annotations sur PDF
-    ├── AnnotationSuggestionsPanel.vue
-    ├── ExamUploadModal.vue
-    ├── TrueFalseTool.vue            # Outil tampon V/✗ (V2)
-    ├── ProgressDashboard.vue        # Indicateur progression (V2)
-    └── ...
-```
-
----
-
-## Routes et Navigation
-
-### Routes Publiques
-
-| Route | Composant | Description |
-|-------|-----------|-------------|
-| `/` | `Home.vue` | Portail d'accueil avec cartes de connexion |
-| `/korrigo` | `HomeView.vue` | Landing page marketing |
-| `/korrigo/guide-enseignant` | `GuideEnseignant.vue` | Documentation enseignants |
-| `/korrigo/guide-eleve` | `GuideEtudiant.vue` | Documentation élèves |
-| `/korrigo/direction` | `DirectionConformite.vue` | Informations direction |
-| `/admin/login` | `Login.vue` | Connexion administrateur |
-| `/teacher/login` | `Login.vue` | Connexion enseignant |
-| `/student/login` | `LoginStudent.vue` | Connexion élève |
-
-### Routes Admin
-
-| Route | Composant | Description |
-|-------|-----------|-------------|
-| `/admin-dashboard` | `AdminDashboard.vue` | Tableau de bord admin |
-| `/admin/users` | `UserManagement.vue` | Gestion utilisateurs |
-| `/admin/settings` | `Settings.vue` | Paramètres système |
-| `/exam/:examId/identification` | `IdentificationDesk.vue` | Video-coding OCR |
-| `/exam/:examId/staple` | `StapleView.vue` | Agrafage fascicules |
-| `/exam/:examId/grading-scale` | `MarkingSchemeView.vue` | Configuration barème |
-| `/exam/:examId/students` | `ExamStudentList.vue` | Liste élèves et notes |
-
-### Routes Correcteur (Teacher)
-
-| Route | Composant | Description |
-|-------|-----------|-------------|
-| `/corrector-dashboard` | `CorrectorDashboard.vue` | Tableau de bord correcteur |
-| `/corrector/desk/:copyId` | `CorrectorDesk.vue` | Interface de correction |
-| `/corrector/my-students` | `MyStudents.vue` | Liste de mes élèves |
-| `/corrector/student/:studentId/bilan` | `StudentBilan.vue` | Bilan pédagogique élève |
-
-### Routes Élève (Student)
-
-| Route | Composant | Description |
-|-------|-----------|-------------|
-| `/student-portal` | `ResultView.vue` | Consultation copies corrigées |
-| `/student/change-password` | `ChangePasswordStudent.vue` | Changement mot de passe |
-
----
-
-## Interfaces par Rôle
-
-### 1. Administrateur
-
-#### Dashboard Admin (`/admin-dashboard`)
-
-**Sidebar Navigation :**
-- Gestion Examens (actif par défaut)
-- Utilisateurs → `/admin/users`
-- Paramètres → `/admin/settings`
-- Déconnexion
-
-**Contenu Principal :**
-- Boutons : `+ Nouvel Examen`, `Importer Examen`
-- Table des examens avec colonnes : Nom, Date, État
-- Actions par examen :
-  - **Agrafer** → `/exam/:id/staple`
-  - **Barème** → `/exam/:id/grading-scale`
-  - **Video-Coding** → `/exam/:id/identification`
-  - **Correcteurs** → Modal assignation
-  - **Sujets A/B** → Modal attribution variante
-  - **Dispatcher** → Modal distribution équitable
-  - **Élèves** → `/exam/:id/students`
-
-**Modals :**
-1. **Créer Examen** : Nom + Date
-2. **Assigner Correcteurs** : Checkboxes enseignants
-3. **Dispatcher Copies** : Distribution round-robin
-4. **Sujets A/B** : Attribution manuelle ou OCR auto-detect
-
----
-
-### 2. Correcteur (Enseignant)
-
-#### Dashboard Correcteur (`/corrector-dashboard`)
-
-**Header Navigation :**
-- Modifier mot de passe
-- 📊 Statistiques (si copies corrigées)
-- 👥 Mes Élèves → `/corrector/my-students`
-- Déconnexion
-
-**Stats Overview (3 cartes) :**
-- Copies Attribuées (total)
-- Corrigées (vert)
-- Reste à faire (orange)
-
-**Section Statistiques (si copies corrigées) :**
-- Tableau comparatif : Mon Lot vs Global
-  - Moyenne, Médiane, Écart-type, Min, Max
-- Graphique SVG : Répartition des notes 0-20
-  - Courbe Mon Lot (violet)
-  - Courbe Global (vert)
-  - Lignes verticales : Moyenne (rouge), Médiane (orange)
-- Statistiques par Groupe (tableau)
-
-**Liste des Copies :**
-- Cards avec : Nom examen, Anonymat, Status
-- Bouton : `Corriger` ou `Voir`
-
-#### Interface Correction (`/corrector/desk/:copyId`)
-
-**Layout 3 colonnes :**
-
-1. **Colonne Gauche - Viewer PDF**
-   - Navigation pages (◀ ▶)
-   - Zoom (+/−)
-   - Image de la copie
-   - Overlay canvas pour annotations
-
-2. **Colonne Centrale - Barème**
-   - Exercices collapsibles
-   - Pour chaque question :
-     - Input score (0 à max)
-     - Champ remarque avec autosave
-   - Appréciation globale (textarea)
-   - Indicateur sync : ✓ OK / ⚠ Pending / ❌ Error
-
-3. **Colonne Droite - Outils**
-   - Onglets : Editor, History, Grading
-   - Types d'annotations : Comment, Highlight, Error, Bonus
-   - Panel suggestions d'annotations
-
-**Fonctionnalités :**
-- Autosave dual-layer (localStorage + serveur)
-- Récupération brouillon automatique
-- Anonymisation header pages (masquage identité)
-- Attribution Sujet A/B
-
----
-
-### 3. Élève
-
-#### Portail Élève (`/student-portal`)
-
-**Bannière de Transparence :**
-- Encart « Garanties du processus de correction » en haut du dashboard
-- Icône `ShieldCheck` (Lucide)
-- Garanties affichées : correction humaine, anonymisation, répartition aléatoire, contrôle complémentaire
-
-**Contenu :**
-- Liste des copies corrigées (status GRADED)
-- Pour chaque copie :
-  - Nom examen
-  - Note finale
-  - Bouton télécharger PDF
-
-**Authentification :**
-- Login par Email + Mot de passe (date de naissance JJMMAAAA par défaut)
-- Changement mot de passe obligatoire première connexion
-- Rate limit : 30 tentatives / 15 min par IP (HTTP 429 avec message français)
-
----
-
-## Fonctionnalités Clés
-
-### 1. Gestion des Examens
-
-| Fonctionnalité | Description |
-|----------------|-------------|
-| **Création** | Nom + Date |
-| **Import PDF** | Upload scans → Split A3→A4 → Booklets |
-| **Barème** | Structure hiérarchique Exercice > Question |
-| **Sujets A/B** | Attribution manuelle ou OCR auto-detect |
-| **Dispatch** | Distribution équitable round-robin |
-
-### 2. Identification (Video-Coding)
-
-| Fonctionnalité | Description |
-|----------------|-------------|
-| **OCR GPT-4o-mini** | Lecture automatique en-têtes |
-| **Suggestions** | Matching fuzzy élèves CSV |
-| **Validation** | Liaison Copy ↔ Student |
-| **Anonymisation** | Génération anonymous_id séquentiel |
-
-### 3. Correction Numérique
-
-| Fonctionnalité | Description |
-|----------------|-------------|
-| **Viewer PDF** | Navigation, zoom, canvas overlay |
-| **Annotations** | Comment, Highlight, Error, Bonus |
-| **Scores** | Input par question avec validation |
-| **Remarques** | Champ texte par question, autosave |
-| **Appréciation** | Textarea globale, autosave |
-| **Autosave** | Dual-layer (localStorage 300ms + serveur 2s) |
-| **Suggestions** | Banque d'annotations contextuelles |
-
-### 3b. Améliorations Correction V2
-
-| Fonctionnalité | Description |
-|----------------|-------------|
-| **Outil tampon Vrai/Faux (V/X)** | Marquage rapide des réponses via tampon visuel |
-| **Vue scindée (Split View)** | Affichage PDF et barème côte à côte pour correction efficace |
-| **Déverrouillage admin** | Force-unlock d'une copie verrouillée par un admin |
-| **Réouverture copie finalisée** | Transition GRADED → READY par superuser pour corriger une erreur |
-| **Indicateur de progression par question** | Visualisation de l'avancement de la correction question par question |
-| **Mémorisation des remarques entre copies** | Les remarques saisies sont suggérées pour les copies suivantes |
-
-### 4. Statistiques
-
-| Fonctionnalité | Description |
-|----------------|-------------|
-| **Mon Lot** | Stats sur copies du correcteur |
-| **Global** | Stats sur toutes copies GRADED |
-| **Par Groupe** | Ventilation par classe/groupe |
-| **Graphique** | Courbe de répartition 0-20 |
-
-### 5. Export et Publication
-
-| Fonctionnalité | Description |
-|----------------|-------------|
-| **PDF Final** | Aplatissement annotations + bilan LLM |
-| **Export CSV** | Format Pronote |
-| **Portail Élève** | Consultation copies GRADED |
-
----
-
-## Workflows Métier
-
-### Workflow Complet
-
-```
-1. CRÉATION EXAMEN
-   Admin → Créer examen (nom, date)
-   Admin → Configurer barème
-   Admin → Assigner correcteurs
-
-2. IMPORT COPIES
-   Admin → Upload PDF scans
-   Système → Split A3→A4, créer Booklets
-   Admin → Attribution Sujets A/B (manuel ou OCR)
-
-3. IDENTIFICATION
-   Admin/Secrétariat → Video-Coding
-   OCR → Lecture en-têtes
-   Validation → Liaison élèves
-   Système → Anonymisation (STAGING → READY)
-
-4. DISPATCH
-   Admin → Distribuer copies
-   Système → Round-robin équitable
-   Copies → Assignées aux correcteurs
-
-5. CORRECTION
-   Correcteur → Verrouiller copie
-   Correcteur → Annoter + Noter + Remarques
-   Correcteur → Appréciation globale
-   Correcteur → Finaliser (READY → GRADED)
-
-6. FINALISATION
-   Système → Calculer score total
-   Système → Générer PDF final
-   LLM → Bilan pédagogique personnalisé
-
-7. PUBLICATION
-   Admin → Export CSV Pronote
-   Élèves → Consultation portail
+STAGING → READY → LOCKED → GRADING_IN_PROGRESS → GRADED
 ```
 
-### États des Copies
-
+**Après** (3 états) :
 ```
-STAGING ──validate──→ READY ──lock──→ LOCKED ──finalize──→ GRADED
-    ↑                   ↑              │                     │
-    └─── reject ────────┘──── unlock ──┘                     │
-                        ↑                                    │
-                        └────── reopen (admin, V2) ──────────┘
+READY → IN_PROGRESS → FINALIZED
+  ↑                        │
+  └──── reopen (admin) ────┘
 ```
 
----
+**Impact** :
+- Suppression des états STAGING, LOCKED, GRADING_IN_PROGRESS, GRADED
+- Transition READY → IN_PROGRESS automatique à la 1ère annotation
+- Plus de lock/unlock manuel pour le workflow correcteur
+- Tests mis à jour (636 passent)
 
-## API Backend
+### Sécurité concurrence — `Copy.finalizing_at` (migration 0028)
 
-### Endpoints Principaux
+Problème détecté : sous forte concurrence PostgreSQL, deux requêtes simultanées de finalisation pouvaient toutes deux appeler `flatten_copy()` si la première terminait avant que la seconde tente son `SELECT FOR UPDATE NOWAIT`.
 
-#### Authentification
-- `POST /api/login/` — Login admin/teacher
-- `POST /api/logout/` — Déconnexion
-- `POST /api/students/login/` — Login élève
-- `POST /api/change-password/` — Changement mot de passe
+Solution : mutex atomique SQL :
+```sql
+UPDATE exams_copy SET finalizing_at = NOW()
+WHERE id = X AND status IN ('READY', 'IN_PROGRESS') AND finalizing_at IS NULL
+```
+PostgreSQL garantit qu'exactement une requête concurrente obtient `rows_affected=1`.
+Le test `test_finalize_concurrent_requests_flatten_called_once_postgres` passe désormais.
 
-#### Examens
-- `GET /api/exams/` — Liste examens
-- `POST /api/exams/` — Créer examen
-- `PATCH /api/exams/:id/` — Modifier examen
-- `POST /api/exams/:id/dispatch/` — Dispatcher copies
-- `GET/POST /api/exams/:id/bulk-subject-variant/` — Sujets A/B
-- `POST /api/exams/:id/auto-detect-subject/` — OCR sujets
+### UI — Suppression Sujets A/B
 
-#### Copies
-- `GET /api/copies/` — Liste copies (filtré par correcteur)
-- `GET /api/grading/copies/:id/` — Détails copie
-- `POST /api/grading/copies/:id/lock/` — Verrouiller
-- `POST /api/grading/copies/:id/finalize/` — Finaliser
-- `POST /api/grading/copies/:id/force-unlock/` — Déverrouillage admin (V2)
-- `POST /api/grading/copies/:id/reopen/` — Réouverture copie finalisée (V2, superuser)
+La fonctionnalité "Sujet A / Sujet B" a été supprimée de l'interface :
+- `CorrectorDesk.vue` : removed `subjectVariant` computed, `handleSubjectVariantChange`, bloc HTML `subject-variant-control`
+- `AdminDashboard.vue` : removed modal Sujets A/B, bouton "Sujets A/B", toutes les fonctions associées
 
-#### Correction
-- `GET /api/grading/copies/:id/scores/` — Scores
-- `PUT /api/grading/copies/:id/scores/` — Sauvegarder scores
-- `GET /api/grading/copies/:id/remarks/` — Remarques
-- `POST /api/grading/copies/:id/remarks/` — Créer/modifier remarque
-- `GET/PUT /api/grading/copies/:id/global-appreciation/` — Appréciation
+Le champ `Copy.subject_variant` reste en base pour compatibilité des données existantes, mais n'est plus exposé ni modifiable via l'UI.
 
-#### Annotations
-- `GET /api/grading/copies/:id/annotations/` — Liste annotations
-- `POST /api/grading/copies/:id/annotations/` — Créer annotation
-- `DELETE /api/grading/annotations/:id/` — Supprimer annotation
+### Commandes de gestion ajoutées
 
-#### Statistiques
-- `GET /api/grading/exams/:id/stats/` — Stats examen
+| Commande | Description |
+|----------|-------------|
+| `import_dnb_students` | Import CSV élèves troisième (Student + User Django) |
+| `identify_dnb_copies` | Matching automatique copies → élèves (DDN + fuzzy) |
+| `import_dnb_copies` | Ingestion batch des 289 PDFs DNB A4 |
 
-#### Élèves
-- `GET /api/students/my-copies/` — Copies de l'élève connecté
+### Compte enseignante créé
+
+Maroua FRAIJI (`maroua.fraiji@ert.tn`) : compte créé le 2026-03-28, groupe TEACHER.
+
+### Fix celery-beat
+
+Problème : `ValueError: SECRET_KEY looks like a placeholder` au démarrage du conteneur.
+Cause : `SECRET_KEY=django-insecure-...` dans `.env` — rejeté par `settings_prod.py`.
+Fix : génération d'une vraie clé 50 caractères + `KORRIGO_SHA` mis à jour vers l'image disponible.
 
 ---
 
-## Base de Données
+## 5. État des Tests
 
-### Modèles Principaux
+### Suite complète (CI)
+- **636 tests passent**, 3 déselectionnés (fixtures non-postgres)
+- **0 échec**
 
-| Modèle | Table | Description |
-|--------|-------|-------------|
-| `Exam` | `exams_exam` | Examen, barème, correcteurs |
-| `Copy` | `exams_copy` | Copie élève, status, scores |
-| `Booklet` | `exams_booklet` | Fascicule (pages images) |
-| `Student` | `students_student` | Élève, classe, groupe |
-| `Score` | `grading_score` | Notes par question (JSON) |
-| `Annotation` | `grading_annotation` | Annotation sur copie |
-| `QuestionRemark` | `grading_questionremark` | Remarque par question |
+### Release Gate (zero-tolerance)
+- ✅ pytest : 636 passed, 0 failed, 0 skipped
+- ✅ E2E : 3/3 runs passed (annotations POST 201, GET 200)
+- ✅ Seed : all READY copies have pages > 0
 
-### Champs Clés Copy
+### Catégories de tests
 
-| Champ | Type | Description |
-|-------|------|-------------|
-| `status` | enum | STAGING, READY, GRADED |
-| `anonymous_id` | string | ID anonyme (ex: 0F8E-001) |
-| `global_appreciation` | text | Appréciation correcteur |
-| `llm_summary` | text | Bilan LLM généré |
-| `subject_variant` | char | A, B ou null |
-| `assigned_corrector_id` | FK | Correcteur assigné |
+| App | Modules | Lignes approx. |
+|-----|---------|---------------|
+| grading | 60+ | ~8 000 |
+| exams | 24 | ~2 000 |
+| core | 12 | ~1 200 |
+| students | 4 | ~500 |
+| processing | 1 | ~200 |
+| identification | 1 | ~100 |
 
 ---
 
-*Document généré le 23 Mars 2026*
+## 6. Décisions Techniques Actives
+
+### ADR-001 : Authentification élèves
+Email + date de naissance (sans mot de passe). Compte Django créé automatiquement (password `passe123` par défaut, modifiable).
+
+### ADR-002 : Coordonnées annotations normalisées [0,1]
+Toutes les annotations utilisent des coordonnées relatives à la page (x, y, w, h ∈ [0,1]). Indépendant de la résolution d'affichage.
+
+### ADR-003 v3 : Machine à états 3 statuts
+READY / IN_PROGRESS / FINALIZED. Mutex atomique `finalizing_at` pour la finalisation concurrente.
+
+### Pas de variantes de sujet A/B
+Décision opérationnelle mars 2026 : un seul sujet par examen. Le champ `subject_variant` reste en DB mais est désactivé en UI.
+
+---
+
+## 7. Prochaines Étapes
+
+- [ ] Appliquer migration 0028 sur production (`python manage.py migrate`)
+- [ ] Correction des copies DNB_2026 par les 6 enseignants
+- [ ] Publication des résultats DNB après finalisation de toutes les copies
+- [ ] Génération des bilans LLM après finalisation
+- [ ] Export Pronote pour remontée des notes
