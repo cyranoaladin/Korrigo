@@ -24,12 +24,16 @@ export default async function globalSetup() {
         console.log('  ✓ Login page loaded');
 
         // Perform login via direct API call (matches frontend auth.js behavior)
-        const loginResult = await page.evaluate(async (url) => {
+        const adminUsername = process.env.E2E_ADMIN_USERNAME || 'admin';
+        const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'admin';
+        console.log(`  → Logging in as: ${adminUsername} (pwd length: ${adminPassword.length})`);
+
+        const loginResult = await page.evaluate(async ({ url, username, password }) => {
             try {
                 const res = await fetch(`${url}/api/login/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: 'admin', password: 'admin' }),
+                    body: JSON.stringify({ username, password }),
                     credentials: 'include'  // Important: include cookies
                 });
 
@@ -45,7 +49,7 @@ export default async function globalSetup() {
                     body: (e as Error).toString()
                 };
             }
-        }, baseURL);
+        }, { url: baseURL, username: adminUsername, password: adminPassword });
 
         if (!loginResult.ok) {
             throw new Error(`Login API failed: HTTP ${loginResult.status}\nBody:\n${loginResult.body}`);
