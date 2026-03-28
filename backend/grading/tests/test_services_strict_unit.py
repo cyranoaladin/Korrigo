@@ -99,41 +99,34 @@ class TestGradingServiceStrictUnit:
 
     def test_validate_copy_invariants(self):
         """
-        Verify STAGING -> READY transition invariants.
+        Verify validate_copy sets validated_at and creates a VALIDATE audit event.
         """
         copy = MagicMock(spec=Copy)
-        copy.status = Copy.Status.STAGING
+        copy.status = Copy.Status.READY
         copy._state = MagicMock()
-        
-        # Mock Booklet with pages
-        booklet = MagicMock(spec=Booklet)
-        booklet.pages_images = ["p1.png"]
-        copy.booklets.all.return_value = [booklet]
-        
-        # Action
-        # Mock Copy.objects.select_for_update().get() to return the mock copy
-        # (P1-FIX added select_for_update to validate_copy)
+
         mock_qs = MagicMock()
         mock_qs.get.return_value = copy
         with patch('exams.models.Copy.objects.select_for_update', return_value=mock_qs):
-            with patch('grading.models.GradingEvent.objects.create') as mock_ge_create:
+            with patch('grading.models.GradingEvent.objects.get_or_create') as mock_ge_get_or_create:
                 GradingService.validate_copy(copy, user=MagicMock())
-        
-        # Assert
-        assert copy.status == Copy.Status.READY
+
+        assert copy.validated_at is not None
         copy.save.assert_called_once()
+        mock_ge_get_or_create.assert_called_once()
 
     @pytest.mark.django_db
-    def test_finalize_copy_rejects_staging(self):
+    def test_finalize_copy_rejects_graded(self):
         """
-        Verify finalize rejects STAGING copies.
+        Verify finalize rejects already-GRADED copies.
         """
         from datetime import date as d
+        from grading.services import LockConflictError
         exam = Exam.objects.create(name="Finalize Test", date=d.today())
         copy = Copy.objects.create(
-            exam=exam, anonymous_id="STAGING-REJ", status=Copy.Status.STAGING
+            exam=exam, anonymous_id="GRADED-REJ", status=Copy.Status.GRADED
         )
         user = MagicMock()
 
-        with pytest.raises(ValueError):
+        with pytest.raises(LockConflictError):
             GradingService.finalize_copy(copy, user=user)

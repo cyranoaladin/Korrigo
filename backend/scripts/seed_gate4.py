@@ -103,13 +103,13 @@ def seed_gate4(student_date_naissance=None, student_lastname=None, student_first
         exam=exam,
         anonymous_id="GATE4-LOCKED",
         defaults={
-            "status": Copy.Status.LOCKED,
+            "status": Copy.Status.GRADING_IN_PROGRESS,
             "student": student,
             "is_identified": True
         }
     )
-    if copy_locked.status != Copy.Status.LOCKED:
-        copy_locked.status = Copy.Status.LOCKED
+    if copy_locked.status != Copy.Status.GRADING_IN_PROGRESS:
+        copy_locked.status = Copy.Status.GRADING_IN_PROGRESS
         copy_locked.student = student
         copy_locked.is_identified = True
         copy_locked.save(update_fields=["status", "student", "is_identified"])

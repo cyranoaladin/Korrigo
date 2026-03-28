@@ -62,17 +62,22 @@ class AnnotationService:
             page_index = int(page_index)
         except (TypeError, ValueError):
             raise ValueError("page_index must be an integer")
+        if page_index < 0:
+            raise ValueError("page_index must be >= 0")
         total_pages = AnnotationService._count_total_pages(copy)
-        if total_pages <= 0:
-            raise ValueError("copy has no pages")
-        if page_index < 0 or page_index >= total_pages:
+        if total_pages > 0 and page_index >= total_pages:
             raise ValueError(f"page_index must be in [0, {total_pages - 1}]")
+
+    _ACTIVE_STATUSES = (Copy.Status.READY, Copy.Status.GRADING_IN_PROGRESS)
 
     @staticmethod
     @transaction.atomic
     def add_annotation(copy: Copy, payload: dict, user, lock_token=None):
-        if copy.status not in (Copy.Status.READY,):
+        if copy.status not in AnnotationService._ACTIVE_STATUSES:
             raise ValueError(f"Impossible d'annoter une copie en statut {copy.status}")
+        if copy.status == Copy.Status.READY:
+            copy.status = Copy.Status.GRADING_IN_PROGRESS
+            copy.save(update_fields=['status'])
 
         AnnotationService.validate_page_index(copy, payload['page_index'])
         AnnotationService.validate_coordinates(
@@ -108,7 +113,7 @@ class AnnotationService:
             annotation = Annotation.objects.select_related("copy").get(id=annotation_id)
         if payload is None:
             payload = {}
-        if annotation.copy.status != Copy.Status.READY:
+        if annotation.copy.status not in AnnotationService._ACTIVE_STATUSES:
             raise ValueError(f"Impossible de modifier une annotation en statut {annotation.copy.status}")
 
         # P0-DI-008 FIX: Optimistic locking to prevent lost updates
@@ -152,8 +157,8 @@ class AnnotationService:
     @staticmethod
     @transaction.atomic
     def delete_annotation(annotation: Annotation, user, lock_token=None):
-        if annotation.copy.status != Copy.Status.READY:
-             raise ValueError(f"Impossible de supprimer une annotation en statut {annotation.copy.status}")
+        if annotation.copy.status not in AnnotationService._ACTIVE_STATUSES:
+            raise ValueError(f"Impossible de supprimer une annotation en statut {annotation.copy.status}")
 
         copy = annotation.copy
         ann_id = str(annotation.id)
@@ -175,7 +180,7 @@ class AnnotationService:
 class GradingService:
     """
     Service pour la gestion du workflow:
-    IMPORT -> STAGING -> READY -> GRADED -> EXPORT
+    IMPORT -> READY -> GRADING_IN_PROGRESS -> GRADED -> EXPORT
     """
 
     @staticmethod
@@ -198,7 +203,7 @@ class GradingService:
     @transaction.atomic
     def import_pdf(exam: Exam, pdf_file, user):
         """
-        Importe un PDF, crée une Copie (STAGING), et lance la rasterization.
+        Importe un PDF, crée une Copie (READY), et lance la rasterization.
         Pour ce P0 Sync, on fait la rasterization ici.
         En P1, déplacer dans une tâche Celery.
         """
@@ -208,7 +213,7 @@ class GradingService:
             id=copy_uuid,
             exam=exam,
             anonymous_id=f"IMPORT-{str(copy_uuid)[:8].upper()}",
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
         
         # 2. Save PDF
@@ -236,7 +241,7 @@ class GradingService:
                 
                 # Check availability
                 if len(pages_images) > 0:
-                     pass # Remains in STAGING until manual validation
+                     pass
                      
                 # AUDIT
                 GradingEvent.objects.create(
@@ -293,25 +298,15 @@ class GradingService:
     @staticmethod
     @transaction.atomic
     def validate_copy(copy: Copy, user):
-        # P1-FIX: Lock the Copy row to prevent duplicate validation on double-click
         copy = Copy.objects.select_for_update().get(id=copy.id)
-
-        if copy.status != Copy.Status.STAGING:
-             raise ValueError(f"Status mismatch: {copy.status} != STAGING")
-        
-        # Ensure pages exist
-        has_pages = any(b.pages_images and len(b.pages_images) > 0 for b in copy.booklets.all())
-        if not has_pages:
-             raise ValueError("No pages found, cannot validate.")
-
-        copy.status = Copy.Status.READY
+        if copy.status == Copy.Status.GRADED:
+            raise ValueError(f"La copie est déjà finalisée.")
         copy.validated_at = timezone.now()
-        copy.save()
-
-        GradingEvent.objects.create(
+        copy.save(update_fields=['validated_at'])
+        GradingEvent.objects.get_or_create(
             copy=copy,
             action=GradingEvent.Action.VALIDATE,
-            actor=user
+            actor=user,
         )
         return copy
 
@@ -350,79 +345,41 @@ class GradingService:
             logger.warning(f"Copy {copy.id} already graded — rejecting duplicate request")
             raise LockConflictError("Copie déjà finalisée.")
 
-        if copy.status == Copy.Status.GRADING_FAILED:
-            logger.info(f"Copy {copy.id} previously failed, retrying (attempt {copy.grading_retries + 1})")
-
-        if copy.status not in [Copy.Status.READY, Copy.Status.GRADING_FAILED]:
+        if copy.status not in (Copy.Status.READY, Copy.Status.GRADING_IN_PROGRESS):
             raise ValueError(f"Impossible de finaliser une copie en statut {copy.status}")
 
         final_score = GradingService.compute_score(copy)
-        retry_attempt = copy.grading_retries + 1
 
-        copy.status = Copy.Status.GRADING_IN_PROGRESS
-        copy.grading_retries = retry_attempt
-        copy.save(update_fields=["status", "grading_retries"])
-
-        # Generate Final PDF with comprehensive error handling
         from processing.services.pdf_flattener import PDFFlattener
         flattener = PDFFlattener()
-        
-        # Track finalization duration
-        with track_finalize_duration(retry_attempt=retry_attempt, status='success'):
+
+        with track_finalize_duration(retry_attempt=0, status='success'):
             try:
-                # Check if PDF already exists (additional idempotency check)
                 if not copy.final_pdf:
                     pdf_bytes = flattener.flatten_copy(copy)
                     if pdf_bytes is None:
                         pdf_bytes = b""
                     output_filename = f"copy_{copy.id}_corrected.pdf"
-                    
-                    # Save PDF first
                     copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
-                
-                # P0-DI-004 FIX: Mark as GRADED only after PDF generation succeeds
+
                 copy.status = Copy.Status.GRADED
                 copy.graded_at = timezone.now()
-                copy.grading_error_message = None  # Clear previous errors
+                copy.grading_error_message = None
                 copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf"])
-                
-                # P0-DI-007 FIX: Audit event for success (idempotent with get_or_create)
+
                 GradingEvent.objects.get_or_create(
                     copy=copy,
                     action=GradingEvent.Action.FINALIZE,
                     actor=user,
-                    defaults={'metadata': {'final_score': final_score, 'retries': retry_attempt}}
+                    defaults={'metadata': {'final_score': final_score}}
                 )
-                
+
             except OperationalError:
-                raise  # Let the top-level handler translate this
+                raise
             except Exception as e:
-                # P0-DI-004 FIX: Save error state with detailed message
-                error_msg = str(e)[:500]  # Limit message length
-                copy.status = Copy.Status.GRADING_FAILED
-                copy.grading_error_message = error_msg
-                copy.save(update_fields=["status", "grading_error_message"])
-                
-                # P0-DI-007 FIX: Audit event for failure
-                GradingEvent.objects.create(
-                    copy=copy,
-                    action=GradingEvent.Action.FINALIZE,
-                    actor=user,
-                    metadata={
-                        'detail': error_msg,
-                        'retries': retry_attempt,
-                        'success': False
-                    }
-                )
-                
-                logger.error(f"PDF generation failed for copy {copy.id} (attempt {retry_attempt}): {e}", exc_info=True)
-                
-                # Alert if max retries exceeded
-                if retry_attempt >= 3:
-                    logger.critical(f"Copy {copy.id} failed {retry_attempt} times - manual intervention required")
-                    # TODO: Send email notification to admins
-                
-                raise ValueError(f"Failed to generate final PDF: {error_msg}")
+                error_msg = str(e)[:500]
+                logger.error(f"PDF generation failed for copy {copy.id}: {e}", exc_info=True)
+                raise ValueError(f"Échec de la génération du PDF final : {error_msg}")
 
         return copy
 

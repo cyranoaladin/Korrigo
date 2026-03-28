@@ -138,7 +138,7 @@ class Command(BaseCommand):
             Copy.objects.filter(
                 exam=exam,
                 assigned_corrector__isnull=True,
-                status__in=[Copy.Status.READY, Copy.Status.STAGING],
+                status=Copy.Status.READY,
             )
             .select_related("student")
             .order_by("anonymous_id")
