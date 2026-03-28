@@ -196,58 +196,82 @@ const gradingStructure = computed(() => {
     return copy.value.exam_details.grading_structure
 })
 
-const flattenQuestions = (structure, parentId = '') => {
-    let questions = []
-    structure.forEach((item, index) => {
-        const itemId = parentId ? `${parentId}.${index + 1}` : `${index + 1}`
-        const hasChildren = item.children && Array.isArray(item.children) && item.children.length > 0
-        if (hasChildren) {
-            questions = questions.concat(flattenQuestions(item.children, itemId))
-        } else {
-            questions.push({
-                id: itemId,
-                title: item.label || item.title || `Question ${itemId}`,
-                maxScore: item.points ?? item.maxScore ?? 0
-            })
+// Build a grading node recursively using item.id from the structure (UUID or string).
+// Returns: { id, label, points, isLeaf, questions: [...], groups: [...] }
+// - isLeaf: no children → one score input for this item itself
+// - questions: direct leaf children → score inputs
+// - groups: intermediate children (sub-exercises) → recursive nodes
+const buildGradingNode = (item) => {
+    const hasChildren = item.children && item.children.length > 0
+    if (!hasChildren) {
+        return {
+            id: item.id,
+            label: item.label || item.title || item.id,
+            points: item.points || 0,
+            isLeaf: true,
+            questions: [{ id: item.id, title: item.label || item.title || item.id, maxScore: item.points || 0 }],
+            groups: [],
         }
-    })
-    return questions
-}
-
-const flatQuestions = computed(() => {
-    return flattenQuestions(gradingStructure.value)
-})
-
-// Accordion: only one exercise open at a time, all collapsed by default
-const openExerciseId = ref(null)
-const toggleExercise = (exerciseId) => {
-    if (openExerciseId.value === exerciseId) {
-        openExerciseId.value = null // Close if already open
-    } else {
-        openExerciseId.value = exerciseId // Open this one, close others
+    }
+    const childrenAreLeaves = item.children.every(c => !c.children || c.children.length === 0)
+    if (childrenAreLeaves) {
+        const questions = item.children.map(c => ({
+            id: c.id,
+            title: c.label || c.title || c.id,
+            maxScore: c.points || 0,
+        }))
+        return {
+            id: item.id,
+            label: item.label || item.title || item.id,
+            points: item.children.reduce((s, c) => s + (c.points || 0), 0),
+            isLeaf: false,
+            questions,
+            groups: [],
+        }
+    }
+    // Children are intermediate nodes (sub-exercises)
+    const groups = item.children.map(child => buildGradingNode(child))
+    return {
+        id: item.id,
+        label: item.label || item.title || item.id,
+        points: groups.reduce((s, g) => s + g.points, 0),
+        isLeaf: false,
+        questions: [],
+        groups,
     }
 }
 
-// Hierarchical structure: exercises with their sub-questions
+// Recursively collect all leaf questions from a node list
+const collectLeafQuestions = (nodes) => {
+    let result = []
+    for (const node of nodes) {
+        if (node.isLeaf || node.questions.length > 0) result = result.concat(node.questions)
+        if (node.groups.length > 0) result = result.concat(collectLeafQuestions(node.groups))
+    }
+    return result
+}
+
+const flatQuestions = computed(() => collectLeafQuestions(exercisesWithQuestions.value))
+
+// Accordion state: Set of open IDs for exercises and sub-groups independently
+const openExerciseIds = ref(new Set())
+const openGroupIds = ref(new Set())
+const toggleExercise = (id) => {
+    const s = new Set(openExerciseIds.value)
+    s.has(id) ? s.delete(id) : s.add(id)
+    openExerciseIds.value = s
+}
+const toggleGroup = (id) => {
+    const s = new Set(openGroupIds.value)
+    s.has(id) ? s.delete(id) : s.add(id)
+    openGroupIds.value = s
+}
+
+// Hierarchical structure: top-level exercises, each may have groups (sub-exercises)
 const exercisesWithQuestions = computed(() => {
     const structure = gradingStructure.value
     if (!structure || structure.length === 0) return []
-    return structure.map((item, index) => {
-        const exerciseId = `${index + 1}`
-        const subQuestions = item.children && item.children.length > 0
-            ? flattenQuestions(item.children, exerciseId)
-            : [{ id: exerciseId, title: item.label || item.title || `Question ${exerciseId}`, maxScore: item.points || 0 }]
-        const totalPoints = item.children && item.children.length > 0
-            ? subQuestions.reduce((sum, q) => sum + (q.maxScore || 0), 0)
-            : (item.points || 0)
-        return {
-            id: exerciseId,
-            label: item.label || `Exercice ${exerciseId}`,
-            totalPoints,
-            questions: subQuestions,
-            isLeaf: !item.children || item.children.length === 0
-        }
-    })
+    return structure.map(item => buildGradingNode(item))
 })
 
 // --- Page Navigation Helpers ---
@@ -1510,70 +1534,147 @@ onUnmounted(() => {
           </div>
           <div v-else class="grading-content">
             <div class="exercises-list">
-              <div v-for="exercise in (exercisesWithQuestions || []).filter(i => !!i)" :key="exercise.id" class="exercise-block">
+              <div v-for="exercise in exercisesWithQuestions" :key="exercise.id" class="exercise-block">
+                <!-- Level 1: Exercise header (collapsible) -->
                 <div
                   class="exercise-header"
-                  :class="{ collapsed: openExerciseId !== exercise.id }"
+                  :class="{ collapsed: !openExerciseIds.has(exercise.id) }"
                   @click="toggleExercise(exercise.id)"
                 >
-                  <span class="exercise-toggle">{{ openExerciseId !== exercise.id ? '▶' : '▼' }}</span>
+                  <span class="exercise-toggle">{{ openExerciseIds.has(exercise.id) ? '▼' : '▶' }}</span>
                   <span class="exercise-label">{{ exercise.label }}</span>
-                  <span class="exercise-points">{{ exercise.totalPoints }} pts</span>
+                  <span class="exercise-points">{{ exercise.points }} pts</span>
                 </div>
-                <div v-show="openExerciseId === exercise.id" class="exercise-questions">
-                  <div v-for="question in (exercise.questions || []).filter(i => !!i)" :key="question.id" class="question-item">
-                    <div class="question-header">
-                      <span class="question-title">{{ question.title }}</span>
-                      <span class="question-max-score">/ {{ question.maxScore }} pts</span>
-                    </div>
-                    <div class="question-score-field">
-                      <label :for="'score-' + question.id">Note</label>
-                      <input
-                        :id="'score-' + question.id"
-                        type="number"
-                        inputmode="decimal"
-                        step="0.25"
-                        min="0"
-                        :max="question.maxScore"
-                        :value="questionScores.get(question.id) ?? ''"
-                        :disabled="isReadOnly"
-                        :placeholder="isReadOnly ? '-' : '0'"
-                        class="score-input"
-                        :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
-                        @input="onScoreChange(question.id, $event.target.value)"
+
+                <div v-show="openExerciseIds.has(exercise.id)" class="exercise-body">
+
+                  <!-- Level 2a: Sub-exercise groups (Exercice 2, 3, …) -->
+                  <template v-if="exercise.groups.length > 0">
+                    <div v-for="group in exercise.groups" :key="group.id" class="group-block">
+                      <div
+                        class="group-header"
+                        :class="{ collapsed: !openGroupIds.has(group.id) }"
+                        @click="toggleGroup(group.id)"
                       >
-                    </div>
-                    <div class="question-remark-field">
-                      <div class="remark-label-row">
-                        <label :for="'remark-' + question.id">Remarque</label>
-                        <button
-                          v-if="examId && !isReadOnly"
-                          class="btn-suggestion-trigger"
-                          title="Suggestions"
-                          @click="openSuggestionsForRemark(question.id)"
-                        >💡</button>
+                        <span class="group-toggle">{{ openGroupIds.has(group.id) ? '▼' : '▶' }}</span>
+                        <span class="group-label">{{ group.label }}</span>
+                        <span class="group-points">{{ group.points }} pts</span>
                       </div>
-                      <textarea
-                        :id="'remark-' + question.id"
-                        :value="questionRemarks.get(question.id) || ''"
-                        :disabled="isReadOnly"
-                        :placeholder="isReadOnly ? 'Lecture seule' : 'Remarque...'"
-                        rows="2"
-                        @focus="activeRemarkQuestionId = question.id"
-                        @input="onRemarkChange(question.id, $event.target.value)"
-                      />
-                      <AnnotationSuggestionsPanel
-                        v-if="examId && activeRemarkQuestionId === question.id && showSuggestions"
-                        :exam-id="examId"
-                        :exercise-number="suggestionsExercise"
-                        :question-number="suggestionsQuestion"
-                        :visible="true"
-                        @insert="handleSuggestionInsert"
-                        @close="closeSuggestions"
-                      />
-                      <span v-if="remarksSaving.get(question.id)" class="save-indicator small">Enregistrement...</span>
+                      <div v-show="openGroupIds.has(group.id)" class="group-questions">
+                        <div v-for="question in group.questions" :key="question.id" class="question-item">
+                          <div class="question-header">
+                            <span class="question-title">{{ question.title }}</span>
+                            <span class="question-max-score">/ {{ question.maxScore }} pts</span>
+                          </div>
+                          <div class="question-score-field">
+                            <label :for="'score-' + question.id">Note</label>
+                            <input
+                              :id="'score-' + question.id"
+                              type="number"
+                              inputmode="decimal"
+                              step="0.25"
+                              min="0"
+                              :max="question.maxScore"
+                              :value="questionScores.get(question.id) ?? ''"
+                              :disabled="isReadOnly"
+                              :placeholder="isReadOnly ? '-' : '0'"
+                              class="score-input"
+                              :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
+                              @input="onScoreChange(question.id, $event.target.value)"
+                            >
+                          </div>
+                          <div class="question-remark-field">
+                            <div class="remark-label-row">
+                              <label :for="'remark-' + question.id">Remarque</label>
+                              <button
+                                v-if="examId && !isReadOnly"
+                                class="btn-suggestion-trigger"
+                                title="Suggestions"
+                                @click="openSuggestionsForRemark(question.id)"
+                              >💡</button>
+                            </div>
+                            <textarea
+                              :id="'remark-' + question.id"
+                              :value="questionRemarks.get(question.id) || ''"
+                              :disabled="isReadOnly"
+                              :placeholder="isReadOnly ? 'Lecture seule' : 'Remarque...'"
+                              rows="2"
+                              @focus="activeRemarkQuestionId = question.id"
+                              @input="onRemarkChange(question.id, $event.target.value)"
+                            />
+                            <AnnotationSuggestionsPanel
+                              v-if="examId && activeRemarkQuestionId === question.id && showSuggestions"
+                              :exam-id="examId"
+                              :exercise-number="suggestionsExercise"
+                              :question-number="suggestionsQuestion"
+                              :visible="true"
+                              @insert="handleSuggestionInsert"
+                              @close="closeSuggestions"
+                            />
+                            <span v-if="remarksSaving.get(question.id)" class="save-indicator small">Enregistrement...</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </template>
+
+                  <!-- Level 2b: Direct questions (no sub-groups) -->
+                  <template v-else>
+                    <div v-for="question in exercise.questions" :key="question.id" class="question-item">
+                      <div class="question-header">
+                        <span class="question-title">{{ question.title }}</span>
+                        <span class="question-max-score">/ {{ question.maxScore }} pts</span>
+                      </div>
+                      <div class="question-score-field">
+                        <label :for="'score-' + question.id">Note</label>
+                        <input
+                          :id="'score-' + question.id"
+                          type="number"
+                          inputmode="decimal"
+                          step="0.25"
+                          min="0"
+                          :max="question.maxScore"
+                          :value="questionScores.get(question.id) ?? ''"
+                          :disabled="isReadOnly"
+                          :placeholder="isReadOnly ? '-' : '0'"
+                          class="score-input"
+                          :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
+                          @input="onScoreChange(question.id, $event.target.value)"
+                        >
+                      </div>
+                      <div class="question-remark-field">
+                        <div class="remark-label-row">
+                          <label :for="'remark-' + question.id">Remarque</label>
+                          <button
+                            v-if="examId && !isReadOnly"
+                            class="btn-suggestion-trigger"
+                            title="Suggestions"
+                            @click="openSuggestionsForRemark(question.id)"
+                          >💡</button>
+                        </div>
+                        <textarea
+                          :id="'remark-' + question.id"
+                          :value="questionRemarks.get(question.id) || ''"
+                          :disabled="isReadOnly"
+                          :placeholder="isReadOnly ? 'Lecture seule' : 'Remarque...'"
+                          rows="2"
+                          @focus="activeRemarkQuestionId = question.id"
+                          @input="onRemarkChange(question.id, $event.target.value)"
+                        />
+                        <AnnotationSuggestionsPanel
+                          v-if="examId && activeRemarkQuestionId === question.id && showSuggestions"
+                          :exam-id="examId"
+                          :exercise-number="suggestionsExercise"
+                          :question-number="suggestionsQuestion"
+                          :visible="true"
+                          @insert="handleSuggestionInsert"
+                          @close="closeSuggestions"
+                        />
+                        <span v-if="remarksSaving.get(question.id)" class="save-indicator small">Enregistrement...</span>
+                      </div>
+                    </div>
+                  </template>
+
                 </div>
               </div>
               <!-- Total -->
@@ -1727,7 +1828,15 @@ onUnmounted(() => {
 .exercise-toggle { font-size: 0.7rem; color: #64748b; width: 14px; }
 .exercise-label { flex: 1; font-weight: 700; font-size: 0.95rem; color: #1e293b; }
 .exercise-points { font-size: 0.85rem; font-weight: 600; color: #3b82f6; background: #eff6ff; padding: 2px 8px; border-radius: 4px; }
-.exercise-questions { padding: 4px 8px 8px; }
+.exercise-body { padding: 4px 0 4px; }
+.group-block { margin: 4px 8px; border: 1px solid #e9edf2; border-radius: 6px; overflow: hidden; }
+.group-header { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: #f8fafc; cursor: pointer; user-select: none; transition: background 0.15s; }
+.group-header:hover { background: #edf2f7; }
+.group-header.collapsed { border-bottom: none; }
+.group-toggle { font-size: 0.65rem; color: #64748b; width: 12px; }
+.group-label { flex: 1; font-size: 0.82rem; font-weight: 600; color: #4a5568; }
+.group-points { font-size: 0.78rem; font-weight: 600; color: #6366f1; background: #eef2ff; padding: 1px 6px; border-radius: 4px; }
+.group-questions { padding: 2px 6px 6px; }
 .question-item { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6; }
 .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .question-title { font-weight: bold; font-size: 0.95rem; color: #333; }
