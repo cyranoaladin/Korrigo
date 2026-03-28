@@ -135,9 +135,9 @@ const isHeaderPage = computed(() => {
     // Last page is the annexe, also has an identity header
     return isPeriodicHeader || isLastPage.value
 })
-// Regular pages (1, 5, 9… formula 4N-3): identity header = 59mm on A4 → 59/297 ≈ 20%
-// Last page (annexe only): 56mm × 2 = 112mm on A4 → 112/297 ≈ 38%
-const overlayHeight = computed(() => isLastPage.value ? '38%' : '20%')
+// Regular pages (1, 5, 9… formula 4N-3): identity header = 67mm on A4 → 67/297 ≈ 23%
+// Last page (annexe only): identity header = 53mm on A4 → 53/297 ≈ 18%
+const overlayHeight = computed(() => isLastPage.value ? '18%' : '23%')
 
 const isAssignedCorrector = computed(() => {
     const userId = authStore.user?.id
