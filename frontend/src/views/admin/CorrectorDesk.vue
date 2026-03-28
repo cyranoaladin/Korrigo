@@ -1570,11 +1570,10 @@ onUnmounted(() => {
                             <label :for="'score-' + question.id">Note</label>
                             <input
                               :id="'score-' + question.id"
-                              type="number"
+                              type="text"
                               inputmode="decimal"
-                              step="0.25"
-                              min="0"
-                              :max="question.maxScore"
+                              pattern="[0-9]*[.,]?[0-9]*"
+                              autocomplete="off"
                               :value="questionScores.get(question.id) ?? ''"
                               :disabled="isReadOnly"
                               :placeholder="isReadOnly ? '-' : '0'"
@@ -1630,16 +1629,16 @@ onUnmounted(() => {
                         <label :for="'score-' + question.id">Note</label>
                         <input
                           :id="'score-' + question.id"
-                          type="number"
+                          type="text"
                           inputmode="decimal"
-                          step="0.25"
-                          min="0"
-                          :max="question.maxScore"
+                          pattern="[0-9]*[.,]?[0-9]*"
+                          autocomplete="off"
                           :value="questionScores.get(question.id) ?? ''"
                           :disabled="isReadOnly"
                           :placeholder="isReadOnly ? '-' : '0'"
                           class="score-input"
                           :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
+                          @wheel.prevent
                           @input="onScoreChange(question.id, $event.target.value)"
                         >
                       </div>
