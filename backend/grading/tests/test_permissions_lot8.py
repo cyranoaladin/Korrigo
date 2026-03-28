@@ -300,7 +300,7 @@ class TestCopyReadyViewOwnership(TestCase):
         self.copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="RDY-001",
-            status=Copy.Status.STAGING,
+            status=Copy.Status.READY,
             assigned_corrector=self.teacher_assigned,
         )
         booklet = Booklet.objects.create(exam=self.exam, start_page=0, end_page=1, pages_images=["p0.png"])
@@ -319,7 +319,7 @@ class TestCopyReadyViewOwnership(TestCase):
 
     def test_admin_allowed(self):
         # Reset copy status
-        self.copy.status = Copy.Status.STAGING
+        self.copy.status = Copy.Status.READY
         self.copy.save(update_fields=['status'])
         self.client.force_authenticate(user=self.admin)
         resp = self.client.post(f'/api/grading/copies/{self.copy.id}/ready/')
@@ -584,12 +584,12 @@ class TestValidateCopySelectForUpdate(TestCase):
     def setUp(self):
         self.teacher = _make_teacher('teach_val_sfu')
         self.exam, self.copy = _make_exam_and_copy(
-            teacher=self.teacher, copy_status=Copy.Status.STAGING,
+            teacher=self.teacher, copy_status=Copy.Status.READY,
         )
         self.client = APIClient()
 
-    def test_double_validate_second_rejected(self):
-        """Two sequential POSTs: first succeeds (200), second fails (400 status mismatch)."""
+    def test_double_validate_idempotent(self):
+        """Two sequential POSTs to ready/: both succeed, exactly 1 VALIDATE event (idempotent)."""
         from grading.models import GradingEvent
         self.client.force_authenticate(user=self.teacher)
 
@@ -597,12 +597,12 @@ class TestValidateCopySelectForUpdate(TestCase):
         self.assertEqual(resp1.status_code, status.HTTP_200_OK)
 
         resp2 = self.client.post(f'/api/grading/copies/{self.copy.id}/ready/')
-        self.assertIn(resp2.status_code, [status.HTTP_400_BAD_REQUEST, status.HTTP_409_CONFLICT])
+        self.assertEqual(resp2.status_code, status.HTTP_200_OK)
 
         events = GradingEvent.objects.filter(
             copy=self.copy, action=GradingEvent.Action.VALIDATE
         )
-        self.assertEqual(events.count(), 1, "Exactly 1 VALIDATE event expected, not 2")
+        self.assertEqual(events.count(), 1, "Exactly 1 VALIDATE event expected (get_or_create).")
 
 
 # ===========================================================================

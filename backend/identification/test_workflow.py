@@ -40,7 +40,7 @@ class IdentificationWorkflowTest(TestCase):
         self.copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="ABC123",
-            status=Copy.Status.STAGING  # Starting in STAGING state
+            status=Copy.Status.READY  # Starting in STAGING state
         )
         
         # Create a booklet for the copy
@@ -58,7 +58,7 @@ class IdentificationWorkflowTest(TestCase):
         """
         # Vérifier l'état initial
         self.copy.refresh_from_db()
-        self.assertEqual(self.copy.status, Copy.Status.STAGING)
+        self.assertEqual(self.copy.status, Copy.Status.READY)
         self.assertFalse(self.copy.is_identified)
         self.assertIsNone(self.copy.student)
         
@@ -84,15 +84,15 @@ class IdentificationWorkflowTest(TestCase):
         locked_copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="DEF456",
-            status=Copy.Status.LOCKED
+            status=Copy.Status.GRADING_IN_PROGRESS
         )
         
         # Essayer d'identifier cette copie devrait échouer
         # (ceci serait géré dans la logique métier, testons simplement le concept)
-        self.assertEqual(locked_copy.status, Copy.Status.LOCKED)
+        self.assertEqual(locked_copy.status, Copy.Status.GRADING_IN_PROGRESS)
         
         # Passer à un état où l'identification est autorisée
-        locked_copy.status = Copy.Status.STAGING
+        locked_copy.status = Copy.Status.READY
         locked_copy.save()
         
         # Maintenant l'identification devrait être possible
@@ -166,7 +166,7 @@ class IdentificationPermissionsTest(TestCase):
         self.copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="ABC123",
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
         
         # Create a booklet for the copy

@@ -72,21 +72,15 @@ class ManualIdentifyView(APIView):
                 'error': 'Élève non trouvé'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # Vérifier que la copie est dans l'état approprié pour identification
-        if copy.status not in [Copy.Status.STAGING, Copy.Status.READY]:
+        # Vérifier que la copie n'est pas déjà finalisée
+        if copy.status == Copy.Status.GRADED:
             return Response({
-                'error': f'Impossible d\'identifier une copie en statut {copy.status}'
+                'error': f'Impossible d\'identifier une copie déjà finalisée'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # Associer la copie à l'élève
         copy.student = student
         copy.is_identified = True
-
-        # Transition d'état : STAGING → READY (prêt à corriger)
-        if copy.status == Copy.Status.STAGING:
-            copy.status = Copy.Status.READY
-            copy.validated_at = timezone.now()
-
         copy.save()
 
         # Créer un événement d'audit

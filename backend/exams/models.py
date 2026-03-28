@@ -183,12 +183,9 @@ class Copy(models.Model):
     Entité finale validée. Une copie peut être composée de plusieurs fascicules fusionnés.
     """
     class Status(models.TextChoices):
-        STAGING = 'STAGING', _("En attente")
         READY = 'READY', _("Prêt à corriger")
-        LOCKED = 'LOCKED', _("Verrouillé")
         GRADING_IN_PROGRESS = 'GRADING_IN_PROGRESS', _("Correction en cours")
-        GRADING_FAILED = 'GRADING_FAILED', _("Échec de correction")
-        GRADED = 'GRADED', _("Corrigé")
+        GRADED = 'GRADED', _("Finalisée")
 
     class SubjectVariant(models.TextChoices):
         A = 'A', _("Sujet A")
@@ -234,7 +231,7 @@ class Copy(models.Model):
     status = models.CharField(
         max_length=20, 
         choices=Status.choices, 
-        default=Status.STAGING,
+        default=Status.READY,
         verbose_name=_("Statut")
     )
 
@@ -288,7 +285,7 @@ class Copy(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Date de validation"),
-        help_text=_("Timestamp STAGING → READY")
+        help_text=_("Timestamp de validation")
     )
     
     # P0-DI-004: Error tracking for failed grading operations
@@ -307,7 +304,7 @@ class Copy(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Date de verrouillage"),
-        help_text=_("Timestamp READY → LOCKED")
+        help_text=_("Non utilisé")
     )
     locked_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -321,7 +318,7 @@ class Copy(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Date de notation"),
-        help_text=_("Timestamp LOCKED → GRADED")
+        help_text=_("Timestamp de finalisation")
     )
     
     # Global appreciation for the copy

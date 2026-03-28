@@ -179,9 +179,8 @@ class TestAuditEvents(TransactionTestCase):
         event = events.first()
         self.assertEqual(event.actor, self.teacher)
         self.assertIn('final_score', event.metadata)
-        self.assertIn('retries', event.metadata)
         self.assertEqual(event.metadata['final_score'], 5)
-        self.assertEqual(event.metadata['retries'], 1)
+        self.assertNotIn('retries', event.metadata)
         
         # Success events don't have 'success': False
         self.assertNotIn('success', event.metadata)
@@ -230,7 +229,7 @@ class TestAuditEvents(TransactionTestCase):
 
         # Verify error response
         self.assertEqual(resp.status_code, 400)
-        self.assertIn("Failed to generate final PDF", resp.data['detail'])
+        self.assertIn("Échec de la génération du PDF final", resp.data['detail'])
         
         # Verify copy status rolled back to READY (transaction atomic behavior)
         copy.refresh_from_db()

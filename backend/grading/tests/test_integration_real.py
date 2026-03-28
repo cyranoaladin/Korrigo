@@ -99,7 +99,7 @@ class TestIntegrationReal:
         copy = Copy.objects.create(exam=exam, anonymous_id="SECURE_TEST")
         
         # 1. Final PDF Gate
-        copy.status = Copy.Status.LOCKED
+        copy.status = Copy.Status.GRADING_IN_PROGRESS
         copy.save()
         resp = client.get(f"/api/grading/copies/{copy.id}/final-pdf/")
         assert resp.status_code == 403

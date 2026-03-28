@@ -36,7 +36,7 @@ class OCRServiceTest(TestCase):
         self.copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="ABC123",
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
 
     def test_perform_ocr_on_header_with_mock(self):
@@ -103,7 +103,7 @@ class OCRViewsTest(TestCase):
         self.copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="ABC123",
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
 
         # Create a booklet for the copy
@@ -164,7 +164,7 @@ class OCRModelTest(TestCase):
         self.copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="ABC123",
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
 
     def test_ocr_result_creation(self):

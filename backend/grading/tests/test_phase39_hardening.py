@@ -66,7 +66,7 @@ class TestPhase39Hardening(TransactionTestCase):
             pdf_file.close()
 
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-            self.assertEqual(response.data['status'], 'STAGING')
+            self.assertEqual(response.data['status'], 'READY')
 
             copy = Copy.objects.get(id=response.data['id'])
             self.assertEqual(copy.exam, self.exam)

@@ -113,7 +113,7 @@ class ExamUploadView(APIView):
                         copy = Copy.objects.create(
                             exam=exam,
                             anonymous_id=generate_anonymous_id(exam, i),
-                            status=Copy.Status.READY if has_pages else Copy.Status.STAGING,
+                            status=Copy.Status.READY,
                             is_identified=False,
                             validated_at=timezone.now() if has_pages else None
                         )
@@ -243,11 +243,10 @@ class IndividualPDFUploadView(APIView):
                         student_identifier=student_identifier
                     )
                     
-                    # Create Copy in STAGING status (using exam_pdf.pdf_file as reference)
                     copy = Copy.objects.create(
                         exam=exam,
                         anonymous_id=generate_anonymous_id(exam, i),
-                        status=Copy.Status.STAGING,
+                        status=Copy.Status.READY,
                         is_identified=False,
                         pdf_source=exam_pdf.pdf_file
                     )
@@ -402,7 +401,7 @@ class BookletDetailView(generics.RetrieveDestroyAPIView):
 
     def perform_destroy(self, instance):
         # Mission 1.3: Prevent modification if attached to a locked/graded copy
-        if instance.assigned_copy.exclude(status=Copy.Status.STAGING).exists():
+        if instance.assigned_copy.filter(status__in=[Copy.Status.GRADING_IN_PROGRESS, Copy.Status.GRADED]).exists():
              raise 	serializers.ValidationError(
                  {"error": _("Impossible de supprimer un fascicule associé à une copie validée ou corrigée.")}
              )
@@ -415,7 +414,7 @@ class BookletSplitView(APIView):
         booklet = get_object_or_404(Booklet, id=id)
         
         # Mission 1.3: Protocol Enforce
-        if booklet.assigned_copy.exclude(status=Copy.Status.STAGING).exists():
+        if booklet.assigned_copy.filter(status__in=[Copy.Status.GRADING_IN_PROGRESS, Copy.Status.GRADED]).exists():
              return Response(
                  {"error": _("Impossible de scinder un fascicule associé à une copie validée.")},
                  status=status.HTTP_403_FORBIDDEN
@@ -751,21 +750,20 @@ class ExamSourceUploadView(APIView):
         if 'pdf_source' not in request.FILES:
             return Response({"error": "pdf_source field required"}, status=status.HTTP_400_BAD_REQUEST)
         
-        # P3 FIX: Block re-upload if non-STAGING copies exist (already being corrected)
-        non_staging_copies = exam.copies.exclude(status=Copy.Status.STAGING).count()
-        if non_staging_copies > 0:
+        in_progress_or_graded = exam.copies.filter(status__in=[Copy.Status.GRADING_IN_PROGRESS, Copy.Status.GRADED]).count()
+        if in_progress_or_graded > 0:
             return Response(
-                {"error": _(f"Impossible de re-uploader: {non_staging_copies} copie(s) sont déjà en cours de traitement ou corrigées.")},
+                {"error": _(f"Impossible de re-uploader: {in_progress_or_graded} copie(s) sont déjà en cours de correction ou corrigées.")},
+
                 status=status.HTTP_409_CONFLICT
             )
         
         try:
             with transaction.atomic():
-                # P3 FIX: Clean up existing STAGING copies and booklets before re-processing
-                existing_staging = exam.copies.filter(status=Copy.Status.STAGING)
-                if existing_staging.exists():
-                    logger.info(f"Cleaning up {existing_staging.count()} existing STAGING copies for exam {exam.id}")
-                    existing_staging.delete()
+                existing_ready = exam.copies.filter(status=Copy.Status.READY)
+                if existing_ready.exists():
+                    logger.info(f"Cleaning up {existing_ready.count()} existing READY copies for exam {exam.id}")
+                    existing_ready.delete()
                 
                 # Clean up existing booklets (PDFSplitter idempotence uses force=True)
                 exam.booklets.all().delete()
@@ -787,7 +785,7 @@ class ExamSourceUploadView(APIView):
                     copy = Copy.objects.create(
                         exam=exam,
                         anonymous_id=generate_anonymous_id(exam, i),
-                        status=Copy.Status.READY if has_pages else Copy.Status.STAGING,
+                        status=Copy.Status.READY,
                         is_identified=False,
                         validated_at=timezone.now() if has_pages else None
                     )
@@ -830,8 +828,8 @@ class CopyValidationView(APIView):
 
 class BulkCopyValidationView(APIView):
     """
-    Validate all STAGING copies for an exam (STAGING → READY).
     POST /api/exams/<exam_id>/validate-all/
+    Kept for backward compatibility. Copies are now created directly as READY.
     """
     permission_classes = [IsTeacherOrAdmin]
 
@@ -839,18 +837,18 @@ class BulkCopyValidationView(APIView):
         logger = logging.getLogger(__name__)
         exam = get_object_or_404(Exam, id=exam_id)
         
-        staging_copies = Copy.objects.filter(exam=exam, status=Copy.Status.STAGING)
+        ready_copies = Copy.objects.filter(exam=exam, status=Copy.Status.READY)
         
-        if not staging_copies.exists():
+        if not ready_copies.exists():
             return Response(
-                {"message": _("Aucune copie en attente de validation.")},
+                {"message": _("Aucune copie à valider.")},
                 status=status.HTTP_200_OK
             )
         
         validated_count = 0
         errors = []
         
-        for copy in staging_copies:
+        for copy in ready_copies:
             try:
                 GradingService.validate_copy(copy, request.user)
                 validated_count += 1
@@ -937,7 +935,7 @@ class ExamDispatchView(APIView):
             Copy.objects.filter(
                 exam=exam,
                 assigned_corrector__isnull=True,
-                status__in=[Copy.Status.READY, Copy.Status.STAGING]
+                status=Copy.Status.READY
             ).order_by('anonymous_id')
         )
 
@@ -1401,7 +1399,7 @@ class ExamStudentListView(APIView):
             "total_copies": len(data),
             "graded": sum(1 for d in data if d['status'] == 'GRADED'),
             "ready": sum(1 for d in data if d['status'] == 'READY'),
-            "staging": sum(1 for d in data if d['status'] == 'STAGING'),
+            "en_cours": sum(1 for d in data if d['status'] == 'GRADING_IN_PROGRESS'),
             "with_scores": len(scored),
             "average": float(round(  # type: ignore[call-overload]
                 sum(d['total_score'] for d in scored) / len(scored), 2  # type: ignore[arg-type]

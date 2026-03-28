@@ -93,7 +93,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="E2E_TEST_001",
-            status=Copy.Status.STAGING  # Start in STAGING state
+            status=Copy.Status.READY  # Start in STAGING state
         )
 
         # Create a booklet for the copy
@@ -110,7 +110,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
 
         # Vérifier que la copie est créée
         self.assertIsNotNone(copy, "Une copie devrait exister")
-        self.assertEqual(copy.status, Copy.Status.STAGING)
+        self.assertEqual(copy.status, Copy.Status.READY)
         self.assertEqual(copy.booklets.count(), 1)
         
         # 3. Identification manuelle (simuler le workflow d'identification)
@@ -246,7 +246,7 @@ class BacBlancE2EWorkflowTest(TransactionTestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="E2E_STATE_TEST",
-            status=Copy.Status.STAGING
+            status=Copy.Status.READY
         )
         
         print(f"   - État initial: {copy.status}")

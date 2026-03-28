@@ -116,7 +116,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         self.copy_a_locked = Copy.objects.create(
             exam=self.exam,
             anonymous_id="COPY-A-LOCKED",
-            status=Copy.Status.LOCKED,
+            status=Copy.Status.GRADING_IN_PROGRESS,
             student=self.student_a,
             is_identified=True
         )

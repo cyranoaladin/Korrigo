@@ -489,8 +489,12 @@ class CopyGlobalAppreciationView(APIView):
 
         global_appreciation = request.data.get('global_appreciation', '')
 
+        update_fields = ['global_appreciation']
+        if copy.status == Copy.Status.READY:
+            copy.status = Copy.Status.GRADING_IN_PROGRESS
+            update_fields.append('status')
         copy.global_appreciation = global_appreciation
-        copy.save(update_fields=['global_appreciation'])
+        copy.save(update_fields=update_fields)
 
         # Audit trail
         try:
@@ -541,7 +545,7 @@ class CopyScoresView(APIView):
 
         if copy.status == Copy.Status.GRADED and not request.user.is_superuser:
             return Response(
-                {"detail": "Impossible de modifier les notes d'une copie déjà corrigée."},
+                {"detail": "Impossible de modifier les notes d'une copie déjà finalisée."},
                 status=status.HTTP_400_BAD_REQUEST
             )
         if copy.status == Copy.Status.GRADED and request.user.is_superuser:
@@ -589,11 +593,12 @@ class CopyScoresView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        # LOT 4 fix: select_for_update to prevent lost updates on concurrent PUT
         from django.db import transaction
         with transaction.atomic():
-            # Lock the Copy row to serialize concurrent score writes
             Copy.objects.select_for_update().filter(id=copy.id).first()
+            if copy.status == Copy.Status.READY:
+                copy.status = Copy.Status.GRADING_IN_PROGRESS
+                copy.save(update_fields=['status'])
 
             score, created = Score.objects.update_or_create(
                 copy=copy,
@@ -646,7 +651,7 @@ class CorrectorStatsView(APIView):
 
         # Get all copies with scores (GRADED or READY with scores_data)
         all_with_scores = Copy.objects.filter(
-            exam=exam, status__in=[Copy.Status.GRADED, Copy.Status.READY]
+            exam=exam, status__in=[Copy.Status.GRADED, Copy.Status.GRADING_IN_PROGRESS]
         ).select_related('assigned_corrector', 'student')
 
         # LOT 7: Prefetch all scores in one query to avoid N+1

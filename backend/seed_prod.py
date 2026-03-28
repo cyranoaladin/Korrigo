@@ -305,7 +305,7 @@ def seed_prod():
     print(f"  - Total Copies: {Copy.objects.count()}")
     print(f"    - READY: {Copy.objects.filter(status=Copy.Status.READY).count()}")
     print(f"    - GRADED: {Copy.objects.filter(status=Copy.Status.GRADED).count()}")
-    print(f"    - LOCKED: {Copy.objects.filter(status=Copy.Status.LOCKED).count()}")
+    print(f"    - LOCKED: {Copy.objects.filter(status=Copy.Status.GRADING_IN_PROGRESS).count()}")
     print("="*60)
 
 if __name__ == "__main__":

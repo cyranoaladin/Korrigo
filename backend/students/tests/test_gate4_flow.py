@@ -51,8 +51,8 @@ class TestGate4StudentFlow(TransactionTestCase):
         
         self.copy_locked = Copy.objects.create(
             exam=self.exam,
-            anonymous_id="GATE4-LOCKED",
-            status=Copy.Status.LOCKED, # Not Graded
+            anonymous_id="GATE4-IN-PROGRESS",
+            status=Copy.Status.GRADING_IN_PROGRESS, # Not Graded
             student=self.student,
             is_identified=True
         )

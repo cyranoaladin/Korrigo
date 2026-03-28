@@ -615,7 +615,7 @@ class Command(BaseCommand):
             Copy.objects.filter(
                 exam=exam,
                 assigned_corrector__isnull=True,
-                status__in=[Copy.Status.READY, Copy.Status.STAGING],
+                status=Copy.Status.READY,
             ).order_by('anonymous_id')
         )
 
@@ -631,7 +631,6 @@ class Command(BaseCommand):
             exam=exam,
             assigned_corrector__isnull=False,
             status__in=[
-                Copy.Status.LOCKED,
                 Copy.Status.GRADING_IN_PROGRESS,
                 Copy.Status.GRADED,
             ]

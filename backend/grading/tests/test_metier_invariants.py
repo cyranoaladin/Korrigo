@@ -45,7 +45,7 @@ class TestAnonymizationInvariant(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="ANON-001",
-            status=Copy.Status.STAGING,
+            status=Copy.Status.READY,
         )
         self.assertIsNone(copy.student)
         self.assertFalse(copy.is_identified)
@@ -56,7 +56,7 @@ class TestAnonymizationInvariant(TestCase):
         copy = Copy.objects.create(
             exam=self.exam,
             anonymous_id="IMPORT-A1B2C3D4",
-            status=Copy.Status.STAGING,
+            status=Copy.Status.READY,
         )
         self.assertNotIn("Alice", copy.anonymous_id)
         self.assertNotIn("Durand", copy.anonymous_id)
@@ -265,12 +265,12 @@ class TestStateMachineInvariants(TestCase):
         self.teacher.groups.add(self.teacher_group)
         self.exam = Exam.objects.create(name="SM Test", date=date.today())
 
-    def test_cannot_finalize_staging_copy(self):
-        """STAGING copies cannot be finalized."""
+    def test_cannot_finalize_graded_copy_raises_lock_conflict(self):
+        """Already-GRADED copies raise LockConflictError on finalize attempt."""
         copy = Copy.objects.create(
-            exam=self.exam, anonymous_id="SM-001", status=Copy.Status.STAGING
+            exam=self.exam, anonymous_id="SM-001", status=Copy.Status.GRADED
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(LockConflictError):
             GradingService.finalize_copy(copy, self.teacher)
 
     def test_finalize_ready_copy_succeeds(self):
