@@ -1,67 +1,86 @@
-# Architecture Korrigo PMF
+# Architecture Korrigo v2
 
-> **Version**: 2.1.0  
-> **Date**: 14 février 2026  
-> **Public**: Développeurs, Architectes, DevOps  
-> **Production**: [https://korrigo.labomaths.tn](https://korrigo.labomaths.tn)
+> **Version** : 3.0.0
+> **Date** : 28 mars 2026
+> **Public** : Développeurs, Architectes, DevOps
+> **Production** : https://korrigo.labomaths.tn (alias https://korrigo.nexusreussite.academy)
 
-Ce document décrit l'architecture complète de la plateforme Korrigo PMF, une solution de correction numérique d'examens scannés pour établissements scolaires.
-
----
-
-## 📋 Table des Matières
-
-1. [Vue d'Ensemble](#vue-densemble)
-2. [Stack Technique](#stack-technique)
-3. [Architecture en Couches](#architecture-en-couches)
-4. [Diagramme d'Architecture](#diagramme-darchitecture)
-5. [Flux de Données](#flux-de-données)
-6. [Infrastructure Docker](#infrastructure-docker)
-7. [Patterns et Principes](#patterns-et-principes)
-8. [Justifications Techniques](#justifications-techniques)
+Ce document décrit l'architecture complète de la plateforme Korrigo v2, une solution de correction numérique d'examens scannés pour établissements scolaires (lycées).
 
 ---
 
-## Vue d'Ensemble
+## Table des Matières
 
-### Contexte
+1. [Contexte Projet](#1-contexte-projet)
+2. [Stack Technique](#2-stack-technique)
+3. [Applications Django](#3-applications-django)
+4. [Architecture en Couches](#4-architecture-en-couches)
+5. [Diagramme d'Infrastructure](#5-diagramme-dinfrastructure)
+6. [Machine à États Copy (actuelle)](#6-machine-à-états-copy-actuelle)
+7. [Modèle de Concurrence pour la Finalisation](#7-modèle-de-concurrence-pour-la-finalisation)
+8. [Système de Coordonnées des Annotations (ADR-002)](#8-système-de-coordonnées-des-annotations-adr-002)
+9. [Authentification et Autorisation](#9-authentification-et-autorisation)
+10. [Services Docker (Production)](#10-services-docker-production)
+11. [Workflows GitHub Actions](#11-workflows-github-actions)
+12. [Patterns Architecturaux Clés](#12-patterns-architecturaux-clés)
+13. [Flux de Données Métier](#13-flux-de-données-métier)
+14. [Justifications Techniques](#14-justifications-techniques)
 
-Korrigo PMF est une plateforme locale de correction dématérialisée pour examens internes (Bac Blanc, contrôles). Elle permet de:
-- Numériser des copies d'examens scannées en masse
-- Identifier les copies via OCR assisté
-- Corriger numériquement avec annotations vectorielles
-- Exporter les résultats vers Pronote
-- Permettre aux élèves de consulter leurs copies corrigées
+---
+
+## 1. Contexte Projet
+
+### Description
+
+Korrigo est une plateforme de correction numérique d'examens scannés de bout en bout, conçue pour les établissements scolaires (lycées). Elle couvre l'intégralité du cycle de vie d'un examen :
+
+1. **Ingestion** : upload de PDF scannés (lots A3 ou fichiers individuels A4)
+2. **Anonymisation** : attribution d'un identifiant anonyme à chaque copie
+3. **Identification** : OCR assisté sur l'en-tête de la copie pour lier élève et copie
+4. **Dispatch** : assignation des copies aux correcteurs
+5. **Correction annotée** : interface web de correction avec annotations vectorielles, barème interactif, appréciation globale
+6. **Finalisation** : génération du PDF aplati (copie + annotations fusionnées)
+7. **Bilans IA** : génération d'un bilan personnalisé par LLM (Ollama/qwen2.5:32b)
+8. **Publication élèves** : portail élève permettant de consulter sa copie corrigée et son bilan
 
 ### Contraintes Spécifiques
 
-- **Sans QR Code**: Identification semi-automatique (OCR + validation humaine)
-- **Déploiement Local**: Serveur interne ou cloud privé (pas de SaaS)
-- **Workflow Pédagogique**: Double finalité administrative (notes) et pédagogique (consultation élève)
-- **Architecture Locale**: Stockage fichiers en local (NAS/Volume Docker)
+- **Sans QR Code** : identification semi-automatique (OCR + validation humaine via vidéo-codage)
+- **Déploiement Cloud Privé** : serveur dédié (pas SaaS multi-tenant)
+- **Workflow pédagogique** : double finalité administrative (notes Pronote) et pédagogique (consultation élève)
+- **Stockage fichiers local** : volumes Docker (PDF, images rasterisées)
+- **Conformité RGPD** : audit trail complet, rétention 12 mois
+
+### URL de Production
+
+| Domaine | Usage |
+|---------|-------|
+| `korrigo.labomaths.tn` | Domaine principal |
+| `korrigo.nexusreussite.academy` | Alias de production |
 
 ---
 
-## Stack Technique
+## 2. Stack Technique
 
 ### Backend
 
 | Composant | Version | Rôle |
 |-----------|---------|------|
 | **Python** | 3.11 | Langage principal |
-| **Django** | 4.2 (LTS) | Framework web, ORM, Admin |
-| **Django REST Framework** | 3.16+ | API REST |
-| **PostgreSQL** | 15+ | Base de données relationnelle |
-| **Redis** | 7+ | Cache, broker Celery |
-| **Celery** | 5+ | Traitement asynchrone |
-| **PyMuPDF (fitz)** | 1.23.26 | Manipulation PDF |
-| **OpenCV** | 4.8.0 | Traitement d'images |
-| **pdf2image** | - | Conversion PDF → Images |
-| **Gunicorn** | - | Serveur WSGI (production) |
-| **Tesseract OCR** | - | OCR fallback (fra+eng) |
+| **Django** | 4.2 LTS | Framework web, ORM, Admin |
+| **Django REST Framework** | 3.x | API REST |
+| **Gunicorn** | — | Serveur WSGI (production) |
+| **PostgreSQL** | 15 | Base de données relationnelle |
+| **Redis** | 7 | Cache, broker Celery, backend résultats |
+| **Celery** | 5.x | Traitement asynchrone |
+| **Celery Beat** | — | Planificateur de tâches périodiques |
+| **PyMuPDF (fitz)** | 1.23.26 | Manipulation PDF (rasterisation, aplatissement) |
+| **OpenCV headless** | 4.8.0 | Traitement d'images (détection en-têtes) |
+| **Pillow** | 12.1+ | Traitement images (crop en-tête pour OCR) |
+| **Tesseract OCR** | — | OCR fallback (fra+eng) |
 | **OpenAI GPT-4o-mini** | Vision | OCR principal (écriture manuscrite) |
-| **Ollama** | qwen2.5:32b | LLM local pour bilans pédagogiques |
-| **Pillow** | 12.1+ | Traitement images (crop header) |
+| **Ollama** | qwen2.5:32b ou llama3.2 | LLM local pour bilans pédagogiques |
+| **pdf2image** | — | Conversion PDF vers images PNG |
 | **python-magic** | 0.4.27 | Validation type MIME |
 | **django-ratelimit** | 4.1.0 | Protection brute force |
 | **django-csp** | 3.8 | Content Security Policy |
@@ -72,524 +91,590 @@ Korrigo PMF est une plateforme locale de correction dématérialisée pour exame
 
 | Composant | Version | Rôle |
 |-----------|---------|------|
-| **Vue.js** | 3.4+ | Framework UI (Composition API) |
-| **Pinia** | 2.1+ | State management |
+| **Vue.js** | 3.4 | Framework UI (Composition API) |
+| **Pinia** | 2.1 | State management |
 | **Vue Router** | 4.2+ | Routing SPA |
-| **Axios** | 1.13+ | Client HTTP |
-| **PDF.js** | 4.0+ | Visualisation PDF |
-| **Vite** | 5.1+ | Build tool, dev server |
+| **Axios** | 1.13 | Client HTTP |
+| **PDF.js** | 4.0 | Rendu PDF dans le navigateur |
+| **Vite** | 5.1 | Build tool, dev server HMR |
 | **TypeScript** | 5.9+ | Typage statique |
+| **TailwindCSS** | 4.1 | Framework CSS utilitaire |
 
 ### Infrastructure
 
 | Composant | Version | Rôle |
 |-----------|---------|------|
 | **Docker** | 20+ | Conteneurisation |
-| **Docker Compose** | 2+ | Orchestration locale |
-| **Nginx** | 1.25+ | Reverse proxy, serving static |
+| **Docker Compose** | 2+ | Orchestration |
+| **Nginx** | 1.25+ | Reverse proxy, TLS, fichiers statiques |
 
 ---
 
-## Architecture en Couches
+## 3. Applications Django
 
-```mermaid
-graph TB
-    subgraph "Couche Présentation"
-        UI[Vue.js 3 SPA]
-        Router[Vue Router]
-        Store[Pinia Stores]
-    end
-    
-    subgraph "Couche API"
-        DRF[Django REST Framework]
-        Auth[Session Auth]
-        Perms[Permissions RBAC]
-    end
-    
-    subgraph "Couche Logique Métier"
-        ExamsSvc[Exams Service]
-        GradingSvc[Grading Service]
-        ProcessingSvc[Processing Service]
-        StudentsSvc[Students Service]
-    end
-    
-    subgraph "Couche Données"
-        ORM[Django ORM]
-        DB[(PostgreSQL)]
-        Files[Media Storage]
-    end
-    
-    subgraph "Couche Traitement Asynchrone"
-        Celery[Celery Workers]
-        Redis[(Redis)]
-    end
-    
-    UI --> Router
-    Router --> Store
-    Store --> DRF
-    DRF --> Auth
-    DRF --> Perms
-    DRF --> ExamsSvc
-    DRF --> GradingSvc
-    DRF --> ProcessingSvc
-    DRF --> StudentsSvc
-    
-    ExamsSvc --> ORM
-    GradingSvc --> ORM
-    ProcessingSvc --> ORM
-    StudentsSvc --> ORM
-    
-    ORM --> DB
-    ProcessingSvc --> Files
-    ProcessingSvc --> Celery
-    Celery --> Redis
-```
+Le backend est organisé en **6 applications Django**, chacune avec une responsabilité claire et délimitée.
 
-### Séparation des Responsabilités
+### 3.1 `core` — Fondations et Transversal
 
-#### 1. Couche Présentation (Frontend)
-- **Responsabilité**: Interface utilisateur, interactions, routing
-- **Technologies**: Vue.js 3, Pinia, Vue Router
-- **Principe**: Composants réutilisables, state management centralisé
+**Responsabilité** : Configuration globale, authentification, audit RGPD, profils utilisateurs, middlewares.
 
-#### 2. Couche API (Backend - Interface)
-- **Responsabilité**: Exposition des endpoints REST, authentification, permissions
-- **Technologies**: Django REST Framework
-- **Principe**: API-first, session-based auth, RBAC via `UserRole` (Admin, Teacher, Student)
+**Modèles** :
+- `GlobalSettings` : singleton de paramétrage applicatif (`institution_name`, `theme`, `default_exam_duration`, `notifications_enabled`)
+- `AuditLog` : journal d'audit RGPD centralisé (toutes actions critiques : connexion, téléchargement, déverrouillage) — rétention 12 mois
+- `UserProfile` : extension du `User` Django (`must_change_password`)
 
-#### 3. Couche Logique Métier (Backend - Services)
-- **Responsabilité**: Logique applicative, règles métier, workflows
-- **Technologies**: Services Python, transactions atomiques
-- **Principe**: Service Layer Pattern, séparation concerns
+**Middlewares** :
+- CORS (configurable par environnement)
+- CSP (Content Security Policy via `django-csp`)
+- Rate limiting (via `django-ratelimit 4.1`)
+- Métriques Prometheus
 
-#### 4. Couche Données (Backend - Persistance)
-- **Responsabilité**: Accès données, persistance, intégrité
-- **Technologies**: Django ORM, PostgreSQL
-- **Principe**: Repository Pattern via ORM, migrations versionnées
+**Rôles utilisateurs** (`UserRole` enum via groupes Django) :
+- `ADMIN` : Django superuser + groupe ADMIN — accès total
+- `TEACHER` / Correcteur : `is_staff` + groupe TEACHER — accès à ses copies assignées seulement
+- `STUDENT` / Élève : utilisateur standard + groupe STUDENT — portail élève uniquement
 
-#### 5. Couche Traitement Asynchrone
-- **Responsabilité**: Tâches longues (rasterization, PDF generation)
-- **Technologies**: Celery, Redis
-- **Principe**: Fire-and-forget, retry logic
+### 3.2 `exams` — Gestion des Examens et Copies
 
----
+**Responsabilité** : Cycle de vie complet des examens et copies, upload de PDF, découpage, dispatch.
 
-## Diagramme d'Architecture
+**Modèles principaux** :
+- `ExamType` : type d'examen (BAC_BLANC, DNB_BLANC, EAM, etc.) avec code, couleur, icône
+- `Exam` : examen concret avec barème JSON (`grading_structure`), correcteurs M2M, mode upload
+- `Booklet` : fascicule détecté lors du split A3 (entité de staging)
+- `Copy` : copie validée d'un élève — **entité centrale du système** (voir section 6)
+- `ExamPDF` : fichier PDF individuel (mode INDIVIDUAL_A4)
+- `ExamDocumentSet` + `ExamDocument` : gestion documentaire versionnée (sujet, corrigé, barème)
+- `DocumentTextExtraction`, `DocumentPage`, `DocumentChunk` : pipeline d'extraction de texte pour suggestions contextuelles
+- `JuryReport` : rapport de jury rattaché à un `ExamType`
 
-### Architecture Globale
+**Modes d'upload** :
+- `BATCH_A3` : scan par lots, découpage automatique en fascicules, puis fusion en copies
+- `INDIVIDUAL_A4` : un PDF par élève, déjà découpé — identifiant via nom de fichier (`NOM_PRENOM_DDMMYYYY`)
 
-```mermaid
-graph TB
-    subgraph "Client Browser"
-        Browser[Navigateur Web]
-    end
-    
-    subgraph "Docker Host"
-        subgraph "Frontend Container"
-            Vite[Vite Dev Server<br/>Port 5173]
-            VueApp[Vue.js SPA]
-        end
-        
-        subgraph "Backend Container"
-            Django[Django + DRF<br/>Port 8000]
-            Gunicorn[Gunicorn WSGI]
-        end
-        
-        subgraph "Celery Container"
-            CeleryWorker[Celery Worker]
-        end
-        
-        subgraph "Database Container"
-            Postgres[(PostgreSQL<br/>Port 5432)]
-        end
-        
-        subgraph "Cache Container"
-            RedisCache[(Redis<br/>Port 6379)]
-        end
+**Validators sur les PDF** (`exams/validators.py`) :
+- `FileExtensionValidator(['pdf'])`
+- `validate_pdf_size` (max 50 MB)
+- `validate_pdf_not_empty`
+- `validate_pdf_mime_type` (MIME = `application/pdf`)
+- `validate_pdf_integrity` (contrôle de lecture PyMuPDF)
 
-        subgraph "LLM Container"
-            Ollama[(Ollama<br/>Port 11434)]
-        end
-        
-        subgraph "Volumes"
-            MediaVol[Media Volume<br/>PDF, Images]
-            DBVol[DB Volume<br/>PostgreSQL Data]
-        end
-    end
-    
-    Browser -->|HTTP :5173| Vite
-    Vite --> VueApp
-    VueApp -->|API Calls :8000| Django
-    Django --> Gunicorn
-    Django --> Postgres
-    Django --> RedisCache
-    Django --> Ollama
-    Django --> MediaVol
-    CeleryWorker --> Postgres
-    CeleryWorker --> RedisCache
-    CeleryWorker --> Ollama
-    CeleryWorker --> MediaVol
-    Postgres --> DBVol
-```
+### 3.3 `grading` — Correction et Annotations
 
-### Architecture Modules Backend
+**Responsabilité** : Tout le workflow de correction — annotations, scores, verrouillage, finalisation, audit.
 
-```mermaid
-graph LR
-    subgraph "Backend Django"
-        Core[core/<br/>Settings, URLs, WSGI]
-        
-        subgraph "Apps Django"
-            Exams[exams/<br/>Gestion Examens]
-            Grading[grading/<br/>Correction]
-            Identification[identification/<br/>OCR & Identification]
-            Students[students/<br/>Gestion Élèves]
-        end
-    end
-    
-    Core --> Exams
-    Core --> Grading
-    Core --> Identification
-    Core --> Students
-    
-    Exams -.->|ForeignKey| Grading
-    Exams -.->|ForeignKey| Students
-    Identification -.->|Service| Grading
-```
+**Modèles** :
+- `Annotation` : annotation vectorielle sur une copie (coordonnées normalisées [0,1] selon ADR-002, verrouillage optimiste via champ `version`)
+- `GradingEvent` : journal d'audit immutable — chaque transition d'état, chaque annotation créée/modifiée/supprimée
+- `Score` : notes JSON par question (contrainte unicité 1 Score par Copy au niveau DB)
+- `CopyLock` : verrou pessimiste avec token et TTL (protection contre édition concurrente)
+- `DraftState` : sauvegarde automatique de l'état de l'éditeur (anti-perte de données)
+- `QuestionRemark` : remarques libres par question du barème
+- `AnnotationTemplate` : banque d'annotations officielles contextualisées par exercice/question
+- `UserAnnotation` : mémoire personnelle du correcteur (annotations personnelles avec compteur d'usage)
+- `QuestionnaireResponse` : réponses aux questionnaires de satisfaction
+
+**Services principaux** (`grading/services.py`) :
+- `GradingService` : `add_annotation`, `update_annotation`, `delete_annotation`, `finalize_copy`, `reopen_copy`, `lock_copy`, `unlock_copy`
+- `AnnotationService` : gestion du cycle de vie des annotations
+- `LockConflictError` : exception métier levée en cas de conflit de verrouillage ou de double finalisation
+
+### 3.4 `students` — Gestion des Élèves
+
+**Responsabilité** : Référentiel des élèves, authentification par date de naissance, portail élève.
+
+**Modèles** :
+- `Student` : prénom, nom, date de naissance, classe, groupe, email, lien `OneToOne` vers `User` Django
+
+**Authentification élève** : email + date de naissance (pas de mot de passe). Le backend crée ou récupère un `User` Django associé au `Student` et ouvre une session cookie.
+
+**Import** : CSV via `POST /api/students/import/` — format `Nom;Prénom;Date-naissance;Email;Classe;Groupe`
+
+### 3.5 `identification` — OCR et Identification
+
+**Responsabilité** : Pipeline d'identification automatique des copies par OCR sur l'en-tête.
+
+**Modèles** :
+- `OCRResult` : résultat OCR (`detected_text`, `confidence`, `suggested_students` M2M)
+
+**Pipeline OCR** :
+1. Extraction de l'image d'en-tête de la copie (crop via OpenCV/Pillow)
+2. Envoi à GPT-4o-mini Vision (principal) ou Tesseract (fallback)
+3. Matching flou avec la base élèves (`Student`)
+4. Suggestions retournées à l'opérateur (vidéo-codage) pour validation humaine
+
+### 3.6 `processing` — Services Techniques PDF
+
+**Responsabilité** : Traitements techniques PDF (découpage, détection en-têtes, aplatissement). Pas de modèles Django propres.
+
+**Services** :
+- `PDFSplitter` : découpage d'un PDF A3 en fascicules individuels
+- `HeaderDetector` : détection et extraction de la zone d'en-tête (nom élève)
+- `PDFFlattener` : fusion des annotations sur les pages PDF pour générer le `final_pdf`
 
 ---
 
-## Flux de Données
+## 4. Architecture en Couches
 
-### Workflow Correction Complet
-
-```mermaid
-sequenceDiagram
-    participant Admin
-    participant Frontend
-    participant API
-    participant GradingService
-    participant ProcessingService
-    participant Celery
-    participant DB
-    participant Storage
-    
-    Admin->>Frontend: Upload PDF examen
-    Frontend->>API: POST /api/exams/upload/
-    API->>GradingService: import_pdf()
-    GradingService->>DB: Create Exam
-    GradingService->>Storage: Save PDF
-    GradingService->>ProcessingService: rasterize_pdf()
-    ProcessingService->>Storage: Generate images
-    ProcessingService->>DB: Create Booklets
-    GradingService->>DB: Create GradingEvent (IMPORT)
-    API-->>Frontend: {exam_id, booklets}
-    
-    Admin->>Frontend: Identifier copie
-    Frontend->>API: POST /api/exams/{id}/merge/
-    API->>GradingService: merge_booklets()
-    GradingService->>DB: Create Copy (STAGING)
-    GradingService->>DB: Update Copy → READY
-    API-->>Frontend: {copy_id}
-    
-    Note over Admin,Frontend: Correction par Enseignant
-    
-    Frontend->>API: POST /api/grading/copies/{id}/lock/
-    API->>GradingService: lock_copy()
-    GradingService->>DB: Create CopyLock
-    GradingService->>DB: Update Copy → LOCKED
-    
-    Frontend->>API: POST /api/annotations/
-    API->>GradingService: add_annotation()
-    GradingService->>DB: Create Annotation
-    GradingService->>DB: Create GradingEvent (CREATE_ANN)
-    
-    Frontend->>API: POST /api/grading/copies/{id}/finalize/
-    API->>GradingService: finalize_copy()
-    GradingService->>ProcessingService: flatten_copy()
-    ProcessingService->>Storage: Generate final PDF
-    GradingService->>DB: Update Copy → GRADED
-    GradingService->>DB: Create GradingEvent (FINALIZE)
-    API-->>Frontend: {final_pdf_url}
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    COUCHE PRÉSENTATION (Frontend)                    │
+│  Vue 3.4 SPA  │  Pinia Stores  │  Vue Router  │  PDF.js  │  Axios   │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │ HTTPS / JSON (session cookie)
+┌────────────────────────────▼────────────────────────────────────────┐
+│                     COUCHE API (Django REST Framework)               │
+│  ViewSets  │  Serializers  │  Permissions RBAC  │  Session Auth      │
+│  Rate limiting  │  CSP  │  CORS  │  OpenAPI (DRF Spectacular)       │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────────────┐
+│                  COUCHE LOGIQUE MÉTIER (Services Layer)              │
+│  GradingService  │  AnnotationService  │  PDFFlattener               │
+│  OCR Pipeline  │  LLM Bilan  │  Dispatch Service                    │
+│  Transactions atomiques  │  Audit Trail  │  LockConflictError        │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────────────┐
+│                   COUCHE DONNÉES (Django ORM + PostgreSQL 15)        │
+│  Modèles  │  Migrations  │  Index composites  │  Contraintes DB      │
+│  JSONField (barème, coordonnées)  │  FileField (PDF, images)         │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────────────┐
+│              COUCHE TRAITEMENT ASYNCHRONE (Celery + Redis)           │
+│  flatten_copy  │  OCR pipeline  │  Bilans LLM  │  Celery Beat       │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Communication Frontend ↔ Backend
+### Séparation des responsabilités
 
-```mermaid
-graph LR
-    subgraph "Frontend (Vue.js)"
-        Component[Vue Component]
-        Store[Pinia Store]
-        APIService[API Service<br/>axios]
-    end
-    
-    subgraph "Backend (Django)"
-        View[DRF ViewSet]
-        Serializer[DRF Serializer]
-        Service[Service Layer]
-        Model[Django Model]
-    end
-    
-    Component -->|dispatch action| Store
-    Store -->|HTTP Request| APIService
-    APIService -->|POST/GET/PATCH| View
-    View -->|validate| Serializer
-    Serializer -->|business logic| Service
-    Service -->|ORM| Model
-    Model -->|JSON| Serializer
-    Serializer -->|Response| View
-    View -->|JSON| APIService
-    APIService -->|update state| Store
-    Store -->|reactive| Component
-```
+#### Couche Présentation
+Les composants Vue.js communiquent via des stores Pinia qui encapsulent tous les appels API. Aucun appel direct à Axios depuis les composants de présentation — tout passe par les services de store.
+
+#### Couche API
+Les ViewSets DRF délèguent systématiquement la logique métier au Service Layer. Ils ne contiennent que : validation des entrées (serializers), vérification des permissions, formatage de la réponse.
+
+#### Services Layer
+Isole la logique métier complexe des views. Permet les tests unitaires sans HTTP. Toutes les opérations critiques (finalisation, verrouillage) sont wrappées dans `@transaction.atomic`.
+
+#### Couche Données
+L'ORM Django joue le rôle de repository. Les index composites sont déclarés dans les `Meta.indexes` des modèles pour les patterns de requête fréquents.
 
 ---
 
-## Infrastructure Docker
+## 5. Diagramme d'Infrastructure
 
-### Services Docker Compose
-
-Le projet utilise plusieurs configurations Docker Compose selon l'environnement:
-
-#### 1. `docker-compose.yml` (Développement)
-
-```yaml
-services:
-  - db: PostgreSQL 15 (port 5435)
-  - redis: Redis 7 (port 6385)
-  - backend: Django runserver (port 8088)
-  - celery: Celery worker
-  - frontend: Vite dev server (port 5173)
+```
+Browser ──HTTPS──→ Nginx (443/80)
+                      │
+          ┌───────────┼──────────────────┐
+          │           │                  │
+     /static/     /api/*            /media/*
+   (fichiers     (proxy pass)     (fichiers media)
+    statiques)        │
+                 Gunicorn :8000
+                 (Django 4.2)
+                 3 workers, timeout 120s
+                      │
+            ┌─────────┼──────────────────┐
+            │         │                  │
+       PostgreSQL    Redis :6379      Celery Workers
+           15       (broker +          (tâches async :
+        :5432       result             flatten_copy,
+                   backend)           OCR pipeline,
+                                      bilans LLM)
+                                          │
+                                    Ollama :11434
+                                   (qwen2.5:32b)
+                                          │
+                                    OpenAI API
+                                  (GPT-4o-mini Vision)
 ```
 
-**Caractéristiques**:
-- Hot reload activé (volumes montés)
-- DEBUG=true
-- CORS permissif
-- Pas de SSL
+### Volumes Docker persistants
 
-#### 2. `docker-compose.server.yml` (Production — korrigo.labomaths.tn)
+| Volume | Point de montage | Contenu | Criticité |
+|--------|-----------------|---------|-----------|
+| `postgres_data` | `/var/lib/postgresql/data` | Base de données | **CRITIQUE** |
+| `media_volume` | `/app/media` | PDF sources, images rasterisées, PDF finaux | **CRITIQUE** |
+| `static_volume` | `/app/staticfiles` | CSS, JS compilés, Django admin | Moyen |
 
-Override de la configuration de base pour la production :
+> **Avertissement** : Ne jamais exécuter `docker-compose down -v` en production. Cela détruirait les volumes et toutes les données. Le backup de `postgres_data` et `media_volume` doit être automatisé quotidiennement.
 
-```yaml
-services:
-  backend:
-    environment:
-      DATABASE_URL: postgresql://...
-      DJANGO_ENV: production
-      DEBUG: False
-      SSL_ENABLED: True
-      ALLOWED_HOSTS: korrigo.labomaths.tn
-      OPENAI_API_KEY: ...
-      OPENAI_MODEL: gpt-4.1-mini-2025-04-14
-  celery:
-    environment:
-      DATABASE_URL: postgresql://...
-      DJANGO_ENV: production
+---
+
+## 6. Machine à États Copy (actuelle)
+
+### États actuels (depuis migration 0027)
+
+```python
+class Copy.Status(TextChoices):
+    READY        = 'READY'        # Prête à corriger
+    IN_PROGRESS  = 'IN_PROGRESS'  # En cours de correction
+    FINALIZED    = 'FINALIZED'    # Finalisée (PDF aplati généré)
 ```
 
-**Caractéristiques** :
-- DEBUG=False (vérifié au démarrage, crash si True en production)
-- SSL/HSTS activé via Nginx reverse proxy
-- CORS strict (origine unique)
-- Session cookies Secure + HttpOnly
+### Diagramme de transitions
+
+```
+         première annotation créée
+READY ──────────────────────────────→ IN_PROGRESS
+  ↑                                        │
+  │                                   POST /finalize/
+  │                                        │
+  └──────────── reopen (admin) ─── FINALIZED (PDF final généré)
+```
+
+### Transitions autorisées
+
+| État source | Déclencheur | État cible | Acteur | Effets de bord |
+|-------------|-------------|------------|--------|----------------|
+| `READY` | Création de la première annotation (`AnnotationService.add_annotation`) | `IN_PROGRESS` | Correcteur | Transition automatique |
+| `IN_PROGRESS` | `POST /api/grading/copies/{id}/finalize/` | `FINALIZED` | Correcteur | Génération PDF aplati, `graded_at=now()`, `finalizing_at=None`, GradingEvent FINALIZE |
+| `READY` | `POST /api/grading/copies/{id}/finalize/` | `FINALIZED` | Correcteur | Idem (copie sans annotation) |
+| `FINALIZED` | Action admin `reopen` | `READY` | Superuser seulement | `final_pdf` supprimé, `graded_at=None`, `grading_retries=0`, GradingEvent REOPEN |
+
+### Re-upload bloqué
+
+La re-ingestion d'un PDF est bloquée si au moins une copie de l'examen est en état `IN_PROGRESS` ou `FINALIZED`. Cela protège les données de correction déjà effectuées.
+
+### Ancienne machine à états (obsolète, pre-migration 0026)
+
+L'ancienne machine à 5 états est **entièrement obsolète** depuis mars 2026. Elle ne doit plus être référencée ni implémentée.
+
+```
+# OBSOLÈTE — ne plus utiliser
+STAGING → READY → LOCKED → GRADING_IN_PROGRESS → GRADED
+                               ↓
+                         GRADING_FAILED (retry max 3)
+```
+
+Les données ont été migrées automatiquement :
+- `STAGING` → `READY`
+- `LOCKED` → `GRADING_IN_PROGRESS` → `IN_PROGRESS`
+- `GRADED` → `FINALIZED`
+- `GRADING_FAILED` → `READY`
+
+Voir [ADR-003](../decisions/ADR-003-copy-status-state-machine.md) pour l'historique complet de cette décision.
+
+---
+
+## 7. Modèle de Concurrence pour la Finalisation
+
+### Problème
+
+Lors d'une finalisation, deux requêtes HTTP concurrentes pouvaient toutes deux passer la garde `status IN (READY, IN_PROGRESS)` et appeler `flatten_copy` simultanément, provoquant deux PDF finaux corrompus ou une condition de course.
+
+Le mécanisme `select_for_update(nowait=True)` seul ne suffisait pas à garantir l'exclusion mutuelle dans tous les cas de race condition.
+
+### Solution : mutex atomique via `finalizing_at`
+
+Le champ `Copy.finalizing_at` (DateTimeField, nullable) sert de mutex atomique :
+
+**Étape 1 : Claim atomique**
+```sql
+UPDATE exams_copy
+SET finalizing_at = NOW()
+WHERE id = <copy_id>
+  AND status IN ('READY', 'IN_PROGRESS')
+  AND finalizing_at IS NULL
+```
+PostgreSQL garantit qu'une seule transaction parmi toutes les concurrentes obtiendra `rows_affected = 1`. Toutes les autres obtiennent `0`.
+
+**Étape 2 : Logique de branchement**
+- `claimed = 1` → cette requête a gagné le mutex → elle procède à `flatten_copy`
+- `claimed = 0` → une autre requête est déjà en cours → lever `LockConflictError` immédiatement, avant toute génération de PDF
+
+**Étape 3 : Libération**
+- En cas de succès : `finalizing_at = None` est sauvegardé dans le même `copy.save()`
+- En cas d'exception : le `@transaction.atomic` rollback la transaction entière, `finalizing_at` revient automatiquement à `NULL`
+
+### Code de référence
+
+```python
+# backend/grading/services.py — GradingService._finalize_copy_inner
+
+@transaction.atomic
+def _finalize_copy_inner(copy, user, lock_token=None):
+    claimed = (
+        Copy.objects
+        .filter(
+            id=copy.id,
+            status__in=(Copy.Status.READY, Copy.Status.IN_PROGRESS),
+            finalizing_at__isnull=True,
+        )
+        .update(finalizing_at=timezone.now())
+    )
+    if claimed != 1:
+        current = Copy.objects.filter(id=copy.id).values('status', 'finalizing_at').first()
+        if current and current['status'] == Copy.Status.FINALIZED:
+            raise LockConflictError("Copie déjà finalisée.")
+        raise LockConflictError(
+            "Finalization en cours par une autre requête — réessayez."
+        )
+
+    copy = Copy.objects.select_for_update().get(id=copy.id)
+    # ... flatten_copy, save ...
+    copy.finalizing_at = None  # libération du mutex
+    copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf", "finalizing_at"])
+```
+
+### Garanties
+
+| Scénario | Comportement |
+|----------|--------------|
+| 1 requête seule | Succès normal |
+| 2 requêtes concurrentes | 1 succès + 1 `LockConflictError` (HTTP 409) |
+| Crash pendant flatten_copy | Rollback automatique, `finalizing_at` revient à NULL |
+| Copie déjà FINALIZED | `LockConflictError("Copie déjà finalisée.")` |
+
+---
+
+## 8. Système de Coordonnées des Annotations (ADR-002)
+
+Toutes les coordonnées d'annotation (`x`, `y`, `w`, `h`) sont **normalisées dans l'intervalle [0, 1]** relatif aux dimensions de la page PDF.
+
+**Conversion vers coordonnées absolues (PDF.js côté frontend)** :
+```
+x_pixels = annotation.x * page_width_px
+y_pixels = annotation.y * page_height_px
+w_pixels = annotation.w * page_width_px
+h_pixels = annotation.h * page_height_px
+```
+
+**Avantages** :
+- Indépendant de la résolution d'affichage et du zoom PDF.js
+- Cohérence entre l'affichage frontend et l'aplatissement backend (PyMuPDF)
+- Pas besoin de recalculer lors d'un changement de résolution de rasterisation
+
+Voir [ADR-002](../decisions/ADR-002-pdf-coordinate-normalization.md) pour la décision complète.
+
+---
+
+## 9. Authentification et Autorisation
+
+### Mécanisme d'authentification
+
+**Session cookie Django** (pas JWT) — choix délibéré pour des raisons de sécurité :
+- Cookie `HttpOnly` : inaccessible au JavaScript, protège contre le vol par XSS
+- Cookie `Secure` (production) : transmission uniquement via HTTPS
+- Révocation immédiate : déconnexion invalide la session côté serveur
+- Protection CSRF native : intégrée à Django pour toutes les requêtes POST/PUT/DELETE
+
+### Rôles et permissions
+
+| Rôle | Conditions Django | Accès |
+|------|-------------------|-------|
+| **Admin** | `is_superuser=True` + groupe ADMIN | Accès total, y compris reopen copies, gestion utilisateurs, tous examens |
+| **Correcteur** | `is_staff=True` + groupe TEACHER | Ses copies assignées uniquement (`assigned_corrector = request.user`) |
+| **Élève** | `is_active=True` + groupe STUDENT | Portail élève — ses propres copies finalisées si `results_released_at` est défini |
+| **Secrétariat** | `is_staff=True` + groupe TEACHER | Interface vidéo-codage OCR |
+
+### Authentification élève
+
+L'élève ne se connecte **pas** avec un mot de passe. Le flux est :
+1. Saisie de l'adresse email et de la date de naissance sur le portail élève
+2. Le backend vérifie `Student.email` + `Student.date_naissance`
+3. Si correspondance : création ou récupération du `User` Django associé, ouverture de session
+
+### Rate Limiting
+
+Via `django-ratelimit 4.1` :
+- Endpoints de connexion : max 10 tentatives / 5 minutes / IP
+- API générale : 200 req/min / utilisateur authentifié
+- Désactivé en mode test E2E (variable d'environnement `KORRIGO_DISABLE_RATELIMIT=1`)
+
+---
+
+## 10. Services Docker (Production)
+
+| Service | Image | Port interne | Rôle |
+|---------|-------|-------------|------|
+| `backend` | Python 3.11 + Django/Gunicorn | 8000 | Serveur applicatif principal |
+| `db` | PostgreSQL 15 | 5432 | Base de données |
+| `redis` | Redis 7 | 6379 | Broker Celery + cache |
+| `celery` | Python 3.11 + Celery worker | — | Tâches asynchrones (flatten, OCR, LLM) |
+| `celery-beat` | Python 3.11 + Celery Beat | — | Planificateur tâches périodiques |
+| `nginx` | Nginx 1.25 | 80, 443 | Reverse proxy, TLS, serving static/media |
+
+### Configurations Docker Compose
+
+**`docker-compose.yml`** (développement) :
+- Ports mappés en local (backend:8088, db:5435, redis:6385, frontend:5173)
+- `DEBUG=True`, hot reload activé (volumes montés)
+- Pas de TLS, CORS permissif
+
+**`docker-compose.server.yml`** (production) :
+- `DEBUG=False` — vérifié au démarrage, crash si `True`
+- SSL/HSTS activé via Nginx
+- CORS strict (origine unique `korrigo.labomaths.tn`)
+- Session cookies `Secure + HttpOnly`
 - JSON structured logging
 - Gunicorn 3 workers, timeout 120s
-
-### Volumes Persistants
-
-| Volume | Montage | Contenu | Criticité |
-|--------|---------|---------|-----------|
-| `postgres_data` | `/var/lib/postgresql/data` | Base de données | **CRITIQUE** |
-| `media_volume` | `/app/media` | PDF, images, copies | **CRITIQUE** |
-| `static_volume` | `/app/staticfiles` | CSS, JS, admin | Moyen |
-
-> [!WARNING]
-> **Ne JAMAIS exécuter** `docker-compose down -v` en production ! Cela détruit les volumes et toutes les données.
+- Variable `OPENAI_MODEL=gpt-4.1-mini-2025-04-14`
 
 ---
 
-## Patterns et Principes
+## 11. Workflows GitHub Actions
 
-### 1. Service Layer Pattern
+Cinq workflows CI/CD dans `.github/workflows/` :
 
-**Principe**: Séparer la logique métier des views/controllers.
+| Fichier | Déclencheur | Rôle |
+|---------|-------------|------|
+| `ci.yml` | Push/PR sur `main` | CI principal : tests + lint + build |
+| `korrigo-ci.yml` | Push/PR | CI Korrigo spécifique (variante) |
+| `tests-optimized.yml` | Push | Matrice de tests optimisée (parallélisation) |
+| `deploy.yml` | Tag ou dispatch manuel | Déploiement automatisé vers production |
+| `release-gate.yml` | Push tag `v*` | Gate de publication : zéro tolérance (pytest 100%, E2E 3/3, validation seed) |
 
-**Implémentation**:
-```python
-# backend/grading/services.py
-class GradingService:
-    @staticmethod
-    @transaction.atomic
-    def finalize_copy(copy: Copy, user):
-        # Logique métier complexe
-        # Validation, calculs, transitions d'état
-        # Génération PDF, audit trail
-        pass
-```
+Le `release-gate.yml` bloque tout déploiement si :
+- au moins un test pytest échoue
+- au moins un test E2E (Playwright) échoue
+- la validation des données seed échoue
 
-**Avantages**:
-- Testabilité (unit tests sans HTTP)
-- Réutilisabilité (plusieurs views peuvent appeler le même service)
+---
+
+## 12. Patterns Architecturaux Clés
+
+### Service Layer Pattern
+
+La logique métier est concentrée dans des classes de service (`GradingService`, `AnnotationService`) indépendantes des views. Avantages :
+- Tests unitaires sans HTTP
+- Réutilisation entre plusieurs ViewSets
 - Transactions atomiques centralisées
 
-### 2. Repository Pattern (via ORM)
+### Audit Trail (GradingEvent)
 
-**Principe**: Abstraction de l'accès aux données.
+Chaque action significative génère un `GradingEvent` immutable :
 
-**Implémentation**: Django ORM agit comme repository
-```python
-# Accès données via ORM (repository implicite)
-copies = Copy.objects.filter(status=Copy.Status.READY)
-```
-
-### 3. State Machine Pattern
-
-**Principe**: Gestion des transitions d'état avec validation.
-
-**Implémentation**: Statuts Copy
-```
-STAGING → READY → LOCKED → GRADING_IN_PROGRESS → GRADED
-                    ↑         │                         │
-                    └─unlock───┘                  GRADING_FAILED
-                                                       │
-                                                       └─retry→ GRADING_IN_PROGRESS
-```
-
-Chaque transition est validée et auditée via `GradingEvent`. Les états `GRADING_IN_PROGRESS` et `GRADING_FAILED` gèrent la génération du PDF final avec retry automatique (max 3 tentatives).
-
-### 4. Audit Trail Pattern
-
-**Principe**: Traçabilité complète des actions.
-
-**Implémentation**: Modèle `GradingEvent`
 ```python
 GradingEvent.objects.create(
     copy=copy,
     action=GradingEvent.Action.FINALIZE,
     actor=user,
-    metadata={'score': final_score}
+    metadata={'final_score': score}
 )
 ```
 
-### 5. Optimistic Locking
+Actions tracées : `IMPORT`, `VALIDATE`, `LOCK`, `UNLOCK`, `CREATE_ANN`, `UPDATE_ANN`, `DELETE_ANN`, `FINALIZE`, `EXPORT`, `REOPEN`, `SAVE_APPREC`.
 
-**Principe**: Gestion de la concurrence sans blocage DB.
+### Draft Auto-Save (DraftState)
 
-**Implémentation**: `CopyLock` avec token et expiration
-```python
-class CopyLock(models.Model):
-    copy = OneToOneField(Copy)
-    owner = ForeignKey(User)
-    token = UUIDField()
-    expires_at = DateTimeField()
-```
+`DraftState` persiste l'état complet de l'éditeur (annotations en cours, texte non sauvegardé, position de scroll) toutes les N secondes côté frontend. Prévient la perte de données en cas de crash navigateur ou de déconnexion réseau. Contrainte : 1 seul DraftState par (copy, user).
 
-### 6. Normalized Coordinates
+### Verrouillage Optimiste (Annotation.version)
 
-**Principe**: Coordonnées indépendantes de la résolution.
+Le champ `version` de `Annotation` est incrémenté atomiquement à chaque mise à jour via `F('version') + 1`. Le client envoie la `version` courante dans sa requête PUT. Si la version en base a déjà été incrémentée par une autre requête concurrente, le service lève une erreur de conflit. Référence ADR-P0-DI-008.
 
-**Implémentation**: Annotations en [0, 1]
-```python
-class Annotation(models.Model):
-    x = FloatField()  # 0.0 à 1.0
-    y = FloatField()  # 0.0 à 1.0
-    w = FloatField()  # 0.0 à 1.0
-    h = FloatField()  # 0.0 à 1.0
-```
+### Verrouillage Pessimiste (CopyLock)
 
-**Avantage**: Annotations valides quelle que soit la taille d'affichage.
+`CopyLock` garantit qu'un seul correcteur à la fois édite activement une copie. Il utilise un `token` UUID que le client doit présenter pour toute opération d'écriture. Un mécanisme de heartbeat (endpoint `/lock/heartbeat/`) renouvelle le TTL. Les verrous expirés sont nettoyés automatiquement (`_reconcile_lock_state`).
+
+### Mutex de Finalisation (Copy.finalizing_at)
+
+Voir section 7. Garantit qu'aucune double-finalisation ne peut avoir lieu, même sous charge concurrente élevée.
 
 ---
 
-## Justifications Techniques
+## 13. Flux de Données Métier
 
-### Pourquoi Django ?
+### Flux complet de correction (mode BATCH_A3)
 
-✅ **ORM puissant**: Gestion complexe des relations (Exam → Booklet → Copy → Annotation)  
-✅ **Admin intégré**: Interface d'administration prête pour le staff  
-✅ **Écosystème mature**: DRF, Celery, nombreux packages  
-✅ **Sécurité**: CSRF, XSS, SQL injection protégés par défaut  
-✅ **Migrations**: Gestion versionnée du schéma DB
+```
+Admin : Upload PDF A3 (50 MB max)
+  └→ processing/PDFSplitter : découpe en N fascicules (Booklets)
+       └→ HeaderDetector : extrait image en-tête (crop Pillow/OpenCV)
+            └→ OCR Pipeline : GPT-4o-mini Vision → texte détecté
+                 └→ matching flou sur Student → OCRResult.suggested_students
+                      └→ Opérateur : valide/corrige identification → Copy.student = Student
+                           └→ Admin : dispatch copies aux correcteurs (assign_corrector)
 
-### Pourquoi Vue.js 3 ?
+Correcteur : ouvre la copie → CopyLock créé (token)
+  └→ 1ère annotation → Copy.status READY → IN_PROGRESS (automatique)
+       └→ Annotations VRAI/FAUX/COMMENT/ERROR + scores par question
+            └→ Appréciation globale (Copy.global_appreciation)
+                 └→ POST /finalize/ → finalizing_at claim atomique
+                      └→ PDFFlattener : fusion PDF + annotations → final_pdf
+                           └→ Copy.status → FINALIZED, graded_at = now()
+                                └→ GradingEvent.FINALIZE
+                                     └→ Celery : génération bilan LLM (Copy.llm_summary)
 
-✅ **Composition API**: Logique réutilisable, meilleure organisation  
-✅ **Réactivité**: Mise à jour UI automatique (annotations temps réel)  
-✅ **Écosystème**: Pinia (state), Vue Router (routing), Vite (build)  
-✅ **Performance**: Virtual DOM, lazy loading  
-✅ **TypeScript**: Typage statique pour robustesse
+Admin : results_released_at = now() → portail élève activé
+  └→ Élève : s'authentifie (email + date naissance)
+       └→ Consulte copie finalisée + bilan LLM
+```
 
-### Pourquoi PostgreSQL ?
+### Communication Frontend ↔ Backend
 
-✅ **ACID**: Transactions atomiques critiques (annotations + audit)  
-✅ **JSON**: Support natif JSONField (grading_structure, annotations)  
-✅ **Performance**: Index, requêtes complexes  
-✅ **Fiabilité**: Production-ready, backup/restore robustes
-
-### Pourquoi Celery + Redis ?
-
-✅ **Asynchrone**: Traitement PDF long (rasterization, flattening)  
-✅ **Retry**: Gestion automatique des échecs  
-✅ **Scalabilité**: Ajout de workers facile  
-✅ **Monitoring**: Flower pour supervision
-
-### Pourquoi Docker ?
-
-✅ **Reproductibilité**: Même environnement dev/prod  
-✅ **Isolation**: Pas de conflits de dépendances  
-✅ **Déploiement**: `docker-compose up` suffit  
-✅ **Portabilité**: Fonctionne sur Linux/Mac/Windows
-
-### Pourquoi Session-based Auth (pas JWT) ?
-
-✅ **Sécurité**: Cookies httpOnly (pas de XSS)  
-✅ **Révocation**: Déconnexion immédiate (pas de token valide après logout)  
-✅ **Simplicité**: Intégré Django, pas de gestion token côté client  
-✅ **CSRF**: Protection native Django
+```
+Composant Vue
+  └→ dispatch action Pinia store
+       └→ Axios (cookie session inclus automatiquement)
+            └→ DRF ViewSet
+                 └→ Serializer (validation)
+                      └→ Service Layer (logique métier)
+                           └→ Django ORM → PostgreSQL
+                                └→ JSON response
+                                     └→ Store mise à jour → réactivité Vue
+```
 
 ---
 
-## Évolutions Futures
+## 14. Justifications Techniques
 
-### Réalisé depuis v1.0
-- [x] OCR dual : GPT-4o-mini Vision (principal) + Tesseract (fallback)
-- [x] Mode INDIVIDUAL_A4 (1 PDF = 1 copie, sans split)
-- [x] Banque d'annotations (templates + annotations personnelles + suggestions contextuelles)
-- [x] Versionnement optimiste des annotations (champ `version`)
-- [x] Gestion documentaire versionnée (sujet, corrigé, barème)
-- [x] Métriques Prometheus + JSON structured logging
-- [x] Rate limiting + CSP + audit trail RGPD
-- [x] Health checks (liveness, readiness)
+### Pourquoi Django (pas FastAPI) ?
 
-### Court Terme
-- [ ] Celery pour traitement PDF volumineux (actuellement synchrone)
-- [ ] Module d'export avancé (statistiques par question)
-- [ ] Amélioration UI mobile (responsive)
+- ORM puissant pour les relations complexes (Exam → Booklet → Copy → Annotation)
+- Admin Django intégré — indispensable pour la gestion des examens, correcteurs, copies
+- Écosystème mature : DRF, Celery, django-ratelimit, django-csp
+- Migrations versionnées avec support des fonctions Python (migrations 0026, 0027)
+- Transactions atomiques natives avec `@transaction.atomic`
 
-### Moyen Terme
-- [ ] Support multi-établissements
-- [ ] CI/CD Pipeline (GitHub Actions)
-- [ ] Tableau de bord analytics
+### Pourquoi Vue.js 3 (Composition API) ?
 
-### Long Terme
-- [ ] IA de correction automatique (suggestions basées sur LLM)
-- [ ] Application mobile native
+- Composition API : logique réutilisable par composable, meilleure organisation que Options API
+- Réactivité fine : annotations en temps quasi-réel sur le canvas PDF.js
+- Pinia : state management sans boilerplate (remplace Vuex)
+- Vite 5 : HMR quasi-instantané en développement, build optimisé (tree-shaking)
+
+### Pourquoi PostgreSQL (pas SQLite) ?
+
+- ACID strict : critique pour les transactions de finalisation et les contraintes d'intégrité
+- `UPDATE ... WHERE` atomique : fondation du mutex `finalizing_at`
+- `select_for_update()` : verrouillage pessimiste au niveau ligne
+- Support natif `JSONField` : barème (`grading_structure`), metadata des événements
+- Index composites performants sur les patterns de requête fréquents
+
+### Pourquoi Session Cookie (pas JWT) ?
+
+- Révocation immédiate côté serveur (logout réel)
+- Cookie `HttpOnly` : inaccessible au JS, protège contre XSS
+- Gestion CSRF native Django
+- Pas de gestion de token côté client (moins de surface d'attaque)
+- Adapté à une application mono-domaine (pas besoin de tokens cross-domain)
+
+### Pourquoi Celery + Redis (pas synchrone) ?
+
+- `flatten_copy` (génération PDF avec PyMuPDF) peut prendre 2 à 10 secondes selon la taille
+- OCR GPT-4o-mini : latence réseau variable (1 à 5 secondes)
+- Bilans LLM Ollama : de 10 secondes à plusieurs minutes selon le modèle
+- Le traitement asynchrone libère les workers Gunicorn pour servir d'autres requêtes
 
 ---
 
 ## Références
 
-- [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) - Schéma base de données
-- [API_REFERENCE.md](API_REFERENCE.md) - Référence API REST
-- [BUSINESS_WORKFLOWS.md](BUSINESS_WORKFLOWS.md) - Workflows métier
-- [DEPLOYMENT_GUIDE.md](../DEPLOYMENT_GUIDE.md) - Guide déploiement
-- [ADR-002: PDF Coordinate Normalization](../decisions/ADR-002-pdf-coordinate-normalization.md)
-- [ADR-003: Copy Status State Machine](../decisions/ADR-003-copy-status-state-machine.md)
+- [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) — Schéma base de données complet
+- [API_REFERENCE.md](API_REFERENCE.md) — Référence API REST
+- [BUSINESS_WORKFLOWS.md](BUSINESS_WORKFLOWS.md) — Workflows métier détaillés
+- [FRONTEND_ARCHITECTURE.md](FRONTEND_ARCHITECTURE.md) — Architecture frontend Vue.js
+- [ADR-002 : Normalisation Coordonnées PDF](../decisions/ADR-002-pdf-coordinate-normalization.md)
+- [ADR-003 : Machine à États Copy](../decisions/ADR-003-copy-status-state-machine.md)
+- Code source : `backend/grading/services.py`, `backend/exams/models.py`
 
 ---
 
-**Dernière mise à jour**: 14 février 2026  
-**Auteur**: Alaeddine BEN RHOUMA  
-**Licence**: Propriétaire - AEFE/Éducation Nationale
+**Dernière mise à jour** : 28 mars 2026
+**Auteur** : Alaeddine BEN RHOUMA
+**Licence** : Propriétaire — NEXUS RÉUSSITE

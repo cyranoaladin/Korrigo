@@ -1,670 +1,292 @@
-# Guide de Développement - Korrigo PMF
+# Guide de Développement — Korrigo v2
 
-> **Version**: 1.2.0  
-> **Date**: Janvier 2026  
-> **Public**: Développeurs
-
-Guide complet pour configurer l'environnement de développement et contribuer au projet Korrigo PMF.
+> **Version** : 3.0
+> **Date** : 2026-03-28
+> **Public** : Développeurs
 
 ---
 
-## 📋 Table des Matières
+## Environnement de développement
 
-1. [Prérequis](#prérequis)
-2. [Installation](#installation)
-3. [Configuration](#configuration)
-4. [Commandes Disponibles](#commandes-disponibles)
-5. [Structure du Projet](#structure-du-projet)
-6. [Standards de Code](#standards-de-code)
-7. [Git Workflow](#git-workflow)
-8. [Debug et Troubleshooting](#debug-et-troubleshooting)
+### Prérequis
+- Python 3.11 (backend)
+- Node.js 20+ (frontend)
+- Docker + Docker Compose v2
+- PostgreSQL client (optionnel, pour accès direct)
 
----
+### Setup initial
+Voir [QUICKSTART.md](../QUICKSTART.md).
 
-## Prérequis
-
-### Logiciels Requis
-
-| Logiciel | Version Minimale | Installation |
-|----------|------------------|--------------|
-| **Docker** | 20.10+ | [docs.docker.com](https://docs.docker.com/get-docker/) |
-| **Docker Compose** | 2.0+ | Inclus avec Docker Desktop |
-| **Git** | 2.30+ | `sudo apt install git` |
-| **Make** | 4.0+ | `sudo apt install make` |
-
-### Optionnel (Développement Local)
-
-| Logiciel | Version | Usage |
-|----------|---------|-------|
-| **Python** | 3.9 | Tests backend hors Docker |
-| **Node.js** | 18+ | Tests frontend hors Docker |
-| **PostgreSQL Client** | 15+ | Inspection DB |
+### IDE recommandé : VSCode
+Extensions utiles :
+- Python + Pylance
+- Volar (Vue Language Features)
+- ESLint
+- TailwindCSS IntelliSense
+- Django (snippets)
+- GitLens
 
 ---
 
-## Installation
-
-### 1. Cloner le Dépôt
-
-```bash
-git clone https://github.com/votre-org/korrigo__PMF.git
-cd korrigo__PMF
-```
-
-### 2. Configuration Environnement
-
-Copier le fichier d'exemple:
-```bash
-cp .env.example .env
-```
-
-Éditer `.env` avec vos valeurs:
-```bash
-# Backend
-SECRET_KEY=django-insecure-dev-only-xxxxxxxxxxxxxxxxxx
-DEBUG=true
-DATABASE_URL=postgres://korrigo_user:korrigo_password@db:5432/korrigo
-CELERY_BROKER_URL=redis://redis:6379/0
-
-# Frontend
-VITE_API_URL=http://localhost:8088
-
-# Security
-SSL_ENABLED=false
-ALLOWED_HOSTS=localhost,127.0.0.1
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8088
-```
-
-### 3. Démarrer les Services
-
-```bash
-make up
-```
-
-Cette commande:
-- Build les images Docker
-- Démarre PostgreSQL, Redis, Backend, Celery, Frontend
-- Expose les ports: 5173 (frontend), 8088 (backend), 5435 (postgres), 6385 (redis)
-
-### 4. Initialiser la Base de Données
-
-```bash
-make migrate
-```
-
-### 5. Créer un Super-Utilisateur
-
-```bash
-make superuser
-```
-
-Entrer les informations:
-```
-Username: admin
-Email: admin@example.com
-Password: ********
-```
-
-### 6. Vérifier l'Installation
-
-Ouvrir dans le navigateur:
-- **Frontend**: http://localhost:5173
-- **Backend Admin**: http://localhost:8088/admin
-- **API Root**: http://localhost:8088/api/
-
----
-
-## Configuration
-
-### Variables d'Environnement
-
-#### Backend (`.env`)
-
-| Variable | Défaut (Dev) | Description |
-|----------|--------------|-------------|
-| `SECRET_KEY` | `django-insecure-dev-only-...` | Clé cryptographique Django |
-| `DEBUG` | `true` | Mode debug |
-| `DATABASE_URL` | `postgres://...` | URL connexion PostgreSQL |
-| `CELERY_BROKER_URL` | `redis://redis:6379/0` | URL broker Celery |
-| `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Hôtes autorisés |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,...` | Origins CORS |
-| `SSL_ENABLED` | `false` | Activer SSL/HTTPS |
-| `RATELIMIT_ENABLE` | `true` | Activer rate limiting |
-
-#### Frontend (`.env`)
-
-| Variable | Défaut (Dev) | Description |
-|----------|--------------|-------------|
-| `VITE_API_URL` | `http://localhost:8088` | URL du backend |
-
-### Configuration Docker Compose
-
-Le projet utilise `infra/docker/docker-compose.yml` pour le développement.
-
-**Services**:
-```yaml
-services:
-  db:         # PostgreSQL 15 (port 5435)
-  redis:      # Redis 7 (port 6385)
-  backend:    # Django runserver (port 8088)
-  celery:     # Celery worker
-  frontend:   # Vite dev server (port 5173)
-```
-
-**Volumes**:
-- `postgres_data`: Données PostgreSQL (persistant)
-- `./backend:/app`: Code backend (hot reload)
-- `./frontend:/app`: Code frontend (hot reload)
-
----
-
-## Commandes Disponibles
-
-### Makefile
-
-Le `Makefile` à la racine du projet fournit des raccourcis:
-
-| Commande | Description |
-|----------|-------------|
-| `make up` | Démarrer tous les services |
-| `make down` | Arrêter tous les services |
-| `make logs` | Afficher les logs en temps réel |
-| `make migrate` | Exécuter les migrations Django |
-| `make superuser` | Créer un super-utilisateur |
-| `make test` | Lancer les tests backend + E2E |
-| `make shell` | Ouvrir un shell Django |
-| `make init_pmf` | Initialiser données PMF (users, groups) |
-
-### Docker Compose
-
-Commandes directes:
-
-```bash
-# Démarrer services
-docker-compose -f infra/docker/docker-compose.yml up -d
-
-# Arrêter services
-docker-compose -f infra/docker/docker-compose.yml down
-
-# Voir les logs
-docker-compose -f infra/docker/docker-compose.yml logs -f backend
-
-# Exécuter commande dans container
-docker-compose -f infra/docker/docker-compose.yml exec backend python manage.py shell
-
-# Rebuild après changement Dockerfile
-docker-compose -f infra/docker/docker-compose.yml up --build -d
-```
-
-### Backend (Django)
-
-```bash
-# Shell Django
-docker-compose exec backend python manage.py shell
-
-# Créer migration
-docker-compose exec backend python manage.py makemigrations
-
-# Appliquer migrations
-docker-compose exec backend python manage.py migrate
-
-# Collecter static files
-docker-compose exec backend python manage.py collectstatic --noinput
-
-# Créer super-utilisateur
-docker-compose exec backend python manage.py createsuperuser
-
-# Lancer tests
-docker-compose exec backend pytest
-
-# Lancer tests avec coverage
-docker-compose exec backend pytest --cov=. --cov-report=html
-```
-
-### Frontend (Vue.js)
-
-```bash
-# Installer dépendances
-cd frontend
-npm install
-
-# Démarrer dev server (hors Docker)
-npm run dev
-
-# Build production
-npm run build
-
-# Linter
-npm run lint
-
-# Type checking
-npm run typecheck
-
-# Tests E2E Playwright
-npx playwright test
-
-# Tests E2E avec UI
-npx playwright test --ui
-```
-
----
-
-## Structure du Projet
+## Structure du projet
 
 ```
-korrigo__PMF/
-├── backend/                    # Backend Django
-│   ├── core/                   # Configuration Django
-│   │   ├── settings.py         # Settings principal
-│   │   ├── urls.py             # URLs racine
-│   │   └── wsgi.py             # WSGI application
-│   ├── exams/                  # App Examens
-│   │   ├── models.py           # Exam, Booklet, Copy
-│   │   ├── views.py            # ViewSets DRF
-│   │   ├── serializers.py      # Serializers DRF
-│   │   ├── permissions.py      # Permissions custom
-│   │   ├── validators.py       # Validators PDF
-│   │   └── tests/              # Tests unitaires
-│   ├── grading/                # App Correction
-│   │   ├── models.py           # Annotation, GradingEvent, CopyLock
-│   │   ├── views.py            # ViewSets correction
-│   │   ├── services.py         # GradingService, AnnotationService
-│   │   └── tests/              # Tests unitaires
-│   ├── processing/             # Services traitement PDF
+korrigo_v2_improved/
+├── backend/
+│   ├── core/              # Auth, settings, middleware, audit RGPD
+│   │   ├── auth.py        # UserRole enum (ADMIN/TEACHER/STUDENT)
+│   │   ├── settings.py    # Settings dev
+│   │   ├── settings_prod.py # Settings production (rejette SECRET_KEY insecure)
+│   │   ├── settings_test.py # Settings test (SQLite, Celery eager)
+│   │   └── models.py      # GlobalSettings, AuditLog, UserProfile
+│   ├── exams/
+│   │   ├── models.py      # Exam, ExamType, Booklet, Copy, ExamPDF, ExamDocumentSet
+│   │   ├── views.py       # ViewSets + upload views
+│   │   ├── serializers.py
+│   │   ├── migrations/    # 0001–0028
+│   │   ├── tasks.py       # Celery : process_document_set
+│   │   └── management/commands/
+│   │       ├── import_dnb_copies.py
+│   │       ├── import_dnb_students.py
+│   │       ├── identify_dnb_copies.py
+│   │       ├── create_exam_types.py
+│   │       └── export_pronote.py
+│   ├── grading/
+│   │   ├── models.py      # Annotation, GradingEvent, Score, CopyLock, DraftState, ...
+│   │   ├── services.py    # GradingService, AnnotationService, LockConflictError
+│   │   ├── views.py
+│   │   ├── views_lock.py  # Lock/unlock/heartbeat endpoints
+│   │   ├── tasks.py       # async_finalize_copy, generate_questionnaire_bilan_task
+│   │   └── tests/         # 60+ modules de tests
+│   ├── students/
+│   │   ├── models.py      # Student
+│   │   └── management/commands/
+│   │       ├── import_dnb_students.py (dans exams/management)
+│   │       └── provision_student_users.py
+│   ├── identification/
+│   │   ├── models.py      # OCRResult
+│   │   └── services.py    # OCRService (GPT-4o-mini + Tesseract)
+│   ├── processing/
 │   │   └── services/
-│   │       ├── pdf_splitter.py # Découpage A3 → A4
-│   │       └── pdf_flattener.py# Génération PDF finaux
-│   ├── students/               # App Élèves
-│   │   ├── models.py           # Student
-│   │   ├── views.py            # Portail élève
-│   │   └── management/         # Commandes Django
-│   ├── manage.py               # CLI Django
-│   ├── requirements.txt        # Dépendances Python
-│   └── Dockerfile              # Image Docker backend
-│
-├── frontend/                   # Frontend Vue.js
-│   ├── src/
-│   │   ├── main.js             # Entry point
-│   │   ├── App.vue             # Composant racine
-│   │   ├── router/             # Vue Router
-│   │   │   └── index.js        # Routes + guards
-│   │   ├── stores/             # Pinia stores
-│   │   │   ├── auth.js         # Store authentification
-│   │   │   └── exam.js         # Store examens
-│   │   ├── services/           # Services API
-│   │   │   └── api.js          # Client axios
-│   │   ├── components/         # Composants réutilisables
-│   │   └── views/              # Vues principales
-│   │       ├── admin/          # Vues admin
-│   │       ├── student/        # Vues élève
-│   │       ├── Login.vue
-│   │       ├── AdminDashboard.vue
-│   │       └── CorrectorDashboard.vue
-│   ├── e2e/                    # Tests E2E Playwright
-│   ├── package.json            # Dépendances npm
-│   ├── vite.config.js          # Config Vite
-│   └── Dockerfile              # Image Docker frontend
-│
-├── infra/                      # Infrastructure
-│   ├── docker/                 # Configurations Docker Compose
-│   │   ├── docker-compose.yml  # Développement
-│   │   ├── docker-compose.prod.yml # Production
-│   │   └── docker-compose.e2e.yml  # Tests E2E
-│   └── nginx/                  # Config Nginx (prod)
-│
-├── docs/                       # Documentation
-│   ├── ARCHITECTURE.md
-│   ├── DATABASE_SCHEMA.md
-│   ├── API_REFERENCE.md
-│   ├── DEVELOPMENT_GUIDE.md
-│   └── ...
-│
-├── scripts/                    # Scripts utilitaires
-│   ├── release/                # Scripts release
-│   └── test_e2e.py             # Script tests E2E
-│
-├── .env.example                # Template variables env
-├── .gitignore                  # Fichiers ignorés Git
-├── Makefile                    # Commandes raccourcies
-├── README.md                   # Documentation principale
-└── CHANGELOG.md                # Historique versions
+│   │       ├── pdf_splitter.py    # Découpage PDF batch
+│   │       └── pdf_flattener.py   # Aplatissement annotations sur PDF
+│   ├── conftest.py        # Fixtures pytest (api_client, admin_user, teacher_user)
+│   └── pytest.ini         # Config pytest (DJANGO_SETTINGS_MODULE=core.settings_test)
+└── frontend/
+    ├── src/
+    │   ├── router/index.js    # 27+ routes Vue Router
+    │   ├── stores/auth.js     # Pinia auth store
+    │   ├── stores/examStore.js# Pinia exam/copies store
+    │   ├── views/admin/       # AdminDashboard, CorrectorDesk, ImportCopies, ...
+    │   ├── views/teacher/     # CorrectorDashboard, MyStudents, ...
+    │   ├── views/student/     # LoginStudent, ResultView, ...
+    │   └── components/        # PDFViewer, CanvasLayer, GradingSidebar, ...
+    └── e2e/                   # Tests Playwright
 ```
 
 ---
 
-## Standards de Code
+## Conventions de code
 
-### Backend (Python)
+### Backend (Python/Django)
+- **Langue** : code en anglais, commentaires/UI en français
+- **Style** : PEP 8, lint via `ruff check backend/`
+- **Pattern services** : la logique métier va dans les classes `*Service`, jamais dans les vues
+- **Transactions** : tout write DB dans `@transaction.atomic`
+- **Audit** : chaque changement d'état → `GradingEvent.objects.create()`
+- **Pas de migration destructive** : uniquement `AddField` avec `null=True`, jamais `RemoveField` sur données importantes
 
-#### PEP 8
+### Frontend (Vue 3)
+- **Composition API** uniquement : `<script setup>`, jamais Options API
+- **Pas d'appels API directs** dans les templates : utiliser stores Pinia ou composables
+- **TailwindCSS** uniquement : pas de CSS custom sauf cas justifiés
+- **Props down, events up** : pas de mutation de props
+- **Lint** : `cd frontend && npm run lint`
 
-Suivre [PEP 8](https://pep8.org/) pour le style Python:
-- Indentation: 4 espaces
-- Longueur ligne: 120 caractères max
-- Imports: Groupés (stdlib, third-party, local)
-
-#### Django Best Practices
-
-- **Models**: Un fichier `models.py` par app
-- **Views**: Utiliser ViewSets DRF pour CRUD
-- **Services**: Logique métier dans `services.py`
-- **Permissions**: Permissions custom dans `permissions.py`
-- **Tests**: Coverage > 80%
-
-#### Exemple
-
-```python
-# backend/grading/services.py
-from django.db import transaction
-from .models import Annotation, GradingEvent
-
-class AnnotationService:
-    @staticmethod
-    @transaction.atomic
-    def add_annotation(copy, payload, user):
-        """
-        Crée une annotation sur une copie.
-        
-        Args:
-            copy (Copy): Copie à annoter
-            payload (dict): Données annotation
-            user (User): Utilisateur créateur
-            
-        Returns:
-            Annotation: Annotation créée
-            
-        Raises:
-            ValueError: Si copie pas en statut READY
-        """
-        if copy.status != Copy.Status.READY:
-            raise ValueError(f"Cannot annotate copy in status {copy.status}")
-        
-        annotation = Annotation.objects.create(
-            copy=copy,
-            created_by=user,
-            **payload
-        )
-        
-        GradingEvent.objects.create(
-            copy=copy,
-            action=GradingEvent.Action.CREATE_ANN,
-            actor=user,
-            metadata={'annotation_id': str(annotation.id)}
-        )
-        
-        return annotation
-```
-
-### Frontend (Vue.js + TypeScript)
-
-#### ESLint
-
-Configuration dans `frontend/eslint.config.js`:
-- Vue.js 3 Composition API
-- TypeScript strict
-- Prettier integration
-
-#### Vue.js Best Practices
-
-- **Composition API**: Préférer `<script setup>`
-- **Stores**: Un store par domaine métier
-- **Components**: Composants réutilisables dans `components/`
-- **Views**: Vues pages dans `views/`
-- **Naming**: PascalCase pour composants, camelCase pour variables
-
-#### Exemple
-
-```vue
-<!-- frontend/src/views/admin/CorrectorDesk.vue -->
-<script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { useExamStore } from '@/stores/exam'
-
-const route = useRoute()
-const examStore = useExamStore()
-
-const copyId = ref(route.params.copyId)
-const annotations = ref([])
-
-onMounted(async () => {
-  await examStore.loadCopy(copyId.value)
-  annotations.value = await examStore.loadAnnotations(copyId.value)
-})
-
-const addAnnotation = async (payload) => {
-  const annotation = await examStore.createAnnotation(copyId.value, payload)
-  annotations.value.push(annotation)
-}
-</script>
-
-<template>
-  <div class="corrector-desk">
-    <h1>Correction Copie {{ copyId }}</h1>
-    <!-- ... -->
-  </div>
-</template>
-
-<style scoped>
-.corrector-desk {
-  padding: 2rem;
-}
-</style>
-```
+### Règle CRITIQUE — Machine à états Copy
+- **Ne jamais** : `copy.status = 'IN_PROGRESS'` directement en dehors du service
+- **Toujours** passer par `AnnotationService.add_annotation()` (READY→IN_PROGRESS)
+- **Toujours** passer par `GradingService.finalize_copy()` (→FINALIZED)
+- **Toujours** passer par l'endpoint admin reopen (FINALIZED→READY)
 
 ---
 
-## Git Workflow
+## Tests
 
-### Branches
+### Configuration (`pytest.ini`)
+```ini
+[pytest]
+DJANGO_SETTINGS_MODULE = core.settings_test
+addopts = --verbose --strict-markers --tb=short -m "not postgres and not slow"
 
-| Branche | Description |
+markers =
+    unit: Tests rapides sans DB
+    api: Tests d'intégration avec APIClient + DB
+    postgres: Nécessite PostgreSQL réel
+    slow: Tests lents (génération PDF, etc.)
+    smoke: Tests critiques de production
+```
+
+### Lancer les tests
+
+```bash
+# Suite normale (hors postgres + slow) — rapide
+docker exec docker-backend-1 python -m pytest -q
+
+# Avec couverture
+docker exec docker-backend-1 python -m pytest --cov=. --cov-report=html
+
+# Test de concurrence PostgreSQL (nécessite vraie DB Postgres)
+docker exec docker-backend-1 python -m pytest -m postgres \
+  grading/tests/test_concurrency_postgres.py -v
+
+# Un test spécifique
+docker exec docker-backend-1 python -m pytest \
+  grading/tests/test_multi_exam_isolation.py::test_corrector_bac_sees_only_bac_copies -v
+
+# Tests frontend E2E
+cd frontend && npm run test:e2e
+```
+
+### Fixtures disponibles (`conftest.py`)
+
+| Fixture | Description |
 |---------|-------------|
-| `main` | Production (stable) |
-| `develop` | Développement (intégration) |
-| `feature/*` | Nouvelles fonctionnalités |
-| `bugfix/*` | Corrections bugs |
-| `hotfix/*` | Corrections urgentes prod |
+| `api_client` | DRF `APIClient` non authentifié |
+| `admin_user` | Superuser + groupe ADMIN |
+| `teacher_user` | `is_staff=True` + groupe TEACHER |
 
-### Workflow
-
-```bash
-# 1. Créer branche feature
-git checkout develop
-git pull origin develop
-git checkout -b feature/identification-ocr
-
-# 2. Développer et committer
-git add .
-git commit -m "feat(exams): Add OCR identification for booklets"
-
-# 3. Push et créer PR
-git push origin feature/identification-ocr
-# Créer Pull Request sur GitHub: feature/identification-ocr → develop
-
-# 4. Après review et merge
-git checkout develop
-git pull origin develop
-git branch -d feature/identification-ocr
-```
-
-### Commits Conventionnels
-
-Format: `<type>(<scope>): <description>`
-
-**Types**:
-- `feat`: Nouvelle fonctionnalité
-- `fix`: Correction bug
-- `docs`: Documentation
-- `style`: Formatage code
-- `refactor`: Refactoring
-- `test`: Tests
-- `chore`: Maintenance
-
-**Exemples**:
-```
-feat(grading): Add annotation service layer
-fix(exams): Correct PDF validation mime type
-docs(api): Update API reference with new endpoints
-test(grading): Add unit tests for GradingService
-```
-
----
-
-## Debug et Troubleshooting
-
-### Logs
-
-#### Backend
-
-```bash
-# Logs Django
-docker-compose logs -f backend
-
-# Logs Celery
-docker-compose logs -f celery
-
-# Logs PostgreSQL
-docker-compose logs -f db
-```
-
-#### Frontend
-
-```bash
-# Logs Vite dev server
-docker-compose logs -f frontend
-
-# Console navigateur
-# Ouvrir DevTools (F12) → Console
-```
-
-### Problèmes Courants
-
-#### 1. Port déjà utilisé
-
-**Erreur**:
-```
-Error starting userland proxy: listen tcp4 0.0.0.0:8088: bind: address already in use
-```
-
-**Solution**:
-```bash
-# Trouver processus utilisant le port
-sudo lsof -i :8088
-
-# Tuer le processus
-sudo kill -9 <PID>
-
-# Ou changer le port dans docker-compose.yml
-```
-
-#### 2. Migrations non appliquées
-
-**Erreur**:
-```
-django.db.utils.ProgrammingError: relation "exams_exam" does not exist
-```
-
-**Solution**:
-```bash
-make migrate
-```
-
-#### 3. Volumes Docker corrompus
-
-**Erreur**:
-```
-psycopg2.OperationalError: FATAL: database "korrigo" does not exist
-```
-
-**Solution**:
-```bash
-# Arrêter services
-make down
-
-# Supprimer volumes (⚠️ PERTE DE DONNÉES)
-docker volume rm korrigo__pmf_postgres_data
-
-# Redémarrer et recréer DB
-make up
-make migrate
-make superuser
-```
-
-#### 4. Hot Reload ne fonctionne pas
-
-**Solution**:
-```bash
-# Backend: Vérifier volume monté
-docker-compose exec backend ls -la /app
-
-# Frontend: Vérifier Vite config
-# vite.config.js doit avoir:
-server: {
-  host: '0.0.0.0',
-  port: 5173,
-  watch: {
-    usePolling: true
-  }
-}
-```
-
-### Debugging Backend
-
-#### Django Debug Toolbar
-
-Installer:
-```bash
-pip install django-debug-toolbar
-```
-
-Configurer dans `settings.py`:
+### Écrire un test API standard
 ```python
-if DEBUG:
-    INSTALLED_APPS += ['debug_toolbar']
-    MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
-    INTERNAL_IPS = ['127.0.0.1']
+@pytest.mark.django_db
+def test_create_annotation(teacher_user, api_client):
+    from exams.models import Exam, Copy, Booklet
+    from datetime import date
+
+    exam = Exam.objects.create(name="Test", date=date.today())
+    booklet = Booklet.objects.create(exam=exam, start_page=0, end_page=0,
+                                     pages_images=["p0.png"])
+    copy = Copy.objects.create(exam=exam, anonymous_id="T-001",
+                               assigned_corrector=teacher_user)
+    copy.booklets.add(booklet)
+
+    api_client.force_authenticate(user=teacher_user)
+    resp = api_client.post(f"/api/grading/copies/{copy.id}/annotations/", {
+        "page_index": 0, "x": 0.1, "y": 0.1, "w": 0.2, "h": 0.1,
+        "type": "COMMENT", "content": "Test"
+    }, format="json")
+    assert resp.status_code == 201
+    copy.refresh_from_db()
+    assert copy.status == "IN_PROGRESS"  # Transition automatique
 ```
 
-#### PDB (Python Debugger)
+---
 
-Ajouter breakpoint dans le code:
+## Commandes de gestion
+
+### Référence complète
+
+| App | Commande | Description |
+|-----|---------|-------------|
+| core | `ensure_admin` | Crée le superuser initial (admin/admin123) |
+| exams | `create_exam_types` | Initialise les types d'examens |
+| exams | `import_dnb_copies` | Ingestion des PDFs A4 DNB |
+| exams | `import_dnb_students --file X.csv` | Import élèves depuis CSV |
+| exams | `identify_dnb_copies [--exam DNB_2026] [--min-score 0.65]` | Auto-link copies→élèves |
+| exams | `export_pronote --exam DNB_2026` | Export CSV Pronote |
+| exams | `seed_initial_exams` | Données de démo |
+| grading | `recover_stuck_copies` | Libère les copies bloquées (`finalizing_at` non-null) |
+| grading | `inject_bilan_html` | Injecte les bilans HTML en DB |
+| students | `provision_student_users` | Crée les Users Django pour les Students existants |
+| students | `reset_student_passwords` | Reset passwords élèves en lot |
+
+### Ajouter une commande de gestion
 ```python
-import pdb; pdb.set_trace()
+# backend/monapp/management/commands/ma_commande.py
+from django.core.management.base import BaseCommand
+
+class Command(BaseCommand):
+    help = "Description de la commande"
+
+    def add_arguments(self, parser):
+        parser.add_argument("--dry-run", action="store_true")
+
+    def handle(self, *args, **options):
+        if options["dry_run"]:
+            self.stdout.write("Mode dry-run")
 ```
 
-Attacher au container:
+---
+
+## Ajouter un endpoint API
+
+1. **Modèle** (si nouveau) : `backend/monapp/models.py` + migration
+2. **Serializer** : `backend/monapp/serializers.py`
+3. **Vue** :
+   ```python
+   # backend/monapp/views.py
+   class MonEndpointView(APIView):
+       permission_classes = [IsAuthenticated]
+
+       def post(self, request, copy_id):
+           copy = get_object_or_404(Copy, id=copy_id, assigned_corrector=request.user)
+           # ... logique dans le service ...
+           return Response(data, status=201)
+   ```
+4. **URL** : `backend/monapp/urls.py`
+5. **Test** : `backend/monapp/tests/test_mon_endpoint.py`
+6. **Documentation** : `docs/technical/API_REFERENCE.md`
+
+---
+
+## Debug
+
+### Backend en mode interactif
 ```bash
-docker attach korrigo__pmf_backend_1
+docker exec -it docker-backend-1 python manage.py shell
 ```
 
-### Debugging Frontend
+### Inspecter la DB directement
+```bash
+docker exec -it docker-db-1 psql -U korrigo
+```
 
-#### Vue DevTools
+### Logs structurés
+```bash
+docker logs docker-backend-1 --tail 100 -f
+# Format JSON en production, lisible en dev
+```
 
-Installer extension navigateur:
-- [Chrome](https://chrome.google.com/webstore/detail/vuejs-devtools/)
-- [Firefox](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
+### Celery task manquante
+```bash
+docker logs docker-celery-1 --tail 50
+# Vérifier la queue
+docker exec docker-redis-1 redis-cli LLEN celery
+```
 
-#### Console Logging
+### Copy bloquée (finalizing_at non-null)
+```bash
+docker exec docker-backend-1 python manage.py shell -c "
+from exams.models import Copy
+stuck = Copy.objects.filter(finalizing_at__isnull=False)
+print(f'{stuck.count()} copies bloquées')
+stuck.update(finalizing_at=None)
+print('Libérées')
+"
+```
 
-```javascript
-console.log('Debug:', variable)
-console.table(array)
-console.trace()
+### Migrations hors-sync
+```bash
+docker exec docker-backend-1 python manage.py showmigrations
+docker exec docker-backend-1 python manage.py migrate --check
 ```
 
 ---
 
-## Références
+## Variables d'environnement (settings_test.py)
 
-- [ARCHITECTURE.md](file:///home/alaeddine/korrigo__PMF/docs/ARCHITECTURE.md) - Architecture globale
-- [API_REFERENCE.md](file:///home/alaeddine/korrigo__PMF/docs/API_REFERENCE.md) - Documentation API
-- [TEST_PLAN.md](file:///home/alaeddine/korrigo__PMF/docs/quality/TEST_PLAN.md) - Plan de tests
-- [DEPLOYMENT_GUIDE.md](file:///home/alaeddine/korrigo__PMF/docs/DEPLOYMENT_GUIDE.md) - Guide déploiement
-
----
-
-**Dernière mise à jour**: 25 janvier 2026  
-**Auteur**: Alaeddine BEN RHOUMA  
-**Licence**: Propriétaire - AEFE/Éducation Nationale
+Tests utilisent `core.settings_test` :
+- DB : SQLite (en mémoire) sauf `@pytest.mark.postgres` (utilise vraie PostgreSQL)
+- `CELERY_TASK_ALWAYS_EAGER = True` : tâches exécutées en synchrone
+- `RATELIMIT_ENABLE = False`
+- Pas de vraie intégration OpenAI (mocker dans les tests)

@@ -1,1173 +1,633 @@
-# API Reference - Korrigo PMF
+# Référence API — Korrigo v2
 
-> **Version**: 2.0.0
-> **Date**: 23 Mars 2026
-> **Base URL**: `http://localhost:8088/api/` (dev) | `https://korrigo.example.com/api/` (prod)
-
-Documentation complète de l'API REST de la plateforme Korrigo PMF.
+> **Version** : 3.0
+> **Date** : 2026-03-28
+> **Base URL** : `https://korrigo.labomaths.tn/api/` (prod) | `http://localhost:8000/api/` (dev)
+> **Format** : JSON
+> **Auth** : Session Django + cookie CSRF (`csrftoken` → header `X-CSRFToken`)
+> **Documentation interactive** : `/api/schema/swagger-ui/` | `/api/schema/redoc/`
 
 ---
 
-## 📋 Table des Matières
+## Table des Matières
 
 1. [Authentification](#authentification)
-2. [Endpoints Exams](#endpoints-exams)
-3. [Endpoints Grading](#endpoints-grading)
-4. [Endpoints Annotations](#endpoints-annotations)
-5. [Endpoints Students](#endpoints-students)
-6. [Codes d'Erreur](#codes-derreur)
-7. [Rate Limiting](#rate-limiting)
-8. [Exemples](#exemples)
+2. [Examens](#examens)
+3. [Copies](#copies)
+4. [Correction (Grading)](#correction-grading)
+5. [Annotations](#annotations)
+6. [Verrous (Locks)](#verrous-locks)
+7. [Identification OCR](#identification-ocr)
+8. [Élèves (Students)](#eleves-students)
+9. [Système](#systeme)
+10. [Codes de réponse](#codes-de-réponse)
+11. [Pagination](#pagination)
+12. [Rate Limiting](#rate-limiting)
 
 ---
 
 ## Authentification
 
-### Méthode: Session-based Authentication
+### `POST /api/auth/login/`
+Connexion admin/enseignant.
 
-L'API utilise l'authentification par session Django (cookies).
-
-**Login**:
-```http
-POST /api/login/
-Content-Type: application/json
-
-{
-  "username": "teacher1",
-  "password": "password123"
-}
+**Body** :
+```json
+{"username": "prof@school.tn", "password": "motdepasse"}
 ```
 
-**Response**:
+**Réponse 200** :
 ```json
 {
-  "user": {
-    "id": 1,
-    "username": "teacher1",
-    "role": "Teacher",
-    "email": "teacher1@example.com"
-  }
+  "user_id": 42,
+  "username": "prof@school.tn",
+  "role": "teacher",
+  "is_admin": false,
+  "is_teacher": true,
+  "is_student": false
 }
-```
-
-**Logout**:
-```http
-POST /api/logout/
-```
-
-### Headers Requis
-
-| Header | Valeur | Description |
-|--------|--------|-------------|
-| `Content-Type` | `application/json` | Format des données |
-| `X-CSRFToken` | `<token>` | Token CSRF (POST/PUT/PATCH/DELETE) |
-| `Cookie` | `sessionid=<id>` | Session cookie (automatique) |
-
-### Permissions
-
-| Rôle | Accès |
-|------|-------|
-| **Admin** | Tous les endpoints |
-| **Teacher** | Correction, annotations, copies |
-| **Student** | Consultation copies personnelles uniquement |
-
----
-
-## Endpoints Exams
-
-### Liste des Examens
-
-```http
-GET /api/exams/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid-...",
-    "name": "Bac Blanc Maths TG - Janvier 2026",
-    "date": "2026-01-15",
-    "pdf_source": "/media/exams/source/exam.pdf",
-    "grading_structure": [...],
-    "is_processed": true
-  }
-]
 ```
 
 ---
 
-### Créer un Examen
+### `POST /api/auth/logout/`
+Déconnexion. Efface la session.
 
-```http
-POST /api/exams/
-Content-Type: multipart/form-data
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Payload**:
-```
-name: "Bac Blanc Maths TG - Janvier 2026"
-date: "2026-01-15"
-pdf_source: <file>
-```
-
-**Response** (201 Created):
-```json
-{
-  "id": "uuid-...",
-  "name": "Bac Blanc Maths TG - Janvier 2026",
-  "date": "2026-01-15",
-  "pdf_source": "/media/exams/source/exam.pdf",
-  "booklets_created": 25,
-  "message": "25 booklets created successfully"
-}
-```
-
-**Validations**:
-- `pdf_source`: Extension `.pdf`, taille max 50 MB, MIME type `application/pdf`
-- `name`: Max 255 caractères
-- `date`: Format ISO 8601
+**Réponse** : `200 OK`
 
 ---
 
-### Détails d'un Examen
+### `GET /api/auth/me/`
+Informations sur l'utilisateur courant.
 
-```http
-GET /api/exams/{id}/
+**Réponse 200** : même format que login.
+
+---
+
+### `POST /api/students/login/`
+Connexion élève (email + date de naissance, sans mot de passe).
+
+**Body** :
+```json
+{"email": "eleve@school.tn", "birth_date": "2010-12-03"}
 ```
 
-**Permissions**: `IsTeacherOrAdmin`
+**Réponse 200** :
+```json
+{"user_id": 99, "username": "eleve@school.tn", "role": "student"}
+```
 
-**Response**:
+**Erreur 401** : email ou date de naissance incorrect.
+
+---
+
+### `POST /api/students/change-password/`
+Changement de mot de passe élève (après première connexion).
+
+**Body** : `{"new_password": "nouveau_mdp"}`
+
+---
+
+## Examens
+
+### `GET /api/exams/`
+Liste des examens. Admin : tous. Enseignant : examens assignés uniquement.
+
+**Query params** : `?status=`, `?exam_type=`
+
+**Réponse 200** (paginée) :
 ```json
 {
-  "id": "uuid-...",
-  "name": "Bac Blanc Maths TG - Janvier 2026",
-  "date": "2026-01-15",
-  "pdf_source": "/media/exams/source/exam.pdf",
-  "grading_structure": [
+  "count": 4,
+  "next": null,
+  "previous": null,
+  "results": [
     {
-      "id": "ex1",
-      "label": "Exercice 1",
-      "points": 10,
-      "children": [
-        {"id": "ex1_q1", "label": "Question 1.a", "points": 3},
-        {"id": "ex1_q2", "label": "Question 1.b", "points": 7}
-      ]
-    }
-  ],
-  "is_processed": true
-}
-```
-
----
-
-### Mettre à Jour un Examen
-
-```http
-PATCH /api/exams/{id}/
-Content-Type: application/json
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Payload** (exemple: mise à jour barème):
-```json
-{
-  "grading_structure": [
-    {
-      "id": "ex1",
-      "label": "Exercice 1",
-      "points": 12,
-      "children": [...]
+      "id": "69cb6f96-...",
+      "name": "DNB_2026",
+      "date": "2026-03-15",
+      "upload_mode": "INDIVIDUAL_A4",
+      "exam_type": {"code": "DNBM2026", "name": "DNB Blanc Maths 2026"},
+      "copies_count": 289,
+      "ready_count": 289,
+      "in_progress_count": 0,
+      "finalized_count": 0,
+      "results_released_at": null
     }
   ]
 }
 ```
 
-**Response** (200 OK):
+---
+
+### `POST /api/exams/`
+Créer un examen. **Admin uniquement.**
+
+**Body** :
 ```json
 {
-  "id": "uuid-...",
-  "grading_structure": [...]
+  "name": "BAC_BLANC_J1",
+  "date": "2026-04-10",
+  "upload_mode": "BATCH_A3",
+  "exam_type_id": 1
 }
 ```
 
+**Réponse 201** : examen créé.
+
 ---
 
-### Fusionner des Fascicules
+### `GET /api/exams/{id}/`
+Détail d'un examen avec statistiques.
 
-```http
-POST /api/exams/{exam_id}/merge/
-Content-Type: application/json
+---
+
+### `PUT /api/exams/{id}/`
+Modifier un examen. **Admin uniquement.**
+
+---
+
+### `DELETE /api/exams/{id}/`
+Supprimer un examen. **Admin uniquement.** Bloqué (PROTECT) si des copies existent.
+
+---
+
+### `POST /api/exams/upload/`
+Uploader un PDF batch (mode BATCH_A3). Déclenche le découpage en booklets + création des copies.
+
+**Body** : `multipart/form-data`
+- `pdf` : fichier PDF (max 50 MB, max 500 pages)
+- `exam_id` : UUID de l'examen
+
+**Réponse 201** :
+```json
+{"copies_created": 45, "exam_id": "..."}
 ```
 
-**Permissions**: `IsTeacherOrAdmin`
+**Erreurs** :
+- `400` : PDF invalide (pas un PDF, trop grand, trop de pages)
+- `409` : Re-upload bloqué car des copies sont IN_PROGRESS ou FINALIZED
 
-**Payload**:
+**Rate limit** : 10 requêtes/heure/utilisateur.
+
+---
+
+### `POST /api/exams/{id}/upload-individual-pdfs/`
+Uploader des PDFs A4 individuels (mode INDIVIDUAL_A4). Un PDF par élève.
+
+**Body** : `multipart/form-data`, champ `pdfs[]` (multiple)
+- Nommage : `NOM_PRENOM_DDMMYYYY.pdf`
+
+**Réponse 201** :
+```json
+{"copies_created": 10, "errors": []}
+```
+
+---
+
+### `GET /api/exams/{id}/copies/`
+Liste paginée des copies d'un examen.
+- Admin : toutes les copies
+- Enseignant : uniquement ses copies assignées
+
+**Query params** : `?status=READY`, `?is_identified=false`, `?page=2`
+
+**Réponse 200** (paginée) :
 ```json
 {
-  "booklet_ids": ["uuid-1", "uuid-2", "uuid-3"]
-}
-```
-
-**Response** (201 Created):
-```json
-{
-  "message": "Copie créée avec succès.",
-  "copy_id": "uuid-...",
-  "anonymous_id": "A3F7B2E1"
-}
-```
-
----
-
-### Export PDF Finaux
-
-```http
-POST /api/exams/{id}/export_all/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Description**: Génère les PDF finaux avec annotations pour toutes les copies de l'examen.
-
-**Response** (200 OK):
-```json
-{
-  "message": "25 copies traitées."
-}
-```
-
----
-
-### Export CSV (Pronote)
-
-```http
-GET /api/exams/{id}/export_csv/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Response**: Fichier CSV
-```csv
-AnonymousID,Total,ex1_q1,ex1_q2
-A3F7B2E1,15.5,3,7
-B4C8D3F2,12.0,2,5
-```
-
----
-
-### Liste des Fascicules
-
-```http
-GET /api/exams/{exam_id}/booklets/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid-...",
-    "exam_id": "uuid-...",
-    "start_page": 1,
-    "end_page": 4,
-    "header_image": null,
-    "student_name_guess": "DUPONT",
-    "pages_images": ["/media/pages/p1.png", "/media/pages/p2.png"]
-  }
-]
-```
-
----
-
-### Image En-tête Fascicule
-
-```http
-GET /api/booklets/{id}/header/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Description**: Retourne l'image de l'en-tête du fascicule (crop dynamique du PDF).
-
-**Response**: Image PNG (Content-Type: `image/png`)
-
----
-
-### Liste des Copies
-
-```http
-GET /api/exams/{exam_id}/copies/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid-...",
-    "exam_id": "uuid-...",
-    "student_id": null,
-    "anonymous_id": "A3F7B2E1",
-    "status": "READY",
-    "is_identified": false,
-    "pdf_source": "/media/copies/source/copy.pdf",
-    "final_pdf": null
-  }
-]
-```
-
----
-
-### Copies Non Identifiées
-
-```http
-GET /api/exams/{exam_id}/unidentified_copies/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Description**: Liste des copies en attente d'identification (pour le "Video-Coding").
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid-...",
-    "anonymous_id": "A3F7B2E1",
-    "header_image_url": "/api/booklets/uuid-.../header/",
-    "status": "STAGING"
-  }
-]
-```
-
----
-
-### Identifier une Copie
-
-```http
-POST /api/copies/{id}/identify/
-Content-Type: application/json
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Payload**:
-```json
-{
-  "student_id": 123
-}
-```
-
-**Response** (200 OK):
-```json
-{
-  "message": "Identification successful"
-}
-```
-
----
-
-### Valider une Copie
-
-```http
-POST /api/copies/{id}/validate/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Description**: Transition `STAGING` → `READY`.
-
-**Response** (200 OK):
-```json
-{
-  "message": "Copy validated and ready for grading.",
-  "status": "READY"
-}
-```
-
----
-
-## Endpoints Identification
-
-### Identification Desk
-
-```http
-GET /api/identification/desk/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-### Manually Identify Copy
-
-```http
-POST /api/identification/identify/{copy_id}/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-### OCR Perform
-
-```http
-POST /api/identification/perform-ocr/{copy_id}/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
----
-
-## Endpoints Grading
-
-### Liste des Copies (Correcteur)
-
-```http
-GET /api/copies/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Description**: Liste toutes les copies disponibles pour correction (statuts `READY`, `LOCKED`, `GRADED`).
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid-...",
-    "exam": {
-      "id": "uuid-...",
-      "name": "Bac Blanc Maths TG",
-      "date": "2026-01-15"
-    },
-    "anonymous_id": "A3F7B2E1",
-    "status": "READY",
-    "locked_by": null
-  }
-]
-```
-
----
-
-### Détails d'une Copie
-
-```http
-GET /api/copies/{id}/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Response**:
-```json
-{
-  "id": "uuid-...",
-  "exam_id": "uuid-...",
-  "anonymous_id": "A3F7B2E1",
-  "status": "LOCKED",
-  "locked_by": {
-    "id": 1,
-    "username": "teacher1"
-  },
-  "locked_at": "2026-01-25T10:30:00Z",
-  "pdf_source": "/media/copies/source/copy.pdf"
-}
-```
-
----
-
-### Verrouiller une Copie
-
-```http
-POST /api/grading/copies/{id}/lock/
-Content-Type: application/json
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Payload** (optionnel):
-```json
-{
-  "client_id": "uuid-client-..."
-}
-```
-
-**Response** (200 OK):
-```json
-{
-  "status": "LOCKED",
-  "lock_token": "uuid-token-...",
-  "expires_at": "2026-01-25T11:00:00Z"
-}
-```
-
-**Erreurs**:
-- `400`: Copie déjà verrouillée par un autre utilisateur
-- `400`: Copie pas en statut `READY`
-
----
-
-### Déverrouiller une Copie
-
-```http
-DELETE /api/grading/copies/{id}/lock/release/
-Content-Type: application/json
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Payload**:
-```json
-{
-  "lock_token": "uuid-token-..."
-}
-```
-
-**Response** (200 OK):
-```json
-{
-  "status": "READY"
-}
-```
-
----
-
-### Finaliser une Copie
-
-```http
-POST /api/grading/copies/{id}/finalize/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Description**: Transition `LOCKED` → `GRADED`. Génère le PDF final avec annotations.
-
-**Response** (200 OK):
-```json
-{
-  "status": "GRADED"
-}
-```
-
----
-
-### Générer Bilan LLM (Copie)
-
-```http
-POST /api/grading/copies/{id}/generate-summary/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Description**: Génère un bilan pédagogique personnalisé via Ollama pour une copie `GRADED`.
-
-**Response** (200 OK):
-```json
-{
-  "summary": "..."
-}
-```
-
----
-
-### Générer Bilans LLM (Examen)
-
-```http
-POST /api/grading/exams/{id}/generate-summaries/
-?force=true
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Description**: Génère les bilans pour toutes les copies d'un examen. `force=true` pour régénérer.
-
-**Response** (200 OK):
-```json
-{
-  "success": 10,
-  "skipped": 5,
-  "errors": 0
-}
-```
-
----
-
-### Télécharger PDF Final
-
-```http
-GET /api/grading/copies/{id}/final-pdf/
-```
-
-**Permissions**: `AllowAny` (avec gates de sécurité)
-
-**Security Gates**:
-1. **Status Check**: Copie doit être `GRADED`
-2. **Permission Check**:
-   - Teachers/Admins: Accès complet
-   - Students: Accès uniquement à leurs propres copies
-
-**Response**: Fichier PDF (Content-Type: `application/pdf`)
-
-**Headers**:
-```
-Content-Disposition: attachment; filename="copy_A3F7B2E1_corrected.pdf"
-Cache-Control: no-store, private
-X-Content-Type-Options: nosniff
-```
-
----
-
-### Force Unlock (Admin)
-
-```http
-POST /api/grading/copies/{copy_id}/force-unlock/
-```
-
-**Permissions**: `IsTeacherOrAdmin` + superuser/staff uniquement
-
-**Description**: Force la suppression du verrou (CopyLock) sur une copie bloquée. Usage admin pour débloquer une copie en mode "locked" que le correcteur ne peut plus libérer.
-
-**Response** (200 OK):
-```json
-{
-  "message": "Verrou supprimé avec succès (ancien propriétaire: dupont.marie).",
-  "copy_id": "uuid-..."
-}
-```
-
-**Response** (204 No Content): Aucun verrou n'existait.
-
-**Response** (403 Forbidden): Utilisateur non superuser/staff.
-
----
-
-### Réouverture Copie (Admin)
-
-```http
-POST /api/grading/copies/{copy_id}/reopen/
-```
-
-**Permissions**: `IsTeacherOrAdmin` + superuser uniquement
-
-**Description**: Réouvre une copie finalisée (GRADED → READY). Le PDF final est invalidé, les notes et annotations sont conservées. Permet de corriger une erreur après finalisation.
-
-**Response** (200 OK):
-```json
-{
-  "message": "Copie rouverte avec succès.",
-  "copy_id": "uuid-...",
-  "anonymous_id": "A3F7B2E1",
-  "status": "READY"
-}
-```
-
-**Response** (400 Bad Request): Copie pas en statut GRADED.
-**Response** (403 Forbidden): Utilisateur non superuser.
-
----
-
-### Historique d'Audit
-
-```http
-GET /api/grading/copies/{id}/audit/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid-...",
-    "copy_id": "uuid-...",
-    "action": "LOCK",
-    "actor": {
-      "id": 1,
-      "username": "teacher1"
-    },
-    "timestamp": "2026-01-25T10:30:00Z",
-    "metadata": {}
-  },
-  {
-    "action": "CREATE_ANN",
-    "timestamp": "2026-01-25T10:35:00Z",
-    "metadata": {"annotation_id": "uuid-..."}
-  }
-]
-```
-
----
-
-## Endpoints Annotations
-
-### Liste des Annotations
-
-```http
-GET /api/grading/copies/{copy_id}/annotations/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid-...",
-    "copy_id": "uuid-...",
-    "page_index": 0,
-    "x": 0.25,
-    "y": 0.30,
-    "w": 0.50,
-    "h": 0.10,
-    "content": "Bonne réponse mais manque de justification",
-    "type": "COMMENT",
-    "score_delta": -1,
-    "created_by": {
-      "id": 1,
-      "username": "teacher1"
-    },
-    "created_at": "2026-01-25T10:35:00Z"
-  }
-]
-```
-
----
-
-### Créer une Annotation
-
-```http
-POST /api/grading/copies/{copy_id}/annotations/
-Content-Type: application/json
-```
-
-**Permissions**: `IsTeacherOrAdmin` + `IsLockedByOwnerOrReadOnly`
-
-**Payload**:
-```json
-{
-  "page_index": 0,
-  "x": 0.25,
-  "y": 0.30,
-  "w": 0.50,
-  "h": 0.10,
-  "content": "Bonne réponse",
-  "type": "COMMENT",
-  "score_delta": 2
-}
-```
-
-**Validations**:
-- `page_index`: >= 0, < nombre de pages
-- `x, y, w, h`: Entre 0.0 et 1.0 (coordonnées normalisées)
-- `type`: `COMMENT`, `HIGHLIGHT`, `ERROR`, `BONUS`, `VRAI`, `FAUX`
-
-**Response** (201 Created):
-```json
-{
-  "id": "uuid-...",
-  "copy_id": "uuid-...",
-  "page_index": 0,
-  "x": 0.25,
-  "y": 0.30,
-  "w": 0.50,
-  "h": 0.10,
-  "content": "Bonne réponse",
-  "type": "COMMENT",
-  "score_delta": 2,
-  "created_by": {...},
-  "created_at": "2026-01-25T10:35:00Z"
-}
-```
-
----
-
-### Modifier une Annotation
-
-```http
-PATCH /api/grading/annotations/{id}/
-Content-Type: application/json
-```
-
-**Permissions**: `IsTeacherOrAdmin` + Owner uniquement
-
-**Payload**:
-```json
-{
-  "content": "Très bonne réponse",
-  "score_delta": 3
-}
-```
-
-**Response** (200 OK):
-```json
-{
-  "id": "uuid-...",
-  "content": "Très bonne réponse",
-  "score_delta": 3,
-  "updated_at": "2026-01-25T10:40:00Z"
-}
-```
-
----
-
-### Supprimer une Annotation
-
-```http
-DELETE /api/grading/annotations/{id}/
-```
-
-**Permissions**: `IsTeacherOrAdmin` + Owner uniquement
-
-**Response** (204 No Content)
-
----
-
-## Endpoints Students
-
-### Liste des Élèves
-
-```http
-GET /api/students/
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Response**:
-```json
-[
-  {
-    "id": 123,
-    "date_naissance": "2008-05-20",
-    "first_name": "Jean",
-    "last_name": "Dupont",
-    "class_name": "TG2",
-    "email": "jean.dupont@example.com"
-  }
-]
-```
-
----
-
-### Import CSV Élèves
-
-```http
-POST /api/students/import/
-Content-Type: multipart/form-data
-```
-
-**Permissions**: `IsTeacherOrAdmin`
-
-**Payload**:
-```
-csv_file: <file>
-```
-
-**Format CSV**:
-```csv
-date_naissance,first_name,last_name,class_name,email
-2008-05-20,Jean,Dupont,TG2,jean.dupont@example.com
-```
-
-**Response** (201 Created):
-```json
-{
-  "message": "25 students imported successfully"
-}
-```
-
----
-
-### Mes Copies (Portail Élève)
-
-```http
-GET /api/students/my-copies/
-```
-
-**Permissions**: `IsStudent` (session-based)
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid-...",
-    "exam_name": "Bac Blanc Maths TG",
-    "date": "2026-01-15",
-    "total_score": 15.5,
-    "status": "GRADED",
-    "final_pdf_url": "/api/copies/uuid-.../final-pdf/",
-    "scores_details": {
-      "ex1_q1": 3,
-      "ex1_q2": 7
+  "count": 289,
+  "results": [
+    {
+      "id": "uuid...",
+      "anonymous_id": "69CB-066",
+      "status": "READY",
+      "is_identified": true,
+      "student": {"id": 45, "first_name": "KAMEL", "last_name": "BEN RHOUMA", "class_name": "3.5"},
+      "assigned_corrector": {"id": 7, "username": "fatma.abid@ert.tn"},
+      "graded_at": null
     }
+  ]
+}
+```
+
+---
+
+### `POST /api/exams/{id}/dispatch-copies/`
+Assigner des copies à des correcteurs. **Admin uniquement.**
+
+**Body** :
+```json
+{
+  "assignments": [
+    {"copy_id": "uuid...", "corrector_id": 7},
+    {"copy_id": "uuid...", "corrector_id": 8}
+  ]
+}
+```
+
+---
+
+### `GET /api/exams/{id}/stats/`
+Statistiques détaillées de l'examen.
+
+**Réponse 200** :
+```json
+{
+  "total": 289,
+  "ready": 0,
+  "in_progress": 45,
+  "finalized": 244,
+  "avg_score": 12.4,
+  "min_score": 2.0,
+  "max_score": 19.5
+}
+```
+
+---
+
+### `POST /api/exams/{id}/release-results/`
+Publier les résultats aux élèves. **Admin uniquement.** Définit `results_released_at`.
+
+**Réponse 200** : `{"released_at": "2026-03-28T18:00:00Z"}`
+
+---
+
+### `GET /api/exam-types/`
+Liste des types d'examens disponibles.
+
+---
+
+### `POST /api/exam-types/`
+Créer un type d'examen. **Admin uniquement.**
+
+---
+
+## Copies
+
+### `GET /api/grading/copies/{id}/`
+Détail complet d'une copie avec annotations, score, statut du verrou.
+
+**Réponse 200** :
+```json
+{
+  "id": "uuid...",
+  "anonymous_id": "69CB-066",
+  "status": "IN_PROGRESS",
+  "exam": {"id": "...", "name": "DNB_2026"},
+  "student": {"first_name": "KAMEL", "last_name": "BEN RHOUMA"},
+  "booklets": [{"id": "...", "pages_images": ["copies/pages/.../p000.png"]}],
+  "annotations": [...],
+  "score": {"scores_data": {"ex1.q1": 2.0}},
+  "lock": {"owner": "fatma.abid@ert.tn", "expires_at": "2026-03-28T19:30:00Z"},
+  "final_pdf": null,
+  "graded_at": null
+}
+```
+
+---
+
+## Correction (Grading)
+
+### `POST /api/grading/copies/{id}/finalize/`
+Finaliser une copie : aplatit les annotations sur le PDF, passe en FINALIZED.
+
+**Body** : `{"lock_token": "uuid..."}` (optionnel)
+
+**Réponse 200** :
+```json
+{
+  "status": "FINALIZED",
+  "final_pdf": "/media/copies/final/copy_uuid_corrected.pdf",
+  "graded_at": "2026-03-28T17:45:00Z",
+  "final_score": 14.5
+}
+```
+
+**Erreurs** :
+- `409` : Copie déjà finalisée, ou finalisation déjà en cours (concurrent request)
+- `400` : Statut invalide
+
+---
+
+### `POST /api/grading/copies/{id}/reopen/`
+Réouvrir une copie finalisée. **Superuser uniquement.**
+
+**Effets** : status → READY, final_pdf effacé, graded_at = null, grading_retries = 0.
+Annotations et notes **conservées**.
+
+**Réponse 200** : `{"status": "READY"}`
+
+---
+
+### `GET /api/grading/copies/{id}/score/`
+Récupérer les notes de la copie.
+
+---
+
+### `POST /api/grading/copies/{id}/score/`
+Sauvegarder les notes.
+
+**Body** :
+```json
+{"scores_data": {"ex1.q1": 2.0, "ex1.q2": 1.5, "ex2.q1": 3.0}}
+```
+
+---
+
+### `POST /api/grading/copies/{id}/appreciation/`
+Sauvegarder l'appréciation globale.
+
+**Body** : `{"text": "Bon travail d'ensemble..."}`
+
+---
+
+### `GET /api/grading/copies/{id}/draft/`
+Récupérer la sauvegarde automatique.
+
+---
+
+### `POST /api/grading/copies/{id}/draft/`
+Sauvegarder l'état courant (appelé automatiquement par le frontend).
+
+**Body** : `{"content": {...}}`
+
+---
+
+### `GET /api/grading/copies/{id}/events/`
+Historique complet des événements d'audit.
+
+---
+
+## Annotations
+
+### `GET /api/grading/copies/{id}/annotations/`
+Liste toutes les annotations, triées par `(page_index, created_at)`.
+
+**Réponse 200** :
+```json
+[
+  {
+    "id": "uuid...",
+    "page_index": 0,
+    "x": 0.1, "y": 0.2, "w": 0.3, "h": 0.05,
+    "type": "ERROR",
+    "content": "Erreur de calcul",
+    "score_delta": -1,
+    "version": 0,
+    "created_by": {"username": "fatma.abid@ert.tn"},
+    "created_at": "2026-03-28T15:00:00Z"
   }
 ]
 ```
 
 ---
 
-### Login Élève
+### `POST /api/grading/copies/{id}/annotations/`
+Créer une annotation. Passe la copie en IN_PROGRESS si elle était READY.
 
-```http
-POST /api/students/login/
-Content-Type: application/json
-```
-
-**Permissions**: `AllowAny` (public endpoint)
-
-**Payload**:
+**Body** :
 ```json
 {
-  "email": "jean.dupont@eleve.lycee.fr",
-  "password": "password123"
+  "page_index": 0,
+  "x": 0.1, "y": 0.2, "w": 0.3, "h": 0.05,
+  "type": "ERROR",
+  "content": "Erreur de calcul",
+  "score_delta": -1
 }
 ```
 
-**Validations**:
-- `email`: Requis, adresse email de l'élève
-- `password`: Requis, mot de passe du compte utilisateur
+**Réponse 201** : annotation créée avec `id` et `version: 0`.
 
-**Response** (200 OK):
-```json
-{
-  "message": "Login successful",
-  "role": "Student",
-  "must_change_password": false,
-  "student": {
-    "id": 123,
-    "first_name": "Jean",
-    "last_name": "Dupont",
-    "class_name": "TG2",
-    "email": "jean.dupont@eleve.lycee.fr"
-  }
-}
-```
-
-**Response** (401 Unauthorized):
-```json
-{
-  "error": "Email ou mot de passe incorrect."
-}
-```
-
-**Response** (429 Too Many Requests):
-```json
-{
-  "error": "Trop de tentatives de connexion. Veuillez réessayer dans quelques minutes.",
-  "rate_limited": true
-}
-```
-
-**Session**: `student_id` et `role='Student'` stockés dans session Django
-
-**Sécurité**:
-- Rate limiting: 30 tentatives par 15 minutes (par IP) — adapté aux NAT partagés (école/opérateur mobile)
-- Messages d'erreur génériques (prévention user enumeration)
-- Audit logging: tous les succès/échecs enregistrés
+**Validations** :
+- `x, y ∈ [0,1]`, `w, h ∈ (0,1]`
+- `x + w ≤ 1.0`, `y + h ≤ 1.0`
+- `page_index < total_pages`
+- Copie non FINALIZED
 
 ---
 
-## Codes d'Erreur
+### `PUT /api/grading/copies/{id}/annotations/{ann_id}/`
+Modifier une annotation. Verrou optimiste via `version`.
 
-| Code | Signification | Description |
-|------|---------------|-------------|
-| `200` | OK | Requête réussie |
-| `201` | Created | Ressource créée |
+**Body** :
+```json
+{
+  "content": "Erreur de calcul — voir cours",
+  "score_delta": -2,
+  "version": 0
+}
+```
+
+**Erreur 400** : version mismatch (modification concurrente détectée).
+**Réponse 200** : annotation avec `version: 1`.
+
+---
+
+### `DELETE /api/grading/copies/{id}/annotations/{ann_id}/`
+Supprimer une annotation.
+
+**Réponse 204**
+
+---
+
+### `GET /api/grading/annotation-templates/`
+Liste les templates de l'utilisateur courant + templates globaux.
+
+---
+
+### `POST /api/grading/annotation-templates/`
+Créer un template.
+
+**Body** : `{"category": "Algèbre", "content": "Erreur de signe", "is_global": false}`
+
+---
+
+## Verrous (Locks)
+
+### `POST /api/grading/copies/{id}/lock/`
+Acquérir un verrou pessimiste (exclusivité d'édition).
+
+**Body** : `{"ttl_seconds": 1800}`
+
+**Réponse 200** :
+```json
+{
+  "token": "uuid...",
+  "owner": "fatma.abid@ert.tn",
+  "expires_at": "2026-03-28T18:30:00Z"
+}
+```
+
+**Erreur 409** : copie déjà verrouillée par un autre utilisateur.
+
+---
+
+### `POST /api/grading/copies/{id}/unlock/`
+Libérer le verrou.
+
+**Body** : `{"token": "uuid..."}`
+
+**Erreur 403** : token invalide ou mauvais propriétaire.
+
+---
+
+### `POST /api/grading/copies/{id}/heartbeat/`
+Renouveler le TTL du verrou (toutes les 5 minutes depuis le frontend).
+
+**Body** : `{"token": "uuid...", "ttl_seconds": 1800}`
+
+---
+
+## Identification OCR
+
+### `POST /api/identification/perform-ocr/{copy_id}/`
+Lancer l'OCR sur l'en-tête d'une copie non-identifiée.
+
+**Pipeline** : GPT-4o-mini Vision (primaire) → Tesseract (fallback)
+
+**Réponse 200** :
+```json
+{
+  "detected_text": "ABBES MYRIAM 03/12/2010",
+  "confidence": 0.92,
+  "suggested_students": [
+    {"id": 12, "first_name": "MYRIAM", "last_name": "ABBES",
+     "date_naissance": "2010-12-03", "class_name": "3.1", "score": 0.95}
+  ]
+}
+```
+
+**Rate limit** : 30 requêtes/heure/utilisateur.
+
+---
+
+### `POST /api/identification/identify/{copy_id}/`
+Associer manuellement un élève à une copie.
+
+**Body** : `{"student_id": 12}`
+
+**Réponse 200** :
+```json
+{"is_identified": true, "student": {"id": 12, "first_name": "MYRIAM", "last_name": "ABBES"}}
+```
+
+---
+
+## Élèves (Students)
+
+### `GET /api/students/`
+Liste des élèves. **Admin uniquement.**
+
+---
+
+### `GET /api/students/{id}/`
+Détail d'un élève. Admin ou l'élève lui-même.
+
+---
+
+### `GET /api/students/my-copies/`
+Copies finalisées de l'élève connecté. Nécessite que `exam.results_released_at` soit défini.
+
+**Réponse 200** :
+```json
+[
+  {
+    "id": "uuid...",
+    "exam": {"name": "DNB_2026", "date": "2026-03-15"},
+    "anonymous_id": "69CB-066",
+    "status": "FINALIZED",
+    "final_pdf": "/media/copies/final/...",
+    "score": {"total": 14.5, "max": 20},
+    "global_appreciation": "Bon travail...",
+    "llm_summary": "Résumé personnalisé...",
+    "graded_at": "2026-03-28T17:45:00Z"
+  }
+]
+```
+
+---
+
+### `GET /api/students/copies/{copy_id}/`
+Voir une copie spécifique (l'élève doit en être le propriétaire, résultats publiés).
+
+---
+
+## Système
+
+### `GET /api/health/`
+Vérification de l'état du système.
+
+**Réponse 200** :
+```json
+{"status": "ok", "db": "ok", "redis": "ok", "version": "2.x.x"}
+```
+
+---
+
+### `GET /metrics`
+Métriques Prometheus. Requiert le header `Authorization: Bearer <METRICS_TOKEN>`.
+
+Métriques exposées :
+- `grading_finalize_duration_seconds` (histogram)
+- `grading_lock_conflicts_total` (counter, labels: conflict_type)
+- `grading_ocr_errors_total` (counter, labels: error_type)
+- `grading_import_duration_seconds` (histogram)
+
+---
+
+## Codes de réponse
+
+| Code | Signification | Contexte |
+|------|--------------|---------|
+| `200` | OK | Succès (GET, PUT, PATCH) |
+| `201` | Created | Ressource créée (POST) |
 | `204` | No Content | Suppression réussie |
-| `400` | Bad Request | Données invalides |
-| `401` | Unauthorized | Authentification requise |
-| `403` | Forbidden | Permission refusée |
+| `400` | Bad Request | Données invalides, validation échouée |
+| `401` | Unauthorized | Non authentifié |
+| `403` | Forbidden | Authentifié mais non autorisé |
 | `404` | Not Found | Ressource introuvable |
-| `409` | Conflict | Conflit (ex: copie déjà verrouillée) |
-| `429` | Too Many Requests | Rate limit dépassé |
+| `409` | Conflict | Verrou en conflit, copie déjà finalisée, re-upload bloqué |
+| `422` | Unprocessable Entity | Entité métier non traitée |
+| `429` | Too Many Requests | Rate limit atteint |
 | `500` | Internal Server Error | Erreur serveur |
 
-### Format des Erreurs
-
+**Format erreur standard** :
 ```json
 {
-  "detail": "Description de l'erreur"
+  "detail": "Message d'erreur lisible",
+  "code": "lock_conflict",
+  "errors": {"field": ["message"]}
 }
 ```
 
-**Exemple** (400 Bad Request):
+---
+
+## Pagination
+
+Toutes les listes utilisent la pagination DRF standard :
+
 ```json
 {
-  "detail": "Cannot lock copy not in READY status"
+  "count": 289,
+  "next": "/api/exams/uuid/copies/?page=2",
+  "previous": null,
+  "results": [...]
 }
 ```
+
+Taille de page par défaut : 20. `?page_size=100` (max 200).
 
 ---
 
 ## Rate Limiting
 
-### Limites par Défaut
+| Endpoint | Limite | Par |
+|----------|--------|-----|
+| `POST /api/exams/upload/` | 10/heure | Utilisateur |
+| `POST /api/auth/login/` | 20/heure | IP |
+| `POST /api/students/login/` | 20/heure | IP |
+| `POST /api/identification/perform-ocr/` | 30/heure | Utilisateur |
 
-| Endpoint | Limite | Fenêtre |
-|----------|--------|---------|
-| `POST /api/auth/login/` | 5 requêtes | 15 minutes (par IP) |
-| `POST /api/students/login/` | 30 requêtes | 15 minutes (par IP) |
-| `POST /api/exams/upload/` | 10 requêtes | 1 heure |
-| Autres endpoints | 100 requêtes | 1 minute |
+En cas de dépassement : `429 Too Many Requests` + header `Retry-After`.
 
-### Headers de Réponse
-
-```
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1643097600
-```
-
-### Erreur Rate Limit
-
-```http
-HTTP/1.1 429 Too Many Requests
-Content-Type: application/json
-
-{
-  "detail": "Request was throttled. Expected available in 45 seconds."
-}
-```
-
----
-
-## Exemples
-
-### Exemple 1: Workflow Complet de Correction
-
-```bash
-# 1. Login
-curl -X POST http://localhost:8088/api/auth/login/ \
-  -H "Content-Type: application/json" \
-  -d '{"username": "teacher1", "password": "pass123"}' \
-  -c cookies.txt
-
-# 2. Lister les copies disponibles
-curl -X GET http://localhost:8088/api/copies/ \
-  -b cookies.txt
-
-# 3. Verrouiller une copie
-curl -X POST http://localhost:8088/api/copies/{copy_id}/lock/ \
-  -H "Content-Type: application/json" \
-  -H "X-CSRFToken: <token>" \
-  -b cookies.txt
-
-# 4. Créer une annotation
-curl -X POST http://localhost:8088/api/copies/{copy_id}/annotations/ \
-  -H "Content-Type: application/json" \
-  -H "X-CSRFToken: <token>" \
-  -b cookies.txt \
-  -d '{
-    "page_index": 0,
-    "x": 0.25,
-    "y": 0.30,
-    "w": 0.50,
-    "h": 0.10,
-    "content": "Bonne réponse",
-    "type": "COMMENT",
-    "score_delta": 2
-  }'
-
-# 5. Finaliser la copie
-curl -X POST http://localhost:8088/api/copies/{copy_id}/finalize/ \
-  -H "X-CSRFToken: <token>" \
-  -b cookies.txt
-
-# 6. Télécharger le PDF final
-curl -X GET http://localhost:8088/api/copies/{copy_id}/final-pdf/ \
-  -b cookies.txt \
-  -o copy_final.pdf
-```
-
----
-
-### Exemple 2: Upload et Traitement Examen
-
-```bash
-# Upload PDF examen
-curl -X POST http://localhost:8088/api/exams/ \
-  -H "X-CSRFToken: <token>" \
-  -b cookies.txt \
-  -F "name=Bac Blanc Maths TG" \
-  -F "date=2026-01-15" \
-  -F "pdf_source=@exam.pdf"
-
-# Response:
-# {
-#   "id": "uuid-...",
-#   "booklets_created": 25,
-#   "message": "25 booklets created successfully"
-# }
-
-# Lister les fascicules
-curl -X GET http://localhost:8088/api/exams/{exam_id}/booklets/ \
-  -b cookies.txt
-
-# Fusionner des fascicules en copie
-curl -X POST http://localhost:8088/api/exams/{exam_id}/merge/ \
-  -H "Content-Type: application/json" \
-  -H "X-CSRFToken: <token>" \
-  -b cookies.txt \
-  -d '{"booklet_ids": ["uuid-1", "uuid-2"]}'
-```
-
----
-
-### Exemple 3: Portail Élève
-
-```bash
-# Login élève
-curl -X POST http://localhost:8088/api/students/login/ \
-  -H "Content-Type: application/json" \
-  -d '{"email": "jean.dupont@eleve.lycee.fr", "password": "passe123"}' \
-  -c student_cookies.txt
-
-# Lister mes copies
-curl -X GET http://localhost:8088/api/students/my-copies/ \
-  -b student_cookies.txt
-
-# Télécharger ma copie corrigée
-curl -X GET http://localhost:8088/api/copies/{copy_id}/final-pdf/ \
-  -b student_cookies.txt \
-  -o ma_copie.pdf
-```
-
----
-
-## Schéma OpenAPI
-
-L'API expose un schéma OpenAPI 3.0 généré automatiquement via DRF Spectacular:
-
-```http
-GET /api/schema/
-```
-
-**Interface Swagger UI**:
-```
-http://localhost:8088/api/schema/swagger-ui/
-```
-
-**Interface ReDoc**:
-```
-http://localhost:8088/api/schema/redoc/
-```
-
----
-
-## Références
-
-- [ARCHITECTURE.md](file:///home/alaeddine/korrigo__PMF/docs/ARCHITECTURE.md) - Architecture globale
-- [DATABASE_SCHEMA.md](file:///home/alaeddine/korrigo__PMF/docs/DATABASE_SCHEMA.md) - Schéma base de données
-- [SECURITY_GUIDE.md](file:///home/alaeddine/korrigo__PMF/docs/SECURITY_GUIDE.md) - Guide de sécurité
-- [backend/exams/views.py](file:///home/alaeddine/korrigo__PMF/backend/exams/views.py) - Code source views exams
-- [backend/grading/views.py](file:///home/alaeddine/korrigo__PMF/backend/grading/views.py) - Code source views grading
-
----
-
-**Dernière mise à jour**: 23 mars 2026
-**Auteur**: Alaeddine BEN RHOUMA  
-**Licence**: Propriétaire - AEFE/Éducation Nationale
+Rate limiting désactivable uniquement en mode `E2E_TEST_MODE=true` (jamais en production).
