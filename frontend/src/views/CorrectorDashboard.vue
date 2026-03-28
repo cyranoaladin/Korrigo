@@ -362,6 +362,17 @@ const goToQuestionnaire = () => {
 const goToQuestionnaireBilan = () => {
     router.push({ name: 'QuestionnaireBilan' })
 }
+
+// --- Feature flags (computed from backend /me/ response) ---
+// show_jury_report_bac_blanc: user has copies in BBM2026 AND selected exam is BBM2026
+const canSeeJuryReport = computed(() =>
+    authStore.user?.features?.show_jury_report_bac_blanc === true
+    && selectedExamType.value?.code === 'BBM2026'
+)
+// show_questionnaire: only the designated questionnaire coordinator
+const canSeeQuestionnaire = computed(() =>
+    authStore.user?.features?.show_questionnaire === true
+)
 </script>
 
 <template>
@@ -405,24 +416,25 @@ const goToQuestionnaireBilan = () => {
           👥 Mes Élèves
         </button>
         <button
-          v-if="questionnaireStatusLoaded && !questionnaireSummary.has_response"
+          v-if="canSeeQuestionnaire && questionnaireStatusLoaded && !questionnaireSummary.has_response"
           class="btn-questionnaire"
           @click="goToQuestionnaire"
         >
           📝 Questionnaire
         </button>
         <button
-          v-if="questionnaireStatusLoaded && questionnaireSummary.has_response"
+          v-if="canSeeQuestionnaire && questionnaireStatusLoaded && questionnaireSummary.has_response"
           class="btn-questionnaire-bilan"
           @click="goToQuestionnaireBilan"
         >
           📈 Bilan du questionnaire
         </button>
         <button
+          v-if="canSeeJuryReport"
           class="btn-jury-report"
           @click="openJuryReportsModal"
         >
-          📋 Rapport du jury
+          📋 Rapport du Jury BAC BLANC 2026
         </button>
         <button
           class="btn-logout"
@@ -756,6 +768,8 @@ const goToQuestionnaireBilan = () => {
 
     <JuryReportsModal
       :visible="showJuryReportsModal"
+      :exam-type-code="selectedExamType?.code || ''"
+      :exam-type-name="selectedExamType?.name || ''"
       @close="showJuryReportsModal = false"
     />
     <ExamTypeSelectionModal

@@ -251,6 +251,7 @@ class ExamTypeSerializer(serializers.ModelSerializer):
 
 class JuryReportSerializer(serializers.ModelSerializer):
     exam_type_name = serializers.CharField(source='exam_type.name', read_only=True)
+    exam_type_code = serializers.CharField(source='exam_type.code', read_only=True)
     created_by_username = serializers.CharField(source='created_by.username', read_only=True)
 
     class Meta:

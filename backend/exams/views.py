@@ -1464,18 +1464,37 @@ class JuryReportListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         from .models import JuryReport
-        queryset = JuryReport.objects.all()
+        from grading.models import Copy
+        queryset = JuryReport.objects.select_related('exam_type', 'created_by').all()
         user = self.request.user
-        
-        is_admin = user.groups.filter(name__iexact=UserRole.ADMIN).exists() or user.is_superuser or user.is_staff
+
+        is_admin = (
+            user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+            or user.is_superuser
+            or user.is_staff
+        )
         if not is_admin:
-            # Le correcteur accède aux rapports liés au Type d'Examen (Matière) 
-            # dont il corrige au moins un examen
-            queryset = queryset.filter(exam_type__exams__correctors=user, is_published=True).distinct()
-            
+            # Non-admin correctors: only published reports for exam types
+            # where they actually have at least one copy assigned.
+            assigned_type_ids = (
+                Copy.objects.filter(assigned_corrector=user)
+                .values_list('exam__exam_type_id', flat=True)
+                .distinct()
+            )
+            queryset = queryset.filter(
+                exam_type_id__in=assigned_type_ids,
+                is_published=True,
+            )
+
+        # Optional scope filters
+        exam_type_code = self.request.query_params.get('exam_type_code')
+        if exam_type_code:
+            queryset = queryset.filter(exam_type__code=exam_type_code)
+
         exam_type_id = self.request.query_params.get('exam_type_id')
         if exam_type_id:
             queryset = queryset.filter(exam_type_id=exam_type_id)
+
         return queryset.order_by('-created_at')
 
     def perform_create(self, serializer):
