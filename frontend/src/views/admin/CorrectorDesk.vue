@@ -128,7 +128,7 @@ const isLastPage = computed(() => {
     return total > 0 && currentPage.value === total
 })
 const isHeaderPage = computed(() => {
-    const ppb = copy.value?.exam?.pages_per_booklet || 4
+    const ppb = copy.value?.exam_details?.pages_per_booklet || 4
     const page = currentPage.value
     // Pages 1, 5, 9, 13... (formula: 1 + 4*N) have identity headers
     const isPeriodicHeader = ((page - 1) % ppb) === 0
@@ -146,7 +146,7 @@ const isAssignedCorrector = computed(() => {
 })
 const isReadOnly = computed(() => isFinalized.value && !isAdmin.value && !isAssignedCorrector.value)
 const canAnnotate = computed(() => (isReady.value || (isFinalized.value && (isAdmin.value || isAssignedCorrector.value))) && !isReadOnly.value)
-const examId = computed(() => copy.value?.exam?.id || null)
+const examId = computed(() => copy.value?.exam_details?.id || copy.value?.exam || null)
 
 
 const pages = computed(() => {
@@ -192,8 +192,8 @@ const displayWidth = computed(() => pdfDimensions.value.width * scale.value)
 const displayHeight = computed(() => pdfDimensions.value.height * scale.value)
 
 const gradingStructure = computed(() => {
-    if (!copy.value?.exam?.grading_structure) return []
-    return copy.value.exam.grading_structure
+    if (!copy.value?.exam_details?.grading_structure) return []
+    return copy.value.exam_details.grading_structure
 })
 
 const flattenQuestions = (structure, parentId = '') => {
