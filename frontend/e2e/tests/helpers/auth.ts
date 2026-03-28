@@ -42,7 +42,7 @@ export async function loginAsAdmin(page: Page) {
     // 3) Navigate to a protected route to trigger the router guard's hydration
     // Since cookies are now set, the app's router guard will call fetchUser() 
     // when it sees a protected route is requested with user=null.
-    await page.goto('/admin-dashboard', { waitUntil: 'networkidle' });
+    await page.goto('/admin/dashboard', { waitUntil: 'networkidle' });
 
     // Verify hydration by waiting for a UI element that requires a logged-in user
     // e.g. the admin dashboard main element
