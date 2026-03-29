@@ -96,7 +96,22 @@ else
 fi
 
 # -------------------------------------------------------
-# 5. Final summary
+# 5. Remote backup to Hetzner StorageBox
+# -------------------------------------------------------
+STORAGEBOX_USER="u402541"
+STORAGEBOX_HOST="u402541.your-storagebox.de"
+
+log "Step 5: Remote sync to StorageBox..."
+if rsync -az --timeout=60 \
+    "${BACKUP_DIR}/" \
+    "${STORAGEBOX_USER}@${STORAGEBOX_HOST}:/korrigo_backups/${TIMESTAMP}/" 2>>"${LOG_FILE}"; then
+    log "  -> StorageBox sync OK"
+else
+    log "  -> WARNING: StorageBox sync failed (non-fatal)"
+fi
+
+# -------------------------------------------------------
+# 6. Final summary
 # -------------------------------------------------------
 TOTAL_SIZE=$(du -sh "${BACKUP_DIR}" | cut -f1)
 log "=== Backup ${TIMESTAMP} complete: ${TOTAL_SIZE} ==="
