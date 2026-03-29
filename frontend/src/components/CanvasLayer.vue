@@ -256,17 +256,22 @@ const stopDrawing = (e) => {
   isDrawing.value = false
   if (e?.pointerType === 'pen') activePenPointers.delete(e.pointerId)
 
+  // Calculate true distance from start to end (ignoring intermediary w/h which might be negative)
+  const endCoords = getCoords(e)
+  const dist = Math.hypot(endCoords.x - startPos.value.x, endCoords.y - startPos.value.y)
+
   // Check if click was on an existing annotation
-  const isClick = currentRect.value && Math.abs(currentRect.value.w) <= 5 && Math.abs(currentRect.value.h) <= 5
+  const isClick = dist <= 15
   if (isClick) {
       const clickedAnn = props.initialAnnotations.slice().reverse().find(ann => {
           const rx = ann.x * props.width
           const ry = ann.y * props.height
           const rw = ann.w * props.width
           const rh = ann.h * props.height
-          // allow a small padding (e.g. 5px) to make clicking easier
-          return startPos.value.x >= rx - 5 && startPos.value.x <= rx + rw + 5 &&
-                 startPos.value.y >= ry - 5 && startPos.value.y <= ry + rh + 5
+          
+          // Generous 20px padding for easy clicking, testing against the final click location
+          return endCoords.x >= rx - 20 && endCoords.x <= rx + rw + 20 &&
+                 endCoords.y >= ry - 20 && endCoords.y <= ry + rh + 20
       })
 
       if (clickedAnn) {
@@ -292,8 +297,8 @@ const stopDrawing = (e) => {
       return
   }
 
-  // Normalize and emit regular drag rect
-  if (currentRect.value && Math.abs(currentRect.value.w) > 5 && Math.abs(currentRect.value.h) > 5) {
+  // Normalize and emit regular drag rect if it's not considered a click
+  if (!isClick && currentRect.value && Math.abs(currentRect.value.w) > 5 && Math.abs(currentRect.value.h) > 5) {
       let x = currentRect.value.x
       let y = currentRect.value.y
       let w = currentRect.value.w

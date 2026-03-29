@@ -13,6 +13,8 @@ from decimal import Decimal
 
 class ExamTests(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = APIClient()
         self.exam_data = {
             'name': 'Bac Blanc Math 2026',
@@ -42,6 +44,8 @@ class ExamTests(TestCase):
 
 class APITests(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = APIClient()
         self.exam = Exam.objects.create(name='Test API', date='2026-01-01')
 
@@ -61,6 +65,8 @@ class APITests(TestCase):
 
 class DispatchTests(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = APIClient()
         self.exam = Exam.objects.create(name='Test Dispatch', date='2026-01-01')
         
@@ -173,6 +179,8 @@ class DispatchTests(TestCase):
 
 class PronoteExportTests(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = APIClient()
         self.exam = Exam.objects.create(name='Mathématiques', date='2026-03-15')
         
