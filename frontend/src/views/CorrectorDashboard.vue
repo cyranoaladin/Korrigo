@@ -93,7 +93,8 @@ const getCopyProgress = (copy) => {
     if (progress) return progress
 
     // Fallback based on status alone
-    const structure = copy.exam?.grading_structure || []
+    // copy.exam is a UUID string; grading_structure is in copy.exam_details (injected by CopySerializer)
+    const structure = copy.exam_details?.grading_structure || []
     const leaves = flattenLeafQuestions(structure)
     const total = leaves.length
 
@@ -113,7 +114,7 @@ const fetchAllCopyScores = async (copiesList) => {
     // Only fetch scores for copies with exam data (to compute progress)
     const relevantCopies = copiesList.filter(c =>
         (c.status === 'READY' || c.status === 'IN_PROGRESS' || c.status === 'FINALIZED') &&
-        c.exam?.grading_structure && c.exam.grading_structure.length > 0
+        c.exam_details?.grading_structure && c.exam_details.grading_structure.length > 0
     )
     if (!relevantCopies.length) return
 
@@ -128,7 +129,7 @@ const fetchAllCopyScores = async (copiesList) => {
             try {
                 const data = await gradingApi.fetchScores(copy.id)
                 const scoresData = data.scores_data || {}
-                const structure = copy.exam?.grading_structure || []
+                const structure = copy.exam_details?.grading_structure || []
                 const leaves = flattenLeafQuestions(structure)
                 const total = leaves.length
 

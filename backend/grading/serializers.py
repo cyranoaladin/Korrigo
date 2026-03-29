@@ -22,9 +22,10 @@ class AnnotationSerializer(serializers.ModelSerializer):
             'x', 'y', 'w', 'h',
             'content', 'type', 'score_delta',
             'created_by', 'created_by_username',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at',
+            'version',  # optimistic locking — requis par le frontend pour détecter les conflits
         ]
-        read_only_fields = ['id', 'created_by', 'created_by_username', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_by', 'created_by_username', 'created_at', 'updated_at', 'version']
 
     def validate(self, data):
         # Validation checks maintained...

@@ -346,7 +346,7 @@ onUnmounted(() => {
                 {{ getStatusLabel(copy.status) }}
               </span>
               <span class="activity-time">
-                {{ new Date(copy.updated_at).toLocaleTimeString() }}
+                {{ copy.graded_at ? new Date(copy.graded_at).toLocaleTimeString() : '—' }}
               </span>
             </div>
           </div>
