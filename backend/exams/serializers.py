@@ -231,8 +231,12 @@ class CopySerializer(serializers.ModelSerializer):
         if not score or not score.scores_data:
             return None
         try:
-            return sum(float(v) for v in score.scores_data.values() if v is not None and v != '')
-        except (TypeError, ValueError):
+            scores = score.scores_data
+            if isinstance(scores, str):
+                import json
+                scores = json.loads(scores)
+            return sum(float(v) for v in scores.values() if v is not None and v != '')
+        except (TypeError, ValueError, AttributeError):
             return None
 
     def get_final_pdf_url(self, obj):

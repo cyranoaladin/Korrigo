@@ -1058,6 +1058,11 @@ const handleDeleteAnnotation = async (id) => {
     } finally { isSaving.value = false; }
 }
 
+const handleAnnotationClick = (id) => {
+    if (!canAnnotate.value || showEditor.value) return;
+    handleDeleteAnnotation(id);
+}
+
 // Helper to format date
 const formatDate = (isoString) => {
     if (!isoString) return ''
@@ -1462,6 +1467,7 @@ onUnmounted(() => {
                 :initial-annotations="getAnnotationsForPage(idx)"
                 :enabled="canAnnotate && !showEditor"
                 @annotation-created="(rect) => handleDrawComplete(rect, null, idx)"
+                @annotation-clicked="handleAnnotationClick"
               />
             </div>
           </template>
