@@ -220,8 +220,11 @@ class CopySerializer(serializers.ModelSerializer):
         if not obj.assigned_corrector:
             return None
         u = obj.assigned_corrector
-        full = ' '.join(p for p in [u.first_name, u.last_name] if p).strip()
-        return full or u.username
+        try:
+            full = ' '.join(p for p in [u.first_name, u.last_name] if isinstance(p, str) and p.strip()).strip()
+            return full or u.username
+        except (AttributeError, TypeError):
+            return str(u) if u else None
 
     def get_total_score(self, obj):
         score = obj.scores.first()
