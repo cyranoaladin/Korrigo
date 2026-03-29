@@ -74,9 +74,9 @@ class HeaderDetector:
 
             height, width, channels = image.shape
             
-            # Placeholder: On prend arbitrairement le top 15% centré
-            # En réalité, utiliser les coordonnées du contour détecté par detect_header
-            crop_h = int(height * 0.15)
+            # En-tête copie = 23% de la hauteur A4 (67mm / 297mm)
+            # Valeur vérifiée visuellement sur les copies réelles
+            crop_h = int(height * 0.23)
             crop_img = image[0:crop_h, :] # Tout le haut pour l'instant
             
             success, encoded_img = cv2.imencode('.jpg', crop_img)

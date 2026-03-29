@@ -1790,7 +1790,7 @@ onUnmounted(() => {
     top: 0;
     left: 0;
     width: 100%;
-    height: 27%;
+    height: 23%;
     background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
     z-index: 20;
     display: flex;
