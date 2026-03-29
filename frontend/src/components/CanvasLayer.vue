@@ -263,15 +263,22 @@ const stopDrawing = (e) => {
   // Check if click was on an existing annotation
   const isClick = dist <= 15
   if (isClick) {
+      const clickX = endCoords.x
+      const clickY = endCoords.y
+
       const clickedAnn = props.initialAnnotations.slice().reverse().find(ann => {
           const rx = ann.x * props.width
           const ry = ann.y * props.height
           const rw = ann.w * props.width
           const rh = ann.h * props.height
           
-          // Generous 20px padding for easy clicking, testing against the final click location
-          return endCoords.x >= rx - 20 && endCoords.x <= rx + rw + 20 &&
-                 endCoords.y >= ry - 20 && endCoords.y <= ry + rh + 20
+          // Instead of purely x/y box check, ensure small annotations have a minimum clickable area
+          const cx = rx + (rw / 2)
+          const cy = ry + (rh / 2)
+          const hitW = Math.max(rw, 40)
+          const hitH = Math.max(rh, 40)
+          
+          return Math.abs(clickX - cx) <= (hitW / 2 + 15) && Math.abs(clickY - cy) <= (hitH / 2 + 15)
       })
 
       if (clickedAnn) {
