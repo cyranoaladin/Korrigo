@@ -6,6 +6,8 @@ services:
   db:
     image: postgres:15-alpine
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
@@ -32,6 +34,8 @@ services:
   backend:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
     restart: unless-stopped
+    env_file:
+      - .env
     command: gunicorn core.wsgi:application -c gunicorn_config.py
     networks:
       - default
@@ -150,6 +154,8 @@ services:
   celery:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
     restart: unless-stopped
+    env_file:
+      - .env
     command: celery -A core worker -l info --concurrency=4 --max-tasks-per-child=100
     volumes:
       - media_volume:/app/media
@@ -253,6 +259,8 @@ services:
   celery-beat:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
     restart: unless-stopped
+    env_file:
+      - .env
     command: celery -A core beat -l info
     depends_on:
       db:

@@ -1,26 +1,9 @@
 version: '3.8'
 
-# Development Docker Compose
+# Development Docker Compose (SQLite fallback for local simulation)
 # Usage: docker compose up -d
-# Frontend dev server proxies /api -> backend:8000 (see vite.config.js)
 
 services:
-  db:
-    image: postgres:15-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: korrigo
-      POSTGRES_USER: korrigo_user
-      POSTGRES_PASSWORD: korrigo_password
-    ports:
-      - "5436:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U korrigo_user -d korrigo"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7-alpine
     ports:
@@ -33,25 +16,25 @@ services:
 
   backend:
     build: ../../backend
+    working_dir: /app
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ../../backend:/app
+      - ../../scan_DNB_maths:/scan_DNB_maths
       - media_data:/app/media
     ports:
       - "8088:8000"
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://korrigo_user:korrigo_password@db:5432/korrigo
+      # DATABASE_URL: removed for SQLite fallback
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       DEBUG: "true"
       SSL_ENABLED: "false"
-      ALLOWED_HOSTS: "localhost,127.0.0.1,korrigo.labomaths.tn"
-      CSRF_TRUSTED_ORIGINS: "http://localhost:8088,http://127.0.0.1:8088"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,korrigo.labomaths.tn,backend"
+      CSRF_TRUSTED_ORIGINS: "http://localhost:8088,http://127.0.0.1:8088,http://localhost:5173"
       CORS_ALLOWED_ORIGINS: "http://localhost:8088,http://localhost:5173"
       REDIS_HOST: redis
 
@@ -75,19 +58,17 @@ services:
     command: celery -A core worker -l info --concurrency=2 --max-tasks-per-child=50
     volumes:
       - ../../backend:/app
+      - ../../scan_DNB_maths:/scan_DNB_maths
       - media_data:/app/media
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://korrigo_user:korrigo_password@db:5432/korrigo
+      # DATABASE_URL: removed for SQLite fallback
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       DEBUG: "true"
       REDIS_HOST: redis
 
 volumes:
-  postgres_data:
   media_data:

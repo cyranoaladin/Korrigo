@@ -201,18 +201,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-if DEBUG:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
-else:
-    db_config = dj_database_url.config(
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-        conn_max_age=600
-    )
+# Database Configuration
+if os.environ.get("DATABASE_URL"):
+    # Always prioritize DATABASE_URL if present (useful for Docker/Production)
+    db_config = dj_database_url.config(conn_max_age=600)
     
     # P0-OP-04: Add database lock timeout protection
     if db_config.get('ENGINE') == 'django.db.backends.postgresql':
@@ -223,6 +215,16 @@ else:
         db_config['CONN_HEALTH_CHECKS'] = True
     
     DATABASES = {'default': db_config}
+elif DEBUG:
+    # Development fallback to SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    raise ValueError("DATABASES: No DATABASE_URL found in production-like environment.")
 
 
 
