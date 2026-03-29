@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 
 const props = defineProps({
   width: { type: Number, required: true }, // CSS width
@@ -21,23 +21,33 @@ const activePenPointers = new Set()
 
 const dpr = window.devicePixelRatio || 1
 
-// Dimensions in device pixels
-const canvasWidth = computed(() => Math.round(props.width * dpr))
-const canvasHeight = computed(() => Math.round(props.height * dpr))
-
 const setupCanvas = () => {
     const canvas = canvasRef.value
     if (!canvas) return
+
+    // Manually update canvas physical dimensions — this clears the canvas and
+    // resets the 2D context state atomically, BEFORE we redraw. This avoids
+    // the race condition that happens when Vue updates :width/:height attributes
+    // asynchronously (which also clears the canvas, potentially after redraw).
+    const physW = Math.round(props.width * dpr)
+    const physH = Math.round(props.height * dpr)
+    if (canvas.width !== physW) canvas.width = physW
+    if (canvas.height !== physH) canvas.height = physH
+
+    // Set CSS display size
+    canvas.style.width = props.width + 'px'
+    canvas.style.height = props.height + 'px'
+
     const ctx = canvas.getContext('2d')
 
     // Reset transform to identity before applying scale
     ctx.resetTransform()
     ctx.scale(dpr, dpr)
-    
+
     // Line styles
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
-    
+
     redraw(ctx)
 }
 
@@ -185,14 +195,13 @@ const redraw = (ctx) => {
     }
 }
 
-// Watchers — flush:'post' ensures the watcher runs AFTER Vue updates the canvas
-// width/height attributes (which auto-clear the canvas). Calling setupCanvas()
-// synchronously here means clear + redraw happen before the browser paints,
-// so there is never a blank-canvas frame visible to the user.
+// Watcher — any prop change triggers setupCanvas() which atomically resizes
+// and redraws the canvas. No flush:'post' needed because Vue no longer controls
+// the canvas width/height attributes (managed manually inside setupCanvas).
 watch(
     [() => props.width, () => props.height, () => props.scale, () => props.initialAnnotations],
     () => setupCanvas(),
-    { deep: true, flush: 'post' }
+    { deep: true }
 )
 
 onMounted(() => {
@@ -220,7 +229,7 @@ const startDrawing = (e) => {
   const coords = getCoords(e)
   startPos.value = coords
   currentRect.value = { x: coords.x, y: coords.y, w: 0, h: 0 }
-  requestAnimationFrame(() => redraw())
+  requestAnimationFrame(() => setupCanvas())
 }
 
 const draw = (e) => {
@@ -232,7 +241,7 @@ const draw = (e) => {
       w: coords.x - startPos.value.x,
       h: coords.y - startPos.value.y,
   }
-  requestAnimationFrame(() => redraw())
+  requestAnimationFrame(() => setupCanvas())
 }
 
 const stopDrawing = (e) => {
@@ -251,7 +260,7 @@ const stopDrawing = (e) => {
       }
       emit('annotation-created', normalized)
       currentRect.value = null
-      requestAnimationFrame(() => redraw())
+      requestAnimationFrame(() => setupCanvas())
       return
   }
 
@@ -271,19 +280,13 @@ const stopDrawing = (e) => {
       })
   }
   currentRect.value = null
-  requestAnimationFrame(() => redraw())
+  requestAnimationFrame(() => setupCanvas())
 }
 </script>
 
 <template>
   <canvas
     ref="canvasRef"
-    :width="canvasWidth"
-    :height="canvasHeight"
-    :style="{
-      width: width + 'px',
-      height: height + 'px',
-    }"
     :class="{ 'canvas-layer': true, 'disabled': !enabled }"
     data-testid="canvas-layer"
     @pointerdown="startDrawing"
