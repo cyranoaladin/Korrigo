@@ -9,7 +9,7 @@ const props = defineProps({
   enabled: { type: Boolean, default: true },
 })
 
-const emit = defineEmits(['annotation-created'])
+const emit = defineEmits(['annotation-created', 'annotation-clicked'])
 
 const canvasRef = ref(null)
 const isDrawing = ref(false)
@@ -256,8 +256,29 @@ const stopDrawing = (e) => {
   isDrawing.value = false
   if (e?.pointerType === 'pen') activePenPointers.delete(e.pointerId)
 
+  // Check if click was on an existing annotation
+  const isClick = currentRect.value && Math.abs(currentRect.value.w) <= 5 && Math.abs(currentRect.value.h) <= 5
+  if (isClick) {
+      const clickedAnn = props.initialAnnotations.slice().reverse().find(ann => {
+          const rx = ann.x * props.width
+          const ry = ann.y * props.height
+          const rw = ann.w * props.width
+          const rh = ann.h * props.height
+          // allow a small padding (e.g. 5px) to make clicking easier
+          return startPos.value.x >= rx - 5 && startPos.value.x <= rx + rw + 5 &&
+                 startPos.value.y >= ry - 5 && startPos.value.y <= ry + rh + 5
+      })
+
+      if (clickedAnn) {
+          emit('annotation-clicked', clickedAnn.id)
+          currentRect.value = null
+          requestAnimationFrame(() => setupCanvas())
+          return
+      }
+  }
+
   // Quick stamp on tap: tiny movement → emit a small fixed-size annotation rect
-  if (currentRect.value && Math.abs(currentRect.value.w) <= 5 && Math.abs(currentRect.value.h) <= 5) {
+  if (isClick) {
       const STAMP_PX = 30
       const normalized = {
           x: Math.max(0, (startPos.value.x - STAMP_PX / 2) / props.width),
