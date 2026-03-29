@@ -117,6 +117,7 @@ const activeRemarkQuestionId = ref(null)
 // --- Computed ---
 const isStaging = computed(() => false)
 const isReady = computed(() => copy.value?.status === 'READY')
+const isInProgress = computed(() => copy.value?.status === 'IN_PROGRESS')
 const isFinalized = computed(() => copy.value?.status === 'FINALIZED')
 const isGraded = isFinalized // alias for backward compatibility
 
@@ -145,7 +146,7 @@ const isAssignedCorrector = computed(() => {
     return userId && correctorId && String(userId) === String(correctorId)
 })
 const isReadOnly = computed(() => isFinalized.value && !isAdmin.value && !isAssignedCorrector.value)
-const canAnnotate = computed(() => (isReady.value || (isFinalized.value && (isAdmin.value || isAssignedCorrector.value))) && !isReadOnly.value)
+const canAnnotate = computed(() => (isReady.value || isInProgress.value || (isFinalized.value && (isAdmin.value || isAssignedCorrector.value))) && !isReadOnly.value)
 const examId = computed(() => copy.value?.exam_details?.id || copy.value?.exam || null)
 
 
@@ -787,8 +788,14 @@ const handleReopenCopy = async () => {
 
 const handleImageLoad = (e) => {
     imageError.value = false
+    const isFirstLoad = !imageLoaded.value
     imageLoaded.value = true
     pdfDimensions.value = { width: e.target.naturalWidth, height: e.target.naturalHeight }
+    // Auto-fit on first load so annotations are visible in viewport (image natural
+    // size is ~2480px wide, which would push annotations far outside the viewport)
+    if (isFirstLoad) {
+        nextTick(() => fitToWidth())
+    }
 }
 
 const handleImageError = () => {
@@ -1127,7 +1134,7 @@ const onScrollAreaTouchEnd = (e) => {
 
 onMounted(async () => {
   await fetchCopy()
-  if (isReady.value) checkDrafts()
+  if (isReady.value || isInProgress.value) checkDrafts()
   window.addEventListener('keydown', onGlobalKeydown)
   window.addEventListener('beforeunload', onBeforeUnload)
   window.addEventListener('online', onOnline)
