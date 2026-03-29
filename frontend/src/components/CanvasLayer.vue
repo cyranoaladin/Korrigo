@@ -18,6 +18,8 @@ const currentRect = ref(null)
 
 // Palm rejection: track active pen pointer IDs; when a pen is down, ignore touch events
 const activePenPointers = new Set()
+// Multi-touch guard: track active touch pointers to detect pinch (2+ fingers)
+const activeTouchPointers = new Set()
 
 const dpr = window.devicePixelRatio || 1
 
@@ -221,6 +223,11 @@ const startDrawing = (e) => {
   if (e.pointerType === 'touch' && activePenPointers.size > 0) return
   // Track pen pointers for palm rejection
   if (e.pointerType === 'pen') activePenPointers.add(e.pointerId)
+  // Multi-touch guard: ignore 2nd+ finger (pinch zoom) — don't interfere with scroll-area zoom
+  if (e.pointerType === 'touch') {
+    activeTouchPointers.add(e.pointerId)
+    if (activeTouchPointers.size > 1) return
+  }
   // Capture pointer so move/up events fire even if cursor leaves the canvas
   e.currentTarget.setPointerCapture(e.pointerId)
 
@@ -244,6 +251,7 @@ const draw = (e) => {
 }
 
 const stopDrawing = (e) => {
+  if (e?.pointerType === 'touch') activeTouchPointers.delete(e.pointerId)
   if (!isDrawing.value) return
   isDrawing.value = false
   if (e?.pointerType === 'pen') activePenPointers.delete(e.pointerId)
@@ -305,6 +313,8 @@ const stopDrawing = (e) => {
   cursor: crosshair;
 }
 .canvas-layer.disabled {
-    cursor: not-allowed;
+    touch-action: auto;
+    cursor: default;
+    pointer-events: none;
 }
 </style>

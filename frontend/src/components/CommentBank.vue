@@ -6,7 +6,7 @@ const props = defineProps({
   visible: Boolean
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'insert'])
 
 const historyTexts = ref([])
 const loading = ref(false)
@@ -58,6 +58,10 @@ const handleDragEnd = (e) => {
     e.target.classList.remove('dragging')
 }
 
+const handleTapInsert = (text) => {
+    emit('insert', text)
+}
+
 const refresh = () => {
     fetchHistory()
 }
@@ -97,7 +101,7 @@ watch(() => props.visible, (newVal) => {
         </div>
 
         <p class="help-text">
-          <span class="drag-hint">⬇ Glissez</span> un commentaire sur la copie pour l'ajouter
+          Cliquez ou glissez un commentaire sur la copie pour l'ajouter
         </p>
 
         <div v-if="loading" class="loading-state">
@@ -120,7 +124,8 @@ watch(() => props.visible, (newVal) => {
             draggable="true"
             @dragstart="handleDragStart(text, $event)"
             @dragend="handleDragEnd"
-            title="Glisser-déposer sur la copie"
+            @click="handleTapInsert(text)"
+            title="Cliquer ou glisser-déposer sur la copie"
           >
             <span class="drag-icon">⋮⋮</span>
             <span class="comment-text">{{ text }}</span>
@@ -143,6 +148,7 @@ watch(() => props.visible, (newVal) => {
   left: 20px;
   width: 300px;
   max-height: calc(100vh - 150px);
+  max-height: calc(100dvh - 150px);
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.05);
@@ -299,11 +305,17 @@ watch(() => props.visible, (newVal) => {
   position: relative;
 }
 
-.comment-item:hover {
+@media (hover: hover) {
+  .comment-item:hover {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-color: #93c5fd;
+    transform: translateX(3px);
+    box-shadow: 0 2px 8px rgba(59,130,246,0.15);
+  }
+}
+.comment-item:active {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   border-color: #93c5fd;
-  transform: translateX(3px);
-  box-shadow: 0 2px 8px rgba(59,130,246,0.15);
 }
 
 .comment-item:active,
@@ -338,5 +350,30 @@ watch(() => props.visible, (newVal) => {
   margin-top: 0.75rem;
   padding-top: 0.5rem;
   border-top: 1px solid #e2e8f0;
+}
+
+/* Tablette paysage */
+@media (max-width: 1180px) and (min-width: 768px) {
+  .comment-bank-panel {
+    width: 260px;
+    top: 100px;
+    left: 10px;
+  }
+}
+
+/* Tablette portrait / mobile */
+@media (max-width: 767px) {
+  .comment-bank-panel {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 50svh;
+    border-radius: 16px 16px 0 0;
+    border: none;
+    border-top: 2px solid #3b82f6;
+  }
 }
 </style>
