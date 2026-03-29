@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "simulate:tablet": "playwright test tests/simulate_tablet.spec.ts --project=tablet --headed",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",

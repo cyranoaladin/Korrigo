@@ -14,8 +14,14 @@ export default defineConfig({
     },
     projects: [
         {
-            name: 'chromium',
-            use: { ...devices['Desktop Chrome'] },
+            name: 'tablet',
+            use: { 
+                ...devices['iPad Air'],
+                viewport: { width: 820, height: 1180 },
+                deviceScaleFactor: 2,
+                isMobile: true,
+                hasTouch: true,
+            },
         },
     ],
 });
