@@ -28,6 +28,7 @@ const isSaving = ref(false)
 const error = ref(null)
 const annotations = ref([])
 const historyLogs = ref([])
+const isTouch = ref(matchMedia('(pointer: coarse)').matches)
 
 // Viewer
 const scale = ref(1.0)
@@ -1376,7 +1377,7 @@ onUnmounted(() => {
             <button
               :class="['btn-stamp', 'btn-stamp-vrai', { active: quickStampMode === 'VRAI' }]"
               title="Tampon Vrai (Glisser-Déposer ou Clic)"
-              draggable="true"
+              :draggable="!isTouch"
               @dragstart="handleDragStart('VRAI', $event)"
               @click="setAnnotationMode('stamp', 'VRAI')"
             >
@@ -1385,7 +1386,7 @@ onUnmounted(() => {
             <button
               :class="['btn-stamp', 'btn-stamp-faux', { active: quickStampMode === 'FAUX' }]"
               title="Tampon Faux (Glisser-Déposer ou Clic)"
-              draggable="true"
+              :draggable="!isTouch"
               @dragstart="handleDragStart('FAUX', $event)"
               @click="setAnnotationMode('stamp', 'FAUX')"
             >
@@ -1397,21 +1398,21 @@ onUnmounted(() => {
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'COMMENTAIRE' }]"
               title="Commentaire (Glisser-Déposer)"
-              draggable="true"
+              :draggable="!isTouch"
               @dragstart="handleDragStart('COMMENTAIRE', $event)"
               @click="setAnnotationMode('type', 'COMMENTAIRE')"
             >💬</button>
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'SURLIGNAGE' }]"
               title="Surlignage (Glisser-Déposer)"
-              draggable="true"
+              :draggable="!isTouch"
               @dragstart="handleDragStart('SURLIGNAGE', $event)"
               @click="setAnnotationMode('type', 'SURLIGNAGE')"
             >🟨</button>
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'ERREUR' }]"
               title="Erreur (Glisser-Déposer)"
-              draggable="true"
+              :draggable="!isTouch"
               @dragstart="handleDragStart('ERREUR', $event)"
               @click="setAnnotationMode('type', 'ERREUR')"
             >❌</button>
@@ -1633,6 +1634,9 @@ onUnmounted(() => {
                               :disabled="isReadOnly"
                               :placeholder="isReadOnly ? 'Lecture seule' : 'Remarque...'"
                               rows="2"
+                              autocorrect="off"
+                              autocapitalize="none"
+                              spellcheck="false"
                               @focus="activeRemarkQuestionId = question.id"
                               @input="onRemarkChange(question.id, $event.target.value)"
                             />
@@ -1731,6 +1735,9 @@ onUnmounted(() => {
                 :disabled="isReadOnly"
                 :placeholder="isReadOnly ? 'Lecture seule' : 'Appréciation globale...'"
                 rows="4"
+                autocorrect="off"
+                autocapitalize="none"
+                spellcheck="false"
                 @input="onAppreciationChange($event.target.value)"
               />
               <span v-if="appreciationSaving" class="save-indicator small">Enregistrement...</span>
@@ -1819,7 +1826,22 @@ onUnmounted(() => {
 .inspector-total.score-overflow { color: #991b1b; background: #fef2f2; border-color: #fecaca; }
 
 /* Annotation editor overlay (floats above copy area) */
-.annotation-editor-overlay { position: fixed; top: 120px; left: 50%; transform: translateX(-50%); z-index: 100; width: 380px; max-width: calc(100vw - 40px); background: #fff3cd; border: 2px solid #fbbf24; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); padding: 16px; }
+.annotation-editor-overlay { 
+  position: fixed; 
+  top: 120px; 
+  left: 50%; 
+  transform: translateX(-50%); 
+  z-index: 100; 
+  width: 380px; 
+  max-width: calc(100vw - 40px); 
+  max-height: calc(100svh - 80px);
+  overflow-y: auto;
+  background: #fff3cd; 
+  border: 2px solid #fbbf24; 
+  border-radius: 10px; 
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2); 
+  padding: 16px; 
+}
 
 .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
 .form-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }

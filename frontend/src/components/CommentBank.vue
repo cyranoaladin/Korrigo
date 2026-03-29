@@ -12,6 +12,7 @@ const historyTexts = ref([])
 const loading = ref(false)
 const error = ref(null)
 const searchQuery = ref('')
+const isTouch = ref(matchMedia('(pointer: coarse)').matches)
 
 // Filtrage et dé-duplication des commentaires
 const filteredComments = computed(() => {
@@ -101,7 +102,8 @@ watch(() => props.visible, (newVal) => {
         </div>
 
         <p class="help-text">
-          Cliquez ou glissez un commentaire sur la copie pour l'ajouter
+          <span v-if="isTouch">Cliquez sur un commentaire pour l'ajouter à la copie</span>
+          <span v-else>Cliquez ou glissez un commentaire sur la copie pour l'ajouter</span>
         </p>
 
         <div v-if="loading" class="loading-state">
@@ -121,7 +123,7 @@ watch(() => props.visible, (newVal) => {
             v-for="(text, index) in filteredComments"
             :key="text + index"
             class="comment-item"
-            draggable="true"
+            :draggable="!isTouch"
             @dragstart="handleDragStart(text, $event)"
             @dragend="handleDragEnd"
             @click="handleTapInsert(text)"
