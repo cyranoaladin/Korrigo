@@ -352,6 +352,23 @@ class GradingService:
         if copy.status not in (Copy.Status.READY, Copy.Status.IN_PROGRESS):
             raise ValueError(f"Impossible de finaliser une copie en statut {copy.status}")
 
+        # Atomic compare-and-swap: claim the row with a single UPDATE ... WHERE.
+        # Returns 0 if another concurrent transaction already changed the status,
+        # guaranteeing exactly one caller proceeds even without real row locks.
+        rows_updated = Copy.objects.filter(
+            id=copy.id,
+            status__in=(Copy.Status.READY, Copy.Status.IN_PROGRESS),
+        ).update(
+            status=Copy.Status.FINALIZED,
+            graded_at=timezone.now(),
+            grading_error_message=None,
+        )
+        if rows_updated == 0:
+            raise LockConflictError("Copie déjà finalisée (concurrent).")
+
+        # Refresh to get the updated fields
+        copy.refresh_from_db()
+
         final_score = GradingService.compute_score(copy)
 
         from processing.services.pdf_flattener import PDFFlattener
@@ -366,10 +383,7 @@ class GradingService:
                     output_filename = f"copy_{copy.id}_corrected.pdf"
                     copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
 
-                copy.status = Copy.Status.FINALIZED
-                copy.graded_at = timezone.now()
-                copy.grading_error_message = None
-                copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf"])
+                copy.save(update_fields=["final_pdf"])
 
                 GradingEvent.objects.get_or_create(
                     copy=copy,

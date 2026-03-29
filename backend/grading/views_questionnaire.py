@@ -14,14 +14,31 @@ def build_display_name(user):
     return full_name or user.username
 
 
+def get_eligible_correctors():
+    """Return the set of users assigned as correctors on at least one exam."""
+    from exams.models import Exam
+    corrector_ids = (
+        Exam.objects.exclude(correctors=None)
+        .values_list('correctors', flat=True)
+        .distinct()
+    )
+    return User.objects.filter(id__in=corrector_ids).distinct()
+
+
 def get_teacher_queryset():
+    """Return the eligible cohort: assigned correctors if any exams exist, else all teachers."""
+    eligible = get_eligible_correctors()
+    if eligible.exists():
+        return eligible
     return User.objects.filter(groups__name=UserRole.TEACHER).distinct()
 
 
 def build_questionnaire_summary():
-    total_eligible = get_teacher_queryset().count()
+    eligible_qs = get_teacher_queryset()
+    total_eligible = eligible_qs.count()
+    eligible_ids = set(eligible_qs.values_list('id', flat=True))
     responses_count = QuestionnaireResponse.objects.filter(
-        user__groups__name=UserRole.TEACHER
+        user_id__in=eligible_ids
     ).distinct().count()
     completion_rate = round((responses_count / total_eligible) * 100, 1) if total_eligible else 0
     remaining_count = max(total_eligible - responses_count, 0)
@@ -32,6 +49,16 @@ def build_questionnaire_summary():
         'completion_rate': completion_rate,
         'is_available': total_eligible > 0 and responses_count >= total_eligible,
     }
+
+
+def trigger_questionnaire_bilan_generation():
+    """Trigger async generation of the questionnaire bilan report.
+
+    This is a placeholder that can be replaced with a Celery task or other
+    async mechanism.  Tests patch this function to verify it is called at the
+    right moment.
+    """
+    pass
 
 
 def _read_bilan_html():
@@ -73,6 +100,30 @@ def _get_bilan_html():
     return _BILAN_HTML_CACHE
 
 
+def _build_participants():
+    """Build responded/pending participant lists from the eligible corrector cohort."""
+    eligible_qs = get_teacher_queryset()
+    responded_user_ids = set(
+        QuestionnaireResponse.objects.filter(
+            user__in=eligible_qs
+        ).values_list('user_id', flat=True)
+    )
+    responded = []
+    pending = []
+    for user in eligible_qs:
+        entry = {
+            'user_id': user.id,
+            'username': user.username,
+            'display_name': build_display_name(user),
+            'email': user.email,
+        }
+        if user.id in responded_user_ids:
+            responded.append(entry)
+        else:
+            pending.append(entry)
+    return {'responded': responded, 'pending': pending}
+
+
 class QuestionnaireResponseView(views.APIView):
     permission_classes = [IsTeacher]
 
@@ -107,11 +158,16 @@ class QuestionnaireResponseView(views.APIView):
             payload=answers,
         )
 
+        summary = build_questionnaire_summary()
+
+        if summary['is_available']:
+            trigger_questionnaire_bilan_generation()
+
         return Response({
             'status': 'ok',
             'submitted_at': response.updated_at.isoformat(),
             'has_response': True,
-            'summary': build_questionnaire_summary(),
+            'summary': summary,
         })
 
 
@@ -119,13 +175,16 @@ class QuestionnaireBilanView(views.APIView):
     permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request):
-        responses = QuestionnaireResponse.objects.select_related('user').order_by('-updated_at')
+        eligible_qs = get_teacher_queryset()
+        eligible_ids = set(eligible_qs.values_list('id', flat=True))
+
+        responses = QuestionnaireResponse.objects.select_related('user').filter(
+            user_id__in=eligible_ids
+        ).order_by('-updated_at')
         summary = build_questionnaire_summary()
         serialized = []
 
         for item in responses:
-            if not item.user.groups.filter(name=UserRole.TEACHER).exists():
-                continue
             serialized.append({
                 'user_id': item.user_id,
                 'username': item.user.username,
@@ -134,6 +193,8 @@ class QuestionnaireBilanView(views.APIView):
                 'submitted_at': item.updated_at.isoformat(),
                 'answers': item.payload,
             })
+
+        participants = _build_participants()
 
         # Build generated_bilan from static HTML file
         bilan_html = _get_bilan_html()
@@ -150,18 +211,12 @@ class QuestionnaireBilanView(views.APIView):
             or request.user.groups.filter(name=UserRole.ADMIN).exists()
         )
 
-        if not summary['is_available'] and not (is_admin and generated_bilan['status'] == 'ready'):
-            return Response({
-                'responses': serialized if is_admin else [],
-                'participants': {'responded': [], 'pending': []},
-                'summary': summary,
-                'generated_bilan': generated_bilan,
-                'detail': 'Le bilan sera disponible une fois que tous les correcteurs auront répondu au questionnaire.',
-            })
+        # Admin always sees responses; non-admin only when all have responded
+        visible_responses = serialized if (is_admin or summary['is_available']) else []
 
         return Response({
-            'responses': serialized,
-            'participants': {'responded': [], 'pending': []},
+            'responses': visible_responses,
+            'participants': participants,
             'summary': summary,
             'generated_bilan': generated_bilan,
             'detail': '',
