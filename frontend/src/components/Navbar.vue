@@ -55,8 +55,7 @@
         <div class="hidden md:flex items-center space-x-3 relative">
           <button
             class="inline-flex items-center gap-2 bg-primary-700 text-white px-5 py-2 rounded-lg hover:bg-primary-800 transition-colors font-medium text-sm shadow-sm"
-            @click="isLoginDropdownOpen = !isLoginDropdownOpen"
-            @blur="closeDropdown"
+            @click.stop="isLoginDropdownOpen = !isLoginDropdownOpen"
           >
             <LogIn class="w-4 h-4" />
             Connexion
@@ -202,7 +201,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { LogIn, ChevronDown, PenTool, Settings, GraduationCap } from 'lucide-vue-next'
 
@@ -215,7 +214,17 @@ const canSeeStats = computed(() => {
 const isMobileMenuOpen = ref(false)
 const isLoginDropdownOpen = ref(false)
 
-function closeDropdown() {
-  setTimeout(() => { isLoginDropdownOpen.value = false }, 150)
+const handleGlobalClick = () => {
+  if (isLoginDropdownOpen.value) {
+    isLoginDropdownOpen.value = false
+  }
 }
+
+onMounted(() => {
+  window.addEventListener('click', handleGlobalClick)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', handleGlobalClick)
+})
 </script>
