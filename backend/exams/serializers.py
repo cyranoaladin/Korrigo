@@ -210,8 +210,11 @@ class CopySerializer(serializers.ModelSerializer):
         if not obj.student:
             return None
         s = obj.student
-        parts = [s.last_name, s.first_name]
-        return ' '.join(p for p in parts if p).strip() or None
+        try:
+            parts = [s.last_name, s.first_name]
+            return ' '.join(p for p in parts if p).strip() or None
+        except (AttributeError, TypeError):
+            return str(s) if s else None
 
     def get_corrector(self, obj):
         if not obj.assigned_corrector:

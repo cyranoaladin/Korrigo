@@ -18,6 +18,11 @@ class Annotation(models.Model):
         VRAI = 'VRAI', _("Vrai")
         FAUX = 'FAUX', _("Faux")
 
+    # Backward-compatible English aliases (used in tests & legacy code)
+    Type.COMMENT = Type.COMMENTAIRE
+    Type.HIGHLIGHT = Type.SURLIGNAGE
+    Type.ERROR = Type.ERREUR
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     copy = models.ForeignKey(
         Copy,
