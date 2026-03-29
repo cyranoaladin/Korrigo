@@ -194,7 +194,7 @@ const contextLabel = computed(() => {
     </div>
 
     <div class="suggestions-hint">
-      Cliquez pour insérer · Ctrl+K pour rechercher
+      Cliquez pour insérer<span class="keyboard-only"> · Ctrl+K pour rechercher</span>
     </div>
   </div>
 </template>
@@ -400,5 +400,9 @@ const contextLabel = computed(() => {
     color: #94a3b8;
     border-top: 1px solid #f1f5f9;
     background: #fafafa;
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .keyboard-only { display: none; }
 }
 </style>

@@ -562,7 +562,7 @@ const onScoreChange = (questionId, value) => {
     if (value === '' || value === null || value === undefined) {
         questionScores.value.set(questionId, null)
     } else {
-        let parsed = parseFloat(value)
+        let parsed = parseFloat(String(value).replace(',', '.'))
         // Clamp: score must be >= 0
         if (parsed < 0) parsed = 0
         // Clamp: score must not exceed question maxScore
@@ -930,6 +930,29 @@ const handleDrop = async (e) => {
     annotationMode.value = { group: null, value: null }
 }
 
+// CommentBank tap-to-insert fallback (for touch devices where drag-and-drop is unavailable)
+const handleCommentBankInsert = async (text) => {
+    if (!canAnnotate.value) return
+    isSaving.value = true
+    try {
+        // Place annotation at center of current page, reasonable default size
+        const normW = 0.25
+        const normH = 0.06
+        await gradingApi.createAnnotation(copyId, {
+            page_index: currentPage.value - 1,
+            x: 0.05,
+            y: 0.5 - normH / 2,
+            w: normW,
+            h: normH,
+            type: 'COMMENTAIRE',
+            content: text
+        })
+        await refreshAnnotations()
+    } catch (err) {
+        error.value = err.response?.data?.detail || "Échec de l'ajout depuis l'historique"
+    } finally { isSaving.value = false }
+}
+
 // --- Annotation Editor ---
 const handleDrawComplete = async (normalizedRect, overrideType = null) => {
     if (!canAnnotate.value) return;
@@ -1117,8 +1140,8 @@ const onScrollAreaTouchMove = (e) => {
 }
 
 const onScrollAreaTouchEnd = (e) => {
-    // Swipe page navigation only when no annotation mode is active and single touch
-    if (!touchState.isMultiTouch && e.changedTouches.length === 1 && annotationMode.value.group === null) {
+    // Swipe page navigation: single horizontal swipe (works even in annotation mode)
+    if (!touchState.isMultiTouch && e.changedTouches.length === 1) {
         const dx = e.changedTouches[0].clientX - touchState.startX
         const dy = e.changedTouches[0].clientY - touchState.startY
         // Horizontal swipe > 60px, more horizontal than vertical
@@ -1316,6 +1339,7 @@ onUnmounted(() => {
       <CommentBank
         :visible="showCommentBank"
         @close="showCommentBank = false"
+        @insert="handleCommentBankInsert"
       />
 
       <!-- Viewer -->
@@ -1447,8 +1471,10 @@ onUnmounted(() => {
               :src="currentPageImageUrl"
               :class="['page-image', { 'page-image--loading': !imageLoaded }]"
               draggable="false"
+              style="pointer-events: none; user-select: none;"
               @load="handleImageLoad"
               @error="handleImageError"
+              @contextmenu.prevent
             >
             <CanvasLayer
               :width="displayWidth"
@@ -1501,6 +1527,9 @@ onUnmounted(() => {
             ref="editorInputRef"
             v-model="draftAnnotation.content"
             placeholder="Saisir le texte de l'annotation..."
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
             @keydown.ctrl.enter="saveAnnotation"
           />
         </div>
@@ -1714,7 +1743,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.corrector-desk { display: flex; flex-direction: column; height: 100vh; background: #e9ecef; }
+.corrector-desk { display: flex; flex-direction: column; height: 100vh; height: 100dvh; background: #e9ecef; }
 .toolbar { padding: 10px 20px; background: #343a40; color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 .copy-info { margin-left: 15px; font-size: 1.1rem; }
 .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-left: 5px; text-transform: uppercase; font-weight: bold; }
@@ -1790,7 +1819,7 @@ onUnmounted(() => {
 .inspector-total.score-overflow { color: #991b1b; background: #fef2f2; border-color: #fecaca; }
 
 /* Annotation editor overlay (floats above copy area) */
-.annotation-editor-overlay { position: fixed; top: 120px; left: 50%; transform: translateX(-60%); z-index: 100; width: 380px; background: #fff3cd; border: 2px solid #fbbf24; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); padding: 16px; }
+.annotation-editor-overlay { position: fixed; top: 120px; left: 50%; transform: translateX(-50%); z-index: 100; width: 380px; max-width: calc(100vw - 40px); background: #fff3cd; border: 2px solid #fbbf24; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); padding: 16px; }
 
 .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
 .form-group label { font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; }
@@ -1906,7 +1935,7 @@ onUnmounted(() => {
 .canvas-wrapper.drag-over { box-shadow: 0 0 0 4px #3b82f6, 0 0 20px rgba(59,130,246,0.3); }
 
 /* ── Responsive — Tablette paysage (768–1023px) ─────────────────────────── */
-@media (max-width: 1023px) and (min-width: 768px) {
+@media (max-width: 1180px) and (min-width: 768px) {
   .inspector-panel { width: 280px; }
   .toolbar { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
   .actions button { min-height: 44px; padding: 8px 12px; }
@@ -1918,11 +1947,13 @@ onUnmounted(() => {
 /* ── Responsive — Tablette portrait / mobile (<768px) ──────────────────── */
 @media (max-width: 767px) {
   .workspace { flex-direction: column; }
+  .viewer-container { min-height: 50vh; min-height: 50dvh; }
   .inspector-panel {
     width: 100%;
     border-left: none;
     border-top: 1px solid #dee2e6;
-    max-height: 45vh;
+    max-height: 35vh;
+    max-height: 35dvh;
     overflow-y: auto;
   }
   .toolbar { flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
