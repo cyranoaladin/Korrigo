@@ -1,7 +1,7 @@
 # Guide Utilisateur Enseignant - Korrigo
 
-> **Version** : 2.0.0
-> **Date** : 23 Mars 2026
+> **Version** : 2.1.0
+> **Date** : 29 Mars 2026
 > **Public** : Enseignants (Professeurs)  
 > **Type** : Manuel Utilisateur
 
@@ -19,9 +19,10 @@
 8. [Vue Scindée (Split View)](#vue-scindée-split-view)
 9. [Indicateur de Progression](#indicateur-de-progression)
 10. [Finalisation des Copies](#finalisation-des-copies)
-11. [Bonnes Pratiques](#bonnes-pratiques)
-12. [Résolution des Problèmes](#résolution-des-problèmes)
-13. [Support et Assistance](#support-et-assistance)
+11. [Correction sur Tablette (iPad / Android)](#correction-sur-tablette-ipad--android)
+12. [Bonnes Pratiques](#bonnes-pratiques)
+13. [Résolution des Problèmes](#résolution-des-problèmes)
+14. [Support et Assistance](#support-et-assistance)
 
 ---
 
@@ -52,7 +53,8 @@ Pour utiliser Korrigo, vous devez :
 - Disposer d'un compte enseignant (fourni par l'administration)
 - Utiliser un navigateur moderne (Chrome, Firefox, Edge recommandés)
 - Disposer d'une connexion internet stable
-- Idéalement utiliser une souris pour plus de précision
+- Idéalement utiliser une souris pour plus de précision (sur ordinateur)
+- **Tablette** : iPad (Safari ou Chrome) ou tablette Android (Chrome) — voir [section 11](#correction-sur-tablette-ipad--android)
 
 ---
 
@@ -674,6 +676,180 @@ Si vous avez finalisé une copie par erreur, un **administrateur** peut :
 
 ---
 
+## Correction sur Tablette (iPad / Android)
+
+Korrigo est entièrement utilisable sur tablette. Cette section détaille les gestes tactiles et les particularités de l'interface sur écran tactile.
+
+> Pour un guide complet et autonome, consultez aussi : **[Guide Correction Tablette](../user/GUIDE_CORRECTION_TABLETTE.md)**
+
+### Prérequis Tablette
+
+- **iPad** : Safari ou Chrome (version récente)
+- **Android** : Chrome (version récente)
+- Connexion Wi-Fi ou 4G/5G
+- **Recommandation** : utilisez la tablette en **mode paysage** (horizontale) pour un confort optimal
+
+### Connexion depuis la Tablette
+
+1. Ouvrez le navigateur sur votre tablette
+2. Allez sur **https://korrigo.labomaths.tn**
+3. Entrez votre email et mot de passe
+4. Appuyez sur **Connexion**
+
+Le tableau de bord s'affiche avec la liste de vos copies assignées.
+
+### Interface Tablette
+
+#### Mode paysage (recommandé)
+
+```
++----------------------------------------------------------+
+|  <- Retour    COPIE-A3F2    [En cours]    [Finaliser]    |  Barre d'outils
++----------------------------------------------------------+
+|  <- Prec.   Page 2/4   Suiv. ->   V  X  C  S  E  *     |  Navigation + annotations
+|                        |  - [100%] +                     |  Zoom
++------------------------+---------------------------------+
+|                        |  Bareme                  12/20  |
+|                        |  > Partie 1           6 pts     |
+|    IMAGE DE LA COPIE   |  > Partie 2          14 pts     |
+|                        |    > Exercice 2     3 pts       |
+|    (zone tactile       |      Q2.1  [ 0.5 ] / 0.5       |
+|     des annotations)   |      Q2.2  [     ] / 0.5       |
+|                        |      Remarque: ___________      |
+|                        |                                 |
+|                        |  Appreciation globale            |
+|                        |  ____________________________   |
++------------------------+---------------------------------+
+```
+
+#### Mode portrait
+
+La copie occupe la moitié haute de l'écran. Le panneau de barème apparait en dessous et défile verticalement.
+
+### Gestes Tactiles
+
+#### Navigation
+
+| Geste | Action |
+|-------|--------|
+| **Balayer horizontalement** (swipe gauche) | Page suivante |
+| **Balayer horizontalement** (swipe droite) | Page precedente |
+| Boutons **<- Prec.** / **Suiv. ->** | Navigation page par page |
+
+Le balayage doit etre **franchement horizontal** (plus large que haut) et depasser environ 1 cm.
+
+#### Zoom
+
+| Geste | Action |
+|-------|--------|
+| **Pincer avec 2 doigts** (ecarter) | Zoomer |
+| **Pincer avec 2 doigts** (rapprocher) | Dezoomer |
+| Boutons **-** / **+** | Zoom par paliers de 10% |
+| Bouton **<->** | Ajuster a la largeur de l'ecran |
+| Appuyer sur le pourcentage (ex: **100%**) | Revenir au zoom 100% |
+
+Le zoom va de **30%** a **300%**.
+
+### Annotations sur Tablette
+
+#### Tampons Vrai / Faux
+
+1. Appuyez sur **V** (vert) ou **X** (rouge) dans la barre d'outils
+2. Appuyez sur la copie a l'endroit voulu — un tampon apparait instantanement
+3. Continuez a appuyer pour poser plusieurs tampons
+4. Appuyez a nouveau sur le bouton pour desactiver le mode
+
+Un **tap simple** pose un tampon de taille fixe. Vous pouvez aussi **maintenir et glisser** pour tracer un tampon plus grand.
+
+#### Commentaires et Surlignages
+
+1. Activez le mode voulu (commentaire, surlignage, erreur)
+2. **Tracez un rectangle** en maintenant le doigt et en glissant sur la copie
+3. Un editeur s'ouvre au centre de l'ecran : choisissez le type et tapez votre texte
+4. Appuyez sur **Enregistrer**
+
+#### Banque de Commentaires
+
+1. Appuyez sur le bouton etoile dans la barre d'outils
+2. Le panneau de la banque s'ouvre
+3. Appuyez sur un commentaire pour l'inserer au centre de la page courante
+4. Vos commentaires sont memorises automatiquement au fil des corrections
+
+#### Supprimer une Annotation
+
+Appuyez sur l'annotation concernee, puis sur l'icone poubelle. Confirmez la suppression.
+
+### Saisie des Notes sur Tablette
+
+1. Depliez l'exercice dans le panneau de bareme (accordeon)
+2. Appuyez sur le champ de note — le **clavier numerique** s'ouvre automatiquement
+3. Saisissez la note (point ou virgule comme separateur decimal)
+4. La note est **sauvegardee automatiquement** apres 0,8 seconde d'inactivite
+5. Les champs remplis passent en **vert**
+
+> **Astuce** : Sur iPad, si le clavier masque les champs du bas, faites defiler manuellement le panneau de bareme.
+
+### Remarques et Appreciation
+
+- **Remarques par question** : appuyez sur le champ "Remarque..." sous chaque note. Sauvegarde automatique apres 1 seconde.
+- **Appreciation globale** : faites defiler le bareme jusqu'en bas, redigez dans le cadre jaune. **Obligatoire pour finaliser.**
+- Le bouton suggestions (ampoule) propose des remarques contextualisees.
+
+### Finalisation sur Tablette
+
+1. Verifiez que toutes les notes sont saisies et l'appreciation redigee
+2. Le bouton **Finaliser** en haut devient actif (vert)
+3. Appuyez et confirmez — la copie passe en lecture seule
+
+### Utilisation avec un Stylet
+
+Si vous disposez d'un stylet (Apple Pencil, S Pen...) :
+
+- **Rejet de la paume** : le systeme ignore automatiquement les touches de votre paume quand le stylet est utilise
+- **Tap du stylet** : pose un tampon ou ouvre l'editeur
+- **Glisser le stylet** : trace un rectangle d'annotation
+- **Sans outil selectionne** : le stylet trace un rectangle (commentaire par defaut), le doigt fait defiler
+
+### Sauvegarde et Mode Hors Ligne
+
+| Donnee | Delai de sauvegarde |
+|--------|-------------------|
+| Notes | 0,8 seconde apres la derniere frappe |
+| Remarques | 1 seconde |
+| Appreciation | 1 seconde |
+| Annotations | Immediate |
+
+En cas de **coupure internet** :
+- Un bandeau jaune indique "Hors ligne"
+- Les modifications sont stockees localement dans le navigateur
+- La synchronisation reprend automatiquement a la reconnexion
+
+### Recapitulatif des Gestes
+
+| Geste | Zone | Action |
+|-------|------|--------|
+| 1 doigt — balayer horizontalement | Copie | Changer de page |
+| 1 doigt — glisser verticalement | Copie | Defiler (si zoome) |
+| 2 doigts — pincer/ecarter | Copie | Zoom / Dezoom |
+| 1 doigt — tap | Copie | Poser un tampon (si mode actif) |
+| 1 doigt — maintenir et glisser | Copie | Tracer un rectangle d'annotation |
+| Stylet — tap | Copie | Tampon ou annotation |
+| Stylet — glisser | Copie | Rectangle d'annotation |
+| Tap | Champ de note | Ouvrir le clavier numerique |
+
+### Resolution de Problemes Tablette
+
+| Probleme | Solution |
+|----------|----------|
+| La copie ne s'affiche pas | Verifiez la connexion, rechargez la page |
+| Le clavier masque les champs | Faites defiler le panneau de bareme manuellement |
+| Les annotations ne se posent pas | Verifiez qu'un mode est actif (bouton surligné) |
+| Bouton Finaliser grise | Verifiez notes completes, total <= 20, appreciation non vide |
+| Zone d'identification masquee | Normal : anonymat preserve (seul l'admin peut reveler) |
+| Zoom intempestif | Evitez 2 doigts simultanement, utilisez les boutons -/+ |
+
+---
+
 ## Bonnes Pratiques
 
 ### Conseils de Correction
@@ -893,15 +1069,15 @@ En cas de perte de connexion :
 | **Google Chrome** | 90+ | ✅ Recommandé |
 | **Mozilla Firefox** | 88+ | ✅ Recommandé |
 | **Microsoft Edge** | 90+ | ✅ Recommandé |
-| **Safari** | 14+ | ⚠️ Partiel |
+| **Safari** | 14+ | ✅ Supporté (iPad & Mac) |
 | **Internet Explorer** | Toutes | ❌ Non supporté |
 
 #### Problèmes Connus
 
-- **Safari** : Problèmes occasionnels avec les annotations SVG
+- **Safari** : Pleinement fonctionnel sur iPad. Sur Mac, performances similaires à Chrome.
 - **Firefox** : Performances réduites sur les PDF de grande taille
 
-**Solution** : Utilisez **Google Chrome** pour une expérience optimale.
+**Solution** : Utilisez **Google Chrome** ou **Safari** pour une expérience optimale.
 
 ---
 
@@ -994,6 +1170,7 @@ Merci de votre aide.
 
 | Version | Date | Changements |
 |---------|------|-------------|
+| **2.1.0** | 29/03/2026 | Ajout section Correction sur Tablette (iPad / Android), mise à jour prérequis et support Safari |
 | **2.0.0** | 23/03/2026 | Ajout outil Tampon Vrai/Faux, Vue Scindée (Split View), Indicateur de Progression |
 | **1.0.0** | 30/01/2026 | Version initiale du guide enseignant |
 
