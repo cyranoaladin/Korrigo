@@ -175,7 +175,7 @@ class AnnotationHistoryView(APIView):
         texts_with_count = (
             Annotation.objects.filter(
                 created_by=request.user,
-                type__in=[Annotation.Type.COMMENT, "COMMENTAIRE"]
+                type__in=[Annotation.Type.COMMENTAIRE]
             )
             .exclude(content='')
             .exclude(content__isnull=True)
