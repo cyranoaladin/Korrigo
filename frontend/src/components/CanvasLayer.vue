@@ -24,6 +24,7 @@ const dpr = window.devicePixelRatio || 1
 const setupCanvas = () => {
     const canvas = canvasRef.value
     if (!canvas) return
+    if (!props.width || !props.height || props.width < 1 || props.height < 1) return
 
     // Manually update canvas physical dimensions — this clears the canvas and
     // resets the 2D context state atomically, BEFORE we redraw. This avoids
@@ -58,14 +59,11 @@ const redraw = (ctx) => {
     // Clear in logical CSS pixels
     ctx.clearRect(0, 0, props.width, props.height)
 
-    // Type-based color map (French + backward compat English)
+    // Type-based color map (French — canonical types)
     const typeColors = {
         'COMMENTAIRE': { stroke: '#2563eb', fill: 'rgba(37, 99, 235, 0.12)', text: '#1e40af' },
-        'COMMENT':     { stroke: '#2563eb', fill: 'rgba(37, 99, 235, 0.12)', text: '#1e40af' },
         'SURLIGNAGE':  { stroke: '#d97706', fill: 'rgba(251, 191, 36, 0.18)', text: '#92400e' },
-        'HIGHLIGHT':   { stroke: '#d97706', fill: 'rgba(251, 191, 36, 0.18)', text: '#92400e' },
         'ERREUR':      { stroke: '#dc2626', fill: 'rgba(220, 38, 38, 0.12)', text: '#991b1b' },
-        'ERROR':       { stroke: '#dc2626', fill: 'rgba(220, 38, 38, 0.12)', text: '#991b1b' },
         'BONUS':       { stroke: '#16a34a', fill: 'rgba(22, 163, 74, 0.12)', text: '#166534' },
         'VRAI':        { stroke: '#16a34a', fill: 'rgba(22, 163, 74, 0.10)', text: '#16a34a' },
         'FAUX':        { stroke: '#dc2626', fill: 'rgba(220, 38, 38, 0.10)', text: '#dc2626' },
@@ -156,7 +154,8 @@ const redraw = (ctx) => {
             if (ann.type && !isSurlignage) {
                 ctx.fillStyle = colors.text
                 ctx.font = 'bold 11px sans-serif'
-                ctx.fillText(ann.type, rx + 2, ry - 4)
+                const labelY = ry >= 14 ? ry - 4 : ry + 14
+                ctx.fillText(ann.type, rx + 2, labelY)
             }
 
             // Content text inside rectangle

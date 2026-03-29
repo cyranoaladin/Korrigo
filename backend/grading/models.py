@@ -11,9 +11,9 @@ class Annotation(models.Model):
     Coordonnées normalisées [0,1] selon ADR-002.
     """
     class Type(models.TextChoices):
-        COMMENT = 'COMMENT', _("Commentaire")
-        HIGHLIGHT = 'HIGHLIGHT', _("Surligné")
-        ERROR = 'ERROR', _("Erreur")
+        COMMENTAIRE = 'COMMENTAIRE', _("Commentaire")
+        SURLIGNAGE = 'SURLIGNAGE', _("Surligné")
+        ERREUR = 'ERREUR', _("Erreur")
         BONUS = 'BONUS', _("Bonus")
         VRAI = 'VRAI', _("Vrai")
         FAUX = 'FAUX', _("Faux")
@@ -56,7 +56,7 @@ class Annotation(models.Model):
     type = models.CharField(
         max_length=20,
         choices=Type.choices,
-        default=Type.COMMENT,
+        default=Type.COMMENTAIRE,
         verbose_name=_("Type d'annotation")
     )
     score_delta = models.IntegerField(

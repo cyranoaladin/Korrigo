@@ -18,6 +18,7 @@ const saving = ref(false)
 const dispatching = ref(false)
 const dispatchConfirmed = ref(false)
 const dispatchResults = ref(null)
+const undispatchedCount = ref(null) // copies READY sans correcteur
 
 // Toast
 const toast = ref({ show: false, message: '', type: 'success' })
@@ -47,6 +48,13 @@ const loadData = async () => {
     selectedCorrectors.value = new Set(
       correctors.map(c => (typeof c === 'object' ? c.id : c))
     )
+
+    // Check how many copies still need dispatching (no assigned corrector)
+    try {
+      const copiesRes = await api.get(`/exams/${examId}/copies/`, { params: { page_size: 999 } })
+      const allCopies = copiesRes.data.results || copiesRes.data || []
+      undispatchedCount.value = allCopies.filter(c => !c.assigned_corrector).length
+    } catch { undispatchedCount.value = null }
   } catch (e) {
     error.value = e.response?.data?.detail || 'Erreur lors du chargement.'
   } finally {
@@ -89,6 +97,7 @@ const dispatchCopies = async () => {
   try {
     const res = await api.post(`/exams/${examId}/dispatch/`)
     dispatchResults.value = res.data
+    undispatchedCount.value = 0
     showToast('Copies dispatchées avec succès.', 'success')
     dispatchConfirmed.value = false
   } catch (e) {
@@ -104,6 +113,7 @@ const cancelDispatch = () => {
 }
 
 const selectedCount = computed(() => selectedCorrectors.value.size)
+const allDispatched = computed(() => undispatchedCount.value === 0)
 
 const dispatchSummary = computed(() => {
   if (!dispatchResults.value) return []
@@ -249,6 +259,16 @@ onMounted(loadData)
           <h3 class="text-base font-semibold text-slate-700 mb-2">
             Dispatcher les copies
           </h3>
+
+          <!-- All dispatched -->
+          <div v-if="allDispatched && !dispatchResults" class="bg-emerald-50 ring-1 ring-emerald-100 rounded-xl p-4 text-sm text-emerald-700 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Toutes les copies sont déjà dispatchées aux correcteurs.
+          </div>
+
+          <template v-else>
           <p class="text-sm text-slate-500 mb-4">
             Distribue les copies prêtes (statut READY) entre les correcteurs assignés à cet examen.
           </p>
@@ -364,6 +384,7 @@ onMounted(loadData)
               </div>
             </div>
           </div>
+          </template>
         </div>
       </template>
     </main>

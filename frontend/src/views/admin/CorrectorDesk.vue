@@ -924,12 +924,10 @@ const handleDrop = async (e) => {
         return
     }
 
-    // Text-based annotation types - open editor
-    // Note: we don't use overrideType here because handleDrawComplete needs to know the type
-    // to open the editor, but we pass it through preSelectedAnnotationType
-    preSelectedAnnotationType.value = typeValue
+    // Text-based annotation types - open editor via setAnnotationMode (not direct write on computed)
+    setAnnotationMode('type', typeValue)
     await handleDrawComplete(normalizedRect)
-    preSelectedAnnotationType.value = null
+    annotationMode.value = { group: null, value: null }
 }
 
 // --- Annotation Editor ---

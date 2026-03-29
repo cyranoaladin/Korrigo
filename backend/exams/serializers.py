@@ -186,22 +186,39 @@ class CopySerializer(serializers.ModelSerializer):
         read_only=True,
         allow_null=True
     )
+    student_name = serializers.SerializerMethodField()
+    corrector = serializers.SerializerMethodField()
     total_score = serializers.SerializerMethodField()
 
     class Meta:
         model = Copy
         fields = [
             'id', 'exam', 'exam_name', 'anonymous_id', 'final_pdf',
-            'final_pdf_url', 'status', 'is_identified', 'student',
+            'final_pdf_url', 'status', 'is_identified', 'student', 'student_name',
             'booklet_ids', 'assigned_corrector', 'assigned_corrector_username',
+            'corrector',
             'dispatch_run_id', 'assigned_at', 'graded_at', 'global_appreciation',
             'subject_variant', 'total_score',
         ]
         read_only_fields = [
             'id', 'exam_name', 'final_pdf_url', 'booklet_ids',
             'assigned_corrector_username', 'dispatch_run_id', 'assigned_at',
-            'graded_at', 'total_score',
+            'graded_at', 'total_score', 'student_name', 'corrector',
         ]
+
+    def get_student_name(self, obj):
+        if not obj.student:
+            return None
+        s = obj.student
+        parts = [s.last_name, s.first_name]
+        return ' '.join(p for p in parts if p).strip() or None
+
+    def get_corrector(self, obj):
+        if not obj.assigned_corrector:
+            return None
+        u = obj.assigned_corrector
+        full = ' '.join(p for p in [u.first_name, u.last_name] if p).strip()
+        return full or u.username
 
     def get_total_score(self, obj):
         score = obj.scores.first()
@@ -262,6 +279,7 @@ class ExamTypeSerializer(serializers.ModelSerializer):
 
 class JuryReportSerializer(serializers.ModelSerializer):
     exam_type_name = serializers.CharField(source='exam_type.name', read_only=True)
+    exam_type_code = serializers.CharField(source='exam_type.code', read_only=True)
     created_by_username = serializers.CharField(source='created_by.username', read_only=True)
 
     class Meta:
