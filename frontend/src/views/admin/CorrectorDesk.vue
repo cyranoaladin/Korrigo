@@ -37,8 +37,6 @@ const pdfDimensions = ref({ width: 0, height: 0 })
 const imageError = ref(false)
 const imageLoaded = ref(false)
 const scrollAreaRef = ref(null)
-const canvasWrapperRef = ref(null)
-const wheelCooldown = ref(false)
 
 // Continuous scroll: all pages stacked vertically
 const pageElements = ref([])
@@ -165,10 +163,6 @@ const overlayHeightForIndex = (pageIndex) => {
     const page = pageIndex + 1
     return (pages.value.length > 0 && page === pages.value.length) ? '18%' : '23%'
 }
-// Legacy computeds kept for non-template usage (draft restore, etc.)
-const isLastPage = computed(() => pages.value.length > 0 && currentPage.value === pages.value.length)
-const isHeaderPage = computed(() => isHeaderPageForIndex(currentPage.value - 1))
-const overlayHeight = computed(() => overlayHeightForIndex(currentPage.value - 1))
 
 const isAssignedCorrector = computed(() => {
     const userId = authStore.user?.id
@@ -201,8 +195,6 @@ const getPageUrl = (pageIndex) => {
 const getAnnotationsForPage = (pageIndex) => {
     return annotations.value.filter(a => a.page_index === pageIndex)
 }
-// Legacy computed kept for backward compat (draft restore banner, etc.)
-const currentAnnotations = computed(() => getAnnotationsForPage(currentPage.value - 1))
 
 const displayWidth = computed(() => pdfDimensions.value.width * scale.value)
 const displayHeight = computed(() => pdfDimensions.value.height * scale.value)
