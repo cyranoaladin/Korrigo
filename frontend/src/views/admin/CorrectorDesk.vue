@@ -32,13 +32,39 @@ const isTouch = ref(matchMedia('(pointer: coarse)').matches)
 
 // Viewer
 const scale = ref(1.0)
-const currentPage = ref(1) 
-const pdfDimensions = ref({ width: 0, height: 0 }) 
+const currentPage = ref(1)
+const pdfDimensions = ref({ width: 0, height: 0 })
 const imageError = ref(false)
 const imageLoaded = ref(false)
 const scrollAreaRef = ref(null)
 const canvasWrapperRef = ref(null)
 const wheelCooldown = ref(false)
+
+// Continuous scroll: all pages stacked vertically
+const pageElements = ref([])
+const loadedPages = ref(new Set())
+const setPageRef = (el, idx) => { pageElements.value[idx] = el }
+let scrollRaf = null
+const updateCurrentPageFromScroll = () => {
+    if (scrollRaf) return
+    scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = null
+        if (!scrollAreaRef.value || pageElements.value.length === 0) return
+        const scrollRect = scrollAreaRef.value.getBoundingClientRect()
+        const viewportCenter = scrollRect.top + scrollRect.height / 2
+        let closest = 0
+        let minDist = Infinity
+        for (let i = 0; i < pageElements.value.length; i++) {
+            const el = pageElements.value[i]
+            if (!el) continue
+            const elRect = el.getBoundingClientRect()
+            const pageCenter = elRect.top + elRect.height / 2
+            const dist = Math.abs(pageCenter - viewportCenter)
+            if (dist < minDist) { minDist = dist; closest = i }
+        }
+        currentPage.value = closest + 1
+    })
+}
 
 // Autosave State
 const restoreAvailable = ref(null) // { source: 'LOCAL'|'SERVER', payload: ... }
@@ -125,21 +151,24 @@ const isGraded = isFinalized // alias for backward compatibility
 // Anonymization: hide student identity on header pages (1+4*N) and last page (annexe)
 const isAdmin = computed(() => authStore.user?.is_superuser || authStore.user?.role === 'Admin')
 const showIdentity = ref(false) // Only admin can toggle this
-const isLastPage = computed(() => {
-    const total = pages.value.length
-    return total > 0 && currentPage.value === total
-})
-const isHeaderPage = computed(() => {
+// Per-page anonymization helpers (used in v-for template)
+const isHeaderPageForIndex = (pageIndex) => {
     const ppb = copy.value?.exam_details?.pages_per_booklet || 4
-    const page = currentPage.value
-    // Pages 1, 5, 9, 13... (formula: 1 + 4*N) have identity headers
+    const page = pageIndex + 1
     const isPeriodicHeader = ((page - 1) % ppb) === 0
-    // Last page is the annexe, also has an identity header
-    return isPeriodicHeader || isLastPage.value
-})
+    const isLast = pages.value.length > 0 && page === pages.value.length
+    return isPeriodicHeader || isLast
+}
 // Regular pages (1, 5, 9… formula 4N-3): identity header = 67mm on A4 → 67/297 ≈ 23%
 // Last page (annexe only): identity header = 53mm on A4 → 53/297 ≈ 18%
-const overlayHeight = computed(() => isLastPage.value ? '18%' : '23%')
+const overlayHeightForIndex = (pageIndex) => {
+    const page = pageIndex + 1
+    return (pages.value.length > 0 && page === pages.value.length) ? '18%' : '23%'
+}
+// Legacy computeds kept for non-template usage (draft restore, etc.)
+const isLastPage = computed(() => pages.value.length > 0 && currentPage.value === pages.value.length)
+const isHeaderPage = computed(() => isHeaderPageForIndex(currentPage.value - 1))
+const overlayHeight = computed(() => overlayHeightForIndex(currentPage.value - 1))
 
 const isAssignedCorrector = computed(() => {
     const userId = authStore.user?.id
@@ -164,31 +193,16 @@ const pages = computed(() => {
 
 const hasPages = computed(() => pages.value.length > 0)
 
-const currentPageImageUrl = computed(() => {
-    if (!hasPages.value) return null;
-    if (currentPage.value < 1 || currentPage.value > pages.value.length) return null
-    const path = pages.value[currentPage.value - 1]
-    return gradingApi.getMediaUrl(path)
-})
-
-// Preload adjacent pages for instant navigation
-const preloadedImages = ref(new Map())
-const preloadAdjacentPages = () => {
-    const pagesToPreload = [currentPage.value, currentPage.value + 1, currentPage.value - 1]
-    pagesToPreload.forEach(p => {
-        if (p >= 1 && p <= pages.value.length && !preloadedImages.value.has(p)) {
-            const img = new Image()
-            img.src = gradingApi.getMediaUrl(pages.value[p - 1])
-            preloadedImages.value.set(p, img)
-        }
-    })
+// Continuous scroll: per-page URL and annotations helpers
+const getPageUrl = (pageIndex) => {
+    if (pageIndex < 0 || pageIndex >= pages.value.length) return null
+    return gradingApi.getMediaUrl(pages.value[pageIndex])
 }
-watch(currentPage, preloadAdjacentPages)
-watch(pages, preloadAdjacentPages)
-
-const currentAnnotations = computed(() => {
-    return annotations.value.filter(a => a.page_index === (currentPage.value - 1))
-})
+const getAnnotationsForPage = (pageIndex) => {
+    return annotations.value.filter(a => a.page_index === pageIndex)
+}
+// Legacy computed kept for backward compat (draft restore banner, etc.)
+const currentAnnotations = computed(() => getAnnotationsForPage(currentPage.value - 1))
 
 const displayWidth = computed(() => pdfDimensions.value.width * scale.value)
 const displayHeight = computed(() => pdfDimensions.value.height * scale.value)
@@ -276,12 +290,20 @@ const exercisesWithQuestions = computed(() => {
     return structure.map(item => buildGradingNode(item))
 })
 
-// --- Page Navigation Helpers ---
+// --- Page Navigation Helpers (scroll to page in continuous view) ---
 const goNextPage = () => {
-    if (currentPage.value < pages.value.length) currentPage.value++
+    const next = currentPage.value // 0-based index of next page
+    if (next < pages.value.length) {
+        const el = pageElements.value[next]
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
 }
 const goPrevPage = () => {
-    if (currentPage.value > 1) currentPage.value--
+    const prev = currentPage.value - 2 // 0-based index of previous page
+    if (prev >= 0) {
+        const el = pageElements.value[prev]
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
 }
 
 // --- Fit to width helper ---
@@ -292,45 +314,16 @@ const fitToWidth = () => {
     scale.value = Math.max(0.3, Math.min(3.0, +(newScale.toFixed(2))))
 }
 
-// --- Scroll-wheel: Ctrl+wheel = zoom, plain wheel at edge = page change ---
+// --- Scroll-wheel: Ctrl+wheel = zoom (natural scroll handles page navigation) ---
 const onScrollAreaWheel = (e) => {
-    const el = scrollAreaRef.value
-    if (!el) return
-
+    if (!scrollAreaRef.value) return
     // Ctrl+wheel or pinch-zoom → zoom in/out
     if (e.ctrlKey || e.metaKey) {
         e.preventDefault()
         const delta = e.deltaY > 0 ? -0.1 : 0.1
         scale.value = Math.max(0.3, Math.min(3.0, +(scale.value + delta).toFixed(1)))
-        return
     }
-
-    if (wheelCooldown.value) return
-
-    const atTop = el.scrollTop <= 1
-    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
-
-    if (wheelCooldown.value) {
-        if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
-            e.preventDefault()
-            e.stopPropagation()
-        }
-        return
-    }
-
-    if (e.deltaY < 0 && atTop) {
-        e.preventDefault()
-        goPrevPage()
-        wheelCooldown.value = true
-        setTimeout(() => { wheelCooldown.value = false }, 300)
-        nextTick(() => { if (el) el.scrollTop = el.scrollHeight })
-    } else if (e.deltaY > 0 && atBottom) {
-        e.preventDefault()
-        goNextPage()
-        wheelCooldown.value = true
-        setTimeout(() => { wheelCooldown.value = false }, 300)
-        nextTick(() => { if (el) el.scrollTop = 0 })
-    }
+    // Plain scroll: handled natively by the scroll-area (continuous scroll)
 }
 
 // --- Global Key Handling ---
@@ -363,15 +356,7 @@ const onGlobalKeydown = (e) => {
 }
 
 // --- Watchers ---
-watch(currentPage, () => {
-    imageLoaded.value = false
-    imageError.value = false
-    showIdentity.value = false
-    // Reset scroll to top of new page (wheel handler overrides with its own positioning)
-    nextTick(() => {
-        if (scrollAreaRef.value) scrollAreaRef.value.scrollTop = 0
-    })
-})
+// Continuous scroll: currentPage is tracked by scroll position, no image/scroll reset needed.
 
 watch(pages, (newPages) => {
     if (newPages.length === 0) {
@@ -381,6 +366,9 @@ watch(pages, (newPages) => {
         if (currentPage.value > newPages.length) currentPage.value = newPages.length
         else if (currentPage.value < 1) currentPage.value = 1
     }
+    // Reset page element refs array
+    pageElements.value = new Array(newPages.length).fill(null)
+    loadedPages.value = new Set()
 })
 
 watch(canAnnotate, (newCanAnnotate) => {
@@ -677,18 +665,24 @@ const restoreDraft = () => {
     // Check if we can restore (need to open editor?)
     const data = restoreAvailable.value.payload;
     if (data && data.rect) {
-         // Restore Page
+         // Scroll to the page in continuous view
          if (typeof data.page_index === 'number') {
              currentPage.value = data.page_index + 1;
+             nextTick(() => {
+                 const el = pageElements.value[data.page_index]
+                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+             })
          }
-         
-         // It's a draft annotation
-         handleDrawComplete(data.rect); // Opens editor
-         draftAnnotation.value = { 
+
+         // It's a draft annotation — open editor with page context
+         const pageIdx = typeof data.page_index === 'number' ? data.page_index : currentPage.value - 1
+         handleDrawComplete(data.rect, null, pageIdx);
+         draftAnnotation.value = {
             rect: data.rect,
             type: data.type,
-            content: data.content
-         }; 
+            content: data.content,
+            page_index: pageIdx
+         };
     }
     
     restoreAvailable.value = null;
@@ -706,10 +700,10 @@ watch(draftAnnotation, (newVal) => {
     if (isReadOnly.value) return;
     if (!authStore.user?.id) return; // Prevent saving to 'anon' key
     
-    // Construct full payload with Context
+    // Construct full payload with Context (use draft's page_index if available)
     const savePayload = {
         ...newVal,
-        page_index: currentPage.value - 1,
+        page_index: newVal.page_index ?? (currentPage.value - 1),
         saved_at: Date.now()
     };
     
@@ -787,15 +781,13 @@ const handleReopenCopy = async () => {
     }
 }
 
-const handleImageLoad = (e) => {
+const handleImageLoad = (e, pageIdx) => {
     imageError.value = false
-    const isFirstLoad = !imageLoaded.value
     imageLoaded.value = true
-    pdfDimensions.value = { width: e.target.naturalWidth, height: e.target.naturalHeight }
-    // Auto-fit on first load so annotations are visible in viewport (image natural
-    // size is ~2480px wide, which would push annotations far outside the viewport)
-    if (isFirstLoad) {
-        nextTick(() => fitToWidth())
+    if (typeof pageIdx === 'number') loadedPages.value.add(pageIdx)
+    // Set dimensions from first loaded image (all pages same size in an exam)
+    if (pdfDimensions.value.width === 0) {
+        pdfDimensions.value = { width: e.target.naturalWidth, height: e.target.naturalHeight }
     }
 }
 
@@ -810,28 +802,24 @@ const handleDragStart = (type, e) => {
     e.dataTransfer.effectAllowed = 'copy'
 }
 
-// Feedback visuel pour le drag-and-drop
+// Feedback visuel pour le drag-and-drop (per-page via e.currentTarget)
 const handleDragEnter = (e) => {
     e.preventDefault()
-    if (canvasWrapperRef.value) {
-        canvasWrapperRef.value.classList.add('drag-over')
-    }
+    e.currentTarget.classList.add('drag-over')
 }
 
 const handleDragLeave = (e) => {
-    // Ne retirer la classe que si on quitte vraiment le wrapper (pas un enfant)
-    if (canvasWrapperRef.value && !canvasWrapperRef.value.contains(e.relatedTarget)) {
-        canvasWrapperRef.value.classList.remove('drag-over')
+    const wrapper = e.currentTarget
+    if (wrapper && !wrapper.contains(e.relatedTarget)) {
+        wrapper.classList.remove('drag-over')
     }
 }
 
-const handleDrop = async (e) => {
+const handleDrop = async (e, pageIndex) => {
     e.preventDefault()
-    // Retirer le feedback visuel
-    if (canvasWrapperRef.value) {
-        canvasWrapperRef.value.classList.remove('drag-over')
-    }
+    e.currentTarget.classList.remove('drag-over')
     if (!canAnnotate.value || showEditor.value) return
+    const dropPageIndex = typeof pageIndex === 'number' ? pageIndex : currentPage.value - 1
 
     const textData = e.dataTransfer.getData('text/plain')
     let typeValue = textData
@@ -887,7 +875,7 @@ const handleDrop = async (e) => {
         isSaving.value = true
         try {
             await gradingApi.createAnnotation(copyId, {
-                page_index: currentPage.value - 1,
+                page_index: dropPageIndex,
                 x: normalizedRect.x,
                 y: normalizedRect.y,
                 w: normalizedRect.w,
@@ -896,20 +884,19 @@ const handleDrop = async (e) => {
                 content: contentValue
             })
             await refreshAnnotations()
-            // We consciously avoid fetchHistory() here to prevent browser saturation with fast consecutive drops
         } catch (err) {
             error.value = err.response?.data?.detail || "Échec de l'ajout depuis l'historique"
         } finally { isSaving.value = false; }
         return
     }
 
-    // Handle stamp types directly - do not use quickStampMode which is shared state
+    // Handle stamp types directly
     if (['VRAI', 'FAUX', 'BONUS'].includes(typeValue)) {
         isSaving.value = true
         try {
             const contentMap = { 'VRAI': 'V', 'FAUX': 'X', 'BONUS': '' }
             const payload = {
-                page_index: currentPage.value - 1,
+                page_index: dropPageIndex,
                 x: normalizedRect.x,
                 y: normalizedRect.y,
                 w: normalizedRect.w,
@@ -925,9 +912,9 @@ const handleDrop = async (e) => {
         return
     }
 
-    // Text-based annotation types - open editor via setAnnotationMode (not direct write on computed)
+    // Text-based annotation types - open editor
     setAnnotationMode('type', typeValue)
-    await handleDrawComplete(normalizedRect)
+    await handleDrawComplete(normalizedRect, null, dropPageIndex)
     annotationMode.value = { group: null, value: null }
 }
 
@@ -955,18 +942,18 @@ const handleCommentBankInsert = async (text) => {
 }
 
 // --- Annotation Editor ---
-const handleDrawComplete = async (normalizedRect, overrideType = null) => {
+const handleDrawComplete = async (normalizedRect, overrideType = null, pageIndex = null) => {
     if (!canAnnotate.value) return;
+    const effectivePageIndex = typeof pageIndex === 'number' ? pageIndex : currentPage.value - 1
 
     // Stamp mode (V, F): instant annotation, no editor needed
-    // Use overrideType if provided (from drag-and-drop), otherwise check quickStampMode (from click)
     const stampType = overrideType || quickStampMode.value
     if (stampType) {
         isSaving.value = true
         try {
             const contentMap = { 'VRAI': 'V', 'FAUX': 'X', 'BONUS': '' }
             const payload = {
-                page_index: currentPage.value - 1,
+                page_index: effectivePageIndex,
                 x: normalizedRect.x,
                 y: normalizedRect.y,
                 w: normalizedRect.w,
@@ -982,11 +969,12 @@ const handleDrawComplete = async (normalizedRect, overrideType = null) => {
         return
     }
 
-    // Text mode (Commentaire, Surlignage, Erreur, or no selection): open editor for text input
+    // Text mode: open editor for text input, store page_index in draft
     draftAnnotation.value = {
         rect: normalizedRect,
         type: preSelectedAnnotationType.value || 'COMMENTAIRE',
-        content: ''
+        content: '',
+        page_index: effectivePageIndex
     }
     showEditor.value = true
     nextTick(() => { if (editorInputRef.value) editorInputRef.value.focus() })
@@ -997,7 +985,7 @@ const saveAnnotation = async () => {
     isSaving.value = true;
     try {
         const payload = {
-            page_index: currentPage.value - 1,
+            page_index: draftAnnotation.value.page_index ?? (currentPage.value - 1),
             x: draftAnnotation.value.rect.x,
             y: draftAnnotation.value.rect.y,
             w: draftAnnotation.value.rect.w,
@@ -1140,17 +1128,8 @@ const onScrollAreaTouchMove = (e) => {
     }
 }
 
-const onScrollAreaTouchEnd = (e) => {
-    // Swipe page navigation: single horizontal swipe (works even in annotation mode)
-    if (!touchState.isMultiTouch && e.changedTouches.length === 1) {
-        const dx = e.changedTouches[0].clientX - touchState.startX
-        const dy = e.changedTouches[0].clientY - touchState.startY
-        // Horizontal swipe > 60px, more horizontal than vertical
-        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-            if (dx > 0) goPrevPage()
-            else goNextPage()
-        }
-    }
+const onScrollAreaTouchEnd = () => {
+    // Continuous scroll handles page navigation natively — just reset multi-touch state
     touchState.isMultiTouch = false
 }
 
@@ -1162,10 +1141,11 @@ onMounted(async () => {
   window.addEventListener('online', onOnline)
   window.addEventListener('offline', onOffline)
 
-    // Scroll-wheel page navigation on viewer
+    // Scroll-wheel zoom + continuous scroll tracking
     nextTick(() => {
         if (scrollAreaRef.value) {
             scrollAreaRef.value.addEventListener('wheel', onScrollAreaWheel, { passive: false })
+            scrollAreaRef.value.addEventListener('scroll', updateCurrentPageFromScroll, { passive: true })
             scrollAreaRef.value.addEventListener('touchstart', onScrollAreaTouchStart, { passive: true })
             scrollAreaRef.value.addEventListener('touchmove', onScrollAreaTouchMove, { passive: false })
             scrollAreaRef.value.addEventListener('touchend', onScrollAreaTouchEnd, { passive: true })
@@ -1185,6 +1165,7 @@ onUnmounted(() => {
     window.removeEventListener('offline', onOffline)
     if (scrollAreaRef.value) {
         scrollAreaRef.value.removeEventListener('wheel', onScrollAreaWheel)
+        scrollAreaRef.value.removeEventListener('scroll', updateCurrentPageFromScroll)
         scrollAreaRef.value.removeEventListener('touchstart', onScrollAreaTouchStart)
         scrollAreaRef.value.removeEventListener('touchmove', onScrollAreaTouchMove)
         scrollAreaRef.value.removeEventListener('touchend', onScrollAreaTouchEnd)
@@ -1441,51 +1422,57 @@ onUnmounted(() => {
           ref="scrollAreaRef"
           class="scroll-area"
         >
-          <div
-            v-if="currentPageImageUrl && !imageError"
-            ref="canvasWrapperRef"
-            class="canvas-wrapper"
-            :style="{ width: displayWidth + 'px', height: displayHeight + 'px' }"
-            @dragover.prevent
-            @dragenter="handleDragEnter"
-            @dragleave="handleDragLeave"
-            @drop="handleDrop"
-          >
-            <!-- Anonymization overlay: v-show keeps DOM mounted (no insert delay), percentage height is paint-immediate -->
+          <!-- Continuous scroll: all pages stacked vertically -->
+          <template v-if="hasPages">
             <div
-              v-show="isHeaderPage && !showIdentity"
-              class="anonymization-overlay"
-              :style="{ height: overlayHeight }"
+              v-for="(page, idx) in pages"
+              :key="idx"
+              :ref="(el) => setPageRef(el, idx)"
+              :data-page-index="idx"
+              class="canvas-wrapper"
+              :style="{ width: displayWidth + 'px', height: displayHeight + 'px' }"
+              @dragover.prevent
+              @dragenter="handleDragEnter"
+              @dragleave="handleDragLeave"
+              @drop="(e) => handleDrop(e, idx)"
             >
-              <div class="anonymization-label">
-                🔒 Zone d'identification masquée
-              </div>
-              <button
-                v-if="isAdmin"
-                class="btn-sm btn-reveal"
-                @click="showIdentity = true"
+              <!-- Anonymization overlay per page -->
+              <div
+                v-show="isHeaderPageForIndex(idx) && !showIdentity"
+                class="anonymization-overlay"
+                :style="{ height: overlayHeightForIndex(idx) }"
               >
-                Révéler l'identité (Admin)
-              </button>
+                <div class="anonymization-label">
+                  🔒 Zone d'identification masquée
+                </div>
+                <button
+                  v-if="isAdmin"
+                  class="btn-sm btn-reveal"
+                  @click="showIdentity = true"
+                >
+                  Révéler l'identité (Admin)
+                </button>
+              </div>
+              <img
+                :src="getPageUrl(idx)"
+                :class="['page-image', { 'page-image--loading': !loadedPages.has(idx) }]"
+                draggable="false"
+                loading="lazy"
+                style="pointer-events: none; user-select: none;"
+                @load="(e) => handleImageLoad(e, idx)"
+                @error="handleImageError"
+                @contextmenu.prevent
+              >
+              <CanvasLayer
+                :width="displayWidth"
+                :height="displayHeight"
+                :scale="scale"
+                :initial-annotations="getAnnotationsForPage(idx)"
+                :enabled="canAnnotate && !showEditor"
+                @annotation-created="(rect) => handleDrawComplete(rect, null, idx)"
+              />
             </div>
-            <img
-              :src="currentPageImageUrl"
-              :class="['page-image', { 'page-image--loading': !imageLoaded }]"
-              draggable="false"
-              style="pointer-events: none; user-select: none;"
-              @load="handleImageLoad"
-              @error="handleImageError"
-              @contextmenu.prevent
-            >
-            <CanvasLayer
-              :width="displayWidth"
-              :height="displayHeight"
-              :scale="scale"
-              :initial-annotations="currentAnnotations"
-              :enabled="canAnnotate && !showEditor"
-              @annotation-created="handleDrawComplete"
-            />
-          </div>
+          </template>
           <div
             v-else-if="imageError"
             class="empty-state error-state"
@@ -1779,9 +1766,9 @@ onUnmounted(() => {
 .zoom-controls button:hover { background: #e9ecef; }
 .zoom-reset { min-width: 52px; text-align: center; }
 .btn-fit { font-size: 1rem; }
-.scroll-area { flex: 1; overflow: auto; background: #525659; display: flex; justify-content: center; padding: 20px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; will-change: scroll-position; }
+.scroll-area { flex: 1; overflow: auto; background: #525659; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px; -webkit-overflow-scrolling: touch; will-change: scroll-position; }
 
-.canvas-wrapper { position: relative; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); will-change: transform; }
+.canvas-wrapper { position: relative; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); will-change: transform; flex-shrink: 0; }
 .page-image { width: 100%; height: 100%; display: block; opacity: 1; transition: opacity 0.15s ease-in; image-rendering: auto; }
 .page-image--loading { opacity: 0; }
 
