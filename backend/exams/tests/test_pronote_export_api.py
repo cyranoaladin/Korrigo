@@ -18,6 +18,8 @@ class PronoteExportAPIPermissionTests(TestCase):
     """Test permission requirements for PRONOTE export endpoint"""
     
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.admin_group, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
         self.teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
         self.student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
@@ -94,6 +96,8 @@ class PronoteExportAPIValidationTests(TestCase):
     """Test validation scenarios for export"""
     
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.admin_group, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
         
         self.admin_user = User.objects.create_user(
@@ -214,6 +218,8 @@ class PronoteExportAPISuccessTests(TestCase):
     """Test successful export scenarios"""
     
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.admin_group, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
         
         self.admin_user = User.objects.create_user(
@@ -427,6 +433,8 @@ class PronoteExportAPIRateLimitTests(TestCase):
     """Test rate limiting for PRONOTE export"""
     
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         # Clear cache to prevent rate limit counter leaking between tests
         from django.core.cache import cache
         cache.clear()
@@ -520,6 +528,8 @@ class PronoteExportAPIAuditTests(TestCase):
     """Test audit logging for export endpoint"""
     
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.admin_group, _ = Group.objects.get_or_create(name=UserRole.ADMIN)
         
         self.admin_user = User.objects.create_user(
