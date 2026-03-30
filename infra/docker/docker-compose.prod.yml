@@ -290,7 +290,6 @@ services:
     volumes:
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
-      - /var/www/labomaths/korrigo/frontend:/usr/share/nginx/html:ro
     depends_on:
       - backend
     healthcheck:
