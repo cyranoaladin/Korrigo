@@ -37,11 +37,13 @@
         <li><strong>Mot de passe :</strong> Votre mot de passe sécurisé (fourni par l'administration).</li>
       </ul>
       <p class="mb-4">
-        Une fois connecté, votre <strong>tableau de bord</strong> affiche :
+        Une fois connecté, votre <strong>tableau de bord</strong> centralise toutes vos évaluations. Il vous permet de :
       </p>
-      <ul class="list-disc pl-5 space-y-1 text-sm mb-4">
-        <li>La liste de vos examens avec le nombre de copies à corriger / finalisées</li>
-        <li>Un bouton <strong>« Accéder aux copies »</strong> pour chaque examen</li>
+      <ul class="list-disc pl-5 space-y-2 text-sm mb-4">
+        <li><strong>Sélectionner une rubrique (Type d'examen) :</strong> DNB, Bac Blanc, etc. Les copies sont regroupées intelligemment par lot.</li>
+        <li><strong>Suivre l'avancement :</strong> Nombre de copies à corriger / finalisées avec statistiques en temps réel.</li>
+        <li><strong>Consulter le Roster :</strong> Le bouton <strong>« Mes Élèves »</strong> permet d'accéder au suivi propre à vos classes.</li>
+        <li><strong>Rapport de Jury :</strong> Vous pouvez consulter à tout moment les rapports du jury associés à vos examens.</li>
       </ul>
       <div class="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-800">
         <strong>Navigateurs recommandés :</strong> Google Chrome (optimal), Mozilla Firefox, Microsoft Edge.
@@ -158,9 +160,9 @@
       </div>
     </CollapsibleSection>
 
-    <CollapsibleSection title="5. Banque de Commentaires et Bilans IA">
+    <CollapsibleSection title="5. Accompagnement de Correction & Bilans">
       <p class="mb-4">
-        Gagnez du temps grâce à l'assistance à la correction intégrée.
+        Gagnez du temps grâce à l'assistance à la correction intégrée et standardisez vos retours.
       </p>
       <div class="space-y-4">
         <div class="p-3 bg-white border border-gray-200 rounded-lg">
@@ -168,7 +170,7 @@
             Banque Personnelle & Officielle
           </h4>
           <p class="text-sm text-gray-600">
-            Korrigo mémorise vos commentaires fréquents et vous les propose via auto-complétion intelligente. Vous avez également accès à une banque officielle de 123 suggestions issues du barème.
+            Korrigo mémorise vos commentaires fréquents et vous les propose via auto-complétion intelligente. Vous avez également accès à une banque officielle de suggestions (ex: 123 items) issues des barèmes nationaux.
           </p>
         </div>
         <div class="p-3 bg-primary-50 border border-primary-200 rounded-lg">
@@ -176,7 +178,15 @@
             <Sparkles class="w-4 h-4" /> Bilan Pédagogique IA (Korrigo AI)
           </h4>
           <p class="text-sm text-primary-800">
-            Une fois la copie finalisée, vous pouvez générer un <strong>bilan personnalisé</strong> via notre IA locale (Ollama). Ce bilan analyse vos annotations et notes pour produire une synthèse bienveillante (tutoiement) soulignant les points forts et les axes de progrès de l'élève.
+            Une fois la copie finalisée, vous pouvez générer un <strong>bilan personnalisé</strong> via notre IA locale. Ce bilan analyse vos annotations et notes pour produire une synthèse bienveillante soulignant les points forts et les axes de progrès de l'élève.
+          </p>
+        </div>
+        <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+          <h4 class="font-semibold text-indigo-900 mb-1 flex items-center gap-2">
+            📝 Questionnaire Bilan Pédagogique
+          </h4>
+          <p class="text-sm text-indigo-800">
+            Il est fortement conseillé au correcteur de compléter le <strong>Questionnaire Bilan</strong> (accessible via le bouton "Questionnaire" dans la barre supérieure du tableau de bord). Ce formulaire centralisé vous permet de remonter vos impressions globales, les erreurs fréquentes de vos lots et votre retour d'expérience à la coordination.
           </p>
         </div>
       </div>
@@ -294,7 +304,26 @@
       </div>
     </CollapsibleSection>
 
-    <CollapsibleSection title="9. FAQ et Problèmes Courants">
+    <CollapsibleSection title="9. 📱 Expérience Tablette & Stylet (Tablet-First)">
+      <div class="space-y-4 text-sm">
+        <div class="p-4 bg-white border border-gray-200 rounded-lg">
+          <h4 class="font-semibold text-gray-900 mb-2">
+            Conçu pour la mobilité
+          </h4>
+          <p class="text-gray-600 mb-3">
+            Korrigo est pleinement compatible avec les tablettes (iPad, tablettes Android). Nous recommandons l'utilisation en mode paysage (Landscape) pour un confort de correction optimal.
+          </p>
+          <ul class="list-disc pl-5 space-y-2 text-gray-600">
+            <li><strong>Pinch-to-zoom vectoriel :</strong> Les PDF sont rendus de manière vectorielle. Zoomez avec deux doigts (pinch) sur une copie ou des symboles mathématiques sans jamais perdre en netteté d'image.</li>
+            <li><strong>Ergonomie Tactile :</strong> Les cibles cliquables (boutons d'erreurs, commentaires) ont été adaptées avec un padding généreux pour éviter les erreurs de frappe (fat-finger errors).</li>
+            <li><strong>Support du Stylet :</strong> Le glisser-déposer de vos marqueurs de correction et la navigation au stylet (Apple Pencil, S-Pen) offrent une fluidité exceptionnelle pour valider au fil de l'eau.</li>
+            <li><strong>Clavier virtuel natif :</strong> Les zones de saisie textuelle maintiennent automatiquement leur focus et ajustent la page pour que le clavier virtuel ne masque pas la réponse de l'étudiant.</li>
+          </ul>
+        </div>
+      </div>
+    </CollapsibleSection>
+
+    <CollapsibleSection title="10. FAQ et Problèmes Courants">
       <div class="space-y-4">
         <div>
           <h4 class="font-medium text-gray-900">
