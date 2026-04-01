@@ -168,12 +168,8 @@ class StudentChangePasswordView(views.APIView):
 
     @method_decorator(maybe_ratelimit(key='ip', rate='5/h', method='POST', block=True))
     def post(self, request):
-        # MAINTENANCE MODE CHECK - Blocage temporaire des étudiants
-        if is_student_access_blocked():
-            return Response({
-                'error': MAINTENANCE_MESSAGE,
-                'maintenance': True
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        # Le changement de mot de passe est TOUJOURS autorisé, même en maintenance.
+        # Un élève contraint de changer son MDP ne doit pas être bloqué.
         from django.contrib.auth import update_session_auth_hash
         from django.contrib.auth.password_validation import validate_password
         from django.core.exceptions import ValidationError

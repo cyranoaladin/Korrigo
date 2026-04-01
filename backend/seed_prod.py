@@ -2,7 +2,7 @@
 """
 Production Seed Script - Idempotent
 Creates realistic data for production validation:
-- 3 professors (Django Users with is_staff=True)
+- 3 professors (Django Users with teacher group)
 - 10 students (students.Student model)
 - 1 exam
 - 3 copies READY
@@ -123,17 +123,23 @@ def seed_prod():
             username=f'prof{i}',
             defaults={
                 'email': f'prof{i}@korrigo.local',
-                'first_name': f'Professor{i}',
-                'last_name': f'Smith{i}',
-                'is_staff': True,
+                'first_name': f'Professeur{i}',
+                'last_name': f'Test{i}',
+                'is_staff': False,  # Korrigo uses groups, not is_staff
                 'is_superuser': False,
             }
         )
         if created:
             prof.set_password(prof_password)
             prof.save()
-            print(f"  ✓ Created professor: {prof.username}")
+            prof.groups.add(teacher_group)
+            print(f"  ✓ Created professor with teacher group: {prof.username}")
         else:
+            if prof.is_staff:
+                prof.is_staff = False
+                prof.save(update_fields=['is_staff'])
+            if not prof.groups.filter(name='teacher').exists():
+                prof.groups.add(teacher_group)
             print(f"  ↻ Professor already exists: {prof.username}")
 
         # Add to teacher group

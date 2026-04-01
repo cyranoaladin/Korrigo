@@ -70,10 +70,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function fetchUser(preferStudent = false, force = false) {
-        // Debounce: skip if checked recently and no user found
+        // Debounce: skip if checked recently
         const now = Date.now()
-        if (!force && !user.value && (now - lastCheckedAt) < CHECK_DEBOUNCE_MS) {
-            return
+        if (!force && (now - lastCheckedAt) < CHECK_DEBOUNCE_MS) {
+            return // user déjà connu ou récemment vérifié, skip
         }
         isChecking.value = true
         lastCheckedAt = now

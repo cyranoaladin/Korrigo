@@ -22,7 +22,10 @@ def create_user_roles():
     
     # Groupe Élève - Accès lecture seule à ses copies
     student_group, created = Group.objects.get_or_create(name=UserRole.STUDENT)
-    
+
+    # Groupe coordinateur questionnaire (feature flag)
+    Group.objects.get_or_create(name='questionnaire_coordinator')
+
     return admin_group, teacher_group, student_group
 
 class IsAdmin(BasePermission):

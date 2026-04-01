@@ -66,7 +66,14 @@ const exerciseBreakdown = computed(() => {
 })
 
 const totalScore = computed(() => selectedCopy.value?.total_score ?? 0)
-const scorePct = computed(() => (totalScore.value / 20) * 100)
+const examMaxScore = computed(() => {
+  const cfg = currentExerciseConfig.value
+  if (cfg && Object.keys(cfg).length > 0) {
+    return Object.values(cfg).reduce((sum, ex) => sum + (ex.max || 0), 0) || 20
+  }
+  return 20
+})
+const scorePct = computed(() => (totalScore.value / examMaxScore.value) * 100)
 const grade = computed(() => {
   const p = scorePct.value
   if (p>=80) return { label:'Excellent', color:'text-emerald-600', bg:'bg-emerald-50', bar:'bg-emerald-500', gradient:'from-emerald-500 to-teal-400' }

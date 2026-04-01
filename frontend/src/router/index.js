@@ -16,7 +16,7 @@ import LoginStudent from '../views/student/LoginStudent.vue'
 function getDashboardForRole(role) {
     if (role === 'Admin') return '/admin/dashboard'
     if (role === 'Teacher') return '/corrector-dashboard'
-    if (role === 'Student') return '/student-portal'
+    if (role === 'Student') return '/student/dashboard'
     return '/'
 }
 
@@ -321,7 +321,16 @@ router.beforeEach(async (to, from, next) => {
         return next()
     }
 
-    if (!authStore.user && !authStore.isChecking) {
+    // Attendre la fin d'un fetchUser en cours avant de décider
+    if (authStore.isChecking) {
+        await new Promise(resolve => {
+            const interval = setInterval(() => {
+                if (!authStore.isChecking) { clearInterval(interval); resolve() }
+            }, 50)
+        })
+    }
+
+    if (!authStore.user) {
         const preferStudent = to.path.startsWith('/student')
         try {
             await authStore.fetchUser(preferStudent)

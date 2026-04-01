@@ -162,7 +162,7 @@ class UserDetailView(APIView):
             'jury_report_exam_codes': jury_report_codes,
             # Questionnaire is only for the designated coordinator group.
             'show_questionnaire': user.groups.filter(
-                name='QUESTIONNAIRE_COORDINATOR'
+                name__iexact='questionnaire_coordinator'
             ).exists(),
         }
 
