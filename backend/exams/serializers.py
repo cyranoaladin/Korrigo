@@ -19,6 +19,7 @@ class BookletSerializer(serializers.ModelSerializer):
             'id', 'start_page', 'end_page', 
             'pages_images', # REQUIRED for CorrectorDesk.vue
             'header_image', 'header_image_url', 'student_name_guess'
+            # Note: student_name_guess est strippé pour les non-admins dans CopySerializer.to_representation
         ]
         read_only_fields = ['pages_images']
 

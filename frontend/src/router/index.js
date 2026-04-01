@@ -16,7 +16,7 @@ import LoginStudent from '../views/student/LoginStudent.vue'
 function getDashboardForRole(role) {
     if (role === 'Admin') return '/admin/dashboard'
     if (role === 'Teacher') return '/corrector-dashboard'
-    if (role === 'Student') return '/student/dashboard'
+    if (role === 'Student') return '/student-portal'
     return '/'
 }
 

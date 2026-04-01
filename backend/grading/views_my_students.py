@@ -58,8 +58,9 @@ class MyStudentsListView(views.APIView):
             }
             
             for copy in copies:
-                # Utiliser les scores prefetchés
-                score_obj = copy.scores.first() if hasattr(copy, '_prefetched_objects_cache') else Score.objects.filter(copy=copy).first()
+                # Utiliser les scores prefetchés (scores.all() exploite le cache prefetch)
+                scores_list = list(copy.scores.all())
+                score_obj = scores_list[0] if scores_list else None
                 total_score = None
                 if score_obj and score_obj.scores_data:
                     total_score = sum(

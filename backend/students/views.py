@@ -1,8 +1,11 @@
 import os
 
 # MAINTENANCE MODE - Pour bloquer: STUDENT_ACCESS_BLOCKED=true dans .env
-STUDENT_ACCESS_BLOCKED = os.environ.get("STUDENT_ACCESS_BLOCKED", "false").lower() == "true"
 MAINTENANCE_MESSAGE = "L'accès élève est temporairement suspendu pour maintenance. Veuillez réessayer ultérieurement."
+
+def is_student_access_blocked():
+    """Lit la variable d'environnement à chaque requête pour permettre le changement sans restart."""
+    return os.environ.get("STUDENT_ACCESS_BLOCKED", "false").lower() == "true"
 
 from rest_framework import generics, filters, status, views
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -40,7 +43,7 @@ class StudentLoginView(views.APIView):
                 'rate_limited': True
             }, status=status.HTTP_429_TOO_MANY_REQUESTS)
         # MAINTENANCE MODE CHECK - Blocage temporaire des étudiants
-        if STUDENT_ACCESS_BLOCKED:
+        if is_student_access_blocked():
             return Response({
                 'error': MAINTENANCE_MESSAGE,
                 'maintenance': True
@@ -108,6 +111,7 @@ class StudentLoginView(views.APIView):
 
 class StudentLogoutView(views.APIView):
     permission_classes = [AllowAny]  # Public endpoint - allow logout even if session expired
+    authentication_classes = []  # Évite le check CSRF sur session expirée
 
     def post(self, request):
         # Le logout est TOUJOURS autorisé, même en maintenance
@@ -138,17 +142,18 @@ class StudentMeView(views.APIView):
         serializer = StudentSerializer(student)
         data = serializer.data
 
-        # Include must_change_password flag so frontend stays in sync
+        # Include must_change_password flag — cache in session to avoid bcrypt on every GET
         user = student.user
-        if user:
+        must_change = request.session.get('must_change_password')
+        if must_change is None and user:
             dob_pwd = student.date_naissance.strftime('%d%m%Y') if student.date_naissance else None
-            data['must_change_password'] = (
+            must_change = (
                 not user.has_usable_password()
                 or user.check_password('passe123')
                 or (dob_pwd and user.check_password(dob_pwd))
             )
-        else:
-            data['must_change_password'] = False
+            request.session['must_change_password'] = must_change
+        data['must_change_password'] = must_change or False
 
         return Response(data)
 
@@ -164,7 +169,7 @@ class StudentChangePasswordView(views.APIView):
     @method_decorator(maybe_ratelimit(key='ip', rate='5/h', method='POST', block=True))
     def post(self, request):
         # MAINTENANCE MODE CHECK - Blocage temporaire des étudiants
-        if STUDENT_ACCESS_BLOCKED:
+        if is_student_access_blocked():
             return Response({
                 'error': MAINTENANCE_MESSAGE,
                 'maintenance': True
@@ -235,7 +240,7 @@ class StudentImportView(views.APIView):
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request):
         # MAINTENANCE MODE CHECK - Blocage temporaire des étudiants
-        if STUDENT_ACCESS_BLOCKED:
+        if is_student_access_blocked():
             return Response({
                 'error': MAINTENANCE_MESSAGE,
                 'maintenance': True

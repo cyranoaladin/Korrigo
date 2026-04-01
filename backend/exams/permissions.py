@@ -33,10 +33,10 @@ class IsStudentForOwnData(permissions.BasePermission):
 
         if IsStudent().has_permission(request, view):
             # Students can only access their own data
-            if hasattr(obj, 'student'):
-                # Assuming the object has a student attribute
-                return obj.student.user == request.user if hasattr(obj.student, 'user') else False
-            elif hasattr(obj, 'copy') and hasattr(obj.copy, 'student'):
-                # For objects like annotations that have a copy with a student
-                return obj.copy.student.user == request.user if hasattr(obj.copy.student, 'user') else False
+            if hasattr(obj, 'student') and obj.student:
+                student_user = getattr(obj.student, 'user', None)
+                return student_user is not None and student_user == request.user
+            elif hasattr(obj, 'copy') and obj.copy and getattr(obj.copy, 'student', None):
+                student_user = getattr(obj.copy.student, 'user', None)
+                return student_user is not None and student_user == request.user
         return False

@@ -147,6 +147,12 @@ copies_DNB_BLANC.md
 stat_*.md
 scan_DNB_*/
 
+# Verification proofs & audit artifacts
+verification_proof_*.txt
+BILAN_PERTE_DONNEES_*.md
+AUDIT_*_KORRIGO_*.md
+AUDIT_PROMPT_*.md
+
 # Temporary production rebuild scripts
 backend/rebuild_production.py
 backend/rebuild_full.py
