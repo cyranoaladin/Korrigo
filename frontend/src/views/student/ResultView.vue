@@ -17,11 +17,11 @@ const pdfDirectUrl = ref(null)
 // Détection du niveau de l'élève
 const isTerminale = computed(() => {
   const cn = auth.user?.class_name?.toLowerCase() || ''
-  return cn.includes('terminale') || cn.startsWith('t') || cn.includes('tle')
+  return cn.includes('terminale') || cn.includes('tle') || /^t\.?\s*\d/.test(cn)
 })
 const isTroisieme = computed(() => {
   const cn = auth.user?.class_name?.toLowerCase() || ''
-  return cn.startsWith('3') || cn.includes('troisième') || cn.includes('troisieme')
+  return cn.startsWith('3') || cn.includes('troisième') || cn.includes('troisieme') || /^3[eè]/.test(cn)
 })
 const levelTitle = computed(() => {
   if (isTerminale.value) return 'Bac Blanc — Espace Résultats'
@@ -35,7 +35,8 @@ const currentExerciseConfig = computed(() => {
     for (const [k, v] of Object.entries(selectedCopy.value.exercise_config)) cfg[parseInt(k)] = v
     return cfg
   }
-  return { 1: { name: 'QCM — Géométrie', max: 5 }, 2: { name: 'Fonctions', max: 5 }, 3: { name: 'Probabilités', max: 4 }, 4: { name: 'Suites numériques', max: 6 } }
+  // Pas de config spécifique — les exercices seront affichés comme "Exercice N" générique
+  return {}
 })
 const currentQMax = computed(() => {
   if (selectedCopy.value?.q_max && Object.keys(selectedCopy.value.q_max).length > 0) return selectedCopy.value.q_max

@@ -110,12 +110,7 @@ class StudentLogoutView(views.APIView):
     permission_classes = [AllowAny]  # Public endpoint - allow logout even if session expired
 
     def post(self, request):
-        # MAINTENANCE MODE CHECK - Blocage temporaire des étudiants
-        if STUDENT_ACCESS_BLOCKED:
-            return Response({
-                'error': MAINTENANCE_MESSAGE,
-                'maintenance': True
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        # Le logout est TOUJOURS autorisé, même en maintenance
         student_id = request.session.get('student_id')
         if student_id:
             # Audit trail: Logout élève
@@ -127,7 +122,15 @@ class StudentMeView(views.APIView):
     permission_classes = [IsStudent]  # Student-only endpoint
 
     def get(self, request):
+        # Mode 1 : session student (login élève classique)
         student_id = request.session.get('student_id')
+
+        # Mode 2 : User Django avec profil student
+        if not student_id and request.user and request.user.is_authenticated:
+            student_profile = Student.objects.filter(user=request.user).first()
+            if student_profile:
+                student_id = student_profile.id
+
         if not student_id:
             return Response({'error': 'Non authentifié.'}, status=status.HTTP_401_UNAUTHORIZED)
 

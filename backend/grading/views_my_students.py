@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from exams.permissions import IsTeacherOrAdmin
 
+from django.db.models import Prefetch
 from students.models import Student
 from exams.models import Copy, TeacherGroupAssignment
 from grading.models import Score, Annotation, QuestionRemark
@@ -35,13 +36,16 @@ class MyStudentsListView(views.APIView):
                 'students': []
             }, status=status.HTTP_200_OK)
         
-        # Récupérer les élèves du groupe
-        students = Student.objects.filter(groupe=groupe).order_by('last_name', 'first_name')
-        
+        # Récupérer les élèves du groupe avec prefetch pour éviter N+1 queries
+        students = Student.objects.filter(groupe=groupe).order_by('last_name', 'first_name').prefetch_related(
+            Prefetch('copies', queryset=Copy.objects.select_related('exam', 'assigned_corrector').prefetch_related(
+                Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
+            ))
+        )
+
         result = []
         for student in students:
-            # Récupérer la copie de l'élève (peut être sur plusieurs examens)
-            copies = Copy.objects.filter(student=student).select_related('exam')
+            copies = student.copies.all()
             
             student_data = {
                 'id': student.id,
@@ -54,8 +58,8 @@ class MyStudentsListView(views.APIView):
             }
             
             for copy in copies:
-                # Récupérer le score
-                score_obj = Score.objects.filter(copy=copy).first()
+                # Utiliser les scores prefetchés
+                score_obj = copy.scores.first() if hasattr(copy, '_prefetched_objects_cache') else Score.objects.filter(copy=copy).first()
                 total_score = None
                 if score_obj and score_obj.scores_data:
                     total_score = sum(
@@ -101,7 +105,12 @@ class StudentBilanView(views.APIView):
         student = get_object_or_404(Student, id=student_id)
         
         # Vérifier que l'élève est dans le groupe du correcteur (sauf admin)
-        if not request.user.is_superuser:
+        from core.auth import UserRole
+        is_admin = (
+            request.user.is_superuser
+            or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+        )
+        if not is_admin:
             if student.groupe != groupe:
                 return Response({
                     'detail': 'Vous n\'avez pas accès à cet élève.'

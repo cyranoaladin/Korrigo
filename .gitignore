@@ -54,6 +54,8 @@ __pycache__/
 .env.labomaths
 .env.backup.*
 .venv
+.test_venv/
+backend/.test_venv/
 env/
 venv/
 ENV/
@@ -134,6 +136,16 @@ scan_J2_BB_maths/
 # Student CSV data
 eleves_*.csv
 G3_EDS_MATHS.csv
+enseignants.csv
+
+# Sensitive data dumps
+korrigo_recovery*.json
+*.json.backup
+
+# Student exam data docs
+copies_DNB_BLANC.md
+stat_*.md
+scan_DNB_*/
 
 # Temporary production rebuild scripts
 backend/rebuild_production.py
