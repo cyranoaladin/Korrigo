@@ -14,6 +14,21 @@ const expandedExercises = ref({})
 const activeTab = ref('scores')
 const pdfDirectUrl = ref(null)
 
+// Détection du niveau de l'élève
+const isTerminale = computed(() => {
+  const cn = auth.user?.class_name?.toLowerCase() || ''
+  return cn.includes('terminale') || cn.startsWith('t') || cn.includes('tle')
+})
+const isTroisieme = computed(() => {
+  const cn = auth.user?.class_name?.toLowerCase() || ''
+  return cn.startsWith('3') || cn.includes('troisième') || cn.includes('troisieme')
+})
+const levelTitle = computed(() => {
+  if (isTerminale.value) return 'Bac Blanc — Espace Résultats'
+  if (isTroisieme.value) return 'DNB — Espace Résultats'
+  return 'Espace Résultats'
+})
+
 const currentExerciseConfig = computed(() => {
   if (selectedCopy.value?.exercise_config && Object.keys(selectedCopy.value.exercise_config).length > 0) {
     const cfg = {}
@@ -181,8 +196,8 @@ onMounted(() => { fetchCopies() })
 
       <!-- EXAM TITLE -->
       <div class="text-center">
-        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">Bac Blanc — Mathématiques</h1>
-        <p class="text-sm text-slate-400 mt-1">Février 2026</p>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">{{ levelTitle }}</h1>
+        <p v-if="auth.user?.class_name" class="text-sm text-slate-400 mt-1">Classe : {{ auth.user.class_name }}</p>
       </div>
 
       <!-- COPY SELECTOR (if multiple) -->

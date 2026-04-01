@@ -50,12 +50,13 @@ class RBACPermissionsTest(TestCase):
             password='testpass'
         )
         
-        # Create test data
+        # Create test data — link Student profile to student_user
         self.student = Student.objects.create(
             date_naissance="2005-03-15",
             first_name="Jean",
             last_name="Dupont",
-            class_name="TG2"
+            class_name="TG2",
+            user=self.student_user
         )
         
         self.exam = Exam.objects.create(
@@ -260,6 +261,14 @@ class APIEndpointSecurityTest(TestCase):
             password='testpass'
         )
         self.student_user.groups.add(self.student_group)
+        # IsStudent requires a linked Student profile
+        Student.objects.create(
+            date_naissance="2005-03-15",
+            first_name="Test",
+            last_name="Student",
+            class_name="TG1",
+            user=self.student_user
+        )
 
     def test_api_endpoints_require_authentication(self):
         """

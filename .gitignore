@@ -36,6 +36,7 @@ frontend/playwright-report/
 
 # Django
 *.log
+backend/logs/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -47,8 +48,11 @@ __pycache__/
 
 # Environments
 .env
+.env.*
 .env.prod
 .env.e2e
+.env.labomaths
+.env.backup.*
 .venv
 env/
 venv/
@@ -77,6 +81,11 @@ proofs/artifacts/
 *.zip
 *.tar.gz
 *_SHA256.txt
+
+# Coverage
+.coverage
+*.coverage
+htmlcov/
 
 # Test Results
 test-results/

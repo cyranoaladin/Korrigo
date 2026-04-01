@@ -14,8 +14,8 @@ from django.db import transaction
 from core.utils.ratelimit import maybe_ratelimit
 from .models import Exam, Booklet, Copy, ExamPDF, ExamType, JuryReport
 from .serializers import (
-    ExamSerializer, BookletSerializer, CopySerializer, ExamPDFSerializer,
-    ExamTypeSerializer, JuryReportSerializer
+    ExamSerializer, BookletSerializer, CopySerializer, CorrectorCopySerializer,
+    ExamPDFSerializer, ExamTypeSerializer, JuryReportSerializer
 )
 from processing.services.vision import HeaderDetector
 from grading.services import GradingService
@@ -868,11 +868,16 @@ class CorrectorCopiesView(generics.ListAPIView):
     """
     List copies assigned to the current corrector.
     GET /api/copies/
-    Admin sees all copies; teachers see only their assigned ones.
+    Admin sees all copies (CopySerializer); teachers see only their assigned ones (CorrectorCopySerializer).
     """
     permission_classes = [IsTeacherOrAdmin]
-    serializer_class = CopySerializer
     pagination_class = None  # Frontend expects flat array
+
+    def get_serializer_class(self):
+        user = self.request.user
+        if user.is_superuser or user.groups.filter(name__iexact=UserRole.ADMIN).exists():
+            return CopySerializer
+        return CorrectorCopySerializer
 
     def get_queryset(self):
         user = self.request.user
@@ -898,11 +903,16 @@ class CorrectorCopyDetailView(generics.RetrieveUpdateAPIView):
     GET  /api/copies/<id>/  → détails complets
     PATCH /api/copies/<id>/ → mise à jour partielle (ex: subject_variant)
     """
-    queryset = Copy.objects.select_related('exam', 'student', 'locked_by')\
+    queryset = Copy.objects.select_related('exam', 'locked_by')\
         .prefetch_related('booklets', 'annotations__created_by')
-    serializer_class = CopySerializer
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     lookup_field = 'id'
+
+    def get_serializer_class(self):
+        user = self.request.user
+        if user.is_superuser or user.groups.filter(name__iexact=UserRole.ADMIN).exists():
+            return CopySerializer
+        return CorrectorCopySerializer
 
     def get_object(self):
         obj = super().get_object()

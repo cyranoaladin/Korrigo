@@ -16,7 +16,7 @@ import LoginStudent from '../views/student/LoginStudent.vue'
 function getDashboardForRole(role) {
     if (role === 'Admin') return '/admin/dashboard'
     if (role === 'Teacher') return '/corrector-dashboard'
-    if (role === 'Student') return '/student-portal'
+    if (role === 'Student') return '/student/dashboard'
     return '/'
 }
 
@@ -250,10 +250,15 @@ const routes = [
         meta: { requiresAuth: true, role: 'Student' }
     },
     {
-        path: '/student-portal',
-        name: 'StudentPortal',
+        path: '/student/dashboard',
+        name: 'StudentDashboard',
         component: () => import('../views/student/ResultView.vue'),
-        meta: { requiresAuth: true, role: 'Student' }
+        meta: { requiresAuth: true, role: 'Student', title: 'Mon Espace Élève' }
+    },
+    // Legacy redirect
+    {
+        path: '/student-portal',
+        redirect: '/student/dashboard'
     },
 
     // ── Legacy redirects (backward compatibility) ──
@@ -333,7 +338,7 @@ router.beforeEach(async (to, from, next) => {
     const userRole = authStore.user?.role
 
     if (to.meta.requiresAuth) {
-        if (!isAuthenticated) {
+        if (!isAuthenticated || userRole === 'Unknown') {
             redirectCount++
             return next({ path: '/', replace: true })
         }
