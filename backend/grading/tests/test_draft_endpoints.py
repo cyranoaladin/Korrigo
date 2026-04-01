@@ -70,8 +70,8 @@ class TestDraftEndpoints:
     
     def test_save_draft_success(self, api_client, teacher_user, copy_factory):
         """AC-2.1: Save draft → 200 OK, version incremented"""
-        copy = copy_factory(status=Copy.Status.READY)
-        
+        copy = copy_factory(status=Copy.Status.READY, assigned_corrector=teacher_user)
+
         api_client.force_authenticate(teacher_user)
         client_id = uuid.uuid4()
         response = api_client.put(
@@ -82,7 +82,7 @@ class TestDraftEndpoints:
             },
             format='json',
         )
-        
+
         assert response.status_code == 200
         assert response.data['status'] == 'SAVED'
         assert response.data['version'] == 1
@@ -122,7 +122,7 @@ class TestDraftEndpoints:
     
     def test_save_without_client_id(self, api_client, teacher_user, copy_factory):
         """AC-2.4: Save without client_id → 400 Bad Request"""
-        copy = copy_factory()
+        copy = copy_factory(assigned_corrector=teacher_user)
         
         api_client.force_authenticate(teacher_user)
         response = api_client.put(
@@ -137,15 +137,15 @@ class TestDraftEndpoints:
         assert 'client_id' in response.data['detail'].lower()
     
     def test_save_draft_by_different_user(self, api_client, teacher_user, copy_factory):
-        """AC-2.5: Two users can each have their own draft on the same copy."""
+        """AC-2.5: Non-assigned teacher is rejected; only assigned corrector can save."""
         from django.contrib.auth.models import Group
         from core.auth import UserRole
-        copy = copy_factory()
         other_user = User.objects.create_user(username='other', password='test', is_staff=True)
         other_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
         other_user.groups.add(other_group)
-        
-        # Teacher saves a draft
+        copy = copy_factory(assigned_corrector=teacher_user)
+
+        # Assigned teacher saves a draft
         api_client.force_authenticate(teacher_user)
         client_id_t = uuid.uuid4()
         response = api_client.put(
@@ -155,7 +155,7 @@ class TestDraftEndpoints:
         )
         assert response.status_code == 200
 
-        # Other user saves a draft
+        # Non-assigned teacher is rejected
         api_client.force_authenticate(other_user)
         client_id_o = uuid.uuid4()
         response = api_client.put(
@@ -163,13 +163,13 @@ class TestDraftEndpoints:
             {'payload': {'content': 'Other draft'}, 'client_id': str(client_id_o)},
             format='json',
         )
-        assert response.status_code == 200
+        assert response.status_code == 403
 
-        assert DraftState.objects.filter(copy=copy).count() == 2
+        assert DraftState.objects.filter(copy=copy).count() == 1
     
     def test_save_to_graded_copy_forbidden(self, api_client, teacher_user, copy_factory):
         """AC-2.6: Save to GRADED copy → 400 Bad Request"""
-        copy = copy_factory(status=Copy.Status.FINALIZED)
+        copy = copy_factory(status=Copy.Status.FINALIZED, assigned_corrector=teacher_user)
         
         api_client.force_authenticate(teacher_user)
         response = api_client.put(
@@ -188,7 +188,7 @@ class TestDraftEndpoints:
     
     def test_client_id_conflict(self, api_client, teacher_user, copy_factory):
         """AC-2.7: same-user client_id change → 200 OK (takeover allowed, 409 only on true concurrent DB conflict)"""
-        copy = copy_factory()
+        copy = copy_factory(assigned_corrector=teacher_user)
         
         # Create existing draft with different client_id
         existing_client_id = uuid.uuid4()

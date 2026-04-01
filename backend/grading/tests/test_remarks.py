@@ -64,11 +64,12 @@ def exam_with_structure(db):
 
 
 @pytest.fixture
-def copy_obj(db, exam_with_structure):
+def copy_obj(db, exam_with_structure, teacher_user):
     return Copy.objects.create(
         exam=exam_with_structure,
         anonymous_id="COPY-001",
-        status=Copy.Status.READY
+        status=Copy.Status.READY,
+        assigned_corrector=teacher_user,
     )
 
 

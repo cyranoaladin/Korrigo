@@ -41,7 +41,7 @@ def _can_write_copy(user, copy: Copy) -> bool:
     LOT 5: Check if user is allowed to write to this copy.
     Admins/superusers always pass. Teachers must be the assigned_corrector.
     """
-    if user.is_superuser or user.is_staff:
+    if user.is_superuser:
         return True
     if user.groups.filter(name__iexact=UserRole.ADMIN).exists():
         return True
@@ -257,7 +257,7 @@ class CopyFinalPdfView(APIView):
         - Even admins cannot access non-FINALIZED copies
     
     Gate 2 - Permission Check (lines 186-215):
-        - Teachers/Admins: Verified via is_staff/is_superuser/Teachers group
+        - Teachers/Admins: Verified via is_superuser/Admin/Teacher group membership
         - Students: Verified via session student_id + ownership check
         - Students can ONLY access THEIR OWN copies
         - 401 if no authentication
@@ -286,7 +286,6 @@ class CopyFinalPdfView(APIView):
         # ---- Permission gate: teacher/admin OR owning student session ----
         teacher_or_admin = (
             getattr(request.user, "is_authenticated", False) and (
-                getattr(request.user, "is_staff", False) or
                 getattr(request.user, "is_superuser", False) or
                 request.user.groups.filter(name__iexact=UserRole.TEACHER).exists() or
                 request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
@@ -641,7 +640,7 @@ class CorrectorStatsView(APIView):
 
         # Determine if current user is a corrector for this exam
         is_corrector = exam.correctors.filter(id=request.user.id).exists()
-        is_admin = request.user.is_superuser or request.user.is_staff or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+        is_admin = request.user.is_superuser or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
 
         if not is_corrector and not is_admin:
             return Response(
@@ -793,9 +792,7 @@ class ExamReleaseResultsView(APIView):
 
     def _check_admin(self, request):
         user = request.user
-        if user.is_superuser or user.is_staff:
-            return True
-        return user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+        return user.is_superuser or user.groups.filter(name__iexact=UserRole.ADMIN).exists()
 
     def post(self, request, exam_id):
         if not self._check_admin(request):
@@ -831,7 +828,7 @@ class ExamUnreleaseResultsView(APIView):
 
     def post(self, request, exam_id):
         user = request.user
-        is_admin = user.is_superuser or user.is_staff or user.groups.filter(name=UserRole.ADMIN).exists()
+        is_admin = user.is_superuser or user.groups.filter(name__iexact=UserRole.ADMIN).exists()
         if not is_admin:
             return Response(
                 {"detail": "Seul un administrateur peut dépublier les résultats."},
@@ -916,7 +913,7 @@ class AdminForceUnlockView(APIView):
     permission_classes = [IsTeacherOrAdmin]
 
     def post(self, request, copy_id):
-        if not (request.user.is_superuser or request.user.is_staff):
+        if not (request.user.is_superuser or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()):
             return Response(
                 {"detail": "Seul un administrateur peut forcer le déverrouillage."},
                 status=status.HTTP_403_FORBIDDEN,

@@ -30,7 +30,7 @@ def _can_write_copy_draft(user, copy: Copy) -> bool:
     LOT 8 FIX: Check if user is allowed to write a draft for this copy.
     Admins/superusers always pass. Teachers must be the assigned_corrector.
     """
-    if user.is_superuser or user.is_staff:
+    if user.is_superuser:
         return True
     if user.groups.filter(name__iexact=UserRole.ADMIN).exists():
         return True

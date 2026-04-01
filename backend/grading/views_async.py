@@ -10,6 +10,7 @@ from rest_framework import status as http_status
 from celery.result import AsyncResult
 from django.conf import settings
 from exams.permissions import IsTeacherOrAdmin
+from core.auth import UserRole
 import logging
 
 logger = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ def task_status(request, task_id):
         response_data['message'] = 'Task failed'
         
         # Include traceback for debugging (admin only)
-        if request.user.is_staff:
+        if request.user.is_superuser or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists():
             response_data['traceback'] = result.traceback
             
     elif result.state == 'RETRY':
@@ -125,7 +126,7 @@ def cancel_task(request, task_id):
         403: {"detail": "Only admin/staff can cancel tasks."}
     """
     # Authorization: only admin/staff can cancel tasks
-    if not (request.user.is_staff or request.user.is_superuser):
+    if not (request.user.is_superuser or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()):
         return Response(
             {"detail": "Seul un administrateur peut annuler une tâche."},
             status=http_status.HTTP_403_FORBIDDEN

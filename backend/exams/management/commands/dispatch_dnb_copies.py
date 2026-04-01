@@ -52,8 +52,8 @@ DNB_DIR = PROJECT_ROOT / "scan_DNB_maths"
 CLASSES_CSV = DNB_DIR / "classes_troisieme.csv"
 ENSEIGNANTS_CSV = PROJECT_ROOT / "enseignants.csv"
 
-DNB_EXAM_TYPE_CODE = "DNBM2026"
-DNB_EXAM_NAME = "DNB_2026"  # un seul examen, pas de sujet A/B contrairement à BBM2026
+from exams.exam_type_codes import DNB_BLANC_CODE as DNB_EXAM_TYPE_CODE  # noqa: E402
+DNB_EXAM_NAME = "DNB_2026"  # un seul examen, pas de sujet A/B contrairement au Bac Blanc
 
 # ── Contraintes individuelles spéciales ──────────────────────────────────────
 # Format : (last_name_upper, first_name_upper, date_naissance_DD/MM/YYYY)

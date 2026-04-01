@@ -43,11 +43,12 @@
             Conformité
           </router-link>
           <router-link
-            v-if="canSeeStats"
-            to="/korrigo/stats-bb-maths-2026"
+            v-for="code in juryReportCodes"
+            :key="code"
+            :to="`/korrigo/stats/${code}`"
             class="text-gray-600 hover:text-primary-700 font-medium transition"
           >
-            Stats BB 2026
+            Stats {{ code }}
           </router-link>
         </nav>
 
@@ -165,11 +166,12 @@
           Conformité
         </router-link>
         <router-link
-          v-if="canSeeStats"
-          to="/korrigo/stats-bb-maths-2026"
+          v-for="code in juryReportCodes"
+          :key="code"
+          :to="`/korrigo/stats/${code}`"
           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
         >
-          Stats BB 2026
+          Stats {{ code }}
         </router-link>
         <div class="border-t border-gray-100 pt-3 mt-3 space-y-1">
           <span class="block px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Connexion</span>
@@ -206,10 +208,9 @@ import { useAuthStore } from '../stores/auth'
 import { LogIn, ChevronDown, PenTool, Settings, GraduationCap } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
-const canSeeStats = computed(() => {
-  const role = authStore.user?.role
-  return role === 'Teacher' || role === 'Admin'
-})
+const juryReportCodes = computed(() =>
+  authStore.user?.features?.jury_report_exam_codes ?? []
+)
 
 const isMobileMenuOpen = ref(false)
 const isLoginDropdownOpen = ref(false)

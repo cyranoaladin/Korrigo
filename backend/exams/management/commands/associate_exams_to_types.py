@@ -1,16 +1,17 @@
 from django.core.management.base import BaseCommand
+from exams.exam_type_codes import BAC_BLANC_CODE
 from exams.models import Exam, ExamType
 
 
 class Command(BaseCommand):
-    help = "Asssocie les examens existants au type BAC_BLANC_MATHS_2026"
+    help = "Asssocie les examens existants au type BBM2026"
 
     def handle(self, *args, **options):
         try:
-            exam_type = ExamType.objects.get(code="BAC_BLANC_MATHS_2026")
+            exam_type = ExamType.objects.get(code=BAC_BLANC_CODE)
         except ExamType.DoesNotExist:
             self.stdout.write(
-                self.style.WARNING("L'ExamType BAC_BLANC_MATHS_2026 n'existe pas encore. Exécutez create_exam_types d'abord.")
+                self.style.WARNING(f"L'ExamType {BAC_BLANC_CODE} n'existe pas encore. Exécutez create_exam_types d'abord.")
             )
             return
 
