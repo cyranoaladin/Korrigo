@@ -44,6 +44,11 @@ const toggleSort = (field) => {
   if (sortField.value === field) { sortAsc.value = !sortAsc.value } else { sortField.value = field; sortAsc.value = true }
 }
 
+const hasGroups = computed(() => {
+  if (summary.value?.has_groups !== undefined) return summary.value.has_groups
+  return copies.value.some(c => c.student_groupe && c.student_groupe.trim() !== '')
+})
+
 const uniqueClasses = computed(() => [...new Set(copies.value.map(c => c.student_class).filter(Boolean))].sort())
 const uniqueGroupes = computed(() => [...new Set(copies.value.map(c => c.student_groupe).filter(Boolean))].sort())
 
@@ -69,8 +74,14 @@ const filteredCopies = computed(() => {
 })
 
 const exportCSV = () => {
-  const header = ['#','Anonymat','Élève','Classe','Groupe','Note','Statut','Correcteur','Appréciation']
-  const rows = filteredCopies.value.map((c, i) => [i+1, c.anonymous_id, c.student_name||'—', c.student_class||'—', c.student_groupe||'—', c.total_score??'—', statusLabel(c.status), c.corrector||'—', c.has_appreciation?'Oui':'Non'])
+  const baseHeader = ['#','Anonymat','Élève','Classe']
+  const header = hasGroups.value ? [...baseHeader, 'Groupe', 'Note','Statut','Correcteur','Appréciation'] : [...baseHeader, 'Note','Statut','Correcteur','Appréciation']
+  const rows = filteredCopies.value.map((c, i) => {
+    const base = [i+1, c.anonymous_id, c.student_name||'—', c.student_class||'—']
+    if (hasGroups.value) base.push(c.student_groupe||'—')
+    base.push(c.total_score??'—', statusLabel(c.status), c.corrector||'—', c.has_appreciation?'Oui':'Non')
+    return base
+  })
   const csv = [header, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n')
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'})
   const url = URL.createObjectURL(blob)
@@ -137,7 +148,7 @@ onMounted(fetchData)
             <option value="all">Toutes les classes</option>
             <option v-for="cl in uniqueClasses" :key="cl" :value="cl">{{ cl }}</option>
           </select>
-          <select v-model="filterGroupe" class="px-4 py-2.5 bg-white rounded-xl ring-1 ring-slate-200 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+          <select v-if="hasGroups" v-model="filterGroupe" class="px-4 py-2.5 bg-white rounded-xl ring-1 ring-slate-200 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
             <option value="all">Tous les groupes</option>
             <option v-for="gr in uniqueGroupes" :key="gr" :value="gr">{{ gr }}</option>
           </select>
@@ -159,7 +170,7 @@ onMounted(fetchData)
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('anonymous_id')">Anonymat <span v-if="sortField==='anonymous_id'">{{ sortAsc?'▲':'▼' }}</span></th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_name')">Élève <span v-if="sortField==='student_name'">{{ sortAsc?'▲':'▼' }}</span></th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_class')">Classe <span v-if="sortField==='student_class'">{{ sortAsc?'▲':'▼' }}</span></th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_groupe')">Groupe <span v-if="sortField==='student_groupe'">{{ sortAsc?'▲':'▼' }}</span></th>
+                  <th v-if="hasGroups" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_groupe')">Groupe <span v-if="sortField==='student_groupe'">{{ sortAsc?'▲':'▼' }}</span></th>
                   <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('total_score')">Note /20 <span v-if="sortField==='total_score'">{{ sortAsc?'▲':'▼' }}</span></th>
                   <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('status')">Statut <span v-if="sortField==='status'">{{ sortAsc?'▲':'▼' }}</span></th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('corrector')">Correcteur <span v-if="sortField==='corrector'">{{ sortAsc?'▲':'▼' }}</span></th>
@@ -181,13 +192,13 @@ onMounted(fetchData)
                     <span v-else>{{ copy.student_name || '—' }}</span>
                   </td>
                   <td class="px-4 py-3 text-slate-500 text-xs">{{ copy.student_class || '—' }}</td>
-                  <td class="px-4 py-3 text-slate-500 text-xs">{{ copy.student_groupe || '—' }}</td>
+                  <td v-if="hasGroups" class="px-4 py-3 text-slate-500 text-xs">{{ copy.student_groupe || '—' }}</td>
                   <td class="px-4 py-3 text-center"><span :class="scoreColor(copy.total_score)">{{ copy.total_score !== null ? copy.total_score.toFixed(2) : '—' }}</span></td>
                   <td class="px-4 py-3 text-center"><span :class="['px-2.5 py-1 rounded-full text-xs font-medium', statusColor(copy.status)]">{{ statusLabel(copy.status) }}</span></td>
                   <td class="px-4 py-3 text-slate-600 text-xs">{{ copy.corrector || '—' }}</td>
                   <td class="px-4 py-3 text-center"><span v-if="copy.has_appreciation" class="text-emerald-500">✓</span><span v-else class="text-slate-300">—</span></td>
                 </tr>
-                <tr v-if="filteredCopies.length===0"><td colspan="9" class="px-4 py-8 text-center text-slate-400">Aucun résultat.</td></tr>
+                <tr v-if="filteredCopies.length===0"><td :colspan="hasGroups ? 9 : 8" class="px-4 py-8 text-center text-slate-400">Aucun résultat.</td></tr>
               </tbody>
             </table>
           </div>

@@ -192,6 +192,9 @@ class StatsReportView(APIView):
         correctors = self._compute_correctors(bb_j1, bb_j2, j1_pairs, j2_pairs)
 
         # ======================== GROUPS ========================
+        has_groups = Student.objects.filter(
+            copies__exam__in=[bb_j1, bb_j2]
+        ).exclude(groupe__isnull=True).exclude(groupe='').exists()
         groups_j1 = self._compute_groups(j1_pairs, bb_j1)
         groups_j2 = self._compute_groups(j2_pairs, bb_j2)
 
@@ -221,6 +224,7 @@ class StatsReportView(APIView):
             'global_distribution': global_distribution,
             'mentions': mentions,
             'correctors': correctors,
+            'has_groups': has_groups,
             'groups_j1': groups_j1,
             'groups_j2': groups_j2,
             'classes_j1': classes_j1,

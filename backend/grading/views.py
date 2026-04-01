@@ -700,6 +700,12 @@ class CorrectorStatsView(APIView):
 
     def _compute_group_stats(self, copies_qs, global_scores, scores_by_copy=None):
         """Compute stats per student group (groupe field on Student model)."""
+        # If no student has a non-empty groupe, return empty list
+        if not any(
+            c.student and c.student.groupe
+            for c in copies_qs
+        ):
+            return []
         from collections import defaultdict
         group_scores = defaultdict(list)
         for copy in copies_qs:
