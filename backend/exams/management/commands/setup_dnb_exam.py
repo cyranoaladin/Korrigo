@@ -39,7 +39,7 @@ CLASSES_CSV = DNB_DIR / "classes_troisieme.csv"
 ENSEIGNANTS_CSV = PROJECT_ROOT / "enseignants.csv"
 
 # ── Exam defaults ────────────────────────────────────────────────────────────
-DNB_EXAM_TYPE_CODE = "DNBM2026"
+from exams.exam_type_codes import DNB_BLANC_CODE as DNB_EXAM_TYPE_CODE  # noqa: E402
 DNB_EXAM_NAME = "DNB_2026"
 DNB_EXAM_DATE = datetime.date(2026, 3, 15)   # adjust if needed
 UPLOAD_MODE = "INDIVIDUAL_A4"               # copies déjà découpées individuellement

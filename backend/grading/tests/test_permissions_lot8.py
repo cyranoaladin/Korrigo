@@ -478,9 +478,10 @@ class TestIsAdminUnified(TestCase):
         request = self._make_request(self.superuser_no_group)
         self.assertTrue(IsAdmin().has_permission(request, None))
 
-    def test_staff_passes_is_admin(self):
+    def test_staff_alone_does_not_pass_is_admin(self):
+        """is_staff alone (no group, not superuser) must NOT grant admin."""
         request = self._make_request(self.staff_no_group)
-        self.assertTrue(IsAdmin().has_permission(request, None))
+        self.assertFalse(IsAdmin().has_permission(request, None))
 
     def test_superuser_passes_is_admin_only(self):
         request = self._make_request(self.superuser_no_group)

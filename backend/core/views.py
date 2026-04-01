@@ -116,7 +116,7 @@ class UserDetailView(APIView):
     def get(self, request):
         user = request.user
         # Determine Role (check groups first, then fall back to flags)
-        if user.groups.filter(name=UserRole.ADMIN).exists() or user.is_superuser or user.is_staff:
+        if user.groups.filter(name=UserRole.ADMIN).exists() or user.is_superuser:
             role = "Admin"
         elif user.groups.filter(name=UserRole.TEACHER).exists():
             role = "Teacher"
@@ -133,7 +133,7 @@ class UserDetailView(APIView):
         # Compute which exam-type codes this corrector actually has copies in.
         # Admins/superusers get the full list so their dashboards work correctly.
         from grading.models import Copy
-        from exams.models import ExamType
+        from exams.models import ExamType, JuryReport
         if _is_admin_user(user):
             assigned_codes = list(
                 ExamType.objects.values_list('code', flat=True)
@@ -147,16 +147,23 @@ class UserDetailView(APIView):
         assigned_codes = [c for c in assigned_codes if c]  # strip None
 
         # Feature flags — business rules live here, not in the frontend.
-        # show_questionnaire: only the dedicated questionnaire coordinator.
-        QUESTIONNAIRE_USER = 'laroussi.laroussi@ert.tn'
+        # jury_report_exam_codes: list of exam-type codes that have a published
+        # jury report AND that this user is assigned to (or all, for admins).
+        published_jury_codes = set(
+            JuryReport.objects.filter(is_published=True)
+            .values_list('exam_type__code', flat=True)
+        )
+        jury_report_codes = sorted(published_jury_codes & set(assigned_codes))
+
         features = {
-            # Rapport du jury is scoped to BAC BLANC MATHS 2026 correctors only.
-            'show_jury_report_bac_blanc': 'BBM2026' in assigned_codes,
-            # Questionnaire is only for the designated coordinator.
-            'show_questionnaire': (
-                user.username == QUESTIONNAIRE_USER
-                or user.email == QUESTIONNAIRE_USER
-            ),
+            # True when the user has at least one published jury report available.
+            'show_jury_report': len(jury_report_codes) > 0,
+            # Per-code list so the frontend knows which reports to show.
+            'jury_report_exam_codes': jury_report_codes,
+            # Questionnaire is only for the designated coordinator group.
+            'show_questionnaire': user.groups.filter(
+                name='QUESTIONNAIRE_COORDINATOR'
+            ).exists(),
         }
 
         return Response({
@@ -239,7 +246,7 @@ class UserListView(APIView):
         
         if role == 'Admin':
             from django.db.models import Q
-            queryset = queryset.filter(Q(is_staff=True) | Q(is_superuser=True))
+            queryset = queryset.filter(Q(groups__name=UserRole.ADMIN) | Q(is_superuser=True)).distinct()
         elif role == 'Teacher':
             queryset = queryset.filter(groups__name=UserRole.TEACHER)
         

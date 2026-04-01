@@ -63,7 +63,8 @@ class TestAntiLoss:
         Replaces old lock idempotency test — locks removed.
         """
         copy.status = Copy.Status.FINALIZED
-        copy.save(update_fields=["status"])
+        copy.assigned_corrector = teacher
+        copy.save(update_fields=["status", "assigned_corrector"])
 
         client = APIClient()
         client.force_authenticate(user=teacher)

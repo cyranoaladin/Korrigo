@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand
+from exams.exam_type_codes import BAC_BLANC_CODE, DNB_BLANC_CODE
 from exams.models import ExamType
 
 
@@ -8,14 +9,14 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         exam_types = [
             {
-                "code": "BAC_BLANC_MATHS_2026",
+                "code": BAC_BLANC_CODE,
                 "name": "Bac Blanc Maths 2026",
                 "color": "#3B82F6",
                 "icon": "graduation-cap",
                 "sort_order": 1,
             },
             {
-                "code": "DNB_BLANC_MATHS_2026",
+                "code": DNB_BLANC_CODE,
                 "name": "DNB Blanc Maths 2026",
                 "color": "#10B981",
                 "icon": "book-open",

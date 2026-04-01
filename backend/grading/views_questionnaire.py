@@ -207,8 +207,7 @@ class QuestionnaireBilanView(views.APIView):
 
         is_admin = bool(
             request.user.is_superuser
-            or request.user.is_staff
-            or request.user.groups.filter(name=UserRole.ADMIN).exists()
+            or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
         )
 
         # Admin always sees responses; non-admin only when all have responded

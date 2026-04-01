@@ -360,12 +360,12 @@ const goToQuestionnaireBilan = () => {
 }
 
 // --- Feature flags (computed from backend /me/ response) ---
-// show_jury_report_bac_blanc: user has copies in BBM2026 AND selected exam is BBM2026
-const canSeeJuryReport = computed(() =>
-    authStore.user?.features?.show_jury_report_bac_blanc === true
-    && selectedExamType.value?.code === 'BBM2026'
-)
-// show_questionnaire: only the designated questionnaire coordinator
+// show_jury_report: user has published jury reports for the currently selected exam type
+const canSeeJuryReport = computed(() => {
+    const codes = authStore.user?.features?.jury_report_exam_codes ?? []
+    return codes.includes(selectedExamType.value?.code)
+})
+// show_questionnaire: only members of the QUESTIONNAIRE_COORDINATOR group
 const canSeeQuestionnaire = computed(() =>
     authStore.user?.features?.show_questionnaire === true
 )
@@ -430,7 +430,7 @@ const canSeeQuestionnaire = computed(() =>
           class="btn-jury-report"
           @click="openJuryReportsModal"
         >
-          📋 Rapport du Jury BAC BLANC 2026
+          📋 Rapport du Jury {{ selectedExamType?.name || '' }}
         </button>
         <button
           class="btn-logout"

@@ -27,8 +27,8 @@ logger = logging.getLogger(__name__)
 
 
 def _is_admin(user):
-    """Vérifie si l'utilisateur est admin via group membership (cohérent avec core.auth)."""
-    return user.is_superuser or user.is_staff or user.groups.filter(name=UserRole.ADMIN).exists()
+    """Vérifie si l'utilisateur est admin via group membership (exclut is_staff seul)."""
+    return user.is_superuser or user.groups.filter(name__iexact=UserRole.ADMIN).exists()
 
 
 class DocumentSetUploadView(APIView):

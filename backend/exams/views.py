@@ -888,7 +888,7 @@ class CorrectorCopiesView(generics.ListAPIView):
             base_qs = base_qs.filter(exam__exam_type_id=exam_type_id)
 
         # Admin sees all; teacher sees only assigned
-        if user.is_superuser or user.is_staff:
+        if user.is_superuser or user.groups.filter(name__iexact=UserRole.ADMIN).exists():
             return base_qs
         return base_qs.filter(assigned_corrector=user)
 
@@ -903,6 +903,15 @@ class CorrectorCopyDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = CopySerializer
     permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
     lookup_field = 'id'
+
+    def get_object(self):
+        obj = super().get_object()
+        user = self.request.user
+        if not user.is_superuser and not user.groups.filter(name__iexact=UserRole.ADMIN).exists():
+            if obj.assigned_corrector_id != user.id:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Vous n'êtes pas assigné à cette copie.")
+        return obj
 
 
 class ExamDispatchView(APIView):
@@ -1429,7 +1438,7 @@ class ExamTypeListView(generics.ListCreateAPIView):
         qs = ExamType.objects.filter(is_active=True).order_by('sort_order', 'name')
 
         # Admin et superuser voient tous les types
-        if user.is_superuser or user.is_staff or user.groups.filter(name=UserRole.ADMIN).exists():
+        if user.is_superuser or user.groups.filter(name__iexact=UserRole.ADMIN).exists():
             return qs
 
         # Correcteur : types liés aux examens auxquels il est assigné OU types de ses copies
@@ -1467,9 +1476,8 @@ class JuryReportListView(generics.ListCreateAPIView):
         user = self.request.user
 
         is_admin = (
-            user.groups.filter(name__iexact=UserRole.ADMIN).exists()
-            or user.is_superuser
-            or user.is_staff
+            user.is_superuser
+            or user.groups.filter(name__iexact=UserRole.ADMIN).exists()
         )
         if not is_admin:
             # Non-admin correctors: only published reports for exam types
@@ -1511,7 +1519,7 @@ class JuryReportDetailView(generics.RetrieveUpdateDestroyAPIView):
         from .models import JuryReport
         queryset = JuryReport.objects.all()
         user = self.request.user
-        is_admin = user.groups.filter(name__iexact=UserRole.ADMIN).exists() or user.is_superuser or user.is_staff
+        is_admin = user.is_superuser or user.groups.filter(name__iexact=UserRole.ADMIN).exists()
         if not is_admin:
             queryset = queryset.filter(exam__correctors=user)
         return queryset

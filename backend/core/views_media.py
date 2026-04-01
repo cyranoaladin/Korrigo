@@ -97,8 +97,8 @@ class ProtectedMediaView(APIView):
         """
         user = request.user
 
-        # Staff / superuser shortcut
-        if user.is_staff or user.is_superuser:
+        # Superuser shortcut
+        if user.is_superuser:
             return True
 
         # Group-based check (Teacher or Admin)

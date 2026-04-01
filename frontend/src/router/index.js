@@ -63,10 +63,10 @@ const routes = [
                 meta: { title: 'Direction & Conformité', public: true }
             },
             {
-                path: 'stats-bb-maths-2026',
+                path: 'stats/:examTypeCode',
                 name: 'StatsReport',
                 component: StatsReport,
-                meta: { title: 'Rapport Statistique — BB Maths 2026', requiresAuth: true, role: ['Teacher', 'Admin'] }
+                meta: { title: 'Rapport Statistique', requiresAuth: true, role: ['Teacher', 'Admin'] }
             }
         ]
     },
@@ -263,6 +263,7 @@ const routes = [
     { path: '/exam/:examId/grading-scale', redirect: to => `/admin/exams/${to.params.examId}/scale` },
     { path: '/exam/:examId/students', redirect: to => `/admin/exams/${to.params.examId}/results` },
     { path: '/questionnaire/bilan', redirect: '/admin/questionnaire' },
+    { path: '/korrigo/stats-bb-maths-2026', redirect: '/korrigo/stats/BBM2026' },
 
     // ── Catch-all ──
     {

@@ -115,11 +115,12 @@ class RBACPermissionsTest(TestCase):
             None
         ))
         
-        # Others should not have teacher permission
-        self.assertFalse(permission.has_permission(
+        # Admin can access teacher endpoints (for monitoring)
+        self.assertTrue(permission.has_permission(
             type('MockRequest', (), {'user': self.admin_user})(),
             None
         ))
+        # Student and regular users should not have teacher permission
         self.assertFalse(permission.has_permission(
             type('MockRequest', (), {'user': self.student_user})(),
             None
@@ -141,11 +142,12 @@ class RBACPermissionsTest(TestCase):
             None
         ))
         
-        # Others should not have student permission
-        self.assertFalse(permission.has_permission(
+        # Admin can access student endpoints (for support/audit)
+        self.assertTrue(permission.has_permission(
             type('MockRequest', (), {'user': self.admin_user})(),
             None
         ))
+        # Teacher and regular users should not have student permission
         self.assertFalse(permission.has_permission(
             type('MockRequest', (), {'user': self.teacher_user})(),
             None

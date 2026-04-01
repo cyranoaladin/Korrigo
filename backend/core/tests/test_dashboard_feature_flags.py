@@ -1,8 +1,9 @@
 """
-Regression tests for dashboard feature flags (A2 / A3 / A4):
+Regression tests for dashboard feature flags:
   - /me/ returns assigned_exam_type_codes for correctors
-  - show_jury_report_bac_blanc is True only for correctors assigned to BBM2026 copies
-  - show_questionnaire is True only for laroussi.laroussi@ert.tn
+  - show_jury_report is True only when a published JuryReport exists for the user's exam types
+  - jury_report_exam_codes lists the relevant codes
+  - show_questionnaire is True only for QUESTIONNAIRE_COORDINATOR group members
   - JuryReportListView scopes to assigned exam types for non-admins
   - JuryReportListView accepts ?exam_type_code= filter
 """
@@ -11,7 +12,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User, Group
 from rest_framework.test import APIClient
 from core.auth import UserRole, create_user_roles
-from exams.models import ExamType, Exam
+from exams.models import ExamType, Exam, JuryReport
 from grading.models import Copy
 
 
@@ -45,12 +46,25 @@ class TestMeFeatureFlags(TestCase):
     def setUp(self):
         create_user_roles()
         teacher_group = Group.objects.get(name=UserRole.TEACHER)
+        self.coordinator_group, _ = Group.objects.get_or_create(
+            name='QUESTIONNAIRE_COORDINATOR'
+        )
 
         self.bbm = _make_exam_type('BBM2026', 'BAC BLANC MATHS 2026')
         self.dnb = _make_exam_type('DNBM2026', 'DNB BLANC MATHS 2026')
 
         bbm_exam = _make_exam(self.bbm)
         dnb_exam = _make_exam(self.dnb)
+
+        # Published jury report for BBM only
+        self.admin_user = User.objects.create_user('flag_admin', 'fa@test.fr', 'pw123456')
+        JuryReport.objects.create(
+            exam_type=self.bbm,
+            title='Rapport BBM',
+            content='...',
+            is_published=True,
+            created_by=self.admin_user,
+        )
 
         # BBM corrector
         self.bbm_corrector = User.objects.create_user('bbm_corrector', 'bbm@test.fr', 'pw123456')
@@ -62,13 +76,14 @@ class TestMeFeatureFlags(TestCase):
         self.dnb_corrector.groups.add(teacher_group)
         _make_copy(dnb_exam, self.dnb_corrector)
 
-        # Questionnaire coordinator
+        # Questionnaire coordinator (now via group, not hardcoded email)
         self.laroussi = User.objects.create_user(
             'laroussi.laroussi@ert.tn', 'laroussi.laroussi@ert.tn', 'pw123456'
         )
         self.laroussi.email = 'laroussi.laroussi@ert.tn'
         self.laroussi.save()
         self.laroussi.groups.add(teacher_group)
+        self.laroussi.groups.add(self.coordinator_group)
         _make_copy(bbm_exam, self.laroussi)
 
         self.client = APIClient()
@@ -86,11 +101,13 @@ class TestMeFeatureFlags(TestCase):
 
     def test_bbm_corrector_sees_jury_report(self):
         data = self._me(self.bbm_corrector)
-        self.assertTrue(data['features']['show_jury_report_bac_blanc'])
+        self.assertTrue(data['features']['show_jury_report'])
+        self.assertIn('BBM2026', data['features']['jury_report_exam_codes'])
 
     def test_dnb_corrector_does_not_see_bbm_jury_report(self):
         data = self._me(self.dnb_corrector)
-        self.assertFalse(data['features']['show_jury_report_bac_blanc'])
+        self.assertFalse(data['features']['show_jury_report'])
+        self.assertEqual(data['features']['jury_report_exam_codes'], [])
 
     def test_only_laroussi_sees_questionnaire(self):
         laroussi_data = self._me(self.laroussi)
@@ -102,7 +119,8 @@ class TestMeFeatureFlags(TestCase):
         for user in [self.bbm_corrector, self.dnb_corrector, self.laroussi]:
             data = self._me(user)
             self.assertIn('features', data)
-            self.assertIn('show_jury_report_bac_blanc', data['features'])
+            self.assertIn('show_jury_report', data['features'])
+            self.assertIn('jury_report_exam_codes', data['features'])
             self.assertIn('show_questionnaire', data['features'])
 
 
