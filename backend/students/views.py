@@ -238,22 +238,23 @@ class StudentImportView(views.APIView):
 
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request):
-        # MAINTENANCE MODE CHECK - Blocage temporaire des étudiants
-        if is_student_access_blocked():
-            return Response({
-                'error': MAINTENANCE_MESSAGE,
-                'maintenance': True
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        # L'import admin est TOUJOURS autorisé, même en maintenance.
+        # La maintenance ne bloque que le login et la consultation élèves.
         import csv
         import io
         from datetime import datetime
-        
+        from django.db import transaction
+
         file_obj = request.FILES.get('file')
         if not file_obj:
             return Response({'error': 'Fichier requis.'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
+        MAX_CSV_SIZE = 5 * 1024 * 1024  # 5 MB
+        if file_obj.size > MAX_CSV_SIZE:
+            return Response({'error': 'Fichier trop volumineux (max 5 MB).'}, status=status.HTTP_400_BAD_REQUEST)
+
         results = {"created": 0, "updated": 0, "errors": []}
-        
+
         try:
             decoded_file = file_obj.read().decode('utf-8')
             io_string = io.StringIO(decoded_file)
@@ -345,6 +346,7 @@ class StudentImportView(views.APIView):
 
                 # Create or Update based on unique key: (last_name, first_name, date_naissance)
                 try:
+                  with transaction.atomic():
                     student, created = Student.objects.update_or_create(
                         last_name=last_name,
                         first_name=first_name,
@@ -382,7 +384,7 @@ class StudentImportView(views.APIView):
                         results['created'] += 1
                     else:
                         results['updated'] += 1
-                except Exception as row_err:
+                except (Exception,) as row_err:
                     results['errors'].append({
                         "line": line_num,
                         "error": str(row_err)[:200]

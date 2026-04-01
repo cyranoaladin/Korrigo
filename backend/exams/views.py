@@ -654,12 +654,12 @@ class StudentCopiesView(generics.ListAPIView):
             'exam__results_released_at__isnull': False,
         }
         if student_id:
-            return Copy.objects.filter(student=student_id, **base_filter)
+            return Copy.objects.filter(student=student_id, **base_filter).select_related('exam')
         else:
             try:
                 from students.models import Student
                 student = Student.objects.get(user=self.request.user)
-                return Copy.objects.filter(student=student, **base_filter)
+                return Copy.objects.filter(student=student, **base_filter).select_related('exam')
             except Student.DoesNotExist:
                 return Copy.objects.none()
 

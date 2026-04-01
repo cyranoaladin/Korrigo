@@ -332,6 +332,7 @@ router.beforeEach(async (to, from, next) => {
 
     if (!authStore.user) {
         const preferStudent = to.path.startsWith('/student')
+            || to.meta.role === 'Student'
         try {
             await authStore.fetchUser(preferStudent)
         } catch (error) {

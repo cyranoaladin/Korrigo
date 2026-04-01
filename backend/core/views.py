@@ -116,9 +116,9 @@ class UserDetailView(APIView):
     def get(self, request):
         user = request.user
         # Determine Role (check groups first, then fall back to flags)
-        if user.groups.filter(name=UserRole.ADMIN).exists() or user.is_superuser:
+        if user.groups.filter(name__iexact=UserRole.ADMIN).exists() or user.is_superuser:
             role = "Admin"
-        elif user.groups.filter(name=UserRole.TEACHER).exists():
+        elif user.groups.filter(name__iexact=UserRole.TEACHER).exists():
             role = "Teacher"
         else:
             role = "Unknown"  # LOT 8 FIX: was "Teacher" — masks config issues
@@ -172,7 +172,6 @@ class UserDetailView(APIView):
             "first_name": user.first_name,
             "email": user.email,
             "role": role,
-            "is_superuser": user.is_superuser,
             "must_change_password": must_change_password,
             "assigned_exam_type_codes": assigned_codes,
             "features": features,
@@ -246,9 +245,9 @@ class UserListView(APIView):
         
         if role == 'Admin':
             from django.db.models import Q
-            queryset = queryset.filter(Q(groups__name=UserRole.ADMIN) | Q(is_superuser=True)).distinct()
+            queryset = queryset.filter(Q(groups__name__iexact=UserRole.ADMIN) | Q(is_superuser=True)).distinct()
         elif role == 'Teacher':
-            queryset = queryset.filter(groups__name=UserRole.TEACHER)
+            queryset = queryset.filter(groups__name__iexact=UserRole.TEACHER)
         
         users = []
         for u in queryset:
@@ -313,10 +312,13 @@ class UserManageView(APIView):
             user.email = data['email']
         if 'is_active' in data: user.is_active = bool(data['is_active'])
         if 'password' in data and data['password']:
-            if len(data['password']) >= 6:
-                user.set_password(data['password'])
-            else:
-                 return Response({"error": "Mot de passe trop court."}, status=status.HTTP_400_BAD_REQUEST)
+            from django.contrib.auth.password_validation import validate_password
+            from django.core.exceptions import ValidationError
+            try:
+                validate_password(data['password'], user=user)
+            except ValidationError as e:
+                return Response({"error": e.messages}, status=status.HTTP_400_BAD_REQUEST)
+            user.set_password(data['password'])
 
         user.save()
         return Response({"message": "Utilisateur mis à jour."})

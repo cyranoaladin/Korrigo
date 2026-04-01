@@ -11,7 +11,7 @@ from exams.permissions import IsTeacherOrAdmin
 from typing import cast as _cast
 from django.shortcuts import get_object_or_404
 from grading.services import AnnotationService, GradingService, LockConflictError
-from core.auth import UserRole
+from core.auth import UserRole, IsKorrigoAdmin
 from django.db.models import Avg, StdDev, Min, Max, Count
 import statistics
 import logging
@@ -792,32 +792,22 @@ class ExamReleaseResultsView(APIView):
     """
     POST /api/exams/<uuid>/release-results/
     Mark exam results as released (students can see their grades).
-    LOT 8 FIX: Restricted to admin only — releasing results is an administrative action.
+    Restricted to admin only via permission class.
     """
-    permission_classes = [IsAuthenticated]
-
-    def _check_admin(self, request):
-        user = request.user
-        return user.is_superuser or user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+    permission_classes = [IsKorrigoAdmin]
 
     def post(self, request, exam_id):
-        if not self._check_admin(request):
-            return Response(
-                {"detail": "Seul un administrateur peut publier les résultats."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        exam = get_object_or_404(Exam, id=exam_id)
-
-        if exam.results_released_at:
-            return Response({
-                'message': 'Résultats déjà publiés.',
-                'released_at': exam.results_released_at.isoformat(),
-            })
-
+        from django.db import transaction
         from django.utils import timezone
-        exam.results_released_at = timezone.now()
-        exam.save(update_fields=['results_released_at'])
-
+        with transaction.atomic():
+            exam = Exam.objects.select_for_update().get(id=exam_id)
+            if exam.results_released_at:
+                return Response({
+                    'message': 'Résultats déjà publiés.',
+                    'released_at': exam.results_released_at.isoformat(),
+                })
+            exam.results_released_at = timezone.now()
+            exam.save(update_fields=['results_released_at'])
         return Response({
             'message': 'Résultats publiés avec succès.',
             'released_at': exam.results_released_at.isoformat(),
@@ -828,22 +818,14 @@ class ExamUnreleaseResultsView(APIView):
     """
     POST /api/exams/<uuid>/unrelease-results/
     Revoke result visibility for students.
-    LOT 8 FIX: Restricted to admin only.
+    Restricted to admin only via permission class.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsKorrigoAdmin]
 
     def post(self, request, exam_id):
-        user = request.user
-        is_admin = user.is_superuser or user.groups.filter(name__iexact=UserRole.ADMIN).exists()
-        if not is_admin:
-            return Response(
-                {"detail": "Seul un administrateur peut dépublier les résultats."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
         exam = get_object_or_404(Exam, id=exam_id)
         exam.results_released_at = None
         exam.save(update_fields=['results_released_at'])
-
         return Response({'message': 'Publication des résultats annulée.'})
 
 

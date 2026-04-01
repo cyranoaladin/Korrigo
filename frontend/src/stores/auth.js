@@ -44,9 +44,9 @@ export const useAuthStore = defineStore('auth', () => {
             if (res.data) {
                 // Fetch student info explicitly
                 await fetchUser(true, true)
-                // Propagate must_change_password from login response
-                if (user.value && res.data.must_change_password) {
-                    user.value.must_change_password = true
+                // Forcer must_change_password depuis la réponse login (source de vérité)
+                if (user.value) {
+                    user.value.must_change_password = !!res.data.must_change_password
                 }
                 return true
             }
