@@ -10,14 +10,35 @@ from exams.permissions import IsTeacherOrAdmin
 
 from django.db.models import Prefetch
 from students.models import Student
-from exams.models import Copy, TeacherGroupAssignment
+from exams.models import Copy
 from grading.models import Score, Annotation, QuestionRemark
+
+try:
+    from exams.models import TeacherGroupAssignment
+    _HAS_TGA_MODEL = True
+except ImportError:
+    _HAS_TGA_MODEL = False
+
+# Fallback statique quand le modèle TeacherGroupAssignment n'existe pas encore en prod
+_TEACHER_GROUPS = {
+    'alaeddine.benrhouma@ert.tn': 'G3',
+    'patrick.dupont@ert.tn': 'G2',
+    'philippe.carr@ert.tn': 'G1',
+    'selima.klibi@ert.tn': 'T.06',
+    'chawki.saadi@ert.tn': 'G4',
+    'sami.bentiba@ert.tn': 'G6',
+    'laroussi.laroussi@ert.tn': 'G5',
+    'edouard.rousseau@ert.tn': 'T.04',
+}
 
 
 def _get_teacher_group(user):
-    """Récupère le groupe assigné à un correcteur depuis la DB."""
-    assignment = TeacherGroupAssignment.objects.filter(teacher=user).first()
-    return assignment.group_name if assignment else None
+    """Récupère le groupe assigné à un correcteur depuis la DB ou fallback statique."""
+    if _HAS_TGA_MODEL:
+        assignment = TeacherGroupAssignment.objects.filter(teacher=user).first()
+        if assignment:
+            return assignment.group_name
+    return _TEACHER_GROUPS.get(user.email) or _TEACHER_GROUPS.get(user.username)
 
 
 class MyStudentsListView(views.APIView):
