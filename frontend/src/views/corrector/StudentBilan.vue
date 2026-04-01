@@ -37,18 +37,22 @@ const totalScore = computed(() => {
     return Object.values(selectedCopy.value.scores_data).reduce((sum, v) => sum + (v || 0), 0)
 })
 
+const questionLabels = computed(() => selectedCopy.value?.question_labels || {})
+
+const qLabel = (qid) => questionLabels.value[qid] || qid
+
 const sortedScores = computed(() => {
     if (!selectedCopy.value?.scores_data) return []
     const entries = Object.entries(selectedCopy.value.scores_data)
+    // Sort by label order from grading_structure (key order preserved by backend)
+    const labelKeys = Object.keys(questionLabels.value)
     return entries.sort((a, b) => {
-        const parseKey = (k) => k.split('.').map(n => parseFloat(n) || 0)
-        const aParts = parseKey(a[0])
-        const bParts = parseKey(b[0])
-        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-            const diff = (aParts[i] || 0) - (bParts[i] || 0)
-            if (diff !== 0) return diff
-        }
-        return 0
+        const idxA = labelKeys.indexOf(a[0])
+        const idxB = labelKeys.indexOf(b[0])
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB
+        if (idxA !== -1) return -1
+        if (idxB !== -1) return 1
+        return a[0].localeCompare(b[0])
     })
 })
 
@@ -157,7 +161,7 @@ onMounted(fetchBilan)
                 :key="qid"
                 class="score-item"
               >
-                <span class="question-id">Q{{ qid }}</span>
+                <span class="question-id">{{ qLabel(qid) }}</span>
                 <span class="question-score">{{ typeof score === 'number' ? score.toFixed(2) : score }}</span>
               </div>
             </div>
@@ -173,7 +177,7 @@ onMounted(fetchBilan)
                 :key="qid"
                 class="remark-item"
               >
-                <span class="question-label">Q{{ qid }}:</span>
+                <span class="question-label">{{ qLabel(qid) }}:</span>
                 <span class="remark-text">{{ remark }}</span>
               </div>
             </div>

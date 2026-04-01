@@ -41,6 +41,31 @@ def _get_teacher_group(user):
     return _TEACHER_GROUPS.get(user.email) or _TEACHER_GROUPS.get(user.username)
 
 
+def _build_question_labels(exam):
+    """Construit un mapping {question_uuid: label_lisible} depuis le grading_structure de l'examen."""
+    gs = exam.grading_structure or [] if exam else []
+    labels = {}
+    counter = [0]
+
+    def _walk(items, parent_label=''):
+        for item in items:
+            item_id = str(item.get('id', ''))
+            label = item.get('label', '')
+            children = item.get('children', []) or item.get('questions', []) or item.get('items', [])
+            if children:
+                _walk(children, label)
+            elif item_id:
+                # Feuille (question notée) — utiliser son label ou un compteur
+                if label:
+                    display = f"{parent_label} — {label}" if parent_label else label
+                else:
+                    counter[0] += 1
+                    display = f"Q{counter[0]}"
+                labels[item_id] = display
+    _walk(gs)
+    return labels
+
+
 class MyStudentsListView(views.APIView):
     """
     GET /api/grading/my-students/
@@ -140,7 +165,7 @@ class StudentBilanView(views.APIView):
         
         # Récupérer toutes les copies de l'élève
         copies = Copy.objects.filter(student=student).select_related('exam')
-        
+
         copies_data = []
         for copy in copies:
             # Score
@@ -155,11 +180,14 @@ class StudentBilanView(views.APIView):
                     if v is not None and v != ''
                 ) if scores_data else None
                 final_comment = score_obj.final_comment or ''
-            
+
+            # Build question_labels mapping from grading_structure
+            question_labels = _build_question_labels(copy.exam) if copy.exam else {}
+
             # Remarques par question
             remarks = QuestionRemark.objects.filter(copy=copy)
             remarks_data = {r.question_id: r.remark for r in remarks}
-            
+
             # Annotations
             annotations = Annotation.objects.filter(copy=copy)
             annotations_data = [{
@@ -172,16 +200,16 @@ class StudentBilanView(views.APIView):
                 'w': a.w,
                 'h': a.h,
             } for a in annotations]
-            
+
             # Appréciation globale
             global_appreciation = copy.global_appreciation or ''
-            
+
             # LLM Summary
             llm_summary = copy.llm_summary or ''
-            
+
             # PDF URL
             pdf_url = f'/grading/copies/{copy.id}/final-pdf/' if copy.status == 'FINALIZED' else None
-            
+
             copies_data.append({
                 'copy_id': str(copy.id),
                 'exam_name': copy.exam.name if copy.exam else 'N/A',
@@ -190,6 +218,7 @@ class StudentBilanView(views.APIView):
                 'anonymous_id': copy.anonymous_id,
                 'total_score': round(total_score, 2) if total_score is not None else None,
                 'scores_data': scores_data,
+                'question_labels': question_labels,
                 'final_comment': final_comment,
                 'remarks': remarks_data,
                 'annotations': annotations_data,
