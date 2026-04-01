@@ -748,6 +748,7 @@ class StudentCopiesView(generics.ListAPIView):
 
             data.append({
                 "id": copy.id,
+                "anonymous_id": copy.anonymous_id,
                 "exam_name": copy.exam.name,
                 "date": copy.exam.date,
                 "total_score": total_score,
@@ -1441,6 +1442,7 @@ class ExamStudentListView(APIView):
             "graded": sum(1 for d in data if d['status'] == 'FINALIZED'),
             "ready": sum(1 for d in data if d['status'] == 'READY'),
             "en_cours": sum(1 for d in data if d['status'] == 'IN_PROGRESS'),
+            "staging": sum(1 for d in data if d['status'] == 'STAGING'),
             "with_scores": len(scored),
             "average": float(round(  # type: ignore[call-overload]
                 sum(d['total_score'] for d in scored) / len(scored), 2  # type: ignore[arg-type]
