@@ -363,19 +363,10 @@ class StatsReportView(APIView):
     # ------------------------------------------------------------------ questions
     def _compute_questions(self, exam):
         """Per-question stats for an exam (BB_J2)."""
-        # Get q_max from grading_structure
-        def _get_leaves(structure, parent=''):
-            leaves = {}
-            for i, item in enumerate(structure):
-                qid = f'{parent}.{i+1}' if parent else f'{i+1}'
-                children = item.get('children', [])
-                if children:
-                    leaves.update(_get_leaves(children, qid))
-                else:
-                    leaves[qid] = item.get('points', 0)
-            return leaves
-
-        q_max = _get_leaves(exam.grading_structure)
+        from exams.grading_utils import extract_leaf_questions
+        leaves = extract_leaf_questions(exam.grading_structure)
+        q_max = {q['id']: q['points'] for q in leaves}
+        q_labels = {q['id']: q['label'] for q in leaves}
 
         all_sd = []
         for c in Copy.objects.filter(exam=exam, status='FINALIZED'):
@@ -408,9 +399,13 @@ class StatsReportView(APIView):
             else:
                 difficulty = 'Moyen'
 
-            # Build display ID (prefix Q + exercise number)
-            parts = qid.split('.')
-            display_id = f'Q{qid}' if len(parts) > 1 else f'Q{qid} (QCM)' if mx == 5.0 else f'Q{qid}'
+            # Build display ID from label or positional fallback
+            label = q_labels.get(qid, '')
+            if label and label != qid:
+                display_id = label
+            else:
+                parts = qid.split('.')
+                display_id = f'Q{qid}' if len(parts) > 1 else f'Q{qid} (QCM)' if mx == 5.0 else f'Q{qid}'
 
             result.append({
                 'id': display_id,

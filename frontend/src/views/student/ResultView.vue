@@ -44,24 +44,61 @@ const currentQMax = computed(() => {
   return {}
 })
 
+// Build question-to-exercise mapping from question_map (backend) or q_max keys
+const questionExerciseMap = computed(() => {
+  // question_map is provided by backend when grading_structure has UUID keys
+  if (selectedCopy.value?.question_map) return selectedCopy.value.question_map
+  // Fallback: derive from q_max keys or scores_details keys (positional format)
+  return {}
+})
+
 const exerciseBreakdown = computed(() => {
   if (!selectedCopy.value) return {}
   const scores = selectedCopy.value.scores_details || {}
   const remarks = selectedCopy.value.remarks || {}
+  const qMap = questionExerciseMap.value
   const grouped = {}
   for (const [qid, score] of Object.entries(scores)) {
-    const parts = qid.split('.')
-    const exNum = parseInt(parts[0])
+    let exNum
+    let qLabel
+
+    // Try question_map first (handles UUIDs)
+    if (qMap[qid]) {
+      exNum = qMap[qid].exercise_idx
+      qLabel = qMap[qid].label || qid
+    } else {
+      // Fallback: parse positional IDs
+      const parts = qid.split('.')
+      exNum = parseInt(parts[0])
+      if (isNaN(exNum)) {
+        // UUID or unknown format — try to put in exercise 1
+        exNum = 0
+        qLabel = qid.length > 20 ? qid.substring(0, 8) + '...' : qid
+      } else {
+        qLabel = parts.length > 1 ? `Q${parts.slice(1).join('.')}` : 'QCM'
+      }
+    }
+
     if (!grouped[exNum]) {
       const c = currentExerciseConfig.value[exNum] || { name: `Exercice ${exNum}`, max: 0 }
       grouped[exNum] = { name: c.name, max: c.max, questions: [], total: 0 }
     }
     const n = parseFloat(score) || 0
-    const qLabel = parts.length > 1 ? `Q${parts.slice(1).join('.')}` : 'QCM'
     grouped[exNum].questions.push({ qid, qLabel, score: n, maxScore: currentQMax.value[qid]||1, remark: (remarks[qid]&&remarks[qid].trim())?remarks[qid]:null })
     grouped[exNum].total += n
   }
-  for (const k of Object.keys(grouped)) grouped[k].questions.sort((a,b) => { const ap=a.qid.split('.').map(Number), bp=b.qid.split('.').map(Number); return ap[0]-bp[0]||ap[1]-bp[1] })
+  for (const k of Object.keys(grouped)) {
+    grouped[k].questions.sort((a, b) => {
+      const ap = a.qid.split('.').map(Number)
+      const bp = b.qid.split('.').map(Number)
+      // Handle NaN from UUID parsing
+      const a0 = isNaN(ap[0]) ? 999 : ap[0]
+      const b0 = isNaN(bp[0]) ? 999 : bp[0]
+      const a1 = isNaN(ap[1]) ? 0 : (ap[1] || 0)
+      const b1 = isNaN(bp[1]) ? 0 : (bp[1] || 0)
+      return a0 - b0 || a1 - b1
+    })
+  }
   return grouped
 })
 
@@ -92,11 +129,25 @@ const fetchCopies = async () => {
   try {
     const res = await api.get('/students/copies/')
     copies.value = res.data
-    if (copies.value.length > 0) { selectedCopy.value = copies.value[0]; for (const qid of Object.keys(copies.value[0].scores_details||{})) expandedExercises.value[parseInt(qid.split('.')[0])]=true }
+    if (copies.value.length > 0) { selectedCopy.value = copies.value[0]; expandAllExercises(copies.value[0]) }
   } catch (e) { if(e.response?.status===401) router.push('/student/login'); console.error(e) }
   finally { loading.value = false }
 }
-const selectCopy = (copy) => { selectedCopy.value = copy; expandedExercises.value = {}; for (const qid of Object.keys(copy.scores_details||{})) expandedExercises.value[parseInt(qid.split('.')[0])]=true }
+const expandAllExercises = (copy) => {
+  expandedExercises.value = {}
+  // Use exerciseBreakdown keys (computed after selectedCopy is set)
+  // Fallback: parse keys directly
+  for (const qid of Object.keys(copy.scores_details || {})) {
+    const qMap = copy.question_map || {}
+    if (qMap[qid]) {
+      expandedExercises.value[qMap[qid].exercise_idx] = true
+    } else {
+      const exNum = parseInt(qid.split('.')[0])
+      if (!isNaN(exNum)) expandedExercises.value[exNum] = true
+    }
+  }
+}
+const selectCopy = (copy) => { selectedCopy.value = copy; expandAllExercises(copy) }
 const loadPdf = () => {
   if (!selectedCopy.value?.final_pdf_url) return
   pdfDirectUrl.value = selectedCopy.value.final_pdf_url

@@ -113,12 +113,20 @@ class LLMSummaryService:
         """Construit le prompt pour le LLM avec prompt engineering avancé."""
 
         # --- Scores groupés par exercice ---
+        # Use grading_structure to map question IDs to exercises (handles UUIDs)
         scores_by_exercise = {}
-        for q_id, score in sorted(context['scores_detail'].items()):
-            ex_num = q_id.split('.')[0] if '.' in q_id else q_id
-            if ex_num not in scores_by_exercise:
-                scores_by_exercise[ex_num] = []
-            scores_by_exercise[ex_num].append((q_id, score))
+        if context.get('grading_structure'):
+            from exams.grading_utils import map_scores_to_exercises
+            ex_map = map_scores_to_exercises(context['scores_detail'], context['grading_structure'])
+            for ex_idx, items in sorted(ex_map.items()):
+                scores_by_exercise[str(ex_idx)] = [(q_id, score) for q_id, score, _, _ in items]
+        else:
+            # Fallback: parse positional IDs
+            for q_id, score in sorted(context['scores_detail'].items()):
+                ex_num = q_id.split('.')[0] if '.' in q_id else q_id
+                if ex_num not in scores_by_exercise:
+                    scores_by_exercise[ex_num] = []
+                scores_by_exercise[ex_num].append((q_id, score))
 
         scores_block = ""
         for ex_num in sorted(scores_by_exercise.keys(),

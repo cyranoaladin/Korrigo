@@ -242,11 +242,17 @@ class PDFFlattener:
         )
         y += 40
 
-        # Détail par question
+        # Détail par question — utiliser des labels lisibles si possible
         if scores_data:
             y = check_overflow(y, 25)
             text_writer.append(fitz.Point(MARGIN_LEFT, y), "Detail des notes par question :", fontsize=14)
             y += 25
+
+            # Build readable labels from grading_structure
+            q_labels = {}
+            if copy.exam and copy.exam.grading_structure:
+                from exams.grading_utils import build_question_labels
+                q_labels = build_question_labels(copy.exam.grading_structure)
 
             def sort_key(item):
                 parts = item[0].split('.')
@@ -261,9 +267,13 @@ class PDFFlattener:
             for q_id, q_score in sorted(scores_data.items(), key=sort_key):
                 y = check_overflow(y)
                 score_display = q_score if q_score not in (None, '') else '0'
+                label = q_labels.get(q_id, f'Q{q_id}')
+                # Truncate label if too long for PDF
+                if len(label) > 50:
+                    label = label[:47] + '...'
                 text_writer.append(
                     fitz.Point(70, y),
-                    f"Q{q_id} : {score_display}",
+                    f"{label} : {score_display}",
                     fontsize=11
                 )
                 y += LINE_HEIGHT
@@ -285,9 +295,12 @@ class PDFFlattener:
 
             for remark in remarks_with_text:
                 y = check_overflow(y, LINE_HEIGHT * 2)
+                remark_label = q_labels.get(remark.question_id, f'Q{remark.question_id}')
+                if len(remark_label) > 50:
+                    remark_label = remark_label[:47] + '...'
                 text_writer.append(
                     fitz.Point(70, y),
-                    f"Q{remark.question_id} :",
+                    f"{remark_label} :",
                     fontsize=11
                 )
                 y += LINE_HEIGHT

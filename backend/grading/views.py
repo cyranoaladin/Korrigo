@@ -576,8 +576,13 @@ class CopyScoresView(APIView):
                     )
 
         # LOT 6: Validate individual scores against barème max
-        from exams.score_constraints import Q_MAX_BY_EXAM
-        q_max = Q_MAX_BY_EXAM.get(copy.exam.name, {})
+        # First try grading_structure (handles both UUID and positional IDs)
+        from exams.grading_utils import build_q_max as _build_q_max_gs
+        q_max = _build_q_max_gs(copy.exam.grading_structure) if copy.exam else {}
+        # Fallback to hardcoded constraints
+        if not q_max:
+            from exams.score_constraints import Q_MAX_BY_EXAM
+            q_max = Q_MAX_BY_EXAM.get(copy.exam.name, {})
         if q_max:
             overflow_warnings: list[str] = []
             for qid, val in scores_data.items():

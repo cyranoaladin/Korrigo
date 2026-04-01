@@ -409,14 +409,15 @@ class TestCopyStateMachine(TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_admin_can_modify_finalized_copy(self):
-        """Un admin peut modifier les scores d'une copie FINALIZED."""
+        """Un admin peut modifier les scores d'une copie FINALIZED (within barème limits)."""
         self.copy.status = Copy.Status.FINALIZED
         self.copy.save()
-        Score.objects.create(copy=self.copy, scores_data={'q1': 10.0})
+        Score.objects.create(copy=self.copy, scores_data={'q1': 8.0})
 
         self.client.force_authenticate(user=self.admin)
         url = f'/api/grading/copies/{self.copy.id}/scores/'
-        response = self.client.put(url, {'scores_data': {'q1': 12.0}}, format='json')
+        # q1 max is 10 (from exam grading_structure), so 9.5 is valid
+        response = self.client.put(url, {'scores_data': {'q1': 9.5}}, format='json')
         self.assertIn(response.status_code, [200, 201])
 
 

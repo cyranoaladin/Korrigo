@@ -42,28 +42,12 @@ def _get_teacher_group(user):
 
 
 def _build_question_labels(exam):
-    """Construit un mapping {question_uuid: label_lisible} depuis le grading_structure de l'examen."""
-    gs = exam.grading_structure or [] if exam else []
-    labels = {}
-    counter = [0]
-
-    def _walk(items, parent_label=''):
-        for item in items:
-            item_id = str(item.get('id', ''))
-            label = item.get('label', '')
-            children = item.get('children', []) or item.get('questions', []) or item.get('items', [])
-            if children:
-                _walk(children, label)
-            elif item_id:
-                # Feuille (question notée) — utiliser son label ou un compteur
-                if label:
-                    display = f"{parent_label} — {label}" if parent_label else label
-                else:
-                    counter[0] += 1
-                    display = f"Q{counter[0]}"
-                labels[item_id] = display
-    _walk(gs)
-    return labels
+    """Construit un mapping {question_id: label_lisible} depuis le grading_structure de l'examen.
+    Utilise le module partagé grading_utils pour gérer les deux formats d'ID (UUID et positionnel)."""
+    from exams.grading_utils import build_question_labels
+    if not exam:
+        return {}
+    return build_question_labels(exam.grading_structure)
 
 
 class MyStudentsListView(views.APIView):

@@ -666,36 +666,13 @@ class StudentCopiesView(generics.ListAPIView):
     @staticmethod
     def _build_exercise_config(exam):
         """Build exercise_config from exam.grading_structure (DB source of truth)."""
-        gs = exam.grading_structure or []
-        config = {}
-        for i, ex in enumerate(gs, 1):
-            label = ex.get('label', f'Exercice {i}')
-            # Strip "Exercice N — " prefix to get just the topic name
-            name = label
-            if ' — ' in label:
-                name = label.split(' — ', 1)[1]
-            elif label.startswith('Exercice'):
-                name = label
-            max_score = ex.get('max_score', 0)
-            config[i] = {'name': name, 'max': max_score}
-        return config
+        from exams.grading_utils import build_exercise_config
+        return build_exercise_config(exam.grading_structure)
 
     def _build_q_max(self, exam):
         """Dérive q_max depuis grading_structure, fallback sur score_constraints."""
-        gs = exam.grading_structure or []
-        q_max = {}
-
-        def _extract(items, prefix=''):
-            for item in items:
-                item_id = str(item.get('id', ''))
-                points = item.get('points') or item.get('max_score')
-                children = item.get('children', []) or item.get('questions', []) or item.get('items', [])
-                if children:
-                    _extract(children, prefix)
-                elif item_id and points is not None:
-                    q_max[item_id] = float(points)
-
-        _extract(gs)
+        from exams.grading_utils import build_q_max as build_q_max_from_structure
+        q_max = build_q_max_from_structure(exam.grading_structure)
 
         # Fallback sur le dict hardcodé si grading_structure ne fournit pas de q_max
         if not q_max:
@@ -746,6 +723,17 @@ class StudentCopiesView(generics.ListAPIView):
             exercise_config = self._build_exercise_config(copy.exam)
             q_max = self._build_q_max(copy.exam)
 
+            # Build question_map for UUID-based question IDs
+            question_map = {}
+            if copy.exam and copy.exam.grading_structure:
+                from exams.grading_utils import extract_leaf_questions
+                for leaf in extract_leaf_questions(copy.exam.grading_structure):
+                    question_map[leaf['id']] = {
+                        'exercise_idx': leaf['exercise_idx'],
+                        'label': leaf['label'],
+                        'points': leaf['points'],
+                    }
+
             data.append({
                 "id": copy.id,
                 "anonymous_id": copy.anonymous_id,
@@ -759,6 +747,7 @@ class StudentCopiesView(generics.ListAPIView):
                 "global_appreciation": copy.global_appreciation or '',
                 "exercise_config": exercise_config,
                 "q_max": q_max,
+                "question_map": question_map,
             })
         return Response(data)
 class ExamSourceUploadView(APIView):

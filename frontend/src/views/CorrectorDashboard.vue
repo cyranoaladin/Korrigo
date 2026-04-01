@@ -71,24 +71,24 @@ const scoresLoading = ref(false)
  * When item.id is missing (legacy structures like BB_J1), positional IDs
  * are generated ("1.1", "1.2", etc.) matching the scores_data key scheme.
  */
-const flattenLeafQuestions = (structure, prefix = '', parentIdx = null) => {
+const flattenLeafQuestions = (structure, positionPrefix = '') => {
     const leaves = []
     if (!Array.isArray(structure)) return leaves
     for (let idx = 0; idx < structure.length; idx++) {
         const item = structure[idx]
-        // Use item.id if present, otherwise generate positional ID
-        let itemId
-        if (item.id) {
-            itemId = prefix ? `${prefix}.${item.id}` : item.id
-        } else {
-            // Positional: "exerciseIdx.questionIdx" (1-based)
-            itemId = prefix ? `${prefix}.${idx + 1}` : String(idx + 1)
-        }
+        // Positional ID for items without explicit id
+        const pos = positionPrefix ? `${positionPrefix}.${idx + 1}` : String(idx + 1)
         const children = item.children || item.sub_questions || []
         if (children.length > 0) {
-            leaves.push(...flattenLeafQuestions(children, itemId))
+            // Recurse: use item.id as prefix when present, else positional
+            // This matches buildGradingNode in CorrectorDesk.vue
+            leaves.push(...flattenLeafQuestions(children, item.id || pos))
         } else {
-            leaves.push({ id: itemId, label: item.label || item.title || itemId, points: item.points || 0 })
+            // Leaf: use item.id directly if present, else positional
+            // IMPORTANT: don't prefix item.id with parent — matches how CorrectorDesk saves scores
+            const leafId = item.id || pos
+            const pts = item.points || item.maxScore || item.max_score || 0
+            leaves.push({ id: leafId, label: item.label || item.title || leafId, points: pts })
         }
     }
     return leaves

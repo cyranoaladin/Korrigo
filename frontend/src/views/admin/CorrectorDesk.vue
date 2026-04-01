@@ -222,16 +222,20 @@ const gradingStructure = computed(() => {
 //
 // When item.id is missing (legacy structures like BB_J1), a positional ID is generated
 // using the same "exerciseIdx.questionIdx" scheme used in scores_data.
+// Helper: get points from any field name variant
+const getPoints = (item) => item.points || item.maxScore || item.max_score || item.max_points || 0
+
 const buildGradingNode = (item, positionPrefix = '') => {
     const nodeId = item.id || positionPrefix || 'node'
     const hasChildren = item.children && item.children.length > 0
     if (!hasChildren) {
+        const pts = getPoints(item)
         return {
             id: nodeId,
             label: item.label || item.title || nodeId,
-            points: item.points || 0,
+            points: pts,
             isLeaf: true,
-            questions: [{ id: nodeId, title: item.label || item.title || nodeId, maxScore: item.points || 0 }],
+            questions: [{ id: nodeId, title: item.label || item.title || nodeId, maxScore: pts }],
             groups: [],
         }
     }
@@ -240,12 +244,12 @@ const buildGradingNode = (item, positionPrefix = '') => {
         const questions = item.children.map((c, idx) => ({
             id: c.id || `${positionPrefix}.${idx + 1}`,
             title: c.label || c.title || c.id || `Q${idx + 1}`,
-            maxScore: c.points || 0,
+            maxScore: getPoints(c),
         }))
         return {
             id: nodeId,
             label: item.label || item.title || nodeId,
-            points: item.children.reduce((s, c) => s + (c.points || 0), 0),
+            points: item.children.reduce((s, c) => s + getPoints(c), 0),
             isLeaf: false,
             questions,
             groups: [],
