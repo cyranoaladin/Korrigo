@@ -219,28 +219,32 @@ const gradingStructure = computed(() => {
 // - isLeaf: no children → one score input for this item itself
 // - questions: direct leaf children → score inputs
 // - groups: intermediate children (sub-exercises) → recursive nodes
-const buildGradingNode = (item) => {
+//
+// When item.id is missing (legacy structures like BB_J1), a positional ID is generated
+// using the same "exerciseIdx.questionIdx" scheme used in scores_data.
+const buildGradingNode = (item, positionPrefix = '') => {
+    const nodeId = item.id || positionPrefix || 'node'
     const hasChildren = item.children && item.children.length > 0
     if (!hasChildren) {
         return {
-            id: item.id,
-            label: item.label || item.title || item.id,
+            id: nodeId,
+            label: item.label || item.title || nodeId,
             points: item.points || 0,
             isLeaf: true,
-            questions: [{ id: item.id, title: item.label || item.title || item.id, maxScore: item.points || 0 }],
+            questions: [{ id: nodeId, title: item.label || item.title || nodeId, maxScore: item.points || 0 }],
             groups: [],
         }
     }
     const childrenAreLeaves = item.children.every(c => !c.children || c.children.length === 0)
     if (childrenAreLeaves) {
-        const questions = item.children.map(c => ({
-            id: c.id,
-            title: c.label || c.title || c.id,
+        const questions = item.children.map((c, idx) => ({
+            id: c.id || `${positionPrefix}.${idx + 1}`,
+            title: c.label || c.title || c.id || `Q${idx + 1}`,
             maxScore: c.points || 0,
         }))
         return {
-            id: item.id,
-            label: item.label || item.title || item.id,
+            id: nodeId,
+            label: item.label || item.title || nodeId,
             points: item.children.reduce((s, c) => s + (c.points || 0), 0),
             isLeaf: false,
             questions,
@@ -248,10 +252,10 @@ const buildGradingNode = (item) => {
         }
     }
     // Children are intermediate nodes (sub-exercises)
-    const groups = item.children.map(child => buildGradingNode(child))
+    const groups = item.children.map((child, idx) => buildGradingNode(child, child.id || `${positionPrefix}.${idx + 1}`))
     return {
-        id: item.id,
-        label: item.label || item.title || item.id,
+        id: nodeId,
+        label: item.label || item.title || nodeId,
         points: groups.reduce((s, g) => s + g.points, 0),
         isLeaf: false,
         questions: [],
@@ -289,7 +293,7 @@ const openGroupIds = computed(() => ({ has: (id) => openGroupId.value === id }))
 const exercisesWithQuestions = computed(() => {
     const structure = gradingStructure.value
     if (!structure || structure.length === 0) return []
-    return structure.map(item => buildGradingNode(item))
+    return structure.map((item, idx) => buildGradingNode(item, item.id || String(idx + 1)))
 })
 
 // --- Page Navigation Helpers (scroll to page in continuous view) ---
@@ -599,13 +603,13 @@ const onScoreChange = (questionId, value) => {
     }, 800)
 }
 
-// Total score computed from all question scores
+// Total score computed from ALL loaded scores (not just those matching grading_structure)
+// This handles exams where grading_structure IDs don't match scores_data keys (e.g. BB_J1)
 const totalScore = computed(() => {
     let sum = 0
-    for (const q of flatQuestions.value) {
-        const score = questionScores.value.get(q.id)
-        if (score !== null && score !== undefined && score !== '') {
-            sum += parseFloat(score) || 0
+    for (const [, val] of questionScores.value) {
+        if (val !== null && val !== undefined && val !== '') {
+            sum += parseFloat(val) || 0
         }
     }
     return Math.round(sum * 100) / 100
@@ -616,11 +620,15 @@ const scoreExceeds20 = computed(() => totalScore.value > 20)
 
 // Check if copy can be finalized (all scores filled + total <= 20 + appreciation)
 const canFinalize = computed(() => {
-    if (flatQuestions.value.length === 0) return false
-    // All questions must have a score
-    for (const q of flatQuestions.value) {
-        const score = questionScores.value.get(q.id)
-        if (score === null || score === undefined || score === '') return false
+    // If grading_structure has mapped questions, check all are filled
+    if (flatQuestions.value.length > 0) {
+        for (const q of flatQuestions.value) {
+            const score = questionScores.value.get(q.id)
+            if (score === null || score === undefined || score === '') return false
+        }
+    } else {
+        // No grading_structure: require at least one score entered
+        if (questionScores.value.size === 0) return false
     }
     // Total must not exceed 20
     if (scoreExceeds20.value) return false
