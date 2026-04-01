@@ -680,6 +680,28 @@ class StudentCopiesView(generics.ListAPIView):
             config[i] = {'name': name, 'max': max_score}
         return config
 
+    def _build_q_max(self, exam):
+        """Dérive q_max depuis grading_structure, fallback sur score_constraints."""
+        gs = exam.grading_structure or []
+        q_max = {}
+
+        def _extract(items, prefix=''):
+            for item in items:
+                item_id = str(item.get('id', ''))
+                points = item.get('points') or item.get('max_score')
+                children = item.get('children', []) or item.get('questions', []) or item.get('items', [])
+                if children:
+                    _extract(children, prefix)
+                elif item_id and points is not None:
+                    q_max[item_id] = float(points)
+
+        _extract(gs)
+
+        # Fallback sur le dict hardcodé si grading_structure ne fournit pas de q_max
+        if not q_max:
+            q_max = Q_MAX_BY_EXAM.get(exam.name, {})
+        return q_max
+
     def list(self, request, *args, **kwargs):
         from grading.models import Score, QuestionRemark
         from grading.services import GradingService
@@ -722,7 +744,7 @@ class StudentCopiesView(generics.ListAPIView):
 
             # Build exercise_config from DB grading_structure (source of truth)
             exercise_config = self._build_exercise_config(copy.exam)
-            q_max = Q_MAX_BY_EXAM.get(copy.exam.name, {})
+            q_max = self._build_q_max(copy.exam)
 
             data.append({
                 "id": copy.id,

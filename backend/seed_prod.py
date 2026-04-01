@@ -309,4 +309,10 @@ def seed_prod():
     print("="*60)
 
 if __name__ == "__main__":
+    import sys
+    env = os.environ.get('DJANGO_ENV', 'development')
+    if env == 'production':
+        print("ERROR: seed_prod.py ne doit PAS être exécuté directement en production.")
+        print("Utilisez: python manage.py seed_prod --confirm-production")
+        sys.exit(1)
     seed_prod()

@@ -17,7 +17,7 @@ const pdfDirectUrl = ref(null)
 // Détection du niveau de l'élève
 const isTerminale = computed(() => {
   const cn = auth.user?.class_name?.toLowerCase() || ''
-  return cn.includes('terminale') || cn.includes('tle') || /^t\.?\s*\d/.test(cn)
+  return cn.includes('terminale') || cn.includes('tle') || /^t[12]$/i.test(cn)
 })
 const isTroisieme = computed(() => {
   const cn = auth.user?.class_name?.toLowerCase() || ''

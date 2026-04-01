@@ -87,7 +87,11 @@ proofs/artifacts/
 # Coverage
 .coverage
 *.coverage
+*.cover
 htmlcov/
+
+# Bilans opérationnels
+BILAN_*.md
 
 # Test Results
 test-results/

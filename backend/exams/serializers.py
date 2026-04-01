@@ -11,15 +11,15 @@ from .validators import (
 )
 
 class BookletSerializer(serializers.ModelSerializer):
+    """Pour correcteurs — sans student_name_guess (anonymisation)."""
     header_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Booklet
         fields = [
-            'id', 'start_page', 'end_page', 
-            'pages_images', # REQUIRED for CorrectorDesk.vue
-            'header_image', 'header_image_url', 'student_name_guess'
-            # Note: student_name_guess est strippé pour les non-admins dans CopySerializer.to_representation
+            'id', 'start_page', 'end_page',
+            'pages_images',  # REQUIRED for CorrectorDesk.vue
+            'header_image', 'header_image_url',
         ]
         read_only_fields = ['pages_images']
 
@@ -30,6 +30,12 @@ class BookletSerializer(serializers.ModelSerializer):
             protected_path = f'/api/media/{obj.header_image.name}'
             return request.build_absolute_uri(protected_path)
         return None
+
+
+class AdminBookletSerializer(BookletSerializer):
+    """Pour admins uniquement — inclut student_name_guess pour identification."""
+    class Meta(BookletSerializer.Meta):
+        fields = BookletSerializer.Meta.fields + ['student_name_guess']
 
 class ExamPDFSerializer(serializers.ModelSerializer):
     """Serializer for individual PDF files in INDIVIDUAL_A4 mode"""
@@ -256,8 +262,15 @@ class CopySerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        # Include full booklet data for frontend pages computation
-        representation['booklets'] = BookletSerializer(instance.booklets.all(), many=True, context=self.context).data
+        # Include full booklet data — use AdminBookletSerializer for admins (includes student_name_guess)
+        request = self.context.get('request')
+        user = getattr(request, 'user', None) if request else None
+        is_admin_user = user and (
+            user.is_superuser
+            or user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+        )
+        booklet_cls = AdminBookletSerializer if is_admin_user else BookletSerializer
+        representation['booklets'] = booklet_cls(instance.booklets.all(), many=True, context=self.context).data
         # Include exam metadata needed by frontend (anonymization, grading)
         # We put it in 'exam_details' to avoid breaking code that expects 'exam' to be a UUID ID string.
         exam_data = {
@@ -270,17 +283,10 @@ class CopySerializer(serializers.ModelSerializer):
             exam_data['exam_type_details'] = ExamTypeSerializer(instance.exam.exam_type).data
         representation['exam_details'] = exam_data
         # Hide student identity from non-admin users (correctors must not see student info)
-        request = self.context.get('request')
-        user = getattr(request, 'user', None) if request else None
-        is_admin = user and (
-            user.is_superuser
-            or user.groups.filter(name__iexact=UserRole.ADMIN).exists()
-        )
-        if not is_admin:
+        if not is_admin_user:
             representation.pop('student', None)
             representation.pop('is_identified', None)
             for booklet in representation.get('booklets', []):
-                booklet.pop('student_name_guess', None)
                 booklet.pop('header_image', None)
                 booklet.pop('header_image_url', None)
         return representation
