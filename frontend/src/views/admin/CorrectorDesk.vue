@@ -11,7 +11,7 @@ import { useAuthStore } from '../../stores/auth'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const copyId = route.params.copyId
+let copyId = route.params.copyId
 
 // --- Labels FR ---
 const statusLabels = {
@@ -29,6 +29,16 @@ const error = ref(null)
 const annotations = ref([])
 const historyLogs = ref([])
 const isTouch = ref(matchMedia('(pointer: coarse)').matches)
+
+// --- Sibling copy navigation ---
+const siblingCopies = ref([])  // [{id, anonymous_id, status}] ordered by anonymous_id
+const currentSiblingIndex = computed(() => siblingCopies.value.findIndex(c => c.id === copyId))
+const prevCopy = computed(() => currentSiblingIndex.value > 0 ? siblingCopies.value[currentSiblingIndex.value - 1] : null)
+const nextCopy = computed(() => currentSiblingIndex.value >= 0 && currentSiblingIndex.value < siblingCopies.value.length - 1 ? siblingCopies.value[currentSiblingIndex.value + 1] : null)
+const copyPositionLabel = computed(() => {
+    if (currentSiblingIndex.value < 0 || siblingCopies.value.length === 0) return ''
+    return `${currentSiblingIndex.value + 1} / ${siblingCopies.value.length}`
+})
 
 // Viewer
 const scale = ref(1.0)
@@ -390,6 +400,28 @@ const fetchCopy = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+const fetchSiblingCopies = async () => {
+    if (!copy.value?.exam_details?.id) return
+    try {
+        const allCopies = await gradingApi.listCopies()
+        const examId = copy.value.exam_details.id
+        siblingCopies.value = allCopies
+            .filter(c => c.exam === examId || c.exam_details?.id === examId)
+            .map(c => ({ id: c.id, anonymous_id: c.anonymous_id, status: c.status }))
+    } catch (err) {
+        console.warn('Failed to load sibling copies for navigation', err)
+    }
+}
+
+const navigateToCopy = (targetCopy) => {
+    if (!targetCopy) return
+    if (hasPendingChanges.value) {
+        const ok = window.confirm('Des modifications sont en cours de synchronisation. Voulez-vous quitter cette copie ?')
+        if (!ok) return
+    }
+    router.push(`/corrector/desk/${targetCopy.id}`)
 }
 
 const refreshAnnotations = async () => {
@@ -1132,6 +1164,7 @@ const onScrollAreaTouchEnd = () => {
 
 onMounted(async () => {
   await fetchCopy()
+  fetchSiblingCopies()  // non-blocking, runs in background
   if (isReady.value || isInProgress.value) checkDrafts()
   window.addEventListener('keydown', onGlobalKeydown)
   window.addEventListener('beforeunload', onBeforeUnload)
@@ -1148,6 +1181,33 @@ onMounted(async () => {
             scrollAreaRef.value.addEventListener('touchend', onScrollAreaTouchEnd, { passive: true })
         }
     })
+})
+
+// Watch route param changes for prev/next copy navigation
+watch(() => route.params.copyId, async (newId, oldId) => {
+    if (newId && newId !== oldId) {
+        copyId = newId
+        // Reset state for clean load
+        copy.value = null
+        annotations.value = []
+        historyLogs.value = []
+        questionRemarks.value = new Map()
+        questionScores.value = new Map()
+        globalAppreciation.value = ''
+        error.value = null
+        currentPage.value = 1
+        lastSaveStatus.value = null
+        restoreAvailable.value = null
+        pendingScoresChange.value = false
+        pendingRemarksChanges.value = new Set()
+        pendingAppreciationChange.value = false
+        syncErrors.value = []
+        clientId.value = getSessionClientId()
+        // Reload the new copy
+        await fetchCopy()
+        fetchSiblingCopies()
+        if (isReady.value || isInProgress.value) checkDrafts()
+    }
 })
 
 // Watch for Auth Hydration to load drafts
@@ -1180,11 +1240,30 @@ onUnmounted(() => {
         >
           ← Retour
         </button>
+        <div v-if="siblingCopies.length > 1" class="copy-nav">
+          <button
+            class="nav-arrow"
+            :disabled="!prevCopy"
+            :title="prevCopy ? `Copie précédente : ${prevCopy.anonymous_id}` : 'Première copie'"
+            @click="navigateToCopy(prevCopy)"
+          >
+            &#x25C0;
+          </button>
+          <span class="nav-position">{{ copyPositionLabel }}</span>
+          <button
+            class="nav-arrow"
+            :disabled="!nextCopy"
+            :title="nextCopy ? `Copie suivante : ${nextCopy.anonymous_id}` : 'Dernière copie'"
+            @click="navigateToCopy(nextCopy)"
+          >
+            &#x25B6;
+          </button>
+        </div>
         <span
           v-if="copy"
           class="copy-info"
         >
-          <strong>{{ copy.anonymous_id }}</strong> 
+          <strong>{{ copy.anonymous_id }}</strong>
           <span :class="'status-badge status-' + copy.status.toLowerCase()">{{ getStatusLabel(copy.status) }}</span>
         </span>
       </div>
@@ -1738,6 +1817,11 @@ onUnmounted(() => {
 .corrector-desk { display: flex; flex-direction: column; height: 100vh; height: 100dvh; background: #e9ecef; }
 .toolbar { padding: 10px 20px; background: #343a40; color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 .copy-info { margin-left: 15px; font-size: 1.1rem; }
+.copy-nav { display: flex; align-items: center; gap: 6px; margin-left: 12px; }
+.nav-arrow { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); border-radius: 4px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.85rem; transition: background 0.15s; }
+.nav-arrow:hover:not(:disabled) { background: rgba(255,255,255,0.3); }
+.nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+.nav-position { font-size: 0.85rem; color: #adb5bd; min-width: 40px; text-align: center; }
 .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-left: 5px; text-transform: uppercase; font-weight: bold; }
 .status-ready { background: #28a745; color: white; }
 .status-staging { background: #6c757d; color: white; }
