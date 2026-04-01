@@ -1,21 +1,8 @@
 from rest_framework import permissions
 from core.auth import IsAdmin, IsTeacher, IsStudent, IsAdminOrTeacher, IsAdminOnly, UserRole
 
-class IsTeacherOrAdmin(permissions.BasePermission):
-    """
-    Allows access only to authenticated users with Teacher or Admin roles.
-    Uses group membership (not is_staff) to distinguish admin from teacher.
-    """
-    def has_permission(self, request, view):
-        if not (request.user and request.user.is_authenticated):
-            return False
-
-        if request.user.is_superuser:
-            return True
-
-        # Check if user belongs to Teacher or Admin group (case-insensitive)
-        return (request.user.groups.filter(name__iexact=UserRole.TEACHER).exists() or
-                request.user.groups.filter(name__iexact=UserRole.ADMIN).exists())
+# Re-export IsAdminOrTeacher as IsTeacherOrAdmin for backward compatibility
+IsTeacherOrAdmin = IsAdminOrTeacher
 
 class IsOwnerOrAdmin(permissions.BasePermission):
     """

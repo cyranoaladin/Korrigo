@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.core.validators import FileExtensionValidator
 from django.utils.translation import gettext_lazy as _
 from .models import Exam, Booklet, Copy, ExamPDF, ExamType, JuryReport
+from core.auth import UserRole
 from .validators import (
     validate_pdf_size,
     validate_pdf_not_empty,
@@ -270,7 +271,10 @@ class CopySerializer(serializers.ModelSerializer):
         # Hide student identity from non-admin users (correctors must not see student info)
         request = self.context.get('request')
         user = getattr(request, 'user', None) if request else None
-        is_admin = user and (user.is_superuser or user.is_staff)
+        is_admin = user and (
+            user.is_superuser
+            or user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+        )
         if not is_admin:
             representation.pop('student', None)
             representation.pop('is_identified', None)
@@ -278,6 +282,31 @@ class CopySerializer(serializers.ModelSerializer):
                 booklet.pop('student_name_guess', None)
                 booklet.pop('header_image', None)
                 booklet.pop('header_image_url', None)
+        return representation
+
+
+class CorrectorCopySerializer(CopySerializer):
+    """
+    Serialiseur sécurisé pour les correcteurs — n'expose JAMAIS student ni is_identified.
+    Hérite de CopySerializer mais force le masquage des champs sensibles.
+    """
+    class Meta(CopySerializer.Meta):
+        exclude = None
+        fields = [
+            f for f in CopySerializer.Meta.fields
+            if f not in ('student', 'is_identified', 'student_name')
+        ]
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Double sécurité : supprimer tout champ student qui aurait fuité
+        representation.pop('student', None)
+        representation.pop('student_name', None)
+        representation.pop('is_identified', None)
+        for booklet in representation.get('booklets', []):
+            booklet.pop('student_name_guess', None)
+            booklet.pop('header_image', None)
+            booklet.pop('header_image_url', None)
         return representation
 
 

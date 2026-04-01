@@ -55,16 +55,23 @@ class IsTeacher(BasePermission):
 class IsStudent(BasePermission):
     """
     Permission pour les élèves.
-    Autorise également les administrateurs et superusers pour le support/audit.
+    Autorise : session student, User Django avec groupe Student + profil Student lié,
+    ou administrateurs/superusers pour le support.
     """
     def has_permission(self, request, view):
+        # Session-based student auth (StudentLoginView sets student_id)
+        if hasattr(request, 'session') and request.session.get('student_id'):
+            return True
         if not request.user.is_authenticated:
             return False
-        return (
-            request.user.is_superuser
-            or request.user.groups.filter(name__iexact=UserRole.STUDENT).exists()
-            or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
-        )
+        # Admin/superuser pass-through for support
+        if request.user.is_superuser or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists():
+            return True
+        # Student group + must have actual Student profile linked
+        if request.user.groups.filter(name__iexact=UserRole.STUDENT).exists():
+            from students.models import Student
+            return Student.objects.filter(user=request.user).exists()
+        return False
 
 class IsAdminOrTeacher(BasePermission):
     """

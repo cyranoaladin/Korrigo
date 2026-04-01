@@ -9,21 +9,14 @@ from django.shortcuts import get_object_or_404
 from exams.permissions import IsTeacherOrAdmin
 
 from students.models import Student
-from exams.models import Copy
+from exams.models import Copy, TeacherGroupAssignment
 from grading.models import Score, Annotation, QuestionRemark
 
 
-# Mapping correcteur -> groupe (basé sur enseignants.csv)
-TEACHER_GROUPS = {
-    'alaeddine.benrhouma@ert.tn': 'G3',
-    'patrick.dupont@ert.tn': 'G2',
-    'philippe.carr@ert.tn': 'G1',
-    'selima.klibi@ert.tn': 'T.06',
-    'chawki.saadi@ert.tn': 'G4',
-    'sami.bentiba@ert.tn': 'G6',
-    'laroussi.laroussi@ert.tn': 'G5',
-    'edouard.rousseau@ert.tn': 'T.04',
-}
+def _get_teacher_group(user):
+    """Récupère le groupe assigné à un correcteur depuis la DB."""
+    assignment = TeacherGroupAssignment.objects.filter(teacher=user).first()
+    return assignment.group_name if assignment else None
 
 
 class MyStudentsListView(views.APIView):
@@ -34,8 +27,7 @@ class MyStudentsListView(views.APIView):
     permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request):
-        username = request.user.username
-        groupe = TEACHER_GROUPS.get(username)
+        groupe = _get_teacher_group(request.user)
         
         if not groupe:
             return Response({
@@ -104,8 +96,7 @@ class StudentBilanView(views.APIView):
     permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request, student_id):
-        username = request.user.username
-        groupe = TEACHER_GROUPS.get(username)
+        groupe = _get_teacher_group(request.user)
         
         student = get_object_or_404(Student, id=student_id)
         

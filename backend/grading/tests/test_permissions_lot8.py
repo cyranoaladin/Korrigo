@@ -433,8 +433,9 @@ class TestTaskStatusPermissions(TestCase):
 class TestIsStudentNoSessionFallback(TestCase):
     """P2 fix: IsStudent must NOT accept unauthenticated users with session student_id."""
 
-    def test_unauthenticated_with_session_rejected(self):
-        """Simulates a request with student_id in session but no authenticated user."""
+    def test_unauthenticated_with_session_allowed(self):
+        """Session-based student auth: student_id in session → allowed (by design).
+        StudentLoginView sets session.student_id without a Django User."""
         from django.test import RequestFactory
         from django.contrib.sessions.backends.db import SessionStore
 
@@ -443,7 +444,21 @@ class TestIsStudentNoSessionFallback(TestCase):
         request.session = SessionStore()
         request.session['student_id'] = 42
 
-        # Simulate AnonymousUser
+        from django.contrib.auth.models import AnonymousUser
+        request.user = AnonymousUser()
+
+        perm = IsStudent()
+        self.assertTrue(perm.has_permission(request, None))
+
+    def test_unauthenticated_without_session_rejected(self):
+        """No session, no auth → rejected."""
+        from django.test import RequestFactory
+        from django.contrib.sessions.backends.db import SessionStore
+
+        factory = RequestFactory()
+        request = factory.get('/fake/')
+        request.session = SessionStore()  # empty session
+
         from django.contrib.auth.models import AnonymousUser
         request.user = AnonymousUser()
 

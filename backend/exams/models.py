@@ -703,3 +703,63 @@ class JuryReport(models.Model):
 
     def __str__(self):
         return f"Rapport: {self.title} ({self.exam_type.name if self.exam_type else 'N/A'})"
+
+
+class CopyConstraint(models.Model):
+    """
+    Contrainte individuelle de dispatch : interdit l'assignation d'une copie
+    d'un élève spécifique à un correcteur spécifique.
+    Remplace les données hardcodées dans dispatch_dnb_copies.py.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student_last_name = models.CharField(max_length=255, verbose_name=_("Nom de l'élève"))
+    student_first_name = models.CharField(max_length=255, verbose_name=_("Prénom de l'élève"))
+    student_dob = models.DateField(verbose_name=_("Date de naissance"))
+    forbidden_corrector = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='dispatch_constraints',
+        verbose_name=_("Correcteur interdit")
+    )
+    reason = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name=_("Raison"),
+        help_text=_("Ex: lien familial, conflit d'intérêt")
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Contrainte de dispatch")
+        verbose_name_plural = _("Contraintes de dispatch")
+        unique_together = ['student_last_name', 'student_first_name', 'student_dob', 'forbidden_corrector']
+
+    def __str__(self):
+        return f"{self.student_last_name} {self.student_first_name} ≠ {self.forbidden_corrector}"
+
+
+class TeacherGroupAssignment(models.Model):
+    """
+    Association correcteur → groupe d'élèves pour la fonctionnalité "Mes Élèves".
+    Remplace le dictionnaire TEACHER_GROUPS hardcodé dans views_my_students.py.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='group_assignments',
+        verbose_name=_("Correcteur")
+    )
+    group_name = models.CharField(
+        max_length=50,
+        verbose_name=_("Groupe d'élèves"),
+        help_text=_("Ex: G1, G2, T.04, T.06")
+    )
+
+    class Meta:
+        verbose_name = _("Assignation groupe-correcteur")
+        verbose_name_plural = _("Assignations groupe-correcteur")
+        unique_together = ['teacher', 'group_name']
+
+    def __str__(self):
+        return f"{self.teacher.username} → {self.group_name}"

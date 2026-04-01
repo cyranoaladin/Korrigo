@@ -55,16 +55,7 @@ ENSEIGNANTS_CSV = PROJECT_ROOT / "enseignants.csv"
 from exams.exam_type_codes import DNB_BLANC_CODE as DNB_EXAM_TYPE_CODE  # noqa: E402
 DNB_EXAM_NAME = "DNB_2026"  # un seul examen, pas de sujet A/B contrairement au Bac Blanc
 
-# ── Contraintes individuelles spéciales ──────────────────────────────────────
-# Format : (last_name_upper, first_name_upper, date_naissance_DD/MM/YYYY)
-#              → liste d'emails de correcteurs interdits
-INDIVIDUAL_CONSTRAINTS: dict[tuple, list[str]] = {
-    ("BEN RHOUMA", "KAMEL", "26/06/2011"): [
-        "sami.bentiba@ert.tn",
-        "chawki.saadi@ert.tn",
-        "soumaya.nasri@ert.tn",
-    ],
-}
+# ── Contraintes individuelles : lues depuis la DB (CopyConstraint) ────────────
 
 
 class Command(BaseCommand):
@@ -189,24 +180,26 @@ class Command(BaseCommand):
                         f"classe {student_class} → exclus pour classe : {excluded}"
                     )
 
-            # — Contrainte individuelle spéciale —
+            # — Contrainte individuelle spéciale (depuis DB) —
             if copy.is_identified and copy.student:
                 s = copy.student
-                ddn_str = s.date_naissance.strftime("%d/%m/%Y")
-                individual_key = (s.last_name.upper(), s.first_name.upper(), ddn_str)
-                extra_forbidden = INDIVIDUAL_CONSTRAINTS.get(individual_key, [])
-                if extra_forbidden:
+                from exams.models import CopyConstraint
+                forbidden_users = CopyConstraint.objects.filter(
+                    student_last_name__iexact=s.last_name,
+                    student_first_name__iexact=s.first_name,
+                    student_dob=s.date_naissance,
+                ).values_list('forbidden_corrector_id', flat=True)
+                if forbidden_users:
                     eligible_before = len(eligible)
                     eligible = [
                         c for c in eligible
-                        if c.email.lower() not in extra_forbidden
-                        and c.username.lower() not in extra_forbidden
+                        if c.id not in set(forbidden_users)
                     ]
+                    ddn_str = s.date_naissance.strftime("%d/%m/%Y")
                     self.stdout.write(
                         self.style.WARNING(
-                            f"  ⚠  CONTRAINTE SPÉCIALE : {s.last_name} {s.first_name} "
-                            f"({ddn_str}) → exclus : {extra_forbidden} "
-                            f"({eligible_before - len(eligible)} correcteur(s) en plus exclus)"
+                            f"  ⚠  CONTRAINTE SPÉCIALE (DB) : {s.last_name} {s.first_name} "
+                            f"({ddn_str}) → {eligible_before - len(eligible)} correcteur(s) exclus"
                         )
                     )
 
