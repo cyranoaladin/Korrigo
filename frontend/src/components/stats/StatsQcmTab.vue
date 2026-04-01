@@ -75,7 +75,7 @@
               <th class="text-left px-3 py-2.5 font-medium text-gray-600">Élève</th>
               <th class="text-center px-2 py-2.5 font-medium text-gray-600">Exam</th>
               <th class="text-center px-2 py-2.5 font-medium text-gray-600">Classe</th>
-              <th class="text-center px-2 py-2.5 font-medium text-gray-600">Grp</th>
+              <th v-if="hasGroups" class="text-center px-2 py-2.5 font-medium text-gray-600">Grp</th>
               <th class="text-center px-2 py-2.5 font-medium text-gray-600">Note</th>
               <th class="text-center px-2 py-2.5 font-medium text-gray-600">%Ex1</th>
               <th class="text-left px-3 py-2.5 font-medium text-gray-600">Correcteur</th>
@@ -89,7 +89,7 @@
                 <span class="text-xs px-1.5 py-0.5 rounded-full font-medium" :class="s.exam === 'BB_J1' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'">{{ s.exam }}</span>
               </td>
               <td class="px-2 py-2 text-center text-gray-600">{{ s.classe }}</td>
-              <td class="px-2 py-2 text-center text-gray-600">{{ s.groupe }}</td>
+              <td v-if="hasGroups" class="px-2 py-2 text-center text-gray-600">{{ s.groupe }}</td>
               <td class="px-2 py-2 text-center font-bold" :class="s.total < 10 ? 'text-red-700' : 'text-gray-800'">{{ s.total }}</td>
               <td class="px-2 py-2 text-center font-semibold" :class="s.pct >= 50 ? 'text-red-700' : s.pct >= 40 ? 'text-amber-700' : 'text-gray-600'">{{ s.pct }}%</td>
               <td class="px-3 py-2 text-gray-500 text-xs">{{ s.corrector }}</td>
@@ -217,7 +217,8 @@ import { BarChart3, AlertTriangle, ClipboardList } from 'lucide-vue-next'
 
 const props = defineProps({
   data: { type: Object, required: true },
-  header: { type: Object, required: true }
+  header: { type: Object, required: true },
+  hasGroups: { type: Boolean, default: true }
 })
 
 const distJ1 = computed(() => props.data?.qcm?.dist_j1 || [])

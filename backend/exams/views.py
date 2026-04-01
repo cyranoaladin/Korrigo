@@ -1415,6 +1415,7 @@ class ExamStudentListView(APIView):
             )) if scored else None,
             "min_score": min(d['total_score'] for d in scored) if scored else None,
             "max_score": max(d['total_score'] for d in scored) if scored else None,
+            "has_groups": any(d.get('student_groupe') for d in data),
         }
 
         return Response({"summary": summary, "copies": data})

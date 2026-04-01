@@ -15,7 +15,7 @@
               <th class="text-center px-3 py-2.5 font-medium text-gray-600 w-12">#</th>
               <th class="text-left px-3 py-2.5 font-medium text-gray-600">Élève</th>
               <th class="text-center px-3 py-2.5 font-medium text-gray-600">Classe</th>
-              <th class="text-center px-3 py-2.5 font-medium text-gray-600">Groupe</th>
+              <th v-if="hasGroups" class="text-center px-3 py-2.5 font-medium text-gray-600">Groupe</th>
               <th class="text-center px-3 py-2.5 font-medium text-gray-600">Exam</th>
               <th class="text-center px-3 py-2.5 font-medium text-gray-600">Note</th>
               <th class="text-left px-3 py-2.5 font-medium text-gray-600">Correcteur</th>
@@ -29,7 +29,7 @@
               </td>
               <td class="px-3 py-2.5 font-semibold text-gray-800">{{ s.name }}</td>
               <td class="px-3 py-2.5 text-center text-gray-600">{{ s.classe }}</td>
-              <td class="px-3 py-2.5 text-center text-gray-600">{{ s.groupe }}</td>
+              <td v-if="hasGroups" class="px-3 py-2.5 text-center text-gray-600">{{ s.groupe }}</td>
               <td class="px-3 py-2.5 text-center">
                 <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="s.exam === 'BB_J1' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'">{{ s.exam }}</span>
               </td>
@@ -56,7 +56,7 @@
               <th class="text-center px-3 py-2.5 font-medium text-red-700 w-12">#</th>
               <th class="text-left px-3 py-2.5 font-medium text-red-700">Élève</th>
               <th class="text-center px-3 py-2.5 font-medium text-red-700">Classe</th>
-              <th class="text-center px-3 py-2.5 font-medium text-red-700">Groupe</th>
+              <th v-if="hasGroups" class="text-center px-3 py-2.5 font-medium text-red-700">Groupe</th>
               <th class="text-center px-3 py-2.5 font-medium text-red-700">Exam</th>
               <th class="text-center px-3 py-2.5 font-medium text-red-700">Note</th>
               <th class="text-left px-3 py-2.5 font-medium text-red-700">Correcteur</th>
@@ -71,7 +71,7 @@
                 {{ s.name }}
               </td>
               <td class="px-3 py-2.5 text-center text-gray-600">{{ s.classe }}</td>
-              <td class="px-3 py-2.5 text-center text-gray-600">{{ s.groupe }}</td>
+              <td v-if="hasGroups" class="px-3 py-2.5 text-center text-gray-600">{{ s.groupe }}</td>
               <td class="px-3 py-2.5 text-center">
                 <span class="text-xs px-2 py-0.5 rounded-full font-medium" :class="s.exam === 'BB_J1' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'">{{ s.exam }}</span>
               </td>
@@ -90,7 +90,8 @@ import { computed } from 'vue'
 import { Trophy, AlertTriangle } from 'lucide-vue-next'
 
 const props = defineProps({
-  data: { type: Object, required: true }
+  data: { type: Object, required: true },
+  hasGroups: { type: Boolean, default: true }
 })
 
 const top15 = computed(() => props.data?.top15 || [])
