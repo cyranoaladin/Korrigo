@@ -1,6 +1,7 @@
 """
 Tests for ensure_admin management command
 """
+import os
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
@@ -12,13 +13,14 @@ User = get_user_model()
 @pytest.mark.django_db
 def test_ensure_admin_creates_admin_user():
     assert not User.objects.filter(username='admin').exists()
-    
+
     call_command('ensure_admin')
-    
+
+    expected_password = os.environ.get('ADMIN_PASSWORD', 'admin')
     admin_user = User.objects.get(username='admin')
     assert admin_user.is_staff is True
     assert admin_user.is_superuser is True
-    assert admin_user.check_password('admin') is True
+    assert admin_user.check_password(expected_password) is True
 
 
 @pytest.mark.django_db
