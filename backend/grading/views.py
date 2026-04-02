@@ -98,8 +98,10 @@ def _serialize_copy_export(copy: Copy) -> dict[str, object]:
         'student_id': copy.student_id,
         'assigned_corrector_id': copy.assigned_corrector_id,
         'scores': score.scores_data if score else {},
+        'scores_data': score.scores_data if score else {},
         'score_record_id': str(score.id) if score else None,
         'score_final_comment': score.final_comment if score else '',
+        'final_comment': score.final_comment if score else '',
         'remarks': [
             {
                 'id': str(remark.id),
@@ -886,6 +888,7 @@ class ExamReleaseResultsView(APIView):
             'message': 'Résultats publiés avec succès.',
             'released_at': exam.results_released_at.isoformat(),
             'notification_task': 'queued',
+            'notification_queued': True,
             'task_id': str(task.id),
         })
 
@@ -1081,6 +1084,7 @@ class CopyAnnotationsExportView(APIView):
         payload = {
             **_serialize_copy_export(copy),
             'exported_at': timezone.now().isoformat(),
+            'exported_by': request.user.username,
         }
         log_audit(request, 'copy.annotations_export', 'Copy', copy.id, {'format': 'json'})
         return Response(payload)

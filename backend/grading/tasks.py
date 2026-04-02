@@ -38,8 +38,11 @@ def notify_students_results_released(self, exam_id: str):
 
     sent = 0
     errors = []
-    frontend_url = getattr(settings, 'FRONTEND_URL', 'https://korrigo.labomaths.tn').rstrip('/')
-    login_url = f"{frontend_url}/student/login"
+    login_url = getattr(
+        settings,
+        'STUDENT_PORTAL_URL',
+        'https://korrigo.labomaths.tn/student/login',
+    )
 
     for copy in copies:
         student = copy.student

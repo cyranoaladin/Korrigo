@@ -55,11 +55,9 @@ class LoginView(APIView):
         user = authenticate(request, username=username, password=password)
         
         if user is None and username and '@' in username:
-            try:
-                user_obj = User.objects.get(email=username)
+            user_obj = User.objects.filter(email__iexact=username).first()
+            if user_obj:
                 user = authenticate(request, username=user_obj.username, password=password)
-            except User.DoesNotExist:
-                pass
         
         if user is not None:
             if not user.is_active:
@@ -179,6 +177,11 @@ class UserDetailView(APIView):
 
 class GlobalSettingsView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method in ('POST', 'PUT', 'PATCH'):
+            return [IsKorrigoAdmin()]
+        return [IsAuthenticated()]
     
     def get(self, request):
         from core.models import GlobalSettings
@@ -191,9 +194,6 @@ class GlobalSettingsView(APIView):
         })
         
     def post(self, request):
-        if not _is_admin_user(request.user):
-             return Response({"error": "Réservé aux administrateurs."}, status=status.HTTP_403_FORBIDDEN)
-             
         from core.models import GlobalSettings
         settings_obj = GlobalSettings.load()
         

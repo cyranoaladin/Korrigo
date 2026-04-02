@@ -64,16 +64,25 @@ class GlobalStatsView(APIView):
             for row in Copy.objects.values('status').annotate(count=Count('id'))
         }
 
+        ready_count = copies_by_status.get(Copy.Status.READY, 0)
+        in_progress_count = copies_by_status.get(Copy.Status.IN_PROGRESS, 0)
+        finalized_count = copies_by_status.get(Copy.Status.FINALIZED, 0)
+        exams_with_results = Exam.objects.filter(results_released_at__isnull=False).count()
+
         return Response({
             'total_exams': Exam.objects.count(),
             'total_copies': Copy.objects.count(),
             'copies_by_status': {
-                'READY': copies_by_status.get(Copy.Status.READY, 0),
-                'IN_PROGRESS': copies_by_status.get(Copy.Status.IN_PROGRESS, 0),
-                'FINALIZED': copies_by_status.get(Copy.Status.FINALIZED, 0),
+                'READY': ready_count,
+                'IN_PROGRESS': in_progress_count,
+                'FINALIZED': finalized_count,
             },
+            'ready_count': ready_count,
+            'in_progress_count': in_progress_count,
+            'finalized_count': finalized_count,
             'students_count': Student.objects.count(),
-            'exams_with_results_released': Exam.objects.filter(results_released_at__isnull=False).count(),
+            'exams_with_results': exams_with_results,
+            'exams_with_results_released': exams_with_results,
             'correctors_count': User.objects.filter(groups__name__iexact=UserRole.TEACHER).distinct().count(),
         })
 
@@ -506,6 +515,13 @@ class ExamDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Exam.objects.all()
     serializer_class = ExamSerializer
     lookup_field = 'id'
+
+    def perform_destroy(self, instance):
+        from rest_framework.exceptions import PermissionDenied
+
+        if not IsKorrigoAdmin().has_permission(self.request, self):
+            raise PermissionDenied("Seul un administrateur peut supprimer un examen.")
+        super().perform_destroy(instance)
 
 
 class CopyListView(generics.ListAPIView):

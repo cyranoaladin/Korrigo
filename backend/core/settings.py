@@ -556,3 +556,4 @@ else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://korrigo.labomaths.tn')
+STUDENT_PORTAL_URL = os.environ.get('STUDENT_PORTAL_URL', 'https://korrigo.labomaths.tn/student/login')
