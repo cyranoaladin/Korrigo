@@ -18,6 +18,9 @@ if [ "${SEED_ON_START:-false}" = "true" ]; then
     python manage.py seed_initial_exams || echo "WARNING: seed_initial_exams failed (non-blocking)"
 fi
 
+echo "--> Ensuring user roles exist..."
+python manage.py shell -c "from core.auth import create_user_roles; create_user_roles()" || true
+
 echo "Args passed: $@"
 echo "Arg count: $#"
 

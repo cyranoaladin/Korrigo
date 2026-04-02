@@ -241,7 +241,7 @@ class UserListView(APIView):
     def get(self, request):
             
         role = request.query_params.get('role', None) 
-        queryset = User.objects.all().order_by('username')
+        queryset = User.objects.all().prefetch_related('groups').order_by('username')
         
         if role == 'Admin':
             from django.db.models import Q

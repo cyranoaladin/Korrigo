@@ -131,6 +131,8 @@ class GradingEvent(models.Model):
         EXPORT = 'EXPORT', _("Export PDF")
         REOPEN = 'REOPEN', _("Réouverture (GRADED→READY)")
         SAVE_APPRECIATION = 'SAVE_APPREC', _("Sauvegarde appréciation globale")
+        SCORES_SAVED = 'scores_saved', _("Notes sauvegardées")
+        REMARK_SAVED = 'remark_saved', _("Remarque sauvegardée")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     copy = models.ForeignKey(

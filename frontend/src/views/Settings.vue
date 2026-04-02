@@ -1,16 +1,24 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import api from '../services/api'
+import { useTheme } from '../composables/useTheme'
+
+const { currentTheme, setTheme } = useTheme()
 
 const loading = ref(true)
 const saving = ref(false)
 
 const settings = ref({
-    theme: 'light',
+    theme: currentTheme.value,
     notifications: true,
     defaultDuration: 60,
     gradingScaleType: '20',
     institutionName: 'Lycée Pierre Mendès France'
+})
+
+// Apply theme immediately when dropdown changes
+watch(() => settings.value.theme, (newTheme) => {
+    setTheme(newTheme)
 })
 
 const fetchSettings = async () => {

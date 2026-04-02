@@ -7,6 +7,7 @@ import api from '../services/api'
 import JuryReportsModal from '../components/JuryReportsModal.vue'
 import ExamTypeSelectionModal from '../components/ExamTypeSelectionModal.vue'
 import ExamTypeIcon from '../components/ExamTypeIcon.vue'
+import { BarChart3, Users, FileEdit, TrendingUp, ClipboardList } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -413,34 +414,34 @@ const canSeeQuestionnaire = computed(() =>
           class="btn-nav-stats"
           @click="scrollToStats"
         >
-          📊 Statistiques
+          <BarChart3 :size="14" class="inline" /> Statistiques
         </button>
         <button
           class="btn-my-students"
           @click="goToMyStudents"
         >
-          👥 Mes Élèves
+          <Users :size="14" class="inline" /> Mes Élèves
         </button>
         <button
           v-if="canSeeQuestionnaire && questionnaireStatusLoaded && !questionnaireSummary.has_response"
           class="btn-questionnaire"
           @click="goToQuestionnaire"
         >
-          📝 Questionnaire
+          <FileEdit :size="14" class="inline" /> Questionnaire
         </button>
         <button
           v-if="canSeeQuestionnaire && questionnaireStatusLoaded && questionnaireSummary.has_response"
           class="btn-questionnaire-bilan"
           @click="goToQuestionnaireBilan"
         >
-          📈 Bilan du questionnaire
+          <TrendingUp :size="14" class="inline" /> Bilan du questionnaire
         </button>
         <button
           v-if="canSeeJuryReport"
           class="btn-jury-report"
           @click="openJuryReportsModal"
         >
-          📋 Rapport du Jury {{ selectedExamType?.name || '' }}
+          <ClipboardList :size="14" class="inline" /> Rapport du Jury {{ selectedExamType?.name || '' }}
         </button>
         <button
           class="btn-logout"

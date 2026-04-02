@@ -48,7 +48,7 @@ class TestFullSystemAudit:
         response = self.client.get('/api/me/')
         assert response.status_code == 200
         assert response.data['username'] == 'admin'
-        assert response.data['is_superuser'] is True
+        assert response.data['role'] == 'Admin'
 
         # Global Settings Access (Write)
         response = self.client.post('/api/settings/', {'institutionName': 'Audit School'})

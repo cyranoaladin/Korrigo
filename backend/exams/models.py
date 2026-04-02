@@ -355,6 +355,7 @@ class Copy(models.Model):
             models.Index(fields=['status'], name='idx_copy_status'),
             models.Index(fields=['exam', 'status'], name='idx_copy_exam_status'),
             models.Index(fields=['assigned_corrector', 'status'], name='idx_copy_corrector_status'),
+            models.Index(fields=['student', 'status'], name='idx_copy_student_status'),
         ]
 
     def __str__(self):

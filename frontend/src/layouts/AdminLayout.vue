@@ -2,6 +2,7 @@
   <div class="flex h-screen bg-gray-100">
     <AdminSidebar class="flex-shrink-0" />
     <main class="flex-1 overflow-y-auto">
+      <AdminBreadcrumb />
       <router-view />
     </main>
   </div>
@@ -9,4 +10,5 @@
 
 <script setup>
 import AdminSidebar from '../components/admin/AdminSidebar.vue'
+import AdminBreadcrumb from '../components/admin/AdminBreadcrumb.vue'
 </script>

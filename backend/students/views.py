@@ -87,13 +87,23 @@ class StudentLoginView(views.APIView):
         request.session['student_id'] = student.id
         request.session['role'] = 'Student'
 
-        # Check if must change default password (passe123 or date of birth JJMMAAAA)
-        dob_pwd = student.date_naissance.strftime('%d%m%Y') if student.date_naissance else None
-        must_change_password = (
-            not user.has_usable_password()
-            or user.check_password('passe123')
-            or (dob_pwd and user.check_password(dob_pwd))
-        )
+        # P2-D FIX: Use UserProfile.must_change_password as primary source
+        # to avoid expensive bcrypt checks (2-3x ~100ms) on every login.
+        # Fallback to bcrypt only if profile flag is not set (legacy accounts).
+        profile = getattr(user, 'profile', None)
+        if profile and profile.must_change_password:
+            must_change_password = True
+        else:
+            dob_pwd = student.date_naissance.strftime('%d%m%Y') if student.date_naissance else None
+            must_change_password = (
+                not user.has_usable_password()
+                or user.check_password('passe123')
+                or (dob_pwd and user.check_password(dob_pwd))
+            )
+            # Cache result in profile so we never re-check bcrypt for this user
+            if profile and must_change_password:
+                profile.must_change_password = True
+                profile.save(update_fields=['must_change_password'])
 
         log_authentication_attempt(request, success=True, student_id=student.id)
         return Response({
@@ -142,16 +152,20 @@ class StudentMeView(views.APIView):
         serializer = StudentSerializer(student)
         data = serializer.data
 
-        # Include must_change_password flag — cache in session to avoid bcrypt on every GET
+        # P2-D FIX: Use session cache → UserProfile flag → bcrypt fallback
         user = student.user
         must_change = request.session.get('must_change_password')
         if must_change is None and user:
-            dob_pwd = student.date_naissance.strftime('%d%m%Y') if student.date_naissance else None
-            must_change = (
-                not user.has_usable_password()
-                or user.check_password('passe123')
-                or (dob_pwd and user.check_password(dob_pwd))
-            )
+            profile = getattr(user, 'profile', None)
+            if profile and profile.must_change_password:
+                must_change = True
+            else:
+                dob_pwd = student.date_naissance.strftime('%d%m%Y') if student.date_naissance else None
+                must_change = (
+                    not user.has_usable_password()
+                    or user.check_password('passe123')
+                    or (dob_pwd and user.check_password(dob_pwd))
+                )
             request.session['must_change_password'] = must_change
         data['must_change_password'] = must_change or False
 

@@ -23,7 +23,7 @@ from .permissions import IsTeacherOrAdmin
 
 import fitz  # PyMuPDF
 import logging
-from core.auth import UserRole
+from core.auth import UserRole, IsKorrigoAdmin
 from exams.score_constraints import Q_MAX_BY_EXAM
 import os
 import uuid
@@ -1058,33 +1058,18 @@ class PronoteExportView(APIView):
     Audit:
         Logs all export attempts (success/failure) with user, exam, timestamp
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsKorrigoAdmin]
 
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request, id):
-        from core.auth import IsAdminOnly
         from django.http import HttpResponse
         from core.utils.audit import log_audit
         from exams.services import PronoteExporter
         from exams.services.pronote_export import ValidationError
         import logging
-        
+
         logger = logging.getLogger(__name__)
-        
-        # Admin-only permission check
-        if not IsAdminOnly().has_permission(request, self):
-            log_audit(
-                request,
-                'export.pronote.forbidden',
-                'Exam',
-                id,
-                {'reason': 'Non-admin user attempted PRONOTE export'}
-            )
-            return Response(
-                {"error": _("Accès refusé. Seuls les administrateurs peuvent exporter vers PRONOTE.")},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
+
         # Get exam
         exam = get_object_or_404(Exam, id=id)
         

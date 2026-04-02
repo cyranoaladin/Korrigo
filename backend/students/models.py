@@ -5,7 +5,7 @@ class Student(models.Model):
     first_name = models.CharField(max_length=100, verbose_name="Prénom")
     last_name = models.CharField(max_length=100, verbose_name="Nom")
     date_naissance = models.DateField(verbose_name="Date de naissance")
-    email = models.EmailField(blank=True, null=True, verbose_name="Email")
+    email = models.EmailField(blank=True, null=True, unique=True, verbose_name="Email")
     class_name = models.CharField(max_length=50, verbose_name="Classe")
     groupe = models.CharField(max_length=50, blank=True, null=True, verbose_name="Groupe")
 

@@ -405,7 +405,7 @@ class QuestionRemarkListCreateView(generics.ListCreateAPIView):
             GradingEvent.objects.create(
                 copy=copy,
                 actor=request.user,
-                action='remark_saved',
+                action=GradingEvent.Action.REMARK_SAVED,
                 metadata={'question_id': question_id, 'created': created},
             )
         except Exception:
@@ -619,7 +619,7 @@ class CopyScoresView(APIView):
                 GradingEvent.objects.create(
                     copy=copy,
                     actor=request.user,
-                    action='scores_saved',
+                    action=GradingEvent.Action.SCORES_SAVED,
                 metadata={'nq': nq, 'total': float(round(total, 2)), 'created': created},  # type: ignore[call-overload]
                 )
             except Exception:
@@ -638,7 +638,7 @@ class CorrectorStatsView(APIView):
     GET /api/grading/exams/<uuid>/stats/
     Returns grading statistics for the corrector's lot and the global exam.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request, exam_id):
         exam = get_object_or_404(Exam, id=exam_id)
@@ -903,7 +903,7 @@ class AdminForceUnlockView(APIView):
     Force-deletes the CopyLock for the given copy.
     Admin-only (superuser or staff).
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsKorrigoAdmin]
 
     def post(self, request, copy_id):
         if not (request.user.is_superuser or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()):
@@ -951,7 +951,7 @@ class CopyReopenView(APIView):
     Reopen a FINALIZED copy back to READY status.
     Admin-only (superuser).
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsKorrigoAdmin]
 
     def post(self, request, copy_id):
         if not request.user.is_superuser:

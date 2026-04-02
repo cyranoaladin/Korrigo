@@ -249,7 +249,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+# P3-E FIX: Use cached_db sessions only when Redis is available (cross-worker).
+# Fallback to plain db sessions when running with LocMemCache to avoid
+# sessions being invisible between Gunicorn workers.
+_REDIS_AVAILABLE = bool(os.environ.get("REDIS_HOST"))
+SESSION_ENGINE = (
+    'django.contrib.sessions.backends.cached_db' if _REDIS_AVAILABLE
+    else 'django.contrib.sessions.backends.db'
+)
 SESSION_COOKIE_AGE = 14400
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_HTTPONLY = True

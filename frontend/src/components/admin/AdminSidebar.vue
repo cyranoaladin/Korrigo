@@ -12,7 +12,7 @@
           ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
       >
-        <span>📊</span>
+        <BarChart3 :size="16" />
         <span>Vue d'ensemble</span>
       </router-link>
 
@@ -73,7 +73,7 @@
           ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
       >
-        <span>👥</span>
+        <Users :size="16" />
         <span>Utilisateurs</span>
       </router-link>
 
@@ -85,7 +85,7 @@
           ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
       >
-        <span>💬</span>
+        <MessageSquare :size="16" />
         <span>Questionnaire</span>
       </router-link>
 
@@ -96,7 +96,7 @@
           ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
       >
-        <span>⚙️</span>
+        <Settings :size="16" />
         <span>Paramètres</span>
       </router-link>
 
@@ -107,7 +107,7 @@
         class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-gray-800 hover:text-red-300 transition-colors"
         @click="handleLogout"
       >
-        <span>🚪</span>
+        <LogOut :size="16" />
         <span>Déconnexion</span>
       </button>
     </div>
@@ -125,6 +125,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
+import { BarChart3, Users, MessageSquare, Settings, LogOut } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()

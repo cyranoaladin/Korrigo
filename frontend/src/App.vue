@@ -1,8 +1,11 @@
 <script setup>
 import { computed } from 'vue'
 import { useAuthStore } from './stores/auth'
+import { useTheme } from './composables/useTheme'
 import ChangePasswordModal from './components/ChangePasswordModal.vue'
+import ToastContainer from './components/ToastContainer.vue'
 
+useTheme() // Initialize theme (dark/light) from localStorage on app startup
 const authStore = useAuthStore()
 
 const showPasswordModal = computed(() => {
@@ -30,6 +33,7 @@ const handlePasswordChanged = async () => {
       :forced="true"
       @success="handlePasswordChanged"
     />
+    <ToastContainer />
   </div>
 </template>
 

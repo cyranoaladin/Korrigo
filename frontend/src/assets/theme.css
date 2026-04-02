@@ -1,0 +1,235 @@
+/* ═══════════════════════════════════════════════════════
+   Korrigo Dark Mode — CSS Custom Properties
+   Applied via .dark class on <html>
+   Priority: CorrectorDesk (where correctors spend hours)
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  --bg-app: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f1f5f9;
+  --bg-surface-alt: #f1f5f9;
+  --bg-input: #ffffff;
+  --bg-sidebar: #111827;
+
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-inverse: #ffffff;
+
+  --border-color: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-light: #dbeafe;
+
+  --success: #10b981;
+  --success-light: #d1fae5;
+  --warning: #f59e0b;
+  --warning-light: #fef3c7;
+  --danger: #ef4444;
+  --danger-light: #fee2e2;
+}
+
+:root.dark {
+  --bg-app: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-surface-hover: #334155;
+  --bg-surface-alt: #1a2332;
+  --bg-input: #334155;
+  --bg-sidebar: #0a0f1a;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --text-inverse: #0f172a;
+
+  --border-color: #334155;
+  --border-strong: #475569;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+
+  --accent: #60a5fa;
+  --accent-hover: #93bbfd;
+  --accent-light: #1e3a5f;
+
+  --success: #34d399;
+  --success-light: #064e3b;
+  --warning: #fbbf24;
+  --warning-light: #78350f;
+  --danger: #f87171;
+  --danger-light: #7f1d1d;
+}
+
+/* ── Global overrides for dark mode ────────────────────── */
+
+.dark body {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+}
+
+/* Admin layout bg */
+.dark .bg-gray-100 {
+  background-color: var(--bg-app) !important;
+}
+
+/* Cards and surfaces */
+.dark .bg-white {
+  background-color: var(--bg-surface) !important;
+  color: var(--text-primary);
+}
+
+.dark .bg-slate-50 {
+  background-color: var(--bg-app) !important;
+}
+
+/* Borders */
+.dark .border-slate-200,
+.dark .border-slate-100,
+.dark .border-gray-200 {
+  border-color: var(--border-color) !important;
+}
+
+/* Text */
+.dark .text-slate-800,
+.dark .text-gray-800,
+.dark .text-slate-900,
+.dark .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+.dark .text-slate-600,
+.dark .text-gray-600,
+.dark .text-slate-700,
+.dark .text-gray-700 {
+  color: var(--text-secondary) !important;
+}
+
+.dark .text-slate-500,
+.dark .text-gray-500,
+.dark .text-slate-400,
+.dark .text-gray-400 {
+  color: var(--text-muted) !important;
+}
+
+/* Table and data surfaces */
+.dark .bg-slate-50 th,
+.dark .bg-slate-50 thead tr {
+  background-color: var(--bg-surface-alt) !important;
+}
+
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-color) !important;
+}
+
+.dark .hover\:bg-slate-50:hover {
+  background-color: var(--bg-surface-hover) !important;
+}
+
+/* ── CorrectorDesk specific (priority target) ────────── */
+
+.dark .grading-panel {
+  background-color: var(--bg-surface) !important;
+  color: var(--text-primary);
+  border-color: var(--border-color) !important;
+}
+
+.dark .score-input {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.dark .score-input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 0.2rem rgba(96, 165, 250, 0.25) !important;
+}
+
+.dark .score-input.score-filled {
+  border-color: var(--success) !important;
+  background-color: #064e3b !important;
+}
+
+.dark .score-input:disabled {
+  background-color: var(--bg-surface-alt) !important;
+}
+
+.dark .question-item {
+  border-color: var(--border-color) !important;
+}
+
+.dark .group-header {
+  background-color: var(--bg-surface-alt) !important;
+  color: var(--text-primary);
+}
+
+.dark textarea {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.dark textarea:focus {
+  border-color: var(--accent) !important;
+}
+
+/* ── Inputs generalized ───────────────────────────────── */
+
+.dark input[type="text"],
+.dark input[type="number"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="search"],
+.dark select {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-strong) !important;
+}
+
+/* ── Settings page ────────────────────────────────────── */
+
+.dark .settings-view .settings-card {
+  background-color: var(--bg-surface) !important;
+  border-color: var(--border-color) !important;
+}
+
+.dark .settings-view .page-header {
+  border-color: var(--border-color) !important;
+}
+
+.dark .settings-view label {
+  color: var(--text-secondary) !important;
+}
+
+/* ── Sidebar (already dark, just ensure consistency) ──── */
+
+.dark .bg-gray-900 {
+  background-color: var(--bg-sidebar) !important;
+}
+
+/* ── Scrollbar styling for dark mode ─────────────────── */
+
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: var(--bg-app);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}

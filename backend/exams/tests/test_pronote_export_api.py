@@ -58,24 +58,20 @@ class PronoteExportAPIPermissionTests(TestCase):
         self.assertIn(response.status_code, [401, 403])
     
     def test_student_cannot_export(self):
-        """Test that students cannot export (forbidden)"""
+        """Test that students cannot export (forbidden by IsKorrigoAdmin)"""
         self.client.force_login(self.student_user)
-        
+
         response = self.client.post(self.url)
-        
+
         self.assertEqual(response.status_code, 403)
-        self.assertIn('error', response.json())
-        self.assertIn('Accès refusé', response.json()['error'])
-    
+
     def test_teacher_cannot_export(self):
-        """Test that teachers cannot export (admin-only)"""
+        """Test that teachers cannot export (admin-only via IsKorrigoAdmin)"""
         self.client.force_login(self.teacher_user)
-        
+
         response = self.client.post(self.url)
-        
+
         self.assertEqual(response.status_code, 403)
-        self.assertIn('error', response.json())
-        self.assertIn('administrateur', response.json()['error'].lower())
     
     def test_admin_can_export(self):
         """Test that admin users can export (even if validation fails)"""

@@ -220,13 +220,12 @@ class PronoteExportTests(TestCase):
             is_identified=True,
             student=self.student1
         )
-        
+
         self.client.force_login(self.teacher)
         url = reverse('export-pronote', kwargs={'id': self.exam.id})
         response = self.client.post(url)
-        
+
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn('error', response.data)
 
     def test_export_with_valid_data(self):
         copy1 = Copy.objects.create(
