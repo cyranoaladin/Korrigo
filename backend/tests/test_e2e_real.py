@@ -40,12 +40,14 @@ def create_test_scenario():
     
     # Créer étudiant
     student, _ = Student.objects.get_or_create(
-        ine="E2E1234567890A",
         first_name="Jean",
         last_name="E2E",
-        class_name="TG2",
-        email="jean.e2e@test.edu",
-        user=student_user
+        date_naissance="2005-03-15",
+        defaults={
+            "class_name": "TG2",
+            "email": "jean.e2e@test.edu",
+            "user": student_user,
+        },
     )
     
     # Créer examen
@@ -62,7 +64,7 @@ def create_test_scenario():
     copy = Copy.objects.create(
         exam=exam,
         anonymous_id="E2E_TEST_001",
-        status=Copy.Status.STAGING
+        status=Copy.Status.READY
     )
     
     # Créer fascicule
@@ -79,7 +81,6 @@ def create_test_scenario():
     # Identification (simulation)
     copy.student = student
     copy.is_identified = True
-    copy.status = Copy.Status.READY
     copy.validated_at = timezone.now()
     copy.save()
     
@@ -87,7 +88,8 @@ def create_test_scenario():
     print(f"✅ Statut: {copy.status}")
     
     # Correction (simulation)
-    copy.status = Copy.Status.LOCKED
+    copy.status = Copy.Status.IN_PROGRESS
+    copy.assigned_corrector = teacher_user
     copy.locked_by = teacher_user
     copy.locked_at = timezone.now()
     copy.save()
@@ -108,7 +110,7 @@ def create_test_scenario():
     print(f"✅ Annotation ajoutée: {annotation.content}")
     
     # Finaliser
-    copy.status = Copy.Status.GRADED
+    copy.status = Copy.Status.FINALIZED
     copy.graded_at = timezone.now()
     copy.save()
     
@@ -125,7 +127,7 @@ def create_test_scenario():
     
     # Vérifier le workflow complet
     assert copy.student == student, "La copie doit être liée à l'étudiant"
-    assert copy.status == Copy.Status.GRADED, "La copie doit être GRADED"
+    assert copy.status == Copy.Status.FINALIZED, "La copie doit être FINALIZED"
     assert annotation.copy == copy, "L'annotation doit être liée à la copie"
     
     print("\n✅ WORKFLOW E2E COMPLET RÉUSSI:")
@@ -167,7 +169,6 @@ def test_multi_roles_access():
     assert UserRole.STUDENT in student_groups, "Student doit avoir le rôle student"
     
     print("✅ Accès multi-rôles correctement configurés")
-    return True
 
 
 if __name__ == "__main__":

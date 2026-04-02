@@ -34,12 +34,14 @@ def test_backup_restore_destroy_recover():
         name='Backup Recovery Test Exam',
         date='2026-01-01'
     )
+
+    test_user, _ = User.objects.get_or_create(username='test_backup_user')
     
     # Créer un étudiant
     student = Student.objects.create(
-        ine="BR1234567890A",
         first_name="Backup",
         last_name="Recovery",
+        date_naissance="2005-03-15",
         class_name="TG2",
         email="backup.recovery@test.edu"
     )
@@ -48,7 +50,7 @@ def test_backup_restore_destroy_recover():
     copy = Copy.objects.create(
         exam=exam,
         anonymous_id="BR_TEST_001",
-        status=Copy.Status.GRADED,
+        status=Copy.Status.FINALIZED,
         is_identified=True
     )
     copy.student = student
@@ -70,14 +72,15 @@ def test_backup_restore_destroy_recover():
         x=0.1, y=0.2, w=0.3, h=0.1,
         content="Test annotation for backup",
         type=Annotation.Type.COMMENT,
-        score_delta=5
+        score_delta=5,
+        created_by=test_user
     )
     
     # Créer un événement d'audit
     grading_event = GradingEvent.objects.create(
         copy=copy,
         action=GradingEvent.Action.FINALIZE,
-        actor=None,  # Pas d'utilisateur pour le test
+        actor=test_user,
         metadata={'test': True, 'score': 15}
     )
     
@@ -197,18 +200,12 @@ def test_backup_restore_destroy_recover():
         backup_path = backup_dir  # Utiliser le répertoire direct
     
     try:
-        from core.management.commands.backup_restore import RestoreCommand
-        restore_cmd = RestoreCommand()
-        
-        # Simuler les options pour le restore
-        options = {
-            'action': 'restore',
-            'backup_path': backup_path,
-            'dry_run': False
-        }
-        
-        # Exécuter le restore
-        restore_cmd.handle(**options)
+        call_command(
+            'backup_restore',
+            'restore',
+            backup_path=backup_path,
+            dry_run=False,
+        )
         
         print("   - Restauration via commande effectuée")
         
@@ -276,11 +273,9 @@ def test_backup_restore_destroy_recover():
         print("   - Données restaurées avec succès")
         print("   - Intégrité des données vérifiée")
         
-        return True
-        
     except Exception as e:
         print(f"   - ❌ Erreur vérification récupération: {str(e)}")
-        return False
+        raise
 
 
 if __name__ == "__main__":

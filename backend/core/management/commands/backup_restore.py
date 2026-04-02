@@ -6,6 +6,7 @@ from datetime import datetime
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.core import serializers
+from django.db import IntegrityError
 import json
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,56 @@ class Command(BaseCommand):
             self.backup(options)
         elif action == 'restore':
             self.restore(options)
+
+    def _restore_serialized_objects(self, data):
+        """
+        Restore serialized objects with dependency retries.
+
+        Some models depend on rows restored later in the dump order, and
+        UserProfile is auto-created by a post_save signal on User.
+        """
+        pending = list(data)
+        max_passes = len(pending) or 1
+
+        for _ in range(max_passes):
+            next_pending = []
+            progress_made = False
+
+            for item in pending:
+                try:
+                    obj = next(serializers.deserialize('json', json.dumps([item])))
+                    obj.save()
+                    progress_made = True
+                except IntegrityError as e:
+                    if (
+                        item.get('model') == 'core.userprofile'
+                        and 'core_userprofile.user_id' in str(e)
+                    ):
+                        from core.models import UserProfile
+
+                        UserProfile.objects.filter(
+                            user_id=item['fields']['user']
+                        ).update(
+                            must_change_password=item['fields'].get(
+                                'must_change_password', False
+                            )
+                        )
+                        progress_made = True
+                        continue
+
+                    next_pending.append((item, str(e)))
+                except Exception as e:
+                    next_pending.append((item, str(e)))
+
+            if not next_pending:
+                return
+
+            if not progress_made:
+                for item, error in next_pending:
+                    self.stderr.write(f"Error restoring object: {error}")
+                return
+
+            pending = [item for item, _ in next_pending]
 
     def backup(self, options):
         output_dir = options['output_dir']
@@ -200,16 +251,7 @@ class Command(BaseCommand):
                     with open(db_backup_path, 'r') as f:
                         data = json.load(f)
                     
-                    # Deserialize and save
-                    for item in data:
-                        try:
-                            obj_json = json.dumps([item])
-                            obj = serializers.deserialize('json', obj_json)
-                            for obj_instance in obj:
-                                obj_instance.save()
-                        except Exception as e:
-                            self.stderr.write(f"Error restoring object: {e}")
-                            continue
+                    self._restore_serialized_objects(data)
                     
                     self.stdout.write("Database restored successfully")
                 else:
