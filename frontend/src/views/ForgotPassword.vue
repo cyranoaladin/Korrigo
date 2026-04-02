@@ -58,7 +58,7 @@ const submit = async () => {
         </button>
       </form>
 
-      <router-link to="/teacher/login" class="mt-5 inline-flex text-sm text-indigo-600 hover:text-indigo-700">
+      <router-link to="/" class="mt-5 inline-flex text-sm text-indigo-600 hover:text-indigo-700">
         Retour à la connexion
       </router-link>
     </div>

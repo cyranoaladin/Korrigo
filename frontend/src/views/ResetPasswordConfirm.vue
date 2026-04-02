@@ -39,7 +39,7 @@ const submit = async () => {
       new_password: newPassword.value,
     })
     message.value = response.data?.message || 'Mot de passe réinitialisé avec succès.'
-    setTimeout(() => router.push('/teacher/login'), 1200)
+    setTimeout(() => router.push('/'), 1200)
   } catch (e) {
     error.value = e.response?.data?.error || 'Impossible de réinitialiser le mot de passe.'
   } finally {

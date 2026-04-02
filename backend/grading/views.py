@@ -86,16 +86,15 @@ def _handle_unexpected_error(e, context="API"):
     )
 
 
-def _serialize_copy_export(copy: Copy) -> dict[str, object]:
+def _serialize_copy_export(copy: Copy, include_student_id: bool = False) -> dict[str, object]:
     score = copy.scores.order_by('-updated_at').first()
     remarks = copy.question_remarks.order_by('question_id', 'created_at')
     annotations = copy.annotations.order_by('page_index', 'created_at')
 
-    return {
+    payload = {
         'copy_id': str(copy.id),
         'anonymous_id': copy.anonymous_id,
         'status': copy.status,
-        'student_id': copy.student_id,
         'assigned_corrector_id': copy.assigned_corrector_id,
         'scores': score.scores_data if score else {},
         'scores_data': score.scores_data if score else {},
@@ -133,6 +132,9 @@ def _serialize_copy_export(copy: Copy) -> dict[str, object]:
             for annotation in annotations
         ],
     }
+    if include_student_id:
+        payload['student_id'] = copy.student_id
+    return payload
 
 
 class AnnotationListCreateView(generics.ListCreateAPIView):
@@ -1081,8 +1083,12 @@ class CopyAnnotationsExportView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        is_admin = (
+            request.user.is_superuser
+            or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+        )
         payload = {
-            **_serialize_copy_export(copy),
+            **_serialize_copy_export(copy, include_student_id=is_admin),
             'exported_at': timezone.now().isoformat(),
             'exported_by': request.user.username,
         }
@@ -1116,22 +1122,43 @@ class ExamAnnotationsExportView(APIView):
             .order_by('anonymous_id')
         )
 
+        exported_at = timezone.now().isoformat()
         payload = {
             'exam_id': str(exam.id),
             'exam_name': exam.name,
             'copies_count': len(copies),
-            'exported_at': timezone.now().isoformat(),
-            'copies': [_serialize_copy_export(copy) for copy in copies],
+            'exported_at': exported_at,
+            'copies': [_serialize_copy_export(copy, include_student_id=True) for copy in copies],
         }
         log_audit(request, 'exam.annotations_export', 'Exam', exam.id, {'format': export_format})
 
         if export_format == 'json':
             return Response(payload)
 
-        json_bytes = json.dumps(payload, ensure_ascii=False, indent=2).encode('utf-8')
         buffer = BytesIO()
         with ZipFile(buffer, 'w', ZIP_DEFLATED) as zip_file:
-            zip_file.writestr(f"exam-{exam.id}-annotations.json", json_bytes)
+            zip_file.writestr(
+                'meta.json',
+                json.dumps(
+                    {
+                        'exam_id': str(exam.id),
+                        'exam_name': exam.name,
+                        'copies_count': len(copies),
+                        'exported_at': exported_at,
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+            )
+            for copy in copies:
+                zip_file.writestr(
+                    f"copies/{copy.anonymous_id}.json",
+                    json.dumps(
+                        _serialize_copy_export(copy, include_student_id=True),
+                        ensure_ascii=False,
+                        indent=2,
+                    ),
+                )
         buffer.seek(0)
 
         response = HttpResponse(buffer.getvalue(), content_type='application/zip')

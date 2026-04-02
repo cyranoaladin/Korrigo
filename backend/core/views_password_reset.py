@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.models import User
@@ -14,6 +16,8 @@ from rest_framework.views import APIView
 
 from core.utils.audit import log_audit
 from core.utils.ratelimit import maybe_ratelimit
+
+logger = logging.getLogger(__name__)
 
 
 def _build_reset_url(uid: str, token: str) -> str:
@@ -42,6 +46,12 @@ class PasswordResetRequestView(APIView):
             log_audit(request, 'password_reset.request.unknown', 'User', email)
             return Response(generic_response)
 
+        from students.models import Student
+
+        if Student.objects.filter(user=user).exists():
+            log_audit(request, 'password_reset.request.student_blocked', 'User', user.id)
+            return Response(generic_response)
+
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
         reset_url = _build_reset_url(uid, token)
@@ -49,20 +59,28 @@ class PasswordResetRequestView(APIView):
             'email/password_reset.html',
             {'user': user, 'reset_url': reset_url},
         )
-        send_mail(
-            subject='[Korrigo] Réinitialisation de votre mot de passe',
-            message=(
-                "Bonjour,\n\n"
-                "Un lien de réinitialisation de mot de passe a été demandé pour votre compte.\n"
-                f"{reset_url}\n\n"
-                "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message."
-            ),
-            from_email=settings.SERVER_EMAIL,
-            recipient_list=[user.email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        log_audit(request, 'password_reset.request', 'User', user.id)
+        try:
+            send_mail(
+                subject='[Korrigo] Réinitialisation de votre mot de passe',
+                message=(
+                    "Bonjour,\n\n"
+                    "Un lien de réinitialisation de mot de passe a été demandé pour votre compte.\n"
+                    f"{reset_url}\n\n"
+                    "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message."
+                ),
+                from_email=settings.SERVER_EMAIL,
+                recipient_list=[user.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            log_audit(request, 'password_reset.request', 'User', user.id)
+        except Exception:
+            logger.warning(
+                "Password reset email delivery failed for user %s",
+                user.id,
+                exc_info=True,
+            )
+            log_audit(request, 'password_reset.request.smtp_error', 'User', user.id)
         return Response(generic_response)
 
 
