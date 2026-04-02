@@ -202,10 +202,37 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 # Database Configuration
-if os.environ.get("DATABASE_URL"):
-    # Always prioritize DATABASE_URL if present (useful for Docker/Production)
-    db_config = dj_database_url.config(conn_max_age=600)
-    
+def _build_db_config_from_parts():
+    required = ("DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT")
+    if not all(os.environ.get(name) for name in required):
+        return None
+
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ["DB_NAME"],
+        "USER": os.environ["DB_USER"],
+        "PASSWORD": os.environ["DB_PASSWORD"],
+        "HOST": os.environ["DB_HOST"],
+        "PORT": os.environ["DB_PORT"],
+        "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "600")),
+    }
+
+
+db_config = None
+database_url = os.environ.get("DATABASE_URL")
+
+if database_url:
+    # Always prioritize DATABASE_URL if present when it is valid.
+    try:
+        db_config = dj_database_url.config(conn_max_age=600)
+    except ValueError:
+        db_config = _build_db_config_from_parts()
+        if db_config is None:
+            raise
+elif os.environ.get("DJANGO_ENV") == "production":
+    db_config = _build_db_config_from_parts()
+
+if db_config is not None:
     # P0-OP-04: Add database lock timeout protection
     if db_config.get('ENGINE') == 'django.db.backends.postgresql':
         db_config['OPTIONS'] = {
@@ -213,7 +240,7 @@ if os.environ.get("DATABASE_URL"):
             'options': '-c lock_timeout=5000 -c statement_timeout=30000 -c idle_in_transaction_session_timeout=60000'
         }
         db_config['CONN_HEALTH_CHECKS'] = True
-    
+
     DATABASES = {'default': db_config}
 elif DEBUG:
     # Development fallback to SQLite

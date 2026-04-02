@@ -57,7 +57,11 @@ services:
       SECRET_KEY: "${SECRET_KEY?err}"
       ALLOWED_HOSTS: "${ALLOWED_HOSTS?err}"
       DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-${ALLOWED_HOSTS}}"
-      DATABASE_URL: "${DATABASE_URL:-postgres://${POSTGRES_USER:-korrigo_user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-korrigo_prod}}"
+      DB_NAME: "${DB_NAME:-${POSTGRES_DB?err}}"
+      DB_USER: "${DB_USER:-${POSTGRES_USER?err}}"
+      DB_PASSWORD: "${DB_PASSWORD:-${POSTGRES_PASSWORD?err}}"
+      DB_HOST: "${DB_HOST:-db}"
+      DB_PORT: "${DB_PORT:-5432}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       REDIS_HOST: "redis"
       REDIS_PORT: "6379"
@@ -93,8 +97,18 @@ services:
       - redis
       - backend
     environment:
+      DJANGO_SETTINGS_MODULE: core.settings_prod
+      DJANGO_ENV: production
       DEBUG: "False"
-      DATABASE_URL: "${DATABASE_URL:-postgres://${POSTGRES_USER:-korrigo_user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-korrigo_prod}}"
+      SSL_ENABLED: "False"
+      SECRET_KEY: "${SECRET_KEY?err}"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS?err}"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-${ALLOWED_HOSTS}}"
+      DB_NAME: "${DB_NAME:-${POSTGRES_DB?err}}"
+      DB_USER: "${DB_USER:-${POSTGRES_USER?err}}"
+      DB_PASSWORD: "${DB_PASSWORD:-${POSTGRES_PASSWORD?err}}"
+      DB_HOST: "${DB_HOST:-db}"
+      DB_PORT: "${DB_PORT:-5432}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       # PRD-19: OCR configuration
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"

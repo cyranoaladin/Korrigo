@@ -139,8 +139,8 @@ run_logged "07_migrate" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPO
 
 # ---- D) Seed (idempotent x2)
 log "Phase D: Seed (idempotent x2)"
-run_logged "08_seed_run1" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python seed_prod.py
-run_logged "09_seed_run2" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python seed_prod.py
+run_logged "08_seed_run1" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python manage.py seed_prod --confirm-production
+run_logged "09_seed_run2" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python manage.py seed_prod --confirm-production
 
 # Reset prof1 password for E2E tests
 log "Setting prof1 password for E2E tests..."
@@ -163,7 +163,7 @@ print('users:', U.objects.count())
 print('exams:', Exam.objects.count())
 print('copies total:', Copy.objects.count())
 print('copies READY:', Copy.objects.filter(status='READY').count())
-print('copies GRADED:', Copy.objects.filter(status='GRADED').count())
+print('copies FINALIZED:', Copy.objects.filter(status='FINALIZED').count())
 print()
 print('=== READY Copies Validation (P0: pages > 0) ===')
 for c in Copy.objects.filter(status='READY').order_by('id')[:5]:

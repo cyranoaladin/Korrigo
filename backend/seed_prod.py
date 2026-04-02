@@ -13,25 +13,20 @@ Idempotent: Can be run multiple times without errors or duplicates.
 Security: Uses env vars for passwords or generates random secure passwords for local dev.
 """
 import os
-import django
-import sys
-from pathlib import Path
 import secrets
 import string
-
-# Setup Django environment
-sys.path.append(str(Path(__file__).resolve().parent))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
-django.setup()
-
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
-from django.core.files.base import ContentFile
-from exams.models import Exam, Copy
-from students.models import Student
+import sys
 from datetime import date
+from pathlib import Path
 
-User = get_user_model()
+
+def setup_standalone_django():
+    """Bootstrap Django only when the script is executed directly."""
+    import django
+
+    sys.path.append(str(Path(__file__).resolve().parent))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
+    django.setup()
 
 def generate_secure_password(length=24):
     """Generate a cryptographically secure random password."""
@@ -73,6 +68,14 @@ def seed_prod():
     """
     Idempotent production seed.
     """
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import Group
+    from django.utils import timezone
+    from exams.models import Exam, Copy
+    from students.models import Student
+
+    User = get_user_model()
+
     print("🌱 Starting Production Seed (Idempotent)...")
 
     # 0. Create Groups
@@ -111,12 +114,7 @@ def seed_prod():
     # 2. Create Professors
     print("\n👨‍🏫 Creating Professors...")
     professors = []
-
-    # Get professor password once (same for all profs in local dev)
-    prof_password, was_generated = get_or_generate_password(
-        'TEACHER_PASSWORD',
-        default_for_local='prof'  # Only for local dev
-    )
+    prof_password = None
 
     for i in range(1, 4):  # 3 professors
         prof, created = User.objects.get_or_create(
@@ -130,6 +128,11 @@ def seed_prod():
             }
         )
         if created:
+            if prof_password is None:
+                prof_password, _ = get_or_generate_password(
+                    'TEACHER_PASSWORD',
+                    default_for_local='prof'  # Only for local dev
+                )
             prof.set_password(prof_password)
             prof.save()
             prof.groups.add(teacher_group)
@@ -238,6 +241,11 @@ def seed_prod():
                 existing.delete()  # Delete and re-create
                 needs_reimport = True
                 existing = None
+            elif existing.assigned_corrector != professors[0]:
+                existing.assigned_corrector = professors[0]
+                existing.assigned_at = timezone.now()
+                existing.save(update_fields=['assigned_corrector', 'assigned_at'])
+                print(f"    ✓ Reassigned READY copy to {professors[0].username}")
 
         if not existing or needs_reimport:
             # Import PDF to create copy with pages
@@ -247,7 +255,9 @@ def seed_prod():
             # Set custom anonymous_id and status
             imported_copy.anonymous_id = f"PROD-READY-{i}"
             imported_copy.status = Copy.Status.READY
-            imported_copy.save()
+            imported_copy.assigned_corrector = professors[0]
+            imported_copy.assigned_at = timezone.now()
+            imported_copy.save(update_fields=['anonymous_id', 'status', 'assigned_corrector', 'assigned_at'])
 
             # Verify booklets and pages
             booklet_count = imported_copy.booklets.count()
@@ -271,17 +281,25 @@ def seed_prod():
             'status': Copy.Status.FINALIZED,
             'student': students[0],  # Assign to first student
             'is_identified': True,
+            'assigned_corrector': professors[0],
+            'assigned_at': timezone.now(),
         }
     )
     if created:
         print(f"  ✓ Created GRADED copy: {copy_graded.anonymous_id} (ID: {copy_graded.id})")
     else:
         # Update status and student if different
-        if copy_graded.status != Copy.Status.FINALIZED or copy_graded.student != students[0]:
+        if (
+            copy_graded.status != Copy.Status.FINALIZED
+            or copy_graded.student != students[0]
+            or copy_graded.assigned_corrector != professors[0]
+        ):
             copy_graded.status = Copy.Status.FINALIZED
             copy_graded.student = students[0]
             copy_graded.is_identified = True
-            copy_graded.save(update_fields=['status', 'student', 'is_identified'])
+            copy_graded.assigned_corrector = professors[0]
+            copy_graded.assigned_at = timezone.now()
+            copy_graded.save(update_fields=['status', 'student', 'is_identified', 'assigned_corrector', 'assigned_at'])
             print(f"  ↻ Updated GRADED copy: {copy_graded.anonymous_id}")
         else:
             print(f"  ↻ GRADED copy already exists: {copy_graded.anonymous_id}")
@@ -315,10 +333,10 @@ def seed_prod():
     print("="*60)
 
 if __name__ == "__main__":
-    import sys
     env = os.environ.get('DJANGO_ENV', 'development')
     if env == 'production':
         print("ERROR: seed_prod.py ne doit PAS être exécuté directement en production.")
         print("Utilisez: python manage.py seed_prod --confirm-production")
         sys.exit(1)
+    setup_standalone_django()
     seed_prod()
