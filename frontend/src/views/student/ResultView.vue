@@ -263,7 +263,7 @@ onMounted(() => { fetchCopies() })
               ? 'bg-white text-indigo-700 shadow-md shadow-indigo-100 ring-1 ring-indigo-200'
               : 'bg-white/50 text-slate-500 hover:bg-white hover:shadow-sm']">
           {{ copy.exam_name }}
-          <span class="ml-2 font-bold">{{ copy.total_score.toFixed(2) }}/20</span>
+          <span class="ml-2 font-bold">{{ (copy.total_score ?? 0).toFixed(2) }}/20</span>
         </button>
       </div>
 

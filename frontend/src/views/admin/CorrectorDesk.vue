@@ -112,6 +112,7 @@ const editorInputRef = ref(null)
 // Grading / Remarks / Scores
 const questionRemarks = ref(new Map()) // Map<question_id, remark_text>
 const questionScores = ref(new Map()) // Map<question_id, score_value>
+const questionScoreTexts = ref(new Map()) // Map<question_id, raw_input_text> — preserves comma while typing
 const globalAppreciation = ref('')
 const remarksSaving = ref(new Map()) // Map<question_id, boolean> for save indicators
 const scoresSaving = ref(false)
@@ -580,16 +581,29 @@ const saveScoresToServer = async () => {
 }
 
 const onScoreChange = (questionId, value) => {
+    // Keep raw text so Vue doesn't overwrite mid-typing (e.g. "0," → 0 → erases comma)
+    questionScoreTexts.value.set(questionId, value)
     if (value === '' || value === null || value === undefined) {
         questionScores.value.set(questionId, null)
     } else {
-        let parsed = parseFloat(String(value).replace(',', '.'))
-        // Clamp: score must be >= 0
-        if (parsed < 0) parsed = 0
-        // Clamp: score must not exceed question maxScore
-        const question = flatQuestions.value.find(q => q.id === questionId)
-        if (question && parsed > question.maxScore) parsed = question.maxScore
-        questionScores.value.set(questionId, parsed)
+        const normalized = String(value).replace(',', '.')
+        // Allow trailing dot/comma so user can keep typing (e.g. "0." or "1,")
+        if (normalized.endsWith('.') || !/\d/.test(normalized)) {
+            // Don't parse yet — wait for more input
+            pendingScoresChange.value = true
+            return
+        }
+        let parsed = parseFloat(normalized)
+        if (isNaN(parsed)) {
+            questionScores.value.set(questionId, null)
+        } else {
+            // Clamp: score must be >= 0
+            if (parsed < 0) parsed = 0
+            // Clamp: score must not exceed question maxScore
+            const question = flatQuestions.value.find(q => q.id === questionId)
+            if (question && parsed > question.maxScore) parsed = question.maxScore
+            questionScores.value.set(questionId, parsed)
+        }
     }
     pendingScoresChange.value = true
     // Also save to localStorage as fallback
@@ -605,6 +619,28 @@ const onScoreChange = (questionId, value) => {
     scoresTimer.value = setTimeout(() => {
         saveScoresToServer()
     }, 800)
+}
+
+const onScoreBlur = (questionId) => {
+    // On blur, finalize: parse any trailing comma/dot, clear raw text so display shows clean number
+    const raw = questionScoreTexts.value.get(questionId)
+    if (raw != null && raw !== '') {
+        const normalized = String(raw).replace(',', '.')
+        let parsed = parseFloat(normalized)
+        if (!isNaN(parsed)) {
+            if (parsed < 0) parsed = 0
+            const question = flatQuestions.value.find(q => q.id === questionId)
+            if (question && parsed > question.maxScore) parsed = question.maxScore
+            questionScores.value.set(questionId, parsed)
+        }
+    }
+    // Clear raw text — display will fall back to the clean parsed number
+    questionScoreTexts.value.delete(questionId)
+    // Trigger save if there was a pending trailing comma/dot
+    if (pendingScoresChange.value) {
+        if (scoresTimer.value) clearTimeout(scoresTimer.value)
+        saveScoresToServer()
+    }
 }
 
 // Total score computed from ALL loaded scores (not just those matching grading_structure)
@@ -1685,13 +1721,14 @@ onUnmounted(() => {
                               inputmode="decimal"
                               pattern="[0-9]*[.,]?[0-9]*"
                               autocomplete="off"
-                              :value="questionScores.get(question.id) ?? ''"
+                              :value="questionScoreTexts.get(question.id) ?? questionScores.get(question.id) ?? ''"
                               :disabled="isReadOnly"
                               :placeholder="isReadOnly ? '-' : '0'"
                               class="score-input"
                               :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
                               @wheel.prevent
                               @input="onScoreChange(question.id, $event.target.value)"
+                              @blur="onScoreBlur(question.id)"
                             >
                           </div>
                           <div class="question-remark-field">
@@ -1747,13 +1784,14 @@ onUnmounted(() => {
                           inputmode="decimal"
                           pattern="[0-9]*[.,]?[0-9]*"
                           autocomplete="off"
-                          :value="questionScores.get(question.id) ?? ''"
+                          :value="questionScoreTexts.get(question.id) ?? questionScores.get(question.id) ?? ''"
                           :disabled="isReadOnly"
                           :placeholder="isReadOnly ? '-' : '0'"
                           class="score-input"
                           :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
                           @wheel.prevent
                           @input="onScoreChange(question.id, $event.target.value)"
+                          @blur="onScoreBlur(question.id)"
                         >
                       </div>
                       <div class="question-remark-field">

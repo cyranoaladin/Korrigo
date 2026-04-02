@@ -324,8 +324,16 @@ class BookletListView(generics.ListAPIView):
 
 class ExamListView(generics.ListCreateAPIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
-    queryset = Exam.objects.all().order_by('-date')
     serializer_class = ExamSerializer
+
+    def get_queryset(self):
+        from django.db.models import Count, Q
+        return Exam.objects.all().order_by('-date').annotate(
+            _copies_count=Count('copies'),
+            _ready_count=Count('copies', filter=Q(copies__status='READY')),
+            _in_progress_count=Count('copies', filter=Q(copies__status='IN_PROGRESS')),
+            _finalized_count=Count('copies', filter=Q(copies__status='FINALIZED')),
+        )
     
     # P10 FIX: Add pagination (returns all if no page param, paginated otherwise)
     from rest_framework.pagination import PageNumberPagination

@@ -51,21 +51,35 @@ const formatDate = (value) => {
   return new Date(value).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-const getProgressPercent = (exam) => {
+const getExamCounts = (exam) => {
   const total = exam.copies_count ?? exam.total_copies ?? 0
+  const finalized = exam.copies_by_status?.FINALIZED ?? 0
+  const inProgress = exam.copies_by_status?.IN_PROGRESS ?? 0
+  const ready = exam.copies_by_status?.READY ?? 0
+  return { total, finalized, inProgress, ready }
+}
+
+const getProgressPercent = (exam) => {
+  const { total, finalized } = getExamCounts(exam)
   if (!total) return 0
-  const finalized = exam.copies_by_status?.FINALIZED ?? exam.finalized_copies ?? 0
   return Math.round((finalized / total) * 100)
 }
 
+const getInProgressPercent = (exam) => {
+  const { total, inProgress } = getExamCounts(exam)
+  if (!total) return 0
+  return Math.round((inProgress / total) * 100)
+}
+
 const getFinalizedCount = (exam) => {
-  return exam.copies_by_status?.FINALIZED ?? exam.finalized_copies ?? 0
+  return getExamCounts(exam).finalized
 }
 
 const getExamStatusLabel = (exam) => {
-  const pct = getProgressPercent(exam)
-  if (pct === 100) return { label: 'Finalisé', cls: 'bg-emerald-100 text-emerald-700' }
-  if (pct > 0) return { label: 'En cours', cls: 'bg-amber-100 text-amber-700' }
+  const { total, finalized, inProgress } = getExamCounts(exam)
+  if (!total) return { label: 'Vide', cls: 'bg-slate-100 text-slate-600' }
+  if (finalized === total) return { label: 'Finalisé', cls: 'bg-emerald-100 text-emerald-700' }
+  if (finalized > 0 || inProgress > 0) return { label: 'En cours', cls: 'bg-amber-100 text-amber-700' }
   return { label: 'Non démarré', cls: 'bg-slate-100 text-slate-600' }
 }
 
@@ -214,16 +228,20 @@ onMounted(fetchExams)
                     {{ formatDate(exam.date) }}
                   </td>
                   <td class="px-6 py-4 text-slate-600 whitespace-nowrap">
-                    <span class="font-medium">{{ getFinalizedCount(exam) }}</span>
-                    <span class="text-slate-400"> / {{ exam.copies_count ?? exam.total_copies ?? 0 }}</span>
+                    <span class="font-medium text-emerald-600">{{ getExamCounts(exam).finalized }}</span>
+                    <span v-if="getExamCounts(exam).inProgress > 0" class="text-amber-500 text-xs ml-1">(+{{ getExamCounts(exam).inProgress }} en cours)</span>
+                    <span class="text-slate-400"> / {{ getExamCounts(exam).total }}</span>
                   </td>
                   <td class="px-6 py-4">
                     <div class="flex items-center gap-2">
-                      <div class="flex-1 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                      <div class="flex-1 bg-slate-200 rounded-full h-1.5 overflow-hidden flex">
                         <div
-                          class="h-1.5 rounded-full transition-all duration-300"
-                          :class="getProgressPercent(exam) === 100 ? 'bg-emerald-500' : getProgressPercent(exam) > 0 ? 'bg-amber-400' : 'bg-slate-300'"
+                          class="h-1.5 bg-emerald-500 transition-all duration-300"
                           :style="{ width: getProgressPercent(exam) + '%' }"
+                        ></div>
+                        <div
+                          class="h-1.5 bg-amber-400 transition-all duration-300"
+                          :style="{ width: getInProgressPercent(exam) + '%' }"
                         ></div>
                       </div>
                       <span class="text-xs text-slate-500 w-8 text-right">{{ getProgressPercent(exam) }}%</span>

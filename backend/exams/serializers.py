@@ -49,6 +49,8 @@ class ExamPDFSerializer(serializers.ModelSerializer):
 class ExamSerializer(serializers.ModelSerializer):
     booklet_count = serializers.SerializerMethodField()
     individual_pdfs_count = serializers.SerializerMethodField()
+    copies_count = serializers.SerializerMethodField()
+    copies_by_status = serializers.SerializerMethodField()
     
     # pdf_source is now optional (only required for BATCH_A3 mode)
     pdf_source = serializers.FileField(
@@ -77,6 +79,7 @@ class ExamSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'date', 'upload_mode', 'grading_structure',
             'is_processed', 'booklet_count', 'individual_pdfs_count',
+            'copies_count', 'copies_by_status',
             'pdf_source', 'students_csv', 'correctors', 'pages_per_booklet',
             'results_released_at', 'exam_type', 'exam_type_details',
         ]
@@ -91,6 +94,27 @@ class ExamSerializer(serializers.ModelSerializer):
     
     def get_individual_pdfs_count(self, obj):
         return obj.individual_pdfs.count()
+
+    def get_copies_count(self, obj):
+        # Use annotated value if available (from ExamListView), else fallback
+        if hasattr(obj, '_copies_count'):
+            return obj._copies_count
+        return obj.copies.count()
+
+    def get_copies_by_status(self, obj):
+        # Use annotated values if available (from ExamListView), else fallback
+        if hasattr(obj, '_ready_count'):
+            return {
+                'READY': obj._ready_count,
+                'IN_PROGRESS': obj._in_progress_count,
+                'FINALIZED': obj._finalized_count,
+            }
+        from django.db.models import Count
+        qs = obj.copies.values('status').annotate(count=Count('id'))
+        result = {}
+        for row in qs:
+            result[row['status']] = row['count']
+        return result
 
     def validate_exam_type(self, value):
         """Convert empty string to None for exam_type field."""
