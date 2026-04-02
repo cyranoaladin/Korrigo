@@ -54,6 +54,7 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
         
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertTrue(resp.json()['must_change_password'])
+        self.assertTrue(self.client.session['must_change_password'])
     
     def test_login_returns_student_info(self):
         resp = self.client.post("/api/students/login/", {
@@ -149,3 +150,4 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
         
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertFalse(resp.json()['must_change_password'])
+        self.assertFalse(self.client.session['must_change_password'])

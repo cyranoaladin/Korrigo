@@ -12,6 +12,8 @@ import Login from '../views/Login.vue'
 import CorrectorDashboard from '../views/CorrectorDashboard.vue'
 import ImportCopies from '../views/admin/ImportCopies.vue'
 import LoginStudent from '../views/student/LoginStudent.vue'
+import ForgotPassword from '../views/ForgotPassword.vue'
+import ResetPasswordConfirm from '../views/ResetPasswordConfirm.vue'
 
 function getDashboardForRole(role) {
     if (role === 'Admin') return '/admin/dashboard'
@@ -107,6 +109,18 @@ const routes = [
         path: '/student/login',
         name: 'StudentLogin',
         component: LoginStudent,
+        meta: { public: true }
+    },
+    {
+        path: '/forgot-password',
+        name: 'ForgotPassword',
+        component: ForgotPassword,
+        meta: { public: true }
+    },
+    {
+        path: '/reset-password',
+        name: 'ResetPasswordConfirm',
+        component: ResetPasswordConfirm,
         meta: { public: true }
     },
 

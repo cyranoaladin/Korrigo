@@ -8,6 +8,7 @@ const authStore = useAuthStore()
 const router = useRouter()
 
 const exams = ref([])
+const globalStats = ref(null)
 const loading = ref(true)
 const error = ref(null)
 
@@ -15,8 +16,12 @@ const fetchExams = async () => {
   loading.value = true
   error.value = null
   try {
-    const res = await api.get('/exams/')
-    exams.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
+    const [examsRes, statsRes] = await Promise.all([
+      api.get('/exams/'),
+      api.get('/exams/global-stats/'),
+    ])
+    exams.value = Array.isArray(examsRes.data) ? examsRes.data : (examsRes.data.results || [])
+    globalStats.value = statsRes.data
   } catch (e) {
     console.error('AdminOverview: Failed to fetch exams', e)
     error.value = e.response?.data?.detail || e.message || 'Erreur lors du chargement des examens.'
@@ -25,16 +30,23 @@ const fetchExams = async () => {
   }
 }
 
-const totalExams = computed(() => exams.value.length)
+const totalExams = computed(() => globalStats.value?.total_exams ?? exams.value.length)
 
 const totalCopies = computed(() =>
-  exams.value.reduce((sum, exam) => {
+  globalStats.value?.total_copies ?? exams.value.reduce((sum, exam) => {
     const count = exam.copies_count ?? exam.total_copies ?? 0
     return sum + count
   }, 0)
 )
 
 const copiesByStatus = computed(() => {
+  if (globalStats.value?.copies_by_status) {
+    return {
+      READY: globalStats.value.copies_by_status.READY ?? 0,
+      IN_PROGRESS: globalStats.value.copies_by_status.IN_PROGRESS ?? 0,
+      FINALIZED: globalStats.value.copies_by_status.FINALIZED ?? 0,
+    }
+  }
   const counts = { READY: 0, IN_PROGRESS: 0, FINALIZED: 0 }
   exams.value.forEach(exam => {
     if (exam.copies_by_status) {
@@ -45,6 +57,10 @@ const copiesByStatus = computed(() => {
   })
   return counts
 })
+
+const studentsCount = computed(() => globalStats.value?.students_count ?? 0)
+const releasedExamsCount = computed(() => globalStats.value?.exams_with_results_released ?? 0)
+const correctorsCount = computed(() => globalStats.value?.correctors_count ?? 0)
 
 const formatDate = (value) => {
   if (!value) return '—'
@@ -126,14 +142,14 @@ onMounted(fetchExams)
       <section>
         <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Statistiques globales</h2>
 
-        <div v-if="loading" class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div v-for="i in 5" :key="i" class="bg-white rounded-xl border border-slate-200 p-5 animate-pulse">
+        <div v-if="loading" class="grid grid-cols-2 gap-4 sm:grid-cols-4 xl:grid-cols-7">
+          <div v-for="i in 7" :key="i" class="bg-white rounded-xl border border-slate-200 p-5 animate-pulse">
             <div class="h-3 bg-slate-200 rounded w-2/3 mb-3"></div>
             <div class="h-7 bg-slate-200 rounded w-1/2"></div>
           </div>
         </div>
 
-        <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           <!-- Total exams -->
           <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
             <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Examens</p>
@@ -167,6 +183,24 @@ onMounted(fetchExams)
             <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Finalisées</p>
             <p class="text-3xl font-bold text-emerald-600">{{ copiesByStatus.FINALIZED }}</p>
             <p class="text-xs text-slate-400 mt-1">copies FINALIZED</p>
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Élèves</p>
+            <p class="text-3xl font-bold text-slate-800">{{ studentsCount }}</p>
+            <p class="text-xs text-slate-400 mt-1">profils élèves</p>
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Résultats publiés</p>
+            <p class="text-3xl font-bold text-indigo-600">{{ releasedExamsCount }}</p>
+            <p class="text-xs text-slate-400 mt-1">examens publiés</p>
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Correcteurs</p>
+            <p class="text-3xl font-bold text-slate-800">{{ correctorsCount }}</p>
+            <p class="text-xs text-slate-400 mt-1">enseignants actifs</p>
           </div>
         </div>
       </section>

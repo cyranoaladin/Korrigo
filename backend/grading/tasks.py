@@ -3,7 +3,9 @@ P0-OP-03: Async Celery tasks for heavy PDF operations
 Prevents worker starvation and request timeouts
 """
 from celery import shared_task
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
 from django.db import transaction
 import os
 import logging
@@ -21,6 +23,57 @@ User = get_user_model()
 @shared_task
 def generate_questionnaire_bilan_task(force=False):
     return generate_questionnaire_bilan(force=force)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def notify_students_results_released(self, exam_id: str):
+    """Envoie un email aux élèves ayant une copie FINALIZED pour cet examen."""
+    exam = Exam.objects.get(id=exam_id)
+    copies = Copy.objects.filter(
+        exam=exam,
+        status=Copy.Status.FINALIZED,
+        student__isnull=False,
+        student__email__isnull=False,
+    ).select_related('student')
+
+    sent = 0
+    errors = []
+    frontend_url = getattr(settings, 'FRONTEND_URL', 'https://korrigo.labomaths.tn').rstrip('/')
+    login_url = f"{frontend_url}/student/login"
+
+    for copy in copies:
+        student = copy.student
+        if not student or not student.email:
+            continue
+
+        try:
+            send_mail(
+                subject=f"[Korrigo] Vos résultats pour {exam.name} sont disponibles",
+                message=(
+                    f"Bonjour {student.first_name},\n\n"
+                    f"Vos résultats pour l'examen « {exam.name} » sont maintenant disponibles "
+                    f"sur votre espace élève.\n\n"
+                    f"Connectez-vous sur {login_url}\n\n"
+                    f"L'équipe Korrigo"
+                ),
+                from_email=settings.SERVER_EMAIL,
+                recipient_list=[student.email],
+                fail_silently=False,
+            )
+            sent += 1
+        except Exception as exc:  # pragma: no cover
+            logger.warning(
+                "Failed to notify student for exam release",
+                extra={
+                    'exam_id': str(exam.id),
+                    'student_id': student.id,
+                    'email': student.email,
+                    'error_message': str(exc),
+                },
+            )
+            errors.append(str(exc))
+
+    return {'sent': sent, 'errors': errors}
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)

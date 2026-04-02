@@ -554,3 +554,5 @@ if not DEBUG:
     _logging_loggers['django']['handlers'].append('mail_admins')
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://korrigo.labomaths.tn')

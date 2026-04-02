@@ -21,6 +21,8 @@ from grading.views import (
     CopyLLMSummaryView,
     AdminForceUnlockView,
     CopyReopenView,
+    CopyAnnotationsExportView,
+    ExamAnnotationsExportView,
 )
 from grading.views_draft import DraftReturnView
 from grading.views_async import task_status, cancel_task
@@ -92,6 +94,8 @@ urlpatterns = [
 
     # Reopen (GRADED → READY)
     path('copies/<uuid:copy_id>/reopen/', CopyReopenView.as_view(), name='copy-reopen'),
+    path('copies/<uuid:copy_id>/export-annotations/', CopyAnnotationsExportView.as_view(), name='copy-export-annotations'),
+    path('exams/<uuid:exam_id>/export-all-annotations/', ExamAnnotationsExportView.as_view(), name='exam-export-annotations'),
 
     # Mes Élèves (correcteur)
     path('my-students/', MyStudentsListView.as_view(), name='my-students-list'),

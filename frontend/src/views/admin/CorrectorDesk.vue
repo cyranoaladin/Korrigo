@@ -5,6 +5,7 @@ import gradingApi from '../../services/gradingApi'
 import CanvasLayer from '../../components/CanvasLayer.vue'
 import AnnotationSuggestionsPanel from '../../components/AnnotationSuggestionsPanel.vue'
 import CommentBank from '../../components/CommentBank.vue'
+import { computeGradingProgress } from '../../utils/gradingProgress'
 // Removed date-fns, using native Intl
 import { useAuthStore } from '../../stores/auth'
 
@@ -657,6 +658,8 @@ const totalScore = computed(() => {
 
 // Score validation: total must not exceed 20
 const scoreExceeds20 = computed(() => totalScore.value > 20)
+const gradingProgress = computed(() => computeGradingProgress(flatQuestions.value, questionScores.value))
+const hasIncompleteScores = computed(() => gradingProgress.value.total > 0 && gradingProgress.value.scored < gradingProgress.value.total)
 
 // Check if copy can be finalized (all scores filled + total <= 20 + appreciation)
 const canFinalize = computed(() => {
@@ -1375,6 +1378,21 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <div v-if="gradingProgress.total > 0" class="grading-progress-strip">
+      <div class="grading-progress-copy">
+        <strong>{{ gradingProgress.scored }}/{{ gradingProgress.total }}</strong> questions notées ({{ gradingProgress.percent }}%)
+      </div>
+      <div class="grading-progress-bar">
+        <div class="grading-progress-fill" :style="{ width: gradingProgress.percent + '%' }" />
+      </div>
+      <div v-if="hasIncompleteScores" class="grading-progress-remaining">
+        {{ gradingProgress.remaining }} question{{ gradingProgress.remaining > 1 ? 's' : '' }} restante{{ gradingProgress.remaining > 1 ? 's' : '' }}
+      </div>
+      <div v-else class="grading-progress-complete">
+        Barème complet
+      </div>
+    </div>
+
     <div
       v-if="error"
       class="error-banner"
@@ -1725,7 +1743,10 @@ onUnmounted(() => {
                               :disabled="isReadOnly"
                               :placeholder="isReadOnly ? '-' : '0'"
                               class="score-input"
-                              :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
+                              :class="{
+                                'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '',
+                                'score-missing': questionScores.get(question.id) == null || questionScores.get(question.id) === ''
+                              }"
                               @wheel.prevent
                               @input="onScoreChange(question.id, $event.target.value)"
                               @blur="onScoreBlur(question.id)"
@@ -1788,7 +1809,10 @@ onUnmounted(() => {
                           :disabled="isReadOnly"
                           :placeholder="isReadOnly ? '-' : '0'"
                           class="score-input"
-                          :class="{ 'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '' }"
+                          :class="{
+                            'score-filled': questionScores.get(question.id) != null && questionScores.get(question.id) !== '',
+                            'score-missing': questionScores.get(question.id) == null || questionScores.get(question.id) === ''
+                          }"
                           @wheel.prevent
                           @input="onScoreChange(question.id, $event.target.value)"
                           @blur="onScoreBlur(question.id)"
@@ -1982,6 +2006,12 @@ onUnmounted(() => {
 
 .error-banner { background: #f8d7da; color: #721c24; padding: 10px; text-align: center; border-bottom: 1px solid #f5c6cb; }
 .info-banner { background: #d1ecf1; color: #0c5460; padding: 10px; text-align: center; border-bottom: 1px solid #bee5eb; display: flex; justify-content: center; gap: 10px; align-items: center; }
+.grading-progress-strip { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: #fff7ed; border-bottom: 1px solid #fed7aa; font-size: 0.95rem; }
+.grading-progress-copy { min-width: 180px; color: #9a3412; }
+.grading-progress-bar { flex: 1; height: 10px; background: #ffedd5; border-radius: 999px; overflow: hidden; }
+.grading-progress-fill { height: 100%; background: linear-gradient(90deg, #f59e0b, #16a34a); transition: width 0.2s ease; }
+.grading-progress-remaining { color: #c2410c; font-weight: 600; white-space: nowrap; }
+.grading-progress-complete { color: #166534; font-weight: 700; white-space: nowrap; }
 .sync-banner { padding: 10px 20px; text-align: center; font-weight: 600; font-size: 0.9rem; display: flex; justify-content: center; align-items: center; gap: 12px; animation: syncPulse 2s ease-in-out infinite; }
 .sync-offline { background: #fef3c7; color: #92400e; border-bottom: 2px solid #f59e0b; }
 .sync-critical { background: #fecaca; color: #991b1b; border-bottom: 2px solid #dc2626; animation: syncPulse 1s ease-in-out infinite; }
@@ -2021,6 +2051,7 @@ onUnmounted(() => {
 .score-input { width: 80px; min-height: 44px; padding: 6px 8px; border: 2px solid #ced4da; border-radius: 4px; font-size: 1rem; font-weight: 600; text-align: center; transition: border-color 0.2s; }
 .score-input:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25); }
 .score-input.score-filled { border-color: #28a745; background: #f0fff4; }
+.score-input.score-missing { border-color: #f59e0b; background: #fff7ed; }
 .score-input:disabled { background: #e9ecef; cursor: not-allowed; }
 .question-remark-field { display: flex; flex-direction: column; }
 .question-remark-field label { font-size: 0.85rem; color: #666; margin-bottom: 5px; }

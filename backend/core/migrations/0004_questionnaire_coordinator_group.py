@@ -1,5 +1,5 @@
 """
-Data migration: create the QUESTIONNAIRE_COORDINATOR group and assign
+Data migration: create the questionnaire_coordinator group and assign
 the user previously identified by a hardcoded email.
 """
 from django.db import migrations
@@ -9,7 +9,7 @@ def create_group_and_assign(apps, schema_editor):
     Group = apps.get_model('auth', 'Group')
     User = apps.get_model('auth', 'User')
 
-    group, _ = Group.objects.get_or_create(name='QUESTIONNAIRE_COORDINATOR')
+    group, _ = Group.objects.get_or_create(name='questionnaire_coordinator')
 
     # Migrate the previously hardcoded user into the new group.
     try:
@@ -21,7 +21,7 @@ def create_group_and_assign(apps, schema_editor):
 
 def remove_group(apps, schema_editor):
     Group = apps.get_model('auth', 'Group')
-    Group.objects.filter(name='QUESTIONNAIRE_COORDINATOR').delete()
+    Group.objects.filter(name__iexact='questionnaire_coordinator').delete()
 
 
 class Migration(migrations.Migration):

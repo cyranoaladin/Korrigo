@@ -103,3 +103,28 @@ class TestStudentRBAC:
         assert 'student' not in data
         assert 'student_name' not in data
         assert 'is_identified' not in data
+
+    def test_login_with_duplicate_email_doesnt_crash(self, roles):
+        """Deux users partageant le même email ne doivent jamais produire une 500."""
+        email = 'duplicate@ert.tn'
+        user1 = User.objects.create_user(username='dup1', email=email, password='secret1')
+        user2 = User.objects.create_user(username='dup2', email=email, password='secret2')
+        user1.groups.add(roles[2])
+        user2.groups.add(roles[2])
+        Student.objects.create(
+            first_name='Dup',
+            last_name='One',
+            date_naissance='2007-01-01',
+            class_name='TG1',
+            email='dup-one@ert.tn',
+            user=user1,
+        )
+
+        client = APIClient()
+        response = client.post('/api/students/login/', {
+            'email': email,
+            'password': 'bad-password',
+        }, format='json')
+
+        assert response.status_code == 401
+        assert response.data['error'] == 'Email ou mot de passe incorrect.'

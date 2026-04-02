@@ -8,6 +8,7 @@ from .views import (
     CopyValidationView, BulkCopyValidationView,
     BulkSubjectVariantView, AutoDetectSubjectVariantView,
     ExamStudentListView,
+    GlobalStatsView,
     ExamTypeListView, ExamTypeDetailView,
     JuryReportListView, JuryReportDetailView,
 )
@@ -29,6 +30,7 @@ urlpatterns = [
     # Mission 14: Upload & List
     path('upload/', ExamUploadView.as_view(), name='exam-upload'),
     path('', ExamListView.as_view(), name='exam-list'),
+    path('global-stats/', GlobalStatsView.as_view(), name='exam-global-stats'),
     path('<uuid:id>/', ExamDetailView.as_view(), name='exam-detail'),
     path('<uuid:pk>/upload/', ExamSourceUploadView.as_view(), name='exam-source-upload'),
     

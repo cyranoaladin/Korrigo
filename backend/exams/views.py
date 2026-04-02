@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.utils.decorators import method_decorator
 from django.db import transaction
+from django.db.models import Count
 from core.utils.ratelimit import maybe_ratelimit
 from .models import Exam, Booklet, Copy, ExamPDF, ExamType, JuryReport
 from .serializers import (
@@ -47,6 +48,34 @@ def generate_anonymous_id(exam, index: int) -> str:
         uid_clean: str = str(uuid.uuid4()).replace('-', '')
         candidate = f"{prefix}-{uid_clean[:6].upper()}"  # type: ignore[misc]
     return candidate
+
+
+class GlobalStatsView(APIView):
+    """GET /api/exams/global-stats/ agrégé global admin."""
+    permission_classes = [IsKorrigoAdmin]
+
+    def get(self, request):
+        from django.contrib.auth import get_user_model
+        from students.models import Student
+
+        User = get_user_model()
+        copies_by_status = {
+            row['status']: row['count']
+            for row in Copy.objects.values('status').annotate(count=Count('id'))
+        }
+
+        return Response({
+            'total_exams': Exam.objects.count(),
+            'total_copies': Copy.objects.count(),
+            'copies_by_status': {
+                'READY': copies_by_status.get(Copy.Status.READY, 0),
+                'IN_PROGRESS': copies_by_status.get(Copy.Status.IN_PROGRESS, 0),
+                'FINALIZED': copies_by_status.get(Copy.Status.FINALIZED, 0),
+            },
+            'students_count': Student.objects.count(),
+            'exams_with_results_released': Exam.objects.filter(results_released_at__isnull=False).count(),
+            'correctors_count': User.objects.filter(groups__name__iexact=UserRole.TEACHER).distinct().count(),
+        })
 
 class ExamUploadView(APIView):
     permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
@@ -1540,4 +1569,3 @@ class JuryReportDetailView(generics.RetrieveUpdateDestroyAPIView):
         if not is_admin:
             queryset = queryset.filter(exam__correctors=user)
         return queryset
-

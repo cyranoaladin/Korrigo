@@ -62,11 +62,9 @@ class StudentLoginView(views.APIView):
         # Authenticate: try email as username first, then lookup by email field
         user = authenticate(request, username=email, password=password)
         if user is None:
-            try:
-                user_obj = User.objects.get(email=email)
+            user_obj = User.objects.filter(email__iexact=email).first()
+            if user_obj:
                 user = authenticate(request, username=user_obj.username, password=password)
-            except User.DoesNotExist:
-                pass
 
         if user is None or not user.is_active:
             log_authentication_attempt(request, success=False, student_id=None)
@@ -104,6 +102,7 @@ class StudentLoginView(views.APIView):
             if profile and must_change_password:
                 profile.must_change_password = True
                 profile.save(update_fields=['must_change_password'])
+        request.session['must_change_password'] = must_change_password
 
         log_authentication_attempt(request, success=True, student_id=student.id)
         return Response({

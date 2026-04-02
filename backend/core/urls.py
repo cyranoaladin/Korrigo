@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from core import views
 from core import views_media
+from core.views_password_reset import PasswordResetRequestView, PasswordResetConfirmView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
@@ -19,6 +20,8 @@ urlpatterns = [
     path('api/me/', views.UserDetailView.as_view(), name='user_detail'),
     path('api/settings/', views.GlobalSettingsView.as_view(), name='settings'),
     path('api/change-password/', views.ChangePasswordView.as_view(), name='change_password'),
+    path('api/password-reset/', PasswordResetRequestView.as_view(), name='password_reset_request'),
+    path('api/password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('api/users/', views.UserListView.as_view(), name='user_list'),
     path('api/users/<int:pk>/', views.UserManageView.as_view(), name='user_manage'),
     path('api/users/<int:pk>/reset-password/', views.UserResetPasswordView.as_view(), name='user_reset_password'),
@@ -63,4 +66,3 @@ if hasattr(settings, 'E2E_SEED_TOKEN') and settings.E2E_SEED_TOKEN:
 # Patch B: Static media only in DEBUG
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-

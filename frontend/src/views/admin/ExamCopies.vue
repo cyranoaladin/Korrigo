@@ -28,6 +28,24 @@ const showToast = (message, type = 'success') => {
   toastTimer = setTimeout(() => { toast.value.show = false }, 4000)
 }
 
+const exportAnnotations = async () => {
+  try {
+    const response = await api.get(`/grading/exams/${examId}/export-all-annotations/`, {
+      params: { format: 'json' },
+    })
+    const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `exam_${examId}_annotations_${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+    showToast('Export des annotations prêt.', 'success')
+  } catch (e) {
+    showToast(e.response?.data?.detail || "Échec de l'export des annotations.", 'error')
+  }
+}
+
 const statusLabel = (s) => ({
   READY: 'Prête',
   IN_PROGRESS: 'En cours',
@@ -143,6 +161,15 @@ onMounted(fetchCopies)
               <path stroke-linecap="round" stroke-linejoin="round" d="M14.828 14.828a4 4 0 015.656 0l4 4a4 4 0 01-5.656 5.656l-1.101-1.102" />
             </svg>
             Agrafer les copies
+          </button>
+          <button
+            class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+            @click="exportAnnotations"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 12l-4-4m4 4l4-4M4 20h16" />
+            </svg>
+            Exporter annotations JSON
           </button>
           <button
             class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"

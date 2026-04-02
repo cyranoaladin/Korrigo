@@ -166,6 +166,9 @@ const handleLogin = async () => {
       </form>
 
       <div class="footer-links">
+        <router-link to="/forgot-password">
+          Mot de passe oublié ?
+        </router-link>
         <router-link to="/">
           ← Retour à l'accueil
         </router-link>

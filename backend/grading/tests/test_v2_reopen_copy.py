@@ -1,6 +1,6 @@
 """
 Tests for CopyReopenView (POST /api/grading/copies/<uuid>/reopen/).
-Covers superuser-only reopen of GRADED copies, field clearing, preservation
+Covers admin-only reopen of FINALIZED copies, field clearing, preservation
 of child data (scores, annotations, remarks), and audit trail.
 """
 import pytest
@@ -70,7 +70,7 @@ def copy_staging(db, exam, teacher_user):
 
 @pytest.fixture
 def staff_non_superuser(db):
-    """Staff user who is NOT superuser — should be rejected by CopyReopenView."""
+    """Admin-group staff user who is NOT superuser — must still be allowed."""
     user = User.objects.create_user(
         username="staff_nosuperuser",
         password="testpass123",
@@ -138,13 +138,15 @@ class TestCopyReopen:
 
     # -- permission denied --------------------------------------------------
 
-    def test_admin_staff_cannot_reopen(self, staff_non_superuser, copy_graded):
-        """Non-superuser staff gets 403."""
+    def test_admin_staff_can_reopen(self, staff_non_superuser, copy_graded):
+        """Admin group user can reopen even without superuser flag."""
         client = APIClient()
         client.force_authenticate(user=staff_non_superuser)
 
         resp = client.post(self._url(copy_graded.id))
-        assert resp.status_code == 403
+        assert resp.status_code == 200
+        copy_graded.refresh_from_db()
+        assert copy_graded.status == Copy.Status.READY
 
     def test_teacher_cannot_reopen(self, teacher_user, copy_graded):
         """Teacher (staff but not superuser) gets 403."""

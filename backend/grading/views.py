@@ -2,7 +2,7 @@ from rest_framework import generics, status
 from rest_framework import renderers
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
 from rest_framework.permissions import IsAuthenticated
 from .models import Annotation, CopyLock, GradingEvent, QuestionRemark, Score
 from exams.models import Copy, Exam
@@ -11,10 +11,14 @@ from exams.permissions import IsTeacherOrAdmin
 from typing import cast as _cast
 from django.shortcuts import get_object_or_404
 from grading.services import AnnotationService, GradingService, LockConflictError
+from core.utils.audit import log_audit
 from core.auth import UserRole, IsKorrigoAdmin
 from django.db.models import Avg, StdDev, Min, Max, Count
 import statistics
+import json
 import logging
+from io import BytesIO
+from zipfile import ZipFile, ZIP_DEFLATED
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +35,14 @@ class PassthroughRenderer(renderers.BaseRenderer):
     """
     media_type = "application/pdf"
     format = "pdf"
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return data
+
+
+class ZipPassthroughRenderer(renderers.BaseRenderer):
+    media_type = "application/zip"
+    format = "zip"
+
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data
 
@@ -72,6 +84,53 @@ def _handle_unexpected_error(e, context="API"):
         {"detail": "Une erreur inattendue s'est produite. Veuillez contacter le support."},
         status=status.HTTP_500_INTERNAL_SERVER_ERROR
     )
+
+
+def _serialize_copy_export(copy: Copy) -> dict[str, object]:
+    score = copy.scores.order_by('-updated_at').first()
+    remarks = copy.question_remarks.order_by('question_id', 'created_at')
+    annotations = copy.annotations.order_by('page_index', 'created_at')
+
+    return {
+        'copy_id': str(copy.id),
+        'anonymous_id': copy.anonymous_id,
+        'status': copy.status,
+        'student_id': copy.student_id,
+        'assigned_corrector_id': copy.assigned_corrector_id,
+        'scores': score.scores_data if score else {},
+        'score_record_id': str(score.id) if score else None,
+        'score_final_comment': score.final_comment if score else '',
+        'remarks': [
+            {
+                'id': str(remark.id),
+                'question_id': remark.question_id,
+                'remark': remark.remark,
+                'created_by_id': remark.created_by_id,
+                'created_at': remark.created_at.isoformat(),
+                'updated_at': remark.updated_at.isoformat(),
+            }
+            for remark in remarks
+        ],
+        'global_appreciation': copy.global_appreciation or '',
+        'annotations': [
+            {
+                'id': str(annotation.id),
+                'page_index': annotation.page_index,
+                'x': annotation.x,
+                'y': annotation.y,
+                'w': annotation.w,
+                'h': annotation.h,
+                'content': annotation.content,
+                'type': annotation.type,
+                'score_delta': annotation.score_delta,
+                'created_by_id': annotation.created_by_id,
+                'created_at': annotation.created_at.isoformat(),
+                'updated_at': annotation.updated_at.isoformat(),
+                'version': annotation.version,
+            }
+            for annotation in annotations
+        ],
+    }
 
 
 class AnnotationListCreateView(generics.ListCreateAPIView):
@@ -804,18 +863,30 @@ class ExamReleaseResultsView(APIView):
     def post(self, request, exam_id):
         from django.db import transaction
         from django.utils import timezone
+        from grading.tasks import notify_students_results_released
         with transaction.atomic():
             exam = Exam.objects.select_for_update().get(id=exam_id)
             if exam.results_released_at:
                 return Response({
                     'message': 'Résultats déjà publiés.',
                     'released_at': exam.results_released_at.isoformat(),
+                    'notification_task': 'skipped',
                 })
             exam.results_released_at = timezone.now()
             exam.save(update_fields=['results_released_at'])
+        task = notify_students_results_released.delay(str(exam.id))
+        log_audit(
+            request,
+            'exam.results_released',
+            'Exam',
+            exam.id,
+            {'released_at': exam.results_released_at.isoformat(), 'notification_task_id': str(task.id)},
+        )
         return Response({
             'message': 'Résultats publiés avec succès.',
             'released_at': exam.results_released_at.isoformat(),
+            'notification_task': 'queued',
+            'task_id': str(task.id),
         })
 
 
@@ -906,12 +977,6 @@ class AdminForceUnlockView(APIView):
     permission_classes = [IsKorrigoAdmin]
 
     def post(self, request, copy_id):
-        if not (request.user.is_superuser or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()):
-            return Response(
-                {"detail": "Seul un administrateur peut forcer le déverrouillage."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         copy = get_object_or_404(Copy, id=copy_id)
 
         try:
@@ -954,12 +1019,6 @@ class CopyReopenView(APIView):
     permission_classes = [IsKorrigoAdmin]
 
     def post(self, request, copy_id):
-        if not request.user.is_superuser:
-            return Response(
-                {"detail": "Seul un superutilisateur peut rouvrir une copie corrigée."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         copy = get_object_or_404(Copy, id=copy_id)
 
         if copy.status != Copy.Status.FINALIZED:
@@ -995,3 +1054,82 @@ class CopyReopenView(APIView):
             'anonymous_id': copy.anonymous_id,
             'status': copy.status,
         })
+
+
+class CopyAnnotationsExportView(APIView):
+    """
+    GET /api/grading/copies/<uuid>/export-annotations/
+    Export complet des données de correction d'une copie.
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def get(self, request, copy_id):
+        from django.utils import timezone
+
+        copy = get_object_or_404(
+            Copy.objects.select_related('student', 'assigned_corrector').prefetch_related(
+                'annotations', 'question_remarks', 'scores'
+            ),
+            id=copy_id,
+        )
+        if not _can_write_copy(request.user, copy):
+            return Response(
+                {'detail': 'Non autorisé pour cette copie.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        payload = {
+            **_serialize_copy_export(copy),
+            'exported_at': timezone.now().isoformat(),
+        }
+        log_audit(request, 'copy.annotations_export', 'Copy', copy.id, {'format': 'json'})
+        return Response(payload)
+
+
+class ExamAnnotationsExportView(APIView):
+    """
+    GET /api/grading/exams/<uuid>/export-all-annotations/
+    Export batch des annotations d'un examen.
+    """
+    permission_classes = [IsKorrigoAdmin]
+    renderer_classes = [renderers.JSONRenderer, ZipPassthroughRenderer]
+
+    def get(self, request, exam_id):
+        from django.utils import timezone
+
+        exam = get_object_or_404(Exam, id=exam_id)
+        export_format = request.query_params.get('format', 'json').lower()
+        if export_format not in {'json', 'zip'}:
+            return Response(
+                {'detail': 'Format d’export invalide. Utilisez json ou zip.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        copies = list(
+            Copy.objects.filter(exam=exam, status=Copy.Status.FINALIZED)
+            .select_related('student', 'assigned_corrector')
+            .prefetch_related('annotations', 'question_remarks', 'scores')
+            .order_by('anonymous_id')
+        )
+
+        payload = {
+            'exam_id': str(exam.id),
+            'exam_name': exam.name,
+            'copies_count': len(copies),
+            'exported_at': timezone.now().isoformat(),
+            'copies': [_serialize_copy_export(copy) for copy in copies],
+        }
+        log_audit(request, 'exam.annotations_export', 'Exam', exam.id, {'format': export_format})
+
+        if export_format == 'json':
+            return Response(payload)
+
+        json_bytes = json.dumps(payload, ensure_ascii=False, indent=2).encode('utf-8')
+        buffer = BytesIO()
+        with ZipFile(buffer, 'w', ZIP_DEFLATED) as zip_file:
+            zip_file.writestr(f"exam-{exam.id}-annotations.json", json_bytes)
+        buffer.seek(0)
+
+        response = HttpResponse(buffer.getvalue(), content_type='application/zip')
+        response['Content-Disposition'] = f'attachment; filename="exam-{exam.id}-annotations.zip"'
+        return response
