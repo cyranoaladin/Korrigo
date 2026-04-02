@@ -56,6 +56,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Tesseract OCR
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-fra tesseract-ocr-eng
+
       - name: Backend deps
         working-directory: backend
         run: |
