@@ -117,8 +117,10 @@ const CorrectorDashboard = {
 
         <div v-if="examStats" class="exam-stats" data-testid="exam-stats">
           <table class="stats-table">
-            <tr><td>Moyenne</td><td data-testid="stat-mean">{{ examStats.global_stats?.mean ?? '-' }}</td></tr>
-            <tr><td>Médiane</td><td data-testid="stat-median">{{ examStats.global_stats?.median ?? '-' }}</td></tr>
+            <tbody>
+              <tr><td>Moyenne</td><td data-testid="stat-mean">{{ examStats.global_stats?.mean ?? '-' }}</td></tr>
+              <tr><td>Médiane</td><td data-testid="stat-median">{{ examStats.global_stats?.median ?? '-' }}</td></tr>
+            </tbody>
           </table>
         </div>
 

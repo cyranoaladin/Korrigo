@@ -131,6 +131,7 @@ reports/
 .zenflow/tasks/test-*/
 .zenflow/.zenflow/
 .gemini/
+.codex
 
 # Scan data & student copies (large PDFs)
 scan_J1_BB_maths/
