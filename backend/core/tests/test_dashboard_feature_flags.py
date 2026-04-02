@@ -46,8 +46,10 @@ class TestMeFeatureFlags(TestCase):
     def setUp(self):
         create_user_roles()
         teacher_group = Group.objects.get(name=UserRole.TEACHER)
+        # create_user_roles() already creates 'questionnaire_coordinator' (lowercase).
+        # The view uses name__iexact so any case works, but reuse the same group.
         self.coordinator_group, _ = Group.objects.get_or_create(
-            name='QUESTIONNAIRE_COORDINATOR'
+            name='questionnaire_coordinator'
         )
 
         self.bbm = _make_exam_type('BBM2026', 'BAC BLANC MATHS 2026')
