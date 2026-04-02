@@ -5,15 +5,12 @@ Ce script crée des données, fait un backup, supprime les données, puis restor
 """
 import os
 import sys
-import django
 import tempfile
 import shutil
-from django.conf import settings
+import json
 
-# Configurer Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings_test')
-sys.path.insert(0, '/home/alaeddine/viatique__PMF/backend')
-django.setup()
+import pytest
+from django.conf import settings
 
 from exams.models import Exam, Copy, Booklet
 from students.models import Student
@@ -22,9 +19,9 @@ from django.contrib.auth.models import User, Group
 from core.auth import UserRole
 from django.core.management import call_command
 from django.db import transaction
-import json
 
 
+@pytest.mark.django_db(transaction=True)
 def test_backup_restore_destroy_recover():
     """Test complet de backup/restore avec destroy & recovery"""
     print("=== TEST BACKUP/RESTORE DESTROY & RECOVER ===")

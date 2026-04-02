@@ -76,19 +76,17 @@ def test_ocr_functionality():
         # Nettoyer
         os.unlink(img_path)
         
-        if len(found_words) >= 2:  # Si on trouve au moins 2 mots significatifs
-            print("✅ OCR fonctionnel: Texte détecté avec succès")
-            return True
-        else:
-            print("❌ OCR échec: Peu de mots détectés")
-            return False
-            
-    except Exception as e:
-        print(f"❌ OCR échec: {str(e)}")
+        assert len(found_words) >= 2, (
+            f"OCR échec: Seulement {len(found_words)}/{len(expected_words)} mots détectés. "
+            f"Texte brut: '{text.strip()}'"
+        )
+        print("✅ OCR fonctionnel: Texte détecté avec succès")
+
+    except Exception:
         # Nettoyer même en cas d'erreur
         if os.path.exists(img_path):
             os.unlink(img_path)
-        return False
+        raise
 
 if __name__ == "__main__":
     success = test_ocr_functionality()

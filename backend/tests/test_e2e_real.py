@@ -5,14 +5,11 @@ Ce script simule le workflow complet: upload -> split -> identify -> grade -> fi
 """
 import os
 import sys
-import django
 import tempfile
-from django.conf import settings
+import json
 
-# Configurer Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings_test')
-sys.path.insert(0, '/home/alaeddine/Bureau/KORRIGO/korrigo_v2_improved/backend')
-django.setup()
+import pytest
+from django.conf import settings
 
 from exams.models import Exam, Copy, Booklet
 from students.models import Student
@@ -20,7 +17,6 @@ from grading.models import Annotation, GradingEvent
 from django.contrib.auth.models import User, Group
 from core.auth import UserRole
 from django.utils import timezone
-import json
 
 
 def create_test_scenario():
@@ -144,10 +140,14 @@ def create_test_scenario():
     return True
 
 
+@pytest.mark.django_db
 def test_multi_roles_access():
     """Test des accès multi-rôles"""
     print("\n=== TEST ACCÈS MULTI-RÔLES ===")
-    
+
+    # Set up test data (when run via pytest, create_test_scenario is not called by __main__)
+    create_test_scenario()
+
     # Vérifier que les rôles sont correctement attribués
     admin_user = User.objects.get(username='admin_test_e2e')
     teacher_user = User.objects.get(username='teacher_test_e2e')
