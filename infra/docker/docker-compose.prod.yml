@@ -303,6 +303,7 @@ volumes:
   static_volume:
   media_volume:
   seed_data:
+    name: docker_seed_data_v2
     driver: local
     driver_opts:
       type: none
