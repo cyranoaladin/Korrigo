@@ -1,5 +1,8 @@
 # RELECTURE ADVERSARIALE FINALE — Korrigo
 
+> **Statut documentaire**
+> Audit historique daté. Il ne constitue pas la description normative du système courant.
+
 **Date** : 7 mars 2026  
 **Posture** : Auditeur externe hostile — démontrer que le travail reste insuffisant  
 **Périmètre** : Tous les correctifs appliqués, tous les audits produits, toutes les hypothèses formulées  

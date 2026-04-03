@@ -3,6 +3,15 @@
 **Plateforme de Correction Numérique Anonymisée d'Examens**
 Version 2.0 — 23 Mars 2026
 
+> **Statut**
+> Ce document est conservé comme panorama historique et support de présentation.
+> Il n’est plus la référence technique normative.
+> Pour l’état réel courant, utiliser en priorité :
+> - [ARCHITECTURE](technical/ARCHITECTURE.md)
+> - [API_REFERENCE](technical/API_REFERENCE.md)
+> - [DATABASE_SCHEMA](technical/DATABASE_SCHEMA.md)
+> - [CURRENT_STATE_MARCH_2026](technical/CURRENT_STATE_MARCH_2026.md)
+
 > Document à vocation **commerciale**, **pédagogique** et **technique**.
 > Destiné aux décideurs, enseignants, équipes IT et partenaires institutionnels.
 

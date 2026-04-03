@@ -1,8 +1,15 @@
 # Manuel Technique - Korrigo PMF
 
-> **Version:** 1.1.0
-> **Date:** Janvier 2026
+> **Version:** 1.2.0
+> **Date:** Avril 2026
 > **Public:** Développeurs & Mainteneurs
+
+> **Statut documentaire**
+> Ce document est une vue d’ensemble technique. Les références normatives à jour sont :
+> - [ARCHITECTURE](ARCHITECTURE.md)
+> - [API_REFERENCE](API_REFERENCE.md)
+> - [DATABASE_SCHEMA](DATABASE_SCHEMA.md)
+> - [CURRENT_STATE_MARCH_2026](CURRENT_STATE_MARCH_2026.md)
 
 Ce document est la référence technique absolue du projet. Il détaille l'architecture, le modèle de données, la configuration et les algorithmes critiques.
 
@@ -21,7 +28,7 @@ L'architecture suit une séparation stricte entre la logique métier, le traitem
 
 ### 1.2. Frontend (`frontend/`)
 *   **Stack** : Vue 3, Vite, Pinia.
-*   **`src/stores/`** : `examStore.js` centralise l'état (données d'examen, fascicules en staging).
+*   **`src/stores/`** : stores Pinia pour l’authentification, les examens et les copies.
 *   **`src/views/`** : Vues principales (`StagingArea`, `CorrectorDesk`, `Dashboard`).
 
 ---
@@ -35,7 +42,7 @@ Voici les variables supportées par l'application (valeurs par défaut indiquée
 
 | Variable | Description | Défaut (Dev) |
 | :--- | :--- | :--- |
-| `SECRET_KEY` | Clé cryptographique Django | `django-insecure...` |
+| `SECRET_KEY` | Clé cryptographique Django | Valeur générée forte, jamais `django-insecure-...` en production |
 | `DEBUG` | Mode Debug Django | `True` |
 | `ALLOWED_HOSTS` | Hôtes autorisés (liste CSV) | `*` |
 | `DATABASE_URL` | URL de connexion PostgreSQL | `postgres://user:pass@db:5432/db` |
@@ -58,10 +65,11 @@ L'intégrité des données repose sur des volumes Docker persistants.
 
 ### Volumes Critiques
 1.  **`postgres_data`** : Monté sur `/var/lib/postgresql/data`. Contient toute la base relationnelle (Examens, Notes, Utilisateurs).
-2.  **`media_volume`** (Implémenté via bind-mount `./backend/media` en Dev) :
+2.  **`media_volume`** :
     *   `exams/source/` : PDF originaux téléversés.
     *   `booklets/headers/` : Images d'en-têtes pour validation manuelle.
-    *   `copies/final/` : PDF finaux générés après correction.
+*   `copies/final/` : PDF finaux générés après correction.
+*   en production, le stockage live repose sur le volume Docker `media_volume`, pas sur `overlay/media`.
 
 > **⚠️ ATTENTION : Commandes de Cycle de Vie**
 > *   `make down` (ou `docker-compose down`) : Arrête et supprime les conteneurs. **Les données sont conservées.**

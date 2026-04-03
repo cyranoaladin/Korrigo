@@ -1,8 +1,8 @@
 # Schéma de Base de Données — Korrigo v2
 
-> **Version** : 3.0
-> **Date** : 2026-03-28
-> **Migration la plus récente** : `exams/0028_copy_finalizing_at`
+> **Version** : 3.1
+> **Date** : 2026-04-03
+> **Migration la plus récente** : `exams/0032_copy_student_status_index`
 > **Base de données** : PostgreSQL 15
 
 ---
@@ -119,7 +119,6 @@ Représente la copie d'un élève. Point de convergence de toute la logique mét
 | `global_appreciation` | text | NULL | Appréciation globale du correcteur |
 | `llm_summary` | text | NULL | Bilan IA (Ollama) |
 | `subject_variant` | varchar(1) | NULL | `A` ou `B` — obsolète, conservé pour compatibilité |
-| `finalizing_at` | timestamptz | NULL | **Mutex atomique anti-doublon** |
 
 **Index** :
 - `idx_copy_status` sur `(status)`
@@ -134,9 +133,6 @@ READY ──[1ère annotation]──→ IN_PROGRESS ──[POST /finalize/]─�
   ↑                                                                   │
   └───────────────────[POST /reopen/, superuser only]─────────────────┘
 ```
-
-**Mutex `finalizing_at`** :
-Protège contre la double finalisation concurrente. L'UPDATE conditionnel atomique `SET finalizing_at=NOW() WHERE finalizing_at IS NULL` garantit qu'une seule requête concurrente passe. Libéré (`=NULL`) sur succès, annulé par rollback sur échec.
 
 **Validateurs `pdf_source`** : extension `.pdf`, max 50 MB, max 500 pages, vrai PDF (magic bytes + parseable PyMuPDF).
 
@@ -451,4 +447,8 @@ exams_examtype ←── FK ── exams_exam                                   
 | 0025 | jury_report_exam_type | `exam_type` FK, suppression `exam` FK |
 | **0026** | **simplify_copy_status** | **3 états : READY/IN_PROGRESS/FINALIZED** |
 | 0027 | rename_copy_statuses | Renommage valeurs de statut |
-| **0028** | **copy_finalizing_at** | **`Copy.finalizing_at` — mutex atomique** |
+| **0028** | **copy_finalizing_at** | Historique |
+| **0029** | **remove_copy_finalizing_at_alter_copy_status** | Suppression du champ `finalizing_at`, statut 3 états confirmé |
+| **0030** | **add_copy_constraint_and_teacher_group** | Contraintes et groupe teacher |
+| **0031** | **seed_copy_constraints_and_teacher_groups** | Seed des contraintes |
+| **0032** | **copy_student_status_index** | Index de lecture sur `student,status` |

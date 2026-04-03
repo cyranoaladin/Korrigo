@@ -195,7 +195,7 @@ def test_create_annotation(teacher_user, api_client):
 | exams | `identify_dnb_copies [--exam DNB_2026] [--min-score 0.65]` | Auto-link copies→élèves |
 | exams | `export_pronote --exam DNB_2026` | Export CSV Pronote |
 | exams | `seed_initial_exams` | Données de démo |
-| grading | `recover_stuck_copies` | Libère les copies bloquées (`finalizing_at` non-null) |
+| grading | `recover_stuck_copies` | Réouvre les copies `IN_PROGRESS` abandonnées depuis trop longtemps |
 | grading | `inject_bilan_html` | Injecte les bilans HTML en DB |
 | students | `provision_student_users` | Crée les Users Django pour les Students existants |
 | students | `reset_student_passwords` | Reset passwords élèves en lot |
@@ -264,13 +264,13 @@ docker logs docker-celery-1 --tail 50
 docker exec docker-redis-1 redis-cli LLEN celery
 ```
 
-### Copy bloquée (finalizing_at non-null)
+### Copy bloquée (`IN_PROGRESS` abandonné)
 ```bash
 docker exec docker-backend-1 python manage.py shell -c "
 from exams.models import Copy
-stuck = Copy.objects.filter(finalizing_at__isnull=False)
+stuck = Copy.objects.filter(status='IN_PROGRESS')
 print(f'{stuck.count()} copies bloquées')
-stuck.update(finalizing_at=None)
+stuck.update(status='READY')
 print('Libérées')
 "
 ```

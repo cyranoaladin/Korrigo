@@ -7,6 +7,11 @@
 > **Classification**: Usage interne - Sensible  
 > **Conformité**: RGPD (UE) 2016/679, CNIL
 
+> **Statut documentaire**
+> Ce guide est conservé comme référence de conformité et de gouvernance.
+> Certaines sections décrivent un état de workflow antérieur à la simplification vers `READY / IN_PROGRESS / FINALIZED`.
+> Pour l’exploitation réelle courante, se référer d’abord à [RUNBOOK_PRODUCTION](../deployment/RUNBOOK_PRODUCTION.md) et [CURRENT_STATE_MARCH_2026](../technical/CURRENT_STATE_MARCH_2026.md).
+
 ---
 
 ## 📋 Table des Matières

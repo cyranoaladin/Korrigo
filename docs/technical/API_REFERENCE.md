@@ -1,7 +1,7 @@
 # Référence API — Korrigo v2
 
-> **Version** : 3.0
-> **Date** : 2026-03-28
+> **Version** : 3.1
+> **Date** : 2026-04-03
 > **Base URL** : `https://korrigo.labomaths.tn/api/` (prod) | `http://localhost:8000/api/` (dev)
 > **Format** : JSON
 > **Auth** : Session Django + cookie CSRF (`csrftoken` → header `X-CSRFToken`)
@@ -559,8 +559,10 @@ Vérification de l'état du système.
 
 **Réponse 200** :
 ```json
-{"status": "ok", "db": "ok", "redis": "ok", "version": "2.x.x"}
+{"status": "healthy", "database": "connected"}
 ```
+
+> En production, le point de référence est `https://korrigo.labomaths.tn/api/health/` derrière Nginx.
 
 ---
 

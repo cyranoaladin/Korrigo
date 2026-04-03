@@ -2,6 +2,11 @@
 
 **Plateforme de Correction d'Examens Numériques**
 
+> **Statut**
+> Ce dossier `documentation/` est un corpus documentaire historique détaillé.
+> Il est conservé pour audit et contexte, mais n’est plus la source de vérité opérationnelle.
+> Pour l’état actuel du projet, utiliser en priorité le dossier [`docs/`](/home/alaeddine/Bureau/KORRIGO/korrigo_v2_improved/docs/INDEX.md).
+
 ---
 
 ## 📋 Informations du Document

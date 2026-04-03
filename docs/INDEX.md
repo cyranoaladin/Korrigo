@@ -1,9 +1,14 @@
 # Documentation Korrigo — Index Principal
 
-> **Version** : 3.0
-> **Date** : 2026-03-28
-> **Statut** : Documentation complète et fidèle à l'état actuel (V2, 3 états, migration 0028)
+> **Version** : 3.1
+> **Date** : 2026-04-03
+> **Statut** : Documentation de référence alignée sur la production actuelle
 > **Production** : https://korrigo.labomaths.tn
+
+> **Périmètre documentaire**
+> - `docs/` : documentation normative maintenue.
+> - `docs/archive/` : documents historiques, rapports et audits figés.
+> - `documentation/` : ancienne documentation exhaustive conservée comme archive de contexte, pas comme source de vérité opérationnelle.
 
 ---
 
@@ -25,14 +30,14 @@
 
 | Document | Description | Date màj |
 |----------|-------------|----------|
-| [**ARCHITECTURE.md**](technical/ARCHITECTURE.md) | Architecture complète : stack, apps Django, patterns, infrastructure | 2026-03-28 |
+| [**ARCHITECTURE.md**](technical/ARCHITECTURE.md) | Architecture complète : stack, apps Django, patterns, infrastructure | 2026-04-03 |
 | [**DATABASE_SCHEMA.md**](technical/DATABASE_SCHEMA.md) | Tous les modèles, champs, relations, migrations | 2026-03-28 |
-| [**API_REFERENCE.md**](technical/API_REFERENCE.md) | Référence complète de tous les endpoints REST | 2026-03-28 |
+| [**API_REFERENCE.md**](technical/API_REFERENCE.md) | Référence complète de tous les endpoints REST | 2026-04-03 |
 | [**BUSINESS_WORKFLOWS.md**](technical/BUSINESS_WORKFLOWS.md) | Workflows métier : ingestion, correction, publication | 2026-03-28 |
 | [**FRONTEND_ARCHITECTURE.md**](technical/FRONTEND_ARCHITECTURE.md) | Vue 3 SPA : stores, router, composants clés | 2026-03-28 |
 | [**PDF_PROCESSING.md**](technical/PDF_PROCESSING.md) | Pipeline PDF : split, rasterisation, aplatissement | 2026-03-23 |
-| [**TECHNICAL_MANUAL.md**](technical/TECHNICAL_MANUAL.md) | Manuel opérationnel technique | 2026-03-23 |
-| [**CURRENT_STATE_MARCH_2026.md**](technical/CURRENT_STATE_MARCH_2026.md) | État du projet au 2026-03-28 | 2026-03-28 |
+| [**TECHNICAL_MANUAL.md**](technical/TECHNICAL_MANUAL.md) | Vue d'ensemble technique et pointeurs vers les références normatives | 2026-04-03 |
+| [**CURRENT_STATE_MARCH_2026.md**](technical/CURRENT_STATE_MARCH_2026.md) | État réel du projet et de la production au 2026-04-03 | 2026-04-03 |
 
 ---
 
@@ -42,7 +47,7 @@
 |-----|---------|--------|
 | [**ADR-001**](decisions/ADR-001-student-authentication-model.md) | Authentification élèves : email + date de naissance | ✅ Accepté |
 | [**ADR-002**](decisions/ADR-002-pdf-coordinate-normalization.md) | Coordonnées annotations normalisées [0,1] | ✅ Accepté |
-| [**ADR-003**](decisions/ADR-003-copy-status-state-machine.md) | Machine à états copies : READY/IN_PROGRESS/FINALIZED + mutex `finalizing_at` | ✅ V3 (Mars 2026) |
+| [**ADR-003**](decisions/ADR-003-copy-status-state-machine.md) | Machine à états copies : READY/IN_PROGRESS/FINALIZED | ✅ V4 (Avril 2026) |
 
 ---
 
@@ -118,13 +123,16 @@ READY → IN_PROGRESS → FINALIZED
 ```
 **Ancienne machine (obsolète)** : STAGING/READY/LOCKED/GRADING_IN_PROGRESS/GRADED — supprimée en migration 0026.
 
-### Workflow DNB 2026
-- 289 copies importées, 294 élèves, 100% identifiées
-- 6 enseignants, 48-49 copies chacun, aucun ne corrige ses élèves
-- Statut : READY, en attente de correction
+### Production au 2026-04-03
+- 4 examens en base
+- 504 copies
+- 3414 annotations
+- 396 scores
+- backup automatisé vers Hetzner StorageBox toutes les 30 minutes avec rétention distante de 24h
 
-### Concurrence — `Copy.finalizing_at`
-Mutex atomique PostgreSQL : `UPDATE SET finalizing_at=NOW() WHERE finalizing_at IS NULL`. Garantit qu'une seule requête concurrente peut aplatir le PDF. Ajouté en migration 0028.
+### Santé applicative
+- point de santé de référence en production : `https://korrigo.labomaths.tn/api/health/`
+- les probes internes `/api/health/live/` et `/api/health/ready/` existent, mais la vérification opérationnelle de référence passe par Nginx
 
 ### Authentification
 - Admin/Teacher : session Django (username + password)
@@ -133,4 +141,4 @@ Mutex atomique PostgreSQL : `UPDATE SET finalizing_at=NOW() WHERE finalizing_at 
 ### Production
 - Serveur : 88.99.254.59
 - 6 conteneurs Docker opérationnels
-- 636 tests passent en CI
+- `docker-celery-beat-1` corrigé et opérationnel

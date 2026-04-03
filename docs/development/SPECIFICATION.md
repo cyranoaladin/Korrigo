@@ -3,6 +3,10 @@
 > **État**: Audit de Cohérence (26 Jan 2026)
 > **Statut**: DÉPLOYABLE
 
+> **Statut documentaire**
+> Ce cahier des charges décrit un état cible et un état observé datés de janvier 2026.
+> Il est conservé comme archive de cadrage et ne constitue pas la description normative du système actuel.
+
 ## 1. Vue d'Ensemble
 Plateforme de correction d'examens dématérialisée (Bac Blanc, E3C) pour le lycée PMF.
 L'objectif est de scanner les copies, les anonymiser, les distribuer aux correcteurs via une interface web, et exporter les notes.
@@ -36,7 +40,7 @@ Les modules suivants sont présents dans le code (`backend/`) :
 *   Interface de correction vectorielle.
 *   Annotations (Rouge).
 *   Calcul des notes.
-*   Statuts: `STAGING` -> `READY` -> `LOCKED` -> `GRADED`.
+*   Workflow actif actuel : `READY` -> `IN_PROGRESS` -> `FINALIZED`.
 
 #### D. Module `identification`
 *   Association Copie <-> Élève.
@@ -49,13 +53,13 @@ Les modules suivants sont présents dans le code (`backend/`) :
 
 ### 2.3 Sécurité & Permissions (RBAC)
 *   **Admin** : Accès total.
-*   **Teacher** : Correction, Lock, Annotations.
+*   **Teacher** : Correction, annotations, finalisation.
 *   **Student** : Consultation copies personnelles (Session Auth).
 
 ### 2.4 Infrastructure & Ops
 *   **Docker** : Images `python:3.9-slim` (Backend) et `node` (Frontend).
 *   **CI** : GitHub Actions (Lint, Unit, E2E, Security).
-*   **Backup** : Commande `manage.py backup` / `restore` (Multi-pass).
+*   **Backup** : backup complet toutes les 30 minutes vers Hetzner StorageBox, avec rétention 24h côté distant.
 
 ---
 

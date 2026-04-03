@@ -1,6 +1,9 @@
 # Politique de Protection des Données Personnelles (RGPD)
 # Plateforme Korrigo PMF
 
+> **Statut documentaire**
+> Document de conformité conservé. Certaines illustrations de workflow peuvent décrire un état applicatif antérieur.
+
 > **Version**: 1.0.0  
 > **Date**: 30 Janvier 2026  
 > **Public**: Responsables d'établissement, DPO, Chefs d'établissement  

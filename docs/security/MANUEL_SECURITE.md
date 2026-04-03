@@ -1,6 +1,10 @@
 # Manuel de Sécurité Technique
 # Plateforme Korrigo PMF
 
+> **Statut documentaire**
+> Manuel de sécurité conservé pour la politique de contrôle et l’analyse des risques.
+> Certaines sections exemples peuvent employer une terminologie de workflow antérieure.
+
 > **Version**: 2.0.0
 > **Date**: 23 Mars 2026
 > **Public**: Administrateurs techniques, DSI, RSSI, DPO  

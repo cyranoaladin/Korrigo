@@ -5,6 +5,11 @@
 > **Public**: Tous les utilisateurs  
 > **Langue**: Français
 
+> **Note de cohérence**
+> Certains exemples anciens de ce guide peuvent encore employer la terminologie historique `GRADED` ou `LOCKED`.
+> La terminologie canonique actuelle est `READY`, `IN_PROGRESS`, `FINALIZED`.
+> Pour les procédures de backup et de production, se référer à [RUNBOOK_PRODUCTION](../deployment/RUNBOOK_PRODUCTION.md).
+
 Documentation des questions fréquemment posées et leurs réponses pour tous les utilisateurs de la plateforme Korrigo PMF.
 
 ---
@@ -231,7 +236,7 @@ L'utilisateur ne pourra plus se connecter, mais ses actions passées restent tra
 2. Consultez les indicateurs :
    - Total de copies à corriger
    - Copies corrigées (%)
-   - Copies en cours (LOCKED)
+   - Copies en cours (`IN_PROGRESS`)
    - Copies en attente (READY)
    - Moyenne de temps par copie
 
@@ -319,26 +324,26 @@ docker-compose logs -f
 ### Comment debloquer une copie verrouillee ?
 
 **Reponse**:
-Une copie peut rester bloquee en statut `LOCKED` si un enseignant a ferme son navigateur sans liberer le verrou.
+Une copie peut être temporairement indisponible soit parce qu’un `CopyLock` actif existe encore, soit parce qu’elle est restée en statut `IN_PROGRESS` après interruption d’une correction.
 
 **Procedure (V2)** :
 1. Ouvrir la copie dans le **CorrectorDesk**
 2. Cliquer sur le bouton **"Deverrouiller"** dans la toolbar admin
 3. Confirmer l'action dans la modale
 
-La copie repasse au statut `READY` et un evenement `FORCE_UNLOCK` est enregistre dans le journal d'audit.
+Le verrou `CopyLock` est supprimé. Si la copie était restée bloquée en `IN_PROGRESS`, il faut ensuite la réouvrir vers `READY` avec la procédure de récupération prévue.
 
 ### Comment corriger une copie deja finalisee ?
 
 **Reponse**:
-Une copie finalisee (`GRADED`) est normalement verrouillee. Seul un **superuser** peut la rouvrir.
+Une copie finalisée (`FINALIZED`) n’est plus modifiable en usage normal. Seul un administrateur autorisé peut la rouvrir.
 
 **Procedure (V2)** :
 1. Ouvrir la copie dans le **CorrectorDesk**
 2. Cliquer sur le bouton **"Rouvrir"** dans la toolbar (visible uniquement pour les superusers)
 3. Confirmer l'action
-4. La copie passe de `GRADED` a `READY`
-5. L'enseignant peut alors re-verrouiller et modifier la copie
+4. La copie passe de `FINALIZED` à `READY`
+5. L'enseignant peut alors reprendre la correction
 
 Un evenement `REOPEN` est enregistre dans le journal d'audit avec toutes les metadata.
 
@@ -355,7 +360,7 @@ Un evenement `REOPEN` est enregistre dans le journal d'audit avec toutes les met
    - **Solution** : Attendez que le collègue termine ou contactez-le
    - L'administrateur peut forcer le déverrouillage si nécessaire
 
-2. **Copie déjà finalisée** (status = GRADED)
+2. **Copie déjà finalisée** (status = `FINALIZED`)
    - Message : "Cette copie a déjà été corrigée"
    - **Solution** : Vous ne pouvez plus la modifier (sauf si l'admin réouvre la copie)
 
@@ -408,12 +413,12 @@ Un evenement `REOPEN` est enregistre dans le journal d'audit avec toutes les met
 ### Puis-je modifier une copie après l'avoir finalisée ?
 
 **Réponse**:
-**Non, par défaut** : Une fois finalisée (status = GRADED), la copie est verrouillée pour garantir l'intégrité.
+**Non, par défaut** : Une fois finalisée (status = `FINALIZED`), la copie n’est plus modifiable pour garantir l'intégrité.
 
 **Exception - Réouverture par l'administrateur** :
 1. Contactez l'administrateur
 2. Expliquez la raison (erreur de saisie, oubli, etc.)
-3. L'administrateur peut **réinitialiser le statut** (GRADED → READY)
+3. L'administrateur peut **réinitialiser le statut** (`FINALIZED` → `READY`)
 4. Vous pourrez alors re-verrouiller et modifier
 5. ⚠️ **Traçabilité** : Toutes les actions sont loggées (audit)
 
@@ -617,7 +622,7 @@ Le système crée une nouvelle copie unique avec toutes les pages.
 - Unité logique : La copie d'un élève
 - Créée après identification du booklet
 - Peut être composée d'un ou plusieurs booklets fusionnés
-- Status : `READY` → `LOCKED` → `GRADED`
+- Status : `READY` → `IN_PROGRESS` → `FINALIZED`
 
 **Exemple** :
 ```
@@ -1104,7 +1109,7 @@ docker-compose exec redis redis-benchmark -q -n 10000
 - **Grading** : Processus de correction
 - **Annotation** : Élément vectoriel ajouté par l'enseignant (commentaire, surlignage, etc.)
 - **Lock** : Verrou empêchant deux enseignants de corriger simultanément la même copie
-- **Status** : État d'une copie (STAGING, READY, LOCKED, GRADED)
+- **Status** : État d'une copie (`READY`, `IN_PROGRESS`, `FINALIZED`)
 - **OCR** : Reconnaissance optique de caractères (pour lire les noms sur les copies)
 - **Pronote** : Logiciel de vie scolaire français (gestion notes, absences, etc.)
 - **INE** : Identifiant National Élève (numéro unique de 11 caractères)

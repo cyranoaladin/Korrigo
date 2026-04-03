@@ -1,12 +1,12 @@
-# Korrigo 🚀
+# Korrigo
 
 **Korrigo** est une plateforme de correction numérique d'examens scannés de bout en bout. Elle permet de gérer tout le cycle de vie d'un examen dématérialisé : de l'ingestion des scans PDF à la publication des résultats pour les élèves, en passant par l'anonymisation, le dispatch intelligent, l'annotation vectorielle et la génération de bilans pédagogiques par IA.
 
-**Production** : [https://korrigo.nexusreussite.academy](https://korrigo.nexusreussite.academy)
+**Production** : [https://korrigo.labomaths.tn](https://korrigo.labomaths.tn)
 
 ---
 
-## 🏗 Architecture Technique (v2.2)
+## 🏗 Architecture Technique
 
 Le projet repose sur une architecture moderne, robuste et conteneurisée, privilégiant la sécurité et l'expérience utilisateur.
 
@@ -58,14 +58,14 @@ Le projet repose sur une architecture moderne, robuste et conteneurisée, privil
 
 ### 2. Correction & Notation
 - **Annotations Vectorielles** : Coordonnées [0,1] garantissant un rendu parfait à tout zoom.
-- **Verrouillage Pessimiste** : `CopyLock` avec TTL et heartbeat pour éviter les conflits d'édition.
+- **Édition Concurrente** : état `IN_PROGRESS`, garde serveur sur les écritures et nettoyage périodique des verrous transitoires.
 - **Sauvegarde Auto (DraftState)** : Protection contre la perte de données en cas de déconnexion.
 - **Barème Hiérarchique** : Structure imbriquée (Exercice > Question > Sous-question).
 - **Banque d'Annotations** : Templates partagés, annotations perso et suggestions contextuelles.
 - **Tampon Vrai/Faux (V/✗)** : Marquage rapide des réponses (geste papier numérisé).
 - **Vue Scindée** : Barème affiché en permanence à côté de la copie PDF.
 - **Déverrouillage Admin** : Déblocage forcé des copies verrouillées par l'administrateur.
-- **Réouverture Copie Finalisée** : Transition GRADED → READY par admin si correction à revoir.
+- **Réouverture Copie Finalisée** : Transition `FINALIZED → READY` par admin si correction à revoir.
 
 ### 3. Intelligence Artificielle (Korrigo AI)
 - **OCR Vision** : Identification automatique des élèves via lecture manuscrite par GPT-4o-mini.
@@ -84,13 +84,9 @@ Le projet repose sur une architecture moderne, robuste et conteneurisée, privil
 ### Machine d'États des Copies
 
 ```
-STAGING ──validate──→ READY ──lock──→ LOCKED ──finalize──→ GRADING_IN_PROGRESS ──→ GRADED
-                        ↑              │                           │                 │
-                        └──unlock──────┘                    GRADING_FAILED           │
-                        ↑                                       │                    │
-                        │                                       └──retry──→ GRADING_IN_PROGRESS
-                        │
-                        └───────────────────reopen (admin)───────────────────────────┘
+READY ──[1ère annotation]──→ IN_PROGRESS ──[finalize]──→ FINALIZED
+  ↑                                                          │
+  └──────────────────────[reopen admin]──────────────────────┘
 ```
 
 ### Tables Principales
@@ -159,6 +155,16 @@ Configuration requise dans `.env` :
 - `OLLAMA_URL` (interne ou externe)
 - `DATABASE_URL` (PostgreSQL)
 
+### Sauvegardes de production
+
+La production utilise un backup automatisé toutes les 30 minutes :
+- dump PostgreSQL complet
+- export JSON des corrections
+- archive complète du volume media Docker
+- envoi vers Hetzner StorageBox
+- rétention distante de 24 heures
+- suppression locale après synchronisation, avec au plus 2 fallbacks locaux en cas d'échec réseau
+
 ---
 
 ## 📚 Documentation Complète
@@ -185,4 +191,4 @@ Korrigo dispose d'une documentation exhaustive organisée par rôle et par thém
 **Licence** : Propriétaire — Usage institutionnel uniquement.
 
 ---
-*Dernière mise à jour : 23 mars 2026*
+*Dernière mise à jour : 3 avril 2026*

@@ -1,5 +1,8 @@
 # Security & Permissions Inventory - Korrigo Platform
 
+> **Statut documentaire**
+> Inventaire historique daté. Les exemples et extraits de code doivent être relus avec l’état courant du backend.
+
 **Audit Date**: 2026-03-10 (dernière mise à jour)  
 **Audit Phase**: Inventory - Security & Permissions  
 **Repository**: `/home/alaeddine/viatique__PMF` (main repo)

@@ -1,5 +1,8 @@
 # Audit de Sûreté des Données — Korrigo
 
+> **Statut documentaire**
+> Audit historique daté. Il ne remplace pas la documentation technique normative courante.
+
 > **LOT 1 — Audit préalable avant toute correction**
 > Date : 2026-03-06
 > Auteur : Principal Engineer / Security Engineer

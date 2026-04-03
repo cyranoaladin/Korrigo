@@ -1,7 +1,7 @@
 # Workflows Métier — Korrigo v2
 
-> **Version** : 3.0
-> **Date** : 2026-03-28
+> **Version** : 3.1
+> **Date** : 2026-04-03
 > **Public** : Développeurs, Product Owners, Administrateurs
 
 ---
@@ -180,10 +180,10 @@ def pick_teacher(forbidden_emails):
 - Dashboard → liste copies READY/IN_PROGRESS
 - Clic → `GET /api/grading/copies/{id}/` → chargement complet
 
-#### 2. Acquisition du verrou pessimiste
-- `POST /api/grading/copies/{id}/lock/` → token reçu
-- Heartbeat automatique toutes les 5 minutes (`setInterval`)
-- TTL : 30 minutes (renouvelable)
+#### 2. Accès à la copie
+- la copie doit être assignée au correcteur courant
+- la machine à états active est `READY → IN_PROGRESS → FINALIZED`
+- les anciens endpoints explicites de lock ne font plus partie du workflow métier de référence
 
 #### 3. Visualisation PDF
 - PDF.js charge `booklets[0].pages_images` (PNGs rastérisés)
@@ -224,19 +224,18 @@ def pick_teacher(forbidden_emails):
 - Bouton "Finaliser" → modal de confirmation
 - `POST /api/grading/copies/{id}/finalize/`
 - Backend :
-  1. **Claim atomique** : `UPDATE SET finalizing_at=NOW() WHERE finalizing_at IS NULL`
-  2. Reload avec `select_for_update()`
+  1. verrou transactionnel `select_for_update(nowait=True)`
+  2. transition atomique du statut vers `FINALIZED`
   3. `PDFFlattener.flatten_copy()` : imprime les annotations sur le PDF source → bytes
-  4. Sauvegarde `copy.final_pdf` dans `copies/final/`
-  5. `status → FINALIZED`, `graded_at = now()`, `finalizing_at = None`
-  6. `GradingEvent.FINALIZE` enregistré
+  4. sauvegarde `copy.final_pdf` dans `copies/final/`
+  5. `GradingEvent.FINALIZE` enregistré
 - Frontend : notification "Copie finalisée", retour au dashboard
 
 ### Postconditions
 - `copy.status == FINALIZED`
 - `copy.final_pdf` : PDF annoté disponible
 - `copy.graded_at` : timestamp de finalisation
-- Verrou libéré automatiquement
+- la copie n’est plus modifiable par un correcteur standard
 
 ---
 
@@ -325,27 +324,20 @@ Chaque réouverture est tracée dans `GradingEvent` avec l'acteur admin et les m
 
 ## Workflow 10 : Gestion des erreurs de finalisation
 
-### Finalisation concurrente (2 requêtes simultanées)
-Le mutex `finalizing_at` garantit qu'une seule réussit :
-- Requête 1 : `UPDATE SET finalizing_at=NOW() WHERE finalizing_at IS NULL` → `rows_affected=1` → procède
-- Requête 2 : même UPDATE → `rows_affected=0` → `LockConflictError` immédiatement
-- Frontend : `409` → toast "Une autre finalisation est en cours, réessayez"
+### Finalisation concurrente
+- une seule requête peut entrer dans la section critique
+- les doublons sont rejetés avec `LockConflictError`
+- le frontend doit traiter ce cas comme un `409` logique et proposer un rechargement
 
 ### Panne pendant la finalisation
-- Crash pendant l'aplatissement PDF → transaction rollback → `finalizing_at` revient à NULL automatiquement
-- `grading_error_message` mis à jour avec le message d'erreur
-- Retry possible immédiatement
+- si la génération du PDF échoue, la transaction n’aboutit pas à un état `FINALIZED` valide
+- `grading_error_message` peut être renseigné
+- un retry est possible après diagnostic
 
-### Copie bloquée (cas extrême)
-Si `finalizing_at` reste non-null après une panne non-transactionnelle :
+### Copie abandonnée `IN_PROGRESS`
+En cas d’abandon prolongé :
 ```bash
 docker exec docker-backend-1 python manage.py recover_stuck_copies
-# OU manuellement :
-python manage.py shell -c "
-from exams.models import Copy
-Copy.objects.filter(finalizing_at__isnull=False).update(finalizing_at=None)
-print('Copies libérées')
-"
 ```
 
 ---

@@ -5,6 +5,13 @@
 > **Public**: Administrateurs techniques, Support IT  
 > **Langue**: Français (technique)
 
+> **Note de cohérence**
+> Ce guide contient encore des exemples hérités d’anciens workflows.
+> Les références opérationnelles actuelles sont :
+> - [RUNBOOK_PRODUCTION](../deployment/RUNBOOK_PRODUCTION.md)
+> - [DEPLOYMENT_GUIDE](../deployment/DEPLOYMENT_GUIDE.md)
+> - [ADR-003](../decisions/ADR-003-copy-status-state-machine.md)
+
 Guide de résolution des problèmes techniques pour la plateforme Korrigo PMF.
 
 ---
@@ -833,23 +840,25 @@ docker-compose exec backend python manage.py manual_split_exam <exam_id>
 
 ## Problèmes de Correction
 
-### Problème : Impossible de verrouiller une copie
+### Problème : Impossible de prendre une copie
 
 **Symptômes** :
-- Bouton "Verrouiller" ne fonctionne pas
-- Message : "Copy already locked"
+- La copie ne devient pas éditable
+- Message indiquant qu’un autre verrou existe déjà
 
 **Diagnostic** :
 ```bash
-# Vérifier le statut de la copie
+# Vérifier le statut de la copie et le lock associé
 docker-compose exec backend python manage.py shell
->>> from backend.copies.models import Copy
+>>> from exams.models import Copy
+>>> from grading.models import CopyLock
 >>> copy = Copy.objects.get(id='<copy_id>')
 >>> copy.status
-'LOCKED'
->>> copy.locked_by
+<'READY' ou 'IN_PROGRESS'>
+>>> lock = CopyLock.objects.filter(copy=copy).first()
+>>> lock.owner if lock else None
 <User: teacher1>
->>> copy.locked_at
+>>> lock.expires_at if lock else None
 datetime.datetime(2026, 1, 30, 10, 30, 0)
 ```
 
@@ -858,10 +867,8 @@ datetime.datetime(2026, 1, 30, 10, 30, 0)
 #### 1. Lock expiré non libéré
 ```python
 # Forcer le déverrouillage
->>> copy.status = 'READY'
->>> copy.locked_by = None
->>> copy.locked_at = None
->>> copy.save()
+>>> if lock:
+...     lock.delete()
 ```
 
 **Ou via commande** :
@@ -877,20 +884,22 @@ docker-compose exec backend python manage.py unlock_expired_copies
 docker-compose exec backend python manage.py force_unlock_copy <copy_id>
 ```
 
-### Probleme : Copie bloquee en mode locked
+### Probleme : Copie bloquee en mode `IN_PROGRESS`
 
 **Symptomes** :
-- La copie reste en statut `LOCKED` alors que l'enseignant n'est plus connecte
+- La copie reste en statut `IN_PROGRESS` alors que l'enseignant n'est plus connecte
 - Impossible pour un autre enseignant de prendre la copie
 
 **Diagnostic** :
-- Verifier le statut de la copie dans le Dashboard (statut `LOCKED`, utilisateur verrouillant, horodatage)
+- Vérifier le statut de la copie dans le dashboard (`IN_PROGRESS`) et l’ancienneté du dernier travail
 
-**Solution (V2)** :
-1. Ouvrir la copie dans le **CorrectorDesk**
-2. Cliquer sur le bouton **"Deverrouiller"** dans la toolbar (visible pour les administrateurs)
-3. Confirmer l'action
-4. La copie repasse au statut `READY`
+**Solution** :
+```bash
+docker compose exec backend python manage.py recover_stuck_copies --dry-run
+docker compose exec backend python manage.py recover_stuck_copies
+```
+
+La commande réouvre les copies `IN_PROGRESS` abandonnées vers `READY`.
 
 **Evenement d'audit** : `FORCE_UNLOCK` enregistre via GradingEvent
 
@@ -899,7 +908,7 @@ docker-compose exec backend python manage.py force_unlock_copy <copy_id>
 ### Probleme : Besoin de modifier une copie deja finalisee
 
 **Symptomes** :
-- La copie est en statut `GRADED` (finalisee)
+- La copie est en statut `FINALIZED` (finalisée)
 - L'enseignant a repere une erreur de notation ou un oubli d'annotation
 
 **Solution (V2)** :
@@ -907,7 +916,7 @@ docker-compose exec backend python manage.py force_unlock_copy <copy_id>
 2. Le superuser ouvre la copie dans le **CorrectorDesk**
 3. Cliquer sur le bouton **"Rouvrir"** dans la toolbar
 4. Confirmer l'action
-5. La copie passe de `GRADED` a `READY`
+5. La copie passe de `FINALIZED` à `READY`
 6. L'enseignant peut alors re-verrouiller et modifier la copie
 
 **Evenement d'audit** : `REOPEN` enregistre via GradingEvent
@@ -1353,7 +1362,7 @@ docker-compose logs -f
 docker-compose up -d db redis backend
 
 # Vérifier
-curl http://localhost:8000/api/health
+curl https://korrigo.labomaths.tn/api/health/
 ```
 
 4. **Communication** :

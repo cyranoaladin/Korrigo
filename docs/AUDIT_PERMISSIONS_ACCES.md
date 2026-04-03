@@ -5,6 +5,10 @@
 **Méthode** : Lecture exhaustive de chaque fichier de vue, permission, URL et service  
 **Exigence** : Technique, sévère, argumentée, orientée production réelle
 
+> **Statut documentaire**
+> Audit historique daté. Il documente un état observé et des hypothèses de mars 2026.
+> Il ne remplace pas la description normative courante du système.
+
 ---
 
 ## 1. AUTHENTIFICATION

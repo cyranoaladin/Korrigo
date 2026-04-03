@@ -95,9 +95,13 @@ Frontend disponible sur **http://localhost:5173** (proxy `/api` → backend:8000
 ## 6. Vérifier l'installation
 
 ```bash
-# Health check
+# Health check principal
 curl http://localhost:8000/api/health/
-# → {"status": "ok", "db": "ok", "redis": "ok"}
+# → {"status": "healthy", "database": "connected"}
+
+# Probes additionnelles
+curl http://localhost:8000/api/health/live/
+curl http://localhost:8000/api/health/ready/
 
 # Swagger UI
 open http://localhost:8000/api/schema/swagger-ui/
@@ -165,7 +169,9 @@ cd frontend && npm run test:e2e
 | URL | Description |
 |-----|-------------|
 | http://localhost:8000/api/ | API REST |
-| http://localhost:8000/api/health/ | Health check |
+| http://localhost:8000/api/health/ | Health check principal |
+| http://localhost:8000/api/health/live/ | Liveness probe |
+| http://localhost:8000/api/health/ready/ | Readiness probe |
 | http://localhost:8000/api/schema/swagger-ui/ | Documentation API interactive |
 | http://localhost:8000/admin/ | Interface admin Django |
 | http://localhost:5173 | Frontend Vue (mode dev) |
@@ -202,4 +208,4 @@ korrigo_v2_improved/
 | Backend ne démarre pas | `docker logs docker-backend-1 --tail 50` |
 | Migrations manquantes | `docker exec docker-backend-1 python manage.py migrate` |
 | Celery ne traite pas les tâches | `docker logs docker-celery-1 --tail 50` |
-| Copy bloquée avec `finalizing_at` | `Copy.objects.filter(finalizing_at__isnull=False).update(finalizing_at=None)` via shell |
+| Copie abandonnée en `IN_PROGRESS` | `python manage.py recover_stuck_copies` |

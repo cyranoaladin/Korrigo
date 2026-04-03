@@ -5,6 +5,10 @@
 > **Public** : Personnel de Secrétariat (Bureau d'Identification)
 > **Type** : Manuel Utilisateur
 
+> **Note de cohérence**
+> Certaines formulations de ce guide viennent d’un workflow plus ancien.
+> L’état fonctionnel actuel des copies après identification et correction est décrit de façon canonique dans [ADR-003](../decisions/ADR-003-copy-status-state-machine.md) et [CURRENT_STATE_MARCH_2026](../technical/CURRENT_STATE_MARCH_2026.md).
+
 ---
 
 ## 📋 Table des Matières
@@ -515,7 +519,7 @@ Le contrôle qualité garantit que :
 - ✅ **Aucune copie** n'est oubliée
 - ✅ **Aucune erreur** d'identification
 - ✅ **Toutes les copies** sont prêtes pour correction
-- ✅ **Note V2** : une copie déjà corrigée (GRADED) peut être réouverte par l'enseignant ou l'administrateur (passage GRADED -> READY) pour correction complémentaire. Ce processus ne nécessite pas de ré-identification.
+- ✅ **Note V2** : une copie déjà finalisée (`FINALIZED`) peut être rouverte par un administrateur autorisé (`FINALIZED` → `READY`) pour correction complémentaire. Ce processus ne nécessite pas de ré-identification.
 
 ### Vérifications à Effectuer
 

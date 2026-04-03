@@ -1,5 +1,8 @@
 # Audit Global Post-Exécution — Korrigo LOTs 3-11
 
+> **Statut documentaire**
+> Audit historique daté. Les risques et statuts mentionnés doivent être relus à la lumière de l’état courant décrit dans `docs/technical/CURRENT_STATE_MARCH_2026.md`.
+
 **Date** : 6 mars 2026  
 **Auditeur** : Cascade (auto-audit sévère)  
 **Critère principal** : Préservation de l'intégrité des données existantes  

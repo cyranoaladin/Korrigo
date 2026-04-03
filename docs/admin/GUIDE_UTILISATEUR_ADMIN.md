@@ -5,6 +5,11 @@
 > **Public**: Administrateurs techniques (Admin NSI, IT staff, Proviseur Adjoint)  
 > **Langue**: Français (technique)
 
+> **Note de cohérence**
+> Les captures, exemples et libellés historiques de ce guide peuvent encore mentionner les anciens statuts `GRADED` et `LOCKED`.
+> Le modèle actif est `READY`, `IN_PROGRESS`, `FINALIZED`.
+> Les opérations de sauvegarde décrites ici sont supersédées par [RUNBOOK_PRODUCTION](../deployment/RUNBOOK_PRODUCTION.md).
+
 Ce document constitue le manuel technique complet pour les administrateurs de la plateforme Korrigo PMF.
 
 ---
@@ -444,8 +449,8 @@ TOTAL : 20 points
 │                                                              │
 │  📊 Statistiques                                             │
 │  ├─ Total Copies: 50                                         │
-│  ├─ ✅ Corrigées (GRADED): 35 (70%)                          │
-│  ├─ 🔒 En Cours (LOCKED): 10 (20%)                           │
+│  ├─ ✅ Finalisées (FINALIZED): 35 (70%)                      │
+│  ├─ 🔄 En cours (IN_PROGRESS): 10 (20%)                      │
 │  ├─ 📝 À Corriger (READY): 5 (10%)                           │
 │  └─ ⏱️ Temps Moyen: 18 min/copie                             │
 │                                                              │
@@ -696,7 +701,7 @@ INE,MATIERE,NOTE,COEFFICIENT
 - `COEFFICIENT` : Coefficient (défini lors de la création de l'examen)
 
 **Procédure** :
-1. Vérifier que **toutes les copies sont finalisées** (statut `GRADED`)
+1. Vérifier que **toutes les copies sont finalisées** (statut `FINALIZED`)
 2. Cliquer sur [Exporter CSV]
 3. **Télécharger** le fichier `export_pronote_EXAMEN_DATE.csv`
 4. **Importer dans Pronote** :
@@ -841,7 +846,7 @@ copies_finales_BAC_BLANC_MATHS_20260315.zip
 
 ### 7.3b Réouverture d'une Copie Finalisée (Reopen)
 
-**Cas d'Usage** : Une copie finalisée (statut `GRADED`) doit etre corrigee a nouveau (erreur de saisie, oubli d'annotation, etc.)
+**Cas d'Usage** : Une copie finalisée (statut `FINALIZED`) doit etre corrigee a nouveau (erreur de saisie, oubli d'annotation, etc.)
 
 **Restriction d'Acces** : **Superuser uniquement** (ni admin standard, ni enseignant)
 
@@ -849,16 +854,16 @@ copies_finales_BAC_BLANC_MATHS_20260315.zip
 1. Ouvrir la copie finalisee dans le CorrectorDesk
 2. Dans la **toolbar**, cliquer sur le bouton **"Rouvrir"**
 3. Confirmer l'action dans la modale de confirmation
-4. La copie passe du statut `GRADED` au statut `READY`
+4. La copie passe du statut `FINALIZED` au statut `READY`
 5. Un enseignant peut alors la re-verrouiller et modifier les annotations/notes
 
-**Transition de statut** : `GRADED` → `READY`
+**Transition de statut** : `FINALIZED` → `READY`
 
 **Evenement d'Audit** : `REOPEN` enregistre via GradingEvent avec metadata completes :
 - Acteur (superuser)
 - Timestamp
 - Copie concernee
-- Statut precedent (`GRADED`)
+- Statut precedent (`FINALIZED`)
 - Statut cible (`READY`)
 
 ⚠️ **Attention** :
@@ -1171,7 +1176,7 @@ docker-compose exec backend df -h /app/media
 **Symptôme** : Le CSV exporté est vide ou incomplet
 
 **Causes Possibles** :
-1. Aucune copie finalisée (statut `GRADED`)
+1. Aucune copie finalisée (statut `FINALIZED`)
 2. Filtre de classe incorrect
 3. Problème de mapping INE
 
@@ -1179,7 +1184,7 @@ docker-compose exec backend df -h /app/media
 
 **1. Vérifier l'État des Copies** :
 - Dashboard → Examens → [Examen] → [Suivi]
-- **Vérifier** : Toutes les copies doivent être `GRADED` (✅)
+- **Vérifier** : Toutes les copies doivent être `FINALIZED` (✅)
 
 **2. Vérifier les INE** :
 - Dashboard → Étudiants → [Liste]

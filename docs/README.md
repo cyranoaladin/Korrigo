@@ -1,12 +1,15 @@
 # Korrigo PMF — Documentation
 
-**Dernière mise à jour** : 23 mars 2026
-**Version** : 2.0
+**Dernière mise à jour** : 3 avril 2026
+**Version** : 3.1
 **Production** : [https://korrigo.labomaths.tn](https://korrigo.labomaths.tn)
 
 ---
 
 ## 📚 Index de la Documentation
+
+> **Source de vérité actuelle** : le dossier [`docs/`](INDEX.md) contient la documentation normative maintenue.
+> Le dossier `documentation/` est un corpus historique détaillé conservé pour audit et contexte. Il ne doit pas être utilisé comme référence opérationnelle sans recoupement avec les runbooks et ADRs actuels.
 
 > **Point d'entrée complet** : Voir [INDEX.md](INDEX.md) pour l'index exhaustif avec tables, checklists et guide de navigation par rôle.
 
@@ -105,4 +108,4 @@ docs/
 ---
 
 **Maintenu par** : Alaeddine BEN RHOUMA — Labo Maths ERT
-**Dernière revue** : 23 mars 2026
+**Dernière revue** : 3 avril 2026

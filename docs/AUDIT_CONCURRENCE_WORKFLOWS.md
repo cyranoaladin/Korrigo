@@ -1,5 +1,9 @@
 # Audit de Sûreté Concurrente — Workflows de Correction Korrigo
 
+> **Statut documentaire**
+> Audit historique daté. Ce document conserve le raisonnement d’audit au moment de sa rédaction.
+> Il peut mentionner des statuts et transitions antérieurs qui ne correspondent plus exactement au modèle actif courant.
+
 **Date** : 7 mars 2026  
 **Auditeur** : Cascade (AI)  
 **Périmètre** : Toutes les écritures concurrentes sur données critiques (scores, annotations, remarques, appréciations, transitions d'état, drafts, locks, audit trail)  

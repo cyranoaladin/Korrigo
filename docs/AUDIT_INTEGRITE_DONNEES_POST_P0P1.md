@@ -1,5 +1,8 @@
 # Audit Spécialisé — Intégrité des Données Métiers Post-Corrections P0/P1
 
+> **Statut documentaire**
+> Audit historique daté. Il documente un point d’arrêt après corrections P0/P1 et peut employer une terminologie de workflow antérieure.
+
 **Date** : 6 mars 2026  
 **Périmètre** : Exclusivement l'impact des corrections P0/P1 sur les données existantes  
 **Méthode** : Relecture ligne par ligne de chaque fichier modifié, traçage de chaque write path  

@@ -1,5 +1,8 @@
 # SYNTHÈSE COMPARATIVE FINALE — Korrigo
 
+> **Statut documentaire**
+> Synthèse historique datée. Les termes de statut et certaines hypothèses techniques reflètent l’état observé au moment de sa rédaction.
+
 **Date** : 7 mars 2026  
 **Objectif** : Consolider les 6 audits précédents, résoudre les contradictions, produire un état réel unique  
 **Méthode** : Chaque assertion est vérifiée par relecture du code local actuel (`git HEAD`)  

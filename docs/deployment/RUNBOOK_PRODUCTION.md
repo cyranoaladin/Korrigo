@@ -1,94 +1,115 @@
-# Runbook Production - Korrigo PMF
+# Runbook Production - Korrigo
 
-**Date**: 26 janvier 2026
-**Version**: 1.3.0
-**Statut**: ✅ **DÉPLOYABLE**
-
----
-
-## 1. Statut Production
-
-**Verdict**: ✅ **READY FOR PRODUCTION**
-Tous les tests (Unitaires, Intégration, E2E, Backup/Restore) passent. L'authentification RBAC est corrigée.
-
-## 2. Critères de Production
-
-### 2.1 Critères Techniques
-
-| Critère | Statut | Commentaire |
-|---------|--------|-------------|
-| **Docker Build** | ✅ | Images backend/frontend build OK |
-| **Python Version** | ✅ | 3.9 (aligné CI/Prod) |
-| **CI Pipeline** | ✅ | GitHub Actions Green (Lint, Unit, E2E) |
-| **RBAC Security** | ✅ | Permissions Teacher/Admin/Student strictes |
-| **Dependencies** | ✅ | Tesseract OCR intégré |
-
-### 2.2 Critères Fonctionnels
-
-| Critère | Statut | Commentaire |
-|---------|--------|-------------|
-| **Identification** | ✅ | OCR + Validation manuelle ("Video-Coding") |
-| **Authentification** | ✅ | Triple portail (Admin/Prof/Élève) fonctionnel |
-| **Correction** | ✅ | Annotation vectorielle + verrouillage |
-| **Backup/Restore** | ✅ | Commande `restore` réparée (Multi-pass) |
+**Date**: 3 avril 2026
+**Version**: 3.1
+**Statut**: Exploitation courante
 
 ---
 
-## 3. Commandes Opérationnelles
+## 1. Références de production
 
-### 3.1 Déploiement
+- URL publique : `https://korrigo.labomaths.tn`
+- Serveur : `root@88.99.254.59`
+- Répertoire : `/var/www/labomaths/korrigo`
+- Compose : `infra/docker/docker-compose.prod.yml`
+- Point de santé de référence : `https://korrigo.labomaths.tn/api/health/`
+
+---
+
+## 2. Services attendus
 
 ```bash
-# 1. Démarrer la stack
-make up
-
-# 2. Initialiser les données (Groupes, Admin)
-make init_pmf
+docker ps --format "table {{.Names}}\t{{.Status}}"
 ```
 
-### 3.2 Backup & Restore (CRITIQUE)
+Services attendus :
+- `docker-nginx-1`
+- `docker-backend-1`
+- `docker-db-1`
+- `docker-redis-1`
+- `docker-celery-1`
+- `docker-celery-beat-1`
 
-Le système utilise deux commandes de management Django personnalisées.
+---
 
-**Backup Manuel**:
-```bash
-# Créer un backup complet (DB + Media) dans un dossier temp
-docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manage.py backup --include-media
-```
-
-**Restore (En cas de désastre)**:
-⚠️ **ATTENTION**: Cette commande écrase la base de données actuelle !
+## 3. Vérifications rapides
 
 ```bash
-# Restaurer à partir d'un dossier de backup
-docker-compose -f infra/docker/docker-compose.prod.yml exec backend python manage.py restore /path/to/backup/dir
+curl -fsS https://korrigo.labomaths.tn/api/health/
+curl -I https://korrigo.labomaths.tn/
+docker logs docker-celery-beat-1 --since 5m | tail -20
 ```
-*Note: La commande restore gère intelligemment les dépendances clés étrangères via une insertion multi-passes.*
+
+Résultats attendus :
+- `{"status":"healthy","database":"connected"}`
+- `HTTP/2 200`
+- logs `celery-beat` sans crash loop
 
 ---
 
-## 4. Surveillance & Monitoring
+## 4. Déploiement applicatif
 
-### Points de contrôle
-1. **API Health**: `GET /api/health/` (doit retourner 200 OK)
-2. **Logs Backend**: `make logs` (surveiller les erreurs 500)
-3. **Espace Disque**: Surveiller le volume `media_volume` (stockage PDF).
+```bash
+ssh root@88.99.254.59
+cd /var/www/labomaths/korrigo
+git pull origin main
+docker exec docker-backend-1 python manage.py migrate
+docker restart docker-backend-1 docker-celery-1 docker-celery-beat-1
+```
+
+Après déploiement :
+
+```bash
+curl -fsS https://korrigo.labomaths.tn/api/health/
+docker ps --format "table {{.Names}}\t{{.Status}}"
+```
 
 ---
 
-## 5. Gestion des Incidents
+## 5. Sauvegardes
 
-| Incident | Sévérité | Action |
-|----------|----------|--------|
-| **Erreur 500 Import PDF** | Moyenne | Vérifier logs rasterization (Tesseract/Poppler). |
-| **Lock bloqué** | Basse | Admin peut force-unlock via API ou Admin Panel. |
-| **Perte de données** | **CRITIQUE** | Utiliser procédure `restore` avec le dernier backup valide. |
+Le flux en production n’utilise plus une rétention locale longue.
+
+Script actif :
+- `/var/www/labomaths/korrigo/scripts/korrigo_backup.sh`
+
+Comportement :
+- exécution toutes les 30 minutes via cron
+- dump DB + export JSON + archive media
+- envoi vers Hetzner StorageBox
+- rétention distante de 24h
+- suppression locale après succès
+- conservation locale d’au plus 2 fallbacks en cas d’échec
+
+Contrôles :
+
+```bash
+tail -50 /var/log/korrigo_backup.log
+crontab -l | grep korrigo_backup
+ssh -i /root/.ssh/storagebox_ed25519 -p 23 u554481@u554481.your-storagebox.de \
+  "ls backups/korrigo_backups/ | tail -5"
+```
+
+Archives historiques externalisées :
+- dossier distant `backups/korrigo_archives_historiques/`
+- manifeste local de contrôle :
+  [storagebox_korrigo_archives_historiques_manifest_2026-04-03.txt](/home/alaeddine/Bureau/KORRIGO/korrigo_v2_improved/storagebox_korrigo_archives_historiques_manifest_2026-04-03.txt)
 
 ---
 
-## 6. Historique des Audits
+## 6. Incidents courants
 
-- **26/01/2026**: Audit de Sécurité & Robustesse (Alaeddine BEN RHOUMA). **Status: PASS**.
-  - Fix: RBAC Permissions.
-  - Fix: Restore Command.
-  - Fix: CI Pipeline Downgrade (Actions v3/v4).
+| Incident | Action immédiate |
+|----------|------------------|
+| `docker-celery-beat-1` down | `docker restart docker-celery-beat-1` puis vérifier les logs |
+| API non accessible | vérifier `docker-nginx-1` et `docker-backend-1`, puis `curl -fsS https://korrigo.labomaths.tn/api/health/` |
+| copie abandonnée `IN_PROGRESS` | `docker exec docker-backend-1 python manage.py recover_stuck_copies` |
+| échec backup | lire `/var/log/korrigo_backup.log`, vérifier l’accès StorageBox et les dossiers `fallback_*` |
+
+---
+
+## 7. Notes d’exploitation
+
+- `overlay/media/` n’est pas le stockage live en production ; le média actif est le volume Docker `media_volume`.
+- le point de santé opérationnel de référence est celui exposé derrière Nginx, pas un endpoint local brut sur `localhost:8000`.
+- ne jamais lancer `docker compose down -v` en production.

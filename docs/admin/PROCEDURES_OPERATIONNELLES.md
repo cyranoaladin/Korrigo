@@ -5,6 +5,11 @@
 > **Public**: Administrateurs, Personnel administratif, Équipe pédagogique  
 > **Langue**: Français (non-technique)
 
+> **Note de cohérence**
+> Ce document contient encore des formulations héritées d’anciens workflows.
+> La machine d’états active est `READY → IN_PROGRESS → FINALIZED`.
+> Pour les sauvegardes et le diagnostic de prod, utiliser d’abord [RUNBOOK_PRODUCTION](../deployment/RUNBOOK_PRODUCTION.md).
+
 Ce document décrit toutes les procédures opérationnelles quotidiennes, hebdomadaires et exceptionnelles pour l'utilisation de Korrigo PMF dans un établissement scolaire.
 
 ---
@@ -349,7 +354,7 @@ Une fois toutes les copies identifiées :
 
 **Checklist** :
 - [ ] **Toutes les copies corrigées** : Progression = 100%
-- [ ] **Aucune copie bloquée** : Copies LOCKED = 0
+- [ ] **Aucun verrou résiduel** : pas de `CopyLock` actif inattendu et pas de copies `IN_PROGRESS` abandonnées
 - [ ] **Notes cohérentes** : Vérifier qu'aucune note aberrante (ex: 25/20)
 - [ ] **Génération PDF Finaux** : Cliquer sur [Générer PDF Finaux]
   ```
@@ -793,7 +798,7 @@ Une fois toutes les copies identifiées :
 - [ ] Annotations sauvegardées (pas de perte de données)
 
 **Après Correction** :
-- [ ] Toutes les copies finalisées (0 copies READY ou LOCKED)
+- [ ] Toutes les copies finalisées (0 copies `READY` ou `IN_PROGRESS`)
 - [ ] Notes cohérentes (min/max dans la plage attendue)
 - [ ] PDF finaux lisibles (échantillon de 5 copies)
 
@@ -1065,7 +1070,7 @@ Une fois toutes les copies identifiées :
 ### 10.1 Procedure de Deverrouillage Force d'une Copie
 
 **Responsable** : Administrateur
-**Cas d'usage** : Une copie est bloquee en statut `LOCKED` (enseignant deconnecte, navigateur ferme, session expiree)
+**Cas d'usage** : Une copie reste indisponible après interruption (verrou `CopyLock` résiduel ou statut `IN_PROGRESS`)
 
 #### Etapes
 
@@ -1089,7 +1094,7 @@ Une fois toutes les copies identifiées :
 ### 10.2 Procedure de Reouverture d'une Copie Finalisee
 
 **Responsable** : Superuser uniquement
-**Cas d'usage** : Une copie finalisee (`GRADED`) doit etre modifiee (erreur de notation, oubli d'annotation, contestation justifiee)
+**Cas d'usage** : Une copie finalisee (`FINALIZED`) doit etre modifiee (erreur de notation, oubli d'annotation, contestation justifiee)
 
 #### Etapes
 
@@ -1103,7 +1108,7 @@ Une fois toutes les copies identifiées :
    - Confirmer dans la modale de confirmation
 
 3. **Resultat** :
-   - La copie passe du statut `GRADED` au statut `READY`
+   - La copie passe du statut `FINALIZED` au statut `READY`
    - L'evenement `REOPEN` est enregistre dans `GradingEvent` avec les metadata completes
    - L'enseignant peut alors re-verrouiller la copie et effectuer les modifications
 

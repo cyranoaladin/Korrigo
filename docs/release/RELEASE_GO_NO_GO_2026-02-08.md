@@ -1,5 +1,8 @@
 # Release GO/NO-GO Report — 2026-02-08
 
+> **Statut documentaire**
+> Checklist de release historique. Elle ne décrit pas la production actuelle à elle seule.
+
 ## VERDICT: CONDITIONAL GO
 
 **Condition**: E2E Playwright must pass on Docker Compose production-like stack (single-origin nginx proxy) before production deploy.

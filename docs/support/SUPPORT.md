@@ -7,6 +7,13 @@
 
 Documentation des procédures de support, escalade, et maintenance de la plateforme Korrigo PMF.
 
+> **Statut documentaire**
+> Ce guide contient encore des sections rédigées lors des cycles de janvier-février 2026.
+> Pour l’état opérationnel courant, considérer comme références prioritaires :
+> - [RUNBOOK_PRODUCTION](../deployment/RUNBOOK_PRODUCTION.md)
+> - [DEPANNAGE](DEPANNAGE.md)
+> - [FAQ](FAQ.md)
+
 ---
 
 ## 📋 Table des Matières
@@ -292,7 +299,7 @@ Le support Korrigo PMF a pour missions :
    ```
 4. **Actions possibles** :
    - Réinitialiser mot de passe
-   - Vérifier statut des copies (GRADED + published)
+   - Vérifier statut des copies (`FINALIZED` + publication activée)
    - Envoyer par email si problème technique
 
 **Documentation** : [Guide Élève](../users/GUIDE_ETUDIANT.md)
@@ -307,7 +314,7 @@ Le support Korrigo PMF a pour missions :
 
 **Procédure L1** :
 1. **Diagnostic rapide** :
-   - Vérifier le statut de la copie (READY/LOCKED/GRADED)
+   - Vérifier le statut de la copie (`READY` / `IN_PROGRESS` / `FINALIZED`) et l’éventuel `CopyLock`
    - Vérifier les verrous (`locked_by`, `locked_at`)
    - Consulter les logs d'audit
 2. **Actions courantes** :

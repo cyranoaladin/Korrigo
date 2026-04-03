@@ -1,7 +1,7 @@
 # Guide de Déploiement Production — Korrigo v2
 
-> **Version** : 3.0
-> **Date** : 2026-03-28
+> **Version** : 3.1
+> **Date** : 2026-04-03
 > **Public** : DevOps, Administrateurs Système
 > **Serveur** : 88.99.254.59 — korrigo.labomaths.tn
 
@@ -132,8 +132,8 @@ docker restart docker-backend-1 docker-celery-1 docker-celery-beat-1
 
 ### 4. Vérifier la santé
 ```bash
-curl http://localhost:8000/api/health/
-# → {"status": "ok", "db": "ok", "redis": "ok"}
+curl -fsS https://korrigo.labomaths.tn/api/health/
+# → {"status":"healthy","database":"connected"}
 
 docker ps  # Tous les conteneurs doivent être Up
 ```
@@ -181,21 +181,26 @@ ssh root@88.99.254.59 "rm -rf /tmp/copies_dnb"
 
 ## Sauvegarde
 
-### Base de données
-```bash
-ssh root@88.99.254.59 "
-docker exec docker-db-1 pg_dump -U korrigo korrigo \
-  > /tmp/korrigo_$(date +%Y%m%d_%H%M).sql
-"
-# Rapatrier localement
-scp root@88.99.254.59:/tmp/korrigo_*.sql ./backups/
-```
+### Système automatisé actuel
 
-### Fichiers media (copies, PDFs)
+Le backup de production est orchestré par [`scripts/korrigo_backup.sh`](/home/alaeddine/Bureau/KORRIGO/korrigo_v2_improved/scripts/korrigo_backup.sh) avec ce flux :
+- toutes les 30 minutes
+- dump PostgreSQL complet
+- export JSON des corrections
+- archive du volume Docker `media_volume`
+- envoi vers Hetzner StorageBox `u554481.your-storagebox.de:23`
+- stockage distant sous `backups/korrigo_backups/<timestamp>/`
+- rétention distante de 24 heures
+- suppression locale après synchronisation
+- conservation locale d’au plus 2 dossiers `fallback_*` en cas d’échec réseau
+
+### Contrôles opérationnels
+
 ```bash
-rsync -av --progress \
-  root@88.99.254.59:/var/www/labomaths/korrigo/backend/media/ \
-  ./backups/media_$(date +%Y%m%d)/
+tail -50 /var/log/korrigo_backup.log
+crontab -l | grep korrigo_backup
+ssh -i /root/.ssh/storagebox_ed25519 -p 23 u554481@u554481.your-storagebox.de \
+  "ls backups/korrigo_backups/ | tail -5"
 ```
 
 ---
@@ -255,15 +260,9 @@ docker exec docker-backend-1 python manage.py migrate --run-syncdb
 docker exec docker-backend-1 python manage.py migrate --fake exams 0027
 ```
 
-### Copy bloquée (`finalizing_at` non-null)
+### Copie abandonnée `IN_PROGRESS`
 ```bash
 docker exec docker-backend-1 python manage.py recover_stuck_copies
-# OU
-docker exec docker-backend-1 python manage.py shell -c "
-from exams.models import Copy
-n = Copy.objects.filter(finalizing_at__isnull=False).update(finalizing_at=None)
-print(f'{n} copies libérées')
-"
 ```
 
 ### Celery queue bloquée

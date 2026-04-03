@@ -1,5 +1,8 @@
 # E2E Testing Contract
 
+> **Statut documentaire**
+> Contrat de test historique. Certaines appellations d’états métier peuvent être antérieures au workflow actif actuel.
+
 ## Environnement de Référence
 
 **Les tests E2E (Playwright) sont conçus pour et doivent être exécutés dans un environnement Docker Compose.**

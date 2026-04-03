@@ -167,7 +167,7 @@ Le backend est organisé en **6 applications Django**, chacune avec une responsa
 - `Annotation` : annotation vectorielle sur une copie (coordonnées normalisées [0,1] selon ADR-002, verrouillage optimiste via champ `version`)
 - `GradingEvent` : journal d'audit immutable — chaque transition d'état, chaque annotation créée/modifiée/supprimée
 - `Score` : notes JSON par question (contrainte unicité 1 Score par Copy au niveau DB)
-- `CopyLock` : verrou pessimiste avec token et TTL (protection contre édition concurrente)
+- `CopyLock` : verrou transitoire stocké en base pour coordination et nettoyage périodique
 - `DraftState` : sauvegarde automatique de l'état de l'éditeur (anti-perte de données)
 - `QuestionRemark` : remarques libres par question du barème
 - `AnnotationTemplate` : banque d'annotations officielles contextualisées par exercice/question
@@ -300,7 +300,7 @@ Browser ──HTTPS──→ Nginx (443/80)
 | `media_volume` | `/app/media` | PDF sources, images rasterisées, PDF finaux | **CRITIQUE** |
 | `static_volume` | `/app/staticfiles` | CSS, JS compilés, Django admin | Moyen |
 
-> **Avertissement** : Ne jamais exécuter `docker-compose down -v` en production. Cela détruirait les volumes et toutes les données. Le backup de `postgres_data` et `media_volume` doit être automatisé quotidiennement.
+> **Avertissement** : Ne jamais exécuter `docker-compose down -v` en production. Cela détruirait les volumes et toutes les données. Le backup de `postgres_data` et `media_volume` est automatisé toutes les 30 minutes vers Hetzner StorageBox.
 
 ---
 
@@ -331,7 +331,7 @@ READY ────────────────────────�
 | État source | Déclencheur | État cible | Acteur | Effets de bord |
 |-------------|-------------|------------|--------|----------------|
 | `READY` | Création de la première annotation (`AnnotationService.add_annotation`) | `IN_PROGRESS` | Correcteur | Transition automatique |
-| `IN_PROGRESS` | `POST /api/grading/copies/{id}/finalize/` | `FINALIZED` | Correcteur | Génération PDF aplati, `graded_at=now()`, `finalizing_at=None`, GradingEvent FINALIZE |
+| `IN_PROGRESS` | `POST /api/grading/copies/{id}/finalize/` | `FINALIZED` | Correcteur | Génération PDF aplati, `graded_at=now()`, GradingEvent FINALIZE |
 | `READY` | `POST /api/grading/copies/{id}/finalize/` | `FINALIZED` | Correcteur | Idem (copie sans annotation) |
 | `FINALIZED` | Action admin `reopen` | `READY` | Superuser seulement | `final_pdf` supprimé, `graded_at=None`, `grading_retries=0`, GradingEvent REOPEN |
 
@@ -368,27 +368,13 @@ Lors d'une finalisation, deux requêtes HTTP concurrentes pouvaient toutes deux 
 
 Le mécanisme `select_for_update(nowait=True)` seul ne suffisait pas à garantir l'exclusion mutuelle dans tous les cas de race condition.
 
-### Solution : mutex atomique via `finalizing_at`
+### Solution actuelle
 
-Le champ `Copy.finalizing_at` (DateTimeField, nullable) sert de mutex atomique :
+Le code courant n’utilise plus `Copy.finalizing_at`. La protection active repose sur :
 
-**Étape 1 : Claim atomique**
-```sql
-UPDATE exams_copy
-SET finalizing_at = NOW()
-WHERE id = <copy_id>
-  AND status IN ('READY', 'IN_PROGRESS')
-  AND finalizing_at IS NULL
-```
-PostgreSQL garantit qu'une seule transaction parmi toutes les concurrentes obtiendra `rows_affected = 1`. Toutes les autres obtiennent `0`.
-
-**Étape 2 : Logique de branchement**
-- `claimed = 1` → cette requête a gagné le mutex → elle procède à `flatten_copy`
-- `claimed = 0` → une autre requête est déjà en cours → lever `LockConflictError` immédiatement, avant toute génération de PDF
-
-**Étape 3 : Libération**
-- En cas de succès : `finalizing_at = None` est sauvegardé dans le même `copy.save()`
-- En cas d'exception : le `@transaction.atomic` rollback la transaction entière, `finalizing_at` revient automatiquement à `NULL`
+1. `select_for_update(nowait=True)` pour qu’une seule transaction entre dans la phase critique
+2. une mise à jour atomique du statut vers `FINALIZED`
+3. un rejet explicite des doublons via `LockConflictError`
 
 ### Code de référence
 
@@ -397,27 +383,21 @@ PostgreSQL garantit qu'une seule transaction parmi toutes les concurrentes obtie
 
 @transaction.atomic
 def _finalize_copy_inner(copy, user, lock_token=None):
-    claimed = (
-        Copy.objects
-        .filter(
-            id=copy.id,
-            status__in=(Copy.Status.READY, Copy.Status.IN_PROGRESS),
-            finalizing_at__isnull=True,
-        )
-        .update(finalizing_at=timezone.now())
+    copy = Copy.objects.select_for_update(nowait=True).get(id=copy.id)
+    if copy.status == Copy.Status.FINALIZED:
+        raise LockConflictError("Copie déjà finalisée.")
+    rows_updated = Copy.objects.filter(
+        id=copy.id,
+        status__in=(Copy.Status.READY, Copy.Status.IN_PROGRESS),
+    ).update(
+        status=Copy.Status.FINALIZED,
+        graded_at=timezone.now(),
+        grading_error_message=None,
     )
-    if claimed != 1:
-        current = Copy.objects.filter(id=copy.id).values('status', 'finalizing_at').first()
-        if current and current['status'] == Copy.Status.FINALIZED:
-            raise LockConflictError("Copie déjà finalisée.")
-        raise LockConflictError(
-            "Finalization en cours par une autre requête — réessayez."
-        )
-
-    copy = Copy.objects.select_for_update().get(id=copy.id)
-    # ... flatten_copy, save ...
-    copy.finalizing_at = None  # libération du mutex
-    copy.save(update_fields=["status", "graded_at", "grading_error_message", "final_pdf", "finalizing_at"])
+    if rows_updated == 0:
+        raise LockConflictError("Copie déjà finalisée (concurrent).")
+    copy.refresh_from_db()
+    # ... flatten_copy, save final_pdf ...
 ```
 
 ### Garanties
@@ -426,7 +406,7 @@ def _finalize_copy_inner(copy, user, lock_token=None):
 |----------|--------------|
 | 1 requête seule | Succès normal |
 | 2 requêtes concurrentes | 1 succès + 1 `LockConflictError` (HTTP 409) |
-| Crash pendant flatten_copy | Rollback automatique, `finalizing_at` revient à NULL |
+| Crash pendant flatten_copy | Transaction rollback, statut non confirmé |
 | Copie déjà FINALIZED | `LockConflictError("Copie déjà finalisée.")` |
 
 ---
@@ -567,13 +547,9 @@ Actions tracées : `IMPORT`, `VALIDATE`, `LOCK`, `UNLOCK`, `CREATE_ANN`, `UPDATE
 
 Le champ `version` de `Annotation` est incrémenté atomiquement à chaque mise à jour via `F('version') + 1`. Le client envoie la `version` courante dans sa requête PUT. Si la version en base a déjà été incrémentée par une autre requête concurrente, le service lève une erreur de conflit. Référence ADR-P0-DI-008.
 
-### Verrouillage Pessimiste (CopyLock)
+### Verrou transitoire (`CopyLock`)
 
-`CopyLock` garantit qu'un seul correcteur à la fois édite activement une copie. Il utilise un `token` UUID que le client doit présenter pour toute opération d'écriture. Un mécanisme de heartbeat (endpoint `/lock/heartbeat/`) renouvelle le TTL. Les verrous expirés sont nettoyés automatiquement (`_reconcile_lock_state`).
-
-### Mutex de Finalisation (Copy.finalizing_at)
-
-Voir section 7. Garantit qu'aucune double-finalisation ne peut avoir lieu, même sous charge concurrente élevée.
+`CopyLock` reste présent comme mécanisme auxiliaire de coordination et de nettoyage des verrous expirés. Il ne constitue plus le centre de la machine à états métier.
 
 ---
 
@@ -590,11 +566,11 @@ Admin : Upload PDF A3 (50 MB max)
                       └→ Opérateur : valide/corrige identification → Copy.student = Student
                            └→ Admin : dispatch copies aux correcteurs (assign_corrector)
 
-Correcteur : ouvre la copie → CopyLock créé (token)
+Correcteur : ouvre la copie
   └→ 1ère annotation → Copy.status READY → IN_PROGRESS (automatique)
        └→ Annotations VRAI/FAUX/COMMENT/ERROR + scores par question
             └→ Appréciation globale (Copy.global_appreciation)
-                 └→ POST /finalize/ → finalizing_at claim atomique
+                 └→ POST /finalize/ → verrou DB + transition atomique
                       └→ PDFFlattener : fusion PDF + annotations → final_pdf
                            └→ Copy.status → FINALIZED, graded_at = now()
                                 └→ GradingEvent.FINALIZE
@@ -641,7 +617,7 @@ Composant Vue
 ### Pourquoi PostgreSQL (pas SQLite) ?
 
 - ACID strict : critique pour les transactions de finalisation et les contraintes d'intégrité
-- `UPDATE ... WHERE` atomique : fondation du mutex `finalizing_at`
+- `UPDATE ... WHERE` atomique : fondation de la transition de finalisation
 - `select_for_update()` : verrouillage pessimiste au niveau ligne
 - Support natif `JSONField` : barème (`grading_structure`), metadata des événements
 - Index composites performants sur les patterns de requête fréquents

@@ -1,118 +1,114 @@
 #!/bin/bash
 # =============================================================================
-# Korrigo Automated Backup Script
-# Runs every 30 minutes via cron
-# 
-# Backs up:
-#   1. Full PostgreSQL dump
-#   2. JSON export of all corrections data (scores, annotations, remarks, appreciations)
-#   3. Media files (PDFs source, PDFs finaux, pages PNG)
-#
-# Retention: keeps last 48 backups (24 hours at 30min intervals)
-# Location: /var/www/labomaths/korrigo/backups/automated/
+# Korrigo Backup -> Hetzner StorageBox
+# Cron : */30 * * * *
 # =============================================================================
 
 set -euo pipefail
 
-BACKUP_BASE="/var/www/labomaths/korrigo/backups/automated"
+STORAGEBOX_USER="u554481"
+STORAGEBOX_HOST="u554481.your-storagebox.de"
+STORAGEBOX_PORT="23"
+STORAGEBOX_DIR="backups/korrigo_backups"
+STORAGEBOX_KEY="/root/.ssh/storagebox_ed25519"
+RETENTION_HOURS=24
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="${BACKUP_BASE}/${TIMESTAMP}"
-RETENTION_COUNT=48
-LOG_FILE="${BACKUP_BASE}/backup.log"
+LOCAL_TMP="/tmp/korrigo_backup_${TIMESTAMP}"
+LOG_FILE="/var/log/korrigo_backup.log"
+MEDIA_VOLUME="/var/lib/docker/volumes/docker_media_volume/_data"
+SYNC_OK=false
 
-# Create directories
-mkdir -p "${BACKUP_DIR}"
-mkdir -p "${BACKUP_BASE}"
+SSH_OPTS=(-p "${STORAGEBOX_PORT}" -i "${STORAGEBOX_KEY}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10)
+RSYNC_RSH="ssh -p ${STORAGEBOX_PORT} -i ${STORAGEBOX_KEY} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no"
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "${LOG_FILE}"
 }
 
-log "=== Starting backup ${TIMESTAMP} ==="
+cleanup_local() {
+    rm -rf "${LOCAL_TMP}"
+}
+trap cleanup_local EXIT
 
-# -------------------------------------------------------
-# 1. PostgreSQL full dump
-# -------------------------------------------------------
-log "Step 1: PostgreSQL dump..."
-if docker exec docker-db-1 pg_dump -U korrigo_user -Fc korrigo_db > "${BACKUP_DIR}/db_${TIMESTAMP}.dump" 2>>"${LOG_FILE}"; then
-    DB_SIZE=$(du -sh "${BACKUP_DIR}/db_${TIMESTAMP}.dump" | cut -f1)
-    log "  -> DB dump OK: ${DB_SIZE}"
+log "=== Backup ${TIMESTAMP} START ==="
+mkdir -p "${LOCAL_TMP}"
+
+log "1/6 PostgreSQL dump..."
+if docker exec docker-db-1 pg_dump -U korrigo_user -Fc korrigo_db > "${LOCAL_TMP}/db_${TIMESTAMP}.dump" 2>>"${LOG_FILE}"; then
+    log "  OK: $(du -sh "${LOCAL_TMP}/db_${TIMESTAMP}.dump" | cut -f1)"
 else
-    log "  -> ERROR: DB dump failed!"
+    log "  ERREUR: dump DB echoue"
 fi
 
-# -------------------------------------------------------
-# 2. JSON export of all correction data
-# -------------------------------------------------------
-log "Step 2: JSON data extraction..."
-docker cp /var/www/labomaths/korrigo/scripts/extract_correction_data.py docker-backend-1:/app/extract_correction_data.py 2>>"${LOG_FILE}"
-
-if docker exec docker-backend-1 python manage.py shell -c 'exec(open("/app/extract_correction_data.py").read())' >>"${LOG_FILE}" 2>&1; then
-    # Copy JSON files from container
-    docker cp docker-backend-1:/tmp/korrigo_extract/copies_data.json "${BACKUP_DIR}/copies_data.json" 2>>"${LOG_FILE}"
-    docker cp docker-backend-1:/tmp/korrigo_extract/pages_manifest.json "${BACKUP_DIR}/pages_manifest.json" 2>>"${LOG_FILE}"
-    docker cp docker-backend-1:/tmp/korrigo_extract/exams_bareme.json "${BACKUP_DIR}/exams_bareme.json" 2>>"${LOG_FILE}"
-    docker cp docker-backend-1:/tmp/korrigo_extract/summary.json "${BACKUP_DIR}/summary.json" 2>>"${LOG_FILE}"
-    
-    JSON_SIZE=$(du -sh "${BACKUP_DIR}/copies_data.json" | cut -f1)
-    log "  -> JSON export OK: copies_data=${JSON_SIZE}"
-else
-    log "  -> ERROR: JSON extraction failed!"
-fi
-
-# -------------------------------------------------------
-# 3. Media backup (PDFs source, PDFs finaux, pages PNG)
-# -------------------------------------------------------
-log "Step 3: Media backup..."
-MEDIA_VOLUME="/var/lib/docker/volumes/docker_media_volume/_data"
-MEDIA_ARCHIVE="${BACKUP_DIR}/media_${TIMESTAMP}.tar.gz"
-
-# Only back up the sub-directories that contain real data (skip uploads in progress)
-if tar -czf "${MEDIA_ARCHIVE}" \
-    -C "${MEDIA_VOLUME}" \
-    --exclude="./tmp" \
-    --exclude="./.cache" \
-    . 2>>"${LOG_FILE}"; then
-    MEDIA_SIZE=$(du -sh "${MEDIA_ARCHIVE}" | cut -f1)
-    log "  -> Media backup OK: ${MEDIA_SIZE}"
-else
-    log "  -> WARNING: Media backup failed (non-fatal)"
-fi
-
-# -------------------------------------------------------
-# 4. Cleanup old backups (keep last RETENTION_COUNT)
-# -------------------------------------------------------
-log "Step 4: Cleanup (keeping last ${RETENTION_COUNT} backups)..."
-BACKUP_COUNT=$(ls -1d "${BACKUP_BASE}"/2* 2>/dev/null | wc -l)
-if [ "${BACKUP_COUNT}" -gt "${RETENTION_COUNT}" ]; then
-    REMOVE_COUNT=$((BACKUP_COUNT - RETENTION_COUNT))
-    ls -1d "${BACKUP_BASE}"/2* | head -n "${REMOVE_COUNT}" | while read -r old_dir; do
-        log "  Removing old backup: $(basename "${old_dir}")"
-        rm -rf "${old_dir}"
+log "2/6 Export JSON corrections..."
+if docker exec -i docker-backend-1 sh -lc 'cat > /app/extract_correction_data.py' < /var/www/labomaths/korrigo/scripts/extract_correction_data.py 2>>"${LOG_FILE}" && \
+   docker exec docker-backend-1 python manage.py shell -c 'exec(open("/app/extract_correction_data.py").read())' >>"${LOG_FILE}" 2>&1; then
+    for f in copies_data.json pages_manifest.json exams_bareme.json summary.json; do
+        docker exec docker-backend-1 sh -lc "cat /tmp/korrigo_extract/${f}" > "${LOCAL_TMP}/${f}" 2>>"${LOG_FILE}" || true
     done
-    log "  -> Removed ${REMOVE_COUNT} old backups"
+    if [ -f "${LOCAL_TMP}/copies_data.json" ]; then
+        log "  OK: $(du -sh "${LOCAL_TMP}/copies_data.json" | cut -f1)"
+    else
+        log "  WARNING: copies_data.json absent apres export"
+    fi
 else
-    log "  -> No cleanup needed (${BACKUP_COUNT}/${RETENTION_COUNT})"
+    log "  ERREUR: export JSON echoue"
 fi
 
-# -------------------------------------------------------
-# 5. Remote backup to Hetzner StorageBox
-# -------------------------------------------------------
-STORAGEBOX_USER="u402541"
-STORAGEBOX_HOST="u402541.your-storagebox.de"
-
-log "Step 5: Remote sync to StorageBox..."
-if rsync -az --timeout=60 \
-    "${BACKUP_DIR}/" \
-    "${STORAGEBOX_USER}@${STORAGEBOX_HOST}:/korrigo_backups/${TIMESTAMP}/" 2>>"${LOG_FILE}"; then
-    log "  -> StorageBox sync OK"
+log "3/6 Archive media..."
+if [ -d "${MEDIA_VOLUME}" ]; then
+    if tar -czf "${LOCAL_TMP}/media_${TIMESTAMP}.tar.gz" -C "${MEDIA_VOLUME}" --exclude="./tmp" --exclude="./.cache" . 2>>"${LOG_FILE}"; then
+        log "  OK: $(du -sh "${LOCAL_TMP}/media_${TIMESTAMP}.tar.gz" | cut -f1)"
+    else
+        log "  ERREUR: archive media echouee"
+    fi
 else
-    log "  -> WARNING: StorageBox sync failed (non-fatal)"
+    log "  SKIP: ${MEDIA_VOLUME} introuvable"
 fi
 
-# -------------------------------------------------------
-# 6. Final summary
-# -------------------------------------------------------
-TOTAL_SIZE=$(du -sh "${BACKUP_DIR}" | cut -f1)
-log "=== Backup ${TIMESTAMP} complete: ${TOTAL_SIZE} ==="
+log "4/6 Envoi StorageBox..."
+REMOTE_DIR="${STORAGEBOX_DIR}/${TIMESTAMP}"
+if ssh "${SSH_OPTS[@]}" "${STORAGEBOX_USER}@${STORAGEBOX_HOST}" "mkdir -p '${REMOTE_DIR}'" 2>>"${LOG_FILE}" && \
+   rsync -az --timeout=120 -e "${RSYNC_RSH}" "${LOCAL_TMP}/" "${STORAGEBOX_USER}@${STORAGEBOX_HOST}:${REMOTE_DIR}/" 2>>"${LOG_FILE}"; then
+    log "  OK: envoye vers ${STORAGEBOX_HOST}:${REMOTE_DIR}"
+    SYNC_OK=true
+else
+    log "  ERREUR: rsync echoue - backup conserve localement en fallback"
+fi
+
+log "5/6 Nettoyage local..."
+if [ "${SYNC_OK}" = true ]; then
+    rm -rf "${LOCAL_TMP}"
+    log "  OK: backup local supprime"
+else
+    FALLBACK_DIR="/var/www/labomaths/korrigo/backups/fallback_${TIMESTAMP}"
+    mv "${LOCAL_TMP}" "${FALLBACK_DIR}"
+    log "  FALLBACK: backup conserve dans ${FALLBACK_DIR}"
+    FALLBACK_COUNT=$(find /var/www/labomaths/korrigo/backups -maxdepth 1 -type d -name 'fallback_*' | wc -l)
+    if [ "${FALLBACK_COUNT}" -gt 2 ]; then
+        find /var/www/labomaths/korrigo/backups -maxdepth 1 -type d -name 'fallback_*' | sort | head -n -2 | xargs rm -rf
+        log "  Anciens fallbacks purges"
+    fi
+fi
+
+log "6/6 Purge StorageBox (> ${RETENTION_HOURS}h)..."
+CUTOFF=$(date -d "-${RETENTION_HOURS} hours" +%Y%m%d_%H%M%S)
+REMOTE_LIST=$(ssh "${SSH_OPTS[@]}" "${STORAGEBOX_USER}@${STORAGEBOX_HOST}" "ls '${STORAGEBOX_DIR}'" 2>>"${LOG_FILE}" || true)
+while IFS= read -r dir; do
+    [ -n "${dir}" ] || continue
+    case "${dir}" in
+        20*)
+            if [ "${dir}" \< "${CUTOFF}" ]; then
+                if ssh "${SSH_OPTS[@]}" "${STORAGEBOX_USER}@${STORAGEBOX_HOST}" "rm -r '${STORAGEBOX_DIR}/${dir}'" 2>>"${LOG_FILE}"; then
+                    echo "  Purged: ${dir}" | tee -a "${LOG_FILE}"
+                else
+                    echo "  WARNING: purge impossible pour ${dir}" | tee -a "${LOG_FILE}"
+                fi
+            fi
+            ;;
+    esac
+done <<< "${REMOTE_LIST}"
+log "  OK: purge terminee"
+
+log "=== Backup ${TIMESTAMP} DONE (sync=${SYNC_OK}) ==="
 log ""
