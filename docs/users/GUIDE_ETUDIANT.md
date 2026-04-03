@@ -66,9 +66,9 @@ graph LR
 
 Vos identifiants de connexion sont :
 - **Email** : Votre adresse email scolaire (ex: `prenom.nom-e@ert.tn`)
-- **Mot de passe par défaut** : Votre **date de naissance au format JJMMAAAA** (ex: 15 mars 2007 → `15032007`)
+- **Date de naissance** : Utilisée comme second facteur d'identification dans le portail élève
 
-> 💡 **Important** : À la première connexion, vous serez invité à changer votre mot de passe par défaut. Si vous n'avez pas vos identifiants, contactez le professeur principal ou le secrétariat.
+> 💡 **Important** : Le portail élève en production utilise l'email et la date de naissance. Si vous ne parvenez pas à vous connecter, contactez le secrétariat.
 
 ### Se Connecter
 
@@ -91,22 +91,22 @@ Sur la page de connexion :
     │  Email :                               │
     │  [jean.dupont@eleve.lycee.fr___]        │
     │                                         │
-    │  Mot de passe :                        │
-    │  [•••••••••••••]                        │
+    │  Date de naissance :                   │
+    │  [2007-03-15________]                  │
     │                                         │
     │  [Se connecter]                         │
     │                                         │
-    │  ❓ Mot de passe oublié ?               │
-    │  → Contactez le secrétariat             │
+    │  ❓ Problème de connexion ?             │
+    │  → Contactez le secrétariat            │
     │                                         │
     └─────────────────────────────────────────┘
     ```
     
     1. **Saisissez votre Email** (celui communiqué par le lycée)
-    2. **Saisissez votre Mot de Passe** (date de naissance JJMMAAAA par défaut)
+    2. **Saisissez votre date de naissance**
     3. Cliquez sur **« Accéder à mes copies »**
     
-    > ℹ️ **Note** : À la première connexion, vous devrez modifier votre mot de passe par défaut pour un mot de passe personnel sécurisé.
+    > ℹ️ **Note** : En production, la connexion élève se fait avec l'email et la date de naissance.
 
 #### Étape 3 : Accès au Tableau de Bord
 
@@ -442,20 +442,20 @@ Vos données sont conservées pendant :
 
 ### Connexion et Accès
 
-#### Q1 : J'ai oublié mon mot de passe, que faire ?
+#### Q1 : Je n'arrive pas à me connecter, que faire ?
 
 **Réponse** :
-- Si vous n'avez jamais changé votre mot de passe, essayez votre **date de naissance au format JJMMAAAA** (ex: `15032007`).
-- Sinon, contactez le **secrétariat** ou votre professeur principal pour qu'ils réinitialisent votre mot de passe.
-- Il n'y a pas encore de lien "Mot de passe oublié" automatique sur le site.
+- Vérifiez votre **email complet**
+- Vérifiez votre **date de naissance** au format attendu par le portail
+- Si le problème persiste, contactez le **secrétariat**
+- Il n'y a pas de réinitialisation de mot de passe élève à utiliser dans le flux standard actuel
 
-#### Q2 : « Email ou mot de passe incorrect », que faire ?
+#### Q2 : « Email ou identifiants incorrects », que faire ?
 
 **Réponse** : Vérifiez que :
 - Vous avez bien saisi votre **email complet** (ex: `prenom.nom-e@ert.tn`)
-- Vous respectez les majuscules/minuscules pour le mot de passe
+- Vous avez saisi la bonne **date de naissance**
 - Vous n'avez pas ajouté d'espaces avant/après
-- Si vous n'avez jamais changé votre mot de passe, utilisez votre **date de naissance JJMMAAAA**
 
 Si le problème persiste, contactez le **secrétariat**.
 
@@ -665,8 +665,9 @@ Pour toute question sur :
 
 | Version | Date | Changements |
 |---------|------|-------------|
+| **2.0.1** | 03/04/2026 | Alignement documentaire : authentification élève par email + date de naissance, clarification FAQ et confidentialité |
 | **2.0.0** | 23/03/2026 | Ajout annotations **Vrai** (✓) et **Faux** (✗), mise a jour types d'annotations (6 types), note explicative tampons V/X |
-| **1.3.0** | 10/03/2026 | 🛡️ **Transparence** : Bannière garanties correction, mot de passe par défaut (JJMMAAAA), FAQ rate limit |
+| **1.3.0** | 10/03/2026 | 🛡️ **Transparence** : Bannière garanties correction, ancienne documentation de connexion élève, FAQ rate limit |
 | **1.2.0** | 12/02/2026 | 🔑 **Mise à jour** : Authentification par Email + Mot de passe |
 | **1.1.0** | 01/02/2026 | 🔒 **Sécurité** : (Version obsolète - méthode non retenue) |
 | **1.0.0** | 30/01/2026 | Version initiale du guide élève |

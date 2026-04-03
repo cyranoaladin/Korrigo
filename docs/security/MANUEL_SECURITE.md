@@ -164,9 +164,9 @@ SESSION_SAVE_EVERY_REQUEST = False  # Performance
 
 ---
 
-#### 3.1.2 Authentification Student (Email + Password)
+#### 3.1.2 Authentification Student (Email + Date de Naissance)
 
-**Méthode** : Email + Mot de passe (Django User standard)
+**Méthode** : Email + date de naissance, puis création ou récupération du `User` associé pour la session
 
 **Flux de connexion** :
 ```python
@@ -174,24 +174,22 @@ SESSION_SAVE_EVERY_REQUEST = False  # Performance
 POST /api/students/login/
 {
   "email": "jean.dupont@eleve.lycee.fr",
-  "password": "password123"
+  "date_naissance": "2007-03-15"
 }
 
 # Vérification
-user = authenticate(username=email, password=password)
-# + Vérification lien Student
-student = Student.objects.get(user=user)
+student = Student.objects.get(email=email, date_naissance=dob)
+user = student.user or create_student_user(student)
 
-auth_login(request, user) # Session Django standard
+auth_login(request, user)
 request.session['student_id'] = student.id
 ```
 
 **Sécurité** :
-- ✅ **Standard** : Utilise l'infrastructure auth Django éprouvée
-- ✅ **Mot de passe** : Haché (PBKDF2)
+- ✅ **Standard** : Utilise la session Django côté serveur après vérification du `Student`
 - ✅ **Rate Limiting** : 30 tentatives / 15 min par IP (adapté aux NAT partagés)
 - ✅ **Réponse 429** : Message français clair en cas de dépassement
-- ✅ **Changement forcé** : Mot de passe initial (date de naissance JJMMAAAA) doit être changé à la première connexion
+- ✅ **Isolation** : `student_id` en session borne les accès élève
 
 ---
 
@@ -562,7 +560,7 @@ mount /dev/mapper/korrigo_data /opt/korrigo/media
 ```python
 # backend/core/settings.py (production)
 if SSL_ENABLED:
-    SECURE_SSL_REDIRECT = True  # HTTP → HTTPS redirect
+    SECURE_SSL_REDIRECT = False  # Redirect HTTP → HTTPS assuré par Nginx
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     
     # HSTS (HTTP Strict Transport Security)
@@ -969,7 +967,7 @@ http {
 # /etc/logrotate.d/korrigo
 /var/log/korrigo/*.log /var/log/nginx/korrigo*.log {
     daily
-    rotate 180  # 6 mois (conformité RGPD)
+    rotate 365  # 12 mois (rétention applicative actuelle)
     compress
     delaycompress
     notifempty
@@ -1290,7 +1288,7 @@ gpg --encrypt --recipient admin@lycee-exemple.fr "$BACKUP_DIR/media_$DATE.tar.gz
 rm "$BACKUP_DIR/db_$DATE.dump"
 rm "$BACKUP_DIR/media_$DATE.tar.gz"
 
-# Rétention : 30 jours quotidiens, 6 mois hebdomadaires
+# Rétention effective : 24h glissantes sur StorageBox, avec au plus 2 fallbacks locaux
 find $BACKUP_DIR -name "db_*.dump.gpg" -mtime +30 -delete
 ```
 
@@ -1334,14 +1332,14 @@ tar -xzf media_20260130_020000.tar.gz -C /opt/korrigo/
 | Vulnérabilité | Statut | Mesures |
 |---------------|--------|---------|
 | **A01:2021 - Broken Access Control** | ✅ Mitigué | RBAC, queryset filtering, object permissions |
-| **A02:2021 - Cryptographic Failures** | ✅ Mitigué | HTTPS, HSTS, chiffrement DB |
+| **A02:2021 - Cryptographic Failures** | ⚠️ Partiellement mitigé | HTTPS, HSTS, SSH pour backups, pas de chiffrement au repos applicatif documenté |
 | **A03:2021 - Injection** | ✅ Mitigué | ORM Django (parameterized queries) |
 | **A04:2021 - Insecure Design** | ✅ Mitigué | AIPD, threat modeling, security by default |
 | **A05:2021 - Security Misconfiguration** | ⚠️ Partiel | DEBUG=False, SECRET_KEY unique, CSP ⚠️ unsafe-inline |
 | **A06:2021 - Vulnerable Components** | ✅ Mitigué | `safety check`, `npm audit`, mises à jour régulières |
-| **A07:2021 - Authentication Failures** | ⚠️ Partiel | Rate limiting ✅, MDP faible ⚠️ (min 6 car.) |
+| **A07:2021 - Authentication Failures** | ⚠️ Partiel | Rate limiting ✅, politique mots de passe Django min 12 car., pas de 2FA admin |
 | **A08:2021 - Software/Data Integrity** | ✅ Mitigué | Audit trail, signatures Git |
-| **A09:2021 - Logging Failures** | ✅ Mitigué | GradingEvent, logs Django/Nginx, rétention 6 mois |
+| **A09:2021 - Logging Failures** | ✅ Mitigué | GradingEvent, logs Django/Nginx, rétention 12 mois documentée |
 | **A10:2021 - SSRF** | ✅ Non applicable | Pas de fetch URL externe |
 
 ---

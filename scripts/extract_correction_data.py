@@ -141,10 +141,15 @@ for copy in all_copies:
     # --- Student info ---
     student_info = None
     if copy.student:
+        import hashlib
+        student_hash = hashlib.sha256(
+            f"{copy.student.id}-{copy.student.last_name}-{copy.student.first_name}".encode()
+        ).hexdigest()[:16]
         student_info = {
-            "last_name": copy.student.last_name or "",
-            "first_name": copy.student.first_name or "",
-            "ddn": copy.student.date_naissance.isoformat() if copy.student.date_naissance else None,
+            "student_id": copy.student.id,
+            "student_hash": student_hash,
+            "class_name": copy.student.class_name or "",
+            "groupe": copy.student.groupe or "",
         }
 
     # --- Scores ---

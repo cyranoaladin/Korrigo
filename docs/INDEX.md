@@ -99,6 +99,7 @@
 |----------|-------------|
 | [**MANUEL_SECURITE.md**](security/MANUEL_SECURITE.md) | Procédures et politiques de sécurité |
 | [**POLITIQUE_RGPD.md**](security/POLITIQUE_RGPD.md) | Conformité RGPD |
+| [**REGISTRE_TRAITEMENTS_RGPD.md**](security/REGISTRE_TRAITEMENTS_RGPD.md) | Registre des traitements Art. 30 |
 | [**GESTION_DONNEES.md**](security/GESTION_DONNEES.md) | Cycle de vie des données |
 | [**AUDIT_CONFORMITE.md**](security/AUDIT_CONFORMITE.md) | Procédures d'audit |
 

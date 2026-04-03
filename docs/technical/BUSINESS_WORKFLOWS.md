@@ -119,7 +119,7 @@ Séparateur auto-détecté (`;` ou `,`). En-têtes insensibles à la casse.
 2. `_parse_date()` : formats DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
 3. Email sanitisation : split sur `" et "` → prend le premier (cas "addr1 et addr2")
 4. `Student.objects.get_or_create(last_name, first_name, date_naissance)`
-5. Si créé : `User.objects.get_or_create(username=email)`, password=`DEFAULT_PASSWORD`
+5. Si créé : `User.objects.get_or_create(username=email)` puis association au `Student`
 6. Ajout au groupe Django `STUDENT`
 7. `student.user = user` si non lié
 
@@ -127,7 +127,7 @@ Séparateur auto-détecté (`;` ou `,`). En-têtes insensibles à la casse.
 - `--dry-run` : simule sans écriture
 - `--file` : nom du fichier (défaut : `troisieme.csv`)
 - `--dir` : répertoire contenant le CSV (défaut : `scan_DNB_maths/`)
-- `--password` : mot de passe par défaut (défaut : env `DEFAULT_PASSWORD` ou `passe123`)
+- `--password` : paramètre historique d'anciens imports ; ne fait pas partie du flux élève canonique actuel
 
 ### Idempotence
 La clé unique `(last_name, first_name, date_naissance)` garantit qu'un import multiple ne crée pas de doublons. Seuls email et classe sont mis à jour si changés.

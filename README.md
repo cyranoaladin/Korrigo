@@ -159,11 +159,16 @@ Configuration requise dans `.env` :
 
 La production utilise un backup automatisé toutes les 30 minutes :
 - dump PostgreSQL complet
-- export JSON des corrections
+- export JSON pseudonymisé des corrections
 - archive complète du volume media Docker
-- envoi vers Hetzner StorageBox
+- envoi vers Hetzner StorageBox (`u554481.your-storagebox.de`, port `23`)
 - rétention distante de 24 heures
 - suppression locale après synchronisation, avec au plus 2 fallbacks locaux en cas d'échec réseau
+
+Notes d'exploitation :
+- le transport vers le StorageBox est chiffré via SSH
+- les artefacts distants ne sont pas chiffrés au repos par l'application
+- le point de santé de référence est `https://korrigo.labomaths.tn/api/health/`
 
 ---
 

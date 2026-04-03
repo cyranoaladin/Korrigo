@@ -49,7 +49,7 @@ Korrigo est une plateforme de correction numérique d'examens scannés de bout e
 - **Déploiement Cloud Privé** : serveur dédié (pas SaaS multi-tenant)
 - **Workflow pédagogique** : double finalité administrative (notes Pronote) et pédagogique (consultation élève)
 - **Stockage fichiers local** : volumes Docker (PDF, images rasterisées)
-- **Conformité RGPD** : audit trail complet, rétention 12 mois
+- **Conformité RGPD** : audit trail complet, rétention et purge documentées
 
 ### URL de Production
 
@@ -461,8 +461,9 @@ L'élève ne se connecte **pas** avec un mot de passe. Le flux est :
 ### Rate Limiting
 
 Via `django-ratelimit 4.1` :
-- Endpoints de connexion : max 10 tentatives / 5 minutes / IP
-- API générale : 200 req/min / utilisateur authentifié
+- `/api/login/` : 5 tentatives / 15 min / IP
+- `/api/students/login/` : 30 tentatives / 15 min / IP
+- certains endpoints métiers sensibles sont limités par utilisateur ou IP selon la vue
 - Désactivé en mode test E2E (variable d'environnement `KORRIGO_DISABLE_RATELIMIT=1`)
 
 ---
@@ -485,9 +486,9 @@ Via `django-ratelimit 4.1` :
 - `DEBUG=True`, hot reload activé (volumes montés)
 - Pas de TLS, CORS permissif
 
-**`docker-compose.server.yml`** (production) :
+**`infra/docker/docker-compose.prod.yml`** (production) :
 - `DEBUG=False` — vérifié au démarrage, crash si `True`
-- SSL/HSTS activé via Nginx
+- HTTPS et HSTS configurés via Nginx
 - CORS strict (origine unique `korrigo.labomaths.tn`)
 - Session cookies `Secure + HttpOnly`
 - JSON structured logging

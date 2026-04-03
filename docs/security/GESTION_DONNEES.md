@@ -122,7 +122,6 @@ python manage.py import_students students.csv
 - Audit et traçabilité
 
 **Mesures de sécurité** :
-- Chiffrement base de données PostgreSQL au repos
 - HTTPS/TLS pour transit
 - Contrôle d'accès RBAC (Admin/Teacher/Student)
 - Audit trail complet (GradingEvent)
@@ -176,7 +175,7 @@ python manage.py import_students students.csv
 | **Copies examens** | `exams_copy`, `exams_booklet` | ⚠️ Moyenne | 1 an après examen | Mission intérêt public |
 | **Fichiers PDF** | Stockage fichiers (`media/`) | ⚠️ Moyenne | 1 an après examen | Archivage pédagogique |
 | **Notes et annotations** | `grading_annotation` | ⚠️ Moyenne | 1 an après examen | Évaluation pédagogique |
-| **Logs d'audit** | `grading_gradingevent` | 🔒 Faible | 6 mois | Intérêt légitime (sécurité) |
+| **Logs d'audit** | `grading_gradingevent` | 🔒 Faible | 12 mois | Intérêt légitime (sécurité) |
 | **Logs d'accès** | Logs serveur Nginx | 🔒 Faible | 3 mois | Intérêt légitime (sécurité) |
 | **Sessions utilisateurs** | `django_session` | 🔒 Faible | 2 semaines | Nécessité technique |
 | **Comptes enseignants** | `auth_user` | ⚠️ Moyenne | Actif + 1 an | Mission intérêt public |
@@ -208,8 +207,8 @@ python manage.py import_students students.csv
 | **Logs Nginx** | Requêtes HTTP, IP | 3 mois | `/var/log/nginx/access.log` |
 | **Logs PostgreSQL** | Requêtes SQL lentes | 7 jours | `/var/log/postgresql/` |
 | **Logs Celery** | Tâches asynchrones | 30 jours | `/var/log/korrigo/celery.log` |
-| **Sauvegardes DB** | Dumps PostgreSQL | 90 jours | `/backups/db/` |
-| **Sauvegardes fichiers** | Media files | 90 jours | `/backups/media/` |
+| **Sauvegardes DB** | Dumps PostgreSQL | 24h distantes | `StorageBox/backups/korrigo_backups/` |
+| **Sauvegardes fichiers** | Media files | 24h distantes | `StorageBox/backups/korrigo_backups/` |
 
 ---
 
@@ -228,9 +227,7 @@ python manage.py import_students students.csv
 │   ├── final_pdfs/         # PDF finaux avec annotations
 │   └── headers/            # Images en-têtes pour OCR
 ├── static/                 # Fichiers statiques (public)
-└── backups/                # Sauvegardes (accès restreint)
-    ├── db/                 # Dumps PostgreSQL
-    └── media/              # Archives fichiers
+└── backups/                # Fallbacks locaux minimaux et journaux
 ```
 
 **Permissions filesystem** :
@@ -498,7 +495,7 @@ Total estimé: 4-5h
 | **Copies examens (PDF)** | 1 an après examen | - | Fin délai | Archivage pédagogique | Suppression physique |
 | **Annotations** | 1 an après examen | - | Fin délai | Lien copies | Suppression cascade |
 | **Notes finales** | Exportées Pronote | Archivées Pronote | N/A | Système externe | - |
-| **Logs audit (GradingEvent)** | 6 mois | - | Fin délai | CNIL recommandation | Suppression automatique |
+| **Logs audit (GradingEvent)** | 12 mois | - | Fin délai | Rétention applicative actuelle | Suppression automatique |
 | **Logs serveur (Nginx)** | 3 mois | - | Fin délai | Sécurité | Rotation logs |
 | **Sessions Django** | 2 semaines | - | Expiration | Nécessité technique | `clearsessions` |
 | **Booklets (staging)** | Jusqu'à validation | - | Après création Copy | Traçabilité | Suppression manuelle |
@@ -514,7 +511,7 @@ Total estimé: 4-5h
 - **Archivage notes** : 1 an minimum (recommandation académie)
 
 **CNIL Recommandations Éducation** :
-- **Logs d'accès/audit** : 6 mois maximum (sauf incident)
+- **Logs d'accès/audit** : rétention applicative documentée à 12 mois
 - **Données élèves** : Suppression année N+1 après départ
 
 **RGPD Article 5.1.e** : Limitation de la conservation
@@ -945,8 +942,8 @@ def purge_expired_sessions():
 
 @app.task(name='purge_old_audit_logs')
 def purge_old_audit_logs():
-    """Supprime logs d'audit > 6 mois"""
-    cutoff = timezone.now() - timedelta(days=180)  # 6 mois
+    """Supprime logs d'audit > 12 mois"""
+    cutoff = timezone.now() - timedelta(days=365)  # 12 mois
     deleted_count = GradingEvent.objects.filter(timestamp__lt=cutoff).delete()[0]
     logger.info(f"Logs d'audit purgés: {deleted_count} événements")
 

@@ -477,9 +477,9 @@ C'est la vue centrale de la plateforme. Son architecture interne est la plus com
 **Route :** `/student/login`
 
 - Formulaire : email + mot de passe
-- Appelle `authStore.loginStudent(email, password)` → POST `/api/students/login/`
-- Si `must_change_password: true` dans la réponse : redirection vers `/student/change-password`
-- Sinon : redirection vers `/student-portal`
+- Appelle `authStore.loginStudent(email, dateNaissance)` → POST `/api/students/login/`
+- Ouvre une session élève si l'email et la date de naissance correspondent
+- Redirection vers `/student-portal`
 
 ### 7.7 ResultView.vue — Espace élève
 
@@ -490,14 +490,12 @@ C'est la vue centrale de la plateforme. Son architecture interne est la plus com
 - Score total, appréciation globale
 - Bilan LLM si généré
 
-### 7.8 ChangePasswordStudent.vue — Changement de mot de passe
+### 7.8 ChangePasswordStudent.vue — Historique
 
-**Route :** `/student/change-password` (Auth: Student)
+**Statut :** composant historique hérité d'un ancien flux élève par mot de passe.
 
-- Formulaire : mot de passe actuel + nouveau mot de passe (× 2)
-- POST `/api/students/change-password/`
-- Interdit la réutilisation du mot de passe par défaut (`passe123` ou date de naissance au format `JJMMAAAA`)
-- Appelle `authStore.clearMustChangePassword()` après succès
+- Ne constitue pas le flux d'authentification élève canonique en production actuelle
+- La référence normative courante est l'authentification par email + date de naissance
 
 ---
 

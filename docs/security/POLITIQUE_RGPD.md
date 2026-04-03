@@ -4,8 +4,8 @@
 > **Statut documentaire**
 > Document de conformité conservé. Certaines illustrations de workflow peuvent décrire un état applicatif antérieur.
 
-> **Version**: 1.0.0  
-> **Date**: 30 Janvier 2026  
+> **Version**: 1.1.0
+> **Date**: 3 Avril 2026
 > **Public**: Responsables d'établissement, DPO, Chefs d'établissement  
 > **Conformité**: RGPD (UE) 2016/679, Loi Informatique et Libertés (France)  
 > **Autorité de contrôle**: CNIL (Commission Nationale de l'Informatique et des Libertés)
@@ -120,7 +120,7 @@ Cette politique s'applique à :
 | **Durée conservation** | 1 an après fin scolarité dans l'établissement |
 | **Destinataires** | Enseignants, Secrétariat, Admin |
 | **Transferts hors UE** | Non |
-| **Mesures sécurité** | - Authentification enseignants<br>- Logs d'accès<br>- Chiffrement base de données |
+| **Mesures sécurité** | - Authentification enseignants<br>- Logs d'accès<br>- Contrôle d'accès applicatif |
 
 **Table DB** : `students_student` (cf. `docs/DATABASE_SCHEMA.md`)
 
@@ -168,10 +168,10 @@ Cette politique s'applique à :
 | **Catégories de données** | - Logs d'actions utilisateurs<br>- Adresses IP (optionnel)<br>- Timestamps<br>- Actions effectuées |
 | **Personnes concernées** | Enseignants, Admin, Élèves |
 | **Base légale** | Intérêt légitime (art. 6.1.f RGPD) - sécurité système |
-| **Durée conservation** | 6 mois (CNIL recommandation) |
+| **Durée conservation** | 12 mois (rétention applicative actuelle documentée) |
 | **Destinataires** | Administrateur technique, DPO |
 | **Transferts hors UE** | Non |
-| **Mesures sécurité** | - Pseudonymisation IP<br>- Accès restreint Admin<br>- Suppression automatique après 6 mois |
+| **Mesures sécurité** | - Accès restreint Admin<br>- Journalisation horodatée<br>- Purge automatique quotidienne selon la rétention configurée |
 
 **Table DB** : `grading_gradingevent`
 
@@ -225,13 +225,13 @@ Cette politique s'applique à :
 | Données élèves (INE, nom, classe) | 1 an après fin scolarité | Code de l'éducation |
 | Copies numérisées (PDF) | 1 an après examen | Archivage pédagogique |
 | Notes et annotations | 1 an après examen | Export Pronote (archivage externe) |
-| Logs d'audit | 6 mois | Recommandation CNIL |
+| Logs d'audit | 12 mois | Rétention applicative actuelle |
 
 ### 5.6 Intégrité et Confidentialité
 
 **Mesures techniques** (cf. `docs/security/MANUEL_SECURITE.md`) :
-- ✅ Chiffrement base de données au repos (PostgreSQL)
-- ✅ HTTPS obligatoire (TLS 1.2+, HSTS)
+- ⚠️ Chiffrement en transit obligatoire (HTTPS/TLS, HSTS configuré côté Nginx)
+- ⚠️ Chiffrement au repos non démontré pour PostgreSQL et non assuré par l'application pour les backups
 - ✅ Authentification forte (rate limiting, sessions sécurisées)
 - ✅ Contrôle d'accès basé rôles (RBAC)
 - ✅ Audit trail complet (GradingEvent)
@@ -394,15 +394,14 @@ Formulaires types :
 
 | Catégorie | Mesures Implémentées | Niveau |
 |-----------|---------------------|--------|
-| **Authentification** | - Sessions Django sécurisées<br>- Rate limiting (5/15min admin, 30/15min élève par IP)<br>- Authentification double (User + Student session)<br>- Pas de mot de passe faible autorisé (min 6 car.) | ⚠️ Moyen |
+| **Authentification** | - Sessions Django sécurisées<br>- Rate limiting (5/15min admin, 30/15min élève par IP)<br>- Session élève bornée par `student_id`<br>- MinimumLengthValidator à 12 caractères pour les mots de passe Django | ✅ Fort |
 | **Contrôle d'accès** | - RBAC (Admin/Teacher/Student)<br>- Permission classes DRF<br>- Queryset filtering (élèves voient leurs données uniquement)<br>- Object-level permissions (annotations) | ✅ Fort |
-| **Chiffrement** | - HTTPS obligatoire (TLS 1.2+)<br>- HSTS (1 an, includeSubDomains, preload)<br>- Cookies sécurisés (SameSite=Lax)<br>- Base de données au repos (PostgreSQL) | ✅ Fort |
+| **Chiffrement** | - HTTPS obligatoire (TLS 1.2+)<br>- HSTS configuré côté Nginx<br>- Cookies sécurisés (SameSite=Lax)<br>- Backups chiffrés en transit via SSH | ⚠️ Partiel |
 | **Intégrité** | - CSRF protection (tokens)<br>- CORS strict (origines explicites)<br>- CSP (Content Security Policy) | ✅ Fort |
-| **Audit** | - Logs GradingEvent (tous événements correction)<br>- Logs téléchargements PDF<br>- Conservation 6 mois | ✅ Fort |
+| **Audit** | - Logs GradingEvent et audit applicatif<br>- Logs téléchargements PDF<br>- Conservation configurée à 12 mois | ✅ Fort |
 | **Anonymisation** | - Masquage nom élève sur copies (STAGING→READY)<br>- Numéro anonymat unique (UUID) | ✅ Fort |
 
 **Amélioration recommandée** :
-- ⚠️ Augmenter mot de passe minimum à 12 caractères
 - ⚠️ Implémenter 2FA pour Admins
 - ⚠️ Étendre rate limiting à tous endpoints critiques
 
@@ -415,7 +414,7 @@ Formulaires types :
 | **Charte d'utilisation** | Signature obligatoire enseignants/admin | Chef d'établissement |
 | **Formation RGPD** | Session annuelle (2h) | DPO |
 | **Gestion des accès** | Revue trimestrielle, désactivation comptes inactifs | Admin NSI |
-| **Sauvegardes** | Quotidiennes (rétention 30 jours), hebdomadaires (6 mois) | Admin NSI |
+| **Sauvegardes** | Toutes les 30 minutes vers StorageBox, rétention distante 24h, au plus 2 fallbacks locaux | Admin NSI |
 | **Plan de continuité** | Procédure de restauration documentée (RPO 24h, RTO 4h) | DSI/Admin |
 | **Gestion incidents** | Procédure de notification CNIL (<72h si violation) | Proviseur + DPO |
 
@@ -446,9 +445,9 @@ Formulaires types :
 | Type de données | Durée active | Durée archivage | Suppression finale | Base légale |
 |----------------|--------------|-----------------|-------------------|-------------|
 | **Données élèves (INE, nom, classe)** | Année scolaire | 1 an après fin scolarité | Suppression définitive | Code de l'éducation |
-| **Copies numérisées (PDF)** | 1 an après examen | - | Suppression automatique | Archivage pédagogique |
-| **Notes et annotations** | 1 an après examen | Export Pronote (archivage externe) | Suppression Korrigo | Code de l'éducation |
-| **Logs d'audit (GradingEvent)** | 6 mois | - | Suppression automatique | Recommandation CNIL |
+| **Copies numérisées (PDF)** | 1 an après examen | - | Purge manuelle planifiée | Archivage pédagogique |
+| **Notes et annotations** | 1 an après examen | Export Pronote (archivage externe) | Purge manuelle planifiée | Code de l'éducation |
+| **Logs d'audit** | 12 mois | - | Suppression automatique | Rétention applicative actuelle |
 | **Sessions utilisateurs** | 2 semaines (inactivité) | - | Expiration automatique | Sécurité technique |
 | **Brouillons (DraftState)** | 30 jours après finalisation copie | - | Suppression automatique | Optimisation stockage |
 
@@ -461,13 +460,9 @@ Formulaires types :
 # Exemple tâche Django (backend/core/tasks.py)
 @periodic_task(run_every=crontab(hour=2, minute=0))  # 2h du matin
 def purge_expired_data():
-    # Suppression copies > 1 an après examen
-    threshold = timezone.now() - timedelta(days=365)
-    Copy.objects.filter(exam__date__lt=threshold).delete()
-    
-    # Suppression logs > 6 mois
-    log_threshold = timezone.now() - timedelta(days=180)
-    GradingEvent.objects.filter(timestamp__lt=log_threshold).delete()
+    # La purge des données d'examen anciennes n'est pas automatisée à ce stade.
+    # Elle est exécutée manuellement via `purge_old_exam_data`.
+    purge_old_audit_logs(retention_days=365)
     
     # Suppression sessions expirées
     engine = import_module(settings.SESSION_ENGINE)
@@ -506,7 +501,7 @@ python manage.py delete_student_data --ine <INE> --confirm
 **Statut actuel** : ❌ **AUCUN TRANSFERT HORS UE**
 
 **Raisons** :
-- Serveurs hébergés en France (ou UE)
+- Serveur principal et StorageBox hébergés chez Hetzner en Allemagne
 - Aucun sous-traitant hors UE
 - Pas de cloud public (AWS, Google Cloud) sans garanties
 
@@ -700,7 +695,7 @@ flowchart TD
 - Durées de conservation
 - Mesures de sécurité techniques et organisationnelles
 
-**Emplacement** : `docs/security/REGISTRE_TRAITEMENTS_RGPD.xlsx`
+**Emplacement** : `docs/security/REGISTRE_TRAITEMENTS_RGPD.md`
 
 **Exemple entrée** :
 ```
@@ -744,7 +739,7 @@ Traitement n°1 : Correction de Copies Numérisées
 - ✅ Procès-verbaux formation RGPD
 - ✅ Demandes d'exercice de droits (registre)
 - ✅ Registre des violations de données
-- ✅ Logs d'audit (6 mois)
+- ✅ Logs d'audit (12 mois)
 - ✅ Chartes d'utilisation signées
 
 **Conservation** : 5 ans (prescription CNIL)

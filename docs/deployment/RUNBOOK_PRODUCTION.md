@@ -95,6 +95,12 @@ Archives historiques externalisées :
 - manifeste local de contrôle :
   [storagebox_korrigo_archives_historiques_manifest_2026-04-03.txt](/home/alaeddine/Bureau/KORRIGO/korrigo_v2_improved/storagebox_korrigo_archives_historiques_manifest_2026-04-03.txt)
 
+Notes RGPD / sécurité :
+- `copies_data.json` est pseudonymisé dans le flux de backup
+- le dump PostgreSQL et l'archive media restent complets pour la restauration
+- le transfert vers le StorageBox est chiffré via SSH
+- le chiffrement au repos des backups n'est pas assuré par l'application
+
 ---
 
 ## 6. Incidents courants

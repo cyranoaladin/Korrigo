@@ -118,8 +118,8 @@ python manage.py audit_permissions
 # Vérification des logs de sécurité (6 derniers mois)
 python manage.py check_audit_logs --days=180
 
-# Export registre RGPD
-python manage.py export_rgpd_register
+# Référence registre RGPD
+cat docs/security/REGISTRE_TRAITEMENTS_RGPD.md
 ```
 
 ---
@@ -173,15 +173,15 @@ python manage.py export_rgpd_register
 | Droit d'accès (Art. 15) : procédure opérationnelle | ☐ Oui ☐ Non | < 1 mois | `export_student_data.sh` |
 | Droit de rectification (Art. 16) : formulaire disponible | ☐ Oui ☐ Non | < 1 mois | Interface admin |
 | Droit à l'effacement (Art. 17) : script anonymisation | ☐ Oui ☐ Non | < 1 mois | `anonymize_student.py` |
-| Droit d'opposition (Art. 21) : possibilité de refus portail | ☐ Oui ☐ Non | Immédiat | Formulaire consentement |
-| Droit à la portabilité (Art. 20) : export JSON | ☐ Oui ☐ Non | < 1 mois | `manage.py export_data` |
+| Droit d'opposition (Art. 21) : procédure documentée | ☐ Oui ☐ Non | < 1 mois | Politique RGPD + support établissement |
+| Droit à la portabilité (Art. 20) : export administré | ☐ Oui ☐ Non | < 1 mois | Export encadré par l'établissement |
 
 **C - Conservation et Suppression**
 
 | Critère | Conforme | Durée | Automatisation |
 |---------|----------|-------|----------------|
 | Durée de conservation définie (examen) | ☐ Oui ☐ Non | 1 an | GESTION_DONNEES.md § 6 |
-| Durée de conservation logs d'audit | ☐ Oui ☐ Non | 6 mois | Celery purge task |
+| Durée de conservation logs d'audit | ☐ Oui ☐ Non | 12 mois | Tâche de purge quotidienne |
 | Archivage fin d'année académique | ☐ Oui ☐ Non | Juillet | Script manuel |
 | Suppression automatique données expirées | ☐ Oui ☐ Non | Daily | `purge_expired_data` |
 
@@ -190,12 +190,12 @@ python manage.py export_rgpd_register
 | Mesure | Implémentée | Niveau | Validation |
 |--------|-------------|--------|------------|
 | Chiffrement des données en transit (HTTPS) | ☐ Oui ☐ Non | TLS 1.3 | `openssl s_client` |
-| Chiffrement au repos (PostgreSQL) | ☐ Oui ☐ Non | AES-256 | Config DB |
+| Chiffrement au repos (PostgreSQL) | ☐ Oui ☐ Non | À démontrer | Config infra/hébergeur |
 | Hachage des mots de passe | ☐ Oui ☐ Non | Argon2 | `PASSWORD_HASHERS` |
 | Pseudonymisation des logs | ☐ Oui ☐ Non | IP masquées | Audit GradingEvent |
 | Contrôle d'accès RBAC | ☐ Oui ☐ Non | 6 rôles | SECURITY_PERMISSIONS |
 | Journalisation des accès | ☐ Oui ☐ Non | 100% actions | `GradingEvent` |
-| Sauvegarde chiffrée | ☐ Oui ☐ Non | GPG | `/backups/*.gpg` |
+| Sauvegarde chiffrée au repos | ☐ Oui ☐ Non | À démontrer | StorageBox / procédure |
 | Politique de mots de passe | ☐ Oui ☐ Non | 12 car. min | Django validators |
 
 ### 4.3 Documentation et Traçabilité
@@ -727,7 +727,7 @@ SELECT
 ✅ **Preuves techniques** :
 - [ ] Inventaire des permissions ([SECURITY_PERMISSIONS_INVENTORY.md](../../SECURITY_PERMISSIONS_INVENTORY.md))
 - [ ] Configuration chiffrement (TLS, base de données)
-- [ ] Logs d'audit des 6 derniers mois (anonymisés si nécessaire)
+- [ ] Logs d'audit des 12 derniers mois (anonymisés si nécessaire)
 - [ ] Attestations de formation utilisateurs
 - [ ] Résultats tests de sécurité (pentest, scan vulnérabilités)
 

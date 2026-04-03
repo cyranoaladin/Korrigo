@@ -8,7 +8,7 @@
 
 ## Résumé exécutif
 
-Korrigo v2 est pleinement opérationnel en production. Au 3 avril 2026, l’instance publique héberge **4 examens**, **504 copies**, **3414 annotations** et **396 scores**. Le système de backup automatisé vers Hetzner StorageBox est en service et les archives historiques locales ont été externalisées.
+Korrigo v2 est pleinement opérationnel en production. Au 3 avril 2026, l’instance publique héberge **4 examens**, **504 copies**, **3414 annotations** et **396 scores**. Le système de backup automatisé vers Hetzner StorageBox est en service, les archives historiques locales ont été externalisées et le registre RGPD Art. 30 est présent dans la documentation normative.
 
 ---
 
@@ -121,13 +121,18 @@ La finalisation est maintenant protégée par :
 Le système de backup en production fonctionne ainsi :
 - exécution toutes les 30 minutes via cron
 - dump PostgreSQL complet
-- export JSON des corrections
+- export JSON pseudonymisé des corrections
 - archive du volume `media_volume`
 - envoi vers Hetzner StorageBox `u554481.your-storagebox.de` sur le port `23`
 - stockage distant sous `backups/korrigo_backups/<timestamp>/`
 - rétention distante de 24 heures
 - suppression locale après succès
 - conservation locale limitée à des `fallback_*` en cas d’échec réseau
+
+Points importants :
+- le transfert des backups est chiffré via SSH
+- les backups distants ne sont pas chiffrés au repos par l’application
+- la purge des données d’examen anciennes est disponible via `purge_old_exam_data`, mais n’est pas automatisée à ce stade
 
 Archives historiques externalisées :
 - `backups/korrigo_archives_historiques/` sur le StorageBox

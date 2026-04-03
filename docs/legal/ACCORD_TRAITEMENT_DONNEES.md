@@ -294,13 +294,13 @@ Le Sous-Traitant met en œuvre des mesures techniques et organisationnelles appr
 | Mesure | Description | Norme/Standard |
 |--------|-------------|---------------|
 | **Chiffrement en transit** | HTTPS/TLS 1.3 pour toutes les communications | Recommandation ANSSI |
-| **Chiffrement au repos** | Chiffrement AES-256 des sauvegardes | Recommandation ANSSI |
+| **Chiffrement au repos** | À préciser contractuellement selon l'infrastructure retenue | Recommandation ANSSI |
 | **Authentification forte** | Mots de passe hachés (bcrypt), politique de complexité | CNIL |
 | **Contrôle d'accès** | RBAC (Role-Based Access Control), principe du moindre privilège | ISO 27001 |
 | **Journalisation** | Logs d'audit de toutes les actions sensibles | Article 32 RGPD |
 | **Pare-feu** | Firewall applicatif et réseau | ISO 27001 |
 | **Protection DDoS** | Rate limiting, détection d'anomalies | OWASP |
-| **Sauvegardes** | Sauvegardes quotidiennes, rétention 30 jours, chiffrées | ISO 27001 |
+| **Sauvegardes** | Sauvegardes régulières externalisées, modalités exactes à documenter dans l'annexe technique | ISO 27001 |
 | **Antivirus/Antimalware** | Protection des serveurs et postes clients | ISO 27001 |
 | **Tests de sécurité** | Tests d'intrusion annuels, audits de code | OWASP |
 

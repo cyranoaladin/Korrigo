@@ -50,12 +50,12 @@ Chaque utilisateur reçoit des identifiants personnels lors de la création de s
 ### Mes données sont-elles sécurisées ?
 
 **Réponse**: Oui, absolument. Korrigo PMF respecte le RGPD et les recommandations de la CNIL :
-- Toutes les données sont chiffrées en transit (HTTPS) et au repos
+- Toutes les données transitent en HTTPS
 - L'accès est contrôlé par authentification et permissions strictes
 - Les copies sont anonymisées pendant la correction
 - Les logs d'audit tracent toutes les actions sensibles
-- Les sauvegardes sont automatiques et sécurisées
-- Les données sont hébergées localement dans le lycée
+- Les sauvegardes sont automatiques toutes les 30 minutes vers un StorageBox Hetzner en Allemagne
+- Les sauvegardes sont chiffrées en transit via SSH ; leur chiffrement au repos n'est pas assuré par l'application
 
 Pour plus de détails, consultez la [Politique de Confidentialité](../legal/POLITIQUE_CONFIDENTIALITE.md).
 
@@ -80,7 +80,7 @@ Pour plus de détails, consultez la [Politique de Confidentialité](../legal/POL
 - **Enseignants** : Contactez l'administrateur du lycée qui créera votre compte. Vous vous connecterez avec votre adresse email **@ert.tn**
 - **Secrétariat** : L'administrateur créera votre compte avec un nom d'utilisateur (**secretariat**) et un mot de passe
 - **Administrateurs** : Compte créé avec un nom d'utilisateur (**admin**) et un mot de passe
-- **Élèves** : Vos comptes sont créés automatiquement lors de l'import depuis Pronote. Vous vous connecterez avec votre adresse email **@ert.tn**
+- **Élèves** : Vos comptes sont créés automatiquement lors de l'import. Vous vous connectez avec votre adresse email et votre date de naissance
 - **Identifiants** : Vous recevrez vos identifiants par email ou en main propre
 
 ### J'ai oublié mon mot de passe
@@ -95,6 +95,7 @@ Pour plus de détails, consultez la [Politique de Confidentialité](../legal/POL
 **Note** :
 - Les élèves et enseignants se connectent avec leur adresse email **@ert.tn**
 - Les administrateurs et secrétariat utilisent leur nom d'utilisateur (admin ou secretariat)
+- Les élèves n'utilisent pas un mot de passe Korrigo dédié dans le flux standard actuel
 
 ### La plateforme est-elle accessible depuis mon domicile ?
 
@@ -110,13 +111,13 @@ Pour plus de détails, consultez la [Politique de Confidentialité](../legal/POL
 
 ### Les données sont-elles conservées combien de temps ?
 
-**Réponse**: Conformément au RGPD et aux recommandations de l'Éducation Nationale :
+**Réponse**: Conformément à la politique documentaire actuelle :
 - **Copies d'examens** : 1 an après la fin de l'année scolaire
-- **Notes et résultats** : 5 ans (obligation légale)
+- **Notes et résultats** : conservation opérationnelle dans Korrigo à cadrer par l'établissement et ses exports aval
 - **Logs d'audit** : 1 an
 - **Comptes utilisateurs** : Tant que l'utilisateur est actif dans l'établissement
 
-Les données sont supprimées automatiquement après expiration. Voir [Gestion des Données](../security/GESTION_DONNEES.md) pour les détails.
+La purge complète des données d'examen anciennes n'est pas automatisée à ce stade. Elle doit être planifiée par l'établissement. Voir [Gestion des Données](../security/GESTION_DONNEES.md) pour les détails.
 
 ---
 
