@@ -50,6 +50,9 @@ PASSWORD_HASHERS = [
 # Ensure we are in test mode
 DEBUG = False
 CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_STORE_EAGER_RESULT = False
+CELERY_BROKER_URL = 'memory://'
+CELERY_RESULT_BACKEND = 'cache+memory://'
 
 # Disable security redirects that break test client (HTTP → HTTPS redirect causes 301)
 SECURE_SSL_REDIRECT = False
