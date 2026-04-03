@@ -169,9 +169,23 @@ jobs:
           set -euo pipefail
           
           echo "📂 Creating directory structure on VPS..."
-          # Create infra directory structure on VPS if not exists
-          ssh -o StrictHostKeyChecking=yes "${VPS_USER}@${VPS_HOST}" \
-            "mkdir -p ${VPS_PATH:?VPS_PATH not set}/infra/docker ${VPS_PATH}/infra/nginx"
+          # Create infra and seed_data directory structure on VPS if not exists
+          ssh -o StrictHostKeyChecking=yes "${VPS_USER}@${VPS_HOST}" "
+            set -euo pipefail
+            VPS_ROOT='${VPS_PATH:?VPS_PATH not set}'
+            ENV_FILE=\"\${VPS_ROOT}/.env\"
+            SEED_DIR=\"\${VPS_ROOT}/seed_data\"
+
+            if [ -f \"\${ENV_FILE}\" ]; then
+              SEED_OVERRIDE=\$(grep '^SEED_DATA_HOST_PATH=' \"\${ENV_FILE}\" | cut -d= -f2- || true)
+              if [ -n \"\${SEED_OVERRIDE}\" ]; then
+                SEED_DIR=\"\${SEED_OVERRIDE}\"
+              fi
+            fi
+
+            mkdir -p \"\${VPS_ROOT}/infra/docker\" \"\${VPS_ROOT}/infra/nginx\" \"\${SEED_DIR}\"
+            echo \"  Using seed_data path: \${SEED_DIR}\"
+          "
 
           echo "📤 Syncing docker-compose.prod.yml..."
           # Sync compose file
