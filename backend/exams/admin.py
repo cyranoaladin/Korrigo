@@ -1,16 +1,25 @@
 from django.contrib import admin
-from .models import CopyConstraint, TeacherGroupAssignment
+
+try:
+    from .models import CopyConstraint, TeacherGroupAssignment
+except ImportError:
+    # Production may temporarily mount an older overlay/exams/models.py during deploy.
+    # Keep admin autodiscovery non-fatal so migrations and startup can complete.
+    CopyConstraint = None
+    TeacherGroupAssignment = None
 
 
-@admin.register(CopyConstraint)
-class CopyConstraintAdmin(admin.ModelAdmin):
-    list_display = ['student_last_name', 'student_first_name', 'student_dob', 'forbidden_corrector', 'reason']
-    list_filter = ['forbidden_corrector']
-    search_fields = ['student_last_name', 'student_first_name']
+if CopyConstraint is not None:
+    @admin.register(CopyConstraint)
+    class CopyConstraintAdmin(admin.ModelAdmin):
+        list_display = ['student_last_name', 'student_first_name', 'student_dob', 'forbidden_corrector', 'reason']
+        list_filter = ['forbidden_corrector']
+        search_fields = ['student_last_name', 'student_first_name']
 
 
-@admin.register(TeacherGroupAssignment)
-class TeacherGroupAssignmentAdmin(admin.ModelAdmin):
-    list_display = ['teacher', 'group_name']
-    list_filter = ['group_name']
-    search_fields = ['teacher__username', 'teacher__email']
+if TeacherGroupAssignment is not None:
+    @admin.register(TeacherGroupAssignment)
+    class TeacherGroupAssignmentAdmin(admin.ModelAdmin):
+        list_display = ['teacher', 'group_name']
+        list_filter = ['group_name']
+        search_fields = ['teacher__username', 'teacher__email']
