@@ -33,6 +33,7 @@ import {
   Settings,
   Users,
   UserCog,
+  User,
   ShieldCheck,
 
   // Content & Documents
@@ -45,6 +46,8 @@ import {
   ClipboardList,
   Copy,
   Download,
+  ScanSearch,
+  Ruler,
 
   // Data & Stats
   BarChart3,
@@ -61,7 +64,12 @@ import {
   AlertCircle,
   CircleSlash,
   CheckCircle,
+  CheckCircle2,
   Info,
+
+  // Time
+  Calendar,
+  Tag,
 
   // Exam-type specific (backend compatibility)
   School,
@@ -144,6 +152,17 @@ const ICON_REGISTRY = {
   'folder':         Folder,
   'folder-open':    FolderOpen,
   'result':         Target,
+
+  // --- Quick actions (ExamOverview) ---
+  'identification': ScanSearch,
+  'correctors':     Users,
+  'scale':          Ruler,
+  'copies':         Copy,
+  'calendar':       Calendar,
+  'tag':            Tag,
+  'user':           User,
+  'check':          CheckCircle2,
+  'back':           ChevronRight,
 
   // ─── Backend ExamType compatibility aliases ───────────────────────
   'graduation-cap': GraduationCap,
