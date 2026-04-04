@@ -12,7 +12,7 @@
           ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
       >
-        <BarChart3 :size="16" />
+        <AppIcon name="dashboard" :size="16" />
         <span>Vue d'ensemble</span>
       </router-link>
 
@@ -20,8 +20,20 @@
         <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">Examens</p>
 
         <div v-for="group in examsByType" :key="group.details.id || group.details.name" class="mt-1">
-          <p class="px-3 py-1 text-xs font-semibold text-gray-400 truncate">
-            {{ group.details.name }}
+          <p class="px-3 py-1 text-xs font-semibold text-gray-400 truncate flex items-center gap-1.5">
+            <ExamTypeIcon
+              v-if="group.details.icon && group.details.icon !== 'folder'"
+              :icon="group.details.icon"
+              :size="12"
+              class="flex-shrink-0 opacity-60"
+            />
+            <AppIcon
+              v-else
+              name="exam-folder"
+              :size="12"
+              class="flex-shrink-0 opacity-60"
+            />
+            <span class="truncate">{{ group.details.name }}</span>
           </p>
 
           <div v-for="exam in group.exams" :key="exam.id" class="mt-0.5">
@@ -34,9 +46,12 @@
               @click="toggleExam(exam.id)"
             >
               <span class="truncate text-left">{{ exam.name }}</span>
-              <span class="ml-2 flex-shrink-0 text-xs text-gray-400">
-                {{ expandedExamId === exam.id ? '▲' : '▼' }}
-              </span>
+              <AppIcon
+                name="chevron-down"
+                :size="12"
+                class="ml-2 flex-shrink-0 text-gray-400 transition-transform duration-200"
+                :class="{ '-rotate-90': expandedExamId !== exam.id }"
+              />
             </button>
 
             <div v-if="expandedExamId === exam.id" class="ml-3 mt-0.5 space-y-0.5">
@@ -59,7 +74,7 @@
           to="/admin/exams/new"
           class="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-blue-400 hover:bg-gray-800 hover:text-blue-300 transition-colors"
         >
-          <span>+</span>
+          <AppIcon name="add" :size="16" />
           <span>Nouvel Examen</span>
         </router-link>
       </div>
@@ -73,7 +88,7 @@
           ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
       >
-        <Users :size="16" />
+        <AppIcon name="users" :size="16" />
         <span>Utilisateurs</span>
       </router-link>
 
@@ -85,7 +100,7 @@
           ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
       >
-        <MessageSquare :size="16" />
+        <AppIcon name="questionnaire" :size="16" />
         <span>Questionnaire</span>
       </router-link>
 
@@ -96,7 +111,7 @@
           ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
       >
-        <Settings :size="16" />
+        <AppIcon name="settings" :size="16" />
         <span>Paramètres</span>
       </router-link>
 
@@ -107,7 +122,7 @@
         class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-gray-800 hover:text-red-300 transition-colors"
         @click="handleLogout"
       >
-        <LogOut :size="16" />
+        <AppIcon name="logout" :size="16" />
         <span>Déconnexion</span>
       </button>
     </div>
@@ -125,7 +140,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
-import { BarChart3, Users, MessageSquare, Settings, LogOut } from 'lucide-vue-next'
+import AppIcon from '../../icons/AppIcon.vue'
+import ExamTypeIcon from '../ExamTypeIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -149,7 +165,7 @@ const examsByType = computed(() => {
         groups[typeId] = {
           details: {
             name: typeDetails?.name || 'Inconnu',
-            icon: typeDetails?.icon || '📁',
+            icon: typeDetails?.icon || 'folder',
             color: typeDetails?.color || '#64748b',
             id: typeId
           },
@@ -165,7 +181,7 @@ const examsByType = computed(() => {
   const result = Object.values(groups)
   if (others.length > 0) {
     result.push({
-      details: { name: 'Autres Examens', icon: '📁', color: '#64748b' },
+      details: { name: 'Autres Examens', icon: 'folder', color: '#64748b' },
       exams: others
     })
   }

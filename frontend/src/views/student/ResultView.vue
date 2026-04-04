@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
 import { useRouter } from 'vue-router'
-import { LogOut, Download, ChevronDown, ChevronRight, BookOpen, Target, FileText, GraduationCap, MessageSquareText, ShieldCheck } from 'lucide-vue-next'
+import AppIcon from '../../icons/AppIcon.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -174,7 +174,7 @@ onMounted(() => { fetchCopies() })
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-            <GraduationCap class="w-5 h-5 text-white" />
+            <AppIcon name="graduation" :size="20" class="text-white" />
           </div>
           <span class="font-bold text-lg text-slate-800 tracking-tight">Korrigo</span>
           <span v-if="auth.user" class="hidden sm:inline text-sm text-slate-500 border-l border-slate-200 pl-3 ml-1">
@@ -182,7 +182,7 @@ onMounted(() => { fetchCopies() })
           </span>
         </div>
         <button @click="logout" class="flex items-center gap-2 text-sm text-slate-500 hover:text-red-500 transition-colors px-3 py-2 rounded-lg hover:bg-red-50">
-          <LogOut class="w-4 h-4" /> Déconnexion
+          <AppIcon name="logout" :size="16" /> Déconnexion
         </button>
       </div>
     </header>
@@ -198,7 +198,7 @@ onMounted(() => { fetchCopies() })
     <!-- EMPTY -->
     <div v-else-if="copies.length === 0" class="flex items-center justify-center h-[calc(100vh-4rem)]">
       <div class="text-center">
-        <FileText class="w-16 h-16 text-slate-300 mx-auto mb-4" />
+        <AppIcon name="document" :size="64" class="text-slate-300 mx-auto mb-4" />
         <h2 class="text-xl font-semibold text-slate-600 mb-2">Aucun résultat disponible</h2>
         <p class="text-slate-400">Vos résultats apparaîtront ici lorsqu'ils seront publiés.</p>
       </div>
@@ -213,7 +213,7 @@ onMounted(() => { fetchCopies() })
         <div class="relative px-6 py-5 sm:px-8 sm:py-6">
           <div class="flex items-start gap-4">
             <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-md shadow-indigo-200">
-              <ShieldCheck class="w-5 h-5 text-white" />
+              <AppIcon name="shield" :size="20" class="text-white" />
             </div>
             <div class="flex-1 min-w-0">
               <h3 class="text-sm font-bold text-indigo-900 tracking-tight mb-3">Garanties du processus de correction</h3>
@@ -294,7 +294,7 @@ onMounted(() => { fetchCopies() })
               <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 mb-1">{{ selectedCopy.exam_name }}</h1>
               <p class="text-slate-400 text-sm mb-4">{{ selectedCopy.date }}</p>
               <span :class="['inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold', grade.bg, grade.color]">
-                <Target class="w-4 h-4" /> {{ grade.label }}
+                <AppIcon name="target" :size="16" /> {{ grade.label }}
               </span>
               <!-- Exercise mini bars -->
               <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -314,7 +314,7 @@ onMounted(() => { fetchCopies() })
             <div class="flex-shrink-0">
               <button v-if="selectedCopy.final_pdf_url" @click="downloadPdf"
                 class="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-semibold text-sm shadow-lg shadow-indigo-200 hover:shadow-indigo-300 hover:scale-[1.02] transition-all">
-                <Download class="w-4 h-4" /> Télécharger le PDF
+                <AppIcon name="download" :size="16" /> Télécharger le PDF
               </button>
             </div>
           </div>
@@ -325,13 +325,13 @@ onMounted(() => { fetchCopies() })
       <!-- ═══════════════ TABS ═══════════════ -->
       <div v-if="selectedCopy" class="flex gap-1 bg-white/60 backdrop-blur rounded-xl p-1 shadow-sm ring-1 ring-slate-100 w-fit">
         <button @click="activeTab='scores'" :class="['px-5 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2', activeTab==='scores' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700']">
-          <BookOpen class="w-4 h-4" /> Détail des notes
+          <AppIcon name="book" :size="16" /> Détail des notes
         </button>
         <button @click="activeTab='appreciation'" :class="['px-5 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2', activeTab==='appreciation' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700']">
-          <MessageSquareText class="w-4 h-4" /> Appréciation
+          <AppIcon name="message" :size="16" /> Appréciation
         </button>
         <button v-if="selectedCopy.final_pdf_url" @click="activeTab='pdf'" :class="['px-5 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2', activeTab==='pdf' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-500 hover:text-slate-700']">
-          <FileText class="w-4 h-4" /> Copie corrigée
+          <AppIcon name="document" :size="16" /> Copie corrigée
         </button>
       </div>
 
@@ -359,8 +359,7 @@ onMounted(() => { fetchCopies() })
                 </div>
               </div>
             </div>
-            <ChevronDown v-if="expandedExercises[exNum]" class="w-5 h-5 text-slate-400" />
-            <ChevronRight v-else class="w-5 h-5 text-slate-400" />
+            <AppIcon name="chevron-down" :size="20" class="text-slate-400 transition-transform duration-200" :class="{ '-rotate-90': !expandedExercises[exNum] }" />
           </button>
           <!-- Questions -->
           <div v-if="expandedExercises[exNum]" class="border-t border-slate-100">
@@ -394,7 +393,7 @@ onMounted(() => { fetchCopies() })
         <div v-if="selectedCopy.global_appreciation" class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 overflow-hidden">
           <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-              <MessageSquareText class="w-4 h-4 text-amber-600" />
+              <AppIcon name="message" :size="16" class="text-amber-600" />
             </div>
             <h3 class="font-semibold text-slate-800">Appréciation générale</h3>
           </div>
@@ -403,7 +402,7 @@ onMounted(() => { fetchCopies() })
           </div>
         </div>
         <div v-else class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-8 text-center">
-          <MessageSquareText class="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <AppIcon name="message" :size="40" class="text-slate-300 mx-auto mb-3" />
           <p class="text-slate-400 text-sm">Aucune appréciation disponible.</p>
         </div>
 

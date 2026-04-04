@@ -58,10 +58,12 @@
             class="inline-flex items-center gap-2 bg-primary-700 text-white px-5 py-2 rounded-lg hover:bg-primary-800 transition-colors font-medium text-sm shadow-sm"
             @click.stop="isLoginDropdownOpen = !isLoginDropdownOpen"
           >
-            <LogIn class="w-4 h-4" />
+            <AppIcon name="login" :size="16" />
             Connexion
-            <ChevronDown
-              class="w-3.5 h-3.5"
+            <AppIcon
+              name="chevron-down"
+              :size="14"
+              class="transition-transform duration-200"
               :class="{ 'rotate-180': isLoginDropdownOpen }"
             />
           </button>
@@ -81,14 +83,14 @@
                 to="/teacher/login"
                 class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
               >
-                <PenTool class="w-4 h-4 text-primary-500" />
+                <AppIcon name="teacher-pen" :size="16" class="text-primary-500" />
                 Enseignant
               </router-link>
               <router-link
                 to="/admin/login"
                 class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
               >
-                <Settings class="w-4 h-4 text-purple-500" />
+                <AppIcon name="admin" :size="16" class="text-purple-500" />
                 Administration
               </router-link>
               <div class="border-t border-gray-100 my-1" />
@@ -96,7 +98,7 @@
                 to="/student/login"
                 class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
               >
-                <GraduationCap class="w-4 h-4 text-green-500" />
+                <AppIcon name="student" :size="16" class="text-green-500" />
                 Élève
               </router-link>
             </div>
@@ -109,27 +111,16 @@
             class="text-gray-500 hover:text-gray-700 p-2"
             @click="isMobileMenuOpen = !isMobileMenuOpen"
           >
-            <svg
-              class="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                v-if="!isMobileMenuOpen"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-              <path
-                v-else
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <AppIcon
+              v-if="!isMobileMenuOpen"
+              name="menu"
+              :size="24"
+            />
+            <AppIcon
+              v-else
+              name="close"
+              :size="24"
+            />
           </button>
         </div>
       </div>
@@ -179,21 +170,21 @@
             to="/teacher/login"
             class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
           >
-            <PenTool class="w-4 h-4 text-primary-500" />
+            <AppIcon name="teacher-pen" :size="16" class="text-primary-500" />
             Enseignant
           </router-link>
           <router-link
             to="/admin/login"
             class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
           >
-            <Settings class="w-4 h-4 text-purple-500" />
+            <AppIcon name="admin" :size="16" class="text-purple-500" />
             Administration
           </router-link>
           <router-link
             to="/student/login"
             class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
           >
-            <GraduationCap class="w-4 h-4 text-green-500" />
+            <AppIcon name="student" :size="16" class="text-green-500" />
             Élève
           </router-link>
         </div>
@@ -205,7 +196,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { LogIn, ChevronDown, PenTool, Settings, GraduationCap } from 'lucide-vue-next'
+import AppIcon from '../icons/AppIcon.vue'
 
 const authStore = useAuthStore()
 const juryReportCodes = computed(() =>

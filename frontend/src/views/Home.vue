@@ -1,5 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import AppIcon from '../icons/AppIcon.vue'
 
 const router = useRouter()
 
@@ -31,13 +32,14 @@ const navigateTo = (path) => {
         tabindex="0"
         @click="navigateTo('/student/login')" 
       >
-        <div class="card-icon">
-          🎓
+        <div class="card-icon-wrapper student-icon-bg">
+          <AppIcon name="student" :size="32" class="card-icon-svg" />
         </div>
         <h2>Espace Élève</h2>
         <p>Consultez vos copies corrigées et vos résultats.</p>
         <button class="btn-link">
-          Accéder ›
+          <span>Accéder</span>
+          <AppIcon name="chevron-right" :size="16" />
         </button>
       </div>
 
@@ -48,13 +50,14 @@ const navigateTo = (path) => {
         tabindex="0"
         @click="navigateTo('/teacher/login')" 
       >
-        <div class="card-icon">
-          ✏️
+        <div class="card-icon-wrapper teacher-icon-bg">
+          <AppIcon name="teacher" :size="32" class="card-icon-svg" />
         </div>
         <h2>Espace Enseignant</h2>
         <p>Corrigez, annotez et gérez vos examens.</p>
         <button class="btn-link">
-          Accéder ›
+          <span>Accéder</span>
+          <AppIcon name="chevron-right" :size="16" />
         </button>
       </div>
 
@@ -65,20 +68,22 @@ const navigateTo = (path) => {
         tabindex="0"
         @click="navigateTo('/admin/login')" 
       >
-        <div class="card-icon">
-          ⚙️
+        <div class="card-icon-wrapper admin-icon-bg">
+          <AppIcon name="admin" :size="32" class="card-icon-svg" />
         </div>
         <h2>Administration</h2>
         <p>Gestion des examens, utilisateurs et imports.</p>
         <button class="btn-link">
-          Accéder ›
+          <span>Accéder</span>
+          <AppIcon name="chevron-right" :size="16" />
         </button>
       </div>
     </main>
 
     <div class="info-link-container">
       <router-link to="/korrigo" class="info-link">
-        En savoir plus sur la plateforme Korrigo PMF ›
+        En savoir plus sur la plateforme Korrigo PMF
+        <AppIcon name="chevron-right" :size="14" />
       </router-link>
     </div>
 
@@ -163,9 +168,34 @@ h1 {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-.card-icon {
-  font-size: 3rem;
+/* Premium icon wrapper replacing emoji-based .card-icon */
+.card-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 1rem;
+}
+
+.card-icon-svg {
+  color: white;
+}
+
+.student-icon-bg {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.teacher-icon-bg {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.admin-icon-bg {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .card h2 {
@@ -188,6 +218,14 @@ h1 {
   font-size: 1rem;
   cursor: pointer;
   padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: gap 0.2s ease;
+}
+
+.btn-link:hover {
+  gap: 0.6rem;
 }
 
 .info-link-container {
@@ -201,6 +239,9 @@ h1 {
   font-weight: 500;
   font-size: 1rem;
   transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .info-link:hover {

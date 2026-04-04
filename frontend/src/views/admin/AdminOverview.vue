@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
+import AppIcon from '../../icons/AppIcon.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -131,9 +132,7 @@ onMounted(fetchExams)
         v-if="error"
         class="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm"
       >
-        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
+        <AppIcon name="alert" :size="16" class="shrink-0" />
         {{ error }}
         <button class="ml-auto text-red-500 hover:text-red-700 font-medium" @click="fetchExams">Réessayer</button>
       </div>
@@ -152,53 +151,77 @@ onMounted(fetchExams)
         <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           <!-- Total exams -->
           <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Examens</p>
+            <div class="flex items-center gap-2 mb-2">
+              <AppIcon name="exam" :size="14" class="text-slate-400" />
+              <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Examens</p>
+            </div>
             <p class="text-3xl font-bold text-slate-800">{{ totalExams }}</p>
             <p class="text-xs text-slate-400 mt-1">au total</p>
           </div>
 
           <!-- Total copies -->
           <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Copies</p>
+            <div class="flex items-center gap-2 mb-2">
+              <AppIcon name="document" :size="14" class="text-slate-400" />
+              <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Copies</p>
+            </div>
             <p class="text-3xl font-bold text-slate-800">{{ totalCopies }}</p>
             <p class="text-xs text-slate-400 mt-1">au total</p>
           </div>
 
           <!-- READY -->
           <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Prêtes</p>
+            <div class="flex items-center gap-2 mb-2">
+              <AppIcon name="success" :size="14" class="text-blue-400" />
+              <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Prêtes</p>
+            </div>
             <p class="text-3xl font-bold text-blue-600">{{ copiesByStatus.READY }}</p>
             <p class="text-xs text-slate-400 mt-1">copies READY</p>
           </div>
 
           <!-- IN_PROGRESS -->
           <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">En cours</p>
+            <div class="flex items-center gap-2 mb-2">
+              <AppIcon name="trending" :size="14" class="text-amber-400" />
+              <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">En cours</p>
+            </div>
             <p class="text-3xl font-bold text-amber-500">{{ copiesByStatus.IN_PROGRESS }}</p>
             <p class="text-xs text-slate-400 mt-1">copies IN_PROGRESS</p>
           </div>
 
           <!-- FINALIZED -->
           <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Finalisées</p>
+            <div class="flex items-center gap-2 mb-2">
+              <AppIcon name="success" :size="14" class="text-emerald-400" />
+              <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Finalisées</p>
+            </div>
             <p class="text-3xl font-bold text-emerald-600">{{ copiesByStatus.FINALIZED }}</p>
             <p class="text-xs text-slate-400 mt-1">copies FINALIZED</p>
           </div>
 
           <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Élèves</p>
+            <div class="flex items-center gap-2 mb-2">
+              <AppIcon name="student" :size="14" class="text-slate-400" />
+              <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Élèves</p>
+            </div>
             <p class="text-3xl font-bold text-slate-800">{{ studentsCount }}</p>
             <p class="text-xs text-slate-400 mt-1">profils élèves</p>
           </div>
 
           <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Résultats publiés</p>
+            <div class="flex items-center gap-2 mb-2">
+              <AppIcon name="result" :size="14" class="text-indigo-400" />
+              <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Résultats publiés</p>
+            </div>
             <p class="text-3xl font-bold text-indigo-600">{{ releasedExamsCount }}</p>
             <p class="text-xs text-slate-400 mt-1">examens publiés</p>
           </div>
 
           <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Correcteurs</p>
+            <div class="flex items-center gap-2 mb-2">
+              <AppIcon name="teacher" :size="14" class="text-slate-400" />
+              <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Correcteurs</p>
+            </div>
             <p class="text-3xl font-bold text-slate-800">{{ correctorsCount }}</p>
             <p class="text-xs text-slate-400 mt-1">enseignants actifs</p>
           </div>
@@ -224,9 +247,7 @@ onMounted(fetchExams)
           v-else-if="!error && exams.length === 0"
           class="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-sm"
         >
-          <svg class="w-10 h-10 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
+          <AppIcon name="empty" :size="40" class="text-slate-300 mx-auto mb-3" />
           <p class="text-slate-500 font-medium">Aucun examen disponible</p>
           <p class="text-slate-400 text-sm mt-1">Les examens créés apparaîtront ici.</p>
         </div>
@@ -294,10 +315,7 @@ onMounted(fetchExams)
                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors"
                       @click="goToExam(exam.id)"
                     >
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                      </svg>
+                      <AppIcon name="view" :size="14" />
                       Voir
                     </button>
                   </td>
