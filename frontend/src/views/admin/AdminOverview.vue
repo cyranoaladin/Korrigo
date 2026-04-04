@@ -17,15 +17,29 @@ const fetchExams = async () => {
   loading.value = true
   error.value = null
   try {
-    const [examsRes, statsRes] = await Promise.all([
+    const [examsResult, statsResult] = await Promise.allSettled([
       api.get('/exams/'),
       api.get('/exams/global-stats/'),
     ])
-    exams.value = Array.isArray(examsRes.data) ? examsRes.data : (examsRes.data.results || [])
-    globalStats.value = statsRes.data
+
+    // Exams are required — if this fails, show the error
+    if (examsResult.status === 'fulfilled') {
+      exams.value = Array.isArray(examsResult.value.data)
+        ? examsResult.value.data
+        : (examsResult.value.data.results || [])
+    } else {
+      const e = examsResult.reason
+      console.error('AdminOverview: Failed to fetch exams', e)
+      error.value = e.response?.data?.detail || e.message || 'Erreur lors du chargement des examens.'
+    }
+
+    // Global stats are optional — graceful degradation if endpoint is missing
+    if (statsResult.status === 'fulfilled') {
+      globalStats.value = statsResult.value.data
+    }
   } catch (e) {
-    console.error('AdminOverview: Failed to fetch exams', e)
-    error.value = e.response?.data?.detail || e.message || 'Erreur lors du chargement des examens.'
+    console.error('AdminOverview: Unexpected error', e)
+    error.value = e.message || 'Erreur inattendue.'
   } finally {
     loading.value = false
   }
