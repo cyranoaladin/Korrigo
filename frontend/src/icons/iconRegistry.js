@@ -85,6 +85,21 @@ import {
   Cpu,
   Paintbrush,
   Dumbbell,
+
+  // CorrectorDesk toolbar
+  MessageCircle,
+  Highlighter,
+  XCircle,
+  Star,
+  Lock,
+  AlertTriangle,
+  ArrowLeft,
+  ChevronLeft,
+  Lightbulb,
+  MoveHorizontal,
+  Minus,
+  Check,
+  XIcon,
 } from 'lucide-vue-next'
 
 // ─── Business-semantic icon registry ────────────────────────────────
@@ -163,6 +178,22 @@ const ICON_REGISTRY = {
   'user':           User,
   'check':          CheckCircle2,
   'back':           ChevronRight,
+
+  // --- CorrectorDesk toolbar ---
+  'comment':        MessageCircle,
+  'highlight':      Highlighter,
+  'error-mark':     XCircle,
+  'star':           Star,
+  'lock':           Lock,
+  'warning':        AlertTriangle,
+  'arrow-left':     ArrowLeft,
+  'chevron-left':   ChevronLeft,
+  'lightbulb':      Lightbulb,
+  'fit-width':      MoveHorizontal,
+  'zoom-in':        Plus,
+  'zoom-out':       Minus,
+  'check-mark':     Check,
+  'x-mark':         XIcon,
 
   // ─── Backend ExamType compatibility aliases ───────────────────────
   'graduation-cap': GraduationCap,
