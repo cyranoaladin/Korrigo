@@ -14,7 +14,7 @@
           class="h-20 md:h-24 mx-auto mb-8 drop-shadow-lg"
         >
         <span class="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-white/10 border border-white/20 text-primary-100 text-sm font-medium mb-8 backdrop-blur-sm">
-          <ShieldCheck class="w-4 h-4" />
+          <AppIcon name="security" :size="16" />
           Plateforme de Correction Numérique — Conforme RGPD
         </span>
         <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight leading-[1.1]">
@@ -33,14 +33,14 @@
             to="/"
             class="inline-flex items-center justify-center gap-2 bg-white text-primary-900 px-8 py-3.5 rounded-lg font-semibold shadow-lg hover:bg-gray-50 hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
           >
-            <LogIn class="w-5 h-5" />
+            <AppIcon name="login" :size="20" />
             Connexion
           </router-link>
           <a
             href="#architecture"
             class="inline-flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 px-8 py-3.5 rounded-lg font-semibold hover:bg-white/20 transition-all duration-200 backdrop-blur-sm"
           >
-            <Layers class="w-5 h-5" />
+            <AppIcon name="layers" :size="20" />
             Découvrir l'architecture
           </a>
         </div>
@@ -106,7 +106,7 @@
       <div class="max-w-5xl mx-auto px-6">
         <div class="text-center mb-12">
           <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-100 text-green-800 text-sm font-medium mb-4 border border-green-200">
-            <ShieldCheck class="w-4 h-4" />
+            <AppIcon name="security" :size="16" />
             Garanties du processus de correction
           </div>
           <h2 class="text-3xl font-bold text-neutralDark mb-3">
@@ -123,7 +123,7 @@
             class="bg-white border border-green-200 rounded-xl p-5 flex gap-4 items-start hover:shadow-md transition-shadow"
           >
             <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-              <component :is="guarantee.icon" class="w-5 h-5 text-green-700" />
+              <AppIcon :name="guarantee.icon" :size="20" class="text-green-700" />
             </div>
             <div>
               <h3 class="font-semibold text-neutralDark text-sm mb-1">{{ guarantee.title }}</h3>
@@ -180,37 +180,37 @@
         </div>
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <FeatureCard
-            :icon="EyeOff"
+            icon="eye-off"
             accent="purple"
             title="Anonymisation stricte"
             text="Numéro d'anonymat séquentiel unique par copie. L'en-tête manuscrite est masquée dynamiquement pendant la phase de correction."
           />
           <FeatureCard
-            :icon="Sparkles"
+            icon="sparkles"
             accent="green"
             title="Korrigo AI (Bilans)"
             text="Génération de résumés pédagogiques personnalisés via LLM local Ollama (qwen2.5:32b). Analyse les points forts et axes de progrès."
           />
           <FeatureCard
-            :icon="BarChart3"
+            icon="bar-chart-3"
             accent="primary"
             title="Barème hiérarchique"
             text="Structure Exercice → Question → Sous-question. Saisie rapide au clavier, calcul automatique du total et export Pronote direct."
           />
           <FeatureCard
-            :icon="Lightbulb"
+            icon="lightbulb"
             accent="orange"
             title="Banque de commentaires"
             text="123 suggestions officielles et banque personnelle auto-alimentée. Auto-complétion intelligente par fréquence."
           />
           <FeatureCard
-            :icon="ScanSearch"
+            icon="identification"
             accent="blue"
             title="OCR Vision GPT-4o-mini"
             text="Reconnaissance ultra-précise de l'écriture manuscrite cursive pour l'identification automatique des copies scannées."
           />
           <FeatureCard
-            :icon="Lock"
+            icon="lock"
             accent="red"
             title="Verrouillage & Autosave"
             text="Verrouillage pessimiste avec heartbeat 30s et autosave dual-layer (localStorage 300ms + serveur 2s) : zéro perte de données."
@@ -227,7 +227,7 @@
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-12">
           <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-4 border border-blue-200">
-            <Server class="w-4 h-4" />
+            <AppIcon name="server" :size="16" />
             Stack Technique
           </div>
           <h2 class="text-3xl font-bold text-neutralDark mb-3">
@@ -267,7 +267,7 @@
         <div class="grid md:grid-cols-3 gap-8">
           <div class="text-center">
             <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <BookOpen class="w-7 h-7" />
+              <AppIcon name="book" :size="28" />
             </div>
             <h3 class="font-semibold text-neutralDark text-lg mb-2">
               Pédagogiques
@@ -281,7 +281,7 @@
           </div>
           <div class="text-center">
             <div class="w-14 h-14 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Clock class="w-7 h-7" />
+              <AppIcon name="clock" :size="28" />
             </div>
             <h3 class="font-semibold text-neutralDark text-lg mb-2">
               Organisationnels
@@ -295,7 +295,7 @@
           </div>
           <div class="text-center">
             <div class="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <ShieldCheck class="w-7 h-7" />
+              <AppIcon name="security" :size="28" />
             </div>
             <h3 class="font-semibold text-neutralDark text-lg mb-2">
               Souveraineté
@@ -315,7 +315,7 @@
     <section class="py-24 bg-white border-t border-gray-100">
       <div class="max-w-5xl mx-auto px-6 text-center">
         <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-50 text-green-700 text-sm font-medium mb-6 border border-green-200">
-          <ShieldCheck class="w-4 h-4" />
+          <AppIcon name="security" :size="16" />
           Privacy by Design · Référentiel CNIL Éducation 2020
         </div>
         <h2 class="text-3xl font-bold text-neutralDark mb-4">
@@ -329,28 +329,28 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-14">
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-3">
-              <CheckCircle class="w-6 h-6" />
+              <AppIcon name="success" :size="24" />
             </div>
             <span class="font-medium text-gray-900 text-sm">RGPD conforme</span>
             <span class="text-xs text-gray-400 mt-0.5">Art. 6, 15–22, 28, 30</span>
           </div>
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3">
-              <Lock class="w-6 h-6" />
+              <AppIcon name="lock" :size="24" />
             </div>
             <span class="font-medium text-gray-900 text-sm">HTTPS + TLS 1.2+</span>
             <span class="text-xs text-gray-400 mt-0.5">HSTS, CSP, CSRF</span>
           </div>
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-3">
-              <ClipboardList class="w-6 h-6" />
+              <AppIcon name="list" :size="24" />
             </div>
             <span class="font-medium text-gray-900 text-sm">Audit complet</span>
             <span class="text-xs text-gray-400 mt-0.5">GradingEvent · AuditLog</span>
           </div>
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-3">
-              <KeyRound class="w-6 h-6" />
+              <AppIcon name="key-round" :size="24" />
             </div>
             <span class="font-medium text-gray-900 text-sm">RBAC strict</span>
             <span class="text-xs text-gray-400 mt-0.5">Admin · Enseignant · Élève</span>
@@ -386,7 +386,7 @@
           class="inline-flex items-center gap-2 text-primary-700 font-semibold hover:text-primary-800 transition-colors"
         >
           Consulter le dossier complet Direction & Conformité
-          <ArrowRight class="w-4 h-4" />
+          <AppIcon name="arrow-right" :size="16" />
         </router-link>
       </div>
     </section>
@@ -411,14 +411,7 @@ import FeatureCard from '../components/FeatureCard.vue'
 import ArchitectureDiagram from '../components/ArchitectureDiagram.vue'
 import CopyLifecycleDiagram from '../components/CopyLifecycleDiagram.vue'
 import WorkflowDiagram from '../components/WorkflowDiagram.vue'
-import {
-  ShieldCheck, LogIn, GraduationCap, Layers, Server,
-  Upload, EyeOff, PenTool, Download, ScanSearch,
-  BarChart3, Lightbulb, FileDown, Users, Shuffle,
-  CheckCircle, Lock, ClipboardList, KeyRound, ArrowRight,
-  BookOpen, Clock, Settings, Briefcase, Sparkles,
-  UserCheck, Eye, Dice5, FileCheck
-} from 'lucide-vue-next'
+import AppIcon from '../icons/AppIcon.vue'
 
 const stats = [
   { value: '209', label: 'Copies traitées' },
@@ -430,25 +423,25 @@ const stats = [
 
 const roles = [
   {
-    icon: Settings,
+    icon: 'settings',
     bg: 'bg-red-50', color: 'text-red-600',
     title: 'Administration',
     desc: 'Création d\'examens, gestion des utilisateurs, import élèves CSV, dispatch correcteurs, exports Pronote et supervision globale.',
   },
   {
-    icon: PenTool,
+    icon: 'edit',
     bg: 'bg-primary-50', color: 'text-primary-600',
     title: 'Enseignants',
     desc: 'Correction numérique avec annotations vectorielles, notation par barème structuré, autosave dual-layer et finalisation des copies.',
   },
   {
-    icon: Briefcase,
+    icon: 'briefcase',
     bg: 'bg-orange-50', color: 'text-orange-600',
     title: 'Secrétariat',
     desc: 'Identification des copies scannées : validation OCR GPT-4o-mini, association copie-élève et gestion des fascicules.',
   },
   {
-    icon: GraduationCap,
+    icon: 'student',
     bg: 'bg-green-50', color: 'text-green-600',
     title: 'Élèves',
     desc: 'Consultation sécurisée des copies corrigées avec bannière de transparence, téléchargement PDF et bilan IA personnalisé.',
@@ -457,32 +450,32 @@ const roles = [
 
 const guarantees = [
   {
-    icon: UserCheck,
+    icon: 'user-check',
     title: 'Correction humaine uniquement',
     desc: 'Aucune intelligence artificielle n\'est utilisée pour noter les copies ou prendre des décisions pédagogiques.',
   },
   {
-    icon: EyeOff,
+    icon: 'eye-off',
     title: 'Copies anonymisées',
     desc: 'Les copies sont anonymisées avant correction. Le correcteur ne voit jamais le nom de l\'élève.',
   },
   {
-    icon: Shuffle,
+    icon: 'shuffle',
     title: 'Répartition aléatoire',
     desc: 'Les copies sont réparties aléatoirement entre les correcteurs par un algorithme round-robin équitable.',
   },
   {
-    icon: FileCheck,
+    icon: 'file-check',
     title: 'Contrôle complémentaire',
     desc: 'Un contrôle complémentaire est effectué après finalisation pour garantir la cohérence des corrections.',
   },
   {
-    icon: Sparkles,
+    icon: 'sparkles',
     title: 'IA uniquement pour l\'aide',
     desc: 'L\'IA n\'est utilisée que pour l\'OCR (identification) et les bilans pédagogiques personnalisés, jamais pour la notation.',
   },
   {
-    icon: ClipboardList,
+    icon: 'list',
     title: 'Traçabilité complète',
     desc: 'Chaque action (verrouillage, annotation, score, finalisation) est enregistrée dans un journal d\'audit horodaté.',
   },

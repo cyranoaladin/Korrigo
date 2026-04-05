@@ -8,7 +8,7 @@
 
     <!-- Error -->
     <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-      <AlertTriangle class="w-8 h-8 text-red-500 mx-auto mb-2" />
+      <AppIcon name="warning" :size="32" class="text-red-500 mx-auto mb-2" />
       <p class="text-red-700 font-medium">Erreur de chargement</p>
       <p class="text-red-500 text-sm mt-1">{{ error }}</p>
     </div>
@@ -17,7 +17,7 @@
     <div v-else class="mb-10">
       <div class="flex items-center gap-3 mb-4">
         <div class="bg-primary-100 rounded-xl p-3">
-          <BarChart3 class="w-7 h-7 text-primary-700" />
+          <AppIcon name="stats" :size="28" class="text-primary-700" />
         </div>
         <div>
           <h1 class="text-2xl sm:text-3xl font-bold text-neutralDark">
@@ -49,7 +49,7 @@
             : 'text-gray-600 hover:bg-gray-200/70'"
           @click="activeTab = tab.id"
         >
-          <component :is="tab.icon" class="w-3.5 h-3.5" />
+          <AppIcon :name="tab.icon" :size="14" />
           {{ tab.label }}
         </button>
       </div>
@@ -61,7 +61,7 @@
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div v-for="kpi in kpis" :key="kpi.label" class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
           <div class="flex items-center gap-2 mb-2">
-            <component :is="kpi.icon" class="w-4 h-4" :class="kpi.color" />
+            <AppIcon :name="kpi.icon" :size="16" :class="kpi.color" />
             <span class="text-xs text-gray-500 font-medium uppercase tracking-wide">{{ kpi.label }}</span>
           </div>
           <p class="text-2xl font-bold text-neutralDark">{{ kpi.value }}</p>
@@ -301,7 +301,7 @@
 
       <!-- Alert worst group -->
       <div v-if="groupsJ2.length" class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-        <AlertTriangle class="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+        <AppIcon name="warning" :size="20" class="text-red-600 shrink-0 mt-0.5" />
         <div>
           <p class="text-sm font-semibold text-red-800">Groupe {{ groupsJ2[groupsJ2.length - 1]?.name }} en difficulté</p>
           <p class="text-sm text-red-700 mt-1">Moyenne {{ groupsJ2[groupsJ2.length - 1]?.mean }}/20, taux de réussite {{ groupsJ2[groupsJ2.length - 1]?.rate }} — nettement en-deçà des autres groupes. Remédiation ciblée recommandée.</p>
@@ -429,7 +429,7 @@
       </div>
 
       <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-        <AlertTriangle class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <AppIcon name="warning" :size="20" class="text-amber-600 shrink-0 mt-0.5" />
         <div>
           <p class="text-sm font-semibold text-amber-800">Écart systématique Sujet A / B</p>
           <p class="text-sm text-amber-700 mt-1">Sur les deux épreuves, le Sujet B donne systématiquement une moyenne supérieure (~1.5 pts BB_J1, ~1 pt BB_J2). Vérifier si l'attribution A/B était strictement aléatoire.</p>
@@ -497,7 +497,7 @@
           </div>
           <div class="px-5 py-4 space-y-3">
             <div v-for="c in constats" :key="c.text" class="flex items-start gap-3">
-              <component :is="c.icon" class="w-4 h-4 mt-0.5 shrink-0" :class="c.color" />
+              <AppIcon :name="c.icon" :size="16" class="mt-0.5 shrink-0" :class="c.color" />
               <p class="text-sm text-gray-700">{{ c.text }}</p>
             </div>
           </div>
@@ -554,11 +554,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
-import {
-  BarChart3, Users, GraduationCap, BookOpen, Award, PenTool,
-  AlertTriangle, Trophy, CheckCircle2, TrendingUp, TrendingDown,
-  MessageSquare, Target, Lightbulb, ClipboardList
-} from 'lucide-vue-next'
+import AppIcon from '../icons/AppIcon.vue'
 import StatsQcmTab from '../components/stats/StatsQcmTab.vue'
 import StatsPalmaresTab from '../components/stats/StatsPalmaresTab.vue'
 import StatsQualityTab from '../components/stats/StatsQualityTab.vue'
@@ -597,16 +593,16 @@ onMounted(async () => {
 })
 
 const tabs = [
-  { id: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
-  { id: 'correctors', label: 'Correcteurs', icon: PenTool },
-  { id: 'groups', label: 'Groupes', icon: Users },
-  { id: 'classes', label: 'Classes', icon: GraduationCap },
-  { id: 'subjects', label: 'Sujets A/B', icon: BookOpen },
-  { id: 'questions', label: 'Questions', icon: Target },
-  { id: 'palmares', label: 'Palmarès', icon: Trophy },
-  { id: 'quality', label: 'Correction', icon: MessageSquare },
-  { id: 'qcm', label: 'QCM 5/5', icon: ClipboardList },
-  { id: 'recommendations', label: 'Recommandations', icon: Lightbulb }
+  { id: 'overview', label: 'Vue d\'ensemble', icon: 'bar-chart-3' },
+  { id: 'correctors', label: 'Correcteurs', icon: 'pen-tool' },
+  { id: 'groups', label: 'Groupes', icon: 'users' },
+  { id: 'classes', label: 'Classes', icon: 'graduation-cap' },
+  { id: 'subjects', label: 'Sujets A/B', icon: 'book' },
+  { id: 'questions', label: 'Questions', icon: 'target' },
+  { id: 'palmares', label: 'Palmarès', icon: 'trophy' },
+  { id: 'quality', label: 'Correction', icon: 'message-square' },
+  { id: 'qcm', label: 'QCM 5/5', icon: 'clipboard' },
+  { id: 'recommendations', label: 'Recommandations', icon: 'lightbulb' }
 ]
 
 const header = computed(() => data.value?.header || {})
@@ -615,10 +611,10 @@ const kpis = computed(() => {
   if (!data.value) return []
   const k = data.value.kpis
   return [
-    { label: 'Moyenne Globale', value: String(k.global_mean), sub: `/20 — ${k.total} copies`, icon: BarChart3, color: 'text-blue-600' },
-    { label: 'Taux de Réussite', value: `${k.pass_rate}%`, sub: `${k.pass_count}/${k.total} ≥ 10`, icon: TrendingUp, color: 'text-green-600' },
-    { label: 'Mention TB', value: `${k.tb_rate}%`, sub: `${k.tb_count} élèves ≥ 16`, icon: Award, color: 'text-amber-500' },
-    { label: 'En Difficulté', value: `${k.difficulty_rate}%`, sub: `${k.difficulty_count} élèves < 10`, icon: TrendingDown, color: 'text-red-500' }
+    { label: 'Moyenne Globale', value: String(k.global_mean), sub: `/20 — ${k.total} copies`, icon: 'bar-chart-3', color: 'text-blue-600' },
+    { label: 'Taux de Réussite', value: `${k.pass_rate}%`, sub: `${k.pass_count}/${k.total} ≥ 10`, icon: 'trending-up', color: 'text-green-600' },
+    { label: 'Mention TB', value: `${k.tb_rate}%`, sub: `${k.tb_count} élèves ≥ 16`, icon: 'award', color: 'text-amber-500' },
+    { label: 'En Difficulté', value: `${k.difficulty_rate}%`, sub: `${k.difficulty_count} élèves < 10`, icon: 'trending-down', color: 'text-red-500' }
   ]
 })
 
@@ -680,13 +676,13 @@ const constats = computed(() => {
   const hardQs = (data.value.questions || []).filter(q => q.difficulty === 'Difficile').map(q => q.id).join(', ')
   const bot = data.value.bottom11 || []
   return [
-    { text: `Taux de réussite global satisfaisant : ${k.pass_rate}% (${k.pass_count}/${k.total} ≥ 10/20)`, icon: CheckCircle2, color: 'text-green-600' },
-    bestGroup && worstGroup ? { text: `Disparité entre groupes : de ${bestGroup.rate} (${bestGroup.name}) à ${worstGroup.rate} (${worstGroup.name})`, icon: AlertTriangle, color: 'text-amber-600' } : null,
-    bestClass ? { text: `Classe ${bestClass.name} exceptionnelle : ${bestClass.rate} de réussite, moyenne ${bestClass.mean}`, icon: Trophy, color: 'text-green-600' } : null,
-    worstClass ? { text: `Classe ${worstClass.name} en difficulté (BB_J1) : ${worstClass.rate} de réussite`, icon: TrendingDown, color: 'text-red-600' } : null,
-    { text: `Qualité de correction : ${remarksPerCopy} remarques/copie, ${q.appreciation_rate} d'appréciations`, icon: CheckCircle2, color: 'text-green-600' },
-    hardQs ? { text: `Questions discriminantes : ${hardQs}`, icon: Target, color: 'text-blue-600' } : null,
-    { text: `${bot.length} élèves sous 5/20 : suivi individualisé urgent`, icon: AlertTriangle, color: 'text-red-600' }
+    { text: `Taux de réussite global satisfaisant : ${k.pass_rate}% (${k.pass_count}/${k.total} ≥ 10/20)`, icon: 'check-circle-2', color: 'text-green-600' },
+    bestGroup && worstGroup ? { text: `Disparité entre groupes : de ${bestGroup.rate} (${bestGroup.name}) à ${worstGroup.rate} (${worstGroup.name})`, icon: 'warning', color: 'text-amber-600' } : null,
+    bestClass ? { text: `Classe ${bestClass.name} exceptionnelle : ${bestClass.rate} de réussite, moyenne ${bestClass.mean}`, icon: 'trophy', color: 'text-green-600' } : null,
+    worstClass ? { text: `Classe ${worstClass.name} en difficulté (BB_J1) : ${worstClass.rate} de réussite`, icon: 'trending-down', color: 'text-red-600' } : null,
+    { text: `Qualité de correction : ${remarksPerCopy} remarques/copie, ${q.appreciation_rate} d'appréciations`, icon: 'check-circle-2', color: 'text-green-600' },
+    hardQs ? { text: `Questions discriminantes : ${hardQs}`, icon: 'target', color: 'text-blue-600' } : null,
+    { text: `${bot.length} élèves sous 5/20 : suivi individualisé urgent`, icon: 'warning', color: 'text-red-600' }
   ].filter(Boolean)
 })
 

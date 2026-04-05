@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import api, { UPLOAD_TIMEOUT } from '../services/api'
+import AppIcon from '../icons/AppIcon.vue'
 
 defineProps({
   show: Boolean
@@ -183,7 +184,7 @@ const uploadExam = async () => {
           class="close-btn"
           @click="handleClose"
         >
-          ×
+          <AppIcon name="close" :size="24" />
         </button>
       </div>
 
@@ -199,7 +200,9 @@ const uploadExam = async () => {
                 value="BATCH_A3"
               >
               <div class="mode-card">
-                <div class="mode-icon">📄</div>
+                <div class="mode-icon">
+                  <AppIcon name="document" :size="32" class="text-blue-600" />
+                </div>
                 <div class="mode-title">Scan par lots (A3)</div>
                 <div class="mode-desc">Un seul PDF multi-pages à découper automatiquement</div>
               </div>
@@ -212,7 +215,9 @@ const uploadExam = async () => {
                 value="INDIVIDUAL_A4"
               >
               <div class="mode-card">
-                <div class="mode-icon">📑</div>
+                <div class="mode-icon">
+                  <AppIcon name="copy" :size="32" class="text-amber-600" />
+                </div>
                 <div class="mode-title">Fichiers individuels (A4)</div>
                 <div class="mode-desc">Plusieurs PDFs déjà découpés par élève</div>
               </div>
@@ -338,7 +343,7 @@ const uploadExam = async () => {
                     class="btn-remove"
                     @click="removeFile(index)"
                   >
-                    ×
+                    <AppIcon name="close" :size="16" />
                   </button>
                 </div>
                 <div 

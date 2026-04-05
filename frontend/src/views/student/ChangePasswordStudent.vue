@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
+import AppIcon from '../../icons/AppIcon.vue'
 
 const currentPassword = ref('')
 const newPassword = ref('')
@@ -95,12 +96,12 @@ const handleChangePassword = async () => {
               autocomplete="current-password"
             >
             <button
-              type="button"
-              class="btn-toggle"
-              @click="showCurrent = !showCurrent"
-            >
-              {{ showCurrent ? '🙈' : '👁️' }}
-            </button>
+               type="button"
+               class="btn-toggle"
+               @click="showCurrent = !showCurrent"
+             >
+               <AppIcon :name="showCurrent ? 'eye-off' : 'eye'" :size="18" />
+             </button>
           </div>
         </div>
 
@@ -115,12 +116,12 @@ const handleChangePassword = async () => {
               autocomplete="new-password"
             >
             <button
-              type="button"
-              class="btn-toggle"
-              @click="showNew = !showNew"
-            >
-              {{ showNew ? '🙈' : '👁️' }}
-            </button>
+               type="button"
+               class="btn-toggle"
+               @click="showNew = !showNew"
+             >
+               <AppIcon :name="showNew ? 'eye-off' : 'eye'" :size="18" />
+             </button>
           </div>
         </div>
 
@@ -167,8 +168,9 @@ const handleChangePassword = async () => {
       </form>
 
       <div class="footer-links">
-        <router-link to="/student-portal">
-          Passer pour le moment →
+        <router-link to="/student-portal" class="skip-link">
+          <span>Passer pour le moment</span>
+          <AppIcon name="arrow-right" :size="16" />
         </router-link>
       </div>
     </div>
@@ -255,6 +257,6 @@ input:focus { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.2)
 }
 
 .footer-links { text-align: center; margin-top: 1.5rem; font-size: 0.85rem; }
-.footer-links a { color: #a0aec0; text-decoration: none; }
-.footer-links a:hover { text-decoration: underline; color: #718096; }
+.skip-link { color: #a0aec0; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center; }
+.skip-link:hover { text-decoration: underline; color: #718096; }
 </style>

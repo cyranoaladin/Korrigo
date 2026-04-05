@@ -1,7 +1,7 @@
 <template>
   <SectionContainer title="Guide Enseignant">
     <div class="mb-8 p-4 bg-primary-50 rounded-lg border border-primary-100 flex items-start gap-3">
-      <Info class="w-6 h-6 text-primary-600 flex-shrink-0 mt-0.5" />
+      <AppIcon name="info" :size="24" class="text-primary-600 flex-shrink-0 mt-0.5" />
       <div>
         <h3 class="text-sm font-medium text-primary-800">
           Bienvenue sur Korrigo PMF
@@ -13,16 +13,16 @@
         </p>
         <div class="mt-3 flex flex-wrap gap-2">
           <span class="inline-flex items-center gap-1 text-xs bg-white px-2.5 py-1 rounded-full border border-primary-200 text-primary-700">
-            <CheckCircle class="w-3 h-3" /> Gain de temps
+            <AppIcon name="check" :size="12" /> Gain de temps
           </span>
           <span class="inline-flex items-center gap-1 text-xs bg-white px-2.5 py-1 rounded-full border border-primary-200 text-primary-700">
-            <CheckCircle class="w-3 h-3" /> Correction flexible
+            <AppIcon name="check" :size="12" /> Correction flexible
           </span>
           <span class="inline-flex items-center gap-1 text-xs bg-white px-2.5 py-1 rounded-full border border-primary-200 text-primary-700">
-            <CheckCircle class="w-3 h-3" /> Sauvegarde auto
+            <AppIcon name="check" :size="12" /> Sauvegarde auto
           </span>
           <span class="inline-flex items-center gap-1 text-xs bg-white px-2.5 py-1 rounded-full border border-primary-200 text-primary-700">
-            <CheckCircle class="w-3 h-3" /> Annotations professionnelles
+            <AppIcon name="check" :size="12" /> Annotations professionnelles
           </span>
         </div>
       </div>
@@ -113,7 +113,9 @@
       </p>
       <div class="space-y-4">
         <div class="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg">
-          <span class="text-red-500 text-xl font-bold mt-0.5">💬</span>
+          <div class="flex items-center justify-center w-6 h-6 mt-1 shrink-0">
+            <AppIcon name="message" :size="20" class="text-red-500" />
+          </div>
           <div>
             <h4 class="font-semibold text-gray-900">
               Commentaire
@@ -136,7 +138,9 @@
           </div>
         </div>
         <div class="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg">
-          <span class="text-red-500 text-xl font-bold mt-0.5">✗</span>
+          <div class="flex items-center justify-center w-6 h-6 mt-1 shrink-0">
+            <AppIcon name="close" :size="20" class="text-red-500" />
+          </div>
           <div>
             <h4 class="font-semibold text-gray-900">
               Erreur
@@ -147,7 +151,9 @@
           </div>
         </div>
         <div class="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg">
-          <span class="text-green-500 text-xl font-bold mt-0.5">⭐</span>
+          <div class="flex items-center justify-center w-6 h-6 mt-1 shrink-0">
+            <AppIcon name="star" :size="20" class="text-green-500" />
+          </div>
           <div>
             <h4 class="font-semibold text-gray-900">
               Bonus
@@ -175,7 +181,7 @@
         </div>
         <div class="p-3 bg-primary-50 border border-primary-200 rounded-lg">
           <h4 class="font-semibold text-primary-900 mb-1 flex items-center gap-2">
-            <Sparkles class="w-4 h-4" /> Bilan Pédagogique IA (Korrigo AI)
+            <AppIcon name="sparkles" :size="16" /> Bilan Pédagogique IA (Korrigo AI)
           </h4>
           <p class="text-sm text-primary-800">
             Une fois la copie finalisée, vous pouvez générer un <strong>bilan personnalisé</strong> via notre IA locale. Ce bilan analyse vos annotations et notes pour produire une synthèse bienveillante soulignant les points forts et les axes de progrès de l'élève.
@@ -183,7 +189,7 @@
         </div>
         <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
           <h4 class="font-semibold text-indigo-900 mb-1 flex items-center gap-2">
-            📝 Questionnaire Bilan Pédagogique
+            <AppIcon name="edit" :size="16" /> Questionnaire Bilan Pédagogique
           </h4>
           <p class="text-sm text-indigo-800">
             Il est fortement conseillé au correcteur de compléter le <strong>Questionnaire Bilan</strong> (accessible via le bouton "Questionnaire" dans la barre supérieure du tableau de bord). Ce formulaire centralisé vous permet de remonter vos impressions globales, les erreurs fréquentes de vos lots et votre retour d'expérience à la coordination.
@@ -236,13 +242,14 @@
                 Sauvegarde manuelle
               </td>
             </tr>
-            <tr>
               <td class="px-3 py-1.5 border-b">
-                <code>←</code> / <code>→</code>
-              </td><td class="px-3 py-1.5 border-b">
+                <div class="flex items-center gap-2">
+                  <AppIcon name="arrow-left" :size="14" /> <span>/</span> <AppIcon name="arrow-right" :size="14" />
+                </div>
+              </td>
+              <td class="px-3 py-1.5 border-b">
                 Page précédente / suivante
               </td>
-            </tr>
             <tr>
               <td class="px-3 py-1.5 border-b">
                 <code>Ctrl +</code> / <code>Ctrl -</code>
@@ -373,5 +380,5 @@
 <script setup>
 import SectionContainer from '../components/SectionContainer.vue'
 import CollapsibleSection from '../components/CollapsibleSection.vue'
-import { Info, CheckCircle, Sparkles } from 'lucide-vue-next'
+import AppIcon from '../icons/AppIcon.vue'
 </script>

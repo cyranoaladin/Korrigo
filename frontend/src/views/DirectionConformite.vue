@@ -3,7 +3,7 @@
     <!-- CONTACTS -->
     <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
       <div class="bg-white p-5 rounded-lg border border-borderSoft shadow-sm">
-        <Building class="w-5 h-5 text-primary-600 mb-2" />
+        <AppIcon name="building" :size="20" class="text-primary-600 mb-2" />
         <h3 class="font-semibold text-sm mb-1 text-neutralDark">
           Responsable de Traitement
         </h3>
@@ -12,7 +12,7 @@
         </p>
       </div>
       <div class="bg-white p-5 rounded-lg border border-borderSoft shadow-sm">
-        <ShieldCheck class="w-5 h-5 text-green-600 mb-2" />
+        <AppIcon name="compliance" :size="20" class="text-green-600 mb-2" />
         <h3 class="font-semibold text-sm mb-1 text-neutralDark">
           DPO
         </h3>
@@ -21,7 +21,7 @@
         </p>
       </div>
       <div class="bg-white p-5 rounded-lg border border-borderSoft shadow-sm">
-        <Code class="w-5 h-5 text-blue-600 mb-2" />
+        <AppIcon name="code" :size="20" class="text-blue-600 mb-2" />
         <h3 class="font-semibold text-sm mb-1 text-neutralDark">
           Développement
         </h3>
@@ -30,7 +30,7 @@
         </p>
       </div>
       <div class="bg-white p-5 rounded-lg border border-borderSoft shadow-sm">
-        <Server class="w-5 h-5 text-orange-600 mb-2" />
+        <AppIcon name="server" :size="20" class="text-orange-600 mb-2" />
         <h3 class="font-semibold text-sm mb-1 text-neutralDark">
           Hébergement
         </h3>
@@ -315,32 +315,32 @@
         </h2>
         <ul class="space-y-2 text-sm">
           <li class="flex items-center gap-2 text-gray-700">
-            <span class="text-green-500 font-bold">✓</span> Consentement éclairé mineur (portail élève)
+            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Consentement éclairé mineur (portail élève)
           </li>
           <li class="flex items-center gap-2 text-gray-700">
-            <span class="text-green-500 font-bold">✓</span> Limitation accès données élèves (RBAC)
+            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Limitation accès données élèves (RBAC)
           </li>
           <li class="flex items-center gap-2 text-gray-700">
-            <span class="text-green-500 font-bold">✓</span> Sécurité réseau (HTTPS, HSTS, CSRF)
+            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Sécurité réseau (HTTPS, HSTS, CSRF)
           </li>
           <li class="flex items-center gap-2 text-gray-700">
-            <span class="text-green-500 font-bold">✓</span> Conservation limitée + suppression automatique
+            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Conservation limitée + suppression automatique
           </li>
           <li class="flex items-center gap-2 text-gray-700">
-            <span class="text-green-500 font-bold">✓</span> Droit d'accès facilité (export données)
+            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Droit d'accès facilité (export données)
           </li>
           <li class="flex items-center gap-2 text-gray-700">
-            <span class="text-green-500 font-bold">✓</span> Information transparente (politique en français)
+            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Information transparente (politique en français)
           </li>
           <li class="flex items-center gap-2 text-gray-700">
-            <span class="text-green-500 font-bold">✓</span> Pas de profilage ni décision automatisée
+            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Pas de profilage ni décision automatisée
           </li>
         </ul>
       </div>
 
       <div class="pt-6 mt-6 border-t border-gray-200">
         <div class="flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <FileDown class="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
+          <AppIcon name="file-down" :size="20" class="text-primary-600 flex-shrink-0 mt-0.5" />
           <div>
             <p class="text-sm font-medium text-gray-900">
               Registre des Activités de Traitement
@@ -361,5 +361,5 @@
 
 <script setup>
 import SectionContainer from '../components/SectionContainer.vue'
-import { Building, ShieldCheck, Code, Server, FileDown } from 'lucide-vue-next'
+import AppIcon from '../icons/AppIcon.vue'
 </script>

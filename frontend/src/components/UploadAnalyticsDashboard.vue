@@ -1,7 +1,8 @@
 <template>
   <div class="analytics-dashboard">
-    <h2 class="dashboard-title">
-      📊 Analytique des téléversements
+    <h2 class="dashboard-title flex items-center gap-2">
+      <AppIcon name="stats" :size="28" />
+      Analytique des téléversements
     </h2>
     
     <!-- Période de sélection -->
@@ -148,10 +149,13 @@
               {{ storageAnalytics.storage_by_mode.INDIVIDUAL_A4.copies_count }} copies
             </div>
           </div>
-          <div class="storage-savings">
-            <strong>✅ Économie de stockage:</strong> {{ storageAnalytics.total_storage_saved_percentage }}%
-            <br>
-            <small>({{ storageAnalytics.storage_by_mode.INDIVIDUAL_A4.deduplication.files_saved }} fichiers dupliqués évités)</small>
+          <div class="storage-savings flex items-center gap-2">
+            <AppIcon name="check-mark" :size="16" class="text-green-600" />
+            <div>
+              <strong>Économie de stockage:</strong> {{ storageAnalytics.total_storage_saved_percentage }}%
+              <br>
+              <small>({{ storageAnalytics.storage_by_mode.INDIVIDUAL_A4.deduplication.files_saved }} fichiers dupliqués évités)</small>
+            </div>
           </div>
         </div>
       </div>
@@ -189,6 +193,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '../services/api'
+import AppIcon from '../icons/AppIcon.vue'
 
 const selectedPeriod = ref(30)
 const loading = ref(false)

@@ -4,7 +4,7 @@
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
       <div class="px-5 py-4 border-b border-gray-100">
         <h2 class="text-lg font-semibold text-neutralDark flex items-center gap-2">
-          <Trophy class="w-5 h-5 text-amber-500" />
+          <AppIcon name="trophy" :size="20" class="text-amber-500" />
           Top 15 Global
         </h2>
       </div>
@@ -24,7 +24,8 @@
           <tbody>
             <tr v-for="s in top15" :key="s.rank + s.name" class="border-t border-gray-100 hover:bg-amber-50/30">
               <td class="px-3 py-2.5 text-center">
-                <span v-if="s.rank <= 2" class="text-lg">{{ s.rank === 1 ? '🥇' : '🥈' }}</span>
+                <AppIcon v-if="s.rank === 1" name="trophy" :size="18" class="text-amber-500" />
+                <AppIcon v-else-if="s.rank === 2" name="award" :size="18" class="text-gray-400" />
                 <span v-else class="text-gray-500 font-medium">{{ s.rank }}</span>
               </td>
               <td class="px-3 py-2.5 font-semibold text-gray-800">{{ s.name }}</td>
@@ -45,7 +46,7 @@
     <div class="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
       <div class="px-5 py-4 border-b border-red-100 bg-red-50">
         <h2 class="text-lg font-semibold text-red-800 flex items-center gap-2">
-          <AlertTriangle class="w-5 h-5" />
+          <AppIcon name="alert" :size="20" class="text-red-600" />
           Élèves en Grande Difficulté (&lt; 5/20)
         </h2>
       </div>
@@ -66,8 +67,12 @@
             <tr v-for="s in bottom11" :key="s.rank + s.name" class="border-t border-red-100 hover:bg-red-50/30">
               <td class="px-3 py-2.5 text-center text-gray-500">{{ s.rank }}</td>
               <td class="px-3 py-2.5 font-semibold text-gray-800">
-                <span v-if="s.cheatFlag === 'exact'" class="mr-1" title="Suspicion de triche QCM (pattern exact)">🚩</span>
-                <span v-else-if="s.cheatFlag === 'near'" class="mr-1" title="Pattern QCM proche de la triche (4/5)">⚠️</span>
+                <span v-if="s.cheatFlag === 'exact'" class="inline-flex items-center mr-1" title="Suspicion de triche QCM (pattern exact)">
+                  <AppIcon name="alert" :size="14" class="text-red-600" />
+                </span>
+                <span v-else-if="s.cheatFlag === 'near'" class="inline-flex items-center mr-1" title="Pattern QCM proche de la triche (4/5)">
+                  <AppIcon name="alert" :size="14" class="text-amber-500" />
+                </span>
                 {{ s.name }}
               </td>
               <td class="px-3 py-2.5 text-center text-gray-600">{{ s.classe }}</td>
@@ -87,7 +92,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Trophy, AlertTriangle } from 'lucide-vue-next'
+import AppIcon from '../../icons/AppIcon.vue'
 
 const props = defineProps({
   data: { type: Object, required: true },

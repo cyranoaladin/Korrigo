@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
+import AppIcon from '../../icons/AppIcon.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -60,7 +61,7 @@ onMounted(fetchStudents)
   <div class="my-students-page">
     <header class="top-nav">
       <div class="brand">
-        <button class="btn-back" @click="goBack">← Retour</button>
+        <button class="btn-back" @click="goBack"><AppIcon name="arrow-left" :size="14" class="inline" /> Retour</button>
         Korrigo — Mes Élèves
       </div>
       <div class="user-menu">
@@ -72,7 +73,7 @@ onMounted(fetchStudents)
 
     <main class="container">
       <div class="page-header">
-        <h1>👥 Mes Élèves</h1>
+        <h1><AppIcon name="users" :size="24" class="inline" /> Mes Élèves</h1>
         <p v-if="groupe">Groupe <strong>{{ groupe }}</strong> — {{ students.length }} élève(s)</p>
       </div>
 
@@ -115,11 +116,11 @@ onMounted(fetchStudents)
               </span>
               <span v-else class="score pending">—</span>
               <span v-if="copy.corrector_name" class="corrector-name">
-                ✏️ {{ copy.corrector_name }}
+                <AppIcon name="teacher-pen" :size="12" class="inline" /> {{ copy.corrector_name }}
               </span>
             </div>
           </div>
-          <div class="action-arrow">→</div>
+          <div class="action-arrow"><AppIcon name="chevron-right" :size="18" /></div>
         </div>
       </div>
     </main>

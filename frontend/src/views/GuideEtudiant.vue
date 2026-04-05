@@ -1,7 +1,7 @@
 <template>
   <SectionContainer title="Guide Élève">
     <div class="mb-8 p-4 bg-green-50 rounded-lg border border-green-200 flex items-start gap-3">
-      <GraduationCap class="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+      <AppIcon name="student" :size="24" class="text-green-600 flex-shrink-0 mt-0.5" />
       <div>
         <h3 class="text-sm font-medium text-green-800">
           Bienvenue sur le portail élève Korrigo PMF
@@ -60,7 +60,9 @@
       </p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div class="flex items-start gap-3 p-3 border rounded-lg bg-white shadow-sm">
-          <span class="text-red-500 font-bold text-xl mt-0.5">💬</span>
+          <div class="flex items-center justify-center w-6 h-6 mt-1 shrink-0">
+            <AppIcon name="message" :size="20" class="text-red-500" />
+          </div>
           <div>
             <h4 class="font-semibold text-sm text-gray-900">
               Commentaire
@@ -82,7 +84,9 @@
           </div>
         </div>
         <div class="flex items-start gap-3 p-3 border rounded-lg bg-white shadow-sm">
-          <span class="text-red-500 font-bold text-xl mt-0.5">✗</span>
+          <div class="flex items-center justify-center w-6 h-6 mt-1 shrink-0">
+            <AppIcon name="close" :size="20" class="text-red-500" />
+          </div>
           <div>
             <h4 class="font-semibold text-sm text-gray-900">
               Erreur
@@ -93,7 +97,9 @@
           </div>
         </div>
         <div class="flex items-start gap-3 p-3 border rounded-lg bg-white shadow-sm">
-          <span class="text-green-500 font-bold text-xl mt-0.5">⭐</span>
+          <div class="flex items-center justify-center w-6 h-6 mt-1 shrink-0">
+            <AppIcon name="star" :size="20" class="text-green-500" />
+          </div>
           <div>
             <h4 class="font-semibold text-sm text-gray-900">
               Bonus
@@ -107,7 +113,7 @@
 
       <div class="p-4 bg-primary-50 border border-primary-200 rounded-lg mb-4">
         <h4 class="font-bold text-primary-900 mb-2 flex items-center gap-2">
-          <Sparkles class="w-5 h-5" /> Bilan Pédagogique IA (Nouveauté 2026)
+          <AppIcon name="sparkles" :size="20" /> Bilan Pédagogique IA (Nouveauté 2026)
         </h4>
         <p class="text-sm text-primary-800 leading-relaxed">
           En plus des annotations, vous trouverez souvent un <strong>bilan personnalisé</strong> généré par Korrigo AI. 
@@ -310,5 +316,5 @@
 <script setup>
 import SectionContainer from '../components/SectionContainer.vue'
 import CollapsibleSection from '../components/CollapsibleSection.vue'
-import { GraduationCap, Sparkles } from 'lucide-vue-next'
+import AppIcon from '../icons/AppIcon.vue'
 </script>

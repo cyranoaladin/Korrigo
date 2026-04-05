@@ -1,6 +1,6 @@
 <script setup>
 import { useToast } from '../composables/useToast'
-import { X } from 'lucide-vue-next'
+import AppIcon from '../icons/AppIcon.vue'
 
 const { toasts, remove } = useToast()
 
@@ -12,10 +12,10 @@ const typeStyles = {
 }
 
 const iconMap = {
-  success: '✓',
-  error: '✕',
-  warning: '!',
-  info: 'i',
+  success: 'check',
+  error: 'x-mark',
+  warning: 'warning',
+  info: 'info',
 }
 
 const iconBg = {
@@ -44,17 +44,17 @@ const iconBg = {
           :class="typeStyles[toast.type] || typeStyles.info"
         >
           <span
-            class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold"
+            class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white"
             :class="iconBg[toast.type] || iconBg.info"
           >
-            {{ iconMap[toast.type] || 'i' }}
+            <AppIcon :name="iconMap[toast.type] || 'info'" :size="12" />
           </span>
           <span class="text-sm font-medium flex-1">{{ toast.message }}</span>
           <button
             class="flex-shrink-0 p-0.5 rounded hover:bg-black/10 transition-colors"
             @click="remove(toast.id)"
           >
-            <X :size="14" />
+            <AppIcon name="close" :size="14" />
           </button>
         </div>
       </TransitionGroup>

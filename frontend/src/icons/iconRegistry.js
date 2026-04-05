@@ -17,14 +17,20 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  ChevronLeft,
   Menu,
   X,
+  Mail,
   Eye,
   EyeOff,
   Plus,
   PlusCircle,
   Search,
   ArrowRight,
+  ArrowLeft,
+  ArrowUpDown,
+  RefreshCw,
+  Clock,
 
   // Users & Roles
   GraduationCap,
@@ -32,9 +38,14 @@ import {
   PenLine,
   Settings,
   Users,
+  ShieldCheck,
+  UserPlus,
   UserCog,
   User,
-  ShieldCheck,
+  Key,
+  Link,
+  KeyRound,
+  UserCheck,
 
   // Content & Documents
   FileText,
@@ -46,8 +57,14 @@ import {
   ClipboardList,
   Copy,
   Download,
+  Upload,
   ScanSearch,
   Ruler,
+  FileDown,
+  Layers,
+  Shuffle,
+  FileCheck,
+  Briefcase,
 
   // Data & Stats
   BarChart3,
@@ -55,10 +72,13 @@ import {
   LayoutDashboard,
   Target,
   TrendingUp,
+  TrendingDown,
+  Award,
 
   // Communication
   MessageSquare,
   MessageSquareText,
+  MessageCircle,
 
   // Alerts & Status
   AlertCircle,
@@ -66,6 +86,8 @@ import {
   CheckCircle,
   CheckCircle2,
   Info,
+  AlertTriangle,
+  XCircle,
 
   // Time
   Calendar,
@@ -85,21 +107,25 @@ import {
   Cpu,
   Paintbrush,
   Dumbbell,
+  Building,
+  Code,
+  Server,
 
   // CorrectorDesk toolbar
-  MessageCircle,
   Highlighter,
-  XCircle,
   Star,
   Lock,
-  AlertTriangle,
-  ArrowLeft,
-  ChevronLeft,
   Lightbulb,
   MoveHorizontal,
   Minus,
   Check,
   XIcon,
+  Trash2,
+  Scissors,
+  Flag,
+  Trophy,
+  Sparkles,
+  Brain,
 } from 'lucide-vue-next'
 
 // ─── Business-semantic icon registry ────────────────────────────────
@@ -111,6 +137,7 @@ const ICON_REGISTRY = {
   'teacher-pen':    PenTool,
   'admin':          UserCog,
   'users':          Users,
+  'user-plus':      UserPlus,
 
   // --- Auth & Navigation ---
   'login':          LogIn,
@@ -122,6 +149,8 @@ const ICON_REGISTRY = {
   'close':          X,
   'search':         Search,
   'arrow-right':    ArrowRight,
+  'layers':         Layers,
+  'mail':           Mail,
 
   // --- Visibility ---
   'eye':            Eye,
@@ -132,7 +161,11 @@ const ICON_REGISTRY = {
   'plus':           Plus,
   'view':           Eye,
   'download':       Download,
+  'upload':         Upload,
   'copy':           Copy,
+  'edit':           PenTool,
+  'sparkles':       Sparkles,
+  'brain':          Brain,
 
   // --- Content ---
   'document':       FileText,
@@ -140,7 +173,10 @@ const ICON_REGISTRY = {
   'book-check':     BookOpenCheck,
   'report':         BarChart3,
   'questionnaire':  ClipboardList,
+  'clipboard':      ClipboardList,
   'message':        MessageSquareText,
+  'message-square': MessageSquare,
+  'message-circle': MessageCircle,
 
   // --- Admin & Dashboard ---
   'settings':       Settings,
@@ -148,13 +184,20 @@ const ICON_REGISTRY = {
   'stats':          BarChart3,
   'score':          BarChart2,
   'target':         Target,
+  'trending-up':    TrendingUp,
+  'trending-down':  TrendingDown,
   'trending':       TrendingUp,
+  'bar-chart-3':    BarChart3,
+  'clock':          Clock,
 
   // --- Status & Alerts ---
   'alert':          AlertCircle,
   'empty':          CircleSlash,
   'success':        CheckCircle,
+  'refresh':        RefreshCw,
+  'refresh-cw':     RefreshCw,
   'info':           Info,
+  'check-circle-2': CheckCircle2,
 
   // --- Security ---
   'security':       ShieldCheck,
@@ -166,7 +209,15 @@ const ICON_REGISTRY = {
   'exam-folder':    Folder,
   'folder':         Folder,
   'folder-open':    FolderOpen,
+  'plus':           Plus,
   'result':         Target,
+  'award':          Award,
+  'chart':          BarChart3,
+  'building':       Building,
+  'code':           Code,
+  'server':         Server,
+  'file-down':      FileDown,
+  'arrow-up-down':  ArrowUpDown,
 
   // --- Quick actions (ExamOverview) ---
   'identification': ScanSearch,
@@ -176,8 +227,16 @@ const ICON_REGISTRY = {
   'calendar':       Calendar,
   'tag':            Tag,
   'user':           User,
+  'key':            Key,
+  'link':           Link,
+  'reset':          Key,
   'check':          CheckCircle2,
   'back':           ChevronRight,
+  'user-check':     UserCheck,
+  'shuffle':        Shuffle,
+  'file-check':     FileCheck,
+  'briefcase':      Briefcase,
+  'key-round':      KeyRound,
 
   // --- CorrectorDesk toolbar ---
   'comment':        MessageCircle,
@@ -194,6 +253,13 @@ const ICON_REGISTRY = {
   'zoom-out':       Minus,
   'check-mark':     Check,
   'x-mark':         XIcon,
+  'delete':         Trash2,
+  'trash':          Trash2,
+  'cut':            Scissors,
+  'flag':           Flag,
+  'medal':          Trophy,
+  'trophy':         Trophy,
+  'pen-tool':       PenTool,
 
   // ─── Backend ExamType compatibility aliases ───────────────────────
   'graduation-cap': GraduationCap,

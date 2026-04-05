@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useExamStore } from '../stores/examStore'
 import api from '../services/api'
+import AppIcon from '../icons/AppIcon.vue'
 
 const store = useExamStore()
 const fileInput = ref(null)
@@ -144,14 +145,14 @@ const performSplit = async () => {
                 title="Scinder"
                 @click="openSplit(booklet, $event)"
               >
-                ✂️
+                <AppIcon name="cut" :size="14" />
               </button>
               <button 
                 class="btn-xs btn-danger" 
                 title="Supprimer" 
                 @click="deleteBooklet(booklet.id, $event)"
               >
-                🗑️
+                <AppIcon name="delete" :size="14" />
               </button>
             </div>
           </div>

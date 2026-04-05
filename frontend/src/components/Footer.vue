@@ -80,7 +80,7 @@
           </h4>
           <ul class="space-y-2.5 text-sm text-gray-600">
             <li class="flex items-center gap-2">
-              <Mail class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              <AppIcon name="mail" :size="14" class="text-gray-400 flex-shrink-0" />
               <a
                 href="mailto:labo.maths@ert.tn"
                 class="hover:text-primary-600 transition"
@@ -89,7 +89,7 @@
               </a>
             </li>
             <li class="flex items-center gap-2">
-              <Mail class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              <AppIcon name="mail" :size="14" class="text-gray-400 flex-shrink-0" />
               <a
                 href="mailto:alaeddine.benrhouma@ert.tn"
                 class="hover:text-primary-600 transition"
@@ -105,7 +105,7 @@
         <p>&copy; 2026 Korrigo PMF — Lycée Pierre Mendès France de Tunis. Usage interne.</p>
         <div class="flex items-center gap-4">
           <span class="flex items-center gap-1">
-            <Server class="w-3 h-3" />
+            <AppIcon name="server" :size="12" />
             Hébergement local sécurisé
           </span>
         </div>
@@ -115,5 +115,5 @@
 </template>
 
 <script setup>
-import { Mail, Server } from 'lucide-vue-next'
+import AppIcon from '../icons/AppIcon.vue'
 </script>

@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
+import AppIcon from '../../icons/AppIcon.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -89,7 +90,7 @@ onMounted(fetchBilan)
   <div class="student-bilan-page">
     <header class="top-nav">
       <div class="brand">
-        <button class="btn-back" @click="goBack">← Mes Élèves</button>
+        <button class="btn-back" @click="goBack"><AppIcon name="arrow-left" :size="14" class="inline" /> Mes Élèves</button>
         <span class="separator">|</span>
         <button class="btn-back" @click="goToDashboard">Dashboard</button>
       </div>
@@ -148,13 +149,13 @@ onMounted(fetchBilan)
               class="btn-pdf"
               @click="openPdf"
             >
-              📄 Voir le PDF corrigé
+              <AppIcon name="document" :size="16" class="inline" /> Voir le PDF corrigé
             </button>
           </div>
 
           <!-- Scores par question -->
           <section class="bilan-section">
-            <h2>📊 Notes par Question</h2>
+            <h2><AppIcon name="stats" :size="18" class="inline" /> Notes par Question</h2>
             <div v-if="sortedScores.length" class="scores-grid">
               <div
                 v-for="[qid, score] in sortedScores"
@@ -170,7 +171,7 @@ onMounted(fetchBilan)
 
           <!-- Remarques par question -->
           <section class="bilan-section">
-            <h2>📝 Remarques par Question</h2>
+            <h2><AppIcon name="message" :size="18" class="inline" /> Remarques par Question</h2>
             <div v-if="Object.keys(selectedCopy.remarks || {}).length" class="remarks-list">
               <div
                 v-for="(remark, qid) in selectedCopy.remarks"
@@ -186,7 +187,7 @@ onMounted(fetchBilan)
 
           <!-- Annotations -->
           <section class="bilan-section">
-            <h2>✏️ Annotations sur la Copie</h2>
+            <h2><AppIcon name="teacher-pen" :size="18" class="inline" /> Annotations sur la Copie</h2>
             <div v-if="selectedCopy.annotations?.length" class="annotations-list">
               <div
                 v-for="ann in selectedCopy.annotations"
@@ -203,7 +204,7 @@ onMounted(fetchBilan)
 
           <!-- Appréciation globale -->
           <section class="bilan-section">
-            <h2>💬 Appréciation Globale</h2>
+            <h2><AppIcon name="comment" :size="18" class="inline" /> Appréciation Globale</h2>
             <div v-if="selectedCopy.global_appreciation" class="appreciation-box">
               {{ selectedCopy.global_appreciation }}
             </div>
@@ -212,7 +213,7 @@ onMounted(fetchBilan)
 
           <!-- Commentaire final -->
           <section v-if="selectedCopy.final_comment" class="bilan-section">
-            <h2>📋 Commentaire Final</h2>
+            <h2><AppIcon name="questionnaire" :size="18" class="inline" /> Commentaire Final</h2>
             <div class="final-comment-box">
               {{ selectedCopy.final_comment }}
             </div>

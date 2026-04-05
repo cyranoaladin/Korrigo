@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { ChevronRight } from 'lucide-vue-next'
+import AppIcon from '../../icons/AppIcon.vue'
 import api from '../../services/api'
 
 const route = useRoute()
@@ -55,7 +55,7 @@ const crumbs = computed(() => {
 <template>
   <nav v-if="crumbs.length > 1" class="flex items-center gap-1.5 text-sm text-slate-500 px-6 py-3 bg-white border-b border-slate-200">
     <template v-for="(crumb, i) in crumbs" :key="i">
-      <ChevronRight v-if="i > 0" :size="14" class="text-slate-300 flex-shrink-0" />
+      <AppIcon v-if="i > 0" name="chevron-right" :size="14" class="text-slate-300 flex-shrink-0" />
       <router-link
         v-if="crumb.to && i < crumbs.length - 1"
         :to="crumb.to"

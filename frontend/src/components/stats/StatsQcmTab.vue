@@ -4,25 +4,25 @@
     <!-- KPIs QCM -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <ClipboardList class="w-5 h-5 text-blue-600 mb-2" />
+        <AppIcon name="list" :size="20" class="text-blue-600 mb-2" />
         <p class="text-2xl font-bold text-neutralDark">{{ qcmData.total_perfect }}</p>
         <p class="text-xs text-gray-500 mt-1">Élèves avec 5/5</p>
         <p class="text-xs text-gray-400">{{ qcmData.total_perfect_pct }}% des {{ header.n_candidates }} copies</p>
       </div>
       <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <BarChart3 class="w-5 h-5 text-green-600 mb-2" />
+        <AppIcon name="bar-chart-3" :size="20" class="text-green-600 mb-2" />
         <p class="text-2xl font-bold text-neutralDark">{{ qcmData.j1_perfect_count }}</p>
         <p class="text-xs text-gray-500 mt-1">BB_J1 — {{ qcmData.j1_perfect_pct }}%</p>
         <p class="text-xs text-gray-400">QCM très accessible</p>
       </div>
       <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <BarChart3 class="w-5 h-5 text-purple-600 mb-2" />
+        <AppIcon name="bar-chart-3" :size="20" class="text-purple-600 mb-2" />
         <p class="text-2xl font-bold text-neutralDark">{{ qcmData.j2_perfect_count }}</p>
         <p class="text-xs text-gray-500 mt-1">BB_J2 — {{ qcmData.j2_perfect_pct }}%</p>
         <p class="text-xs text-gray-400">QCM discriminant</p>
       </div>
       <div class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <AlertTriangle class="w-5 h-5 text-red-500 mb-2" />
+        <AppIcon name="alert" :size="20" class="text-red-500 mb-2" />
         <p class="text-2xl font-bold text-neutralDark">{{ qcmData.below10_with_perfect }}</p>
         <p class="text-xs text-gray-500 mt-1">5/5 mais &lt; 10/20</p>
         <p class="text-xs text-gray-400">QCM > 50% de la note</p>
@@ -101,14 +101,14 @@
 
     <!-- Alerts -->
     <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 mb-4">
-      <AlertTriangle class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+      <AppIcon name="alert" :size="20" class="text-amber-600 shrink-0 mt-0.5" />
       <div>
         <p class="text-sm font-semibold text-amber-800">24 élèves BB_J1 avec %Ex1 supérieur au seuil BB_J2 (31.2%)</p>
         <p class="text-sm text-amber-700 mt-1">Les 16 élèves BB_J2 ayant eu 5/5 ont un %Ex1 moyen de 31.2%. <strong>24 élèves BB_J1 sur 54</strong> (44.4%) dépassent ce seuil, indiquant un poids disproportionné du QCM dans leur note. Les écarts les plus extrêmes atteignent +49 points (CHAMAM, KHALSI).</p>
       </div>
     </div>
     <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 mb-4">
-      <AlertTriangle class="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+      <AppIcon name="alert" :size="20" class="text-red-600 shrink-0 mt-0.5" />
       <div>
         <p class="text-sm font-semibold text-red-800">6 élèves avec 5/5 au QCM mais note globale &lt; 10/20</p>
         <p class="text-sm text-red-700 mt-1">Pour ces élèves, le QCM représente entre 50% et 80% de leur note totale. Sans le QCM, leur note effective serait entre 1.2 et 5.0 sur 15 points — <strong>fragilité extrême sur les exercices de rédaction</strong>.</p>
@@ -116,7 +116,7 @@
       </div>
     </div>
     <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 mb-8">
-      <AlertTriangle class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+      <AppIcon name="alert" :size="20" class="text-amber-600 shrink-0 mt-0.5" />
       <div>
         <p class="text-sm font-semibold text-amber-800">Le QCM BB_J1 est très peu discriminant</p>
         <p class="text-sm text-amber-700 mt-1">50.9% des candidats obtiennent 5/5 à BB_J1 contre seulement 15.5% à BB_J2. Le QCM BB_J2 différencie nettement mieux les niveaux (moyenne 2.93/5 vs 4.12/5).</p>
@@ -127,7 +127,7 @@
     <div class="bg-white rounded-xl border-2 border-red-300 shadow-sm mb-8 overflow-hidden">
       <div class="px-5 py-4 border-b border-red-200 bg-red-50">
         <h2 class="text-lg font-semibold text-red-800 flex items-center gap-2">
-          <AlertTriangle class="w-5 h-5 text-red-600" />
+          <AppIcon name="alert" :size="20" class="text-red-600" />
           Détection de Triche au QCM — BB_J1
         </h2>
         <p class="text-xs text-red-600 mt-1">Pattern caractéristique : [0, 1, 0, 1, 0] → 2/5 — réponses du mauvais sujet</p>
@@ -171,7 +171,10 @@
           <tbody>
             <tr v-for="(c, i) in cheatDetected" :key="i" class="border-t border-gray-100 bg-red-50/30 hover:bg-red-50">
               <td class="px-2 py-2 text-center text-gray-500 text-xs">{{ i + 1 }}</td>
-              <td class="px-3 py-2 font-medium text-red-800"><span class="mr-1">🚩</span>{{ c.name }}</td>
+              <td class="px-3 py-2 font-medium text-red-800 flex items-center gap-1">
+                <AppIcon name="alert" :size="14" class="text-red-600" />
+                {{ c.name }}
+              </td>
               <td class="px-2 py-2 text-center">
                 <span class="text-xs px-1.5 py-0.5 rounded-full font-bold" :class="c.subject === 'B' ? 'bg-red-200 text-red-900' : 'bg-orange-100 text-orange-800'">{{ c.subject }}</span>
               </td>
@@ -193,7 +196,7 @@
         <p class="text-sm font-semibold text-gray-700 mb-2">Élèves proches du pattern triche (4/5 positions matchent)</p>
         <div class="space-y-1">
           <div v-for="nc in nearCheat" :key="nc.name" class="flex items-center gap-2 text-sm">
-            <span class="text-amber-500">●</span>
+            <AppIcon name="circle" :size="8" class="text-amber-500" />
             <span class="font-medium text-gray-700">{{ nc.name }}</span>
             <span class="text-xs px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700">Sujet {{ nc.subject }}</span>
             <span class="text-gray-500">{{ nc.classe }}</span>
@@ -213,7 +216,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { BarChart3, AlertTriangle, ClipboardList } from 'lucide-vue-next'
+import AppIcon from '../../icons/AppIcon.vue'
 
 const props = defineProps({
   data: { type: Object, required: true },

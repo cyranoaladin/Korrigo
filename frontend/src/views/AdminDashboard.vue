@@ -3,6 +3,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
+import AppIcon from '../icons/AppIcon.vue'
 import ExamUploadModal from '../components/ExamUploadModal.vue'
 import { QUESTIONNAIRE_SECTIONS } from '../questionnaire/config'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -115,7 +116,7 @@ const examsByType = computed(() => {
          groups[typeId] = {
             details: {
                 name: typeDetails?.name || 'Inconnu',
-                icon: typeDetails?.icon || '📁',
+                icon: typeDetails?.icon || 'exam-folder',
                 color: typeDetails?.color || '#64748b',
                 id: typeId
             },
@@ -131,7 +132,7 @@ const examsByType = computed(() => {
   const result = Object.values(groups)
   if (others.length > 0) {
      result.push({
-        details: { name: 'Autres Examens', icon: '📁', color: '#64748b' },
+        details: { name: 'Autres Examens', icon: 'exam-folder', color: '#64748b' },
         exams: others
      })
   }
@@ -363,27 +364,34 @@ onMounted(() => {
         >
       </div>
       <ul class="nav-links">
-        <li :class="{ active: $route.name === 'AdminDashboard' }">
-          Gestion Examens
+        <li :class="{ active: $route.name === 'AdminDashboard' }" class="nav-item">
+          <AppIcon name="dashboard" :size="18" />
+          <span>Gestion Examens</span>
         </li>
         <li 
           :class="{ active: $route.name === 'UserManagement' }"
+          class="nav-item"
           @click="router.push({ name: 'UserManagement' })"
         >
-          Utilisateurs
+          <AppIcon name="users" :size="18" />
+          <span>Utilisateurs</span>
         </li>
         <li 
           :class="{ active: $route.name === 'Settings' }"
+          class="nav-item"
           @click="router.push({ name: 'Settings' })"
         >
-          Paramètres
+          <AppIcon name="settings" :size="18" />
+          <span>Paramètres</span>
         </li>
         <li 
           v-if="questionnaireSummary.is_available"
           :class="{ active: $route.name === 'QuestionnaireBilan' }"
+          class="nav-item"
           @click="router.push({ name: 'QuestionnaireBilan' })"
         >
-          Bilan Questionnaire
+          <AppIcon name="chart" :size="18" />
+          <span>Bilan Questionnaire</span>
         </li>
       </ul>
       <button
@@ -391,7 +399,8 @@ onMounted(() => {
         class="logout-btn"
         @click="handleLogout"
       >
-        Déconnexion
+        <AppIcon name="logout" :size="18" />
+        <span>Déconnexion</span>
       </button>
       <div class="attribution">
         Concepteur : Aleddine BEN RHOUMA<br>Labo Maths ERT
@@ -412,29 +421,33 @@ onMounted(() => {
         <div class="actions-bar">
           <button
             data-testid="exams.new"
-            class="btn btn-primary"
+            class="btn btn-primary btn-with-icon"
             @click="openCreateModal"
           >
-            + Nouvel Examen
+            <AppIcon name="plus" :size="18" />
+            <span>Nouvel Examen</span>
           </button>
           <button
-            class="btn btn-outline"
+            class="btn btn-outline btn-with-icon"
             data-testid="exams.import"
             @click="openUploadModal"
           >
-            Importer Examen
+            <AppIcon name="upload" :size="18" />
+            <span>Importer Examen</span>
           </button>
           <button
-            class="btn btn-outline"
+            class="btn btn-outline btn-with-icon"
             @click="openJuryReportsModal"
           >
-            Rapports de Jury
+            <AppIcon name="book-check" :size="18" />
+            <span>Rapports de Jury</span>
           </button>
           <button
-            class="btn btn-outline"
+            class="btn btn-outline btn-with-icon"
             @click="openQuestionnaireBilan"
           >
-            Questionnaire Correcteurs
+            <AppIcon name="questionnaire" :size="18" />
+            <span>Questionnaire Correcteurs</span>
           </button>
         </div>
 
@@ -448,16 +461,18 @@ onMounted(() => {
             </div>
             <div class="questionnaire-actions">
               <button
-                class="btn btn-outline"
+                class="btn btn-outline btn-with-icon"
                 @click="fetchQuestionnaireBilanStatus"
               >
-                Actualiser
+                <AppIcon name="refresh" :size="16" />
+                <span>Actualiser</span>
               </button>
               <button
-                class="btn btn-primary"
+                class="btn btn-primary btn-with-icon"
                 @click="openQuestionnaireBilan"
               >
-                Ouvrir la vue bilan
+                <AppIcon name="eye" :size="16" />
+                <span>Ouvrir la vue bilan</span>
               </button>
             </div>
           </div>
@@ -658,13 +673,14 @@ onMounted(() => {
                     <button v-if="exam?.id" class="btn-sm btn-action" @click="goToIdentification(exam.id)">Identification</button>
                     <button class="btn-sm" title="Assigner des correcteurs" @click="exam && openCorrectorModal(exam)">Correcteurs</button>
                     <button 
-                      class="btn-sm btn-dispatch"
+                      class="btn-sm btn-dispatch btn-with-icon"
                       :class="{ 'btn-disabled': !exam || !canDispatch(exam) }"
                       :disabled="!exam || !canDispatch(exam)"
                       :title="exam && canDispatch(exam) ? 'Distribuer les copies' : 'Configuration incomplète'"
                       @click="exam && openDispatchModal(exam)"
                     >
-                      Distribuer
+                      <AppIcon name="refresh" :size="14" />
+                      <span>Distribuer</span>
                     </button>
                     <button class="btn-sm btn-students" title="Voir la liste des élèves et notes" @click="exam?.id && router.push({ name: 'ExamStudentList', params: { examId: exam.id } })">Élèves</button>
                   </td>
@@ -704,7 +720,8 @@ onMounted(() => {
             </option>
           </select>
           <p v-if="!newExam.exam_type" class="field-hint">
-            ⚠️ Sans type, l'examen sera invisible pour les correcteurs.
+            <AppIcon name="warning" :size="14" class="inline" />
+            Sans type, l'examen sera invisible pour les correcteurs.
           </p>
         </div>
         
@@ -817,7 +834,8 @@ onMounted(() => {
             Voulez-vous distribuer les copies non assignées de cet examen aux correcteurs de manière aléatoire et équitable ?
           </p>
           <p class="warning-text">
-            ⚠️ Les copies déjà assignées ne seront pas modifiées.
+            <AppIcon name="warning" :size="14" class="inline" />
+            Les copies déjà assignées ne seront pas modifiées.
           </p>
         </div>
         
@@ -945,9 +963,9 @@ onMounted(() => {
 .logo { font-size: 1.5rem; font-weight: 800; margin-bottom: 2.5rem; color: #60a5fa; display: flex; align-items: center; gap: 0.75rem; }
 .sidebar-logo-img { height: 32px; width: auto; filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.3)); }
 .nav-links { list-style: none; padding: 0; flex: 1; }
-.nav-links li { padding: 0.75rem 1rem; cursor: pointer; border-radius: 6px; margin-bottom: 0.5rem; color: #94a3b8; transition: all 0.2s; }
+.nav-links li { padding: 0.75rem 1rem; cursor: pointer; border-radius: 6px; margin-bottom: 0.5rem; color: #94a3b8; transition: all 0.2s; display: flex; align-items: center; gap: 0.75rem; }
 .nav-links li.active, .nav-links li:hover { background: #334155; color: white; }
-.logout-btn { margin-top: 1rem; background: none; border: 1px solid #ef4444; color: #ef4444; padding: 0.5rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+.logout-btn { margin-top: 1rem; background: none; border: 1px solid #ef4444; color: #ef4444; padding: 0.5rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.75rem; justify-content: center; }
 .logout-btn:hover { background: #ef4444; color: white; }
 .attribution { margin-top: 1.5rem; font-size: 0.7rem; color: #475569; text-align: center; line-height: 1.4; border-top: 1px solid #334155; padding-top: 1rem; }
 
@@ -1219,6 +1237,7 @@ h1 { font-size: 1.5rem; color: #0f172a; margin: 0; }
 
 .actions-bar { margin-bottom: 1.5rem; display: flex; gap: 1rem; }
 .btn { padding: 0.6rem 1.2rem; border-radius: 6px; border: none; font-weight: 500; cursor: pointer; }
+.btn-with-icon { display: inline-flex; align-items: center; gap: 0.75rem; }
 .btn-primary { background: #2563eb; color: white; }
 .btn-secondary {
   background: #6b7280;

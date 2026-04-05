@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import gradingApi from '../services/gradingApi'
+import AppIcon from '../icons/AppIcon.vue'
 
 const props = defineProps({
   examId: {
@@ -170,7 +171,10 @@ onUnmounted(() => {
 
     <!-- Error State -->
     <div v-if="error" class="error-state">
-      <p>❌ Erreur de chargement: {{ error }}</p>
+      <p class="flex items-center justify-center gap-2">
+        <AppIcon name="alert" :size="18" class="text-red-500" />
+        <span>Erreur de chargement: {{ error }}</span>
+      </p>
       <button @click="loadCopies" class="retry-button">Réessayer</button>
     </div>
 

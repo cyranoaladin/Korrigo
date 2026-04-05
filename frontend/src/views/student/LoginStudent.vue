@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { getErrorMessage } from '../../utils/errorMessages'
+import AppIcon from '../../icons/AppIcon.vue'
 
 const email = ref('')
 const password = ref('')
@@ -70,12 +71,12 @@ const handleLogin = async () => {
               autocomplete="current-password"
             >
             <button
-              type="button"
-              class="btn-toggle-password"
-              @click="passwordVisible = !passwordVisible"
-            >
-              {{ passwordVisible ? '🙈' : '👁️' }}
-            </button>
+               type="button"
+               class="btn-toggle-password"
+               @click="passwordVisible = !passwordVisible"
+             >
+               <AppIcon :name="passwordVisible ? 'eye-off' : 'eye'" :size="18" />
+             </button>
           </div>
         </div>
                 
@@ -102,8 +103,9 @@ const handleLogin = async () => {
       </p>
             
       <div class="footer-links">
-        <router-link to="/">
-          ← Retour à l'accueil
+        <router-link to="/" class="back-link">
+          <AppIcon name="arrow-left" :size="16" />
+          <span>Retour à l'accueil</span>
         </router-link>
       </div>
     </div>
@@ -188,6 +190,6 @@ input:focus { border-color: #667eea; box-shadow: 0 0 0 2px #667eea; outline: non
 .hint-text strong { color: #718096; }
 
 .footer-links { text-align: center; margin-top: 1.5rem; font-size: 0.9rem; }
-.footer-links a { color: #718096; text-decoration: none; }
-.footer-links a:hover { text-decoration: underline; }
+.back-link { color: #718096; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; }
+.back-link:hover { text-decoration: underline; color: #4a5568; }
 </style>

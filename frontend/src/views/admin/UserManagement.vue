@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import api from '../../services/api'
+import AppIcon from '../../icons/AppIcon.vue'
 
 const activeTab = ref('students') // 'students', 'teachers', 'admins'
 const items = ref([])
@@ -230,20 +231,22 @@ const copyToClipboard = () => {
             @change="handleImport"
           >
           <button
-            class="btn btn-primary"
+            class="btn btn-primary btn-with-icon"
             :disabled="importing"
             @click="$refs.fileInput.click()"
           >
-            {{ importing ? 'Import...' : 'Import CSV/XML' }}
+            <AppIcon v-if="!importing" name="upload" :size="16" />
+            <span>{{ importing ? 'Import...' : 'Import CSV/XML' }}</span>
           </button>
         </div>
         
         <div v-else>
           <button
-            class="btn btn-primary"
+            class="btn btn-primary btn-with-icon"
             @click="openCreateModal"
           >
-            + Ajouter {{ activeTab === 'admins' ? 'Administrateur' : 'Enseignant' }}
+            <AppIcon name="user-plus" :size="16" />
+            <span>Ajouter {{ activeTab === 'admins' ? 'Administrateur' : 'Enseignant' }}</span>
           </button>
         </div>
       </div>
@@ -311,10 +314,11 @@ const copyToClipboard = () => {
             <td>{{ item.class_name }}</td>
             <td>
               <button
-                class="btn-sm btn-outline"
+                class="btn-sm btn-outline btn-with-icon"
                 @click="toggleStudentDetail(item)"
               >
-                {{ expandedStudentId === item.id ? 'Masquer' : 'Voir' }}
+                <AppIcon :name="expandedStudentId === item.id ? 'eye-off' : 'eye'" :size="14" />
+                <span>{{ expandedStudentId === item.id ? 'Masquer' : 'Voir' }}</span>
               </button>
             </td>
           </tr>
@@ -348,23 +352,29 @@ const copyToClipboard = () => {
             <td>
               <div class="btn-group">
                 <button
-                  class="btn-sm btn-outline"
+                  class="btn-sm btn-outline btn-with-icon"
+                  title="Éditer"
                   @click="openEditModal(item)"
                 >
-                  Éditer
+                  <AppIcon name="teacher-pen" :size="14" />
+                  <span>Éditer</span>
                 </button>
                 <button
-                  class="btn-sm btn-warning"
+                  class="btn-sm btn-warning btn-with-icon"
+                  title="Réinitialiser MDP"
                   :disabled="resettingPassword"
                   @click="openResetPasswordModal(item)"
                 >
-                  Réinitialiser MDP
+                  <AppIcon name="reset" :size="14" />
+                  <span>Réinitialiser</span>
                 </button>
                 <button
-                  class="btn-sm btn-danger"
+                  class="btn-sm btn-danger btn-with-icon"
+                  title="Supprimer"
                   @click="deleteUser(item)"
                 >
-                  Supprimer
+                  <AppIcon name="delete" :size="14" />
+                  <span>Supprimer</span>
                 </button>
               </div>
             </td>
@@ -476,10 +486,11 @@ const copyToClipboard = () => {
               class="form-input password-readonly"
             >
             <button 
-              class="btn btn-outline btn-copy"
+              class="btn btn-outline btn-copy btn-with-icon"
               @click="copyToClipboard"
             >
-              📋 Copier
+              <AppIcon name="copy" :size="16" />
+              <span>Copier</span>
             </button>
           </div>
         </div>
@@ -524,6 +535,8 @@ const copyToClipboard = () => {
 .btn-warning { background: #f59e0b; color: white; }
 .btn-warning:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-group { display: flex; gap: 0.5rem; }
+.btn-with-icon { display: inline-flex; align-items: center; gap: 0.5rem; }
+.btn-sm.btn-with-icon { gap: 0.25rem; }
 
 /* Modal Styles */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }

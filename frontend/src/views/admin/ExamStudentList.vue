@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
-import { ArrowLeft, Download, Users, Award, Clock, CheckCircle, AlertCircle, Search, ArrowUpDown } from 'lucide-vue-next'
+import AppIcon from '../../icons/AppIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -97,51 +97,51 @@ onMounted(fetchData)
     <header class="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-50">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <button @click="router.push({name:'AdminDashboard'})" class="p-2 rounded-lg hover:bg-slate-100"><ArrowLeft class="w-5 h-5 text-slate-600"/></button>
+          <button @click="router.push({name:'AdminDashboard'})" class="p-2 rounded-lg hover:bg-slate-100"><AppIcon name="arrow-left" class="w-5 h-5 text-slate-600"/></button>
           <div>
             <h1 class="text-lg font-bold text-slate-800">Liste des élèves</h1>
             <p v-if="summary" class="text-xs text-slate-400">{{ summary.exam_name }}</p>
           </div>
         </div>
-        <button @click="exportCSV" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"><Download class="w-4 h-4"/> Exporter CSV</button>
+        <button @click="exportCSV" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"><AppIcon name="download" class="w-4 h-4"/> Exporter CSV</button>
       </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       <div v-if="loading" class="flex justify-center py-20"><div class="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
-      <div v-else-if="error" class="bg-red-50 rounded-2xl p-8 text-center"><AlertCircle class="w-10 h-10 text-red-300 mx-auto mb-3"/><p class="text-red-600">{{ error }}</p></div>
+      <div v-else-if="error" class="bg-red-50 rounded-2xl p-8 text-center"><AppIcon name="alert" class="w-10 h-10 text-red-300 mx-auto mb-3"/><p class="text-red-600">{{ error }}</p></div>
 
       <template v-else-if="summary">
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-100 px-4 py-3">
-            <div class="flex items-center gap-2 mb-1"><Users class="w-4 h-4 text-slate-400"/><span class="text-xs text-slate-400 uppercase">Total</span></div>
+            <div class="flex items-center gap-2 mb-1"><AppIcon name="users" class="w-4 h-4 text-slate-400"/><span class="text-xs text-slate-400 uppercase">Total</span></div>
             <p class="text-2xl font-bold text-slate-800">{{ summary.total_copies }}</p>
           </div>
           <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-100 px-4 py-3">
-            <div class="flex items-center gap-2 mb-1"><CheckCircle class="w-4 h-4 text-emerald-400"/><span class="text-xs text-slate-400 uppercase">Corrigées</span></div>
+            <div class="flex items-center gap-2 mb-1"><AppIcon name="check" class="w-4 h-4 text-emerald-400"/><span class="text-xs text-slate-400 uppercase">Corrigées</span></div>
             <p class="text-2xl font-bold text-emerald-600">{{ summary.graded }}</p>
           </div>
           <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-100 px-4 py-3">
-            <div class="flex items-center gap-2 mb-1"><Clock class="w-4 h-4 text-blue-400"/><span class="text-xs text-slate-400 uppercase">Prêtes</span></div>
+            <div class="flex items-center gap-2 mb-1"><AppIcon name="calendar" class="w-4 h-4 text-blue-400"/><span class="text-xs text-slate-400 uppercase">Prêtes</span></div>
             <p class="text-2xl font-bold text-blue-600">{{ summary.ready }}</p>
           </div>
           <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-100 px-4 py-3">
-            <div class="flex items-center gap-2 mb-1"><AlertCircle class="w-4 h-4 text-amber-400"/><span class="text-xs text-slate-400 uppercase">En attente</span></div>
+            <div class="flex items-center gap-2 mb-1"><AppIcon name="alert" class="w-4 h-4 text-amber-400"/><span class="text-xs text-slate-400 uppercase">En attente</span></div>
             <p class="text-2xl font-bold text-amber-600">{{ summary.staging }}</p>
           </div>
           <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-100 px-4 py-3">
-            <div class="flex items-center gap-2 mb-1"><Award class="w-4 h-4 text-indigo-400"/><span class="text-xs text-slate-400 uppercase">Moyenne</span></div>
+            <div class="flex items-center gap-2 mb-1"><AppIcon name="award" class="w-4 h-4 text-indigo-400"/><span class="text-xs text-slate-400 uppercase">Moyenne</span></div>
             <p class="text-2xl font-bold text-indigo-600">{{ summary.average !== null ? summary.average.toFixed(2) : '—' }}</p>
           </div>
           <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-100 px-4 py-3">
-            <div class="flex items-center gap-2 mb-1"><ArrowUpDown class="w-4 h-4 text-purple-400"/><span class="text-xs text-slate-400 uppercase">Min / Max</span></div>
+            <div class="flex items-center gap-2 mb-1"><AppIcon name="arrow-up-down" class="w-4 h-4 text-purple-400"/><span class="text-xs text-slate-400 uppercase">Min / Max</span></div>
             <p class="text-lg font-bold text-purple-600">{{ summary.min_score !== null ? summary.min_score.toFixed(2) : '—' }} / {{ summary.max_score !== null ? summary.max_score.toFixed(2) : '—' }}</p>
           </div>
         </div>
 
         <div class="flex flex-wrap gap-3 items-center">
           <div class="relative flex-1 min-w-[200px] max-w-md">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"/>
+            <AppIcon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"/>
             <input v-model="searchQuery" type="text" placeholder="Rechercher élève, anonymat, correcteur..." class="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl ring-1 ring-slate-200 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none"/>
           </div>
           <select v-model="filterClasse" class="px-4 py-2.5 bg-white rounded-xl ring-1 ring-slate-200 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
@@ -167,13 +167,13 @@ onMounted(fetchData)
               <thead>
                 <tr class="bg-slate-50/80 border-b border-slate-100">
                   <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">#</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('anonymous_id')">Anonymat <span v-if="sortField==='anonymous_id'">{{ sortAsc?'▲':'▼' }}</span></th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_name')">Élève <span v-if="sortField==='student_name'">{{ sortAsc?'▲':'▼' }}</span></th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_class')">Classe <span v-if="sortField==='student_class'">{{ sortAsc?'▲':'▼' }}</span></th>
-                  <th v-if="hasGroups" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_groupe')">Groupe <span v-if="sortField==='student_groupe'">{{ sortAsc?'▲':'▼' }}</span></th>
-                  <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('total_score')">Note /20 <span v-if="sortField==='total_score'">{{ sortAsc?'▲':'▼' }}</span></th>
-                  <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('status')">Statut <span v-if="sortField==='status'">{{ sortAsc?'▲':'▼' }}</span></th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('corrector')">Correcteur <span v-if="sortField==='corrector'">{{ sortAsc?'▲':'▼' }}</span></th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('anonymous_id')">Anonymat <AppIcon v-if="sortField==='anonymous_id'" :name="sortAsc?'chevron-up':'chevron-down'" :size="12" class="inline" /></th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_name')">Élève <AppIcon v-if="sortField==='student_name'" :name="sortAsc?'chevron-up':'chevron-down'" :size="12" class="inline" /></th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_class')">Classe <AppIcon v-if="sortField==='student_class'" :name="sortAsc?'chevron-up':'chevron-down'" :size="12" class="inline" /></th>
+                  <th v-if="hasGroups" class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('student_groupe')">Groupe <AppIcon v-if="sortField==='student_groupe'" :name="sortAsc?'chevron-up':'chevron-down'" :size="12" class="inline" /></th>
+                  <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('total_score')">Note /20 <AppIcon v-if="sortField==='total_score'" :name="sortAsc?'chevron-up':'chevron-down'" :size="12" class="inline" /></th>
+                  <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('status')">Statut <AppIcon v-if="sortField==='status'" :name="sortAsc?'chevron-up':'chevron-down'" :size="12" class="inline" /></th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase cursor-pointer hover:text-indigo-600" @click="toggleSort('corrector')">Correcteur <AppIcon v-if="sortField==='corrector'" :name="sortAsc?'chevron-up':'chevron-down'" :size="12" class="inline" /></th>
                   <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">Appr.</th>
                 </tr>
               </thead>
@@ -196,7 +196,7 @@ onMounted(fetchData)
                   <td class="px-4 py-3 text-center"><span :class="scoreColor(copy.total_score)">{{ copy.total_score !== null ? copy.total_score.toFixed(2) : '—' }}</span></td>
                   <td class="px-4 py-3 text-center"><span :class="['px-2.5 py-1 rounded-full text-xs font-medium', statusColor(copy.status)]">{{ statusLabel(copy.status) }}</span></td>
                   <td class="px-4 py-3 text-slate-600 text-xs">{{ copy.corrector || '—' }}</td>
-                  <td class="px-4 py-3 text-center"><span v-if="copy.has_appreciation" class="text-emerald-500">✓</span><span v-else class="text-slate-300">—</span></td>
+                  <td class="px-4 py-3 text-center"><AppIcon v-if="copy.has_appreciation" name="check" class="text-emerald-500 mx-auto" :size="16" /><span v-else class="text-slate-300">—</span></td>
                 </tr>
                 <tr v-if="filteredCopies.length===0"><td :colspan="hasGroups ? 9 : 8" class="px-4 py-8 text-center text-slate-400">Aucun résultat.</td></tr>
               </tbody>

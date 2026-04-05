@@ -3,7 +3,7 @@
     <!-- Quality KPIs -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <div v-for="q in qualityKpis" :key="q.label" class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <component :is="q.icon" class="w-5 h-5 mb-2" :class="q.color" />
+        <AppIcon :name="q.icon" :size="20" class="mb-2" :class="q.color" />
         <p class="text-2xl font-bold text-neutralDark">{{ q.value }}</p>
         <p class="text-xs text-gray-500 mt-1">{{ q.label }}</p>
         <p class="text-xs text-gray-400">{{ q.sub }}</p>
@@ -42,7 +42,7 @@
 
     <!-- Fraud alert -->
     <div class="bg-red-50 border border-red-300 rounded-xl p-4 flex items-start gap-3">
-      <AlertTriangle class="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+      <AppIcon name="warning" :size="20" class="text-red-600 shrink-0 mt-0.5" />
       <div>
         <p class="text-sm font-semibold text-red-800">Suspicion de fraude signalée</p>
         <p class="text-sm text-red-700 mt-1 italic">"Une anomalie grave et inacceptable est à souligner à l'Exercice 1 : vos réponses au QCM correspondent exactement à la grille de correction d'un autre sujet."</p>
@@ -53,7 +53,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { MessageSquare, PenTool, FileText, Brain, AlertTriangle } from 'lucide-vue-next'
+import AppIcon from '../../icons/AppIcon.vue'
 
 const props = defineProps({
   data: { type: Object, required: true }
@@ -63,10 +63,10 @@ const qualityKpis = computed(() => {
   if (!props.data) return []
   const q = props.data.quality
   return [
-    { label: 'Remarques pédagogiques', value: q.remarks_count.toLocaleString('fr-FR'), sub: `${q.copies_with_remarks}/${q.total_copies} copies`, icon: MessageSquare, color: 'text-blue-600' },
-    { label: 'Annotations graphiques', value: q.annotations_count.toLocaleString('fr-FR'), sub: `${q.copies_with_annotations}/${q.total_copies} copies`, icon: PenTool, color: 'text-purple-600' },
-    { label: 'Appréciations globales', value: q.appreciation_rate, sub: `${q.copies_with_appreciation}/${q.total_copies} copies`, icon: FileText, color: 'text-green-600' },
-    { label: 'Bilans LLM générés', value: String(q.llm_count), sub: `${q.llm_pct}% des copies`, icon: Brain, color: 'text-amber-600' }
+    { label: 'Remarques pédagogiques', value: q.remarks_count.toLocaleString('fr-FR'), sub: `${q.copies_with_remarks}/${q.total_copies} copies`, icon: 'message-square', color: 'text-blue-600' },
+    { label: 'Annotations graphiques', value: q.annotations_count.toLocaleString('fr-FR'), sub: `${q.copies_with_annotations}/${q.total_copies} copies`, icon: 'edit', color: 'text-purple-600' },
+    { label: 'Appréciations globales', value: q.appreciation_rate, sub: `${q.copies_with_appreciation}/${q.total_copies} copies`, icon: 'document', color: 'text-green-600' },
+    { label: 'Bilans LLM générés', value: String(q.llm_count), sub: `${q.llm_pct}% des copies`, icon: 'brain', color: 'text-amber-600' }
   ]
 })
 

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import gradingApi from '../services/gradingApi'
+import AppIcon from '../icons/AppIcon.vue'
 
 const props = defineProps({
     examId: { type: String, required: true },
@@ -43,13 +44,13 @@ watch(searchQuery, () => {
 })
 
 const criterionColors = {
-    method: { bg: '#eff6ff', border: '#3b82f6', icon: '🔵' },
-    result: { bg: '#f0fdf4', border: '#22c55e', icon: '🟢' },
-    justification: { bg: '#fefce8', border: '#eab308', icon: '🟡' },
-    redaction: { bg: '#faf5ff', border: '#a855f7', icon: '🟣' },
-    error_typique: { bg: '#fef2f2', border: '#ef4444', icon: '🔴' },
-    bonus: { bg: '#f0fdf4', border: '#16a34a', icon: '✅' },
-    plafond: { bg: '#fff7ed', border: '#f97316', icon: '⚠️' },
+    method: { bg: '#eff6ff', border: '#3b82f6', dot: '#3b82f6' },
+    result: { bg: '#f0fdf4', border: '#22c55e', dot: '#22c55e' },
+    justification: { bg: '#fefce8', border: '#eab308', dot: '#eab308' },
+    redaction: { bg: '#faf5ff', border: '#a855f7', dot: '#a855f7' },
+    error_typique: { bg: '#fef2f2', border: '#ef4444', dot: '#ef4444' },
+    bonus: { bg: '#f0fdf4', border: '#16a34a', dot: '#16a34a' },
+    plafond: { bg: '#fff7ed', border: '#f97316', dot: '#f97316' },
 }
 
 const severityLabels = {
@@ -83,7 +84,7 @@ const contextLabel = computed(() => {
   >
     <div class="suggestions-header">
       <div class="suggestions-title">
-        <span class="suggestions-icon">💡</span>
+        <AppIcon name="lightbulb" :size="15" class="inline" />
         <span>Suggestions</span>
         <span class="context-badge">{{ contextLabel }}</span>
       </div>
@@ -153,7 +154,7 @@ const contextLabel = computed(() => {
           @click="handleInsert(tpl.text, 'template', tpl.id)"
         >
           <div class="suggestion-meta">
-            <span class="criterion-icon">{{ getColor(tpl.criterion_type).icon }}</span>
+            <span class="criterion-dot" :style="{ backgroundColor: getColor(tpl.criterion_type).dot }" />
             <span class="criterion-label">{{ tpl.criterion_type_display }}</span>
             <span
               v-if="tpl.severity !== 'info'"
@@ -183,7 +184,7 @@ const contextLabel = computed(() => {
           @click="handleInsert(ann.text, 'personal', ann.id)"
         >
           <div class="suggestion-meta">
-            <span class="criterion-icon">⭐</span>
+            <AppIcon name="star" :size="12" class="inline" style="color: #f59e0b" />
             <span class="usage-count">×{{ ann.usage_count }}</span>
           </div>
           <div class="suggestion-text">
@@ -355,8 +356,12 @@ const contextLabel = computed(() => {
     font-size: 11px;
 }
 
-.criterion-icon {
-    font-size: 12px;
+.criterion-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
 }
 
 .criterion-label {

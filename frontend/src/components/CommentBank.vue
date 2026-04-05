@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import api from '../services/api'
+import AppIcon from '../icons/AppIcon.vue'
 
 const props = defineProps({
   visible: Boolean
@@ -84,9 +85,9 @@ watch(() => props.visible, (newVal) => {
   <Transition name="slide">
     <div v-if="visible" class="comment-bank-panel">
       <div class="panel-header">
-        <h3>💬 Mes Commentaires</h3>
+        <h3><AppIcon name="comment" :size="16" class="inline" /> Mes Commentaires</h3>
         <div class="header-actions">
-          <button class="btn-refresh" @click="refresh" title="Actualiser">🔄</button>
+          <button class="btn-refresh" @click="refresh" title="Actualiser"><AppIcon name="search" :size="14" style="transform: rotate(-45deg)" /></button>
           <button class="btn-close" @click="emit('close')" title="Fermer">×</button>
         </div>
       </div>

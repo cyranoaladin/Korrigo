@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
+import AppIcon from '../../icons/AppIcon.vue'
 import GradingScaleBuilder from '../../components/GradingScaleBuilder.vue'
 
 const route = useRoute()
@@ -90,10 +91,11 @@ onMounted(() => {
   <div class="marking-scheme-view">
     <header class="view-header">
       <button
-        class="btn-back"
+        class="btn-back btn-with-icon"
         @click="router.back()"
       >
-        ← Retour
+        <AppIcon name="arrow-left" :size="16" />
+        <span>Retour</span>
       </button>
       <h2>Éditeur de Barème : {{ exam?.name }}</h2>
     </header>
@@ -118,15 +120,20 @@ onMounted(() => {
         class="total-indicator"
         :class="{ 'total-valid': isValidTotal, 'total-invalid': !isValidTotal }"
       >
-        Total : <strong>{{ totalPoints }}</strong> / 20 pts
-        <span
-          v-if="isValidTotal"
-          class="check-icon"
-        >✓</span>
-        <span
-          v-else
-          class="warning-icon"
-        >⚠ Le total doit être 20</span>
+        <span class="indicator-label">Total : <strong>{{ totalPoints }}</strong> / 20 pts</span>
+        <AppIcon 
+          v-if="isValidTotal" 
+          name="check" 
+          :size="20" 
+          class="check-icon" 
+        />
+        <div 
+          v-else 
+          class="warning-container"
+        >
+          <AppIcon name="warning" :size="16" />
+          <span class="warning-text">Le total doit être 20</span>
+        </div>
       </div>
       
       <GradingScaleBuilder v-model="gradingStructure" />
@@ -166,13 +173,14 @@ onMounted(() => {
 .marking-scheme-view { padding: 2rem; max-width: 900px; margin: 0 auto; font-family: 'Inter', sans-serif; background: #f8fafc; min-height: 100vh; }
 .view-header { display: flex; align-items: center; gap: 2rem; margin-bottom: 2rem; }
 .btn-back { background: none; border: none; color: #64748b; font-weight: 500; cursor: pointer; }
+.btn-with-icon { display: flex; align-items: center; gap: 0.5rem; }
 .editor-container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
 .info-banner { background: #e0e7ff; color: #3730a3; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
 .total-indicator { padding: 0.75rem 1rem; border-radius: 6px; font-size: 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 500; }
 .total-valid { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
 .total-invalid { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-.check-icon { color: #059669; font-size: 1.2rem; }
-.warning-icon { font-size: 0.85rem; font-weight: 400; }
+.check-icon { color: #059669; }
+.warning-container { display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; font-weight: 400; }
 .actions-footer { margin-top: 3rem; border-top: 1px solid #e2e8f0; padding-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; }
 .btn { padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.2s; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
