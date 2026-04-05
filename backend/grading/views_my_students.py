@@ -38,7 +38,13 @@ def _get_teacher_group(user):
         assignment = TeacherGroupAssignment.objects.filter(teacher=user).first()
         if assignment:
             return assignment.group_name
-    return _TEACHER_GROUPS.get(user.email) or _TEACHER_GROUPS.get(user.username)
+    
+    group = _TEACHER_GROUPS.get(user.email) or _TEACHER_GROUPS.get(user.username)
+    if group:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"DEPRECATED: Using hardcoded _TEACHER_GROUPS fallback for {user.username}. Migrate to TeacherGroupAssignment!")
+    return group
 
 
 def _build_question_labels(exam):

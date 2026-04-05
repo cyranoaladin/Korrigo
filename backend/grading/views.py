@@ -585,6 +585,13 @@ class CopyScoresView(APIView):
 
     def get(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
+        
+        # Debug: check why access might be denied
+        if not IsTeacherOrAdmin().has_permission(request, self):
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"GET Score Permission Denied for user {request.user.username} on copy {copy_id}")
+            
         score = Score.objects.filter(copy=copy).first()
         if not score:
             return Response({
@@ -642,10 +649,12 @@ class CopyScoresView(APIView):
         # First try grading_structure (handles both UUID and positional IDs)
         from exams.grading_utils import build_q_max as _build_q_max_gs
         q_max = _build_q_max_gs(copy.exam.grading_structure) if copy.exam else {}
-        # Fallback to hardcoded constraints
+        # Fallback to hardcoded constraints (DEPRECATED: prefer grading_structure)
         if not q_max:
             from exams.score_constraints import Q_MAX_BY_EXAM
             q_max = Q_MAX_BY_EXAM.get(copy.exam.name, {})
+            if q_max:
+                logger.warning(f"DEPRECATED: Using hardcoded Q_MAX_BY_EXAM fallback for {copy.exam.name}. Update grading_structure!")
         if q_max:
             overflow_warnings: list[str] = []
             for qid, val in scores_data.items():

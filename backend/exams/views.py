@@ -730,6 +730,10 @@ class StudentCopiesView(generics.ListAPIView):
         # Fallback sur le dict hardcodé si grading_structure ne fournit pas de q_max
         if not q_max:
             q_max = Q_MAX_BY_EXAM.get(exam.name, {})
+            if q_max:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"DEPRECATED: Using hardcoded Q_MAX_BY_EXAM fallback for {exam.name}. Update grading_structure!")
         return q_max
 
     def list(self, request, *args, **kwargs):
