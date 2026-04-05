@@ -1,3 +1,7 @@
+<!-- ⚠️ RAPPORT ARCHIVÉ — BAC BLANC MATHS 2026 (BB_J1/BB_J2)
+     Ce composant contient des données et analyses hardcodées.
+     Le backend StatsReportView (/api/exams/stats-report/) est dynamique.
+     Pour un futur examen, refactorer ce composant ou en créer un nouveau. -->
 <template>
   <section class="max-w-6xl mx-auto px-4 sm:px-6 py-10 md:py-14">
     <!-- Loading -->

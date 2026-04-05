@@ -282,7 +282,6 @@ const routes = [
     { path: '/exam/:examId/grading-scale', redirect: to => `/admin/exams/${to.params.examId}/scale` },
     { path: '/exam/:examId/students', redirect: to => `/admin/exams/${to.params.examId}/results` },
     { path: '/questionnaire/bilan', redirect: '/admin/questionnaire' },
-    { path: '/korrigo/stats-bb-maths-2026', redirect: '/korrigo/stats/BBM2026' },
 
     // ── Catch-all ──
     {

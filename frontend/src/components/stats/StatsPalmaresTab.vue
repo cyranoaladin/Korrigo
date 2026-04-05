@@ -1,3 +1,5 @@
+<!-- ⚠️ RAPPORT ARCHIVÉ — BAC BLANC MATHS 2026 (BB_J1/BB_J2)
+     Données hardcodées. Voir StatsReport.vue pour le contexte complet. -->
 <template>
   <div>
     <!-- Top 15 -->

@@ -290,9 +290,17 @@ class CopyFinalizeView(APIView):
             )
         if copy.status == Copy.Status.FINALIZED:
             return Response({"detail": "Copie déjà finalisée."}, status=status.HTTP_400_BAD_REQUEST)
+        # Collect warnings (non-blocking)
+        warnings = []
+        ann_count = Annotation.objects.filter(copy=copy).count()
+        if ann_count == 0:
+            warnings.append("Aucune annotation sur cette copie.")
         try:
             finalized = GradingService.finalize_copy(copy, request.user)
-            return Response({"status": finalized.status})
+            data = {"status": finalized.status}
+            if warnings:
+                data["warnings"] = warnings
+            return Response(data)
         except LockConflictError as e:
             return Response({"detail": str(e)}, status=status.HTTP_409_CONFLICT)
         except (ValueError, PermissionError) as e:
@@ -581,17 +589,14 @@ class CopyScoresView(APIView):
     Save and retrieve per-question scores for a copy.
     scores_data format: {"question_id": score_value, ...}
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
 
     def get(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
         
-        # Debug: check why access might be denied
-        if not IsTeacherOrAdmin().has_permission(request, self):
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"GET Score Permission Denied for user {request.user.username} on copy {copy_id}")
-            
+        # IsTeacherOrAdmin handles global access.
+        # GET is allowed for any teacher/admin.
+        
         score = Score.objects.filter(copy=copy).first()
         if not score:
             return Response({

@@ -1,13 +1,16 @@
 """
+FALLBACK STATIQUE pour les anciens examens sans grading_structure complète.
+
+⚠️  Les NOUVEAUX examens DOIVENT avoir un grading_structure complet dans la DB
+    avec des maxScore par question. Ce fallback ne couvre que BB_J1, BB_J2 et DNB_2026
+    créés avant le système d'IDs.
+
+Le code primaire utilise exam.grading_structure via build_q_max() dans grading_utils.py.
+Ce dictionnaire n'intervient que si grading_structure ne fournit pas de q_max.
+
 Per-question maximum score constraints, keyed by exam name then question ID.
-
-These values are used for server-side overflow validation in CopyScoresView
-(grading app) and exposed to the student portal (exams app).
-
-Source of truth: must stay aligned with the official grading barème.
-When the barème is loaded into exam.grading_structure, prefer deriving
-limits from there; this dict acts as an explicit override/fallback for
-named exam sessions.
+Used for server-side overflow validation in CopyScoresView (grading app)
+and exposed to the student portal (exams app).
 """
 
 Q_MAX_BY_EXAM: dict[str, dict[str, float]] = {

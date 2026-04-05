@@ -19,17 +19,19 @@ try:
 except ImportError:
     _HAS_TGA_MODEL = False
 
-# Fallback statique quand le modèle TeacherGroupAssignment n'existe pas encore en prod
-_TEACHER_GROUPS = {
-    'alaeddine.benrhouma@ert.tn': 'G3',
-    'patrick.dupont@ert.tn': 'G2',
-    'philippe.carr@ert.tn': 'G1',
-    'selima.klibi@ert.tn': 'T.06',
-    'chawki.saadi@ert.tn': 'G4',
-    'sami.bentiba@ert.tn': 'G6',
-    'laroussi.laroussi@ert.tn': 'G5',
-    'edouard.rousseau@ert.tn': 'T.04',
-}
+# DEPRECATED 2026-04-05 — Données migrées dans TeacherGroupAssignment (migration 0031).
+# Supprimer ce fallback après confirmation que la migration a été appliquée en prod.
+# _TEACHER_GROUPS = {
+#     'alaeddine.benrhouma@ert.tn': 'G3',
+#     'patrick.dupont@ert.tn': 'G2',
+#     'philippe.carr@ert.tn': 'G1',
+#     'selima.klibi@ert.tn': 'T.06',
+#     'chawki.saadi@ert.tn': 'G4',
+#     'sami.bentiba@ert.tn': 'G6',
+#     'laroussi.laroussi@ert.tn': 'G5',
+#     'edouard.rousseau@ert.tn': 'T.04',
+# }
+_TEACHER_GROUPS = {}
 
 
 def _get_teacher_group(user):

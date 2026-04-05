@@ -82,17 +82,29 @@ class IsAdminOrTeacher(BasePermission):
     Utilise group membership (pas is_staff) pour distinguer admin de teacher.
     """
     def has_permission(self, request, view):
-        if not request.user.is_authenticated:
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # LOGGING DE DIAGNOSTIC POUR 403
+        is_auth = request.user.is_authenticated
+        username = request.user.username if is_auth else "Anonymous"
+        groups = list(request.user.groups.values_list('name', flat=True)) if is_auth else []
+        
+        if not is_auth:
+            logger.warning(f"PERMISSION_DENIED [IsAdminOrTeacher]: User not authenticated. Path: {request.path}")
             return False
+
         res = (
             request.user.is_superuser
             or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
             or request.user.groups.filter(name__iexact=UserRole.TEACHER).exists()
         )
+        
         if not res:
-             import logging
-             logger = logging.getLogger(__name__)
-             logger.warning(f"Permission denied for user {request.user.username} (not in admin/teacher groups and not superuser)")
+             logger.warning(
+                 f"PERMISSION_DENIED [IsAdminOrTeacher]: User {username} lacks required groups. "
+                 f"Groups found: {groups}, is_superuser: {request.user.is_superuser}. Path: {request.path}"
+             )
         return res
 
 class IsAdminOnly(BasePermission):

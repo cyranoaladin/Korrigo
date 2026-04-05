@@ -365,6 +365,11 @@ const onGlobalKeydown = (e) => {
             e.preventDefault()
             goNextPage()
         }
+        // Annotation shortcuts: V=Vrai, F=Faux, C=Commentaire, E=Erreur
+        if (e.key === 'v' || e.key === 'V') { e.preventDefault(); setAnnotationMode('stamp', 'VRAI') }
+        if (e.key === 'f' || e.key === 'F') { e.preventDefault(); setAnnotationMode('stamp', 'FAUX') }
+        if (e.key === 'c' || e.key === 'C') { e.preventDefault(); setAnnotationMode('type', 'COMMENTAIRE') }
+        if (e.key === 'e' || e.key === 'E') { e.preventDefault(); setAnnotationMode('type', 'ERREUR') }
     }
 }
 
@@ -580,6 +585,16 @@ const saveScoresToServer = async () => {
     } finally {
         scoresSaving.value = false
     }
+}
+
+const quickVals = (max) => {
+    if (!max || max <= 0) return [0]
+    const s = new Set([0])
+    if (max >= 0.5) s.add(0.25)
+    if (max >= 1) s.add(0.5)
+    if (max >= 2) s.add(1)
+    s.add(max)
+    return [...s].sort((a, b) => a - b)
 }
 
 const onScoreChange = (questionId, value) => {
@@ -815,7 +830,10 @@ const handleFinalize = async () => {
     try {
         // Save scores one last time before finalize
         await saveScoresToServer()
-        await gradingApi.finalizeCopy(copyId);
+        const result = await gradingApi.finalizeCopy(copyId);
+        if (result.warnings?.length) {
+            alert('Avertissement : ' + result.warnings.join('\n'))
+        }
         await fetchCopy();
     }
     catch (err) { error.value = err.response?.data?.detail || "Échec de l'action"; }
@@ -1317,6 +1335,10 @@ onUnmounted(() => {
         >
           <strong>{{ copy.anonymous_id }}</strong>
           <span :class="'status-badge status-' + copy.status.toLowerCase()">{{ getStatusLabel(copy.status) }}</span>
+          <span class="sync-indicator" :class="'sync-' + syncStatusLevel"
+                :title="syncStatusLevel === 'ok' ? 'Synchronisé' : syncStatusLevel === 'offline' ? 'Hors ligne' : syncStatusLevel === 'critical' ? 'Erreur de sync' : 'En attente...'">
+            <span class="sync-dot"></span>
+          </span>
         </span>
       </div>
       
@@ -1752,6 +1774,10 @@ onUnmounted(() => {
                               @input="onScoreChange(question.id, $event.target.value)"
                               @blur="onScoreBlur(question.id)"
                             >
+                            <div v-if="!isReadOnly" class="quick-btns">
+                              <button v-for="v in quickVals(question.maxScore)" :key="v" class="qb"
+                                      @click="onScoreChange(question.id, String(v))">{{ v }}</button>
+                            </div>
                           </div>
                           <div class="question-remark-field">
                             <div class="remark-label-row">
@@ -1818,6 +1844,10 @@ onUnmounted(() => {
                           @input="onScoreChange(question.id, $event.target.value)"
                           @blur="onScoreBlur(question.id)"
                         >
+                        <div v-if="!isReadOnly" class="quick-btns">
+                          <button v-for="v in quickVals(question.maxScore)" :key="v" class="qb"
+                                  @click="onScoreChange(question.id, String(v))">{{ v }}</button>
+                        </div>
                       </div>
                       <div class="question-remark-field">
                         <div class="remark-label-row">
@@ -2137,4 +2167,19 @@ onUnmounted(() => {
   .zoom-controls button { min-height: 44px; min-width: 44px; }
   .annotation-editor-overlay { width: calc(100vw - 32px); left: 16px; transform: none; top: 80px; }
 }
+
+/* Sync dot indicator */
+.sync-indicator { display: inline-flex; align-items: center; margin-left: 8px; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; }
+.sync-ok .sync-dot { background: #22c55e; }
+.sync-warning .sync-dot { background: #f59e0b; animation: pulse-sync 1.5s infinite; }
+.sync-critical .sync-dot { background: #ef4444; animation: pulse-sync 1s infinite; }
+.sync-offline .sync-dot { background: #94a3b8; }
+@keyframes pulse-sync { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+/* Quick score buttons */
+.quick-btns { display: flex; gap: 3px; margin-top: 3px; flex-wrap: wrap; }
+.qb { padding: 1px 7px; font-size: 11px; border: 1px solid #e2e8f0; border-radius: 999px;
+       background: #f8fafc; cursor: pointer; color: #475569; }
+.qb:hover { background: #e0e7ff; border-color: #818cf8; color: #4338ca; }
 </style>
