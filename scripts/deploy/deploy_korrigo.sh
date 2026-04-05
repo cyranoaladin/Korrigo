@@ -182,9 +182,9 @@ docker compose -f "$DOCKER_COMPOSE_FILE" ps
 
 section "🗄️  MIGRATIONS BASE DE DONNÉES"
 
-log "Application des migrations..."
-docker exec korrigo-backend-1 python manage.py migrate --noinput || error "Échec des migrations"
-success "Migrations appliquées"
+log "Seeding des données (idempotent)..."
+docker exec korrigo-backend-1 python manage.py seed_prod --confirm-production || error "Échec du seeding"
+success "Seeding terminé"
 
 # ============================================================================
 # COLLECTE DES FICHIERS STATIQUES
