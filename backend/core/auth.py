@@ -84,11 +84,16 @@ class IsAdminOrTeacher(BasePermission):
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
             return False
-        return (
+        res = (
             request.user.is_superuser
             or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
             or request.user.groups.filter(name__iexact=UserRole.TEACHER).exists()
         )
+        if not res:
+             import logging
+             logger = logging.getLogger(__name__)
+             logger.warning(f"Permission denied for user {request.user.username} (not in admin/teacher groups and not superuser)")
+        return res
 
 class IsAdminOnly(BasePermission):
     """
@@ -98,10 +103,15 @@ class IsAdminOnly(BasePermission):
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
             return False
-        return (
+        res = (
             request.user.is_superuser
             or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
         )
+        if not res and request.user.is_staff:
+             import logging
+             logger = logging.getLogger(__name__)
+             logger.warning(f"IsAdminOnly failed for staff user {request.user.username} (missing admin group)")
+        return res
 
 
 class IsKorrigoAdmin(BasePermission):
@@ -117,7 +127,13 @@ class IsKorrigoAdmin(BasePermission):
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
             return False
-        return (
+        res = (
             request.user.is_superuser
             or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
         )
+        if not res:
+             import logging
+             logger = logging.getLogger(__name__)
+             if request.user.is_staff:
+                 logger.warning(f"IsKorrigoAdmin denied for staff user {request.user.username}")
+        return res
