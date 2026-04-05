@@ -23,7 +23,7 @@
 | **Destinataires** | Correcteurs (copies anonymisées), administration (résultats nominatifs), élèves (leurs propres résultats uniquement) |
 | **Transferts hors UE** | Aucun |
 | **Sous-traitant hébergement** | Hetzner Online GmbH, Falkenstein, Allemagne |
-| **Mesures de sécurité** | HTTPS TLS 1.2+, sessions Django sécurisées, mot de passe 12 car. min pour comptes Django, isolation des rôles, rate limiting, media protégé par authentification |
+| **Mesures de sécurité** | HTTPS TLS 1.2+, authentification mot de passe 12 car. min, isolation des rôles, rate limiting, media protégé par authentification |
 
 ### Traitement 2 : Sauvegarde automatisée
 
@@ -31,9 +31,9 @@
 |-------|--------|
 | **Finalité** | Continuité de service et restauration en cas d'incident |
 | **Base légale** | Obligation de sécurité (Art. 32 RGPD) |
-| **Données** | Dump DB (données complètes), export JSON pseudonymisé, fichiers media |
+| **Données** | Dump DB (données complètes), export JSON (pseudonymisé), fichiers media |
 | **Durée** | 24 heures glissantes sur StorageBox |
-| **Chiffrement** | SSH en transit. Fichiers en clair au repos côté application (risque accepté, accès par clé SSH uniquement) |
+| **Chiffrement** | SSH en transit. Fichiers en clair au repos (risque accepté, accès par clé SSH uniquement) |
 | **Localisation** | Hetzner StorageBox, Falkenstein, Allemagne |
 
 ### Traitement 3 : Journalisation des accès
