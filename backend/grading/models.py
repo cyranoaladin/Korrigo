@@ -46,11 +46,13 @@ class Annotation(models.Model):
     )
     w = models.FloatField(
         verbose_name=_("Largeur normalisée"),
-        help_text=_("Largeur dans l'intervalle [0,1]")
+        help_text=_("Largeur dans l'intervalle [0,1]"),
+        default=0.1
     )
     h = models.FloatField(
         verbose_name=_("Hauteur normalisée"),
-        help_text=_("Hauteur dans l'intervalle [0,1]")
+        help_text=_("Hauteur dans l'intervalle [0,1]"),
+        default=0.1
     )
 
     content = models.TextField(
@@ -94,20 +96,6 @@ class Annotation(models.Model):
         indexes = [
             models.Index(fields=['copy', 'page_index']),
         ]
-
-    def __init__(self, *args, **kwargs):
-        if args:
-            super().__init__(*args, **kwargs)
-            return
-        if "annotation_type" in kwargs and "type" not in kwargs:
-            kwargs["type"] = kwargs.pop("annotation_type")
-        if "page_number" in kwargs and "page_index" not in kwargs:
-            kwargs["page_index"] = kwargs.pop("page_number")
-        if "w" not in kwargs:
-            kwargs["w"] = 0.1
-        if "h" not in kwargs:
-            kwargs["h"] = 0.1
-        super().__init__(*args, **kwargs)
 
     def __str__(self):
         return f"Annotation {self.type} - Page {self.page_index} (Copy {self.copy.anonymous_id})"

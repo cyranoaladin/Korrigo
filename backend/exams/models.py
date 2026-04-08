@@ -39,7 +39,7 @@ class Exam(models.Model):
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, verbose_name=_("Nom de l'examen"))
-    date = models.DateField(verbose_name=_("Date de l'examen"))
+    date = models.DateField(verbose_name=_("Date de l'examen"), default=timezone.now)
     
     exam_type = models.ForeignKey(
         'ExamType',
@@ -124,16 +124,6 @@ class Exam(models.Model):
         verbose_name = _("Examen")
         verbose_name_plural = _("Examens")
 
-    def __init__(self, *args, **kwargs):
-        # P14 FIX: Safely handle legacy aliases only when creating via kwargs (not from DB)
-        if not args:
-            if "title" in kwargs and "name" not in kwargs:
-                kwargs["name"] = kwargs.pop("title")
-            kwargs.pop("created_by", None)
-            if "date" not in kwargs:
-                kwargs["date"] = timezone.now().date()
-        super().__init__(*args, **kwargs)
-
     def __str__(self):
         return self.name
 
@@ -205,7 +195,6 @@ class Copy(models.Model):
     
     anonymous_id = models.CharField(
         max_length=50,
-        unique=True,
         verbose_name=_("Anonymat")
     )
     final_pdf = models.FileField(
@@ -350,6 +339,12 @@ class Copy(models.Model):
     class Meta:
         verbose_name = _("Copie")
         verbose_name_plural = _("Copies")
+        constraints = [
+            models.UniqueConstraint(
+                fields=['exam', 'anonymous_id'],
+                name='uq_copy_exam_anonymous_id',
+            ),
+        ]
         # LOT 8: Indexes for frequent query patterns
         indexes = [
             models.Index(fields=['status'], name='idx_copy_status'),

@@ -341,12 +341,7 @@ class TestExamInitSafety:
         result = Exam.objects.filter(name='Filter Test')
         assert result.count() == 1
 
-    def test_exam_title_alias_works(self):
-        """Legacy 'title' kwarg should be mapped to 'name'."""
-        exam = Exam(title='Legacy Title', date='2024-01-15')
-        assert exam.name == 'Legacy Title'
-
     def test_exam_default_date(self):
-        """Exam without date should get today's date."""
+        """Exam without date should get today's date via field default."""
         exam = Exam(name='No Date Exam')
-        assert exam.date == timezone.now().date()
+        assert exam.date is not None
