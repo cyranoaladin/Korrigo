@@ -17,6 +17,7 @@ Le projet repose sur une architecture moderne, robuste et conteneurisée, privil
 ├────────────────────┬──────────────────────────────────┤
 │  Frontend (SPA)    │       Backend (API REST)          │
 │  Vue 3 + Vite      │  Django 4.2 + DRF + Python 3.11  │
+│                    │  (Docker) / Python 3.12 (CI)     │
 │  Pinia + Router    │  Gunicorn · Session Auth · CSRF   │
 │  TailwindCSS 4     │  PyMuPDF · OpenCV · Tesseract     │
 │  PDF.js · Lucide   │  GPT-4o-mini Vision (OCR)         │
@@ -36,7 +37,7 @@ Le projet repose sur une architecture moderne, robuste et conteneurisée, privil
 | **State / Routing** | Pinia + Vue Router | 2.1 / 4.2 |
 | **PDF Viewer** | PDF.js | 4.0 |
 | **Backend** | Django + Django REST Framework | 4.2 |
-| **Runtime** | Python 3.11 + Gunicorn | |
+| **Runtime** | Python 3.11 (Docker) / 3.12 (CI) + Gunicorn | |
 | **Base de données** | PostgreSQL | 15 |
 | **Cache / Broker** | Redis | |
 | **Tâches async** | Celery + Celery Beat | |

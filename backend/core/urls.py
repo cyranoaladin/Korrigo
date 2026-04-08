@@ -1,3 +1,5 @@
+import os
+
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
@@ -29,12 +31,13 @@ urlpatterns = [
     path('api/media/<path:file_path>', views_media.ProtectedMediaView.as_view(), name='protected_media'),
 ]
 
-# API Documentation (DRF Spectacular)
-urlpatterns += [
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-]
+# API Documentation (DRF Spectacular) — disabled in production unless ENABLE_API_DOCS=true
+if settings.DEBUG or os.environ.get('ENABLE_API_DOCS', 'false').lower() == 'true':
+    urlpatterns += [
+        path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+        path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+        path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    ]
 
 # Public platform stats for landing page
 from core.views_platform import PlatformStatsView

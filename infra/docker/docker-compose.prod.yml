@@ -37,9 +37,6 @@ services:
     env_file:
       - .env
     command: gunicorn core.wsgi:application -c gunicorn_config.py
-    networks:
-      - default
-      - ollama_net
     expose:
       - "8000"
     volumes:
@@ -100,18 +97,24 @@ services:
         condition: service_healthy
     environment:
       DJANGO_SETTINGS_MODULE: core.settings_prod
+      DJANGO_ENV: production
       DEBUG: "False"
       SECRET_KEY: "${SECRET_KEY:?err}"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
       DJANGO_ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique}"
-      DB_NAME: "${POSTGRES_DB:-viatique}"
-      DB_USER: "${POSTGRES_USER:-viatique_user}"
-      DB_PASSWORD: "${POSTGRES_PASSWORD:-viatique_password}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:?err}:${POSTGRES_PASSWORD:?err}@db:5432/${POSTGRES_DB:?err}"
+      DB_NAME: "${POSTGRES_DB:?err}"
+      DB_USER: "${POSTGRES_USER:?err}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:?err}"
       DB_HOST: "db"
       DB_PORT: "5432"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       CELERY_RESULT_BACKEND: "redis://redis:6379/0"
       REDIS_HOST: "redis"
+      DEFAULT_PASSWORD: "${DEFAULT_PASSWORD:?err}"
+      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-}"
+      CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:-}"
+      METRICS_TOKEN: "${METRICS_TOKEN:-}"
     healthcheck:
       test: ["CMD-SHELL", "celery -A core inspect ping -d celery@$$HOSTNAME"]
       interval: 30s
@@ -134,18 +137,21 @@ services:
         condition: service_healthy
     environment:
       DJANGO_SETTINGS_MODULE: core.settings_prod
+      DJANGO_ENV: production
       DEBUG: "False"
       SECRET_KEY: "${SECRET_KEY:?err}"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
       DJANGO_ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique}"
-      DB_NAME: "${POSTGRES_DB:-viatique}"
-      DB_USER: "${POSTGRES_USER:-viatique_user}"
-      DB_PASSWORD: "${POSTGRES_PASSWORD:-viatique_password}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:?err}:${POSTGRES_PASSWORD:?err}@db:5432/${POSTGRES_DB:?err}"
+      DB_NAME: "${POSTGRES_DB:?err}"
+      DB_USER: "${POSTGRES_USER:?err}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:?err}"
       DB_HOST: "db"
       DB_PORT: "5432"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       CELERY_RESULT_BACKEND: "redis://redis:6379/0"
       REDIS_HOST: "redis"
+      DEFAULT_PASSWORD: "${DEFAULT_PASSWORD:?err}"
 
   nginx:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-nginx:${KORRIGO_SHA:-latest}
@@ -160,7 +166,7 @@ services:
     depends_on:
       - backend
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost/" ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -180,6 +186,3 @@ volumes:
 
 networks:
   default:
-  ollama_net:
-    external: true
-    name: infra_rag_net

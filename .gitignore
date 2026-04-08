@@ -176,3 +176,13 @@ backend/test_results_backend.txt
 backend/test_results_draft_specific.txt
 backend/test_exam.pdf
 arborescence_complete.txt
+arborescence_prod_*.txt
+
+# Seed data (may contain RGPD-sensitive student names)
+seed_data/
+
+# Docker infra env (duplicate of root .env)
+infra/docker/.env
+
+# StorageBox manifests
+storagebox_*.txt

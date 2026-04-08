@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+db.sqlite3
+tests/
+test_*.py
+conftest.py
+pytest.ini
+seed_demo_exam.py
+seed_e2e.py
+seed_prod.py
+scripts/
+logs/*.log
+.bandit

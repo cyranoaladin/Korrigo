@@ -40,9 +40,16 @@ DATABASES = {
         "PASSWORD": DB_PASSWORD,
         "HOST": DB_HOST,
         "PORT": DB_PORT,
-        "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
+        "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "600")),
     }
 }
+
+# P1.2: Protection timeouts (aligné avec settings.py base)
+DATABASES['default']['OPTIONS'] = {
+    'connect_timeout': 10,
+    'options': '-c lock_timeout=5000 -c statement_timeout=30000 -c idle_in_transaction_session_timeout=60000',
+}
+DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 
 _TRIVIAL_PASSWORDS = ('passe123', 'password', '123456', 'changeme', '')
 if DEFAULT_PASSWORD in _TRIVIAL_PASSWORDS:  # noqa: F405
@@ -59,23 +66,13 @@ SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "31536000"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get("SECURE_HSTS_INCLUDE_SUBDOMAINS", "true").lower() == "true"
 SECURE_HSTS_PRELOAD = os.environ.get("SECURE_HSTS_PRELOAD", "true").lower() == "true"
 
+# P1.1: Extend inherited LOGGING from settings.py instead of overwriting it.
+# This preserves audit_file, file handlers, json formatter, and request_context filters.
+import copy
 LOG_LEVEL = os.environ.get("DJANGO_LOG_LEVEL", "INFO")
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "default": {
-            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
-        }
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "default",
-        }
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": LOG_LEVEL,
-    },
-}
+LOGGING = copy.deepcopy(LOGGING)  # noqa: F405
+LOGGING['root']['level'] = LOG_LEVEL
+# Force JSON formatter on all handlers in production (except mail_admins)
+for _handler_name, _handler_config in LOGGING['handlers'].items():
+    if _handler_name != 'mail_admins':
+        _handler_config['formatter'] = 'json'
