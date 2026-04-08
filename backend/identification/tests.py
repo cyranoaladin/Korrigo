@@ -45,18 +45,18 @@ class OCRServiceTest(TestCase):
         temp_image = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
         image.save(temp_image.name)
         
-        # Mock the pytesseract functionality
-        with patch('identification.services.pytesseract.image_to_string') as mock_ocr:
-            mock_ocr.return_value = "JEAN DUPONT"
-            
-            with patch('identification.services.pytesseract.image_to_data') as mock_data:
-                mock_data.return_value = {'conf': [90, 85, 95]}
-                
-                with open(temp_image.name, 'rb') as img_file:
-                    result = OCRService.perform_ocr_on_header(img_file)
-                    
-                    self.assertEqual(result['text'], "JEAN DUPONT")
-                    self.assertGreaterEqual(result['confidence'], 0.0)
+        # Mock the pytesseract functionality (imported locally inside _ocr_with_tesseract)
+        mock_pytesseract = MagicMock()
+        mock_pytesseract.image_to_string.return_value = "JEAN DUPONT"
+        mock_pytesseract.image_to_data.return_value = {'conf': [90, 85, 95]}
+        mock_pytesseract.Output.DICT = 'dict'
+
+        with patch.dict('sys.modules', {'pytesseract': mock_pytesseract}):
+            with open(temp_image.name, 'rb') as img_file:
+                result = OCRService.perform_ocr_on_header(img_file)
+
+                self.assertEqual(result['text'], "JEAN DUPONT")
+                self.assertGreaterEqual(result['confidence'], 0.0)
         
         # Clean up
         os.unlink(temp_image.name)

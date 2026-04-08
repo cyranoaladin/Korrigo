@@ -2,6 +2,14 @@ import django.utils.timezone
 from django.db import migrations, models
 
 
+def backfill_timestamps(apps, schema_editor):
+    """Backfill NULLs with current time — works on both SQLite and PostgreSQL."""
+    Exam = apps.get_model("exams", "Exam")
+    now = django.utils.timezone.now()
+    Exam.objects.filter(created_at__isnull=True).update(created_at=now)
+    Exam.objects.filter(updated_at__isnull=True).update(updated_at=now)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -9,15 +17,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Backfill any NULLs before altering (safety net)
-        migrations.RunSQL(
-            sql="UPDATE exams_exam SET created_at = NOW() WHERE created_at IS NULL;",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
-        migrations.RunSQL(
-            sql="UPDATE exams_exam SET updated_at = NOW() WHERE updated_at IS NULL;",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
+        migrations.RunPython(backfill_timestamps, migrations.RunPython.noop),
         migrations.AlterField(
             model_name="exam",
             name="created_at",
