@@ -676,10 +676,11 @@ class CopyScoresView(APIView):
 
         from django.db import transaction
         with transaction.atomic():
-            Copy.objects.select_for_update().filter(id=copy.id).first()
-            if copy.status == Copy.Status.READY:
-                copy.status = Copy.Status.IN_PROGRESS
-                copy.save(update_fields=['status'])
+            locked_copy = Copy.objects.select_for_update().filter(id=copy.id).first()
+            if locked_copy and locked_copy.status == Copy.Status.READY:
+                locked_copy.status = Copy.Status.IN_PROGRESS
+                locked_copy.save(update_fields=['status'])
+                copy.status = locked_copy.status
 
             score, created = Score.objects.update_or_create(
                 copy=copy,
