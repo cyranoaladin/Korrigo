@@ -92,6 +92,12 @@ run_logged "04_wait_health" bash -c "
     sleep 1
   done
   echo 'health/live: timeout'
+  echo '--- Diagnostic: docker compose ps ---'
+  docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps || true
+  echo '--- Diagnostic: backend logs (last 100 lines) ---'
+  docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' logs --no-color --tail=100 backend || true
+  echo '--- Diagnostic: db logs (last 30 lines) ---'
+  docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' logs --no-color --tail=30 db || true
   exit 1
 "
 

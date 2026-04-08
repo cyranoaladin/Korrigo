@@ -58,9 +58,12 @@ if DEFAULT_PASSWORD in _TRIVIAL_PASSWORDS:  # noqa: F405
         "Set the DEFAULT_PASSWORD environment variable."
     )
 
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Respect SSL_ENABLED from base settings (CI runs HTTP-only with SSL_ENABLED=false)
+_ssl_enabled = os.environ.get("SSL_ENABLED", "true").lower() == "true"
+SESSION_COOKIE_SECURE = _ssl_enabled
+CSRF_COOKIE_SECURE = _ssl_enabled
+if _ssl_enabled:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "31536000"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get("SECURE_HSTS_INCLUDE_SUBDOMAINS", "true").lower() == "true"

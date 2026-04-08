@@ -13,7 +13,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER?err}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?err}
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-viatique_user} -d ${POSTGRES_DB:-viatique_local}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?err} -d ${POSTGRES_DB:?err}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -129,7 +129,7 @@ services:
     depends_on:
       - backend
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost/" ]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/" ]
       interval: 30s
       timeout: 10s
       retries: 3
