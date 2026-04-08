@@ -32,6 +32,11 @@ app.conf.beat_schedule = {
         'task': 'grading.tasks.purge_old_audit_logs',
         'schedule': crontab(hour=3, minute=0),
     },
+    # LOT 3: Automated daily database backup at 02:00
+    'daily-database-backup': {
+        'task': 'core.tasks.scheduled_backup',
+        'schedule': crontab(hour=2, minute=0),
+    },
 }
 
 @app.task(bind=True, ignore_result=True)

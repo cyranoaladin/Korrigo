@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     libmagic1 \
     tesseract-ocr \
     tesseract-ocr-fra \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
