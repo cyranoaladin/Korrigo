@@ -42,7 +42,6 @@ db.sqlite3
 db.sqlite3-journal
 /backend/media/
 /backend/staticfiles/
-__pycache__/
 *.pyc
 *.pyo
 
@@ -79,7 +78,6 @@ RELEASE_PACK/
 PROOF_PACK_FINAL/
 /release/
 proofs/
-proofs/artifacts/
 *.zip
 *.tar.gz
 *_SHA256.txt
@@ -101,7 +99,6 @@ frontend/e2e/.auth/
 
 # Docker
 *.pid
-.env
 
 # forensic handoff artifacts
 /docs_audit_sync.patch
