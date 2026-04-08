@@ -74,9 +74,8 @@ def test_copy_list_flow(authenticated_client, admin_user, db):
     """Verify copy listing works"""
     # Create an exam
     exam = Exam.objects.create(
-        title='Smoke Exam for Copy List',
+        name='Smoke Exam for Copy List',
         date=date.today(),
-        created_by=admin_user
     )
 
     response = authenticated_client.get('/api/copies/')

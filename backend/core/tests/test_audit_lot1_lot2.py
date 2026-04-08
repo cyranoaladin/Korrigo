@@ -30,10 +30,10 @@ class TestDefaultPasswordSetting(TestCase):
 
     def test_trivial_passwords_blocklist_in_prod_module(self):
         """settings_prod.py source contains a blocklist of trivial passwords."""
-        import inspect
         import importlib.util
         spec = importlib.util.find_spec('core.settings_prod')
-        source = open(spec.origin).read()
+        with open(spec.origin) as f:
+            source = f.read()
         self.assertIn("'passe123'", source)
         self.assertIn('_TRIVIAL_PASSWORDS', source)
 
