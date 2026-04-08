@@ -280,7 +280,7 @@ onMounted(fetchBilan)
 .question-score { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
 
 .remarks-list { display: flex; flex-direction: column; gap: 0.5rem; }
-.remark-item { display: flex; gap: 0.5rem; padding: 0.5rem; background: #fffbeb; border-radius: 4px; border-left: 3px solid #f59e0b; }
+.remark-item { display: flex; gap: 0.5rem; padding: 0.5rem; background: #f8fafc; border-radius: 4px; border-left: 3px solid #7F77DD; }
 .question-label { font-weight: 600; color: #92400e; min-width: 50px; }
 .remark-text { color: #78350f; }
 

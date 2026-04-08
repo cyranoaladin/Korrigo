@@ -597,6 +597,24 @@ const quickVals = (max) => {
     return [...s].sort((a, b) => a - b)
 }
 
+const EXERCISE_COLORS = [
+    { bar: '#7F77DD', bg: '#EEEDFE', text: '#534AB7' },
+    { bar: '#378ADD', bg: '#E6F1FB', text: '#185FA5' },
+    { bar: '#1D9E75', bg: '#E1F5EE', text: '#0F6E56' },
+    { bar: '#D85A30', bg: '#FAECE7', text: '#993C1D' },
+    { bar: '#D4537E', bg: '#FBEAF0', text: '#993556' },
+    { bar: '#639922', bg: '#EAF3DE', text: '#3B6D11' },
+]
+const getExerciseColor = (index) => EXERCISE_COLORS[index % EXERCISE_COLORS.length]
+
+const stepScore = (questionId, maxScore, delta) => {
+    const current = questionScores.value.get(questionId) || 0
+    let next = Math.round((current + delta) * 4) / 4
+    if (next < 0) next = 0
+    if (next > maxScore) next = maxScore
+    onScoreChange(questionId, String(next))
+}
+
 const onScoreChange = (questionId, value) => {
     // Keep raw text so Vue doesn't overwrite mid-typing (e.g. "0," → 0 → erases comma)
     questionScoreTexts.value.set(questionId, value)
@@ -1748,16 +1766,20 @@ onUnmounted(() => {
           </div>
           <div v-else class="grading-content">
             <div class="exercises-list">
-              <div v-for="exercise in exercisesWithQuestions" :key="exercise.id" class="exercise-block">
+              <div v-for="(exercise, exerciseIndex) in exercisesWithQuestions" :key="exercise.id" class="exercise-block">
                 <!-- Level 1: Exercise header (collapsible) -->
                 <div
                   class="exercise-header"
                   :class="{ collapsed: !openExerciseIds.has(exercise.id) }"
+                  :style="{ borderLeft: '3px solid ' + getExerciseColor(exerciseIndex).bar }"
                   @click="toggleExercise(exercise.id)"
                 >
                   <span class="exercise-toggle"><AppIcon :name="openExerciseIds.has(exercise.id) ? 'chevron-down' : 'chevron-right'" :size="12" /></span>
                   <span class="exercise-label">{{ exercise.label }}</span>
-                  <span class="exercise-points">{{ exercise.points }} pts</span>
+                  <span class="exercise-points"
+                    :style="{ background: getExerciseColor(exerciseIndex).bg, color: getExerciseColor(exerciseIndex).text }">
+                    {{ exercise.points }} pts
+                  </span>
                 </div>
 
                 <div v-show="openExerciseIds.has(exercise.id)" class="exercise-body">
@@ -1800,6 +1822,11 @@ onUnmounted(() => {
                               @input="onScoreChange(question.id, $event.target.value)"
                               @blur="onScoreBlur(question.id)"
                             >
+                            <div v-if="!isReadOnly" class="score-slider-row">
+                              <button class="score-step-btn" type="button" @click.stop="stepScore(question.id, question.maxScore, -0.25)">−</button>
+                              <input type="range" class="score-slider" min="0" :max="question.maxScore * 4" step="1" :value="(questionScores.get(question.id) || 0) * 4" @input="onScoreChange(question.id, String(parseInt($event.target.value) / 4))">
+                              <button class="score-step-btn" type="button" @click.stop="stepScore(question.id, question.maxScore, 0.25)">+</button>
+                            </div>
                             <div v-if="!isReadOnly" class="quick-btns">
                               <button v-for="v in quickVals(question.maxScore)" :key="v" class="qb"
                                       @click="onScoreChange(question.id, String(v))">{{ v }}</button>
@@ -1870,6 +1897,11 @@ onUnmounted(() => {
                           @input="onScoreChange(question.id, $event.target.value)"
                           @blur="onScoreBlur(question.id)"
                         >
+                        <div v-if="!isReadOnly" class="score-slider-row">
+                          <button class="score-step-btn" type="button" @click.stop="stepScore(question.id, question.maxScore, -0.25)">−</button>
+                          <input type="range" class="score-slider" min="0" :max="question.maxScore * 4" step="1" :value="(questionScores.get(question.id) || 0) * 4" @input="onScoreChange(question.id, String(parseInt($event.target.value) / 4))">
+                          <button class="score-step-btn" type="button" @click.stop="stepScore(question.id, question.maxScore, 0.25)">+</button>
+                        </div>
                         <div v-if="!isReadOnly" class="quick-btns">
                           <button v-for="v in quickVals(question.maxScore)" :key="v" class="qb"
                                   @click="onScoreChange(question.id, String(v))">{{ v }}</button>
@@ -1918,11 +1950,14 @@ onUnmounted(() => {
               </div>
               <!-- Per-exercise score breakdown -->
               <div v-if="exercisesWithQuestions.length > 0" class="exercise-scores-breakdown">
-                <div v-for="exercise in exercisesWithQuestions" :key="'score-' + exercise.id" class="exercise-score-row">
+                <div v-for="(exercise, exIdx) in exercisesWithQuestions" :key="'score-' + exercise.id" class="exercise-score-row">
                   <span class="exercise-score-label">{{ exercise.label }}</span>
-                  <span class="exercise-score-value" :class="{ 'score-complete': exerciseScoreBreakdown[exercise.id]?.filled === exerciseScoreBreakdown[exercise.id]?.total && exerciseScoreBreakdown[exercise.id]?.total > 0, 'score-partial': exerciseScoreBreakdown[exercise.id]?.filled > 0 && exerciseScoreBreakdown[exercise.id]?.filled < exerciseScoreBreakdown[exercise.id]?.total }">
-                    {{ exerciseScoreBreakdown[exercise.id]?.obtained ?? '-' }} / {{ exercise.points }}
-                  </span>
+                  <div class="exercise-score-right">
+                    <div class="exercise-mini-bar">
+                      <div class="exercise-mini-fill" :style="{ width: exercise.points > 0 ? Math.min(100, ((exerciseScoreBreakdown[exercise.id]?.obtained || 0) / exercise.points) * 100) + '%' : '0%', background: getExerciseColor(exIdx).bar }" />
+                    </div>
+                    <span class="exercise-score-value">{{ exerciseScoreBreakdown[exercise.id]?.obtained ?? '-' }} / {{ exercise.points }}</span>
+                  </div>
                 </div>
               </div>
               <div v-if="scoresSaving" class="scores-save-status">Sauvegarde des notes...</div>
@@ -2007,7 +2042,7 @@ onUnmounted(() => {
     justify-content: center;
     align-items: center;
     gap: 12px;
-    border-bottom: 3px solid #f59e0b;
+    border-bottom: 3px solid #7F77DD;
 }
 .anonymization-label {
     color: white;
@@ -2018,8 +2053,8 @@ onUnmounted(() => {
 }
 .btn-reveal {
     background: rgba(255,255,255,0.15);
-    color: #fbbf24;
-    border: 1px solid rgba(251,191,36,0.4);
+    color: #EEEDFE;
+    border: 1px solid rgba(175,169,236,0.55);
     padding: 4px 12px;
     border-radius: 4px;
     cursor: pointer;
@@ -2028,11 +2063,11 @@ onUnmounted(() => {
 }
 .btn-reveal:hover { background: rgba(255,255,255,0.25); }
 
-.inspector-panel { width: 340px; background: white; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; }
-.inspector-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #f1f5f9; border-bottom: 2px solid #dee2e6; }
-.inspector-header strong { font-size: 1rem; color: #1e293b; }
-.inspector-total { margin-left: auto; font-weight: 700; font-size: 0.95rem; color: #065f46; background: #ecfdf5; padding: 2px 10px; border-radius: 4px; border: 1px solid #a7f3d0; }
-.inspector-total.score-overflow { color: #991b1b; background: #fef2f2; border-color: #fecaca; }
+.inspector-panel { width: 340px; background: white; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; }
+.inspector-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: #fff; border-bottom: 1px solid #e2e8f0; }
+.inspector-header strong { font-size: 0.85rem; color: #94a3b8; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
+.inspector-total { margin-left: auto; font-weight: 500; font-size: 1.25rem; color: #1e293b; padding: 0; background: none; border: none; border-radius: 0; }
+.inspector-total.score-overflow { color: #E24B4A; background: none; border: none; }
 
 /* Annotation editor overlay (floats above copy area) */
 .annotation-editor-overlay { 
@@ -2045,8 +2080,8 @@ onUnmounted(() => {
   max-width: calc(100vw - 40px); 
   max-height: calc(100svh - 80px);
   overflow-y: auto;
-  background: #fff3cd; 
-  border: 2px solid #fbbf24; 
+  background: #EEEDFE; 
+  border: 2px solid #AFA9EC; 
   border-radius: 10px; 
   box-shadow: 0 8px 30px rgba(0,0,0,0.2); 
   padding: 16px; 
@@ -2072,12 +2107,12 @@ onUnmounted(() => {
 
 .error-banner { background: #f8d7da; color: #721c24; padding: 10px; text-align: center; border-bottom: 1px solid #f5c6cb; }
 .info-banner { background: #d1ecf1; color: #0c5460; padding: 10px; text-align: center; border-bottom: 1px solid #bee5eb; display: flex; justify-content: center; gap: 10px; align-items: center; }
-.grading-progress-strip { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: #fff7ed; border-bottom: 1px solid #fed7aa; font-size: 0.95rem; }
-.grading-progress-copy { min-width: 180px; color: #9a3412; }
-.grading-progress-bar { flex: 1; height: 10px; background: #ffedd5; border-radius: 999px; overflow: hidden; }
-.grading-progress-fill { height: 100%; background: linear-gradient(90deg, #f59e0b, #16a34a); transition: width 0.2s ease; }
-.grading-progress-remaining { color: #c2410c; font-weight: 600; white-space: nowrap; }
-.grading-progress-complete { color: #166534; font-weight: 700; white-space: nowrap; }
+.grading-progress-strip { display: flex; align-items: center; gap: 12px; padding: 10px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+.grading-progress-copy { min-width: 180px; color: #64748b; }
+.grading-progress-bar { flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+.grading-progress-fill { height: 100%; border-radius: 3px; background: #5DCAA5; transition: width 0.3s ease; }
+.grading-progress-remaining { color: #94a3b8; font-weight: 500; white-space: nowrap; }
+.grading-progress-complete { color: #0F6E56; font-weight: 500; white-space: nowrap; }
 .sync-banner { padding: 10px 20px; text-align: center; font-weight: 600; font-size: 0.9rem; display: flex; justify-content: center; align-items: center; gap: 12px; animation: syncPulse 2s ease-in-out infinite; }
 .sync-offline { background: #fef3c7; color: #92400e; border-bottom: 2px solid #f59e0b; }
 .sync-critical { background: #fecaca; color: #991b1b; border-bottom: 2px solid #dc2626; animation: syncPulse 1s ease-in-out infinite; }
@@ -2093,12 +2128,12 @@ onUnmounted(() => {
 .grading-content { padding: 15px; }
 .exercises-list { margin-bottom: 20px; }
 .exercise-block { margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-.exercise-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f1f5f9; cursor: pointer; user-select: none; transition: background 0.15s; }
-.exercise-header:hover { background: #e2e8f0; }
+.exercise-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #fff; cursor: pointer; user-select: none; transition: background 0.15s; border-radius: 0; }
+.exercise-header:hover { background: #f8fafc; }
 .exercise-header.collapsed { border-bottom: none; }
 .exercise-toggle { font-size: 0.7rem; color: #64748b; width: 14px; }
-.exercise-label { flex: 1; font-weight: 700; font-size: 0.95rem; color: #1e293b; }
-.exercise-points { font-size: 0.85rem; font-weight: 600; color: #3b82f6; background: #eff6ff; padding: 2px 8px; border-radius: 4px; }
+.exercise-label { flex: 1; font-weight: 600; font-size: 0.95rem; color: #1e293b; }
+.exercise-points { font-size: 0.8rem; font-weight: 500; padding: 3px 10px; border-radius: 12px; }
 .exercise-body { padding: 4px 0 4px; }
 .group-block { margin: 4px 8px; border: 1px solid #e9edf2; border-radius: 6px; overflow: hidden; }
 .group-header { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: #f8fafc; cursor: pointer; user-select: none; transition: background 0.15s; }
@@ -2112,20 +2147,28 @@ onUnmounted(() => {
 .question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .question-title { font-weight: bold; font-size: 0.95rem; color: #333; }
 .question-max-score { font-size: 0.85rem; color: #666; background: #e9ecef; padding: 2px 8px; border-radius: 4px; }
-.question-score-field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.question-score-field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 .question-score-field label { font-size: 0.85rem; color: #333; font-weight: 600; min-width: 40px; }
-.score-input { width: 80px; min-height: 44px; padding: 6px 8px; border: 2px solid #ced4da; border-radius: 4px; font-size: 1rem; font-weight: 600; text-align: center; transition: border-color 0.2s; }
-.score-input:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25); }
-.score-input.score-filled { border-color: #28a745; background: #f0fff4; }
-.score-input.score-missing { border-color: #f59e0b; background: #fff7ed; }
-.score-input:disabled { background: #e9ecef; cursor: not-allowed; }
+.score-input { width: 65px; min-height: 36px; padding: 4px 6px; border: 1.5px solid #e2e8f0; border-radius: 6px; font-size: 0.95rem; font-weight: 500; text-align: center; transition: border-color 0.2s, background 0.2s; }
+.score-input:focus { outline: none; border-color: #7F77DD; box-shadow: 0 0 0 3px rgba(127,119,221,0.1); }
+.score-input.score-filled { border-color: #5DCAA5; background: #f0fdf9; }
+.score-input.score-missing { border-color: #e2e8f0; background: #fff; }
+.score-input:disabled { background: #f1f5f9; cursor: not-allowed; border-color: #e2e8f0; }
+.score-slider-row { display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 4px; }
+.score-slider { flex: 1; height: 6px; -webkit-appearance: none; appearance: none; background: #e2e8f0; border-radius: 3px; outline: none; cursor: pointer; }
+.score-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #7F77DD; border: 2px solid #fff; cursor: pointer; box-shadow: 0 0 0 1px #e2e8f0; }
+.score-slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #7F77DD; border: 2px solid #fff; cursor: pointer; }
+.score-step-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #e2e8f0; background: #fff; color: #64748b; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; line-height: 1; }
+.score-step-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+.score-step-btn:active { transform: scale(0.95); }
 .question-remark-field { display: flex; flex-direction: column; }
 .question-remark-field label { font-size: 0.85rem; color: #666; margin-bottom: 5px; }
 .question-remark-field textarea { padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9rem; font-family: inherit; resize: vertical; }
 .question-remark-field textarea:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25); }
 .question-remark-field textarea:disabled { background: #e9ecef; cursor: not-allowed; }
 .save-indicator.small { font-size: 0.75rem; color: #28a745; margin-top: 3px; font-style: italic; }
-.total-score-bar { display: flex; align-items: center; gap: 6px; padding: 10px 12px; margin-top: 12px; border-radius: 6px; font-size: 1rem; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.total-score-bar { display: flex; align-items: center; gap: 6px; padding: 12px 14px; margin-top: 12px; border-radius: 8px; font-size: 0.95rem; background: #f8fafc; color: #334155; border: 1px solid #e2e8f0; }
+.total-score-bar strong { font-size: 1.1rem; }
 .total-score-bar.score-overflow { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
 .total-label { font-weight: 500; }
 .overflow-warning { font-size: 0.85rem; font-weight: 400; margin-left: auto; }
@@ -2135,24 +2178,24 @@ onUnmounted(() => {
 .btn-disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Exercise score breakdown */
-.exercise-scores-breakdown { margin-top: 8px; padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
-.exercise-score-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f1f5f9; }
-.exercise-score-row:last-child { border-bottom: none; }
-.exercise-score-label { font-size: 0.85rem; color: #475569; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; }
-.exercise-score-value { font-size: 0.9rem; font-weight: 700; color: #64748b; white-space: nowrap; min-width: 70px; text-align: right; }
-.exercise-score-value.score-complete { color: #059669; }
-.exercise-score-value.score-partial { color: #d97706; }
+.exercise-scores-breakdown { margin-top: 8px; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
+.exercise-score-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+.exercise-score-label { font-size: 0.8rem; color: #64748b; }
+.exercise-score-right { display: flex; align-items: center; gap: 8px; }
+.exercise-mini-bar { width: 60px; height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden; }
+.exercise-mini-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+.exercise-score-value { font-size: 0.8rem; color: #94a3b8; min-width: 45px; text-align: right; }
 
-.global-appreciation-section { padding: 20px; background: #fff3cd; border-radius: 6px; border: 1px solid #ffeeba; }
-.global-appreciation-section label { font-weight: bold; font-size: 1rem; color: #333; margin-bottom: 10px; display: block; }
-.global-appreciation-section textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.95rem; font-family: inherit; resize: vertical; }
-.global-appreciation-section textarea:focus { outline: none; border-color: #ffc107; box-shadow: 0 0 0 0.2rem rgba(255,193,7,0.25); }
-.global-appreciation-section textarea:disabled { background: #e9ecef; cursor: not-allowed; }
+.global-appreciation-section { padding: 16px; background: #fff; border-top: 1px solid #e2e8f0; }
+.global-appreciation-section label { font-weight: 500; font-size: 0.85rem; color: #64748b; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.3px; }
+.global-appreciation-section textarea { width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; font-family: inherit; resize: vertical; background: #f8fafc; transition: border-color 0.2s, background 0.2s; }
+.global-appreciation-section textarea:focus { outline: none; border-color: #7F77DD; box-shadow: 0 0 0 3px rgba(127,119,221,0.1); background: #fff; }
+.global-appreciation-section textarea:disabled { background: #f1f5f9; cursor: not-allowed; }
 
 
 /* Suggestions */
-.btn-suggestions { background: #fef3c7; border: 1px solid #fbbf24; border-radius: 4px; cursor: pointer; font-size: 14px; padding: 4px 8px; transition: background 0.15s; }
-.btn-suggestions:hover { background: #fde68a; }
+.btn-suggestions { background: #fff; border: 1px solid #AFA9EC; border-radius: 4px; cursor: pointer; font-size: 14px; padding: 4px 8px; transition: background 0.15s, border-color 0.15s; color: #534AB7; }
+.btn-suggestions:hover { background: #EEEDFE; }
 .btn-suggestion-trigger { background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 2px; opacity: 0.6; transition: opacity 0.15s; }
 .btn-suggestion-trigger:hover { opacity: 1; }
 .remark-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
@@ -2174,9 +2217,9 @@ onUnmounted(() => {
 .btn-annot-type.active { background: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
 
 /* Bouton banque de commentaires */
-.btn-comment-bank { background: #fef3c7; border-color: #fbbf24; }
-.btn-comment-bank:hover { background: #fde68a; border-color: #f59e0b; }
-.btn-comment-bank.active { background: #f59e0b; border-color: #d97706; color: white; }
+.btn-comment-bank { background: #EEEDFE; border-color: #AFA9EC; color: #534AB7; }
+.btn-comment-bank:hover { background: #EEEDFE; border-color: #AFA9EC; }
+.btn-comment-bank.active { background: #7F77DD; border-color: #534AB7; color: white; }
 
 /* Zone de drop visuelle sur le canvas */
 .canvas-wrapper.drag-over { box-shadow: 0 0 0 4px #3b82f6, 0 0 20px rgba(59,130,246,0.3); }
@@ -2222,8 +2265,7 @@ onUnmounted(() => {
 @keyframes pulse-sync { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
 /* Quick score buttons */
-.quick-btns { display: flex; gap: 3px; margin-top: 3px; flex-wrap: wrap; }
-.qb { padding: 1px 7px; font-size: 11px; border: 1px solid #e2e8f0; border-radius: 999px;
-       background: #f8fafc; cursor: pointer; color: #475569; }
-.qb:hover { background: #e0e7ff; border-color: #818cf8; color: #4338ca; }
+.quick-btns { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.qb { padding: 2px 8px; font-size: 11px; border: 1px solid #e2e8f0; border-radius: 999px; background: #fff; cursor: pointer; color: #64748b; transition: all 0.15s; }
+.qb:hover { background: #EEEDFE; border-color: #AFA9EC; color: #534AB7; }
 </style>
