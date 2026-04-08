@@ -270,9 +270,9 @@ class PronoteExporter:
         
         # Get graded copies
         graded_copies = all_copies.filter(status=Copy.Status.FINALIZED)
-
+        
         if not graded_copies.exists():
-            result.add_error("Aucune copie notée trouvée. Toutes les copies doivent être dans l'état FINALIZED")
+            result.add_error("Aucune copie notée trouvée. Toutes les copies doivent être dans l'état GRADED")
             return result
         
         # Check identification

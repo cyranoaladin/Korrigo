@@ -45,24 +45,42 @@ class Command(BaseCommand):
 
         total_recovered = 0
 
-        # Recovery: IN_PROGRESS copies abandoned for too long
-        locked_cutoff = timezone.now() - timedelta(minutes=locked_threshold)
-        stuck_in_progress = Copy.objects.filter(
-            status=Copy.Status.IN_PROGRESS,
-            assigned_at__lt=locked_cutoff
+        # Recovery 1: Orphaned STAGING copies (failed PDF import)
+        staging_cutoff = timezone.now() - timedelta(minutes=staging_threshold)
+        stuck_staging = Copy.objects.filter(
+            status=Copy.Status.READY,
+            created_at__lt=staging_cutoff
         ).select_related('exam')
 
-        in_progress_count = stuck_in_progress.count()
-        if in_progress_count > 0:
-            self.stdout.write(f'\nFound {in_progress_count} abandoned IN_PROGRESS copies (older than {locked_threshold} min)')
-            for copy in stuck_in_progress:
-                self.stdout.write(f'  - Copy {copy.id} (exam: {copy.exam.name})')
+        staging_count = stuck_staging.count()
+        if staging_count > 0:
+            self.stdout.write(f'\nFound {staging_count} stuck STAGING copies (older than {staging_threshold} min)')
+            
+            for copy in stuck_staging:
+                self.stdout.write(f'  - Copy {copy.id} (exam: {copy.exam.title}, created: {copy.created_at})')
+                
                 if not dry_run:
                     with transaction.atomic():
-                        copy.status = Copy.Status.READY
-                        copy.save(update_fields=['status'])
-                        self.stdout.write(self.style.WARNING(f'    Reset copy {copy.id} to READY'))
-                    total_recovered += 1
+                        # Check if copy has any pages/booklets
+                        has_data = copy.booklets.exists()
+                        
+                        if not has_data:
+                            # No data - likely failed import, safe to delete
+                            if copy.pdf_source:
+                                try:
+                                    copy.pdf_source.delete(save=False)
+                                except Exception as e:
+                                    logger.warning(f'Failed to delete pdf_source for copy {copy.id}: {e}')
+                            
+                            copy.delete()
+                            self.stdout.write(self.style.SUCCESS(f'    Deleted orphaned copy {copy.id}'))
+                        else:
+                            # Has some data - move to READY for manual review
+                            copy.status = Copy.Status.READY
+                            copy.save()
+                            self.stdout.write(self.style.WARNING(f'    Moved copy {copy.id} to READY (has data)'))
+                        
+                        total_recovered += 1
 
         if total_recovered == 0:
             self.stdout.write(self.style.SUCCESS('\nNo stuck copies found. System healthy.'))

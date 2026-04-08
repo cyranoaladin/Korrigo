@@ -176,13 +176,12 @@ def parse_student_csv(csv_path):
         raw = raw[3:]
     text = raw.decode('utf-8', errors='replace')
 
-    # Auto-detect separator
-    sample = text[:4096]
-    try:
-        dialect = csv.Sniffer().sniff(sample, delimiters=',;\t')
-        sep = dialect.delimiter
-    except csv.Error:
-        sep = ';'  # fallback to French standard
+    # Detect separator
+    first_line = text.split('\n')[0]
+    if ';' in first_line and ',' not in first_line.replace('"', '').split(';')[0]:
+        sep = ';'
+    else:
+        sep = ','
 
     reader = csv.reader(io.StringIO(text), delimiter=sep)
     header = None
@@ -616,7 +615,7 @@ class Command(BaseCommand):
             Copy.objects.filter(
                 exam=exam,
                 assigned_corrector__isnull=True,
-                status=Copy.Status.READY,
+                status__in=[Copy.Status.READY, Copy.Status.READY],
             ).order_by('anonymous_id')
         )
 
@@ -632,6 +631,7 @@ class Command(BaseCommand):
             exam=exam,
             assigned_corrector__isnull=False,
             status__in=[
+                Copy.Status.IN_PROGRESS,
                 Copy.Status.IN_PROGRESS,
                 Copy.Status.FINALIZED,
             ]

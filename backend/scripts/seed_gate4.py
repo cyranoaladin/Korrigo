@@ -9,13 +9,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 django.setup()
 
 from django.core.files.base import ContentFile
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
 from exams.models import Exam, Copy
 from students.models import Student
-from core.auth import UserRole
-
-User = get_user_model()
 
 def seed_gate4(student_date_naissance=None, student_lastname=None, student_firstname=None):
     """Seed Gate 4 data with parameterizable student credentials."""
@@ -28,25 +23,6 @@ def seed_gate4(student_date_naissance=None, student_lastname=None, student_first
         student_lastname = os.environ.get("E2E_STUDENT_LASTNAME", "E2E_STUDENT")
     if student_firstname is None:
         student_firstname = os.environ.get("E2E_STUDENT_FIRSTNAME", "Jean")
-    student_email = os.environ.get("E2E_STUDENT_EMAIL", "jean.e2e@example.com")
-    other_student_email = os.environ.get("E2E_OTHER_STUDENT_EMAIL", "other.student@example.com")
-
-    def birth_password(date_value):
-        return date_value.strftime("%d%m%Y")
-
-    def ensure_student_user(email, password, username):
-        student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
-        user, _ = User.objects.get_or_create(
-            username=username,
-            defaults={"email": email}
-        )
-        user.email = email
-        user.set_password(password)
-        user.is_staff = False
-        user.is_superuser = False
-        user.save()
-        user.groups.add(student_group)
-        return user
 
     # 1. Create Student
     student, created = Student.objects.get_or_create(
@@ -55,15 +31,9 @@ def seed_gate4(student_date_naissance=None, student_lastname=None, student_first
         date_naissance=student_date_naissance,
         defaults={
             "class_name": "Terminale S",
-            "email": student_email
+            "email": "jean.e2e@example.com"
         }
     )
-    student_password = birth_password(student.date_naissance)
-    student_user = ensure_student_user(student_email, student_password, "student_e2e")
-    student.email = student_email
-    student.user = student_user
-    student.class_name = student.class_name or "Terminale S"
-    student.save(update_fields=["email", "user", "class_name"])
     print(f"Gate4: student_id={student.id} name={student.first_name} {student.last_name} dob={student.date_naissance} created={created}")
     
     # 2. Create Exam
@@ -121,16 +91,9 @@ def seed_gate4(student_date_naissance=None, student_lastname=None, student_first
         last_name="OTHER",
         date_naissance="2005-05-20",
         defaults={
-            "class_name": "Terminale S",
-            "email": other_student_email
+            "class_name": "Terminale S"
         }
     )
-    other_student_password = birth_password(other_student.date_naissance)
-    other_student_user = ensure_student_user(other_student_email, other_student_password, "other_student")
-    other_student.email = other_student_email
-    other_student.user = other_student_user
-    other_student.class_name = other_student.class_name or "Terminale S"
-    other_student.save(update_fields=["email", "user", "class_name"])
     copy_other, _ = Copy.objects.get_or_create(
         exam=exam,
         anonymous_id="GATE4-OTHER",

@@ -20,6 +20,6 @@ if CopyConstraint is not None:
 if TeacherGroupAssignment is not None:
     @admin.register(TeacherGroupAssignment)
     class TeacherGroupAssignmentAdmin(admin.ModelAdmin):
-        list_display = ['teacher', 'group_name']
-        list_filter = ['group_name']
+        list_display = ['teacher', 'level', 'assignment_type', 'group_name']
+        list_filter = ['level', 'assignment_type', 'group_name']
         search_fields = ['teacher__username', 'teacher__email']

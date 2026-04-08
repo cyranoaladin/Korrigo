@@ -674,6 +674,30 @@ const totalScore = computed(() => {
 
 // Score validation: total must not exceed 20
 const scoreExceeds20 = computed(() => totalScore.value > 20)
+
+// Per-exercise score breakdown for corrector overview
+const exerciseScoreBreakdown = computed(() => {
+    const result = {}
+    for (const exercise of exercisesWithQuestions.value) {
+        const leaves = exercise.isLeaf ? exercise.questions : collectLeafQuestions([exercise])
+        let sum = 0
+        let filled = 0
+        for (const q of leaves) {
+            const score = questionScores.value.get(q.id)
+            if (score !== null && score !== undefined && score !== '') {
+                sum += parseFloat(score) || 0
+                filled++
+            }
+        }
+        result[exercise.id] = {
+            obtained: Math.round(sum * 100) / 100,
+            max: exercise.points,
+            filled,
+            total: leaves.length
+        }
+    }
+    return result
+})
 const gradingProgress = computed(() => computeGradingProgress(flatQuestions.value, questionScores.value))
 const hasIncompleteScores = computed(() => gradingProgress.value.total > 0 && gradingProgress.value.scored < gradingProgress.value.total)
 
@@ -1601,8 +1625,9 @@ onUnmounted(() => {
               @dragleave="handleDragLeave"
               @drop="(e) => handleDrop(e, idx)"
             >
-              <!-- Anonymization overlay per page -->
+              <!-- Anonymization overlay per page (only after image loaded to prevent 0x0 flash) -->
               <div
+                v-if="loadedPages.has(idx)"
                 v-show="isHeaderPageForIndex(idx) && !showIdentity"
                 class="anonymization-overlay"
                 :style="{ height: overlayHeightForIndex(idx) }"
@@ -1629,6 +1654,7 @@ onUnmounted(() => {
                 @contextmenu.prevent
               >
               <CanvasLayer
+                v-if="loadedPages.has(idx)"
                 :width="displayWidth"
                 :height="displayHeight"
                 :scale="scale"
@@ -1890,6 +1916,15 @@ onUnmounted(() => {
                 <strong>{{ totalScore.toFixed(2) }}</strong> / 20
                 <span v-if="scoreExceeds20" class="overflow-warning"><AppIcon name="warning" :size="12" class="inline" /> Dépasse 20 !</span>
               </div>
+              <!-- Per-exercise score breakdown -->
+              <div v-if="exercisesWithQuestions.length > 0" class="exercise-scores-breakdown">
+                <div v-for="exercise in exercisesWithQuestions" :key="'score-' + exercise.id" class="exercise-score-row">
+                  <span class="exercise-score-label">{{ exercise.label }}</span>
+                  <span class="exercise-score-value" :class="{ 'score-complete': exerciseScoreBreakdown[exercise.id]?.filled === exerciseScoreBreakdown[exercise.id]?.total && exerciseScoreBreakdown[exercise.id]?.total > 0, 'score-partial': exerciseScoreBreakdown[exercise.id]?.filled > 0 && exerciseScoreBreakdown[exercise.id]?.filled < exerciseScoreBreakdown[exercise.id]?.total }">
+                    {{ exerciseScoreBreakdown[exercise.id]?.obtained ?? '-' }} / {{ exercise.points }}
+                  </span>
+                </div>
+              </div>
               <div v-if="scoresSaving" class="scores-save-status">Sauvegarde des notes...</div>
               <div v-else-if="lastScoresSaveStatus" class="scores-save-status" :class="{ 'save-ok': lastScoresSaveStatus.success, 'save-err': !lastScoresSaveStatus.success }">
                 {{ lastScoresSaveStatus.success ? 'Notes sauvegardées' : 'Erreur sauvegarde' }}
@@ -2098,6 +2133,15 @@ onUnmounted(() => {
 .scores-save-status.save-ok { color: #28a745; }
 .scores-save-status.save-err { color: #dc3545; }
 .btn-disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Exercise score breakdown */
+.exercise-scores-breakdown { margin-top: 8px; padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
+.exercise-score-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f1f5f9; }
+.exercise-score-row:last-child { border-bottom: none; }
+.exercise-score-label { font-size: 0.85rem; color: #475569; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; }
+.exercise-score-value { font-size: 0.9rem; font-weight: 700; color: #64748b; white-space: nowrap; min-width: 70px; text-align: right; }
+.exercise-score-value.score-complete { color: #059669; }
+.exercise-score-value.score-partial { color: #d97706; }
 
 .global-appreciation-section { padding: 20px; background: #fff3cd; border-radius: 6px; border: 1px solid #ffeeba; }
 .global-appreciation-section label { font-weight: bold; font-size: 1rem; color: #333; margin-bottom: 10px; display: block; }

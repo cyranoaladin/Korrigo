@@ -13,40 +13,71 @@ from students.models import Student
 from exams.models import Copy
 from grading.models import Score, Annotation, QuestionRemark
 
+from django.db.models import Q
+
 try:
     from exams.models import TeacherGroupAssignment
     _HAS_TGA_MODEL = True
 except ImportError:
     _HAS_TGA_MODEL = False
 
-# DEPRECATED 2026-04-05 — Données migrées dans TeacherGroupAssignment (migration 0031).
-# Supprimer ce fallback après confirmation que la migration a été appliquée en prod.
-# _TEACHER_GROUPS = {
-#     'alaeddine.benrhouma@ert.tn': 'G3',
-#     'patrick.dupont@ert.tn': 'G2',
-#     'philippe.carr@ert.tn': 'G1',
-#     'selima.klibi@ert.tn': 'T.06',
-#     'chawki.saadi@ert.tn': 'G4',
-#     'sami.bentiba@ert.tn': 'G6',
-#     'laroussi.laroussi@ert.tn': 'G5',
-#     'edouard.rousseau@ert.tn': 'T.04',
-# }
-_TEACHER_GROUPS = {}
+
+def _get_teacher_assignments(user, level=None):
+    """Renvoie la liste des assignations d'un correcteur, optionnellement filtrée par niveau.
+    Chaque élément est un dict {level, assignment_type, group_name}."""
+    if not _HAS_TGA_MODEL:
+        return []
+    qs = TeacherGroupAssignment.objects.filter(teacher=user)
+    if level:
+        qs = qs.filter(level=level)
+    return list(qs.values('level', 'assignment_type', 'group_name'))
 
 
-def _get_teacher_group(user):
-    """Récupère le groupe assigné à un correcteur depuis la DB ou fallback statique."""
-    if _HAS_TGA_MODEL:
-        assignment = TeacherGroupAssignment.objects.filter(teacher=user).first()
-        if assignment:
-            return assignment.group_name
-    
-    group = _TEACHER_GROUPS.get(user.email) or _TEACHER_GROUPS.get(user.username)
-    if group:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.warning(f"DEPRECATED: Using hardcoded _TEACHER_GROUPS fallback for {user.username}. Migrate to TeacherGroupAssignment!")
-    return group
+# Map level to class_name prefix patterns for cross-level disambiguation
+_LEVEL_CLASS_PREFIXES = {
+    'terminale': ['T.', 'Terminale'],
+    'premiere':  ['1.'],
+    'troisieme': ['3.'],
+}
+
+
+def _class_prefix_q(level):
+    """Build a Q filter restricting to students whose class_name matches the level."""
+    prefixes = _LEVEL_CLASS_PREFIXES.get(level, [])
+    if not prefixes:
+        return Q()
+    q = Q(pk__in=[])  # empty base
+    for pfx in prefixes:
+        q |= Q(class_name__startswith=pfx)
+    return q
+
+
+def _students_for_assignments(assignments):
+    """Construit un queryset Student couvrant toutes les assignations données,
+    en filtrant par niveau pour éviter les collisions (ex: G1 terminale vs G1 première)."""
+    q = Q(pk__in=[])  # empty base
+    for a in assignments:
+        level_q = _class_prefix_q(a['level'])
+        if a['assignment_type'] == 'classe':
+            q |= (Q(class_name=a['group_name']) & level_q)
+        else:
+            q |= (Q(groupe=a['group_name']) & level_q)
+    return Student.objects.filter(q)
+
+
+def _student_matches_assignments(student, assignments):
+    """Vérifie si un élève correspond à au moins une assignation (avec vérification de niveau)."""
+    for a in assignments:
+        # Check level prefix
+        prefixes = _LEVEL_CLASS_PREFIXES.get(a['level'], [])
+        level_ok = any(student.class_name.startswith(pfx) for pfx in prefixes) if prefixes else True
+        if not level_ok:
+            continue
+        if a['assignment_type'] == 'classe' and student.class_name == a['group_name']:
+            return True
+        if a['assignment_type'] == 'groupe' and student.groupe == a['group_name']:
+            return True
+    return False
 
 
 def _build_question_labels(exam):
@@ -66,16 +97,17 @@ class MyStudentsListView(views.APIView):
     permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request):
-        groupe = _get_teacher_group(request.user)
+        level = request.query_params.get('level', None)
+        assignments = _get_teacher_assignments(request.user, level=level)
         
-        if not groupe:
+        if not assignments:
             return Response({
-                'detail': 'Aucun groupe associé à ce correcteur.',
+                'detail': 'Aucun groupe associé à ce correcteur.' + (f' (niveau={level})' if level else ''),
                 'students': []
             }, status=status.HTTP_200_OK)
         
-        # Récupérer les élèves du groupe avec prefetch pour éviter N+1 queries
-        students = Student.objects.filter(groupe=groupe).order_by('last_name', 'first_name').prefetch_related(
+        # Récupérer les élèves couverts par toutes les assignations
+        students = _students_for_assignments(assignments).order_by('last_name', 'first_name').prefetch_related(
             Prefetch('copies', queryset=Copy.objects.select_related('exam', 'assigned_corrector').prefetch_related(
                 Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
             ))
@@ -124,8 +156,10 @@ class MyStudentsListView(views.APIView):
             
             result.append(student_data)
         
+        group_labels = [f"{a['group_name']} ({a['level']})" for a in assignments]
         return Response({
-            'groupe': groupe,
+            'assignments': assignments,
+            'groupe': ', '.join(group_labels),
             'count': len(result),
             'students': result
         })
@@ -139,18 +173,18 @@ class StudentBilanView(views.APIView):
     permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request, student_id):
-        groupe = _get_teacher_group(request.user)
+        assignments = _get_teacher_assignments(request.user)
         
         student = get_object_or_404(Student, id=student_id)
         
-        # Vérifier que l'élève est dans le groupe du correcteur (sauf admin)
+        # Vérifier que l'élève est dans au moins une assignation du correcteur (sauf admin)
         from core.auth import UserRole
         is_admin = (
             request.user.is_superuser
             or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
         )
         if not is_admin:
-            if student.groupe != groupe:
+            if not _student_matches_assignments(student, assignments):
                 return Response({
                     'detail': 'Vous n\'avez pas accès à cet élève.'
                 }, status=status.HTTP_403_FORBIDDEN)

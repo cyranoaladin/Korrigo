@@ -69,11 +69,18 @@ services:
       - /var/www/labomaths/korrigo/overlay/core/views_media.py:/app/core/views_media.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_metrics.py:/app/core/views_metrics.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_prometheus.py:/app/core/views_prometheus.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_password_reset.py:/app/core/views_password_reset.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/management/commands/export_pronote.py:/app/exams/management/commands/export_pronote.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/management/commands/generate_test_copies.py:/app/exams/management/commands/generate_test_copies.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/management/commands/seed_initial_exams.py:/app/exams/management/commands/seed_initial_exams.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/migrations/0021_copy_llm_summary.py:/app/exams/migrations/0021_copy_llm_summary.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/models.py:/app/exams/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/admin.py:/app/exams/admin.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0030_add_copy_constraint_and_teacher_group.py:/app/exams/migrations/0030_add_copy_constraint_and_teacher_group.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0031_seed_copy_constraints_and_teacher_groups.py:/app/exams/migrations/0031_seed_copy_constraints_and_teacher_groups.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0032_copy_student_status_index.py:/app/exams/migrations/0032_copy_student_status_index.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0033_teacher_group_add_level.py:/app/exams/migrations/0033_teacher_group_add_level.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0034_seed_premiere_groups.py:/app/exams/migrations/0034_seed_premiere_groups.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/permissions.py:/app/exams/permissions.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/serializers.py:/app/exams/serializers.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/tasks.py:/app/exams/tasks.py:ro
@@ -114,6 +121,18 @@ services:
       - /var/www/labomaths/korrigo/overlay/students/serializers.py:/app/students/serializers.py:ro
       - /var/www/labomaths/korrigo/overlay/students/urls.py:/app/students/urls.py:ro
       - /var/www/labomaths/korrigo/overlay/students/views.py:/app/students/views.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/admin.py:/app/students/admin.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/apps.py:/app/students/apps.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/grading_utils.py:/app/exams/grading_utils.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/exam_type_codes.py:/app/exams/exam_type_codes.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/score_constraints.py:/app/exams/score_constraints.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/signals.py:/app/exams/signals.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/apps.py:/app/exams/apps.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/services/pronote_export.py:/app/exams/services/pronote_export.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_questionnaire.py:/app/grading/views_questionnaire.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/questionnaire_bilan.py:/app/grading/questionnaire_bilan.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/metrics.py:/app/grading/metrics.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/management/commands/inject_bilan_html.py:/app/grading/management/commands/inject_bilan_html.py:ro
       - seed_data:/app/seed_data:ro
     depends_on:
       db:
@@ -183,11 +202,18 @@ services:
       - /var/www/labomaths/korrigo/overlay/core/views_media.py:/app/core/views_media.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_metrics.py:/app/core/views_metrics.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_prometheus.py:/app/core/views_prometheus.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_password_reset.py:/app/core/views_password_reset.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/management/commands/export_pronote.py:/app/exams/management/commands/export_pronote.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/management/commands/generate_test_copies.py:/app/exams/management/commands/generate_test_copies.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/management/commands/seed_initial_exams.py:/app/exams/management/commands/seed_initial_exams.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/migrations/0021_copy_llm_summary.py:/app/exams/migrations/0021_copy_llm_summary.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/models.py:/app/exams/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/admin.py:/app/exams/admin.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0030_add_copy_constraint_and_teacher_group.py:/app/exams/migrations/0030_add_copy_constraint_and_teacher_group.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0031_seed_copy_constraints_and_teacher_groups.py:/app/exams/migrations/0031_seed_copy_constraints_and_teacher_groups.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0032_copy_student_status_index.py:/app/exams/migrations/0032_copy_student_status_index.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0033_teacher_group_add_level.py:/app/exams/migrations/0033_teacher_group_add_level.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0034_seed_premiere_groups.py:/app/exams/migrations/0034_seed_premiere_groups.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/permissions.py:/app/exams/permissions.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/serializers.py:/app/exams/serializers.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/tasks.py:/app/exams/tasks.py:ro
@@ -228,6 +254,18 @@ services:
       - /var/www/labomaths/korrigo/overlay/students/serializers.py:/app/students/serializers.py:ro
       - /var/www/labomaths/korrigo/overlay/students/urls.py:/app/students/urls.py:ro
       - /var/www/labomaths/korrigo/overlay/students/views.py:/app/students/views.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/admin.py:/app/students/admin.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/apps.py:/app/students/apps.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/grading_utils.py:/app/exams/grading_utils.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/exam_type_codes.py:/app/exams/exam_type_codes.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/score_constraints.py:/app/exams/score_constraints.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/signals.py:/app/exams/signals.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/apps.py:/app/exams/apps.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/services/pronote_export.py:/app/exams/services/pronote_export.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_questionnaire.py:/app/grading/views_questionnaire.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/questionnaire_bilan.py:/app/grading/questionnaire_bilan.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/metrics.py:/app/grading/metrics.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/management/commands/inject_bilan_html.py:/app/grading/management/commands/inject_bilan_html.py:ro
     depends_on:
       db:
         condition: service_healthy
@@ -288,11 +326,18 @@ services:
       - /var/www/labomaths/korrigo/overlay/core/views_media.py:/app/core/views_media.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_metrics.py:/app/core/views_metrics.py:ro
       - /var/www/labomaths/korrigo/overlay/core/views_prometheus.py:/app/core/views_prometheus.py:ro
+      - /var/www/labomaths/korrigo/overlay/core/views_password_reset.py:/app/core/views_password_reset.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/management/commands/export_pronote.py:/app/exams/management/commands/export_pronote.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/management/commands/generate_test_copies.py:/app/exams/management/commands/generate_test_copies.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/management/commands/seed_initial_exams.py:/app/exams/management/commands/seed_initial_exams.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/migrations/0021_copy_llm_summary.py:/app/exams/migrations/0021_copy_llm_summary.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/models.py:/app/exams/models.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/admin.py:/app/exams/admin.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0030_add_copy_constraint_and_teacher_group.py:/app/exams/migrations/0030_add_copy_constraint_and_teacher_group.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0031_seed_copy_constraints_and_teacher_groups.py:/app/exams/migrations/0031_seed_copy_constraints_and_teacher_groups.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0032_copy_student_status_index.py:/app/exams/migrations/0032_copy_student_status_index.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0033_teacher_group_add_level.py:/app/exams/migrations/0033_teacher_group_add_level.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/migrations/0034_seed_premiere_groups.py:/app/exams/migrations/0034_seed_premiere_groups.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/permissions.py:/app/exams/permissions.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/serializers.py:/app/exams/serializers.py:ro
       - /var/www/labomaths/korrigo/overlay/exams/tasks.py:/app/exams/tasks.py:ro
@@ -333,6 +378,18 @@ services:
       - /var/www/labomaths/korrigo/overlay/students/serializers.py:/app/students/serializers.py:ro
       - /var/www/labomaths/korrigo/overlay/students/urls.py:/app/students/urls.py:ro
       - /var/www/labomaths/korrigo/overlay/students/views.py:/app/students/views.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/admin.py:/app/students/admin.py:ro
+      - /var/www/labomaths/korrigo/overlay/students/apps.py:/app/students/apps.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/grading_utils.py:/app/exams/grading_utils.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/exam_type_codes.py:/app/exams/exam_type_codes.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/score_constraints.py:/app/exams/score_constraints.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/signals.py:/app/exams/signals.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/apps.py:/app/exams/apps.py:ro
+      - /var/www/labomaths/korrigo/overlay/exams/services/pronote_export.py:/app/exams/services/pronote_export.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/views_questionnaire.py:/app/grading/views_questionnaire.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/questionnaire_bilan.py:/app/grading/questionnaire_bilan.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/metrics.py:/app/grading/metrics.py:ro
+      - /var/www/labomaths/korrigo/overlay/grading/management/commands/inject_bilan_html.py:/app/grading/management/commands/inject_bilan_html.py:ro
     depends_on:
       db:
         condition: service_healthy
@@ -362,6 +419,7 @@ services:
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
       - /var/www/labomaths/korrigo/infra/nginx/nginx.conf:/etc/nginx/conf.d/nginx.conf:ro
+      - /var/www/labomaths/korrigo/frontend:/usr/share/nginx/html:ro
     depends_on:
       - backend
     healthcheck:

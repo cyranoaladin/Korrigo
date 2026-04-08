@@ -741,9 +741,19 @@ class CopyConstraint(models.Model):
 
 class TeacherGroupAssignment(models.Model):
     """
-    Association correcteur → groupe d'élèves pour la fonctionnalité "Mes Élèves".
-    Remplace le dictionnaire TEACHER_GROUPS hardcodé dans views_my_students.py.
+    Association correcteur → groupe/classe d'élèves, avec distinction du niveau.
+    Un correcteur peut avoir plusieurs assignations (ex: Terminale G3, Première G6, 3ème 3.3).
     """
+    LEVEL_CHOICES = [
+        ('terminale', 'Terminale'),
+        ('premiere', 'Première'),
+        ('troisieme', 'Troisième'),
+    ]
+    ASSIGNMENT_TYPE_CHOICES = [
+        ('groupe', 'Groupe'),
+        ('classe', 'Classe'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     teacher = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -751,16 +761,30 @@ class TeacherGroupAssignment(models.Model):
         related_name='group_assignments',
         verbose_name=_("Correcteur")
     )
+    level = models.CharField(
+        max_length=20,
+        choices=LEVEL_CHOICES,
+        verbose_name=_("Niveau"),
+        help_text=_("terminale, premiere, troisieme"),
+        default='terminale',
+    )
+    assignment_type = models.CharField(
+        max_length=10,
+        choices=ASSIGNMENT_TYPE_CHOICES,
+        default='groupe',
+        verbose_name=_("Type d'assignation"),
+        help_text=_("'groupe' → filtre Student.groupe ; 'classe' → filtre Student.class_name"),
+    )
     group_name = models.CharField(
         max_length=50,
-        verbose_name=_("Groupe d'élèves"),
-        help_text=_("Ex: G1, G2, T.04, T.06")
+        verbose_name=_("Groupe ou classe"),
+        help_text=_("Ex: G1, G4, selo, 1.02, 3.3, T.04")
     )
 
     class Meta:
         verbose_name = _("Assignation groupe-correcteur")
         verbose_name_plural = _("Assignations groupe-correcteur")
-        unique_together = ['teacher', 'group_name']
+        unique_together = ['teacher', 'level', 'group_name']
 
     def __str__(self):
-        return f"{self.teacher.username} → {self.group_name}"
+        return f"{self.teacher.username} → {self.get_level_display()} / {self.group_name} ({self.assignment_type})"
