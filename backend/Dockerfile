@@ -20,9 +20,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 RUN chmod +x entrypoint.sh
 
+# Security: Create non-root user for runtime
+RUN groupadd -r korrigo && useradd -r -g korrigo -d /app -s /sbin/nologin korrigo
+
 # Ensure logs directory exists with proper permissions
 # P0-OP-01 fix: Logging directory must exist for RotatingFileHandler
-RUN mkdir -p /app/logs && chmod 777 /app/logs
+RUN mkdir -p /app/logs && chown -R korrigo:korrigo /app
+
+# Note: entrypoint.sh runs migrate + collectstatic which write to DB and Docker volumes.
+# If migration fails, run: docker compose run --user root backend python manage.py migrate
+USER korrigo
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 

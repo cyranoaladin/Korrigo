@@ -19,11 +19,6 @@ prometheus-client==0.19.0
 # SECURITY: GHSA-cfh3-3jmp-rvhc (PSD OOB write, affects >=10.3.0)
 # Fixed in Pillow 12.1.1
 Pillow>=12.1.1
-
-# Testing
-pytest~=8.0
-pytest-django~=4.8
-pytest-cov~=4.1
 numpy<2.0.0
 tenacity<9.0.0
 pytesseract>=0.3.10

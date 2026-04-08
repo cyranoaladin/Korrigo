@@ -46,7 +46,7 @@ jobs:
       with:
         python-version: '3.11'
         cache: 'pip'  # Cache pip dependencies
-        cache-dependency-path: 'backend/requirements.txt'
+        cache-dependency-path: 'backend/requirements-dev.txt'
 
     - name: Install system dependencies
       run: |
@@ -61,7 +61,7 @@ jobs:
       run: |
         cd backend
         pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
 
     - name: Grant CREATEDB permission to test user
       run: |

@@ -66,6 +66,7 @@ venv.bak/
 # IDE
 .vscode/
 .idea/
+.pyre_configuration
 *.swp
 *.swo
 *~
@@ -74,8 +75,6 @@ venv.bak/
 Thumbs.db
 
 # Project - Generated Artifacts (BLOCK THESE)
-RELEASE_PACK/
-PROOF_PACK_FINAL/
 RELEASE_PACK/
 PROOF_PACK_FINAL/
 /release/
@@ -108,11 +107,6 @@ frontend/e2e/.auth/
 /docs_audit_sync.patch
 /SYNC_ON_NETWORKED_MACHINE.md
 
-/docs_audit_sync.patch
-
-# forensic handoff artifacts
-/docs_audit_sync.patch
-/SYNC_ON_NETWORKED_MACHINE.md
 
 # local helpers (do not commit)
 push_korrigo_clean.sh

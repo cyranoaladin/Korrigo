@@ -68,6 +68,50 @@ check 'sed -n "/^  celery:/,/^  [a-z]/p" infra/docker/docker-compose.prod.yml | 
 # 17. CLEANUP_PROD.md exists
 check '[ -f docs/CLEANUP_PROD.md ]' 'docs/CLEANUP_PROD.md exists'
 
+# === v2 checks ===
+
+# 18. .pyre_configuration removed from repo
+check '! [ -f .pyre_configuration ]' '.pyre_configuration removed from repo'
+
+# 19. .pyre_configuration in .gitignore
+check 'grep -q "pyre_configuration" .gitignore' '.pyre_configuration in .gitignore'
+
+# 20. requirements-dev.txt exists
+check '[ -f backend/requirements-dev.txt ]' 'backend/requirements-dev.txt exists'
+
+# 21. No pytest in prod requirements
+check '! grep -q "^pytest" backend/requirements.txt' 'No pytest in prod requirements.txt'
+
+# 22. Dockerfile has USER instruction (non-root)
+check 'grep -q "^USER korrigo" backend/Dockerfile' 'Dockerfile runs as non-root user'
+
+# 23. No chmod 777 in Dockerfile
+check '! grep -q "chmod 777" backend/Dockerfile' 'No chmod 777 in Dockerfile'
+
+# 24. DB healthcheck has no viatique fallback
+check '! grep -q "viatique_user" infra/docker/docker-compose.prod.yml' 'DB healthcheck has no viatique fallback'
+
+# 25. CSP present in index.html location
+check 'sed -n "/location = .index.html/,/}/p" infra/nginx/nginx.conf | grep -q "Content-Security-Policy"' 'CSP in index.html location'
+
+# 26. CSP present in js/css location
+check 'sed -n "/js|css/,/}/p" infra/nginx/nginx.conf | grep -q "Content-Security-Policy"' 'CSP in js/css location'
+
+# 27. CSP present in /static/ location
+check 'sed -n "/location .static/,/}/p" infra/nginx/nginx.conf | grep -q "Content-Security-Policy"' 'CSP in /static/ location'
+
+# 28. celery-beat has CORS_ALLOWED_ORIGINS
+check 'sed -n "/^  celery-beat:/,/^  [a-z]/p" infra/docker/docker-compose.prod.yml | grep -q "CORS_ALLOWED_ORIGINS"' 'celery-beat has CORS_ALLOWED_ORIGINS'
+
+# 29. DEPLOY.md exists
+check '[ -f docs/DEPLOY.md ]' 'docs/DEPLOY.md exists'
+
+# 30. No duplicate entries in .gitignore (RELEASE_PACK)
+check '[ "$(grep -c "RELEASE_PACK/" .gitignore)" -le 1 ]' 'No duplicate RELEASE_PACK in .gitignore'
+
+# 31. CI workflows use requirements-dev.txt
+check 'grep -q "requirements-dev.txt" .github/workflows/ci.yml' 'CI workflow uses requirements-dev.txt'
+
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 [ "$FAIL" -eq 0 ] && echo "🎉 All checks passed!" || echo "⚠️  Some checks failed — review above."
