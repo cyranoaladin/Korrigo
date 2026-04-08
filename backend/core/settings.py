@@ -32,6 +32,9 @@ if DJANGO_ENV == "production":
 else:
     DEBUG = raw_debug
 
+# Student provisioning default password — read from env, fallback for dev only
+DEFAULT_PASSWORD = os.environ.get('DEFAULT_PASSWORD', 'passe123' if DEBUG else '')
+
 # Helper for CSV environment variables
 def csv_env(name: str, default: str = "") -> list:
     """Parse comma-separated environment variable."""

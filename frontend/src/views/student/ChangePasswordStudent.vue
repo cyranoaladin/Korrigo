@@ -36,8 +36,8 @@ const handleChangePassword = async () => {
         return
     }
 
-    if (newPassword.value === 'passe123') {
-        error.value = 'Veuillez choisir un mot de passe différent du mot de passe par défaut.'
+    if (newPassword.value === currentPassword.value) {
+        error.value = 'Le nouveau mot de passe doit être différent du mot de passe actuel.'
         return
     }
 
@@ -134,8 +134,8 @@ const handleChangePassword = async () => {
             <li :class="{ 'rule-ok': !/^\d+$/.test(newPassword) && newPassword.length > 0 }">
               Ne pas être entièrement numérique
             </li>
-            <li :class="{ 'rule-ok': newPassword.length > 0 && newPassword !== 'passe123' }">
-              Ne pas être un mot de passe courant
+            <li :class="{ 'rule-ok': newPassword.length > 0 && newPassword !== currentPassword }">
+              Ne pas être identique au mot de passe initial
             </li>
           </ul>
         </div>

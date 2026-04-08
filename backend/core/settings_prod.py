@@ -44,6 +44,13 @@ DATABASES = {
     }
 }
 
+_TRIVIAL_PASSWORDS = ('passe123', 'password', '123456', 'changeme', '')
+if DEFAULT_PASSWORD in _TRIVIAL_PASSWORDS:  # noqa: F405
+    raise ValueError(
+        "DEFAULT_PASSWORD must be set to a non-trivial value in production. "
+        "Set the DEFAULT_PASSWORD environment variable."
+    )
+
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

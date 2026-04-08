@@ -269,7 +269,7 @@ class Command(BaseCommand):
         self.dry_run = options['dry_run']
         self.password = (
             options['password']
-            or os.environ.get('DEFAULT_PASSWORD', 'passe123')
+            or settings.DEFAULT_PASSWORD or 'changeme-seed'
         )
 
         # Determine data directory

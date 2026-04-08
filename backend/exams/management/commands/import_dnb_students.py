@@ -90,14 +90,15 @@ class Command(BaseCommand):
         parser.add_argument(
             "--password",
             default=None,
-            help="Mot de passe par défaut (défaut : DEFAULT_PASSWORD env ou 'passe123')",
+            help="Mot de passe par défaut (défaut : settings.DEFAULT_PASSWORD)",
         )
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
         scan_dir = Path(options["dir"])
         csv_file = scan_dir / options["file"]
-        password = options["password"] or os.environ.get("DEFAULT_PASSWORD", "passe123")
+        from django.conf import settings as _s
+        password = options["password"] or _s.DEFAULT_PASSWORD or 'changeme-import'
 
         if dry_run:
             self.stdout.write(self.style.WARNING("=== MODE DRY-RUN — aucune écriture ===\n"))

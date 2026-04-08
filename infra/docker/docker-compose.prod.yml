@@ -73,7 +73,7 @@ services:
       ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
       TEACHER_PASSWORD: "${TEACHER_PASSWORD:-}"
       SEED_ON_START: "${SEED_ON_START:-false}"
-      DEFAULT_PASSWORD: "${DEFAULT_PASSWORD:-passe123}"
+      DEFAULT_PASSWORD: "${DEFAULT_PASSWORD:?err}"
       SEED_DATA_DIR: "/app/seed_data"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health/" ]

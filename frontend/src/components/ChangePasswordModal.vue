@@ -261,8 +261,8 @@ const handleClose = () => {
               <li :class="{ 'rule-ok': !/^\d+$/.test(newPassword) && newPassword.length > 0 }">
                 Ne pas être entièrement numérique
               </li>
-              <li :class="{ 'rule-ok': newPassword.length > 0 && newPassword !== 'passe123' }">
-                Ne pas être un mot de passe courant
+              <li :class="{ 'rule-ok': newPassword.length > 0 && newPassword !== currentPassword }">
+                Ne pas être identique au mot de passe initial
               </li>
             </ul>
           </div>

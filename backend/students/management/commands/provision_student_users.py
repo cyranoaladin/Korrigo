@@ -94,7 +94,8 @@ class Command(BaseCommand):
                     if student.date_naissance:
                         effective_password = student.date_naissance.strftime('%d%m%Y')
                     else:
-                        effective_password = 'passe123'  # Fallback if no DOB
+                        from django.conf import settings as _s
+                        effective_password = _s.DEFAULT_PASSWORD or 'changeme-provision'
                         self.stdout.write(self.style.WARNING(
                             f"  [WARN] {email}: no DOB, using fallback password"
                         ))

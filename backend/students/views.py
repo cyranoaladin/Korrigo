@@ -7,6 +7,7 @@ def is_student_access_blocked():
     """Lit la variable d'environnement à chaque requête pour permettre le changement sans restart."""
     return os.environ.get("STUDENT_ACCESS_BLOCKED", "false").lower() == "true"
 
+from django.conf import settings
 from rest_framework import generics, filters, status, views
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
@@ -95,7 +96,7 @@ class StudentLoginView(views.APIView):
             dob_pwd = student.date_naissance.strftime('%d%m%Y') if student.date_naissance else None
             must_change_password = (
                 not user.has_usable_password()
-                or user.check_password('passe123')
+                or (settings.DEFAULT_PASSWORD and user.check_password(settings.DEFAULT_PASSWORD))
                 or (dob_pwd and user.check_password(dob_pwd))
             )
             # Cache result in profile so we never re-check bcrypt for this user
@@ -161,7 +162,7 @@ class StudentMeView(views.APIView):
                 dob_pwd = student.date_naissance.strftime('%d%m%Y') if student.date_naissance else None
                 must_change = (
                     not user.has_usable_password()
-                    or user.check_password('passe123')
+                    or (settings.DEFAULT_PASSWORD and user.check_password(settings.DEFAULT_PASSWORD))
                     or (dob_pwd and user.check_password(dob_pwd))
                 )
             request.session['must_change_password'] = must_change
@@ -214,10 +215,10 @@ class StudentChangePasswordView(views.APIView):
                 'error': e.messages
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Prevent reusing the default password (passe123 or date of birth)
+        # Prevent reusing the default password or date of birth
         student = Student.objects.filter(user=user).first()
         dob_pwd = student.date_naissance.strftime('%d%m%Y') if student and student.date_naissance else None
-        if new_password == 'passe123' or (dob_pwd and new_password == dob_pwd):
+        if (settings.DEFAULT_PASSWORD and new_password == settings.DEFAULT_PASSWORD) or (dob_pwd and new_password == dob_pwd):
             return Response({
                 'error': 'Veuillez choisir un mot de passe différent du mot de passe par défaut.'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -382,7 +383,7 @@ class StudentImportView(views.APIView):
                             user_obj = AuthUser.objects.create_user(
                                 username=email_lower,
                                 email=email_lower,
-                                password='passe123',
+                                password=settings.DEFAULT_PASSWORD or 'changeme-provision',
                                 first_name=first_name[:30],
                                 last_name=last_name[:30],
                                 is_active=True,
