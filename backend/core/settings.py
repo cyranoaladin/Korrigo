@@ -531,18 +531,24 @@ SPECTACULAR_SETTINGS = {
 
 # Error Notification Configuration (P0-OP-02: Production Readiness)
 ADMINS = [
-    ('Admin', os.environ.get('ADMIN_EMAIL', 'admin@example.com')),
+    ('Admin', os.environ.get('ADMIN_EMAIL', '')),
 ]
 MANAGERS = ADMINS
 
 if not DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.example.com')
+    EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
     EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
     EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-    SERVER_EMAIL = os.environ.get('SERVER_EMAIL', 'korrigo@example.com')
+    SERVER_EMAIL = os.environ.get('SERVER_EMAIL', '')
+
+    if not EMAIL_HOST_USER:
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
+            'EMAIL_HOST_USER not configured — error notification emails will not be sent'
+        )
     
     _logging_handlers: dict = LOGGING['handlers']  # type: ignore[index]
     _logging_handlers['mail_admins'] = {
