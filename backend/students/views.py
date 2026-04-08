@@ -119,8 +119,7 @@ class StudentLoginView(views.APIView):
         })
 
 class StudentLogoutView(views.APIView):
-    permission_classes = [AllowAny]  # Public endpoint - allow logout even if session expired
-    authentication_classes = []  # Évite le check CSRF sur session expirée
+    permission_classes = [IsStudent]  # Requires valid student session to prevent CSRF logout attacks
 
     def post(self, request):
         # Le logout est TOUJOURS autorisé, même en maintenance
