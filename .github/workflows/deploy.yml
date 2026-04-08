@@ -337,7 +337,7 @@ jobs:
             echo "  ✅ Migrations complete"
             
             echo "🌱 Seeding production data (idempotent)..."
-            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm -T backend python seed_prod.py < /dev/null || {
+            docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm -T backend python manage.py seed_prod --confirm-production < /dev/null || {
               echo "❌ Seeding failed"
               exit 1
             }
