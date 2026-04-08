@@ -91,7 +91,7 @@ class IsAdminOrTeacher(BasePermission):
         groups = list(request.user.groups.values_list('name', flat=True)) if is_auth else []
         
         if not is_auth:
-            logger.warning(f"PERMISSION_DENIED [IsAdminOrTeacher]: User not authenticated. Path: {request.path}")
+            logger.warning(f"PERMISSION_DENIED [IsAdminOrTeacher]: User not authenticated. Path: {getattr(request, 'path', '<no-path>')}")
             return False
 
         res = (
@@ -103,7 +103,7 @@ class IsAdminOrTeacher(BasePermission):
         if not res:
              logger.warning(
                  f"PERMISSION_DENIED [IsAdminOrTeacher]: User {username} lacks required groups. "
-                 f"Groups found: {groups}, is_superuser: {request.user.is_superuser}. Path: {request.path}"
+                 f"Groups found: {groups}, is_superuser: {request.user.is_superuser}. Path: {getattr(request, 'path', '<no-path>')}"
              )
         return res
 
