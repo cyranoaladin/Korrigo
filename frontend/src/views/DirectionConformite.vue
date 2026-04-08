@@ -1,5 +1,52 @@
 <template>
   <SectionContainer title="Direction & Conformité">
+    <!-- TABLEAU DE BORD PLATEFORME (DYNAMIQUE) -->
+    <div class="mb-12 bg-gradient-to-r from-primary-50 to-blue-50 rounded-xl border border-primary-200 p-6">
+      <h2 class="text-lg font-semibold text-primary-800 mb-4 flex items-center gap-2">
+        <AppIcon name="bar-chart-3" :size="20" />
+        Tableau de bord plateforme
+        <span v-if="statsLoading" class="text-xs font-normal text-gray-400 ml-2">Chargement…</span>
+      </h2>
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div class="bg-white rounded-lg p-3 border border-gray-200 text-center">
+          <p class="text-2xl font-bold text-primary-700">{{ pd?.total_exams ?? '—' }}</p>
+          <p class="text-xs text-gray-500 mt-1">Examens</p>
+        </div>
+        <div class="bg-white rounded-lg p-3 border border-gray-200 text-center">
+          <p class="text-2xl font-bold text-primary-700">{{ pd?.total_copies ?? '—' }}</p>
+          <p class="text-xs text-gray-500 mt-1">Copies</p>
+        </div>
+        <div class="bg-white rounded-lg p-3 border border-gray-200 text-center">
+          <p class="text-2xl font-bold text-green-600">{{ pd?.copies_finalized ?? '—' }}</p>
+          <p class="text-xs text-gray-500 mt-1">Finalisées</p>
+        </div>
+        <div class="bg-white rounded-lg p-3 border border-gray-200 text-center">
+          <p class="text-2xl font-bold text-blue-600">{{ pd?.correctors_count ?? '—' }}</p>
+          <p class="text-xs text-gray-500 mt-1">Correcteurs</p>
+        </div>
+        <div class="bg-white rounded-lg p-3 border border-gray-200 text-center">
+          <p class="text-2xl font-bold text-orange-600">{{ pd?.students_count ?? '—' }}</p>
+          <p class="text-xs text-gray-500 mt-1">Élèves</p>
+        </div>
+        <div class="bg-white rounded-lg p-3 border border-gray-200 text-center">
+          <p class="text-2xl font-bold text-emerald-600">{{ pd?.finalization_rate ?? '—' }}%</p>
+          <p class="text-xs text-gray-500 mt-1">Taux finalisation</p>
+        </div>
+      </div>
+      <div v-if="pd?.exam_types?.length" class="mt-4 flex flex-wrap gap-2">
+        <span
+          v-for="et in pd.exam_types"
+          :key="et.name"
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white border border-gray-200 text-gray-700"
+        >
+          {{ et.name }} <span class="text-primary-600 font-bold">{{ et.count }}</span>
+        </span>
+      </div>
+      <p v-if="pd?.last_activity" class="text-xs text-gray-400 mt-3">
+        Dernière activité : {{ formatDate(pd.last_activity) }}
+      </p>
+    </div>
+
     <!-- CONTACTS -->
     <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
       <div class="bg-white p-5 rounded-lg border border-borderSoft shadow-sm">
@@ -360,6 +407,27 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+import api from '../services/api'
 import SectionContainer from '../components/SectionContainer.vue'
 import AppIcon from '../icons/AppIcon.vue'
+
+const pd = ref(null)
+const statsLoading = ref(true)
+
+function formatDate(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/platform-stats/')
+    pd.value = data
+  } catch (e) {
+    console.warn('Platform stats unavailable:', e.message)
+  } finally {
+    statsLoading.value = false
+  }
+})
 </script>

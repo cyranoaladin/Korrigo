@@ -1,5 +1,21 @@
 <template>
   <SectionContainer title="Guide Enseignant">
+    <!-- Bandeau dynamique -->
+    <div v-if="pd" class="mb-6 flex flex-wrap gap-3 items-center text-sm">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-50 border border-primary-200 text-primary-700 font-medium">
+        <AppIcon name="file-text" :size="14" /> {{ pd.total_copies }} copies
+      </span>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-medium">
+        <AppIcon name="check" :size="14" /> {{ pd.copies_finalized }} finalisées
+      </span>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 font-medium">
+        <AppIcon name="user-check" :size="14" /> {{ pd.correctors_count }} correcteurs actifs
+      </span>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-200 text-orange-700 font-medium">
+        <AppIcon name="list" :size="14" /> {{ pd.total_exams }} examens
+      </span>
+    </div>
+
     <div class="mb-8 p-4 bg-primary-50 rounded-lg border border-primary-100 flex items-start gap-3">
       <AppIcon name="info" :size="24" class="text-primary-600 flex-shrink-0 mt-0.5" />
       <div>
@@ -378,7 +394,20 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+import api from '../services/api'
 import SectionContainer from '../components/SectionContainer.vue'
 import CollapsibleSection from '../components/CollapsibleSection.vue'
 import AppIcon from '../icons/AppIcon.vue'
+
+const pd = ref(null)
+
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/platform-stats/')
+    pd.value = data
+  } catch (e) {
+    console.warn('Platform stats unavailable:', e.message)
+  }
+})
 </script>

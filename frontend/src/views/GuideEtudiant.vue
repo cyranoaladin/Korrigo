@@ -1,5 +1,18 @@
 <template>
   <SectionContainer title="Guide Élève">
+    <!-- Bandeau dynamique -->
+    <div v-if="pd" class="mb-6 flex flex-wrap gap-3 items-center text-sm">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-medium">
+        <AppIcon name="student" :size="14" /> {{ pd.students_count }} élèves inscrits
+      </span>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-50 border border-primary-200 text-primary-700 font-medium">
+        <AppIcon name="file-text" :size="14" /> {{ pd.total_copies }} copies sur la plateforme
+      </span>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium">
+        <AppIcon name="check" :size="14" /> {{ pd.copies_finalized }} copies finalisées
+      </span>
+    </div>
+
     <div class="mb-8 p-4 bg-green-50 rounded-lg border border-green-200 flex items-start gap-3">
       <AppIcon name="student" :size="24" class="text-green-600 flex-shrink-0 mt-0.5" />
       <div>
@@ -314,7 +327,20 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+import api from '../services/api'
 import SectionContainer from '../components/SectionContainer.vue'
 import CollapsibleSection from '../components/CollapsibleSection.vue'
 import AppIcon from '../icons/AppIcon.vue'
+
+const pd = ref(null)
+
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/platform-stats/')
+    pd.value = data
+  } catch (e) {
+    console.warn('Platform stats unavailable:', e.message)
+  }
+})
 </script>

@@ -36,6 +36,12 @@ urlpatterns += [
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
 
+# Public platform stats for landing page
+from core.views_platform import PlatformStatsView
+urlpatterns += [
+    path('api/platform-stats/', PlatformStatsView.as_view(), name='platform_stats'),
+]
+
 # Health check endpoints (always available)
 from core.views_health import health_check, liveness_check, readiness_check
 urlpatterns += [

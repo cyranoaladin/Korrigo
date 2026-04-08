@@ -26,7 +26,7 @@
           le processus de correction papier en un workflow numérique moderne, traçable et&nbsp;conforme&nbsp;RGPD.
         </p>
         <p class="text-primary-300 font-medium mb-10">
-          Lycée Pierre Mendès France de Tunis · Labo Maths ERT · v1.4.0
+          Lycée Pierre Mendès France de Tunis · Labo Maths ERT
         </p>
         <div class="flex flex-col sm:flex-row justify-center gap-4">
           <router-link
@@ -399,7 +399,7 @@
         </p>
         <p class="mb-1">Lycée Pierre Mendès France de Tunis · Labo Maths ERT</p>
         <p class="text-gray-500">
-          v1.4.0 · Dernière mise à jour : 10 mars 2026 · Développé par Alaeddine BEN RHOUMA
+          Dernière activité : {{ lastActivityLabel }} · Développé par Alaeddine BEN RHOUMA
         </p>
       </div>
     </section>
@@ -407,19 +407,48 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from 'vue'
+import api from '../services/api'
 import FeatureCard from '../components/FeatureCard.vue'
 import ArchitectureDiagram from '../components/ArchitectureDiagram.vue'
 import CopyLifecycleDiagram from '../components/CopyLifecycleDiagram.vue'
 import WorkflowDiagram from '../components/WorkflowDiagram.vue'
 import AppIcon from '../icons/AppIcon.vue'
 
-const stats = [
-  { value: '209', label: 'Copies traitées' },
-  { value: '8', label: 'Correcteurs' },
-  { value: '2', label: 'Examens (J1 + J2)' },
-  { value: '123', label: 'Suggestions officielles' },
-  { value: '100%', label: 'Anonymisées' },
-]
+const platformData = ref(null)
+const statsLoading = ref(true)
+
+const stats = ref([
+  { value: '—', label: 'Copies traitées' },
+  { value: '—', label: 'Correcteurs' },
+  { value: '—', label: 'Examens' },
+  { value: '—', label: 'Élèves' },
+  { value: '—', label: 'Taux finalisation' },
+])
+
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/platform-stats/')
+    platformData.value = data
+    stats.value = [
+      { value: String(data.total_copies), label: 'Copies traitées' },
+      { value: String(data.correctors_count), label: 'Correcteurs' },
+      { value: String(data.total_exams), label: 'Examens' },
+      { value: String(data.students_count), label: 'Élèves' },
+      { value: data.finalization_rate + '%', label: 'Taux finalisation' },
+    ]
+  } catch (e) {
+    console.warn('Platform stats unavailable:', e.message)
+  } finally {
+    statsLoading.value = false
+  }
+})
+
+const lastActivityLabel = computed(() => {
+  if (!platformData.value?.last_activity) return '—'
+  const d = new Date(platformData.value.last_activity)
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+})
 
 const roles = [
   {
