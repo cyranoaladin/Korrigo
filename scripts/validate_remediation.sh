@@ -82,8 +82,8 @@ check '[ -f backend/requirements-dev.txt ]' 'backend/requirements-dev.txt exists
 # 21. No pytest in prod requirements
 check '! grep -q "^pytest" backend/requirements.txt' 'No pytest in prod requirements.txt'
 
-# 22. Dockerfile has USER instruction (non-root)
-check 'grep -q "^USER korrigo" backend/Dockerfile' 'Dockerfile runs as non-root user'
+# 22. Entrypoint drops privileges to non-root user korrigo
+check 'grep -q "su.*korrigo" backend/entrypoint.sh' 'Entrypoint drops to non-root user korrigo'
 
 # 23. No chmod 777 in Dockerfile
 check '! grep -q "chmod 777" backend/Dockerfile' 'No chmod 777 in Dockerfile'

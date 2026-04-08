@@ -51,3 +51,7 @@ logs/*.log
 
 # Scripts directory
 scripts/
+
+# Documentation (not needed in prod image)
+*.md
+!README.md
