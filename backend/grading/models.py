@@ -1,8 +1,22 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.conf import settings
 from exams.models import Copy
 from django.utils.translation import gettext_lazy as _
 import uuid
+
+
+def validate_scores_data(value):
+    """Validate scores_data is a dict of {str_uuid: number}."""
+    if not isinstance(value, dict):
+        raise ValidationError('scores_data must be a JSON object (dict).')
+    for k, v in value.items():
+        if not isinstance(k, str):
+            raise ValidationError(f'scores_data key must be a string, got {type(k).__name__}.')
+        if not isinstance(v, (int, float)):
+            raise ValidationError(f'scores_data value for "{k}" must be a number, got {type(v).__name__}.')
+        if v < 0:
+            raise ValidationError(f'scores_data value for "{k}" must be >= 0, got {v}.')
 
 
 class Annotation(models.Model):
@@ -313,7 +327,8 @@ class Score(models.Model):
     )
     scores_data = models.JSONField(
         verbose_name=_("Détail des notes"),
-        help_text=_("Structure JSON contenant les scores par question")
+        help_text=_("Structure JSON contenant les scores par question"),
+        validators=[validate_scores_data]
     )
     final_comment = models.TextField(
         blank=True,
