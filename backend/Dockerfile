@@ -27,10 +27,8 @@ RUN groupadd -r korrigo && useradd -r -g korrigo -d /app -s /sbin/nologin korrig
 # P0-OP-01 fix: Logging directory must exist for RotatingFileHandler
 RUN mkdir -p /app/logs && chown -R korrigo:korrigo /app
 
-# Note: entrypoint.sh runs migrate + collectstatic which write to DB and Docker volumes.
-# If migration fails, run: docker compose run --user root backend python manage.py migrate
-USER korrigo
-
+# Note: Container starts as root so entrypoint.sh can fix volume permissions,
+# then drops to korrigo user before running gunicorn.
 ENTRYPOINT ["/app/entrypoint.sh"]
 
 CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
