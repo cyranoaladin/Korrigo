@@ -1,4 +1,5 @@
 from django.test import TransactionTestCase, Client
+from django.conf import settings as _settings
 from django.contrib.auth.models import User, Group
 from rest_framework import status
 from students.models import Student
@@ -16,7 +17,7 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
         self.user = User.objects.create_user(
             username='jean.dupont-e@ert.tn',
             email='jean.dupont-e@ert.tn',
-            password='passe123',
+            password=_settings.DEFAULT_PASSWORD,
             first_name='Jean',
             last_name='Dupont',
         )
@@ -37,7 +38,7 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
     def test_login_with_valid_credentials(self):
         resp = self.client.post("/api/students/login/", {
             "email": "jean.dupont-e@ert.tn",
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
         
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
@@ -49,7 +50,7 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
     def test_login_returns_must_change_password_for_default(self):
         resp = self.client.post("/api/students/login/", {
             "email": "jean.dupont-e@ert.tn",
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
         
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
@@ -59,7 +60,7 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
     def test_login_returns_student_info(self):
         resp = self.client.post("/api/students/login/", {
             "email": "jean.dupont-e@ert.tn",
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
         
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
@@ -80,7 +81,7 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
     def test_login_with_unknown_email(self):
         resp = self.client.post("/api/students/login/", {
             "email": "inconnu@ert.tn",
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
         
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -88,7 +89,7 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
     
     def test_login_with_missing_email(self):
         resp = self.client.post("/api/students/login/", {
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
         
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
@@ -103,7 +104,7 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
     def test_login_case_insensitive_email(self):
         resp = self.client.post("/api/students/login/", {
             "email": "Jean.Dupont-e@ERT.TN",
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
         
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
@@ -111,7 +112,7 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
     def test_generic_error_messages_no_user_enumeration(self):
         wrong_email_resp = self.client.post("/api/students/login/", {
             "email": "inconnu@ert.tn",
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
         
         wrong_pass_resp = self.client.post("/api/students/login/", {
@@ -126,14 +127,14 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
         orphan_user = User.objects.create_user(
             username='orphan@ert.tn',
             email='orphan@ert.tn',
-            password='passe123',
+            password=_settings.DEFAULT_PASSWORD,
         )
         student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
         orphan_user.groups.add(student_group)
         
         resp = self.client.post("/api/students/login/", {
             "email": "orphan@ert.tn",
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
         
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)

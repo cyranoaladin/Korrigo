@@ -1,5 +1,6 @@
 import pytest
 from django.contrib.auth.models import User, Group
+from django.conf import settings as _settings
 from rest_framework.test import APIClient
 from rest_framework import status
 from core.models import GlobalSettings
@@ -26,7 +27,7 @@ class TestFullSystemAudit:
         self.student_user = User.objects.create_user(
             username='amine.benali-e@ert.tn',
             email='amine.benali-e@ert.tn',
-            password='passe123',
+            password=_settings.DEFAULT_PASSWORD,
         )
         self.student_user.groups.add(student_group)
         self.student = Student.objects.create(
@@ -74,7 +75,7 @@ class TestFullSystemAudit:
         """Vérifie le login Élève via endpoint dédié"""
         response = self.client.post('/api/students/login/', {
             'email': 'amine.benali-e@ert.tn',
-            'password': 'passe123'
+            'password': _settings.DEFAULT_PASSWORD
         }, format='json')
         assert response.status_code == 200, "Student Login Failed"
         

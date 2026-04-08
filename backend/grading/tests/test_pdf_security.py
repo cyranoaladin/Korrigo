@@ -11,6 +11,7 @@ Conformité: docs/security/MANUEL_SECURITE.md — Accès PDF Final
 Référence: Portail Élève Security Audit
 """
 from django.test import TransactionTestCase, Client
+from django.conf import settings as _settings
 from django.contrib.auth.models import User, Group
 from rest_framework import status
 from students.models import Student
@@ -36,7 +37,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         self.user_a = User.objects.create_user(
             username='alice.martin-e@ert.tn',
             email='alice.martin-e@ert.tn',
-            password='passe123',
+            password=_settings.DEFAULT_PASSWORD,
         )
         self.user_a.groups.add(student_group)
         
@@ -52,7 +53,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         self.user_b = User.objects.create_user(
             username='bob.durant-e@ert.tn',
             email='bob.durant-e@ert.tn',
-            password='passe123',
+            password=_settings.DEFAULT_PASSWORD,
         )
         self.user_b.groups.add(student_group)
         
@@ -155,7 +156,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         """Authenticate student A via email+password login."""
         self.client_student_a.post(
             "/api/students/login/",
-            {"email": "alice.martin-e@ert.tn", "password": "passe123"},
+            {"email": "alice.martin-e@ert.tn", "password": _settings.DEFAULT_PASSWORD},
             content_type="application/json"
         )
     
@@ -163,7 +164,7 @@ class TestPDFDownloadSecurity(TransactionTestCase):
         """Authenticate student B via email+password login."""
         self.client_student_b.post(
             "/api/students/login/",
-            {"email": "bob.durant-e@ert.tn", "password": "passe123"},
+            {"email": "bob.durant-e@ert.tn", "password": _settings.DEFAULT_PASSWORD},
             content_type="application/json"
         )
     

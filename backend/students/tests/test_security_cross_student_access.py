@@ -1,4 +1,5 @@
 from django.test import TransactionTestCase, Client
+from django.conf import settings as _settings
 from django.contrib.auth.models import User, Group
 from django.utils import timezone
 from rest_framework import status
@@ -19,7 +20,7 @@ class TestCrossStudentAccessPrevention(TransactionTestCase):
         self.user_a = User.objects.create_user(
             username='alice.martin-e@ert.tn',
             email='alice.martin-e@ert.tn',
-            password='passe123',
+            password=_settings.DEFAULT_PASSWORD,
         )
         self.user_a.groups.add(student_group)
         
@@ -35,7 +36,7 @@ class TestCrossStudentAccessPrevention(TransactionTestCase):
         self.user_b = User.objects.create_user(
             username='bob.durant-e@ert.tn',
             email='bob.durant-e@ert.tn',
-            password='passe123',
+            password=_settings.DEFAULT_PASSWORD,
         )
         self.user_b.groups.add(student_group)
         
@@ -90,13 +91,13 @@ class TestCrossStudentAccessPrevention(TransactionTestCase):
     def login_student_a(self):
         self.client_a.post("/api/students/login/", {
             "email": "alice.martin-e@ert.tn",
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
     
     def login_student_b(self):
         self.client_b.post("/api/students/login/", {
             "email": "bob.durant-e@ert.tn",
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
     
     def test_student_sees_only_own_graded_copies(self):

@@ -2,6 +2,7 @@ import json
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.conf import settings as _settings
 from django.contrib.auth.models import Group
 from django.test import Client
 from rest_framework.test import APIClient
@@ -102,7 +103,7 @@ def student_user_for_login(db):
     user = User.objects.create_user(
         username="student.login.v31",
         email="student.login.v31@ert.tn",
-        password="passe123",
+        password=_settings.DEFAULT_PASSWORD,
     )
     student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
     user.groups.add(student_group)
@@ -182,7 +183,7 @@ class TestStudentLoginSessionCache:
         client = Client()
         res = client.post(
             "/api/students/login/",
-            data=json.dumps({"email": student_user_for_login.email, "password": "passe123"}),
+            data=json.dumps({"email": student_user_for_login.email, "password": _settings.DEFAULT_PASSWORD}),
             content_type="application/json",
         )
         assert res.status_code == 200

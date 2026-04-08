@@ -2,6 +2,7 @@ import json
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.conf import settings as _settings
 from django.contrib.auth.models import Group
 from django.test import Client, override_settings
 
@@ -17,7 +18,7 @@ def test_student_account_cannot_request_password_reset():
     user = User.objects.create_user(
         username="student_reset_test",
         email="student_reset@ert.tn",
-        password="passe123",
+        password=_settings.DEFAULT_PASSWORD,
         is_active=True,
     )
     Student.objects.create(

@@ -1,4 +1,5 @@
 from django.test import TransactionTestCase, Client
+from django.conf import settings as _settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.utils import timezone
@@ -24,7 +25,7 @@ class TestGate4StudentFlow(TransactionTestCase):
         self.user = User.objects.create_user(
             username='jean.e2e-e@ert.tn',
             email='jean.e2e-e@ert.tn',
-            password='passe123',
+            password=_settings.DEFAULT_PASSWORD,
         )
         self.user.groups.add(student_group)
         
@@ -61,7 +62,7 @@ class TestGate4StudentFlow(TransactionTestCase):
         self.other_user = User.objects.create_user(
             username='paul.other-e@ert.tn',
             email='paul.other-e@ert.tn',
-            password='passe123',
+            password=_settings.DEFAULT_PASSWORD,
         )
         self.other_user.groups.add(student_group)
         
@@ -88,7 +89,7 @@ class TestGate4StudentFlow(TransactionTestCase):
     def test_student_login_success(self):
         resp = self.client.post("/api/students/login/", {
             "email": "jean.e2e-e@ert.tn",
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self.client.session['student_id'], self.student.id)
@@ -97,7 +98,7 @@ class TestGate4StudentFlow(TransactionTestCase):
         # Login
         self.client.post("/api/students/login/", {
             "email": "jean.e2e-e@ert.tn",
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
         
         # Get List
@@ -115,7 +116,7 @@ class TestGate4StudentFlow(TransactionTestCase):
         # Login
         self.client.post("/api/students/login/", {
             "email": "jean.e2e-e@ert.tn",
-            "password": "passe123"
+            "password": _settings.DEFAULT_PASSWORD
         }, content_type="application/json")
         
         # 1. Access Own Graded -> 200
