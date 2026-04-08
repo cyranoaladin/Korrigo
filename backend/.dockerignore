@@ -1,13 +1,53 @@
+# Python bytecode
 __pycache__/
 *.pyc
+*.pyo
+
+# Dev databases
 db.sqlite3
+db.sqlite3-journal
+
+# Test infrastructure
 tests/
 test_*.py
 conftest.py
 pytest.ini
+.bandit
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+test_exam.pdf
+test_results_*.txt
+
+# Dev virtual environments
+.venv/
+.test_venv/
+env/
+venv/
+
+# Seed/demo scripts (management commands in core/ are kept)
 seed_demo_exam.py
 seed_e2e.py
 seed_prod.py
-scripts/
+create_test_pdf.py
+
+# Ad-hoc repair scripts (must NOT be in prod image)
+fix_matching.py
+fix_matching_v2.py
+rebuild_full.py
+rebuild_production.py
+import_j1_copies.py
+ocr_matching.py
+
+# Dev-only requirements
+requirements-dev.txt
+
+# Obsolete files
+*.obsolete
+
+# Log files (created at runtime)
 logs/*.log
-.bandit
+
+# Scripts directory
+scripts/
