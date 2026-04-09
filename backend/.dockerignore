@@ -8,16 +8,11 @@ db.sqlite3
 db.sqlite3-journal
 
 # Test infrastructure
-tests/
-test_*.py
-conftest.py
-pytest.ini
 .bandit
 .pytest_cache/
 htmlcov/
 .coverage
 *.cover
-test_exam.pdf
 test_results_*.txt
 
 # Dev virtual environments
@@ -39,9 +34,6 @@ rebuild_full.py
 rebuild_production.py
 import_j1_copies.py
 ocr_matching.py
-
-# Dev-only requirements
-requirements-dev.txt
 
 # Obsolete files
 *.obsolete

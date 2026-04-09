@@ -4,6 +4,7 @@ import unittest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DOCKERFILE = REPO_ROOT / "backend" / "Dockerfile"
+BACKEND_DOCKERIGNORE = REPO_ROOT / "backend" / ".dockerignore"
 LOCAL_PROD_COMPOSE = REPO_ROOT / "infra" / "docker" / "docker-compose.local-prod.yml"
 RELEASE_GATE = REPO_ROOT / "scripts" / "release_gate_oneshot.sh"
 
@@ -38,6 +39,20 @@ class LocalProdBackendImageContractTests(unittest.TestCase):
 
         self.assertIn("python -m pytest -v --tb=short -m \"\"", release_gate_text)
         self.assertNotIn(' "$BACKEND_SVC" pytest -v --tb=short -m ""', release_gate_text)
+
+    def test_backend_dockerignore_keeps_release_gate_dependencies_in_context(self):
+        dockerignore_text = BACKEND_DOCKERIGNORE.read_text()
+
+        blocked_entries = [
+            "requirements-dev.txt",
+            "pytest.ini",
+            "conftest.py",
+            "tests/",
+            "test_*.py",
+        ]
+
+        for entry in blocked_entries:
+            self.assertNotIn(entry, dockerignore_text)
 
 
 if __name__ == "__main__":
