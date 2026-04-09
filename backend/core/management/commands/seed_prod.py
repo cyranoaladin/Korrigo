@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from seed_prod import seed_prod
+from core.seed_prod import seed_prod
 
 
 class Command(BaseCommand):
