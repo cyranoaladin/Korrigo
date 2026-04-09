@@ -156,7 +156,7 @@ services:
       CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:-}"
       METRICS_TOKEN: "${METRICS_TOKEN:-}"
     healthcheck:
-      test: ["CMD-SHELL", "celery -A core inspect ping -d celery@$$HOSTNAME"]
+      test: ["CMD-SHELL", "tr '\\0' ' ' < /proc/1/cmdline | grep -q 'celery -A core beat'"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -171,11 +171,10 @@ services:
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
       - /var/www/labomaths/korrigo/infra/nginx/nginx.conf:/etc/nginx/conf.d/nginx.conf:ro
-      - /var/www/labomaths/korrigo/frontend:/usr/share/nginx/html:ro
     depends_on:
       - backend
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
       interval: 30s
       timeout: 10s
       retries: 3
