@@ -9,25 +9,33 @@ if [ "$(id -u)" = "0" ]; then
     chown -R korrigo:korrigo /app/staticfiles /app/media /app/.cache /app/logs
 fi
 
+run_as_app_user() {
+    if [ "$(id -u)" = "0" ]; then
+        su -s /bin/bash korrigo -c "$*"
+    else
+        bash -lc "$*"
+    fi
+}
+
 # Only run migrations if DJANGO_AUTO_MIGRATE is not explicitly set to false
 if [ "${DJANGO_AUTO_MIGRATE:-true}" != "false" ]; then
     echo "--> Applied database migrations..."
-    python manage.py migrate
+    run_as_app_user "python manage.py migrate"
 else
     echo "--> Skipping automatic migrations (DJANGO_AUTO_MIGRATE=false)"
 fi
 
 echo "--> Collecting static files..."
-python manage.py collectstatic --noinput
+run_as_app_user "python manage.py collectstatic --noinput"
 
 # Seed production data if SEED_ON_START is enabled
 if [ "${SEED_ON_START:-false}" = "true" ]; then
     echo "--> Running seed_initial_exams (idempotent)..."
-    python manage.py seed_initial_exams || echo "WARNING: seed_initial_exams failed (non-blocking)"
+    run_as_app_user "python manage.py seed_initial_exams" || echo "WARNING: seed_initial_exams failed (non-blocking)"
 fi
 
 echo "--> Ensuring user roles exist..."
-python manage.py shell -c "from core.auth import create_user_roles; create_user_roles()" || true
+run_as_app_user "python manage.py shell -c \"from core.auth import create_user_roles; create_user_roles()\"" || true
 
 echo "Args passed: $@"
 echo "Arg count: $#"
