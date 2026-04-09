@@ -130,9 +130,13 @@ run_logged "06_stability_180s" bash -c "
   echo '--- status(after) ---'
   echo \"\$after\"
 
-  # Check for 'Restarting' or 'Exited' in status
-  if echo \"\$after\" | grep -E '(Restarting|Exited)'; then
-    echo 'ERROR: Some containers restarted or exited!'
+  # Check for unhealthy, restarting, or exited services
+  if echo \"\$after\" | grep -E '(Restarting|Exited|unhealthy)'; then
+    echo 'ERROR: Some containers are unhealthy, restarting, or exited!'
+    echo '--- Diagnostic: docker compose ps ---'
+    docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' ps || true
+    echo '--- Diagnostic: backend/celery/nginx logs (last 100 lines) ---'
+    docker compose --env-file '$COMPOSE_ENV_FILE' -f '$COMPOSE_FILE' logs --no-color --tail=100 backend celery nginx || true
     exit 1
   fi
 
