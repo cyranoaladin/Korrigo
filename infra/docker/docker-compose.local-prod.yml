@@ -32,6 +32,8 @@ services:
     build:
       context: ../../backend
       dockerfile: Dockerfile
+      args:
+        INSTALL_DEV_REQUIREMENTS: "true"
     restart: unless-stopped
     command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 1800
     env_file:
