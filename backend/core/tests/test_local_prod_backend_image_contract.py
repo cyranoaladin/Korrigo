@@ -1,8 +1,14 @@
 from pathlib import Path
+import sys
 import unittest
 
+TESTS_DIR = Path(__file__).resolve().parent
+if str(TESTS_DIR) not in sys.path:
+    sys.path.insert(0, str(TESTS_DIR))
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+from _repo_paths import repo_root_from
+
+REPO_ROOT = repo_root_from(__file__)
 DOCKERFILE = REPO_ROOT / "backend" / "Dockerfile"
 BACKEND_DOCKERIGNORE = REPO_ROOT / "backend" / ".dockerignore"
 LOCAL_PROD_COMPOSE = REPO_ROOT / "infra" / "docker" / "docker-compose.local-prod.yml"
@@ -33,6 +39,7 @@ class LocalProdBackendImageContractTests(unittest.TestCase):
         self.assertIn("build:", backend_block)
         self.assertIn("args:", backend_block)
         self.assertIn('INSTALL_DEV_REQUIREMENTS: "true"', backend_block)
+        self.assertIn("- ../../:/repo:ro", backend_block)
 
     def test_release_gate_runs_pytest_via_python_module(self):
         release_gate_text = RELEASE_GATE.read_text()

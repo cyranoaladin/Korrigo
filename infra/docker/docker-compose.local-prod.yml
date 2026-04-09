@@ -44,6 +44,7 @@ services:
       - static_volume_local:/app/staticfiles
       - media_volume_local:/app/media
       - ocr_cache_local:/app/.cache
+      - ../../:/repo:ro
       # Mount code for hot-reload (optional, remove for true prod-like)
       # - ../../backend:/app
     depends_on:

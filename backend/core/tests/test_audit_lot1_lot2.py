@@ -56,11 +56,11 @@ class TestEmailFallbacks(TestCase):
     """LOT 1.4: No example.com fallbacks in email settings."""
 
     def test_email_host_user_not_example_dot_com(self):
-        val = getattr(settings, 'EMAIL_HOST_USER', '')
+        val = getattr(settings, 'EMAIL_HOST_USER', '') or ''
         self.assertNotIn('example.com', val)
 
     def test_default_from_email_not_example_dot_com(self):
-        val = getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        val = getattr(settings, 'DEFAULT_FROM_EMAIL', '') or ''
         self.assertNotIn('example.com', val)
 
 
