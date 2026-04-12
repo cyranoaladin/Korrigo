@@ -5,7 +5,7 @@ from celery.schedules import crontab
 # Set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
-app = Celery('viatique__PMF')
+app = Celery('korrigo')
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
