@@ -119,6 +119,13 @@ class UserDetailView(APIView):
         elif user.groups.filter(name__iexact=UserRole.TEACHER).exists():
             role = "Teacher"
         else:
+            # Pure student account — reject, must use /api/students/me/
+            from students.models import Student
+            if Student.objects.filter(user=user).exists():
+                return Response(
+                    {"detail": "Compte élève — utilisez /api/students/me/"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
             role = "Unknown"  # LOT 8 FIX: was "Teacher" — masks config issues
         
         must_change_password = False

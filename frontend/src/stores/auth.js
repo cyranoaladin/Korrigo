@@ -82,13 +82,14 @@ export const useAuthStore = defineStore('auth', () => {
             if (!preferStudent) {
                 try {
                     const adminRes = await api.get('/me/')
-                    user.value = adminRes.data
-                    // Ne jamais assigner 'Admin' par défaut — si le rôle est absent, marquer Unknown
-                    if (!user.value.role) {
-                        user.value.role = 'Unknown'
-                        console.warn('[Auth] /me/ returned no role — possible misconfigured account')
+                    const adminData = adminRes.data
+                    // If role is a known staff role, stop here
+                    if (adminData.role === 'Admin' || adminData.role === 'Teacher') {
+                        user.value = adminData
+                        return
                     }
-                    return
+                    // role=Unknown means the account exists but has no staff group
+                    // → fall through to student check below
                 } catch (e) {
                     // Admin check failed, continue to student
                 }
