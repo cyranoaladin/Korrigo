@@ -52,7 +52,7 @@ class PlatformStatsView(APIView):
 
         # Latest activity timestamp
         latest_event = GradingEvent.objects.aggregate(
-            last=Max('created_at')
+            last=Max('timestamp')
         )['last']
 
         # Exam types breakdown

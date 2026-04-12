@@ -419,10 +419,10 @@ const platformData = ref(null)
 const statsLoading = ref(true)
 
 const stats = ref([
-  { value: '—', label: 'Copies traitées' },
+  { value: '—', label: 'Copies finalisées' },
   { value: '—', label: 'Correcteurs' },
-  { value: '—', label: 'Examens' },
   { value: '—', label: 'Élèves' },
+  { value: '—', label: 'Annotations posées' },
   { value: '—', label: 'Taux finalisation' },
 ])
 
@@ -431,10 +431,10 @@ onMounted(async () => {
     const { data } = await api.get('/platform-stats/')
     platformData.value = data
     stats.value = [
-      { value: String(data.total_copies), label: 'Copies traitées' },
+      { value: String(data.copies_finalized), label: 'Copies finalisées' },
       { value: String(data.correctors_count), label: 'Correcteurs' },
-      { value: String(data.total_exams), label: 'Examens' },
       { value: String(data.students_count), label: 'Élèves' },
+      { value: String(data.annotations_count), label: 'Annotations posées' },
       { value: data.finalization_rate + '%', label: 'Taux finalisation' },
     ]
   } catch (e) {
