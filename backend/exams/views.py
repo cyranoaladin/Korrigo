@@ -772,7 +772,7 @@ class StudentCopiesView(generics.ListAPIView):
                 for v in scores_data.values()
                 if v is not None and v != ''
             ) if scores_data else 0.0
-            total_score = float(round(total_score, 2))  # type: ignore[call-overload]
+            # No rounding — send exact value to frontend (display precision handled by UI)
 
             remarks = remarks_by_copy.get(copy.id, {})
 
@@ -791,6 +791,8 @@ class StudentCopiesView(generics.ListAPIView):
                         'points': leaf['points'],
                     }
 
+            final_comment = score_obj.final_comment if score_obj else ''
+
             data.append({
                 "id": copy.id,
                 "anonymous_id": copy.anonymous_id,
@@ -802,6 +804,7 @@ class StudentCopiesView(generics.ListAPIView):
                 "scores_details": scores_data,
                 "remarks": remarks,
                 "global_appreciation": copy.global_appreciation or '',
+                "final_comment": final_comment or '',
                 "exercise_config": exercise_config,
                 "q_max": q_max,
                 "question_map": question_map,

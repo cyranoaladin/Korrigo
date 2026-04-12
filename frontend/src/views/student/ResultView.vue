@@ -16,16 +16,21 @@ const pdfDirectUrl = ref(null)
 
 // Détection du niveau de l'élève
 const isTerminale = computed(() => {
-  const cn = auth.user?.class_name?.toLowerCase() || ''
-  return cn.includes('terminale') || cn.includes('tle') || /^t[12]$/i.test(cn)
+  const cn = auth.user?.class_name || ''
+  return /^T\./i.test(cn) || /terminale/i.test(cn) || /^tle$/i.test(cn)
 })
 const isTroisieme = computed(() => {
-  const cn = auth.user?.class_name?.toLowerCase() || ''
-  return cn.includes('troisième') || cn.includes('troisieme') || /^3[eèê]/.test(cn) || /^3\.[0-9]/.test(cn) || /^3ème/.test(cn)
+  const cn = auth.user?.class_name || ''
+  return /^3\./.test(cn) || /troisième/i.test(cn) || /troisieme/i.test(cn) || /^3[eèê]/i.test(cn)
+})
+const isPremiere = computed(() => {
+  const cn = auth.user?.class_name || ''
+  return /^1\./.test(cn) || /première/i.test(cn) || /premiere/i.test(cn) || /^1[eèê]/i.test(cn)
 })
 const levelTitle = computed(() => {
   if (isTerminale.value) return 'Bac Blanc — Espace Résultats'
   if (isTroisieme.value) return 'DNB — Espace Résultats'
+  if (isPremiere.value) return 'EAM — Espace Résultats'
   return 'Espace Résultats'
 })
 
@@ -371,8 +376,8 @@ onMounted(() => { fetchCopies() })
                   <span class="text-sm text-slate-600">{{ q.qLabel }}</span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span :class="['text-sm font-bold', qColor(q.score, q.maxScore)]">{{ q.score.toFixed(2) }}</span>
-                  <span class="text-xs text-slate-400">/ {{ q.maxScore.toFixed(2) }}</span>
+                  <span :class="['text-sm font-bold', qColor(q.score, q.maxScore)]">{{ q.score }}</span>
+                  <span class="text-xs text-slate-400">/ {{ q.maxScore }}</span>
                   <!-- mini dot -->
                   <div :class="['w-2 h-2 rounded-full', q.score >= q.maxScore*0.8 ? 'bg-emerald-400' : q.score >= q.maxScore*0.5 ? 'bg-amber-400' : q.score > 0 ? 'bg-orange-400' : 'bg-red-400']"></div>
                 </div>
@@ -401,7 +406,19 @@ onMounted(() => { fetchCopies() })
             <p class="text-slate-700 leading-relaxed whitespace-pre-line text-sm">{{ selectedCopy.global_appreciation }}</p>
           </div>
         </div>
-        <div v-else class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-8 text-center">
+        <!-- Final comment (correcteur) -->
+        <div v-if="selectedCopy.final_comment" class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+              <AppIcon name="edit" :size="16" class="text-indigo-600" />
+            </div>
+            <h3 class="font-semibold text-slate-800">Commentaire du correcteur</h3>
+          </div>
+          <div class="px-6 py-5">
+            <p class="text-slate-700 leading-relaxed whitespace-pre-line text-sm">{{ selectedCopy.final_comment }}</p>
+          </div>
+        </div>
+        <div v-if="!selectedCopy.global_appreciation && !selectedCopy.final_comment" class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-8 text-center">
           <AppIcon name="message" :size="40" class="text-slate-300 mx-auto mb-3" />
           <p class="text-slate-400 text-sm">Aucune appréciation disponible.</p>
         </div>
