@@ -702,17 +702,22 @@ class StudentCopiesView(generics.ListAPIView):
     def get_queryset(self):
         # Try to get student_id from session (legacy) or from user association (new)
         student_id = self.request.session.get('student_id')
-        base_filter = {
-            'status': Copy.Status.FINALIZED,
-            'exam__results_released_at__isnull': False,
-        }
+        from django.db.models import Q
+        # Une copie est visible dès qu'elle est FINALIZED et que l'élève est identifié.
+        # results_released_at sert uniquement de blocage global admin (embargo) :
+        # s'il est renseigné sur l'examen, il doit être dans le passé.
+        # S'il est NULL, aucun embargo n'est en place → la copie est directement visible.
+        base_filter = Q(status=Copy.Status.FINALIZED) & (
+            Q(exam__results_released_at__isnull=True)
+            | Q(exam__results_released_at__lte=__import__('django.utils.timezone', fromlist=['now']).now())
+        )
         if student_id:
-            return Copy.objects.filter(student=student_id, **base_filter).select_related('exam')
+            return Copy.objects.filter(base_filter, student=student_id).select_related('exam')
         else:
             try:
                 from students.models import Student
                 student = Student.objects.get(user=self.request.user)
-                return Copy.objects.filter(student=student, **base_filter).select_related('exam')
+                return Copy.objects.filter(base_filter, student=student).select_related('exam')
             except Student.DoesNotExist:
                 return Copy.objects.none()
 
