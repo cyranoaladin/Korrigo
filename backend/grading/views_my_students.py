@@ -128,29 +128,30 @@ class MyStudentsListView(views.APIView):
             }
             
             for copy in copies:
-                # Utiliser les scores prefetchés (scores.all() exploite le cache prefetch)
-                scores_list = list(copy.scores.all())
-                score_obj = scores_list[0] if scores_list else None
+                is_finalized = copy.status == 'FINALIZED'
+
+                # Notes et correcteur : uniquement visibles si la copie est finalisée
                 total_score = None
-                if score_obj and score_obj.scores_data:
-                    total_score = sum(
-                        float(v) for v in score_obj.scores_data.values()
-                        if v is not None and v != ''
-                    )
-                
-                # Nom du correcteur
                 corrector_name = None
-                if copy.assigned_corrector:
-                    corrector_name = f"{copy.assigned_corrector.first_name} {copy.assigned_corrector.last_name}".strip()
-                    if not corrector_name:
-                        corrector_name = copy.assigned_corrector.username
-                
+                if is_finalized:
+                    scores_list = list(copy.scores.all())
+                    score_obj = scores_list[0] if scores_list else None
+                    if score_obj and score_obj.scores_data:
+                        total_score = sum(
+                            float(v) for v in score_obj.scores_data.values()
+                            if v is not None and v != ''
+                        )
+                    if copy.assigned_corrector:
+                        corrector_name = f"{copy.assigned_corrector.first_name} {copy.assigned_corrector.last_name}".strip()
+                        if not corrector_name:
+                            corrector_name = copy.assigned_corrector.username
+
                 student_data['copies'].append({
                     'copy_id': str(copy.id),
                     'exam_name': copy.exam.name if copy.exam else 'N/A',
                     'status': copy.status,
                     'total_score': round(total_score, 2) if total_score is not None else None,
-                    'anonymous_id': copy.anonymous_id,
+                    'anonymous_id': copy.anonymous_id if is_finalized else None,
                     'corrector_name': corrector_name,
                 })
             
@@ -194,54 +195,56 @@ class StudentBilanView(views.APIView):
 
         copies_data = []
         for copy in copies:
-            # Score
-            score_obj = Score.objects.filter(copy=copy).first()
+            is_finalized = copy.status == 'FINALIZED'
+
+            # Toutes les données sensibles sont masquées tant que la copie n'est pas finalisée
             scores_data = {}
             total_score = None
             final_comment = ''
-            if score_obj:
-                scores_data = score_obj.scores_data or {}
-                total_score = sum(
-                    float(v) for v in scores_data.values()
-                    if v is not None and v != ''
-                ) if scores_data else None
-                final_comment = score_obj.final_comment or ''
+            question_labels = {}
+            remarks_data = {}
+            annotations_data = []
+            global_appreciation = ''
+            llm_summary = ''
 
-            # Build question_labels mapping from grading_structure
-            question_labels = _build_question_labels(copy.exam) if copy.exam else {}
+            if is_finalized:
+                score_obj = Score.objects.filter(copy=copy).first()
+                if score_obj:
+                    scores_data = score_obj.scores_data or {}
+                    total_score = sum(
+                        float(v) for v in scores_data.values()
+                        if v is not None and v != ''
+                    ) if scores_data else None
+                    final_comment = score_obj.final_comment or ''
 
-            # Remarques par question
-            remarks = QuestionRemark.objects.filter(copy=copy)
-            remarks_data = {r.question_id: r.remark for r in remarks}
+                question_labels = _build_question_labels(copy.exam) if copy.exam else {}
 
-            # Annotations
-            annotations = Annotation.objects.filter(copy=copy)
-            annotations_data = [{
-                'id': str(a.id),
-                'page_index': a.page_index,
-                'content': a.content,
-                'type': a.type,
-                'x': a.x,
-                'y': a.y,
-                'w': a.w,
-                'h': a.h,
-            } for a in annotations]
+                remarks = QuestionRemark.objects.filter(copy=copy)
+                remarks_data = {r.question_id: r.remark for r in remarks}
 
-            # Appréciation globale
-            global_appreciation = copy.global_appreciation or ''
+                annotations = Annotation.objects.filter(copy=copy)
+                annotations_data = [{
+                    'id': str(a.id),
+                    'page_index': a.page_index,
+                    'content': a.content,
+                    'type': a.type,
+                    'x': a.x,
+                    'y': a.y,
+                    'w': a.w,
+                    'h': a.h,
+                } for a in annotations]
 
-            # LLM Summary
-            llm_summary = copy.llm_summary or ''
+                global_appreciation = copy.global_appreciation or ''
+                llm_summary = copy.llm_summary or ''
 
-            # PDF URL
-            pdf_url = f'/grading/copies/{copy.id}/final-pdf/' if copy.status == 'FINALIZED' else None
+            pdf_url = f'/grading/copies/{copy.id}/final-pdf/' if is_finalized else None
 
             copies_data.append({
                 'copy_id': str(copy.id),
                 'exam_name': copy.exam.name if copy.exam else 'N/A',
                 'exam_id': str(copy.exam.id) if copy.exam else None,
                 'status': copy.status,
-                'anonymous_id': copy.anonymous_id,
+                'anonymous_id': copy.anonymous_id if is_finalized else None,
                 'total_score': round(total_score, 2) if total_score is not None else None,
                 'scores_data': scores_data,
                 'question_labels': question_labels,
