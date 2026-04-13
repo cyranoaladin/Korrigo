@@ -166,7 +166,7 @@ onMounted(fetchBilan)
                 <span class="question-score">{{ typeof score === 'number' ? score.toFixed(2) : score }}</span>
               </div>
             </div>
-            <div v-else class="empty-section">Aucune note enregistrée.</div>
+            <div v-else class="empty-section">{{ selectedCopy.status === "FINALIZED" ? "Aucune note enregistrée." : "Données non disponibles — copie en cours de correction." }}</div>
           </section>
 
           <!-- Remarques par question -->
@@ -182,7 +182,7 @@ onMounted(fetchBilan)
                 <span class="remark-text">{{ remark }}</span>
               </div>
             </div>
-            <div v-else class="empty-section">Aucune remarque.</div>
+            <div v-else class="empty-section">{{ selectedCopy.status === "FINALIZED" ? "Aucune remarque." : "Données non disponibles — copie en cours de correction." }}</div>
           </section>
 
           <!-- Annotations -->
@@ -199,7 +199,7 @@ onMounted(fetchBilan)
                 <span class="ann-content">{{ ann.content }}</span>
               </div>
             </div>
-            <div v-else class="empty-section">Aucune annotation.</div>
+            <div v-else class="empty-section">{{ selectedCopy.status === "FINALIZED" ? "Aucune annotation." : "Données non disponibles — copie en cours de correction." }}</div>
           </section>
 
           <!-- Appréciation globale -->
@@ -208,11 +208,11 @@ onMounted(fetchBilan)
             <div v-if="selectedCopy.global_appreciation" class="appreciation-box">
               {{ selectedCopy.global_appreciation }}
             </div>
-            <div v-else class="empty-section">Aucune appréciation.</div>
+            <div v-else class="empty-section">{{ selectedCopy.status === "FINALIZED" ? "Aucune appréciation." : "Données non disponibles — copie en cours de correction." }}</div>
           </section>
 
           <!-- Commentaire final -->
-          <section v-if="selectedCopy.final_comment" class="bilan-section">
+          <section v-if="selectedCopy.status === 'FINALIZED' && selectedCopy.final_comment" class="bilan-section">
             <h2><AppIcon name="questionnaire" :size="18" class="inline" /> Commentaire Final</h2>
             <div class="final-comment-box">
               {{ selectedCopy.final_comment }}
