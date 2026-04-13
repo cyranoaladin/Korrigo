@@ -159,23 +159,18 @@ const isInProgress = computed(() => copy.value?.status === 'IN_PROGRESS')
 const isFinalized = computed(() => copy.value?.status === 'FINALIZED')
 const isGraded = isFinalized // alias for backward compatibility
 
-// Anonymization: hide student identity on header pages (1+4*N) and last page (annexe)
+// Anonymization: hide student identity only on header pages (1+4*N, i.e. 1, 5, 9, 13…)
+// Rule: mask pages at positions 1, 1+ppb, 1+2*ppb, … — strictly no other pages.
 const isAdmin = computed(() => authStore.user?.is_superuser || authStore.user?.role === 'Admin')
 const showIdentity = ref(false) // Only admin can toggle this
 // Per-page anonymization helpers (used in v-for template)
 const isHeaderPageForIndex = (pageIndex) => {
     const ppb = copy.value?.exam_details?.pages_per_booklet || 4
     const page = pageIndex + 1
-    const isPeriodicHeader = ((page - 1) % ppb) === 0
-    const isLast = pages.value.length > 0 && page === pages.value.length
-    return isPeriodicHeader || isLast
+    return ((page - 1) % ppb) === 0
 }
-// Regular pages (1, 5, 9… formula 4N-3): identity header = 67mm on A4 → 67/297 ≈ 23%
-// Last page (annexe only): identity header = 53mm on A4 → 53/297 ≈ 18%
-const overlayHeightForIndex = (pageIndex) => {
-    const page = pageIndex + 1
-    return (pages.value.length > 0 && page === pages.value.length) ? '18%' : '23%'
-}
+// All masked pages use the same overlay height (identity header zone)
+const overlayHeightForIndex = (_pageIndex) => '23%'
 
 const isAssignedCorrector = computed(() => {
     const userId = authStore.user?.id
