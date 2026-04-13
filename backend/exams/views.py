@@ -1440,8 +1440,7 @@ class ExamStudentListView(APIView):
                 student_groupe = None
 
             # Score
-            total_score: float | None = None
-            total_score = GradingService.compute_score(copy) if score_obj else None
+            total_score = GradingService.compute_score(copy)
 
             # Corrector
             corrector_name = None
