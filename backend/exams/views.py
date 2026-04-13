@@ -772,12 +772,7 @@ class StudentCopiesView(generics.ListAPIView):
             # Use prefetched score
             score_obj = scores_by_copy.get(copy.id)
             scores_data = score_obj.scores_data if score_obj and score_obj.scores_data else {}
-            total_score: float = sum(
-                float(v)  # type: ignore[arg-type]
-                for v in scores_data.values()
-                if v is not None and v != ''
-            ) if scores_data else 0.0
-            # No rounding — send exact value to frontend (display precision handled by UI)
+            total_score: float = GradingService.compute_score(copy)
 
             remarks = remarks_by_copy.get(copy.id, {})
 
@@ -810,6 +805,7 @@ class StudentCopiesView(generics.ListAPIView):
                 "remarks": remarks,
                 "global_appreciation": copy.global_appreciation or '',
                 "final_comment": final_comment or '',
+                "llm_summary": copy.llm_summary or '',
                 "exercise_config": exercise_config,
                 "q_max": q_max,
                 "question_map": question_map,
@@ -1445,13 +1441,7 @@ class ExamStudentListView(APIView):
 
             # Score
             total_score: float | None = None
-            score_obj = Score.objects.filter(copy=copy).first()
-            if score_obj and score_obj.scores_data:
-                _sd: dict = score_obj.scores_data  # type: ignore[assignment]
-                total_score = float(round(  # type: ignore[call-overload]
-                    sum(float(v) for v in _sd.values() if v is not None and v != ''),  # type: ignore[arg-type]
-                    2
-                ))
+            total_score = GradingService.compute_score(copy) if score_obj else None
 
             # Corrector
             corrector_name = None

@@ -634,7 +634,11 @@ class CopyScoresView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Validate score values are numeric + non-negative
+        # Validate score values are numeric + non-negative + within max
+        q_max = Q_MAX_BY_EXAM.get(exam.name, {})
+        # Try to build q_max from grading_structure (newer exams with UUID keys)
+        if not q_max and exam.grading_structure:
+            q_max = _build_q_max_from_structure(exam.grading_structure)
         for qid, val in scores_data.items():
             if val is not None and val != '':
                 try:
@@ -644,6 +648,19 @@ class CopyScoresView(APIView):
                         {"detail": f"La note pour '{qid}' doit être numérique, reçu '{val}'."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
+                if fval < 0:
+                    return Response(
+                        {"detail": f"La note pour '{qid}' ne peut pas être négative."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                # Validate against max score if defined
+                if q_max and qid in q_max:
+                    max_score = float(q_max[qid])
+                    if fval > max_score + 0.01:  # 0.01 epsilon for float precision
+                        return Response(
+                            {"detail": f"La note pour '{qid}' dépasse le maximum autorisé ({max_score} pts)."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
                 if fval < 0:
                     return Response(
                         {"detail": f"La note pour '{qid}' ne peut pas être négative ({fval})."},

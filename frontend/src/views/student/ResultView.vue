@@ -419,6 +419,18 @@ onMounted(() => { fetchCopies() })
           </div>
         </div>
         <div v-if="!selectedCopy.global_appreciation && !selectedCopy.final_comment" class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-8 text-center">
+        <!-- Bilan LLM personnalisu00e9 -->
+        <div v-if="selectedCopy.llm_summary" class="bg-gradient-to-br from-sky-50 to-blue-50 rounded-2xl shadow-sm ring-1 ring-sky-100 overflow-hidden">
+          <div class="px-6 py-4 border-b border-sky-100 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center">
+              <AppIcon name="sparkles" :size="16" class="text-sky-600" />
+            </div>
+            <h3 class="font-semibold text-sky-800">Bilan personnalisu00e9</h3>
+          </div>
+          <div class="px-6 py-5">
+            <p class="text-sky-800 leading-relaxed whitespace-pre-line text-sm">{{ selectedCopy.llm_summary }}</p>
+          </div>
+        </div>
           <AppIcon name="message" :size="40" class="text-slate-300 mx-auto mb-3" />
           <p class="text-slate-400 text-sm">Aucune appréciation disponible.</p>
         </div>

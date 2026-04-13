@@ -1343,7 +1343,7 @@ onUnmounted(() => {
       <div class="left">
         <button
           class="back-btn"
-          @click="router.push('/corrector-dashboard')"
+          @click="router.push(isAdmin ? '/admin/dashboard' : '/corrector-dashboard')"
         >
           <AppIcon name="arrow-left" :size="14" class="inline" /> Retour
         </button>
