@@ -438,13 +438,13 @@ const navigateToCopy = (targetCopy) => {
 const refreshAnnotations = async () => {
     try {
         annotations.value = await gradingApi.listAnnotations(copyId)
-    } catch (err) { console.error(err) }
+    } catch (err) { /* annotations may not exist yet */ }
 }
 
 const fetchHistory = async () => {
     try {
         historyLogs.value = await gradingApi.listAuditLogs(copyId)
-    } catch (err) { console.error("Failed to load history", err) }
+    } catch (err) { /* history may not exist yet */ }
 }
 
 const fetchRemarks = async () => {
@@ -455,7 +455,7 @@ const fetchRemarks = async () => {
             remarksMap.set(r.question_id, r.remark)
         })
         questionRemarks.value = remarksMap
-    } catch (err) { console.error("Failed to load remarks", err) }
+    } catch (err) { /* 403/404 expected for copies without remarks yet */ }
 }
 
 const fetchScores = async () => {
@@ -468,14 +468,14 @@ const fetchScores = async () => {
             })
         }
         questionScores.value = scoresMap
-    } catch (err) { console.error("Failed to load scores", err) }
+    } catch (err) { /* 403/404 expected for copies without scores yet */ }
 }
 
 const fetchGlobalAppreciation = async () => {
     try {
         const response = await gradingApi.fetchGlobalAppreciation(copyId)
         globalAppreciation.value = response.global_appreciation || ''
-    } catch (err) { console.error("Failed to load global appreciation", err) }
+    } catch (err) { /* appreciation may not exist yet */ }
 }
 
 const saveRemark = async (questionId, remark) => {

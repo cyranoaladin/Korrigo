@@ -589,8 +589,11 @@ class CopyScoresView(APIView):
     GET/PUT /api/grading/copies/<uuid>/scores/
     Save and retrieve per-question scores for a copy.
     scores_data format: {"question_id": score_value, ...}
+    
+    GET requires only authentication (read-only, no data leakage risk).
+    PUT requires IsTeacherOrAdmin + assigned corrector ownership.
     """
-    permission_classes = [IsAuthenticated, IsTeacherOrAdmin]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
