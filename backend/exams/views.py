@@ -965,9 +965,9 @@ class CorrectorCopiesView(generics.ListAPIView):
         if exam_type_id:
             base_qs = base_qs.filter(exam__exam_type_id=exam_type_id)
 
-        # Admin sees all; teacher sees only assigned
-        if user.is_superuser or user.groups.filter(name__iexact=UserRole.ADMIN).exists():
-            return base_qs
+        # Everyone sees only copies they are assigned to correct.
+        # Admins who don't personally correct see 0 copies here (they use
+        # the admin dashboard /api/exams/.../student-list/ for overview).
         return base_qs.filter(assigned_corrector=user)
 
 class CorrectorCopyDetailView(generics.RetrieveUpdateAPIView):
