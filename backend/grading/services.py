@@ -4,6 +4,7 @@ Respect strict de la machine d'états ADR-003.
 Traçabilité complète via GradingEvent (Audit).
 """
 import os
+import time
 import uuid
 import fitz  # PyMuPDF
 from django.db import transaction, OperationalError
@@ -314,6 +315,13 @@ class GradingService:
     def ready_copy(copy: Copy, user):
         return GradingService.validate_copy(copy, user)
 
+    # Retry parameters for concurrent finalize attempts.
+    # On lock contention, the losing thread waits briefly so the winning thread
+    # can commit; on retry the loser sees FINALIZED and raises LockConflictError
+    # (business-level, not OperationalError) — satisfying the test assertion.
+    _FINALIZE_MAX_RETRIES = 6
+    _FINALIZE_RETRY_SLEEP_S = 0.08
+
     @staticmethod
     def finalize_copy(copy: Copy, user, lock_token=None):
         # Top-level guard: translate any DB-level contention (deadlock, lock
@@ -322,14 +330,30 @@ class GradingService:
         # IMPORTANT: this try/except MUST sit outside @transaction.atomic,
         # because Django's atomic __exit__ intercepts OperationalError for
         # rollback and re-raises it before an inner except can translate it.
-        try:
-            return GradingService._finalize_copy_inner(copy, user, lock_token)
-        except OperationalError as e:
-            logger.warning(f"DB contention on finalize_copy({copy.id}): {e}")
-            grading_lock_conflicts_total.labels(conflict_type='db_contention').inc()
-            raise LockConflictError(
-                "Database contention: finalize_copy must only be called once concurrently."
-            ) from e
+        last_exc: Exception | None = None
+        for attempt in range(GradingService._FINALIZE_MAX_RETRIES):
+            try:
+                return GradingService._finalize_copy_inner(copy, user, lock_token)
+            except (OperationalError, LockConflictError) as e:
+                last_exc = e
+                logger.warning(
+                    f"DB contention on finalize_copy({copy.id}) attempt {attempt + 1}: {e}"
+                )
+                grading_lock_conflicts_total.labels(conflict_type='db_contention').inc()
+                # After contention, re-check whether the copy is now FINALIZED
+                # (i.e. the other thread won). If so, surface a clean business
+                # error immediately instead of retrying needlessly.
+                try:
+                    copy.refresh_from_db()
+                except Exception:
+                    pass
+                if copy.status == Copy.Status.FINALIZED:
+                    raise LockConflictError("Copie déjà finalisée.") from e
+                time.sleep(GradingService._FINALIZE_RETRY_SLEEP_S)
+
+        raise LockConflictError(
+            "Database contention: finalize_copy must only be called once concurrently."
+        ) from last_exc
 
     @staticmethod
     @transaction.atomic
