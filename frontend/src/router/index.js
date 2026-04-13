@@ -367,7 +367,7 @@ router.beforeEach(async (to, from, next) => {
         }
 
         const allowedRoles = Array.isArray(to.meta.role) ? to.meta.role : [to.meta.role]
-        if (to.meta.role && !allowedRoles.includes(userRole) && userRole !== 'Admin') {
+        if (to.meta.role && !allowedRoles.includes(userRole)) {
             const dashboardPath = getDashboardForRole(userRole)
             redirectCount++
             return next({ path: dashboardPath, replace: true })

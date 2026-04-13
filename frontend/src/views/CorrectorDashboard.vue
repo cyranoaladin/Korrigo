@@ -12,6 +12,13 @@ import AppIcon from '../icons/AppIcon.vue'
 const authStore = useAuthStore()
 const router = useRouter()
 
+// ═══════════════════════════════════════════════════════════
+// GUARD: Admins must not see the corrector dashboard at all
+// ═══════════════════════════════════════════════════════════
+if (authStore.user?.role === 'Admin' || authStore.user?.is_superuser) {
+    router.replace('/admin/dashboard')
+}
+
 const statusLabels = {
   'READY': 'Prêt',
   'IN_PROGRESS': 'En cours',
@@ -165,6 +172,11 @@ const fetchAllCopyScores = async (copiesList) => {
 }
 
 const fetchCopies = async () => {
+    // Double-check: if admin somehow reached this page, redirect away
+    if (authStore.user?.role === 'Admin' || authStore.user?.is_superuser) {
+        router.replace('/admin/dashboard')
+        return
+    }
     if (!selectedExamType.value) return;
 
     isLoading.value = true
