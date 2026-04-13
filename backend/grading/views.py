@@ -19,6 +19,7 @@ import json
 import logging
 from io import BytesIO
 from zipfile import ZipFile, ZIP_DEFLATED
+from exams.score_constraints import Q_MAX_BY_EXAM
 
 logger = logging.getLogger(__name__)
 
@@ -635,10 +636,10 @@ class CopyScoresView(APIView):
             )
 
         # Validate score values are numeric + non-negative + within max
-        q_max = Q_MAX_BY_EXAM.get(exam.name, {})
+        q_max = Q_MAX_BY_EXAM.get(copy.exam.name, {})
         # Try to build q_max from grading_structure (newer exams with UUID keys)
-        if not q_max and exam.grading_structure:
-            q_max = _build_q_max_from_structure(exam.grading_structure)
+        if not q_max and copy.exam.grading_structure:
+            from exams.grading_utils import build_q_max as _bq; q_max = _bq(copy.exam.grading_structure)
         for qid, val in scores_data.items():
             if val is not None and val != '':
                 try:
@@ -673,7 +674,7 @@ class CopyScoresView(APIView):
         q_max = _build_q_max_gs(copy.exam.grading_structure) if copy.exam else {}
         # Fallback to hardcoded constraints (DEPRECATED: prefer grading_structure)
         if not q_max:
-            from exams.score_constraints import Q_MAX_BY_EXAM
+            pass  # Q_MAX_BY_EXAM imported at module level
             q_max = Q_MAX_BY_EXAM.get(copy.exam.name, {})
             if q_max:
                 logger.warning(f"DEPRECATED: Using hardcoded Q_MAX_BY_EXAM fallback for {copy.exam.name}. Update grading_structure!")
