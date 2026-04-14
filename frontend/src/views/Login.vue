@@ -124,7 +124,11 @@ const handleLogin = async () => {
           class="error-message"
           data-testid="login.error"
         >
-          <AppIcon name="alert" :size="16" class="error-icon" />
+          <AppIcon
+            name="alert"
+            :size="16"
+            class="error-icon"
+          />
           {{ error }}
         </div>
                 

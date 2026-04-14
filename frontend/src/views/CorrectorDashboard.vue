@@ -40,7 +40,7 @@ const storedType = localStorage.getItem('korrigo_selected_exam_type')
 if (storedType) {
     try {
         selectedExamType.value = JSON.parse(storedType)
-    } catch (e) { }
+    } catch { }
 }
 
 const showExamTypeModal = computed(() => !selectedExamType.value)
@@ -159,7 +159,7 @@ const fetchAllCopyScores = async (copiesList) => {
                 const percent = total > 0 ? Math.round((scored / total) * 100) : 0
 
                 results[copy.id] = { scored, total, percent, questions }
-            } catch (err) {
+            } catch {
                 // Silently ignore 403/404 errors — progress just won't show for this copy
                 // This can happen if the copy is not assigned to this corrector
             }
@@ -404,11 +404,20 @@ const canSeeQuestionnaire = computed(() =>
         Korrigo — Correcteur
       </div>
 
-      <div v-if="selectedExamType" class="exam-type-indicator">
-        <span class="type-badge" :style="{ backgroundColor: selectedExamType.color + '20', color: selectedExamType.color }">
+      <div
+        v-if="selectedExamType"
+        class="exam-type-indicator"
+      >
+        <span
+          class="type-badge"
+          :style="{ backgroundColor: selectedExamType.color + '20', color: selectedExamType.color }"
+        >
           {{ selectedExamType.name }}
         </span>
-        <button class="btn-text btn-change-type" @click="handleChangeExamType">
+        <button
+          class="btn-text btn-change-type"
+          @click="handleChangeExamType"
+        >
           Changer d'examen
         </button>
       </div>
@@ -426,34 +435,54 @@ const canSeeQuestionnaire = computed(() =>
           class="btn-nav-stats"
           @click="scrollToStats"
         >
-          <AppIcon name="bar-chart-3" :size="14" class="inline" /> Statistiques
+          <AppIcon
+            name="bar-chart-3"
+            :size="14"
+            class="inline"
+          /> Statistiques
         </button>
         <button
           class="btn-my-students"
           @click="goToMyStudents"
         >
-          <AppIcon name="users" :size="14" class="inline" /> Mes Élèves
+          <AppIcon
+            name="users"
+            :size="14"
+            class="inline"
+          /> Mes Élèves
         </button>
         <button
           v-if="canSeeQuestionnaire && questionnaireStatusLoaded && !questionnaireSummary.has_response"
           class="btn-questionnaire"
           @click="goToQuestionnaire"
         >
-          <AppIcon name="edit" :size="14" class="inline" /> Questionnaire
+          <AppIcon
+            name="edit"
+            :size="14"
+            class="inline"
+          /> Questionnaire
         </button>
         <button
           v-if="canSeeQuestionnaire && questionnaireStatusLoaded && questionnaireSummary.has_response"
           class="btn-questionnaire-bilan"
           @click="goToQuestionnaireBilan"
         >
-          <AppIcon name="trending" :size="14" class="inline" /> Bilan du questionnaire
+          <AppIcon
+            name="trending"
+            :size="14"
+            class="inline"
+          /> Bilan du questionnaire
         </button>
         <button
           v-if="canSeeJuryReport"
           class="btn-jury-report"
           @click="openJuryReportsModal"
         >
-          <AppIcon name="list" :size="14" class="inline" /> Rapport du Jury {{ selectedExamType?.name || '' }}
+          <AppIcon
+            name="list"
+            :size="14"
+            class="inline"
+          /> Rapport du Jury {{ selectedExamType?.name || '' }}
         </button>
         <button
           class="btn-logout"
@@ -581,66 +610,171 @@ const canSeeQuestionnaire = computed(() =>
                 <span class="legend-item"><span class="legend-line median-line" /> Médiane</span>
               </div>
             </div>
-            <svg :viewBox="`0 0 ${chartW} ${chartH}`" class="svg-chart" preserveAspectRatio="xMidYMid meet">
+            <svg
+              :viewBox="`0 0 ${chartW} ${chartH}`"
+              class="svg-chart"
+              preserveAspectRatio="xMidYMid meet"
+            >
               <!-- Grid lines -->
-              <line v-for="t in yTicks" :key="'gy'+t"
-                :x1="padL" :x2="chartW - padR" :y1="toY(t)" :y2="toY(t)"
-                stroke="#e2e8f0" stroke-width="0.5" />
-              <line v-for="n in 21" :key="'gx'+n"
-                :x1="toX(n-1)" :x2="toX(n-1)" :y1="padT" :y2="padT + plotH"
-                stroke="#f1f5f9" stroke-width="0.5" />
+              <line
+                v-for="t in yTicks"
+                :key="'gy'+t"
+                :x1="padL"
+                :x2="chartW - padR"
+                :y1="toY(t)"
+                :y2="toY(t)"
+                stroke="#e2e8f0"
+                stroke-width="0.5"
+              />
+              <line
+                v-for="n in 21"
+                :key="'gx'+n"
+                :x1="toX(n-1)"
+                :x2="toX(n-1)"
+                :y1="padT"
+                :y2="padT + plotH"
+                stroke="#f1f5f9"
+                stroke-width="0.5"
+              />
 
               <!-- Area fills -->
-              <path :d="globalArea" fill="#10b98120" />
-              <path :d="lotArea" fill="#6366f120" />
+              <path
+                :d="globalArea"
+                fill="#10b98120"
+              />
+              <path
+                :d="lotArea"
+                fill="#6366f120"
+              />
 
               <!-- Curves -->
-              <path :d="globalPath" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linejoin="round" />
-              <path :d="lotPath" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linejoin="round" />
+              <path
+                :d="globalPath"
+                fill="none"
+                stroke="#10b981"
+                stroke-width="2.5"
+                stroke-linejoin="round"
+              />
+              <path
+                :d="lotPath"
+                fill="none"
+                stroke="#6366f1"
+                stroke-width="2.5"
+                stroke-linejoin="round"
+              />
 
               <!-- Data points -->
-              <template v-for="b in mergedBins" :key="'dp'+b.note">
-                <circle v-if="b.globalCount > 0" :cx="toX(b.note)" :cy="toY(b.globalCount)" r="3" fill="#10b981" />
-                <circle v-if="b.lotCount > 0" :cx="toX(b.note)" :cy="toY(b.lotCount)" r="3" fill="#6366f1" />
+              <template
+                v-for="b in mergedBins"
+                :key="'dp'+b.note"
+              >
+                <circle
+                  v-if="b.globalCount > 0"
+                  :cx="toX(b.note)"
+                  :cy="toY(b.globalCount)"
+                  r="3"
+                  fill="#10b981"
+                />
+                <circle
+                  v-if="b.lotCount > 0"
+                  :cx="toX(b.note)"
+                  :cy="toY(b.lotCount)"
+                  r="3"
+                  fill="#6366f1"
+                />
               </template>
 
               <!-- Mean vertical line -->
-              <line v-if="meanLineX != null"
-                :x1="meanLineX" :x2="meanLineX" :y1="padT" :y2="padT + plotH"
-                stroke="#ef4444" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.7" />
-              <text v-if="meanLineX != null"
-                :x="meanLineX" :y="padT - 4" text-anchor="middle"
-                fill="#ef4444" font-size="9" font-weight="600">
+              <line
+                v-if="meanLineX != null"
+                :x1="meanLineX"
+                :x2="meanLineX"
+                :y1="padT"
+                :y2="padT + plotH"
+                stroke="#ef4444"
+                stroke-width="1.5"
+                stroke-dasharray="6,3"
+                opacity="0.7"
+              />
+              <text
+                v-if="meanLineX != null"
+                :x="meanLineX"
+                :y="padT - 4"
+                text-anchor="middle"
+                fill="#ef4444"
+                font-size="9"
+                font-weight="600"
+              >
                 μ={{ examStats.global_stats?.mean }}
               </text>
 
               <!-- Median vertical line -->
-              <line v-if="medianLineX != null"
-                :x1="medianLineX" :x2="medianLineX" :y1="padT" :y2="padT + plotH"
-                stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.7" />
-              <text v-if="medianLineX != null"
-                :x="medianLineX" :y="padT + plotH + 26" text-anchor="middle"
-                fill="#f59e0b" font-size="9" font-weight="600">
+              <line
+                v-if="medianLineX != null"
+                :x1="medianLineX"
+                :x2="medianLineX"
+                :y1="padT"
+                :y2="padT + plotH"
+                stroke="#f59e0b"
+                stroke-width="1.5"
+                stroke-dasharray="3,3"
+                opacity="0.7"
+              />
+              <text
+                v-if="medianLineX != null"
+                :x="medianLineX"
+                :y="padT + plotH + 26"
+                text-anchor="middle"
+                fill="#f59e0b"
+                font-size="9"
+                font-weight="600"
+              >
                 Méd={{ examStats.global_stats?.median }}
               </text>
 
               <!-- X axis labels -->
-              <text v-for="n in 21" :key="'xl'+n"
-                :x="toX(n-1)" :y="padT + plotH + 14"
-                text-anchor="middle" fill="#64748b" font-size="9">
+              <text
+                v-for="n in 21"
+                :key="'xl'+n"
+                :x="toX(n-1)"
+                :y="padT + plotH + 14"
+                text-anchor="middle"
+                fill="#64748b"
+                font-size="9"
+              >
                 {{ n - 1 }}
               </text>
 
               <!-- Y axis labels -->
-              <text v-for="t in yTicks" :key="'yl'+t"
-                :x="padL - 6" :y="toY(t) + 3"
-                text-anchor="end" fill="#94a3b8" font-size="9">
+              <text
+                v-for="t in yTicks"
+                :key="'yl'+t"
+                :x="padL - 6"
+                :y="toY(t) + 3"
+                text-anchor="end"
+                fill="#94a3b8"
+                font-size="9"
+              >
                 {{ t }}
               </text>
 
               <!-- Axes -->
-              <line :x1="padL" :x2="chartW - padR" :y1="padT + plotH" :y2="padT + plotH" stroke="#cbd5e1" stroke-width="1" />
-              <line :x1="padL" :x2="padL" :y1="padT" :y2="padT + plotH" stroke="#cbd5e1" stroke-width="1" />
+              <line
+                :x1="padL"
+                :x2="chartW - padR"
+                :y1="padT + plotH"
+                :y2="padT + plotH"
+                stroke="#cbd5e1"
+                stroke-width="1"
+              />
+              <line
+                :x1="padL"
+                :x2="padL"
+                :y1="padT"
+                :y2="padT + plotH"
+                stroke="#cbd5e1"
+                stroke-width="1"
+              />
             </svg>
           </div>
 
@@ -666,8 +800,13 @@ const canSeeQuestionnaire = computed(() =>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="g in examStats.group_stats" :key="g.groupe">
-                    <td class="group-name">{{ g.groupe }}</td>
+                  <tr
+                    v-for="g in examStats.group_stats"
+                    :key="g.groupe"
+                  >
+                    <td class="group-name">
+                      {{ g.groupe }}
+                    </td>
                     <td>{{ g.count }}</td>
                     <td :class="{ 'above-global': g.mean >= examStats.global_stats?.mean, 'below-global': g.mean < examStats.global_stats?.mean }">
                       <strong>{{ g.mean ?? '-' }}</strong>
@@ -676,13 +815,19 @@ const canSeeQuestionnaire = computed(() =>
                     <td>{{ g.std_dev ?? '-' }}</td>
                     <td>{{ g.min ?? '-' }}</td>
                     <td>{{ g.max ?? '-' }}</td>
-                    <td class="count-above">{{ g.above_mean }}</td>
-                    <td class="count-below">{{ g.below_mean }}</td>
+                    <td class="count-above">
+                      {{ g.above_mean }}
+                    </td>
+                    <td class="count-below">
+                      {{ g.below_mean }}
+                    </td>
                   </tr>
                 </tbody>
                 <tfoot>
                   <tr class="global-row">
-                    <td class="group-name"><strong>Global</strong></td>
+                    <td class="group-name">
+                      <strong>Global</strong>
+                    </td>
                     <td><strong>{{ examStats.global_stats?.count ?? '-' }}</strong></td>
                     <td><strong>{{ examStats.global_stats?.mean ?? '-' }}</strong></td>
                     <td><strong>{{ examStats.global_stats?.median ?? '-' }}</strong></td>
@@ -715,11 +860,21 @@ const canSeeQuestionnaire = computed(() =>
           >
             <div class="exam-group-header">
               <div class="exam-group-title">
-                <span v-if="group.examTypeDetails" class="exam-type-badge inline" :style="{ backgroundColor: group.examTypeDetails.color + '20', color: group.examTypeDetails.color }">
-                  <ExamTypeIcon :icon="group.examTypeDetails.icon" :size="14" />
+                <span
+                  v-if="group.examTypeDetails"
+                  class="exam-type-badge inline"
+                  :style="{ backgroundColor: group.examTypeDetails.color + '20', color: group.examTypeDetails.color }"
+                >
+                  <ExamTypeIcon
+                    :icon="group.examTypeDetails.icon"
+                    :size="14"
+                  />
                 </span>
                 <strong>{{ group.examName }}</strong>
-                <span v-if="group.examDate" class="exam-date-tag">{{ group.examDate }}</span>
+                <span
+                  v-if="group.examDate"
+                  class="exam-date-tag"
+                >{{ group.examDate }}</span>
               </div>
               <div class="exam-group-meta">
                 <span class="meta-chip todo">{{ group.copies.filter(c => c.status === 'READY').length }} à corriger</span>

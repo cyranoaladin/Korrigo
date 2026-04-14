@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import api from '../services/api'
 import ExamTypeIcon from './ExamTypeIcon.vue'
 
-const props = defineProps({
+defineProps({
   visible: Boolean
 })
 
@@ -31,26 +31,41 @@ const selectType = (examType) => {
 </script>
 
 <template>
-  <div v-if="visible" class="modal-overlay" data-testid="exam-type-selection-modal">
+  <div
+    v-if="visible"
+    class="modal-overlay"
+    data-testid="exam-type-selection-modal"
+  >
     <div class="modal-content">
       <div class="modal-header">
         <div class="modal-logo">
           <span class="logo-mark">K</span>
         </div>
         <h2>Bienvenue sur Korrigo</h2>
-        <p class="subtitle">Choisissez la matière pour démarrer votre session de correction.</p>
+        <p class="subtitle">
+          Choisissez la matière pour démarrer votre session de correction.
+        </p>
       </div>
 
-      <div v-if="loading" class="loading-state">
+      <div
+        v-if="loading"
+        class="loading-state"
+      >
         <div class="spinner" />
         Chargement des matières disponibles…
       </div>
 
-      <div v-else-if="error" class="error-state">
+      <div
+        v-else-if="error"
+        class="error-state"
+      >
         {{ error }}
       </div>
 
-      <div v-else class="exam-types-grid">
+      <div
+        v-else
+        class="exam-types-grid"
+      >
         <button
           v-for="type in examTypes"
           :key="type.id"
@@ -59,17 +74,26 @@ const selectType = (examType) => {
           @click="selectType(type)"
         >
           <div class="type-icon-wrap">
-            <ExamTypeIcon :icon="type.icon" :size="26" />
+            <ExamTypeIcon
+              :icon="type.icon"
+              :size="26"
+            />
           </div>
           <div class="type-info">
             <span class="type-name">{{ type.name }}</span>
-            <span v-if="type.description" class="type-desc">{{ type.description }}</span>
+            <span
+              v-if="type.description"
+              class="type-desc"
+            >{{ type.description }}</span>
           </div>
           <span class="type-arrow">›</span>
         </button>
       </div>
 
-      <div v-if="!loading && examTypes.length === 0" class="empty-state">
+      <div
+        v-if="!loading && examTypes.length === 0"
+        class="empty-state"
+      >
         Aucune matière n'est encore configurée sur la plateforme.
       </div>
     </div>

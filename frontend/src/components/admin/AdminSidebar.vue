@@ -1,7 +1,11 @@
 <template>
   <aside class="w-64 h-screen bg-gray-900 text-white flex flex-col overflow-y-auto">
     <div class="p-4 border-b border-gray-700">
-      <img src="/images/logo_korrigo_pmf.svg" alt="Korrigo" class="h-10 w-auto" />
+      <img
+        src="/images/logo_korrigo_pmf.svg"
+        alt="Korrigo"
+        class="h-10 w-auto"
+      >
     </div>
 
     <nav class="flex-1 px-3 py-4 space-y-1">
@@ -12,14 +16,23 @@
           ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
       >
-        <AppIcon name="dashboard" :size="16" />
+        <AppIcon
+          name="dashboard"
+          :size="16"
+        />
         <span>Vue d'ensemble</span>
       </router-link>
 
       <div class="pt-4">
-        <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">Examens</p>
+        <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
+          Examens
+        </p>
 
-        <div v-for="group in examsByType" :key="group.details.id || group.details.name" class="mt-1">
+        <div
+          v-for="group in examsByType"
+          :key="group.details.id || group.details.name"
+          class="mt-1"
+        >
           <p class="px-3 py-1 text-xs font-semibold text-gray-400 truncate flex items-center gap-1.5">
             <ExamTypeIcon
               v-if="group.details.icon && group.details.icon !== 'folder'"
@@ -36,7 +49,11 @@
             <span class="truncate">{{ group.details.name }}</span>
           </p>
 
-          <div v-for="exam in group.exams" :key="exam.id" class="mt-0.5">
+          <div
+            v-for="exam in group.exams"
+            :key="exam.id"
+            class="mt-0.5"
+          >
             <button
               type="button"
               class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors"
@@ -54,7 +71,10 @@
               />
             </button>
 
-            <div v-if="expandedExamId === exam.id" class="ml-3 mt-0.5 space-y-0.5">
+            <div
+              v-if="expandedExamId === exam.id"
+              class="ml-3 mt-0.5 space-y-0.5"
+            >
               <router-link
                 v-for="item in subItems(exam.id)"
                 :key="item.to"
@@ -74,7 +94,10 @@
           to="/admin/exams/new"
           class="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-blue-400 hover:bg-gray-800 hover:text-blue-300 transition-colors"
         >
-          <AppIcon name="add" :size="16" />
+          <AppIcon
+            name="add"
+            :size="16"
+          />
           <span>Nouvel Examen</span>
         </router-link>
       </div>
@@ -88,7 +111,10 @@
           ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
       >
-        <AppIcon name="users" :size="16" />
+        <AppIcon
+          name="users"
+          :size="16"
+        />
         <span>Utilisateurs</span>
       </router-link>
 
@@ -100,7 +126,10 @@
           ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
       >
-        <AppIcon name="questionnaire" :size="16" />
+        <AppIcon
+          name="questionnaire"
+          :size="16"
+        />
         <span>Questionnaire</span>
       </router-link>
 
@@ -111,18 +140,24 @@
           ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
       >
-        <AppIcon name="settings" :size="16" />
+        <AppIcon
+          name="settings"
+          :size="16"
+        />
         <span>Paramètres</span>
       </router-link>
 
-      <hr class="border-gray-700 my-2" />
+      <hr class="border-gray-700 my-2">
 
       <button
         type="button"
         class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-gray-800 hover:text-red-300 transition-colors"
         @click="handleLogout"
       >
-        <AppIcon name="logout" :size="16" />
+        <AppIcon
+          name="logout"
+          :size="16"
+        />
         <span>Déconnexion</span>
       </button>
     </div>
@@ -231,7 +266,7 @@ onMounted(async () => {
   try {
     const res = await api.get('/grading/questionnaire/bilan/')
     questionnaireSummary.value = res.data.summary || { is_available: false }
-  } catch (e) {
+  } catch {
     // questionnaire endpoint may not be available — silently ignore
   }
 })

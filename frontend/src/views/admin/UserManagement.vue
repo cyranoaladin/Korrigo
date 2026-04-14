@@ -235,7 +235,11 @@ const copyToClipboard = () => {
             :disabled="importing"
             @click="$refs.fileInput.click()"
           >
-            <AppIcon v-if="!importing" name="upload" :size="16" />
+            <AppIcon
+              v-if="!importing"
+              name="upload"
+              :size="16"
+            />
             <span>{{ importing ? 'Import...' : 'Import CSV/XML' }}</span>
           </button>
         </div>
@@ -245,7 +249,10 @@ const copyToClipboard = () => {
             class="btn btn-primary btn-with-icon"
             @click="openCreateModal"
           >
-            <AppIcon name="user-plus" :size="16" />
+            <AppIcon
+              name="user-plus"
+              :size="16"
+            />
             <span>Ajouter {{ activeTab === 'admins' ? 'Administrateur' : 'Enseignant' }}</span>
           </button>
         </div>
@@ -317,7 +324,10 @@ const copyToClipboard = () => {
                 class="btn-sm btn-outline btn-with-icon"
                 @click="toggleStudentDetail(item)"
               >
-                <AppIcon :name="expandedStudentId === item.id ? 'eye-off' : 'eye'" :size="14" />
+                <AppIcon
+                  :name="expandedStudentId === item.id ? 'eye-off' : 'eye'"
+                  :size="14"
+                />
                 <span>{{ expandedStudentId === item.id ? 'Masquer' : 'Voir' }}</span>
               </button>
             </td>
@@ -356,7 +366,10 @@ const copyToClipboard = () => {
                   title="Éditer"
                   @click="openEditModal(item)"
                 >
-                  <AppIcon name="teacher-pen" :size="14" />
+                  <AppIcon
+                    name="teacher-pen"
+                    :size="14"
+                  />
                   <span>Éditer</span>
                 </button>
                 <button
@@ -365,7 +378,10 @@ const copyToClipboard = () => {
                   :disabled="resettingPassword"
                   @click="openResetPasswordModal(item)"
                 >
-                  <AppIcon name="reset" :size="14" />
+                  <AppIcon
+                    name="reset"
+                    :size="14"
+                  />
                   <span>Réinitialiser</span>
                 </button>
                 <button
@@ -373,7 +389,10 @@ const copyToClipboard = () => {
                   title="Supprimer"
                   @click="deleteUser(item)"
                 >
-                  <AppIcon name="delete" :size="14" />
+                  <AppIcon
+                    name="delete"
+                    :size="14"
+                  />
                   <span>Supprimer</span>
                 </button>
               </div>
@@ -489,7 +508,10 @@ const copyToClipboard = () => {
               class="btn btn-outline btn-copy btn-with-icon"
               @click="copyToClipboard"
             >
-              <AppIcon name="copy" :size="16" />
+              <AppIcon
+                name="copy"
+                :size="16"
+              />
               <span>Copier</span>
             </button>
           </div>

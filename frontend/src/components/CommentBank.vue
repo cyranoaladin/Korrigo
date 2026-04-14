@@ -83,12 +83,37 @@ watch(() => props.visible, (newVal) => {
 
 <template>
   <Transition name="slide">
-    <div v-if="visible" class="comment-bank-panel">
+    <div
+      v-if="visible"
+      class="comment-bank-panel"
+    >
       <div class="panel-header">
-        <h3><AppIcon name="comment" :size="16" class="inline" /> Mes Commentaires</h3>
+        <h3>
+          <AppIcon
+            name="comment"
+            :size="16"
+            class="inline"
+          /> Mes Commentaires
+        </h3>
         <div class="header-actions">
-          <button class="btn-refresh" @click="refresh" title="Actualiser"><AppIcon name="search" :size="14" style="transform: rotate(-45deg)" /></button>
-          <button class="btn-close" @click="emit('close')" title="Fermer">×</button>
+          <button
+            class="btn-refresh"
+            title="Actualiser"
+            @click="refresh"
+          >
+            <AppIcon
+              name="search"
+              :size="14"
+              style="transform: rotate(-45deg)"
+            />
+          </button>
+          <button
+            class="btn-close"
+            title="Fermer"
+            @click="emit('close')"
+          >
+            ×
+          </button>
         </div>
       </div>
 
@@ -99,7 +124,7 @@ watch(() => props.visible, (newVal) => {
             type="text"
             placeholder="Rechercher un commentaire..."
             class="search-input"
-          />
+          >
         </div>
 
         <p class="help-text">
@@ -107,35 +132,55 @@ watch(() => props.visible, (newVal) => {
           <span v-else>Cliquez ou glissez un commentaire sur la copie pour l'ajouter</span>
         </p>
 
-        <div v-if="loading" class="loading-state">
-          <span class="spinner"></span> Chargement...
+        <div
+          v-if="loading"
+          class="loading-state"
+        >
+          <span class="spinner" /> Chargement...
         </div>
-        <div v-else-if="error" class="error-state">{{ error }}</div>
-        <div v-else-if="filteredComments.length === 0 && searchQuery" class="empty-state">
+        <div
+          v-else-if="error"
+          class="error-state"
+        >
+          {{ error }}
+        </div>
+        <div
+          v-else-if="filteredComments.length === 0 && searchQuery"
+          class="empty-state"
+        >
           Aucun commentaire ne correspond à "{{ searchQuery }}"
         </div>
-        <div v-else-if="historyTexts.length === 0" class="empty-state">
+        <div
+          v-else-if="historyTexts.length === 0"
+          class="empty-state"
+        >
           Vous n'avez pas encore saisi de commentaires.
           <br><small>Ils apparaîtront ici au fur et à mesure.</small>
         </div>
 
-        <div class="comments-list" v-else>
+        <div
+          v-else
+          class="comments-list"
+        >
           <div
             v-for="(text, index) in filteredComments"
             :key="text + index"
             class="comment-item"
             :draggable="!isTouch"
+            title="Cliquer ou glisser-déposer sur la copie"
             @dragstart="handleDragStart(text, $event)"
             @dragend="handleDragEnd"
             @click="handleTapInsert(text)"
-            title="Cliquer ou glisser-déposer sur la copie"
           >
             <span class="drag-icon">⋮⋮</span>
             <span class="comment-text">{{ text }}</span>
           </div>
         </div>
 
-        <div v-if="filteredComments.length > 0" class="comments-count">
+        <div
+          v-if="filteredComments.length > 0"
+          class="comments-count"
+        >
           {{ filteredComments.length }} commentaire{{ filteredComments.length > 1 ? 's' : '' }}
         </div>
       </div>

@@ -14,7 +14,10 @@
           class="h-20 md:h-24 mx-auto mb-8 drop-shadow-lg"
         >
         <span class="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-white/10 border border-white/20 text-primary-100 text-sm font-medium mb-8 backdrop-blur-sm">
-          <AppIcon name="security" :size="16" />
+          <AppIcon
+            name="security"
+            :size="16"
+          />
           Plateforme de Correction Numérique — Conforme RGPD
         </span>
         <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight leading-[1.1]">
@@ -33,14 +36,20 @@
             to="/"
             class="inline-flex items-center justify-center gap-2 bg-white text-primary-900 px-8 py-3.5 rounded-lg font-semibold shadow-lg hover:bg-gray-50 hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
           >
-            <AppIcon name="login" :size="20" />
+            <AppIcon
+              name="login"
+              :size="20"
+            />
             Connexion
           </router-link>
           <a
             href="#architecture"
             class="inline-flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 px-8 py-3.5 rounded-lg font-semibold hover:bg-white/20 transition-all duration-200 backdrop-blur-sm"
           >
-            <AppIcon name="layers" :size="20" />
+            <AppIcon
+              name="layers"
+              :size="20"
+            />
             Découvrir l'architecture
           </a>
         </div>
@@ -106,7 +115,10 @@
       <div class="max-w-5xl mx-auto px-6">
         <div class="text-center mb-12">
           <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-100 text-green-800 text-sm font-medium mb-4 border border-green-200">
-            <AppIcon name="security" :size="16" />
+            <AppIcon
+              name="security"
+              :size="16"
+            />
             Garanties du processus de correction
           </div>
           <h2 class="text-3xl font-bold text-neutralDark mb-3">
@@ -123,11 +135,19 @@
             class="bg-white border border-green-200 rounded-xl p-5 flex gap-4 items-start hover:shadow-md transition-shadow"
           >
             <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-              <AppIcon :name="guarantee.icon" :size="20" class="text-green-700" />
+              <AppIcon
+                :name="guarantee.icon"
+                :size="20"
+                class="text-green-700"
+              />
             </div>
             <div>
-              <h3 class="font-semibold text-neutralDark text-sm mb-1">{{ guarantee.title }}</h3>
-              <p class="text-xs text-gray-500 leading-relaxed">{{ guarantee.desc }}</p>
+              <h3 class="font-semibold text-neutralDark text-sm mb-1">
+                {{ guarantee.title }}
+              </h3>
+              <p class="text-xs text-gray-500 leading-relaxed">
+                {{ guarantee.desc }}
+              </p>
             </div>
           </div>
         </div>
@@ -227,7 +247,10 @@
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-12">
           <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-4 border border-blue-200">
-            <AppIcon name="server" :size="16" />
+            <AppIcon
+              name="server"
+              :size="16"
+            />
             Stack Technique
           </div>
           <h2 class="text-3xl font-bold text-neutralDark mb-3">
@@ -267,7 +290,10 @@
         <div class="grid md:grid-cols-3 gap-8">
           <div class="text-center">
             <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <AppIcon name="book" :size="28" />
+              <AppIcon
+                name="book"
+                :size="28"
+              />
             </div>
             <h3 class="font-semibold text-neutralDark text-lg mb-2">
               Pédagogiques
@@ -281,7 +307,10 @@
           </div>
           <div class="text-center">
             <div class="w-14 h-14 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <AppIcon name="clock" :size="28" />
+              <AppIcon
+                name="clock"
+                :size="28"
+              />
             </div>
             <h3 class="font-semibold text-neutralDark text-lg mb-2">
               Organisationnels
@@ -295,7 +324,10 @@
           </div>
           <div class="text-center">
             <div class="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <AppIcon name="security" :size="28" />
+              <AppIcon
+                name="security"
+                :size="28"
+              />
             </div>
             <h3 class="font-semibold text-neutralDark text-lg mb-2">
               Souveraineté
@@ -315,7 +347,10 @@
     <section class="py-24 bg-white border-t border-gray-100">
       <div class="max-w-5xl mx-auto px-6 text-center">
         <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-50 text-green-700 text-sm font-medium mb-6 border border-green-200">
-          <AppIcon name="security" :size="16" />
+          <AppIcon
+            name="security"
+            :size="16"
+          />
           Privacy by Design · Référentiel CNIL Éducation 2020
         </div>
         <h2 class="text-3xl font-bold text-neutralDark mb-4">
@@ -329,28 +364,40 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-14">
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-3">
-              <AppIcon name="success" :size="24" />
+              <AppIcon
+                name="success"
+                :size="24"
+              />
             </div>
             <span class="font-medium text-gray-900 text-sm">RGPD conforme</span>
             <span class="text-xs text-gray-400 mt-0.5">Art. 6, 15–22, 28, 30</span>
           </div>
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3">
-              <AppIcon name="lock" :size="24" />
+              <AppIcon
+                name="lock"
+                :size="24"
+              />
             </div>
             <span class="font-medium text-gray-900 text-sm">HTTPS + TLS 1.2+</span>
             <span class="text-xs text-gray-400 mt-0.5">HSTS, CSP, CSRF</span>
           </div>
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-3">
-              <AppIcon name="list" :size="24" />
+              <AppIcon
+                name="list"
+                :size="24"
+              />
             </div>
             <span class="font-medium text-gray-900 text-sm">Audit complet</span>
             <span class="text-xs text-gray-400 mt-0.5">GradingEvent · AuditLog</span>
           </div>
           <div class="flex flex-col items-center">
             <div class="w-12 h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-3">
-              <AppIcon name="key-round" :size="24" />
+              <AppIcon
+                name="key-round"
+                :size="24"
+              />
             </div>
             <span class="font-medium text-gray-900 text-sm">RBAC strict</span>
             <span class="text-xs text-gray-400 mt-0.5">Admin · Enseignant · Élève</span>
@@ -386,7 +433,10 @@
           class="inline-flex items-center gap-2 text-primary-700 font-semibold hover:text-primary-800 transition-colors"
         >
           Consulter le dossier complet Direction & Conformité
-          <AppIcon name="arrow-right" :size="16" />
+          <AppIcon
+            name="arrow-right"
+            :size="16"
+          />
         </router-link>
       </div>
     </section>
@@ -397,7 +447,9 @@
         <p class="mb-2">
           <strong class="text-white">Korrigo PMF</strong> — Plateforme de Correction Numérique
         </p>
-        <p class="mb-1">Lycée Pierre Mendès France de Tunis · Labo Maths ERT</p>
+        <p class="mb-1">
+          Lycée Pierre Mendès France de Tunis · Labo Maths ERT
+        </p>
         <p class="text-gray-500">
           Dernière activité : {{ lastActivityLabel }} · Développé par Alaeddine BEN RHOUMA
         </p>

@@ -2,6 +2,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.conf import settings
+from pathlib import Path
+import os
 import subprocess
 import sys
 
@@ -28,12 +30,18 @@ def seed_e2e_endpoint(request):
     
     # Run seed script
     try:
+        script_path = Path(settings.BASE_DIR) / "scripts" / "seed_e2e.py"
         result = subprocess.run(
-            [sys.executable, 'seed_e2e.py'],
+            [sys.executable, str(script_path)],
             cwd=settings.BASE_DIR,
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
+            env={
+                **os.environ,
+                "E2E_TEST_MODE": "true",
+                "PYTHONPATH": str(settings.BASE_DIR),
+            },
         )
         
         if result.returncode == 0:

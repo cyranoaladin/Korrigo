@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch, PropertyMock
 from django.contrib.auth import get_user_model
 
 from exams.models import Exam, Copy, Booklet
-from grading.models import Annotation
+from grading.models import Annotation, QuestionRemark, Score
 
 User = get_user_model()
 
@@ -124,6 +124,17 @@ def _build_mock_fitz():
     return mock_fitz, mock_shape, mock_doc
 
 
+def _write_real_png(path):
+    """Create a valid PNG page so PyMuPDF can render a real flattened PDF."""
+    import fitz
+
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)
+    page.insert_text((72, 72), "Page de test", fontsize=20)
+    page.get_pixmap(alpha=False).save(path)
+    doc.close()
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -200,3 +211,64 @@ class TestPDFFlattenerVraiFaux:
         flattener = PDFFlattener()
         result = flattener.flatten_copy(copy_with_booklet)
         assert result is not None
+
+    def test_flattener_preserves_french_text_and_lists_annotation_summary(
+        self, copy_with_booklet, teacher_user, settings
+    ):
+        """
+        The final PDF must keep French punctuation/accents intact and expose
+        notes, remarks, annotations, appreciation and final comment in text.
+        """
+        import os
+        import fitz
+
+        copy_with_booklet.exam.grading_structure = [
+            {
+                "label": "Exercice 1 — Numération",
+                "children": [
+                    {"id": "q1", "label": "1", "points": 8},
+                    {"id": "q2", "label": "2", "points": 12},
+                ],
+            }
+        ]
+        copy_with_booklet.exam.save(update_fields=["grading_structure"])
+
+        for img in copy_with_booklet.booklets.first().pages_images:
+            _write_real_png(os.path.join(settings.MEDIA_ROOT, img))
+
+        Score.objects.create(
+            copy=copy_with_booklet,
+            scores_data={"q1": 6.5, "q2": 9.5},
+            final_comment="Commentaire final : l’élève s’est bien repris en fin d’exercice.",
+        )
+        QuestionRemark.objects.create(
+            copy=copy_with_booklet,
+            question_id="q1",
+            remark="Bonne démarche, mais l’explication d’ensemble manque encore.",
+            created_by=teacher_user,
+        )
+        _create_annotation(
+            copy_with_booklet,
+            teacher_user,
+            Annotation.Type.COMMENTAIRE,
+            page_index=0,
+            content="Attention à l’unité et à l’écriture de l’angle.",
+            score_delta=-1,
+        )
+        copy_with_booklet.global_appreciation = (
+            "Appréciation générale : l’élève a montré de réels progrès aujourd’hui."
+        )
+        copy_with_booklet.save(update_fields=["global_appreciation"])
+
+        from processing.services.pdf_flattener import PDFFlattener
+
+        pdf_bytes = PDFFlattener().flatten_copy(copy_with_booklet)
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        extracted_text = "\n".join(page.get_text() for page in doc)
+
+        assert "Appréciation générale" in extracted_text
+        assert "l’élève a montré de réels progrès aujourd’hui." in extracted_text
+        assert "Bonne démarche, mais l’explication d’ensemble manque encore." in extracted_text
+        assert "Commentaire final : l’élève s’est bien repris en fin d’exercice." in extracted_text
+        assert "Annotations sur la copie" in extracted_text
+        assert "Attention à l’unité et à l’écriture de l’angle." in extracted_text

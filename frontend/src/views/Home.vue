@@ -33,13 +33,20 @@ const navigateTo = (path) => {
         @click="navigateTo('/student/login')" 
       >
         <div class="card-icon-wrapper student-icon-bg">
-          <AppIcon name="student" :size="32" class="card-icon-svg" />
+          <AppIcon
+            name="student"
+            :size="32"
+            class="card-icon-svg"
+          />
         </div>
         <h2>Espace Élève</h2>
         <p>Consultez vos copies corrigées et vos résultats.</p>
         <button class="btn-link">
           <span>Accéder</span>
-          <AppIcon name="chevron-right" :size="16" />
+          <AppIcon
+            name="chevron-right"
+            :size="16"
+          />
         </button>
       </div>
 
@@ -51,13 +58,20 @@ const navigateTo = (path) => {
         @click="navigateTo('/teacher/login')" 
       >
         <div class="card-icon-wrapper teacher-icon-bg">
-          <AppIcon name="teacher" :size="32" class="card-icon-svg" />
+          <AppIcon
+            name="teacher"
+            :size="32"
+            class="card-icon-svg"
+          />
         </div>
         <h2>Espace Enseignant</h2>
         <p>Corrigez, annotez et gérez vos examens.</p>
         <button class="btn-link">
           <span>Accéder</span>
-          <AppIcon name="chevron-right" :size="16" />
+          <AppIcon
+            name="chevron-right"
+            :size="16"
+          />
         </button>
       </div>
 
@@ -69,21 +83,34 @@ const navigateTo = (path) => {
         @click="navigateTo('/admin/login')" 
       >
         <div class="card-icon-wrapper admin-icon-bg">
-          <AppIcon name="admin" :size="32" class="card-icon-svg" />
+          <AppIcon
+            name="admin"
+            :size="32"
+            class="card-icon-svg"
+          />
         </div>
         <h2>Administration</h2>
         <p>Gestion des examens, utilisateurs et imports.</p>
         <button class="btn-link">
           <span>Accéder</span>
-          <AppIcon name="chevron-right" :size="16" />
+          <AppIcon
+            name="chevron-right"
+            :size="16"
+          />
         </button>
       </div>
     </main>
 
     <div class="info-link-container">
-      <router-link to="/korrigo" class="info-link">
+      <router-link
+        to="/korrigo"
+        class="info-link"
+      >
         En savoir plus sur la plateforme Korrigo PMF
-        <AppIcon name="chevron-right" :size="14" />
+        <AppIcon
+          name="chevron-right"
+          :size="14"
+        />
       </router-link>
     </div>
 

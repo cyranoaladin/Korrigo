@@ -1,7 +1,6 @@
 import { test, expect, type Page, type BrowserContext } from '@playwright/test'
+import { TEACHER_PASS, TEACHER_USER } from './credentials'
 
-const TEACHER_USER = process.env.E2E_TEACHER_USER || 'philippe.carr@ert.tn'
-const TEACHER_PASS = process.env.E2E_TEACHER_PASS || 'passe123'
 const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8088'
 
 /**

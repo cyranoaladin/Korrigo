@@ -1,9 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-
-const TEACHER_USER = process.env.E2E_TEACHER_USER || 'enseignant'
-const TEACHER_PASS = process.env.E2E_TEACHER_PASS || 'enseignant'
-const ADMIN_USER = process.env.E2E_ADMIN_USER || 'admin'
-const ADMIN_PASS = process.env.E2E_ADMIN_PASS || 'admin'
+import { ADMIN_PASS, ADMIN_USER, TEACHER_PASS, TEACHER_USER } from './credentials'
 
 // Helper: login as teacher and navigate to the first available copy's CorrectorDesk
 async function loginAsTeacher(page: Page) {

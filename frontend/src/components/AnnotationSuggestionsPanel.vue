@@ -84,7 +84,11 @@ const contextLabel = computed(() => {
   >
     <div class="suggestions-header">
       <div class="suggestions-title">
-        <AppIcon name="lightbulb" :size="15" class="inline" />
+        <AppIcon
+          name="lightbulb"
+          :size="15"
+          class="inline"
+        />
         <span>Suggestions</span>
         <span class="context-badge">{{ contextLabel }}</span>
       </div>
@@ -154,7 +158,10 @@ const contextLabel = computed(() => {
           @click="handleInsert(tpl.text, 'template', tpl.id)"
         >
           <div class="suggestion-meta">
-            <span class="criterion-dot" :style="{ backgroundColor: getColor(tpl.criterion_type).dot }" />
+            <span
+              class="criterion-dot"
+              :style="{ backgroundColor: getColor(tpl.criterion_type).dot }"
+            />
             <span class="criterion-label">{{ tpl.criterion_type_display }}</span>
             <span
               v-if="tpl.severity !== 'info'"
@@ -184,7 +191,12 @@ const contextLabel = computed(() => {
           @click="handleInsert(ann.text, 'personal', ann.id)"
         >
           <div class="suggestion-meta">
-            <AppIcon name="star" :size="12" class="inline" style="color: #f59e0b" />
+            <AppIcon
+              name="star"
+              :size="12"
+              class="inline"
+              style="color: #f59e0b"
+            />
             <span class="usage-count">×{{ ann.usage_count }}</span>
           </div>
           <div class="suggestion-text">

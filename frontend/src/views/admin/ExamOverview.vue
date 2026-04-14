@@ -125,10 +125,16 @@ onMounted(loadData)
             class="p-2 rounded-lg hover:bg-slate-100 transition-colors"
             @click="router.push({ name: 'AdminDashboard' })"
           >
-            <AppIcon name="chevron-down" :size="20" class="text-slate-600 rotate-90" />
+            <AppIcon
+              name="chevron-down"
+              :size="20"
+              class="text-slate-600 rotate-90"
+            />
           </button>
           <div>
-            <h1 class="text-lg font-bold text-slate-800">Vue d'ensemble de l'examen</h1>
+            <h1 class="text-lg font-bold text-slate-800">
+              Vue d'ensemble de l'examen
+            </h1>
             <p
               v-if="exam"
               class="text-xs text-slate-400"
@@ -142,7 +148,10 @@ onMounted(loadData)
             class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
             @click="showJuryModal = true"
           >
-            <AppIcon name="document" :size="16" />
+            <AppIcon
+              name="document"
+              :size="16"
+            />
             Rapports de Jury
           </button>
           <button
@@ -150,7 +159,10 @@ onMounted(loadData)
             class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             @click="publishResults"
           >
-            <AppIcon name="eye" :size="16" />
+            <AppIcon
+              name="eye"
+              :size="16"
+            />
             {{ publishing ? 'Publication…' : 'Publier les résultats' }}
           </button>
         </div>
@@ -212,14 +224,20 @@ onMounted(loadData)
                   v-if="exam.date"
                   class="flex items-center gap-1"
                 >
-                  <AppIcon name="calendar" :size="16" />
+                  <AppIcon
+                    name="calendar"
+                    :size="16"
+                  />
                   {{ formatDate(exam.date) }}
                 </span>
                 <span
                   v-if="exam.exam_type"
                   class="flex items-center gap-1"
                 >
-                  <AppIcon name="tag" :size="16" />
+                  <AppIcon
+                    name="tag"
+                    :size="16"
+                  />
                   Type : {{ exam.exam_type_details?.name || exam.exam_type }}
                 </span>
               </div>
@@ -235,7 +253,11 @@ onMounted(loadData)
             class="bg-white rounded-xl shadow-sm ring-1 ring-slate-100 p-4 flex flex-col items-center gap-2 hover:bg-indigo-50/60 hover:ring-indigo-200 transition-all group"
             @click="router.push(action.path(examId))"
           >
-            <AppIcon :name="action.icon" :size="24" class="text-indigo-500 group-hover:text-indigo-600 transition-colors" />
+            <AppIcon
+              :name="action.icon"
+              :size="24"
+              class="text-indigo-500 group-hover:text-indigo-600 transition-colors"
+            />
             <span class="text-sm font-medium text-slate-700 group-hover:text-indigo-700">{{ action.label }}</span>
           </button>
         </div>
@@ -308,7 +330,11 @@ onMounted(loadData)
               class="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
               @click="router.push(`/admin/exams/${examId}/correctors`)"
             >
-              Gérer <AppIcon name="arrow-right" :size="14" class="inline" />
+              Gérer <AppIcon
+                name="arrow-right"
+                :size="14"
+                class="inline"
+              />
             </button>
           </div>
 
@@ -328,7 +354,10 @@ onMounted(loadData)
               :key="typeof corrector === 'object' ? corrector.id : corrector"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium ring-1 ring-indigo-100"
             >
-              <AppIcon name="user" :size="14" />
+              <AppIcon
+                name="user"
+                :size="14"
+              />
               {{ typeof corrector === 'object' ? (corrector.username || corrector.id) : corrector }}
             </span>
           </div>
@@ -350,8 +379,16 @@ onMounted(loadData)
         class="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-lg text-white text-sm font-medium"
         :class="toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'"
       >
-        <AppIcon v-if="toast.type === 'success'" name="check" :size="16" />
-        <AppIcon v-else name="alert" :size="16" />
+        <AppIcon
+          v-if="toast.type === 'success'"
+          name="check"
+          :size="16"
+        />
+        <AppIcon
+          v-else
+          name="alert"
+          :size="16"
+        />
         {{ toast.message }}
       </div>
     </transition>

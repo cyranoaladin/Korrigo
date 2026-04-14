@@ -13,40 +13,14 @@ Used for server-side overflow validation in CopyScoresView (grading app)
 and exposed to the student portal (exams app).
 """
 
+from exams.dnb_2026_structure import build_dnb_2026_q_max
+
 Q_MAX_BY_EXAM: dict[str, dict[str, float]] = {
     # ── DNB BLANC MATHS 2026 ──────────────────────────────────────────────────
     # Examen unique (pas de sujet A/B). Clé = exam.name = 'DNB_2026'.
     # Barème officiel : Partie 1 = 6 pts, Partie 2 = 14 pts, total = 20 pts.
     # Clés = IDs de grading_structure (UUID pour Partie 2, "1" pour Partie 1).
-    'DNB_2026': {
-        # Partie 1 (note globale, pas de sous-questions)
-        '1': 6.0,
-        # Partie 2 — Exercice 2
-        '2f4ab2ea-a9c4-4310-ae09-c3f302570bf7': 0.5,   # Ex2.1
-        '047f1c98-0e22-4c7f-803a-4e52697337dc': 0.5,   # Ex2.2
-        '9597000a-b327-4bc6-8a8b-38a9e0eeebfd': 0.5,   # Ex2.3
-        '7179bdcd-3541-4880-bda3-2d793e5d1102': 0.5,   # Ex2.4
-        '9d7989af-0d2f-4631-ab6a-707c3a088b3b': 1.0,   # Ex2.5
-        # Partie 2 — Exercice 3
-        'ee620dea-15cb-4827-8e48-b250a19d0d0b': 0.75,  # Ex3.1
-        '3c9daad4-7972-443b-b945-b57a09ee18eb': 0.75,  # Ex3.2
-        'd5339469-52ea-4b91-9462-afc38e13c181': 0.75,  # Ex3.3
-        '2fbf9076-fab0-496e-a857-d50f77a287e7': 0.75,  # Ex3.4
-        '94f9bf79-f634-4544-950f-2f7789562262': 0.5,   # Ex3.5
-        # Partie 2 — Exercice 4
-        '95a8b2a8-3fdd-4545-b1d2-553ec895ea49': 0.5,   # Ex4.1
-        'f8be3f16-28da-4c8c-84c8-a397573a0a14': 0.5,   # Ex4.2
-        'ad4bd6e5-be6c-44e5-b953-1bc4a68a054b': 1.0,   # Ex4.3
-        '9f14ec6e-54d5-495c-b515-21d5bd7b0e12': 1.0,   # Ex4.4
-        # Partie 2 — Exercice 5
-        '673fd8b5-6ae1-44d7-9080-531018cf9a31': 0.5,   # Ex5.1
-        '049664c6-3c33-4dca-b1ba-351d55d4db45': 0.5,   # Ex5.2
-        '6ccf34c7-548a-418c-9719-cc7f0809a300': 0.5,   # Ex5.3
-        '0a6af297-a57e-4110-bfb0-a5db0c446c1c': 1.0,   # Ex5.4a
-        '1416c68e-e82a-41a2-87cd-be6fd43c7dc7': 1.0,   # Ex5.4b
-        'dd36d3fe-5abc-4479-846c-b2e91b1eddea': 0.5,   # Ex5.4c
-        '4e12035e-6b07-4c5a-a4c7-49ad32bc0ed8': 0.5,   # Ex5.4d
-    },
+    'DNB_2026': build_dnb_2026_q_max(),
 
     # ── BAC BLANC MATHS 2026 ─────────────────────────────────────────────────
     'BB_J1': {

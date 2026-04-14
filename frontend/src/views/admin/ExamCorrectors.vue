@@ -142,12 +142,25 @@ onMounted(loadData)
             class="p-2 rounded-lg hover:bg-slate-100 transition-colors"
             @click="router.push(`/admin/exams/${examId}/overview`)"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-5 h-5 text-slate-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </button>
           <div>
-            <h1 class="text-lg font-bold text-slate-800">Correcteurs</h1>
+            <h1 class="text-lg font-bold text-slate-800">
+              Correcteurs
+            </h1>
             <p
               v-if="exam"
               class="text-xs text-slate-400"
@@ -161,8 +174,19 @@ onMounted(loadData)
           class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           @click="saveCorrecteurs"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M5 13l4 4L19 7"
+            />
           </svg>
           {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
         </button>
@@ -246,8 +270,19 @@ onMounted(loadData)
                 v-if="selectedCorrectors.has(teacher.id)"
                 class="ml-auto flex-shrink-0 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-3 h-3 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="3"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </span>
             </label>
@@ -261,129 +296,187 @@ onMounted(loadData)
           </h3>
 
           <!-- All dispatched -->
-          <div v-if="allDispatched && !dispatchResults" class="bg-emerald-50 ring-1 ring-emerald-100 rounded-xl p-4 text-sm text-emerald-700 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div
+            v-if="allDispatched && !dispatchResults"
+            class="bg-emerald-50 ring-1 ring-emerald-100 rounded-xl p-4 text-sm text-emerald-700 flex items-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-5 h-5 flex-shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             Toutes les copies sont déjà dispatchées aux correcteurs.
           </div>
 
           <template v-else>
-          <p class="text-sm text-slate-500 mb-4">
-            Distribue les copies prêtes (statut READY) entre les correcteurs assignés à cet examen.
-          </p>
+            <p class="text-sm text-slate-500 mb-4">
+              Distribue les copies prêtes (statut READY) entre les correcteurs assignés à cet examen.
+            </p>
 
-          <!-- Warning & confirmation step -->
-          <div
-            v-if="!dispatchConfirmed"
-            class="flex flex-wrap items-center gap-3"
-          >
-            <div class="bg-amber-50 ring-1 ring-amber-100 rounded-xl p-4 flex-1 min-w-0">
-              <div class="flex items-start gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                </svg>
-                <div>
-                  <p class="text-sm font-medium text-amber-800">
-                    Attention
-                  </p>
-                  <p class="text-xs text-amber-700 mt-0.5">
-                    Le dispatch réassignera toutes les copies au statut READY. Assurez-vous que les correcteurs sont bien configurés avant de continuer.
-                  </p>
+            <!-- Warning & confirmation step -->
+            <div
+              v-if="!dispatchConfirmed"
+              class="flex flex-wrap items-center gap-3"
+            >
+              <div class="bg-amber-50 ring-1 ring-amber-100 rounded-xl p-4 flex-1 min-w-0">
+                <div class="flex items-start gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                    />
+                  </svg>
+                  <div>
+                    <p class="text-sm font-medium text-amber-800">
+                      Attention
+                    </p>
+                    <p class="text-xs text-amber-700 mt-0.5">
+                      Le dispatch réassignera toutes les copies au statut READY. Assurez-vous que les correcteurs sont bien configurés avant de continuer.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-            <button
-              :disabled="selectedCount === 0 || dispatching"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-medium hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
-              @click="dispatchCopies"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Dispatcher les copies
-            </button>
-          </div>
-
-          <!-- Confirm step -->
-          <div
-            v-else
-            class="bg-red-50 ring-1 ring-red-100 rounded-xl p-4"
-          >
-            <p class="text-sm font-semibold text-red-800 mb-3">
-              Confirmer le dispatch ?
-            </p>
-            <p class="text-xs text-red-700 mb-4">
-              Cette action va distribuer toutes les copies READY entre {{ selectedCount }} correcteur{{ selectedCount !== 1 ? 's' : '' }}.
-              Cette opération ne peut pas être annulée facilement.
-            </p>
-            <div class="flex items-center gap-3">
               <button
-                class="px-4 py-2 bg-white ring-1 ring-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
-                @click="cancelDispatch"
-              >
-                Annuler
-              </button>
-              <button
-                :disabled="dispatching"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                :disabled="selectedCount === 0 || dispatching"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-medium hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                 @click="dispatchCopies"
               >
                 <svg
-                  v-if="dispatching"
-                  class="w-4 h-4 animate-spin"
                   xmlns="http://www.w3.org/2000/svg"
+                  class="w-4 h-4"
                   fill="none"
                   viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
                 >
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
-                {{ dispatching ? 'Dispatch en cours…' : 'Confirmer le dispatch' }}
+                Dispatcher les copies
               </button>
             </div>
-          </div>
 
-          <!-- Dispatch results -->
-          <div
-            v-if="dispatchResults"
-            class="mt-6"
-          >
-            <h4 class="text-sm font-semibold text-slate-700 mb-3">
-              Résultats du dispatch
-            </h4>
-
-            <!-- Generic message if no breakdown available -->
-            <div
-              v-if="dispatchSummary.length === 0"
-              class="bg-emerald-50 ring-1 ring-emerald-100 rounded-xl p-4 text-sm text-emerald-700"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Dispatch effectué avec succès.
-              <template v-if="dispatchResults.dispatched_count !== undefined">
-                {{ dispatchResults.dispatched_count }} copies assignées.
-              </template>
-            </div>
-
-            <!-- Per-corrector breakdown -->
+            <!-- Confirm step -->
             <div
               v-else
-              class="grid grid-cols-1 sm:grid-cols-2 gap-2"
+              class="bg-red-50 ring-1 ring-red-100 rounded-xl p-4"
             >
-              <div
-                v-for="entry in dispatchSummary"
-                :key="entry.name"
-                class="flex items-center justify-between px-4 py-2.5 bg-emerald-50 rounded-xl ring-1 ring-emerald-100"
-              >
-                <span class="text-sm font-medium text-slate-700">{{ entry.name }}</span>
-                <span class="text-sm font-bold text-emerald-700">
-                  {{ entry.count }} copie{{ entry.count !== 1 ? 's' : '' }}
-                </span>
+              <p class="text-sm font-semibold text-red-800 mb-3">
+                Confirmer le dispatch ?
+              </p>
+              <p class="text-xs text-red-700 mb-4">
+                Cette action va distribuer toutes les copies READY entre {{ selectedCount }} correcteur{{ selectedCount !== 1 ? 's' : '' }}.
+                Cette opération ne peut pas être annulée facilement.
+              </p>
+              <div class="flex items-center gap-3">
+                <button
+                  class="px-4 py-2 bg-white ring-1 ring-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+                  @click="cancelDispatch"
+                >
+                  Annuler
+                </button>
+                <button
+                  :disabled="dispatching"
+                  class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  @click="dispatchCopies"
+                >
+                  <svg
+                    v-if="dispatching"
+                    class="w-4 h-4 animate-spin"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    />
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  {{ dispatching ? 'Dispatch en cours…' : 'Confirmer le dispatch' }}
+                </button>
               </div>
             </div>
-          </div>
+
+            <!-- Dispatch results -->
+            <div
+              v-if="dispatchResults"
+              class="mt-6"
+            >
+              <h4 class="text-sm font-semibold text-slate-700 mb-3">
+                Résultats du dispatch
+              </h4>
+
+              <!-- Generic message if no breakdown available -->
+              <div
+                v-if="dispatchSummary.length === 0"
+                class="bg-emerald-50 ring-1 ring-emerald-100 rounded-xl p-4 text-sm text-emerald-700"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-5 h-5 inline-block mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Dispatch effectué avec succès.
+                <template v-if="dispatchResults.dispatched_count !== undefined">
+                  {{ dispatchResults.dispatched_count }} copies assignées.
+                </template>
+              </div>
+
+              <!-- Per-corrector breakdown -->
+              <div
+                v-else
+                class="grid grid-cols-1 sm:grid-cols-2 gap-2"
+              >
+                <div
+                  v-for="entry in dispatchSummary"
+                  :key="entry.name"
+                  class="flex items-center justify-between px-4 py-2.5 bg-emerald-50 rounded-xl ring-1 ring-emerald-100"
+                >
+                  <span class="text-sm font-medium text-slate-700">{{ entry.name }}</span>
+                  <span class="text-sm font-bold text-emerald-700">
+                    {{ entry.count }} copie{{ entry.count !== 1 ? 's' : '' }}
+                  </span>
+                </div>
+              </div>
+            </div>
           </template>
         </div>
       </template>
@@ -405,7 +498,11 @@ onMounted(loadData)
           stroke="currentColor"
           stroke-width="2"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M5 13l4 4L19 7"
+          />
         </svg>
         <svg
           v-else
@@ -416,7 +513,11 @@ onMounted(loadData)
           stroke="currentColor"
           stroke-width="2"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
         {{ toast.message }}
       </div>

@@ -61,35 +61,72 @@ onMounted(fetchStudents)
   <div class="my-students-page">
     <header class="top-nav">
       <div class="brand">
-        <button class="btn-back" @click="goBack"><AppIcon name="arrow-left" :size="14" class="inline" /> Retour</button>
+        <button
+          class="btn-back"
+          @click="goBack"
+        >
+          <AppIcon
+            name="arrow-left"
+            :size="14"
+            class="inline"
+          /> Retour
+        </button>
         Korrigo — Mes Élèves
       </div>
       <div class="user-menu">
         <span>{{ authStore.user?.username }}</span>
-        <span v-if="groupe" class="groupe-badge">Groupe {{ groupe }}</span>
-        <button class="btn-logout" @click="handleLogout">Déconnexion</button>
+        <span
+          v-if="groupe"
+          class="groupe-badge"
+        >Groupe {{ groupe }}</span>
+        <button
+          class="btn-logout"
+          @click="handleLogout"
+        >
+          Déconnexion
+        </button>
       </div>
     </header>
 
     <main class="container">
       <div class="page-header">
-        <h1><AppIcon name="users" :size="24" class="inline" /> Mes Élèves</h1>
-        <p v-if="groupe">Groupe <strong>{{ groupe }}</strong> — {{ students.length }} élève(s)</p>
+        <h1>
+          <AppIcon
+            name="users"
+            :size="24"
+            class="inline"
+          /> Mes Élèves
+        </h1>
+        <p v-if="groupe">
+          Groupe <strong>{{ groupe }}</strong> — {{ students.length }} élève(s)
+        </p>
       </div>
 
-      <div v-if="isLoading" class="loading">
+      <div
+        v-if="isLoading"
+        class="loading"
+      >
         Chargement des élèves...
       </div>
 
-      <div v-else-if="error" class="error-message">
+      <div
+        v-else-if="error"
+        class="error-message"
+      >
         {{ error }}
       </div>
 
-      <div v-else-if="students.length === 0" class="empty-state">
+      <div
+        v-else-if="students.length === 0"
+        class="empty-state"
+      >
         Aucun élève trouvé dans votre groupe.
       </div>
 
-      <div v-else class="students-grid">
+      <div
+        v-else
+        class="students-grid"
+      >
         <div
           v-for="student in students"
           :key="student.id"
@@ -97,9 +134,15 @@ onMounted(fetchStudents)
           @click="goToStudentBilan(student.id)"
         >
           <div class="student-info">
-            <div class="student-name">{{ student.last_name }} {{ student.first_name }}</div>
-            <div class="student-class">{{ student.class_name }}</div>
-            <div class="student-email">{{ student.email }}</div>
+            <div class="student-name">
+              {{ student.last_name }} {{ student.first_name }}
+            </div>
+            <div class="student-class">
+              {{ student.class_name }}
+            </div>
+            <div class="student-email">
+              {{ student.email }}
+            </div>
           </div>
           <div class="student-copies">
             <div
@@ -111,16 +154,34 @@ onMounted(fetchStudents)
               <span :class="['status-badge', getStatusClass(copy.status)]">
                 {{ getStatusLabel(copy.status) }}
               </span>
-              <span v-if="copy.total_score !== null" class="score">
+              <span
+                v-if="copy.total_score !== null"
+                class="score"
+              >
                 {{ copy.total_score.toFixed(2) }}/20
               </span>
-              <span v-else class="score pending">—</span>
-              <span v-if="copy.corrector_name" class="corrector-name">
-                <AppIcon name="teacher-pen" :size="12" class="inline" /> {{ copy.corrector_name }}
+              <span
+                v-else
+                class="score pending"
+              >—</span>
+              <span
+                v-if="copy.corrector_name"
+                class="corrector-name"
+              >
+                <AppIcon
+                  name="teacher-pen"
+                  :size="12"
+                  class="inline"
+                /> {{ copy.corrector_name }}
               </span>
             </div>
           </div>
-          <div class="action-arrow"><AppIcon name="chevron-right" :size="18" /></div>
+          <div class="action-arrow">
+            <AppIcon
+              name="chevron-right"
+              :size="18"
+            />
+          </div>
         </div>
       </div>
     </main>

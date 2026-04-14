@@ -40,6 +40,7 @@ ENSEIGNANTS_CSV = PROJECT_ROOT / "enseignants.csv"
 
 # ── Exam defaults ────────────────────────────────────────────────────────────
 from exams.exam_type_codes import DNB_BLANC_CODE as DNB_EXAM_TYPE_CODE  # noqa: E402
+from exams.dnb_2026_structure import build_dnb_2026_grading_structure  # noqa: E402
 DNB_EXAM_NAME = "DNB_2026"
 DNB_EXAM_DATE = datetime.date(2026, 3, 15)   # adjust if needed
 UPLOAD_MODE = "INDIVIDUAL_A4"               # copies déjà découpées individuellement
@@ -113,6 +114,10 @@ class Command(BaseCommand):
 
         existing = Exam.objects.filter(exam_type=exam_type, name=DNB_EXAM_NAME).first()
         if existing:
+            if not existing.grading_structure and not dry_run:
+                existing.grading_structure = build_dnb_2026_grading_structure()
+                existing.save(update_fields=["grading_structure"])
+                self.stdout.write(self.style.SUCCESS("  ✓ Barème DNB_2026 backfillé sur l'examen existant"))
             self.stdout.write(f"  Examen déjà existant : {existing.name} (id={existing.id})")
             return existing
 
@@ -127,6 +132,7 @@ class Command(BaseCommand):
                 date=exam_date,
                 exam_type=exam_type,
                 upload_mode=UPLOAD_MODE,
+                grading_structure=build_dnb_2026_grading_structure(),
             )
             # Attach CSV as students_csv
             csv_content = csv_path.read_bytes()

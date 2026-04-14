@@ -51,12 +51,17 @@ const submit = async () => {
 <template>
   <div class="min-h-screen bg-slate-50 flex items-center justify-center px-4">
     <div class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-      <h1 class="text-2xl font-bold text-slate-900">Réinitialiser le mot de passe</h1>
+      <h1 class="text-2xl font-bold text-slate-900">
+        Réinitialiser le mot de passe
+      </h1>
       <p class="mt-2 text-sm text-slate-500">
         Choisissez un nouveau mot de passe d'au moins 12 caractères.
       </p>
 
-      <form class="mt-6 space-y-4" @submit.prevent="submit">
+      <form
+        class="mt-6 space-y-4"
+        @submit.prevent="submit"
+      >
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Nouveau mot de passe</label>
           <input
@@ -79,10 +84,16 @@ const submit = async () => {
           >
         </div>
 
-        <p v-if="message" class="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">
+        <p
+          v-if="message"
+          class="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700"
+        >
           {{ message }}
         </p>
-        <p v-if="error" class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <p
+          v-if="error"
+          class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+        >
           {{ error }}
         </p>
 

@@ -20,6 +20,11 @@ class PDFFlattener:
     Étape 3 : Conforme ADR-002 (coordonnées normalisées).
     """
 
+    UNICODE_FONT_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    UNICODE_FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    UNICODE_FONT_REGULAR_NAME = "korrigo_dejavu"
+    UNICODE_FONT_BOLD_NAME = "korrigo_dejavu_bold"
+
     def flatten_copy(self, copy: Copy):
         """
         Génère un PDF final pour la copie donnée.
@@ -84,12 +89,52 @@ class PDFFlattener:
         logger.info(f"Copy {copy.id} flattened successfully: {output_filename}")
         return pdf_bytes
 
+    def _register_unicode_fonts(self, page):
+        """
+        Register Unicode-capable fonts on a page so French punctuation / accents
+        are embedded correctly in the generated PDF.
+        """
+        regular = "helv"
+        bold = "helv"
+
+        if os.path.exists(self.UNICODE_FONT_REGULAR):
+            page.insert_font(
+                fontname=self.UNICODE_FONT_REGULAR_NAME,
+                fontfile=self.UNICODE_FONT_REGULAR,
+            )
+            regular = self.UNICODE_FONT_REGULAR_NAME
+        else:
+            logger.warning("Unicode regular font not found: %s", self.UNICODE_FONT_REGULAR)
+
+        if os.path.exists(self.UNICODE_FONT_BOLD):
+            page.insert_font(
+                fontname=self.UNICODE_FONT_BOLD_NAME,
+                fontfile=self.UNICODE_FONT_BOLD,
+            )
+            bold = self.UNICODE_FONT_BOLD_NAME
+        else:
+            logger.warning("Unicode bold font not found: %s", self.UNICODE_FONT_BOLD)
+
+        return regular, bold
+
+    def _annotation_type_label(self, annotation_type):
+        labels = {
+            Annotation.Type.COMMENTAIRE: "Commentaire",
+            Annotation.Type.SURLIGNAGE: "Surlignage",
+            Annotation.Type.ERREUR: "Erreur",
+            Annotation.Type.BONUS: "Bonus",
+            Annotation.Type.VRAI: "Validation",
+            Annotation.Type.FAUX: "Correction",
+        }
+        return labels.get(annotation_type, annotation_type or "Annotation")
+
     def _draw_annotations_on_page(self, page, annotations, page_width, page_height):
         """
         Dessine les annotations sur une page PDF.
         Dénormalise les coordonnées [0,1] → coordonnées PDF (ADR-002).
         """
         shape = page.new_shape()
+        font_regular, font_bold = self._register_unicode_fonts(page)
 
         for annot in annotations:
             # Dénormalisation ADR-002
@@ -136,13 +181,25 @@ class PDFFlattener:
                     text_point = fitz.Point(x_pdf + 5, y_pdf - 5 if y_pdf > 20 else y_pdf + h_pdf + 15)
                     # Limiter longueur du texte affiché
                     display_text = annot.content[:50] + "..." if len(annot.content) > 50 else annot.content
-                    shape.insert_text(text_point, display_text, fontsize=10, color=color)
+                    shape.insert_text(
+                        text_point,
+                        display_text,
+                        fontsize=10,
+                        color=color,
+                        fontname=font_regular,
+                    )
 
             # Ajouter score_delta si présent
             if annot.score_delta is not None:
                 score_text = f"{annot.score_delta:+d}"  # Format +5 ou -3
                 score_point = fitz.Point(x_pdf + w_pdf - 20, y_pdf + 15)
-                shape.insert_text(score_point, score_text, fontsize=12, color=(1, 0, 0))
+                shape.insert_text(
+                    score_point,
+                    score_text,
+                    fontsize=12,
+                    color=(1, 0, 0),
+                    fontname=font_bold,
+                )
 
         shape.commit()
 
@@ -162,66 +219,88 @@ class PDFFlattener:
 
     def _add_summary_page(self, doc, copy):
         """
-        Ajoute des pages de synthèse complètes avec :
-        - Notes détaillées du barème (Score.scores_data)
-        - Note finale
-        - Remarques par question (QuestionRemark)
-        - Appréciation générale (Copy.global_appreciation)
+        Ajoute des pages de synthèse avec un design soigné :
+        - En-tête coloré avec note finale
+        - Détail des notes groupées par exercice
+        - Remarques par question
+        - Appréciation générale
         """
         PAGE_W, PAGE_H = 595, 842
-        MARGIN_LEFT = 50
-        MARGIN_RIGHT = 545
-        LINE_HEIGHT = 18
-        MAX_Y = 790
+        ML = 50          # margin left
+        MR = 545         # margin right
+        LH = 17          # line height
+        MAX_Y = 800
+
+        # Couleurs (RGB 0-1)
+        C_PRIMARY = (0.22, 0.27, 0.55)    # indigo foncé
+        C_ACCENT  = (0.30, 0.50, 0.90)    # bleu vif
+        C_GREEN   = (0.10, 0.60, 0.30)    # vert
+        C_RED     = (0.80, 0.15, 0.15)    # rouge
+        C_ORANGE  = (0.85, 0.50, 0.10)    # orange
+        C_GRAY    = (0.40, 0.40, 0.45)    # gris texte
+        C_LGRAY   = (0.75, 0.78, 0.82)    # gris clair
+        C_WHITE   = (1, 1, 1)
+        C_BG_BLUE = (0.93, 0.95, 1.0)     # fond bleu pâle
 
         summary_page = doc.new_page(width=PAGE_W, height=PAGE_H)
-        text_writer = fitz.TextWriter(summary_page.rect)
+        shape = summary_page.new_shape()
+        font_regular, font_bold = self._register_unicode_fonts(summary_page)
+
+        def txt(x, y, text, fontsize=10, color=C_GRAY, bold=False):
+            summary_page.insert_text(
+                fitz.Point(x, y),
+                text,
+                fontsize=fontsize,
+                color=color,
+                fontname=font_bold if bold else font_regular,
+            )
 
         def new_page():
-            nonlocal summary_page, text_writer
-            text_writer.write_text(summary_page)
+            nonlocal summary_page, shape, font_regular, font_bold
+            shape.commit()
             summary_page = doc.new_page(width=PAGE_W, height=PAGE_H)
-            text_writer = fitz.TextWriter(summary_page.rect)
-            return 50
+            shape = summary_page.new_shape()
+            font_regular, font_bold = self._register_unicode_fonts(summary_page)
+            txt(ML, 36, "Relevé de notes (suite)", fontsize=13, color=C_PRIMARY, bold=True)
+            return 68
 
-        def check_overflow(y, needed=LINE_HEIGHT):
-            if y + needed > MAX_Y:
-                return new_page()
-            return y
+        def ck(y, needed=LH):
+            return new_page() if y + needed > MAX_Y else y
 
-        def write_wrapped(x, y, text, fontsize=10, max_width=480):
-            """Écrit du texte avec retour à la ligne si trop long."""
+        def wrap(x, y, text, fs=10, mw=460, color=C_GRAY, bold=False):
             if not text:
                 return y
-            avg_char_width = fontsize * 0.5
-            chars_per_line = max(int(max_width / avg_char_width), 20)
-            lines = []
-            for paragraph in text.split('\n'):
-                while len(paragraph) > chars_per_line:
-                    split_at = paragraph[:chars_per_line].rfind(' ')
-                    if split_at <= 0:
-                        split_at = chars_per_line
-                    lines.append(paragraph[:split_at])
-                    paragraph = paragraph[split_at:].lstrip()
-                lines.append(paragraph)
-            for line in lines:
-                y = check_overflow(y, LINE_HEIGHT)
-                text_writer.append(fitz.Point(x, y), line, fontsize=fontsize)
-                y += LINE_HEIGHT
+            cpl = max(int(mw / (fs * 0.5)), 20)
+            for para in text.split('\n'):
+                while len(para) > cpl:
+                    sp = para[:cpl].rfind(' ')
+                    if sp <= 0:
+                        sp = cpl
+                    y = ck(y, LH)
+                    txt(x, y, para[:sp], fontsize=fs, color=color, bold=bold)
+                    y += LH
+                    para = para[sp:].lstrip()
+                y = ck(y, LH)
+                txt(x, y, para, fontsize=fs, color=color, bold=bold)
+                y += LH
             return y
 
-        # --- Titre ---
-        y = 50
-        text_writer.append(fitz.Point(MARGIN_LEFT, y), "Releve de Notes", fontsize=24)
-        y += 35
-        text_writer.append(
-            fitz.Point(MARGIN_LEFT, y),
-            f"Copie : {copy.anonymous_id}",
-            fontsize=14
-        )
-        y += 30
+        def draw_rect(x, y, w, h, fill=None, border=None):
+            r = fitz.Rect(x, y, x + w, y + h)
+            shape.draw_rect(r)
+            shape.finish(fill=fill, color=border, width=0.5 if border else 0)
 
-        # --- 1. Notes detaillees du bareme ---
+        def score_color(score, mx):
+            if mx <= 0:
+                return C_GRAY
+            pct = score / mx
+            if pct >= 0.8:
+                return C_GREEN
+            if pct >= 0.5:
+                return C_ORANGE
+            return C_RED
+
+        # ── Données ──
         score_obj = Score.objects.filter(copy=copy).first()
         scores_data = {}
         total_score = 0.0
@@ -233,111 +312,195 @@ class PDFFlattener:
                 except (TypeError, ValueError):
                     pass
 
-        # Note finale en gros
-        y = check_overflow(y, 35)
-        text_writer.append(
-            fitz.Point(MARGIN_LEFT, y),
-            f"NOTE FINALE : {total_score:.2f} / 20",
-            fontsize=20
-        )
-        y += 40
+        # Build exercise structure from grading_utils
+        from exams.grading_utils import extract_leaf_questions, build_exercise_config
+        exercises_cfg = {}
+        leaf_map = {}   # qid -> {exercise_idx, label, points}
+        if copy.exam and copy.exam.grading_structure:
+            exercises_cfg = build_exercise_config(copy.exam.grading_structure)
+            for leaf in extract_leaf_questions(copy.exam.grading_structure):
+                leaf_map[leaf['id']] = {
+                    **leaf,
+                    'display_label': leaf.get('short_label') or leaf['label'],
+                }
 
-        # Détail par question — utiliser des labels lisibles si possible
-        if scores_data:
-            y = check_overflow(y, 25)
-            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Detail des notes par question :", fontsize=14)
-            y += 25
+        # Group scores by exercise
+        ex_groups = {}  # {ex_idx: [(label, score, max_pts), ...]}
+        for qid, qscore in scores_data.items():
+            info = leaf_map.get(qid)
+            if info:
+                eidx = info['exercise_idx']
+                qlabel = info['display_label']
+                qmax = info['points']
+            else:
+                eidx = 0
+                qlabel = qid
+                qmax = 0
+            ex_groups.setdefault(eidx, []).append((qlabel, float(qscore or 0), qmax))
 
-            # Build readable labels from grading_structure
-            q_labels = {}
-            if copy.exam and copy.exam.grading_structure:
-                from exams.grading_utils import build_question_labels
-                q_labels = build_question_labels(copy.exam.grading_structure)
+        # ══════════════ EN-TÊTE ══════════════
+        # Bandeau indigo en haut
+        draw_rect(0, 0, PAGE_W, 110, fill=C_PRIMARY)
 
-            def sort_key(item):
-                parts = item[0].split('.')
-                result = []
-                for p in parts:
-                    try:
-                        result.append((0, int(p)))
-                    except ValueError:
-                        result.append((1, p))
-                return result
+        y = 38
+        txt(ML, y, "Relevé de notes", fontsize=22, color=C_WHITE, bold=True)
+        y += 28
+        exam_name = copy.exam.name if copy.exam else "Examen"
+        txt(ML, y, exam_name, fontsize=13, color=(0.75, 0.80, 1.0))
+        txt(ML + 200, y, f"Copie : {copy.anonymous_id}", fontsize=13, color=(0.75, 0.80, 1.0))
 
-            for q_id, q_score in sorted(scores_data.items(), key=sort_key):
-                y = check_overflow(y)
-                score_display = q_score if q_score not in (None, '') else '0'
-                label = q_labels.get(q_id, f'Q{q_id}')
-                # Truncate label if too long for PDF
-                if len(label) > 50:
-                    label = label[:47] + '...'
-                text_writer.append(
-                    fitz.Point(70, y),
-                    f"{label} : {score_display}",
-                    fontsize=11
-                )
-                y += LINE_HEIGHT
-        else:
-            y = check_overflow(y)
-            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Aucune note de bareme enregistree.", fontsize=11)
-            y += LINE_HEIGHT
+        # Encadré note finale (à droite dans le bandeau)
+        note_x = 390
+        draw_rect(note_x, 18, 170, 74, fill=(0.15, 0.20, 0.45))
+        txt(note_x + 15, 48, f"{total_score:.2f}", fontsize=28, color=C_WHITE, bold=True)
+        txt(note_x + 105, 48, "/ 20", fontsize=14, color=(0.65, 0.70, 0.90))
+        txt(note_x + 15, 72, "Note finale", fontsize=10, color=(0.65, 0.70, 0.90))
 
+        y = 130
+
+        # ══════════════ DÉTAIL DES NOTES PAR EXERCICE ══════════════
+        y = ck(y, 25)
+        txt(ML, y, "Détail des notes", fontsize=16, color=C_PRIMARY, bold=True)
+        y += 8
+        shape.draw_line(fitz.Point(ML, y), fitz.Point(MR, y))
+        shape.finish(color=C_ACCENT, width=1.5)
         y += 15
 
-        # --- 2. Remarques par question ---
+        for eidx in sorted(ex_groups.keys(), key=lambda value: (value == 0, value)):
+            questions = ex_groups[eidx]
+            ecfg = exercises_cfg.get(eidx, {})
+            ex_name = ecfg.get('name', f'Exercice {eidx}')
+            ex_max = ecfg.get('max', sum(q[2] for q in questions))
+            ex_total = sum(q[1] for q in questions)
+
+            # En-tête exercice (fond coloré)
+            y = ck(y, 30)
+            draw_rect(ML, y - 12, MR - ML, 22, fill=C_BG_BLUE)
+            txt(ML + 8, y + 2, ex_name, fontsize=11, color=C_PRIMARY, bold=True)
+            sc_txt = f"{ex_total:.2f} / {ex_max:.2f}"
+            txt(MR - 100, y + 2, sc_txt, fontsize=11, color=score_color(ex_total, ex_max))
+            y += 18
+
+            # Sort questions by label naturally
+            import re as _re
+            def natural_key(item):
+                return [int(c) if c.isdigit() else c.lower() for c in _re.split(r'(\d+)', item[0])]
+            questions.sort(key=natural_key)
+
+            for qlabel, qscore, qmax in questions:
+                y = ck(y)
+                # Bullet
+                txt(ML + 20, y, "-", fontsize=10, color=C_LGRAY)
+                # Label
+                display_label = f"Question {qlabel}" if len(qlabel) <= 3 else qlabel
+                txt(ML + 32, y, display_label, fontsize=10, color=C_GRAY)
+                # Score
+                sc_str = f"{qscore:.2f} / {qmax:.2f}"
+                txt(MR - 90, y, sc_str, fontsize=10, color=score_color(qscore, qmax))
+                y += LH
+
+            y += 8  # espacement entre exercices
+
+        if not ex_groups:
+            y = ck(y, LH)
+            txt(ML, y, "Aucune note détaillée disponible.", fontsize=10, color=C_GRAY)
+            y += LH
+
+        y += 10
+
+        # ══════════════ REMARQUES ══════════════
         remarks = list(QuestionRemark.objects.filter(copy=copy).order_by('question_id'))
         remarks_with_text = [r for r in remarks if r.remark and r.remark.strip()]
 
         if remarks_with_text:
-            y = check_overflow(y, 25)
-            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Remarques par question :", fontsize=14)
-            y += 25
+            y = ck(y, 30)
+            txt(ML, y, "Remarques du correcteur", fontsize=16, color=C_PRIMARY, bold=True)
+            y += 8
+            shape.draw_line(fitz.Point(ML, y), fitz.Point(MR, y))
+            shape.finish(color=C_ORANGE, width=1.5)
+            y += 15
 
             for remark in remarks_with_text:
-                y = check_overflow(y, LINE_HEIGHT * 2)
-                remark_label = q_labels.get(remark.question_id, f'Q{remark.question_id}')
-                if len(remark_label) > 50:
-                    remark_label = remark_label[:47] + '...'
-                text_writer.append(
-                    fitz.Point(70, y),
-                    f"{remark_label} :",
-                    fontsize=11
-                )
-                y += LINE_HEIGHT
-                y = write_wrapped(80, y, remark.remark.strip(), fontsize=10, max_width=460)
-                y += 5
+                info = leaf_map.get(remark.question_id)
+                if info:
+                    ex_cfg = exercises_cfg.get(info['exercise_idx'], {})
+                    r_label = f"{ex_cfg.get('name', 'Exercice')} \u2014 Question {info['display_label']}"
+                else:
+                    r_label = f"Question {remark.question_id}"
 
-        y += 15
+                y = ck(y, LH * 2)
+                # Ligne de fond orange pâle pour le label
+                draw_rect(ML, y - 11, MR - ML, 16, fill=(1.0, 0.96, 0.90))
+                txt(ML + 8, y, r_label, fontsize=10, color=C_ORANGE)
+                y += LH
+                y = wrap(ML + 16, y, remark.remark.strip(), fs=10, color=C_GRAY)
+                y += 6
 
-        # --- 3. Annotations visuelles (si presentes) ---
-        annotations_with_score = copy.annotations.filter(
-            score_delta__isnull=False
-        ).order_by('page_index')
+        y += 10
 
-        if annotations_with_score.exists():
-            y = check_overflow(y, 25)
-            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Annotations du correcteur :", fontsize=14)
-            y += 25
+        # ══════════════ ANNOTATIONS ══════════════
+        annotations = list(copy.annotations.all().order_by('page_index', 'created_at'))
+        visible_annotations = annotations
 
-            for annot in annotations_with_score:
-                y = check_overflow(y)
-                score_str = f"{annot.score_delta:+d}"
-                display_content = annot.content[:60] + "..." if annot.content and len(annot.content) > 60 else (annot.content or '')
-                line = f"Page {annot.page_index + 1} : {score_str} pts"
-                if display_content:
-                    line += f" - {display_content}"
-                text_writer.append(fitz.Point(70, y), line, fontsize=10)
-                y += LINE_HEIGHT
+        if visible_annotations:
+            y = ck(y, 30)
+            txt(ML, y, "Annotations sur la copie", fontsize=16, color=C_PRIMARY, bold=True)
+            y += 8
+            shape.draw_line(fitz.Point(ML, y), fitz.Point(MR, y))
+            shape.finish(color=C_ACCENT, width=1.5)
+            y += 15
 
-        y += 15
+            for annot in visible_annotations:
+                label = f"Page {annot.page_index + 1} — {self._annotation_type_label(annot.type)}"
+                if annot.score_delta is not None:
+                    label += f" ({annot.score_delta:+d} pt)"
 
-        # --- 4. Appreciation generale ---
+                y = ck(y, LH * 2)
+                draw_rect(ML, y - 11, MR - ML, 16, fill=(0.94, 0.97, 1.0))
+                txt(ML + 8, y, label, fontsize=10, color=C_ACCENT)
+                y += LH
+
+                if annot.content and annot.content.strip():
+                    y = wrap(ML + 16, y, annot.content.strip(), fs=10, color=C_GRAY)
+                else:
+                    txt(ML + 16, y, "Sans texte associé.", fontsize=10, color=C_GRAY)
+                    y += LH
+
+                y += 6
+
+            y += 10
+
+        # ══════════════ APPRÉCIATION GÉNÉRALE ══════════════
         appreciation = copy.global_appreciation
         if appreciation and appreciation.strip():
-            y = check_overflow(y, 25)
-            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Appreciation generale :", fontsize=14)
-            y += 25
-            y = write_wrapped(70, y, appreciation.strip(), fontsize=11, max_width=470)
+            y = ck(y, 40)
+            txt(ML, y, "Appréciation générale", fontsize=16, color=C_PRIMARY, bold=True)
+            y += 8
+            shape.draw_line(fitz.Point(ML, y), fitz.Point(MR, y))
+            shape.finish(color=C_GREEN, width=1.5)
+            y += 15
+            # Fond vert pâle
+            text_h = max(30, len(appreciation) // 2)
+            draw_rect(ML, y - 12, MR - ML, min(text_h, MAX_Y - y + 10), fill=(0.93, 1.0, 0.95))
+            y = wrap(ML + 10, y, appreciation.strip(), fs=11, color=(0.15, 0.40, 0.20))
 
-        # Finaliser la dernière page
-        text_writer.write_text(summary_page)
+        # ══════════════ COMMENTAIRE FINAL ══════════════
+        final_comment = score_obj.final_comment if score_obj and score_obj.final_comment else ''
+        if final_comment and final_comment.strip():
+            y += 15
+            y = ck(y, 40)
+            txt(ML, y, "Commentaire du correcteur", fontsize=16, color=C_PRIMARY, bold=True)
+            y += 8
+            shape.draw_line(fitz.Point(ML, y), fitz.Point(MR, y))
+            shape.finish(color=C_ACCENT, width=1.5)
+            y += 15
+            y = wrap(ML + 10, y, final_comment.strip(), fs=11, color=C_GRAY)
+
+        # Pied de page
+        y = ck(MAX_Y - 20)
+        shape.draw_line(fitz.Point(ML, MAX_Y - 5), fitz.Point(MR, MAX_Y - 5))
+        shape.finish(color=C_LGRAY, width=0.5)
+        txt(ML, MAX_Y + 8, "Korrigo \u2014 Plateforme de correction", fontsize=8, color=C_LGRAY)
+
+        # Finaliser les formes
+        shape.commit()

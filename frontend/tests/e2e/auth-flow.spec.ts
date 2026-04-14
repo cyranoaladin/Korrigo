@@ -1,14 +1,14 @@
 import { test, expect } from '@playwright/test'
+import {
+  ADMIN_PASS,
+  ADMIN_USER,
+  STUDENT_EMAIL,
+  STUDENT_PASS,
+  TEACHER_PASS,
+  TEACHER_USER,
+} from './credentials'
 
 const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8088'
-
-// --- Credentials (override via env vars in CI) ---
-const ADMIN_USER = process.env.E2E_ADMIN_USER || 'admin'
-const ADMIN_PASS = process.env.E2E_ADMIN_PASS || 'admin'
-const TEACHER_USER = process.env.E2E_TEACHER_USER || 'enseignant'
-const TEACHER_PASS = process.env.E2E_TEACHER_PASS || 'enseignant'
-const STUDENT_EMAIL = process.env.E2E_STUDENT_EMAIL || 'eleve.test-e@ert.tn'
-const STUDENT_PASS = process.env.E2E_STUDENT_PASS || '01012007'
 
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -78,7 +78,7 @@ test.describe('Authentication Flow', () => {
     await page.locator('button[type="submit"]').click()
 
     // Should redirect to student portal (or change-password on first login)
-    await page.waitForURL(/student-portal|student\/change-password/, { timeout: 10000 })
+    await page.waitForURL(/student-portal|student\/dashboard|student\/change-password/, { timeout: 10000 })
     // Page should have loaded without staying on login
     expect(page.url()).not.toContain('/student/login')
   })

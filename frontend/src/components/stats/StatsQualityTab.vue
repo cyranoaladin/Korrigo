@@ -4,50 +4,94 @@
   <div>
     <!-- Quality KPIs -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div v-for="q in qualityKpis" :key="q.label" class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <AppIcon :name="q.icon" :size="20" class="mb-2" :class="q.color" />
-        <p class="text-2xl font-bold text-neutralDark">{{ q.value }}</p>
-        <p class="text-xs text-gray-500 mt-1">{{ q.label }}</p>
-        <p class="text-xs text-gray-400">{{ q.sub }}</p>
+      <div
+        v-for="q in qualityKpis"
+        :key="q.label"
+        class="bg-white rounded-xl border border-gray-200 p-4 shadow-sm"
+      >
+        <AppIcon
+          :name="q.icon"
+          :size="20"
+          class="mb-2"
+          :class="q.color"
+        />
+        <p class="text-2xl font-bold text-neutralDark">
+          {{ q.value }}
+        </p>
+        <p class="text-xs text-gray-500 mt-1">
+          {{ q.label }}
+        </p>
+        <p class="text-xs text-gray-400">
+          {{ q.sub }}
+        </p>
       </div>
     </div>
 
     <!-- Appreciations -->
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
       <div class="px-5 py-4 border-b border-gray-100">
-        <h2 class="text-lg font-semibold text-neutralDark">Appréciations Globales — Fréquence</h2>
+        <h2 class="text-lg font-semibold text-neutralDark">
+          Appréciations Globales — Fréquence
+        </h2>
       </div>
       <div class="px-5 py-4">
         <div class="flex flex-wrap gap-2 mb-4">
-          <span v-for="a in appreciationTags" :key="a.text" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border" :class="a.class">
+          <span
+            v-for="a in appreciationTags"
+            :key="a.text"
+            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border"
+            :class="a.class"
+          >
             {{ a.text }}
             <span class="bg-white/50 px-1.5 py-0.5 rounded-full text-xs">{{ a.count }}</span>
           </span>
         </div>
-        <p class="text-sm text-gray-500 mt-2">Les correcteurs BB_J1 (notamment Philippe CARR) ont rédigé des appréciations détaillées et personnalisées. Les correcteurs BB_J2 ont privilégié des appréciations courtes standardisées.</p>
+        <p class="text-sm text-gray-500 mt-2">
+          Les correcteurs BB_J1 (notamment Philippe CARR) ont rédigé des appréciations détaillées et personnalisées. Les correcteurs BB_J2 ont privilégié des appréciations courtes standardisées.
+        </p>
       </div>
     </div>
 
     <!-- Thèmes récurrents -->
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
       <div class="px-5 py-4 border-b border-gray-100">
-        <h2 class="text-lg font-semibold text-neutralDark">Thèmes Récurrents des Appréciations</h2>
+        <h2 class="text-lg font-semibold text-neutralDark">
+          Thèmes Récurrents des Appréciations
+        </h2>
       </div>
       <div class="px-5 py-4 space-y-3">
-        <div v-for="th in themes" :key="th.label" class="flex items-center gap-3">
-          <span class="w-3 h-3 rounded-full shrink-0" :class="th.dotColor" />
+        <div
+          v-for="th in themes"
+          :key="th.label"
+          class="flex items-center gap-3"
+        >
+          <span
+            class="w-3 h-3 rounded-full shrink-0"
+            :class="th.dotColor"
+          />
           <span class="text-sm text-gray-700 flex-1">{{ th.label }}</span>
-          <span class="text-xs font-medium px-2 py-0.5 rounded-full" :class="th.tagClass">{{ th.freq }}</span>
+          <span
+            class="text-xs font-medium px-2 py-0.5 rounded-full"
+            :class="th.tagClass"
+          >{{ th.freq }}</span>
         </div>
       </div>
     </div>
 
     <!-- Fraud alert -->
     <div class="bg-red-50 border border-red-300 rounded-xl p-4 flex items-start gap-3">
-      <AppIcon name="warning" :size="20" class="text-red-600 shrink-0 mt-0.5" />
+      <AppIcon
+        name="warning"
+        :size="20"
+        class="text-red-600 shrink-0 mt-0.5"
+      />
       <div>
-        <p class="text-sm font-semibold text-red-800">Suspicion de fraude signalée</p>
-        <p class="text-sm text-red-700 mt-1 italic">"Une anomalie grave et inacceptable est à souligner à l'Exercice 1 : vos réponses au QCM correspondent exactement à la grille de correction d'un autre sujet."</p>
+        <p class="text-sm font-semibold text-red-800">
+          Suspicion de fraude signalée
+        </p>
+        <p class="text-sm text-red-700 mt-1 italic">
+          "Une anomalie grave et inacceptable est à souligner à l'Exercice 1 : vos réponses au QCM correspondent exactement à la grille de correction d'un autre sujet."
+        </p>
       </div>
     </div>
   </div>

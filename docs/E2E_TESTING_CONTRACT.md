@@ -54,8 +54,8 @@ services:
 - `prof1` / password (staff, teacher)
 
 **Students (modèle Student):**
-- INE: `123456789`, Nom: `E2E_STUDENT` (Gate 4)
-- INE: `987654321`, Nom: `OTHER` (tests sécurité)
+- email: `jean.e2e@example.com`, mot de passe: `StudentE2E!2026` (Gate 4)
+- email: `other.e2e@example.com` (tests sécurité)
 
 **Exams & Copies:**
 - 1 Exam principal avec Copy READY
@@ -92,14 +92,12 @@ docker-compose -f infra/docker/docker-compose.local-prod.yml exec backend \
 **Body:**
 ```json
 {
-  "ine": "123456789",
-  "last_name": "E2E_STUDENT"
+  "email": "jean.e2e@example.com",
+  "password": "StudentE2E!2026"
 }
 ```
 
 **Session:** Cookie-based (pas de CSRF pour student public endpoint)
-
-**⚠️ Important:** Student login n'utilise PAS username/password, mais INE + nom de famille.
 
 ## Exécution E2E
 
@@ -220,7 +218,7 @@ jobs:
 # Vérifier Students en DB
 docker-compose exec backend python manage.py shell -c \
   "from students.models import Student; \
-   print(list(Student.objects.values('ine', 'last_name')))"
+   print(list(Student.objects.values('email', 'last_name', 'user_id')))"
 
 # Si vide, réexécuter seed
 docker-compose exec backend sh -c \
@@ -229,7 +227,7 @@ docker-compose exec backend sh -c \
 
 **Attendu:**
 ```python
-[{'ine': '123456789', 'last_name': 'E2E_STUDENT'}, ...]
+[{'email': 'jean.e2e@example.com', 'last_name': 'E2E_STUDENT', 'user_id': 42}, ...]
 ```
 
 ### Erreur: CSRF 403 Forbidden

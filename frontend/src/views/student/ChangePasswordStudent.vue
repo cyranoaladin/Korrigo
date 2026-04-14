@@ -96,12 +96,15 @@ const handleChangePassword = async () => {
               autocomplete="current-password"
             >
             <button
-               type="button"
-               class="btn-toggle"
-               @click="showCurrent = !showCurrent"
-             >
-               <AppIcon :name="showCurrent ? 'eye-off' : 'eye'" :size="18" />
-             </button>
+              type="button"
+              class="btn-toggle"
+              @click="showCurrent = !showCurrent"
+            >
+              <AppIcon
+                :name="showCurrent ? 'eye-off' : 'eye'"
+                :size="18"
+              />
+            </button>
           </div>
         </div>
 
@@ -116,12 +119,15 @@ const handleChangePassword = async () => {
               autocomplete="new-password"
             >
             <button
-               type="button"
-               class="btn-toggle"
-               @click="showNew = !showNew"
-             >
-               <AppIcon :name="showNew ? 'eye-off' : 'eye'" :size="18" />
-             </button>
+              type="button"
+              class="btn-toggle"
+              @click="showNew = !showNew"
+            >
+              <AppIcon
+                :name="showNew ? 'eye-off' : 'eye'"
+                :size="18"
+              />
+            </button>
           </div>
         </div>
 
@@ -168,9 +174,15 @@ const handleChangePassword = async () => {
       </form>
 
       <div class="footer-links">
-        <router-link to="/student-portal" class="skip-link">
+        <router-link
+          to="/student-portal"
+          class="skip-link"
+        >
           <span>Passer pour le moment</span>
-          <AppIcon name="arrow-right" :size="16" />
+          <AppIcon
+            name="arrow-right"
+            :size="16"
+          />
         </router-link>
       </div>
     </div>

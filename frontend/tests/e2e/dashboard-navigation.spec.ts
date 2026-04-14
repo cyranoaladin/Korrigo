@@ -1,11 +1,12 @@
 import { test, expect, type Page } from '@playwright/test'
-
-const TEACHER_USER = process.env.E2E_TEACHER_USER || 'enseignant'
-const TEACHER_PASS = process.env.E2E_TEACHER_PASS || 'enseignant'
-const ADMIN_USER = process.env.E2E_ADMIN_USER || 'admin'
-const ADMIN_PASS = process.env.E2E_ADMIN_PASS || 'admin'
-const STUDENT_EMAIL = process.env.E2E_STUDENT_EMAIL || 'eleve.test-e@ert.tn'
-const STUDENT_PASS = process.env.E2E_STUDENT_PASS || '01012007'
+import {
+  ADMIN_PASS,
+  ADMIN_USER,
+  STUDENT_EMAIL,
+  STUDENT_PASS,
+  TEACHER_PASS,
+  TEACHER_USER,
+} from './credentials'
 
 async function loginAsTeacher(page: Page) {
   await page.goto('/teacher/login')
@@ -28,7 +29,7 @@ async function loginAsStudent(page: Page) {
   await page.locator('input[type="email"]').fill(STUDENT_EMAIL)
   await page.locator('input[type="password"]').fill(STUDENT_PASS)
   await page.locator('button[type="submit"]').click()
-  await page.waitForURL(/student-portal|student\/change-password/, { timeout: 10000 })
+  await page.waitForURL(/student-portal|student\/dashboard|student\/change-password/, { timeout: 10000 })
 }
 
 test.describe('Dashboard & Navigation', () => {
@@ -42,8 +43,8 @@ test.describe('Dashboard & Navigation', () => {
 
     await expect(page.locator('[data-testid="corrector-dashboard"]')).toBeVisible()
 
-    // Should show the "Vos Copies a Corriger" section
-    await expect(page.locator('.task-list h2')).toContainText('Copies')
+    // Should show the "Vos copies à corriger" section
+    await expect(page.locator('.task-list h2')).toContainText(/copies/i)
 
     // Either shows copy cards or empty state
     const hasCopies = await page.locator('[data-testid="copy-card"]').first().isVisible().catch(() => false)
@@ -180,7 +181,7 @@ test.describe('Dashboard & Navigation', () => {
     await loginAsStudent(page)
 
     // If we are on the student portal (not change-password)
-    if (page.url().includes('/student-portal')) {
+    if (page.url().includes('/student-portal') || page.url().includes('/student/dashboard')) {
       // Page should contain student result information
       await page.waitForLoadState('networkidle')
       // The result view should be rendered
@@ -194,7 +195,7 @@ test.describe('Dashboard & Navigation', () => {
   test('student can view corrected copy PDF', async ({ page }) => {
     await loginAsStudent(page)
 
-    if (page.url().includes('/student-portal')) {
+    if (page.url().includes('/student-portal') || page.url().includes('/student/dashboard')) {
       await page.waitForLoadState('networkidle')
 
       // Look for a "Telecharger" or PDF view button

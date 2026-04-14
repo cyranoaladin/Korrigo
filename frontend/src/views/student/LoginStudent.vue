@@ -71,12 +71,15 @@ const handleLogin = async () => {
               autocomplete="current-password"
             >
             <button
-               type="button"
-               class="btn-toggle-password"
-               @click="passwordVisible = !passwordVisible"
-             >
-               <AppIcon :name="passwordVisible ? 'eye-off' : 'eye'" :size="18" />
-             </button>
+              type="button"
+              class="btn-toggle-password"
+              @click="passwordVisible = !passwordVisible"
+            >
+              <AppIcon
+                :name="passwordVisible ? 'eye-off' : 'eye'"
+                :size="18"
+              />
+            </button>
           </div>
         </div>
                 
@@ -103,8 +106,14 @@ const handleLogin = async () => {
       </p>
             
       <div class="footer-links">
-        <router-link to="/" class="back-link">
-          <AppIcon name="arrow-left" :size="16" />
+        <router-link
+          to="/"
+          class="back-link"
+        >
+          <AppIcon
+            name="arrow-left"
+            :size="16"
+          />
           <span>Retour à l'accueil</span>
         </router-link>
       </div>

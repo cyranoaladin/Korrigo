@@ -131,17 +131,26 @@ onMounted(fetchResponse)
 </script>
 
 <template>
-  <div class="questionnaire-page" data-testid="corrector-questionnaire-page">
+  <div
+    class="questionnaire-page"
+    data-testid="corrector-questionnaire-page"
+  >
     <header class="top-nav">
       <div class="brand">
-        <button class="btn-back" @click="goBack">
+        <button
+          class="btn-back"
+          @click="goBack"
+        >
           ← Tableau de bord
         </button>
         <span>Questionnaire correcteur</span>
       </div>
       <div class="user-menu">
         <span>{{ authStore.user?.username }}</span>
-        <button class="btn-logout" @click="handleLogout">
+        <button
+          class="btn-logout"
+          @click="handleLogout"
+        >
           Déconnexion
         </button>
       </div>
@@ -153,16 +162,26 @@ onMounted(fetchResponse)
         <p>Retour d’expérience correcteur sur l’outil de correction.</p>
       </div>
 
-      <div v-if="isLoading" class="state-card">
+      <div
+        v-if="isLoading"
+        class="state-card"
+      >
         Chargement du questionnaire...
       </div>
 
-      <div v-else-if="loadError" class="state-card error-card">
+      <div
+        v-else-if="loadError"
+        class="state-card error-card"
+      >
         {{ loadError }}
       </div>
 
       <template v-else>
-        <div v-if="hasExistingResponse" class="info-banner success-banner" data-testid="questionnaire-completed-state">
+        <div
+          v-if="hasExistingResponse"
+          class="info-banner success-banner"
+          data-testid="questionnaire-completed-state"
+        >
           <strong>Merci, votre questionnaire a bien été transmis.</strong>
           <span v-if="submittedAt">Réponse envoyée le {{ formatDate(submittedAt) }}</span>
           <span>
@@ -173,7 +192,10 @@ onMounted(fetchResponse)
             Le bilan sera disponible quand les {{ questionnaireSummary.remaining_count }} correcteur(s) restant(s) auront répondu.
           </span>
           <div class="completed-actions">
-            <button class="btn-secondary" @click="goBack">
+            <button
+              class="btn-secondary"
+              @click="goBack"
+            >
               Retour au dashboard
             </button>
             <button
@@ -187,175 +209,205 @@ onMounted(fetchResponse)
         </div>
 
         <div v-else>
-        <div v-if="saveMessage" class="info-banner success-banner">
-          {{ saveMessage }}
-        </div>
-
-        <div class="progress-card" data-testid="questionnaire-progress-card">
-          <div class="progress-top">
-            <span>Section {{ step + 1 }} / {{ totalSections }}</span>
-            <span>{{ progressPercent }} % complété</span>
-          </div>
-          <div class="progress-bar">
-            <div
-              class="progress-fill"
-              :style="{ width: `${((step + 1) / totalSections) * 100}%` }"
-            />
-          </div>
-          <div class="section-title-row">
-            <h2>{{ currentSection.title }}</h2>
-            <span>{{ currentSection.sub }}</span>
-          </div>
-        </div>
-
-        <section class="section-card">
           <div
-            v-for="question in currentSection.questions"
-            :key="question.id"
-            class="question-block"
-            :data-testid="`question-${question.id}`"
+            v-if="saveMessage"
+            class="info-banner success-banner"
           >
-            <div class="question-label">
-              {{ question.label }}
-              <span v-if="question.req" class="required">*</span>
-            </div>
-            <div v-if="question.note" class="question-note">
-              {{ question.note }}
-            </div>
+            {{ saveMessage }}
+          </div>
 
-            <div v-if="question.type === 'lk'" class="likert-block">
-              <div class="likert-row">
-                <button
-                  v-for="value in [1, 2, 3, 4, 5]"
-                  :key="value"
-                  type="button"
-                  class="likert-btn"
-                  :class="{ selected: answers[question.id] === value }"
-                  @click="setAnswer(question.id, value)"
-                >
-                  {{ value }}
-                </button>
-              </div>
-              <div class="range-labels">
-                <span>{{ question.low }}</span>
-                <span>{{ question.high }}</span>
-              </div>
+          <div
+            class="progress-card"
+            data-testid="questionnaire-progress-card"
+          >
+            <div class="progress-top">
+              <span>Section {{ step + 1 }} / {{ totalSections }}</span>
+              <span>{{ progressPercent }} % complété</span>
             </div>
-
-            <div v-else-if="question.type === 'ro'" class="option-list">
-              <button
-                v-for="option in question.opts"
-                :key="option"
-                type="button"
-                class="option-btn"
-                :class="{ selected: answers[question.id] === option }"
-                @click="setAnswer(question.id, option)"
-              >
-                {{ option }}
-              </button>
-            </div>
-
-            <div v-else-if="question.type === 'ut'" class="utility-row">
-              <button
-                v-for="option in ['Inutile', 'Utile', 'Indispensable']"
-                :key="option"
-                type="button"
-                class="utility-btn"
-                :class="[
-                  answers[question.id] === option ? 'selected' : '',
-                  option === 'Inutile' ? 'utility-useless' : '',
-                  option === 'Utile' ? 'utility-useful' : '',
-                  option === 'Indispensable' ? 'utility-critical' : ''
-                ]"
-                @click="setAnswer(question.id, option)"
-              >
-                {{ option }}
-              </button>
-            </div>
-
-            <div v-else-if="question.type === 'ck'" class="option-list">
-              <button
-                v-for="option in question.opts"
-                :key="option"
-                type="button"
-                class="option-btn checkbox-btn"
-                :class="{ selected: (answers[question.id] || []).includes(option) }"
-                @click="toggleCheckboxAnswer(question.id, option)"
-              >
-                {{ option }}
-              </button>
-            </div>
-
-            <div v-else-if="question.type === 'nps'" class="nps-block">
-              <div class="nps-row">
-                <button
-                  v-for="value in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"
-                  :key="value"
-                  type="button"
-                  class="nps-btn"
-                  :class="{
-                    detractor: value <= 6,
-                    passive: value >= 7 && value <= 8,
-                    promoter: value >= 9,
-                    selected: answers[question.id] === value
-                  }"
-                  @click="setAnswer(question.id, value)"
-                >
-                  {{ value }}
-                </button>
-              </div>
-              <div class="range-labels">
-                <span>Certainement pas</span>
-                <span>Absolument</span>
-              </div>
-            </div>
-
-            <div v-else-if="question.type === 'ta'">
-              <textarea
-                :value="answers[question.id] || ''"
-                class="text-area"
-                :data-testid="`textarea-${question.id}`"
-                :placeholder="question.ph || ''"
-                @input="setAnswer(question.id, $event.target.value)"
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                :style="{ width: `${((step + 1) / totalSections) * 100}%` }"
               />
             </div>
+            <div class="section-title-row">
+              <h2>{{ currentSection.title }}</h2>
+              <span>{{ currentSection.sub }}</span>
+            </div>
           </div>
 
-          <div v-if="saveError" class="error-inline">
-            {{ saveError }}
-          </div>
+          <section class="section-card">
+            <div
+              v-for="question in currentSection.questions"
+              :key="question.id"
+              class="question-block"
+              :data-testid="`question-${question.id}`"
+            >
+              <div class="question-label">
+                {{ question.label }}
+                <span
+                  v-if="question.req"
+                  class="required"
+                >*</span>
+              </div>
+              <div
+                v-if="question.note"
+                class="question-note"
+              >
+                {{ question.note }}
+              </div>
 
-          <div class="actions-row">
-            <button
-              v-if="step > 0"
-              type="button"
-              class="btn-secondary"
-              @click="goPrev"
-            >
-              ← Précédent
-            </button>
-            <span v-else />
+              <div
+                v-if="question.type === 'lk'"
+                class="likert-block"
+              >
+                <div class="likert-row">
+                  <button
+                    v-for="value in [1, 2, 3, 4, 5]"
+                    :key="value"
+                    type="button"
+                    class="likert-btn"
+                    :class="{ selected: answers[question.id] === value }"
+                    @click="setAnswer(question.id, value)"
+                  >
+                    {{ value }}
+                  </button>
+                </div>
+                <div class="range-labels">
+                  <span>{{ question.low }}</span>
+                  <span>{{ question.high }}</span>
+                </div>
+              </div>
 
-            <button
-              v-if="step < totalSections - 1"
-              type="button"
-              class="btn-primary"
-              @click="goNext"
+              <div
+                v-else-if="question.type === 'ro'"
+                class="option-list"
+              >
+                <button
+                  v-for="option in question.opts"
+                  :key="option"
+                  type="button"
+                  class="option-btn"
+                  :class="{ selected: answers[question.id] === option }"
+                  @click="setAnswer(question.id, option)"
+                >
+                  {{ option }}
+                </button>
+              </div>
+
+              <div
+                v-else-if="question.type === 'ut'"
+                class="utility-row"
+              >
+                <button
+                  v-for="option in ['Inutile', 'Utile', 'Indispensable']"
+                  :key="option"
+                  type="button"
+                  class="utility-btn"
+                  :class="[
+                    answers[question.id] === option ? 'selected' : '',
+                    option === 'Inutile' ? 'utility-useless' : '',
+                    option === 'Utile' ? 'utility-useful' : '',
+                    option === 'Indispensable' ? 'utility-critical' : ''
+                  ]"
+                  @click="setAnswer(question.id, option)"
+                >
+                  {{ option }}
+                </button>
+              </div>
+
+              <div
+                v-else-if="question.type === 'ck'"
+                class="option-list"
+              >
+                <button
+                  v-for="option in question.opts"
+                  :key="option"
+                  type="button"
+                  class="option-btn checkbox-btn"
+                  :class="{ selected: (answers[question.id] || []).includes(option) }"
+                  @click="toggleCheckboxAnswer(question.id, option)"
+                >
+                  {{ option }}
+                </button>
+              </div>
+
+              <div
+                v-else-if="question.type === 'nps'"
+                class="nps-block"
+              >
+                <div class="nps-row">
+                  <button
+                    v-for="value in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"
+                    :key="value"
+                    type="button"
+                    class="nps-btn"
+                    :class="{
+                      detractor: value <= 6,
+                      passive: value >= 7 && value <= 8,
+                      promoter: value >= 9,
+                      selected: answers[question.id] === value
+                    }"
+                    @click="setAnswer(question.id, value)"
+                  >
+                    {{ value }}
+                  </button>
+                </div>
+                <div class="range-labels">
+                  <span>Certainement pas</span>
+                  <span>Absolument</span>
+                </div>
+              </div>
+
+              <div v-else-if="question.type === 'ta'">
+                <textarea
+                  :value="answers[question.id] || ''"
+                  class="text-area"
+                  :data-testid="`textarea-${question.id}`"
+                  :placeholder="question.ph || ''"
+                  @input="setAnswer(question.id, $event.target.value)"
+                />
+              </div>
+            </div>
+
+            <div
+              v-if="saveError"
+              class="error-inline"
             >
-              Section suivante →
-            </button>
-            <button
-              v-else
-              type="button"
-              class="btn-primary"
-              data-testid="questionnaire-submit"
-              :disabled="isSubmitting"
-              @click="submitQuestionnaire"
-            >
-              {{ isSubmitting ? 'Enregistrement...' : 'Enregistrer le questionnaire' }}
-            </button>
-          </div>
-        </section>
+              {{ saveError }}
+            </div>
+
+            <div class="actions-row">
+              <button
+                v-if="step > 0"
+                type="button"
+                class="btn-secondary"
+                @click="goPrev"
+              >
+                ← Précédent
+              </button>
+              <span v-else />
+
+              <button
+                v-if="step < totalSections - 1"
+                type="button"
+                class="btn-primary"
+                @click="goNext"
+              >
+                Section suivante →
+              </button>
+              <button
+                v-else
+                type="button"
+                class="btn-primary"
+                data-testid="questionnaire-submit"
+                :disabled="isSubmitting"
+                @click="submitQuestionnaire"
+              >
+                {{ isSubmitting ? 'Enregistrement...' : 'Enregistrer le questionnaire' }}
+              </button>
+            </div>
+          </section>
         </div>
       </template>
     </main>

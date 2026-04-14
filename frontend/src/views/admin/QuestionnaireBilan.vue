@@ -27,43 +27,6 @@ const canSeePartialResponses = computed(() => authStore.user?.role === 'Admin' &
 const selectedResponseUserId = ref(null)
 const activeTab = ref('synthese')
 
-const questionnaireQuestionMeta = QUESTIONNAIRE_SECTIONS.flatMap((section) => section.questions.map((question) => ({
-  id: question.id,
-  label: question.label,
-  sectionId: section.id,
-  sectionTitle: section.title
-}))).reduce((acc, item) => {
-  acc[item.id] = item
-  return acc
-}, {})
-
-const formatAnswerValue = (value) => {
-  if (Array.isArray(value)) return value.length ? value.join(', ') : '—'
-  if (value === null || value === undefined || value === '') return '—'
-  return value
-}
-
-const selectedDetailedResponse = computed(() => responses.value.find((response) => response.user_id === selectedResponseUserId.value) || responses.value[0] || null)
-
-const selectedDetailedSections = computed(() => {
-  if (!selectedDetailedResponse.value) return []
-  const grouped = Object.entries(selectedDetailedResponse.value.answers || {}).reduce((acc, [key, value]) => {
-    const meta = questionnaireQuestionMeta[key] || { sectionId: 'other', sectionTitle: 'Autres réponses', label: key }
-    const existing = acc[meta.sectionId] || { id: meta.sectionId, title: meta.sectionTitle, items: [] }
-    existing.items.push({
-      key,
-      label: meta.label,
-      value: formatAnswerValue(value)
-    })
-    acc[meta.sectionId] = existing
-    return acc
-  }, {})
-
-  const ordered = QUESTIONNAIRE_SECTIONS.map((section) => grouped[section.id]).filter(Boolean)
-  if (grouped.other) ordered.push(grouped.other)
-  return ordered
-})
-
 const getAnswer = (response, questionId) => response.answers?.[questionId]
 
 const numericAverage = (questionIds) => {
@@ -122,15 +85,6 @@ const blockingStats = computed(() => BLOCK_OPTIONS.map((option) => ({
   }).length
 })))
 
-const respondentRows = computed(() => responses.value.map((response) => ({
-  name: response.display_name,
-  username: response.username,
-  nps: getAnswer(response, 'q53'),
-  sentiment: getAnswer(response, 'q61') || '—',
-  recommendation: getAnswer(response, 'q51') || '—',
-  submittedAt: response.submitted_at
-})))
-
 const collectVerbatims = (questionId) => responses.value
   .filter((response) => (getAnswer(response, questionId) || '').trim())
   .map((response) => ({
@@ -148,15 +102,6 @@ const maxCount = (items) => Math.max(...items.map((item) => item.count), 1)
 const formatDate = (value) => {
   if (!value) return '—'
   return new Date(value).toLocaleString('fr-FR')
-}
-
-const exportJson = () => {
-  const blob = new Blob([JSON.stringify(responses.value, null, 2)], { type: 'application/json' })
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.download = `korrigo_questionnaire_${new Date().toISOString().slice(0, 10)}.json`
-  link.click()
-  URL.revokeObjectURL(link.href)
 }
 
 const fetchBilan = async () => {
@@ -196,40 +141,71 @@ onMounted(fetchBilan)
 </script>
 
 <template>
-  <div class="bilan-page" data-testid="questionnaire-bilan-page">
+  <div
+    class="bilan-page"
+    data-testid="questionnaire-bilan-page"
+  >
     <!-- Premium Header -->
     <header class="bilan-header">
       <div class="header-content">
-        <button class="header-btn" @click="goToDashboard">
+        <button
+          class="header-btn"
+          @click="goToDashboard"
+        >
           <span class="btn-icon">&#8592;</span> Dashboard
         </button>
         <div class="header-title">
           <h1>Bilan Questionnaire Correcteurs</h1>
-          <p class="header-subtitle">{{ summary.responses_count }} réponse(s) sur {{ summary.total_eligible }} correcteur(s)</p>
+          <p class="header-subtitle">
+            {{ summary.responses_count }} réponse(s) sur {{ summary.total_eligible }} correcteur(s)
+          </p>
         </div>
         <div class="header-actions">
           <span class="header-user">{{ authStore.user?.username }}</span>
-          <button class="header-btn logout" @click="handleLogout">Déconnexion</button>
+          <button
+            class="header-btn logout"
+            @click="handleLogout"
+          >
+            Déconnexion
+          </button>
         </div>
       </div>
     </header>
 
     <!-- Tab Navigation -->
-    <nav class="tab-bar" v-if="!isLoading && !error">
+    <nav
+      v-if="!isLoading && !error"
+      class="tab-bar"
+    >
       <div class="tab-bar-inner">
-        <button :class="['tab', { active: activeTab === 'synthese' }]" @click="activeTab = 'synthese'">
+        <button
+          :class="['tab', { active: activeTab === 'synthese' }]"
+          @click="activeTab = 'synthese'"
+        >
           <span class="tab-icon">&#x1F4CA;</span> Synthèse
         </button>
-        <button :class="['tab', { active: activeTab === 'bilan' }]" @click="activeTab = 'bilan'">
+        <button
+          :class="['tab', { active: activeTab === 'bilan' }]"
+          @click="activeTab = 'bilan'"
+        >
           <span class="tab-icon">&#x1F4C4;</span> Bilan complet
         </button>
-        <button :class="['tab', { active: activeTab === 'donnees' }]" @click="activeTab = 'donnees'">
+        <button
+          :class="['tab', { active: activeTab === 'donnees' }]"
+          @click="activeTab = 'donnees'"
+        >
           <span class="tab-icon">&#x1F4C8;</span> Données détaillées
         </button>
-        <button :class="['tab', { active: activeTab === 'retours' }]" @click="activeTab = 'retours'">
+        <button
+          :class="['tab', { active: activeTab === 'retours' }]"
+          @click="activeTab = 'retours'"
+        >
           <span class="tab-icon">&#x1F4AC;</span> Retours libres
         </button>
-        <button :class="['tab', { active: activeTab === 'v2' }]" @click="activeTab = 'v2'">
+        <button
+          :class="['tab', { active: activeTab === 'v2' }]"
+          @click="activeTab = 'v2'"
+        >
           <span class="tab-icon">&#x1F680;</span> Améliorations V2
         </button>
       </div>
@@ -238,53 +214,67 @@ onMounted(fetchBilan)
     <!-- Content -->
     <main class="bilan-content">
       <!-- Loading state -->
-      <div v-if="isLoading" class="glass-card loading-card">
-        <div class="loading-spinner"></div>
+      <div
+        v-if="isLoading"
+        class="glass-card loading-card"
+      >
+        <div class="loading-spinner" />
         <p>Chargement du bilan...</p>
       </div>
 
       <!-- Error state -->
-      <div v-else-if="error" class="glass-card error-card">
-        <div class="error-icon">!</div>
+      <div
+        v-else-if="error"
+        class="glass-card error-card"
+      >
+        <div class="error-icon">
+          !
+        </div>
         <p>{{ error }}</p>
       </div>
 
       <template v-else>
         <!-- Tab: Synthèse -->
-        <div v-show="activeTab === 'synthese'" class="tab-panel">
-          <section class="kpi-grid" data-testid="questionnaire-bilan-summary">
+        <div
+          v-show="activeTab === 'synthese'"
+          class="tab-panel"
+        >
+          <section
+            class="kpi-grid"
+            data-testid="questionnaire-bilan-summary"
+          >
             <div class="kpi-card kpi-participation">
-              <div class="kpi-accent"></div>
+              <div class="kpi-accent" />
               <span class="kpi-label">Participation</span>
               <strong class="kpi-value">{{ summary.responses_count }} / {{ summary.total_eligible }}</strong>
               <span class="kpi-sub">{{ summary.completion_rate }} % de complétion</span>
             </div>
             <div class="kpi-card kpi-nps">
-              <div class="kpi-accent"></div>
+              <div class="kpi-accent" />
               <span class="kpi-label">NPS moyen</span>
               <strong class="kpi-value">{{ npsAverage ?? '—' }}</strong>
               <span class="kpi-sub">sur 10</span>
             </div>
             <div class="kpi-card kpi-index">
-              <div class="kpi-accent"></div>
+              <div class="kpi-accent" />
               <span class="kpi-label">Indice NPS</span>
               <strong class="kpi-value">{{ npsIndex ?? '—' }}</strong>
               <span class="kpi-sub">promoteurs - détracteurs</span>
             </div>
             <div class="kpi-card kpi-ergo">
-              <div class="kpi-accent"></div>
+              <div class="kpi-accent" />
               <span class="kpi-label">Ergonomie</span>
               <strong class="kpi-value">{{ ergonomicsAverage ?? '—' }}</strong>
               <span class="kpi-sub">moyenne / 5</span>
             </div>
             <div class="kpi-card kpi-trust">
-              <div class="kpi-accent"></div>
+              <div class="kpi-accent" />
               <span class="kpi-label">Confiance</span>
               <strong class="kpi-value">{{ trustAverage ?? '—' }}</strong>
               <span class="kpi-sub">moyenne / 5</span>
             </div>
             <div class="kpi-card kpi-paper">
-              <div class="kpi-accent"></div>
+              <div class="kpi-accent" />
               <span class="kpi-label">Gain vs papier</span>
               <strong class="kpi-value">{{ paperAverage ?? '—' }}</strong>
               <span class="kpi-sub">moyenne / 5</span>
@@ -308,38 +298,64 @@ onMounted(fetchBilan)
               <span class="section-badge">{{ summary.completion_rate }} %</span>
             </div>
             <div class="progress-track">
-              <div class="progress-fill" :style="{ width: `${summary.completion_rate}%` }"></div>
+              <div
+                class="progress-fill"
+                :style="{ width: `${summary.completion_rate}%` }"
+              />
             </div>
           </section>
         </div>
 
         <!-- Tab: Bilan complet -->
-        <div v-show="activeTab === 'bilan'" class="tab-panel">
-          <div v-if="!summary.is_available && !canSeePartialResponses && generatedBilan.status !== 'ready'" class="glass-card empty-card">
-            <div class="empty-icon">&#x1F4CB;</div>
+        <div
+          v-show="activeTab === 'bilan'"
+          class="tab-panel"
+        >
+          <div
+            v-if="!summary.is_available && !canSeePartialResponses && generatedBilan.status !== 'ready'"
+            class="glass-card empty-card"
+          >
+            <div class="empty-icon">
+              &#x1F4CB;
+            </div>
             <p>Le bilan détaillé n'est pas encore disponible.</p>
           </div>
 
-          <section v-if="generatedBilan.status === 'ready'" class="glass-card generated-bilan-section">
+          <section
+            v-if="generatedBilan.status === 'ready'"
+            class="glass-card generated-bilan-section"
+          >
             <div class="section-head">
               <h2>Bilan automatique</h2>
               <span class="section-badge">{{ formatDate(generatedBilan.generated_at) }}</span>
             </div>
-            <div class="generated-bilan-html" v-html="generatedBilan.html" />
+            <div
+              class="generated-bilan-html"
+              v-html="generatedBilan.html"
+            />
           </section>
 
-          <section v-if="generatedBilan.status === 'pending'" class="glass-card info-card">
-            <div class="loading-spinner small"></div>
+          <section
+            v-if="generatedBilan.status === 'pending'"
+            class="glass-card info-card"
+          >
+            <div class="loading-spinner small" />
             <p>Le bilan automatique est en cours de génération.</p>
           </section>
 
-          <section v-if="generatedBilan.status === 'failed'" class="glass-card error-card">
+          <section
+            v-if="generatedBilan.status === 'failed'"
+            class="glass-card error-card"
+          >
             <p>{{ generatedBilan.error || "Le bilan automatique n'a pas pu être généré pour le moment." }}</p>
           </section>
         </div>
 
         <!-- Tab: Données détaillées -->
-        <div v-show="activeTab === 'donnees'" class="tab-panel">
+        <div
+          v-show="activeTab === 'donnees'"
+          class="tab-panel"
+        >
           <template v-if="responses.length">
             <section class="two-columns">
               <div class="glass-card">
@@ -348,13 +364,20 @@ onMounted(fetchBilan)
                   <span class="section-badge">{{ responses.length }} répondant(s)</span>
                 </div>
                 <div class="stat-list">
-                  <div v-for="item in (sentimentStats || []).filter(i => !!i)" :key="item.label" class="stat-row">
+                  <div
+                    v-for="item in (sentimentStats || []).filter(i => !!i)"
+                    :key="item.label"
+                    class="stat-row"
+                  >
                     <div class="stat-label-row">
                       <span>{{ item.label }}</span>
                       <strong>{{ item.count }}</strong>
                     </div>
                     <div class="mini-bar">
-                      <div class="mini-fill" :style="{ width: `${(item.count / maxCount(sentimentStats)) * 100}%` }" />
+                      <div
+                        class="mini-fill"
+                        :style="{ width: `${(item.count / maxCount(sentimentStats)) * 100}%` }"
+                      />
                     </div>
                   </div>
                 </div>
@@ -366,13 +389,20 @@ onMounted(fetchBilan)
                   <span class="section-badge">{{ responses.length }} répondant(s)</span>
                 </div>
                 <div class="stat-list">
-                  <div v-for="item in (recommendationStats || []).filter(i => !!i)" :key="item.label" class="stat-row">
+                  <div
+                    v-for="item in (recommendationStats || []).filter(i => !!i)"
+                    :key="item.label"
+                    class="stat-row"
+                  >
                     <div class="stat-label-row">
                       <span>{{ item.label }}</span>
                       <strong>{{ item.count }}</strong>
                     </div>
                     <div class="mini-bar">
-                      <div class="mini-fill amber" :style="{ width: `${(item.count / maxCount(recommendationStats)) * 100}%` }" />
+                      <div
+                        class="mini-fill amber"
+                        :style="{ width: `${(item.count / maxCount(recommendationStats)) * 100}%` }"
+                      />
                     </div>
                   </div>
                 </div>
@@ -385,9 +415,17 @@ onMounted(fetchBilan)
                 <span class="section-badge">{{ QUESTIONNAIRE_SECTIONS[1].questions.length - 2 }} items évalués</span>
               </div>
               <div class="tool-grid">
-                <div v-for="tool in (toolStats || []).filter(i => !!i)" :key="tool.id" class="tool-card">
+                <div
+                  v-for="tool in (toolStats || []).filter(i => !!i)"
+                  :key="tool.id"
+                  class="tool-card"
+                >
                   <h3>{{ tool.label }}</h3>
-                  <div v-for="level in (tool.levels || []).filter(i => !!i)" :key="level.label" class="tool-level-row">
+                  <div
+                    v-for="level in (tool.levels || []).filter(i => !!i)"
+                    :key="level.label"
+                    class="tool-level-row"
+                  >
                     <span>{{ level.label }}</span>
                     <div class="mini-bar tool-bar">
                       <div
@@ -412,81 +450,126 @@ onMounted(fetchBilan)
                 <span class="section-badge">Question multiple</span>
               </div>
               <div class="stat-list">
-                <div v-for="item in (blockingStats || []).filter(i => !!i)" :key="item.label" class="stat-row">
+                <div
+                  v-for="item in (blockingStats || []).filter(i => !!i)"
+                  :key="item.label"
+                  class="stat-row"
+                >
                   <div class="stat-label-row">
                     <span>{{ item.label }}</span>
                     <strong>{{ item.count }}</strong>
                   </div>
                   <div class="mini-bar">
-                    <div class="mini-fill blue" :style="{ width: `${(item.count / maxCount(blockingStats)) * 100}%` }" />
+                    <div
+                      class="mini-fill blue"
+                      :style="{ width: `${(item.count / maxCount(blockingStats)) * 100}%` }"
+                    />
                   </div>
                 </div>
               </div>
             </section>
           </template>
 
-          <div v-else class="glass-card empty-card">
+          <div
+            v-else
+            class="glass-card empty-card"
+          >
             <p>Les données détaillées seront affichées dès réception des premières réponses.</p>
           </div>
         </div>
 
         <!-- Tab: Retours libres -->
-        <div v-show="activeTab === 'retours'" class="tab-panel">
+        <div
+          v-show="activeTab === 'retours'"
+          class="tab-panel"
+        >
           <template v-if="responses.length">
-            <section v-if="missingFeatures.length" class="glass-card">
+            <section
+              v-if="missingFeatures.length"
+              class="glass-card"
+            >
               <div class="section-head">
                 <h2>Fonctionnalités manquantes</h2>
                 <span class="section-badge">{{ missingFeatures.length }} verbatim(s)</span>
               </div>
               <div class="verbatim-list">
-                <div v-for="item in (missingFeatures || []).filter(i => !!i)" :key="`${item.author}-${item.submittedAt}-q54`" class="verbatim-card">
+                <div
+                  v-for="item in (missingFeatures || []).filter(i => !!i)"
+                  :key="`${item.author}-${item.submittedAt}-q54`"
+                  class="verbatim-card"
+                >
                   <p>{{ item.text }}</p>
                   <span class="verbatim-meta">{{ item.author }} — {{ formatDate(item.submittedAt) }}</span>
                 </div>
               </div>
             </section>
 
-            <section v-if="bugReports.length" class="glass-card">
+            <section
+              v-if="bugReports.length"
+              class="glass-card"
+            >
               <div class="section-head">
                 <h2>Bugs et problèmes signalés</h2>
                 <span class="section-badge">{{ bugReports.length }} verbatim(s)</span>
               </div>
               <div class="verbatim-list">
-                <div v-for="item in (bugReports || []).filter(i => !!i)" :key="`${item.author}-${item.submittedAt}-q55`" class="verbatim-card bug">
+                <div
+                  v-for="item in (bugReports || []).filter(i => !!i)"
+                  :key="`${item.author}-${item.submittedAt}-q55`"
+                  class="verbatim-card bug"
+                >
                   <p>{{ item.text }}</p>
                   <span class="verbatim-meta">{{ item.author }} — {{ formatDate(item.submittedAt) }}</span>
                 </div>
               </div>
             </section>
 
-            <section v-if="finalComments.length" class="glass-card">
+            <section
+              v-if="finalComments.length"
+              class="glass-card"
+            >
               <div class="section-head">
                 <h2>Commentaires libres</h2>
                 <span class="section-badge">{{ finalComments.length }} verbatim(s)</span>
               </div>
               <div class="verbatim-list">
-                <div v-for="item in (finalComments || []).filter(i => !!i)" :key="`${item.author}-${item.submittedAt}-q62`" class="verbatim-card comment">
+                <div
+                  v-for="item in (finalComments || []).filter(i => !!i)"
+                  :key="`${item.author}-${item.submittedAt}-q62`"
+                  class="verbatim-card comment"
+                >
                   <p>{{ item.text }}</p>
                   <span class="verbatim-meta">{{ item.author }} — {{ formatDate(item.submittedAt) }}</span>
                 </div>
               </div>
             </section>
 
-            <div v-if="!missingFeatures.length && !bugReports.length && !finalComments.length" class="glass-card empty-card">
+            <div
+              v-if="!missingFeatures.length && !bugReports.length && !finalComments.length"
+              class="glass-card empty-card"
+            >
               <p>Aucun retour libre pour le moment.</p>
             </div>
           </template>
 
-          <div v-else class="glass-card empty-card">
+          <div
+            v-else
+            class="glass-card empty-card"
+          >
             <p>Les retours libres seront affichés dès réception des premières réponses.</p>
           </div>
         </div>
 
         <!-- Tab: Améliorations V2 -->
-        <div v-show="activeTab === 'v2'" class="tab-panel">
+        <div
+          v-show="activeTab === 'v2'"
+          class="tab-panel"
+        >
           <div class="v2-intro glass-card">
             <h2>Améliorations apportées — V2 (Mars 2026)</h2>
-            <p class="v2-subtitle">En réponse directe aux retours des correcteurs, les améliorations suivantes ont été développées et déployées sur la plateforme.</p>
+            <p class="v2-subtitle">
+              En réponse directe aux retours des correcteurs, les améliorations suivantes ont été développées et déployées sur la plateforme.
+            </p>
           </div>
 
           <div class="v2-cards-grid">
@@ -496,8 +579,12 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Friction annotation / barème</h3>
-              <p class="v2-problem">Le panneau barème se réinitialisait en haut à chaque retour depuis les annotations, dissuadant les correcteurs d'annoter.</p>
-              <p class="v2-source">Selima Klibi, Patrick Dupont, Chawki Saadi</p>
+              <p class="v2-problem">
+                Le panneau barème se réinitialisait en haut à chaque retour depuis les annotations, dissuadant les correcteurs d'annoter.
+              </p>
+              <p class="v2-source">
+                Selima Klibi, Patrick Dupont, Chawki Saadi
+              </p>
               <div class="v2-solution">
                 <strong>Refonte complète du layout :</strong> le barème est désormais affiché en permanence dans le panneau lateral droit. Les outils d'annotation sont dans la barre d'outils au-dessus de la copie. Plus aucune navigation entre onglets n'est nécessaire — les deux sont visibles simultanément.
               </div>
@@ -509,8 +596,12 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Outil tampon Vrai/Faux manquant</h3>
-              <p class="v2-problem">Absence d'un outil de marquage rapide V/X correspondant au geste papier le plus fréquent.</p>
-              <p class="v2-source">Patrick Dupont, Philippe Carr</p>
+              <p class="v2-problem">
+                Absence d'un outil de marquage rapide V/X correspondant au geste papier le plus fréquent.
+              </p>
+              <p class="v2-source">
+                Patrick Dupont, Philippe Carr
+              </p>
               <div class="v2-solution">
                 <strong>Boutons V et F dans la barre d'outils :</strong> un clic sur le bouton active le mode tampon. Chaque rectangle dessiné sur la copie crée instantanément un checkmark vert ou une croix rouge sans ouvrir d'éditeur. Le tampon persiste sur le PDF final remis à l'élève.
               </div>
@@ -522,8 +613,12 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Outils d'annotation lents</h3>
-              <p class="v2-problem">Le workflow de création d'annotation nécessitait trop d'étapes (sélection outil, clic, saisie, validation).</p>
-              <p class="v2-source">Ensemble des correcteurs</p>
+              <p class="v2-problem">
+                Le workflow de création d'annotation nécessitait trop d'étapes (sélection outil, clic, saisie, validation).
+              </p>
+              <p class="v2-source">
+                Ensemble des correcteurs
+              </p>
               <div class="v2-solution">
                 <strong>6 boutons d'annotation rapide dans la barre d'outils :</strong> Commentaire, Surlignage, Erreur, Bonus, Vrai, Faux. Les 3 premiers ouvrent un éditeur de texte pour saisir un commentaire. Les 3 derniers créent un tampon visuel instantané sans éditeur.
               </div>
@@ -535,8 +630,12 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Copies bloquées en mode "locked"</h3>
-              <p class="v2-problem">Des copies restaient verrouillées sans possibilité d'y accéder ni de les annoter.</p>
-              <p class="v2-source">Patrick Dupont, Philippe Carr</p>
+              <p class="v2-problem">
+                Des copies restaient verrouillées sans possibilité d'y accéder ni de les annoter.
+              </p>
+              <p class="v2-source">
+                Patrick Dupont, Philippe Carr
+              </p>
               <div class="v2-solution">
                 <strong>Bouton "Déverrouiller" (administrateur) :</strong> visible dans la barre d'outils pour les administrateurs. Force la suppression du verrou avec journalisation complète de l'action (qui a déverrouillé, quand, ancien propriétaire du verrou).
               </div>
@@ -548,8 +647,12 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Impossible de revenir sur une copie finalisée</h3>
-              <p class="v2-problem">Une fois la copie corrigée, aucune modification n'était possible même en cas d'erreur.</p>
-              <p class="v2-source">Edouard Rousseau</p>
+              <p class="v2-problem">
+                Une fois la copie corrigée, aucune modification n'était possible même en cas d'erreur.
+              </p>
+              <p class="v2-source">
+                Edouard Rousseau
+              </p>
               <div class="v2-solution">
                 <strong>Bouton "Rouvrir" (superutilisateur) :</strong> permet de remettre une copie finalisée en statut "Pret" pour correction. Le PDF final est invalidé, mais toutes les notes, annotations, remarques et appréciations sont conservées. Action entièrement tracée dans le journal d'audit.
               </div>
@@ -561,8 +664,12 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Pas de suivi des questions non corrigées</h3>
-              <p class="v2-problem">Aucun indicateur visuel pour savoir quelles questions du barème avaient reçu une note.</p>
-              <p class="v2-source">Sami Ben Tiba</p>
+              <p class="v2-problem">
+                Aucun indicateur visuel pour savoir quelles questions du barème avaient reçu une note.
+              </p>
+              <p class="v2-source">
+                Sami Ben Tiba
+              </p>
               <div class="v2-solution">
                 <strong>Barre de progression segmentée par question :</strong> dans le tableau de bord correcteur, chaque copie affiche une barre visuelle indiquant les questions notées (vert) et non notées (gris), avec le pourcentage et le détail (ex : "5/8 questions notées — 63 %").
               </div>
@@ -574,8 +681,12 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Commentaires non mémorisés entre copies</h3>
-              <p class="v2-problem">Les remarques saisies sur une copie ne pouvaient pas être réutilisées sur la suivante.</p>
-              <p class="v2-source">Chawki Saadi</p>
+              <p class="v2-problem">
+                Les remarques saisies sur une copie ne pouvaient pas être réutilisées sur la suivante.
+              </p>
+              <p class="v2-source">
+                Chawki Saadi
+              </p>
               <div class="v2-solution">
                 <strong>Sauvegarde automatique dans la banque personnelle :</strong> chaque remarque substantielle (plus de 5 caractères) est automatiquement enregistrée dans la banque d'annotations personnelle du correcteur avec le contexte exercice/question. Les remarques fréquentes sont proposées en priorité lors de la correction de la copie suivante.
               </div>
@@ -587,8 +698,12 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Chargement lent des pages PDF</h3>
-              <p class="v2-problem">Délai perceptible lors du passage d'une page à l'autre.</p>
-              <p class="v2-source">Sami Ben Tiba, Philippe Carr, Selima Klibi</p>
+              <p class="v2-problem">
+                Délai perceptible lors du passage d'une page à l'autre.
+              </p>
+              <p class="v2-source">
+                Sami Ben Tiba, Philippe Carr, Selima Klibi
+              </p>
               <div class="v2-solution">
                 <strong>Préchargement des pages adjacentes :</strong> les pages précédente et suivante sont chargées en arrière-plan avant que le correcteur ne navigue. Résultat : affichage quasi-instantané lors du changement de page. Ajout d'une transition en fondu pour éliminer le flash blanc.
               </div>
@@ -600,8 +715,12 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Scroll et navigation non fluides</h3>
-              <p class="v2-problem">Le défilement des pages n'était pas naturel et le zoom difficile à ajuster.</p>
-              <p class="v2-source">Chawki Saadi, Philippe Carr</p>
+              <p class="v2-problem">
+                Le défilement des pages n'était pas naturel et le zoom difficile à ajuster.
+              </p>
+              <p class="v2-source">
+                Chawki Saadi, Philippe Carr
+              </p>
               <div class="v2-solution">
                 <strong>Scroll fluide natif + zoom amélioré :</strong> activation du scroll smooth CSS, support du Ctrl+molette pour zoomer/dézoomer rapidement, bouton « Ajuster à la largeur », clic sur le pourcentage pour réinitialiser le zoom à 100 %. Temps de réponse au changement de page réduit de 400 ms à 300 ms.
               </div>
@@ -613,8 +732,12 @@ onMounted(fetchBilan)
                 <span class="status-badge deployed">Déployé</span>
               </div>
               <h3>Barème non replié par défaut</h3>
-              <p class="v2-problem">Tous les exercices du barème étaient dépliés à l'ouverture, encombrant l'espace de travail.</p>
-              <p class="v2-source">Retour d'usage général</p>
+              <p class="v2-problem">
+                Tous les exercices du barème étaient dépliés à l'ouverture, encombrant l'espace de travail.
+              </p>
+              <p class="v2-source">
+                Retour d'usage général
+              </p>
               <div class="v2-solution">
                 <strong>Comportement accordéon :</strong> tous les exercices sont repliés par défaut à l'ouverture de la copie. Cliquer sur un exercice le déplie et replie automatiquement le précédent. Un seul exercice est visible à la fois pour un confort d'affichage optimal.
               </div>

@@ -58,7 +58,10 @@
             class="inline-flex items-center gap-2 bg-primary-700 text-white px-5 py-2 rounded-lg hover:bg-primary-800 transition-colors font-medium text-sm shadow-sm"
             @click.stop="isLoginDropdownOpen = !isLoginDropdownOpen"
           >
-            <AppIcon name="login" :size="16" />
+            <AppIcon
+              name="login"
+              :size="16"
+            />
             Connexion
             <AppIcon
               name="chevron-down"
@@ -83,14 +86,22 @@
                 to="/teacher/login"
                 class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
               >
-                <AppIcon name="teacher-pen" :size="16" class="text-primary-500" />
+                <AppIcon
+                  name="teacher-pen"
+                  :size="16"
+                  class="text-primary-500"
+                />
                 Enseignant
               </router-link>
               <router-link
                 to="/admin/login"
                 class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
               >
-                <AppIcon name="admin" :size="16" class="text-purple-500" />
+                <AppIcon
+                  name="admin"
+                  :size="16"
+                  class="text-purple-500"
+                />
                 Administration
               </router-link>
               <div class="border-t border-gray-100 my-1" />
@@ -98,7 +109,11 @@
                 to="/student/login"
                 class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
               >
-                <AppIcon name="student" :size="16" class="text-green-500" />
+                <AppIcon
+                  name="student"
+                  :size="16"
+                  class="text-green-500"
+                />
                 Élève
               </router-link>
             </div>
@@ -170,21 +185,33 @@
             to="/teacher/login"
             class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
           >
-            <AppIcon name="teacher-pen" :size="16" class="text-primary-500" />
+            <AppIcon
+              name="teacher-pen"
+              :size="16"
+              class="text-primary-500"
+            />
             Enseignant
           </router-link>
           <router-link
             to="/admin/login"
             class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
           >
-            <AppIcon name="admin" :size="16" class="text-purple-500" />
+            <AppIcon
+              name="admin"
+              :size="16"
+              class="text-purple-500"
+            />
             Administration
           </router-link>
           <router-link
             to="/student/login"
             class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
           >
-            <AppIcon name="student" :size="16" class="text-green-500" />
+            <AppIcon
+              name="student"
+              :size="16"
+              class="text-green-500"
+            />
             Élève
           </router-link>
         </div>

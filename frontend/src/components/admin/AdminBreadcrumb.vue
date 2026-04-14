@@ -53,9 +53,20 @@ const crumbs = computed(() => {
 </script>
 
 <template>
-  <nav v-if="crumbs.length > 1" class="flex items-center gap-1.5 text-sm text-slate-500 px-6 py-3 bg-white border-b border-slate-200">
-    <template v-for="(crumb, i) in crumbs" :key="i">
-      <AppIcon v-if="i > 0" name="chevron-right" :size="14" class="text-slate-300 flex-shrink-0" />
+  <nav
+    v-if="crumbs.length > 1"
+    class="flex items-center gap-1.5 text-sm text-slate-500 px-6 py-3 bg-white border-b border-slate-200"
+  >
+    <template
+      v-for="(crumb, i) in crumbs"
+      :key="i"
+    >
+      <AppIcon
+        v-if="i > 0"
+        name="chevron-right"
+        :size="14"
+        class="text-slate-300 flex-shrink-0"
+      />
       <router-link
         v-if="crumb.to && i < crumbs.length - 1"
         :to="crumb.to"
@@ -63,7 +74,10 @@ const crumbs = computed(() => {
       >
         {{ crumb.label }}
       </router-link>
-      <span v-else class="font-medium text-slate-700 truncate max-w-[200px]">
+      <span
+        v-else
+        class="font-medium text-slate-700 truncate max-w-[200px]"
+      >
         {{ crumb.label }}
       </span>
     </template>

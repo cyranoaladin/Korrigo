@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { TEACHER_PASS, TEACHER_USER } from './credentials'
 
 /**
  * REGRESSION TEST — Annotation Mode Mutual Exclusion
@@ -13,9 +14,6 @@ import { test, expect, type Page } from '@playwright/test'
  * Fix: Single annotationMode ref with setAnnotationMode() that structurally
  * prevents both groups from being active simultaneously.
  */
-
-const TEACHER_USER = process.env.E2E_TEACHER_USER || 'enseignant'
-const TEACHER_PASS = process.env.E2E_TEACHER_PASS || 'enseignant'
 
 async function loginAsTeacher(page: Page) {
   await page.goto('/teacher/login')

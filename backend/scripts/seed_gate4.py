@@ -9,6 +9,9 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 django.setup()
 
 from django.core.files.base import ContentFile
+from django.contrib.auth.models import Group, User
+from core.auth import UserRole
+from core.models import UserProfile
 from exams.models import Exam, Copy
 from students.models import Student
 
@@ -23,6 +26,32 @@ def seed_gate4(student_date_naissance=None, student_lastname=None, student_first
         student_lastname = os.environ.get("E2E_STUDENT_LASTNAME", "E2E_STUDENT")
     if student_firstname is None:
         student_firstname = os.environ.get("E2E_STUDENT_FIRSTNAME", "Jean")
+    student_email = os.environ.get("E2E_STUDENT_EMAIL", "jean.e2e@example.com").strip().lower()
+    student_password = os.environ.get("E2E_STUDENT_PASSWORD", "StudentE2E!2026")
+
+    student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
+
+    student_user, _ = User.objects.get_or_create(
+        username=student_email,
+        defaults={
+            "email": student_email,
+            "first_name": student_firstname[:30],
+            "last_name": student_lastname[:30],
+            "is_active": True,
+        },
+    )
+    student_user.email = student_email
+    student_user.first_name = student_firstname[:30]
+    student_user.last_name = student_lastname[:30]
+    student_user.set_password(student_password)
+    student_user.is_active = True
+    student_user.save()
+    student_user.groups.add(student_group)
+
+    profile, _ = UserProfile.objects.get_or_create(user=student_user)
+    if profile.must_change_password:
+        profile.must_change_password = False
+        profile.save(update_fields=["must_change_password"])
 
     # 1. Create Student
     student, created = Student.objects.get_or_create(
@@ -31,9 +60,19 @@ def seed_gate4(student_date_naissance=None, student_lastname=None, student_first
         date_naissance=student_date_naissance,
         defaults={
             "class_name": "Terminale S",
-            "email": "jean.e2e@example.com"
+            "email": student_email,
+            "user": student_user,
         }
     )
+    updates = []
+    if student.email != student_email:
+        student.email = student_email
+        updates.append("email")
+    if student.user_id != student_user.id:
+        student.user = student_user
+        updates.append("user")
+    if updates:
+        student.save(update_fields=updates)
     print(f"Gate4: student_id={student.id} name={student.first_name} {student.last_name} dob={student.date_naissance} created={created}")
     
     # 2. Create Exam
@@ -86,14 +125,38 @@ def seed_gate4(student_date_naissance=None, student_lastname=None, student_first
     print(f"Gate4: copy_locked={copy_locked.id} status={copy_locked.status} owner={copy_locked.student_id}")
     
     # C) Graded & Other (Should NOT be visible/downloadable)
+    other_student_user, _ = User.objects.get_or_create(
+        username="other.e2e@example.com",
+        defaults={
+            "email": "other.e2e@example.com",
+            "first_name": "Student",
+            "last_name": "OTHER",
+            "is_active": True,
+        },
+    )
+    other_student_user.set_password("OtherStudentE2E!2026")
+    other_student_user.save()
+    other_student_user.groups.add(student_group)
+
     other_student, _ = Student.objects.get_or_create(
         first_name="Student",
         last_name="OTHER",
         date_naissance="2005-05-20",
         defaults={
-            "class_name": "Terminale S"
+            "class_name": "Terminale S",
+            "email": "other.e2e@example.com",
+            "user": other_student_user,
         }
     )
+    other_updates = []
+    if other_student.email != "other.e2e@example.com":
+        other_student.email = "other.e2e@example.com"
+        other_updates.append("email")
+    if other_student.user_id != other_student_user.id:
+        other_student.user = other_student_user
+        other_updates.append("user")
+    if other_updates:
+        other_student.save(update_fields=other_updates)
     copy_other, _ = Copy.objects.get_or_create(
         exam=exam,
         anonymous_id="GATE4-OTHER",

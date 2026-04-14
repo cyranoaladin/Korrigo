@@ -1,7 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-
-const TEACHER_USER = process.env.E2E_TEACHER_USER || 'enseignant'
-const TEACHER_PASS = process.env.E2E_TEACHER_PASS || 'enseignant'
+import { TEACHER_PASS, TEACHER_USER } from './credentials'
 
 async function loginAsTeacher(page: Page) {
   await page.goto('/teacher/login')

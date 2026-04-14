@@ -94,7 +94,10 @@ onMounted(() => {
         class="btn-back btn-with-icon"
         @click="router.back()"
       >
-        <AppIcon name="arrow-left" :size="16" />
+        <AppIcon
+          name="arrow-left"
+          :size="16"
+        />
         <span>Retour</span>
       </button>
       <h2>Éditeur de Barème : {{ exam?.name }}</h2>
@@ -131,7 +134,10 @@ onMounted(() => {
           v-else 
           class="warning-container"
         >
-          <AppIcon name="warning" :size="16" />
+          <AppIcon
+            name="warning"
+            :size="16"
+          />
           <span class="warning-text">Le total doit être 20</span>
         </div>
       </div>

@@ -112,7 +112,7 @@ const deleteReport = async (id) => {
   try {
     await api.delete(`/exams/reports/${id}/`)
     await fetchReports()
-  } catch (err) {
+  } catch {
     error.value = 'Erreur lors de la suppression.'
   }
 }
@@ -124,28 +124,63 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-if="visible" class="modal-overlay">
+  <div
+    v-if="visible"
+    class="modal-overlay"
+  >
     <div class="modal-card modal-card-large jury-modal">
       <div class="modal-header-nav">
         <h3>{{ isAdmin ? 'Gérer les rapports du jury' : modalTitle }}</h3>
-        <button class="btn-close" @click="emit('close')">×</button>
+        <button
+          class="btn-close"
+          @click="emit('close')"
+        >
+          ×
+        </button>
       </div>
       
-      <div v-if="error" class="error-banner">
+      <div
+        v-if="error"
+        class="error-banner"
+      >
         {{ error }}
-        <button class="btn-close" @click="error = null">×</button>
+        <button
+          class="btn-close"
+          @click="error = null"
+        >
+          ×
+        </button>
       </div>
 
-      <div class="jury-reports-container" v-if="!showForm">
+      <div
+        v-if="!showForm"
+        class="jury-reports-container"
+      >
         <div class="toolbar">
-          <button v-if="isAdmin" class="btn-primary" @click="openCreate">Nouveau Rapport</button>
+          <button
+            v-if="isAdmin"
+            class="btn-primary"
+            @click="openCreate"
+          >
+            Nouveau Rapport
+          </button>
         </div>
         
-        <div v-if="loading" class="loading">Chargement…</div>
-        <table v-else-if="visibleReports.length > 0" class="data-table">
+        <div
+          v-if="loading"
+          class="loading"
+        >
+          Chargement…
+        </div>
+        <table
+          v-else-if="visibleReports.length > 0"
+          class="data-table"
+        >
           <thead>
             <tr>
-              <th v-if="isAdmin">Matière</th>
+              <th v-if="isAdmin">
+                Matière
+              </th>
               <th>Titre</th>
               <th>Auteur</th>
               <th>Statut</th>
@@ -153,8 +188,13 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="r in visibleReports" :key="r.id">
-              <td v-if="isAdmin">{{ r.exam_type_name || r.exam_type_code || '—' }}</td>
+            <tr
+              v-for="r in visibleReports"
+              :key="r.id"
+            >
+              <td v-if="isAdmin">
+                {{ r.exam_type_name || r.exam_type_code || '—' }}
+              </td>
               <td>{{ r.title }}</td>
               <td>{{ r.created_by_username }}</td>
               <td>
@@ -163,43 +203,104 @@ onMounted(() => {
                 </span>
               </td>
               <td class="actions-cell">
-                <button class="btn-sm" @click="editReport(r)">{{ isAdmin ? 'Lire / Modifier' : 'Consulter' }}</button>
-                <button v-if="isAdmin" class="btn-sm btn-danger" @click="deleteReport(r.id)">Supprimer</button>
+                <button
+                  class="btn-sm"
+                  @click="editReport(r)"
+                >
+                  {{ isAdmin ? 'Lire / Modifier' : 'Consulter' }}
+                </button>
+                <button
+                  v-if="isAdmin"
+                  class="btn-sm btn-danger"
+                  @click="deleteReport(r.id)"
+                >
+                  Supprimer
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
-        <div v-else class="empty-state">
+        <div
+          v-else
+          class="empty-state"
+        >
           Aucun rapport de jury n'a été trouvé.
         </div>
       </div>
 
-      <div class="report-form" v-else>
+      <div
+        v-else
+        class="report-form"
+      >
         <div class="form-group">
           <label>Matière / Rubrique</label>
-          <select v-model="formData.exam_type" class="form-input" :disabled="!isAdmin">
-            <option disabled value="">-- Choisir une matière --</option>
-            <option v-for="e in examTypes" :key="e?.id" :value="e?.id">{{ e?.name }}</option>
+          <select
+            v-model="formData.exam_type"
+            class="form-input"
+            :disabled="!isAdmin"
+          >
+            <option
+              disabled
+              value=""
+            >
+              -- Choisir une matière --
+            </option>
+            <option
+              v-for="e in examTypes"
+              :key="e?.id"
+              :value="e?.id"
+            >
+              {{ e?.name }}
+            </option>
           </select>
         </div>
         <div class="form-group">
           <label>Titre du Rapport</label>
-          <input type="text" v-model="formData.title" class="form-input" placeholder="Ex: Rapport de jury BB Maths..." :disabled="!isAdmin">
+          <input
+            v-model="formData.title"
+            type="text"
+            class="form-input"
+            placeholder="Ex: Rapport de jury BB Maths..."
+            :disabled="!isAdmin"
+          >
         </div>
         <div class="form-group">
           <label>Contenu / Bilan</label>
-          <textarea v-model="formData.content" class="form-input" rows="10" placeholder="Rédigez le bilan global..." :disabled="!isAdmin"></textarea>
+          <textarea
+            v-model="formData.content"
+            class="form-input"
+            rows="10"
+            placeholder="Rédigez le bilan global..."
+            :disabled="!isAdmin"
+          />
         </div>
-        <div class="form-group checkbox-group" v-if="isAdmin">
+        <div
+          v-if="isAdmin"
+          class="form-group checkbox-group"
+        >
           <label>
-            <input type="checkbox" v-model="formData.is_published">
+            <input
+              v-model="formData.is_published"
+              type="checkbox"
+            >
             Rapport Publié (visible par les correcteurs)
           </label>
         </div>
         
         <div class="modal-actions">
-          <button class="btn-outline" @click="showForm = false" :disabled="saving">Annuler</button>
-          <button v-if="isAdmin" class="btn-primary" @click="saveReport" :disabled="saving">
+          <button
+            class="btn-outline"
+            :disabled="saving"
+            @click="showForm = false"
+          >
+            Annuler
+          </button>
+          <button
+            v-if="isAdmin"
+            class="btn-primary"
+            :disabled="saving"
+            @click="saveReport"
+          >
             {{ saving ? 'Enregistrement...' : 'Enregistrer le rapport' }}
           </button>
         </div>

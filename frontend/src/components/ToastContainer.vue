@@ -28,7 +28,10 @@ const iconBg = {
 
 <template>
   <Teleport to="body">
-    <div class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none" style="max-width: 380px;">
+    <div
+      class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"
+      style="max-width: 380px;"
+    >
       <TransitionGroup
         enter-active-class="transition-all duration-300 ease-out"
         enter-from-class="opacity-0 translate-x-8"
@@ -47,14 +50,20 @@ const iconBg = {
             class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white"
             :class="iconBg[toast.type] || iconBg.info"
           >
-            <AppIcon :name="iconMap[toast.type] || 'info'" :size="12" />
+            <AppIcon
+              :name="iconMap[toast.type] || 'info'"
+              :size="12"
+            />
           </span>
           <span class="text-sm font-medium flex-1">{{ toast.message }}</span>
           <button
             class="flex-shrink-0 p-0.5 rounded hover:bg-black/10 transition-colors"
             @click="remove(toast.id)"
           >
-            <AppIcon name="close" :size="14" />
+            <AppIcon
+              name="close"
+              :size="14"
+            />
           </button>
         </div>
       </TransitionGroup>

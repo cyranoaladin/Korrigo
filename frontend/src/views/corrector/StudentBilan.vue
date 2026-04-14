@@ -90,20 +90,49 @@ onMounted(fetchBilan)
   <div class="student-bilan-page">
     <header class="top-nav">
       <div class="brand">
-        <button class="btn-back" @click="goBack"><AppIcon name="arrow-left" :size="14" class="inline" /> Mes Élèves</button>
+        <button
+          class="btn-back"
+          @click="goBack"
+        >
+          <AppIcon
+            name="arrow-left"
+            :size="14"
+            class="inline"
+          /> Mes Élèves
+        </button>
         <span class="separator">|</span>
-        <button class="btn-back" @click="goToDashboard">Dashboard</button>
+        <button
+          class="btn-back"
+          @click="goToDashboard"
+        >
+          Dashboard
+        </button>
       </div>
       <div class="user-menu">
         <span>{{ authStore.user?.username }}</span>
-        <button class="btn-logout" @click="handleLogout">Déconnexion</button>
+        <button
+          class="btn-logout"
+          @click="handleLogout"
+        >
+          Déconnexion
+        </button>
       </div>
     </header>
 
     <main class="container">
-      <div v-if="isLoading" class="loading">Chargement du bilan...</div>
+      <div
+        v-if="isLoading"
+        class="loading"
+      >
+        Chargement du bilan...
+      </div>
 
-      <div v-else-if="error" class="error-message">{{ error }}</div>
+      <div
+        v-else-if="error"
+        class="error-message"
+      >
+        {{ error }}
+      </div>
 
       <template v-else-if="student">
         <!-- Student Header -->
@@ -116,16 +145,27 @@ onMounted(fetchBilan)
               <span class="email">{{ student.email }}</span>
             </div>
           </div>
-          <div v-if="selectedCopy" class="score-display">
-            <div class="score-value" :class="{ graded: selectedCopy.status === 'FINALIZED' }">
+          <div
+            v-if="selectedCopy"
+            class="score-display"
+          >
+            <div
+              class="score-value"
+              :class="{ graded: selectedCopy.status === 'FINALIZED' }"
+            >
               {{ totalScore !== null ? totalScore.toFixed(2) : '—' }}
             </div>
-            <div class="score-label">/ 20</div>
+            <div class="score-label">
+              / 20
+            </div>
           </div>
         </div>
 
         <!-- Copy Selector (if multiple exams) -->
-        <div v-if="copies.length > 1" class="copy-selector">
+        <div
+          v-if="copies.length > 1"
+          class="copy-selector"
+        >
           <button
             v-for="(copy, idx) in copies"
             :key="copy.copy_id"
@@ -137,7 +177,10 @@ onMounted(fetchBilan)
         </div>
 
         <!-- Copy Details -->
-        <div v-if="selectedCopy" class="bilan-content">
+        <div
+          v-if="selectedCopy"
+          class="bilan-content"
+        >
           <!-- Status & Actions -->
           <div class="status-bar">
             <span :class="['status-badge', getStatusClass(selectedCopy.status)]">
@@ -149,14 +192,27 @@ onMounted(fetchBilan)
               class="btn-pdf"
               @click="openPdf"
             >
-              <AppIcon name="document" :size="16" class="inline" /> Voir le PDF corrigé
+              <AppIcon
+                name="document"
+                :size="16"
+                class="inline"
+              /> Voir le PDF corrigé
             </button>
           </div>
 
           <!-- Scores par question -->
           <section class="bilan-section">
-            <h2><AppIcon name="stats" :size="18" class="inline" /> Notes par Question</h2>
-            <div v-if="sortedScores.length" class="scores-grid">
+            <h2>
+              <AppIcon
+                name="stats"
+                :size="18"
+                class="inline"
+              /> Notes par Question
+            </h2>
+            <div
+              v-if="sortedScores.length"
+              class="scores-grid"
+            >
               <div
                 v-for="[qid, score] in sortedScores"
                 :key="qid"
@@ -166,13 +222,27 @@ onMounted(fetchBilan)
                 <span class="question-score">{{ typeof score === 'number' ? score.toFixed(2) : score }}</span>
               </div>
             </div>
-            <div v-else class="empty-section">{{ selectedCopy.status === "FINALIZED" ? "Aucune note enregistrée." : "Données non disponibles — copie en cours de correction." }}</div>
+            <div
+              v-else
+              class="empty-section"
+            >
+              {{ selectedCopy.status === "FINALIZED" ? "Aucune note enregistrée." : "Données non disponibles — copie en cours de correction." }}
+            </div>
           </section>
 
           <!-- Remarques par question -->
           <section class="bilan-section">
-            <h2><AppIcon name="message" :size="18" class="inline" /> Remarques par Question</h2>
-            <div v-if="Object.keys(selectedCopy.remarks || {}).length" class="remarks-list">
+            <h2>
+              <AppIcon
+                name="message"
+                :size="18"
+                class="inline"
+              /> Remarques par Question
+            </h2>
+            <div
+              v-if="Object.keys(selectedCopy.remarks || {}).length"
+              class="remarks-list"
+            >
               <div
                 v-for="(remark, qid) in selectedCopy.remarks"
                 :key="qid"
@@ -182,13 +252,27 @@ onMounted(fetchBilan)
                 <span class="remark-text">{{ remark }}</span>
               </div>
             </div>
-            <div v-else class="empty-section">{{ selectedCopy.status === "FINALIZED" ? "Aucune remarque." : "Données non disponibles — copie en cours de correction." }}</div>
+            <div
+              v-else
+              class="empty-section"
+            >
+              {{ selectedCopy.status === "FINALIZED" ? "Aucune remarque." : "Données non disponibles — copie en cours de correction." }}
+            </div>
           </section>
 
           <!-- Annotations -->
           <section class="bilan-section">
-            <h2><AppIcon name="teacher-pen" :size="18" class="inline" /> Annotations sur la Copie</h2>
-            <div v-if="selectedCopy.annotations?.length" class="annotations-list">
+            <h2>
+              <AppIcon
+                name="teacher-pen"
+                :size="18"
+                class="inline"
+              /> Annotations sur la Copie
+            </h2>
+            <div
+              v-if="selectedCopy.annotations?.length"
+              class="annotations-list"
+            >
               <div
                 v-for="ann in selectedCopy.annotations"
                 :key="ann.id"
@@ -199,28 +283,59 @@ onMounted(fetchBilan)
                 <span class="ann-content">{{ ann.content }}</span>
               </div>
             </div>
-            <div v-else class="empty-section">{{ selectedCopy.status === "FINALIZED" ? "Aucune annotation." : "Données non disponibles — copie en cours de correction." }}</div>
+            <div
+              v-else
+              class="empty-section"
+            >
+              {{ selectedCopy.status === "FINALIZED" ? "Aucune annotation." : "Données non disponibles — copie en cours de correction." }}
+            </div>
           </section>
 
           <!-- Appréciation globale -->
           <section class="bilan-section">
-            <h2><AppIcon name="comment" :size="18" class="inline" /> Appréciation Globale</h2>
-            <div v-if="selectedCopy.global_appreciation" class="appreciation-box">
+            <h2>
+              <AppIcon
+                name="comment"
+                :size="18"
+                class="inline"
+              /> Appréciation Globale
+            </h2>
+            <div
+              v-if="selectedCopy.global_appreciation"
+              class="appreciation-box"
+            >
               {{ selectedCopy.global_appreciation }}
             </div>
-            <div v-else class="empty-section">{{ selectedCopy.status === "FINALIZED" ? "Aucune appréciation." : "Données non disponibles — copie en cours de correction." }}</div>
+            <div
+              v-else
+              class="empty-section"
+            >
+              {{ selectedCopy.status === "FINALIZED" ? "Aucune appréciation." : "Données non disponibles — copie en cours de correction." }}
+            </div>
           </section>
 
           <!-- Commentaire final -->
-          <section v-if="selectedCopy.status === 'FINALIZED' && selectedCopy.final_comment" class="bilan-section">
-            <h2><AppIcon name="questionnaire" :size="18" class="inline" /> Commentaire Final</h2>
+          <section
+            v-if="selectedCopy.status === 'FINALIZED' && selectedCopy.final_comment"
+            class="bilan-section"
+          >
+            <h2>
+              <AppIcon
+                name="questionnaire"
+                :size="18"
+                class="inline"
+              /> Commentaire Final
+            </h2>
             <div class="final-comment-box">
               {{ selectedCopy.final_comment }}
             </div>
           </section>
         </div>
 
-        <div v-else class="empty-state">
+        <div
+          v-else
+          class="empty-state"
+        >
           Aucune copie trouvée pour cet élève.
         </div>
       </template>

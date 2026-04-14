@@ -8,9 +8,12 @@ Garantit:
 import os
 import django
 import shutil
+import sys
 from django.utils import timezone
+from pathlib import Path
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 django.setup()
 
 from django.conf import settings
@@ -20,8 +23,6 @@ from django.db import transaction
 from exams.models import Exam, Booklet, Copy
 from students.models import Student
 from grading.models import GradingEvent
-from pathlib import Path
-
 User = get_user_model()
 
 # E2E Credentials (paramétrable via env pour contrat avec tests)
@@ -34,6 +35,8 @@ E2E_TEACHER_PASSWORD = os.environ.get("E2E_TEACHER_PASSWORD", "password")
 E2E_STUDENT_DOB = os.environ.get("E2E_STUDENT_DOB", "2005-03-15")
 E2E_STUDENT_LASTNAME = os.environ.get("E2E_STUDENT_LASTNAME", "E2E_STUDENT")
 E2E_STUDENT_FIRSTNAME = os.environ.get("E2E_STUDENT_FIRSTNAME", "Jean")
+E2E_STUDENT_EMAIL = os.environ.get("E2E_STUDENT_EMAIL", "jean.e2e@example.com")
+E2E_STUDENT_PASSWORD = os.environ.get("E2E_STUDENT_PASSWORD", "StudentE2E!2026")
 
 # Image dimensions for E2E (A4 ratio ~0.707)
 E2E_IMAGE_WIDTH = 1000
@@ -284,16 +287,42 @@ def main():
     )
 
     # 4b. Deterministic "Other Student" for Security Tests (avoid timeouts)
-    other_student_user, _ = User.objects.get_or_create(username="other_student", defaults={"email": "other@example.com"})
+    student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
+    other_student_user, _ = User.objects.get_or_create(
+        username="other.e2e@example.com",
+        defaults={
+            "email": "other.e2e@example.com",
+            "first_name": "Student",
+            "last_name": "OTHER",
+            "is_active": True,
+        },
+    )
+    other_student_user.email = "other.e2e@example.com"
+    other_student_user.first_name = "Student"
+    other_student_user.last_name = "OTHER"
+    other_student_user.set_password("OtherStudentE2E!2026")
+    other_student_user.is_active = True
+    other_student_user.save()
+    other_student_user.groups.add(student_group)
     other_student, _ = Student.objects.get_or_create(
         first_name="Student",
         last_name="OTHER",
         date_naissance="2005-05-20",
         defaults={
             "user": other_student_user,
-            "class_name": "TG1"
+            "class_name": "TG1",
+            "email": "other.e2e@example.com",
         }
     )
+    other_updates = []
+    if other_student.email != "other.e2e@example.com":
+        other_student.email = "other.e2e@example.com"
+        other_updates.append("email")
+    if other_student.user_id != other_student_user.id:
+        other_student.user = other_student_user
+        other_updates.append("user")
+    if other_updates:
+        other_student.save(update_fields=other_updates)
     
     other_copy = Copy.objects.create(
         exam=exam,
@@ -321,6 +350,7 @@ def main():
     
     print("\n\u2705 E2E Seed completed successfully!")
     print(f"  Teacher: {teacher.username}")
+    print(f"  Student: {E2E_STUDENT_EMAIL}")
     print(f"  Exam: {exam.id}")
     print(f"  Copy: {copy.id} status={copy.status} anon={copy.anonymous_id}")
     print(f"  Booklet: {booklet.id} pages_images={booklet.pages_images}")

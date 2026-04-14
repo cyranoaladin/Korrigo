@@ -1,7 +1,7 @@
 <script setup>
 import { resolveIcon } from '../icons/iconRegistry'
 
-const props = defineProps({
+defineProps({
   icon: { type: String, default: '' },
   size: { type: [Number, String], default: 24 },
   strokeWidth: { type: [Number, String], default: 2 },

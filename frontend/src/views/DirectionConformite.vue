@@ -3,37 +3,70 @@
     <!-- TABLEAU DE BORD PLATEFORME (DYNAMIQUE) -->
     <div class="mb-12 bg-gradient-to-r from-primary-50 to-blue-50 rounded-xl border border-primary-200 p-6">
       <h2 class="text-lg font-semibold text-primary-800 mb-4 flex items-center gap-2">
-        <AppIcon name="bar-chart-3" :size="20" />
+        <AppIcon
+          name="bar-chart-3"
+          :size="20"
+        />
         Tableau de bord plateforme
-        <span v-if="statsLoading" class="text-xs font-normal text-gray-400 ml-2">Chargement…</span>
+        <span
+          v-if="statsLoading"
+          class="text-xs font-normal text-gray-400 ml-2"
+        >Chargement…</span>
       </h2>
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div class="bg-white rounded-lg p-3 border border-gray-200 text-center">
-          <p class="text-2xl font-bold text-primary-700">{{ pd?.total_exams ?? '—' }}</p>
-          <p class="text-xs text-gray-500 mt-1">Examens</p>
+          <p class="text-2xl font-bold text-primary-700">
+            {{ pd?.total_exams ?? '—' }}
+          </p>
+          <p class="text-xs text-gray-500 mt-1">
+            Examens
+          </p>
         </div>
         <div class="bg-white rounded-lg p-3 border border-gray-200 text-center">
-          <p class="text-2xl font-bold text-primary-700">{{ pd?.total_copies ?? '—' }}</p>
-          <p class="text-xs text-gray-500 mt-1">Copies</p>
+          <p class="text-2xl font-bold text-primary-700">
+            {{ pd?.total_copies ?? '—' }}
+          </p>
+          <p class="text-xs text-gray-500 mt-1">
+            Copies
+          </p>
         </div>
         <div class="bg-white rounded-lg p-3 border border-gray-200 text-center">
-          <p class="text-2xl font-bold text-green-600">{{ pd?.copies_finalized ?? '—' }}</p>
-          <p class="text-xs text-gray-500 mt-1">Finalisées</p>
+          <p class="text-2xl font-bold text-green-600">
+            {{ pd?.copies_finalized ?? '—' }}
+          </p>
+          <p class="text-xs text-gray-500 mt-1">
+            Finalisées
+          </p>
         </div>
         <div class="bg-white rounded-lg p-3 border border-gray-200 text-center">
-          <p class="text-2xl font-bold text-blue-600">{{ pd?.correctors_count ?? '—' }}</p>
-          <p class="text-xs text-gray-500 mt-1">Correcteurs</p>
+          <p class="text-2xl font-bold text-blue-600">
+            {{ pd?.correctors_count ?? '—' }}
+          </p>
+          <p class="text-xs text-gray-500 mt-1">
+            Correcteurs
+          </p>
         </div>
         <div class="bg-white rounded-lg p-3 border border-gray-200 text-center">
-          <p class="text-2xl font-bold text-orange-600">{{ pd?.students_count ?? '—' }}</p>
-          <p class="text-xs text-gray-500 mt-1">Élèves</p>
+          <p class="text-2xl font-bold text-orange-600">
+            {{ pd?.students_count ?? '—' }}
+          </p>
+          <p class="text-xs text-gray-500 mt-1">
+            Élèves
+          </p>
         </div>
         <div class="bg-white rounded-lg p-3 border border-gray-200 text-center">
-          <p class="text-2xl font-bold text-emerald-600">{{ pd?.finalization_rate ?? '—' }}%</p>
-          <p class="text-xs text-gray-500 mt-1">Taux finalisation</p>
+          <p class="text-2xl font-bold text-emerald-600">
+            {{ pd?.finalization_rate ?? '—' }}%
+          </p>
+          <p class="text-xs text-gray-500 mt-1">
+            Taux finalisation
+          </p>
         </div>
       </div>
-      <div v-if="pd?.exam_types?.length" class="mt-4 flex flex-wrap gap-2">
+      <div
+        v-if="pd?.exam_types?.length"
+        class="mt-4 flex flex-wrap gap-2"
+      >
         <span
           v-for="et in pd.exam_types"
           :key="et.name"
@@ -42,7 +75,10 @@
           {{ et.name }} <span class="text-primary-600 font-bold">{{ et.count }}</span>
         </span>
       </div>
-      <p v-if="pd?.last_activity" class="text-xs text-gray-400 mt-3">
+      <p
+        v-if="pd?.last_activity"
+        class="text-xs text-gray-400 mt-3"
+      >
         Dernière activité : {{ formatDate(pd.last_activity) }}
       </p>
     </div>
@@ -50,7 +86,11 @@
     <!-- CONTACTS -->
     <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
       <div class="bg-white p-5 rounded-lg border border-borderSoft shadow-sm">
-        <AppIcon name="building" :size="20" class="text-primary-600 mb-2" />
+        <AppIcon
+          name="building"
+          :size="20"
+          class="text-primary-600 mb-2"
+        />
         <h3 class="font-semibold text-sm mb-1 text-neutralDark">
           Responsable de Traitement
         </h3>
@@ -59,7 +99,11 @@
         </p>
       </div>
       <div class="bg-white p-5 rounded-lg border border-borderSoft shadow-sm">
-        <AppIcon name="compliance" :size="20" class="text-green-600 mb-2" />
+        <AppIcon
+          name="compliance"
+          :size="20"
+          class="text-green-600 mb-2"
+        />
         <h3 class="font-semibold text-sm mb-1 text-neutralDark">
           DPO
         </h3>
@@ -68,7 +112,11 @@
         </p>
       </div>
       <div class="bg-white p-5 rounded-lg border border-borderSoft shadow-sm">
-        <AppIcon name="code" :size="20" class="text-blue-600 mb-2" />
+        <AppIcon
+          name="code"
+          :size="20"
+          class="text-blue-600 mb-2"
+        />
         <h3 class="font-semibold text-sm mb-1 text-neutralDark">
           Développement
         </h3>
@@ -77,7 +125,11 @@
         </p>
       </div>
       <div class="bg-white p-5 rounded-lg border border-borderSoft shadow-sm">
-        <AppIcon name="server" :size="20" class="text-orange-600 mb-2" />
+        <AppIcon
+          name="server"
+          :size="20"
+          class="text-orange-600 mb-2"
+        />
         <h3 class="font-semibold text-sm mb-1 text-neutralDark">
           Hébergement
         </h3>
@@ -362,32 +414,64 @@
         </h2>
         <ul class="space-y-2 text-sm">
           <li class="flex items-center gap-2 text-gray-700">
-            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Consentement éclairé mineur (portail élève)
+            <AppIcon
+              name="check-mark"
+              :size="14"
+              class="text-green-500 font-bold"
+            /> Consentement éclairé mineur (portail élève)
           </li>
           <li class="flex items-center gap-2 text-gray-700">
-            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Limitation accès données élèves (RBAC)
+            <AppIcon
+              name="check-mark"
+              :size="14"
+              class="text-green-500 font-bold"
+            /> Limitation accès données élèves (RBAC)
           </li>
           <li class="flex items-center gap-2 text-gray-700">
-            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Sécurité réseau (HTTPS, HSTS, CSRF)
+            <AppIcon
+              name="check-mark"
+              :size="14"
+              class="text-green-500 font-bold"
+            /> Sécurité réseau (HTTPS, HSTS, CSRF)
           </li>
           <li class="flex items-center gap-2 text-gray-700">
-            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Conservation limitée + suppression automatique
+            <AppIcon
+              name="check-mark"
+              :size="14"
+              class="text-green-500 font-bold"
+            /> Conservation limitée + suppression automatique
           </li>
           <li class="flex items-center gap-2 text-gray-700">
-            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Droit d'accès facilité (export données)
+            <AppIcon
+              name="check-mark"
+              :size="14"
+              class="text-green-500 font-bold"
+            /> Droit d'accès facilité (export données)
           </li>
           <li class="flex items-center gap-2 text-gray-700">
-            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Information transparente (politique en français)
+            <AppIcon
+              name="check-mark"
+              :size="14"
+              class="text-green-500 font-bold"
+            /> Information transparente (politique en français)
           </li>
           <li class="flex items-center gap-2 text-gray-700">
-            <AppIcon name="check-mark" :size="14" class="text-green-500 font-bold" /> Pas de profilage ni décision automatisée
+            <AppIcon
+              name="check-mark"
+              :size="14"
+              class="text-green-500 font-bold"
+            /> Pas de profilage ni décision automatisée
           </li>
         </ul>
       </div>
 
       <div class="pt-6 mt-6 border-t border-gray-200">
         <div class="flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <AppIcon name="file-down" :size="20" class="text-primary-600 flex-shrink-0 mt-0.5" />
+          <AppIcon
+            name="file-down"
+            :size="20"
+            class="text-primary-600 flex-shrink-0 mt-0.5"
+          />
           <div>
             <p class="text-sm font-medium text-gray-900">
               Registre des Activités de Traitement
