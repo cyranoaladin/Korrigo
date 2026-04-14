@@ -212,7 +212,7 @@ class PDFFlattener:
 
         # --- Titre ---
         y = 50
-        text_writer.append(fitz.Point(MARGIN_LEFT, y), "Releve de Notes", fontsize=24)
+        text_writer.append(fitz.Point(MARGIN_LEFT, y), "Relevé de Notes", fontsize=24)
         y += 35
         text_writer.append(
             fitz.Point(MARGIN_LEFT, y),
@@ -245,7 +245,7 @@ class PDFFlattener:
         # Détail par question — utiliser des labels lisibles si possible
         if scores_data:
             y = check_overflow(y, 25)
-            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Detail des notes par question :", fontsize=14)
+            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Détail des notes par question :", fontsize=14)
             y += 25
 
             # Build readable labels from grading_structure
@@ -279,7 +279,7 @@ class PDFFlattener:
                 y += LINE_HEIGHT
         else:
             y = check_overflow(y)
-            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Aucune note de bareme enregistree.", fontsize=11)
+            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Aucune note de barème enregistrée.", fontsize=11)
             y += LINE_HEIGHT
 
         y += 15
@@ -335,7 +335,7 @@ class PDFFlattener:
         appreciation = copy.global_appreciation
         if appreciation and appreciation.strip():
             y = check_overflow(y, 25)
-            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Appreciation generale :", fontsize=14)
+            text_writer.append(fitz.Point(MARGIN_LEFT, y), "Appréciation générale :", fontsize=14)
             y += 25
             y = write_wrapped(70, y, appreciation.strip(), fontsize=11, max_width=470)
 

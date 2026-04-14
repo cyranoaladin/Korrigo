@@ -94,14 +94,23 @@ const exerciseBreakdown = computed(() => {
   }
   for (const k of Object.keys(grouped)) {
     grouped[k].questions.sort((a, b) => {
-      const ap = a.qid.split('.').map(Number)
-      const bp = b.qid.split('.').map(Number)
-      // Handle NaN from UUID parsing
-      const a0 = isNaN(ap[0]) ? 999 : ap[0]
-      const b0 = isNaN(bp[0]) ? 999 : bp[0]
-      const a1 = isNaN(ap[1]) ? 0 : (ap[1] || 0)
-      const b1 = isNaN(bp[1]) ? 0 : (bp[1] || 0)
-      return a0 - b0 || a1 - b1
+      const ap = a.qid.split('.')
+      const bp = b.qid.split('.')
+      for (let i = 0; i < Math.max(ap.length, bp.length); i++) {
+        const aPart = ap[i] || ''
+        const bPart = bp[i] || ''
+        const aNum = parseInt(aPart, 10)
+        const bNum = parseInt(bPart, 10)
+        const aIsNum = !isNaN(aNum) && String(aNum) === aPart
+        const bIsNum = !isNaN(bNum) && String(bNum) === bPart
+        if (aIsNum && bIsNum) {
+          if (aNum !== bNum) return aNum - bNum
+        } else {
+          if (aPart < bPart) return -1
+          if (aPart > bPart) return 1
+        }
+      }
+      return 0
     })
   }
   return grouped
