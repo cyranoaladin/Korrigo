@@ -94,8 +94,11 @@ const exerciseBreakdown = computed(() => {
   }
   for (const k of Object.keys(grouped)) {
     grouped[k].questions.sort((a, b) => {
-      const ap = a.qid.split('.')
-      const bp = b.qid.split('.')
+      // Sort by the visible label (qLabel), which holds the question number,
+      // because qid may be an opaque UUID that has no meaningful order.
+      const getSortKey = (item) => String(item.qLabel || item.qid || '')
+      const ap = getSortKey(a).split('.')
+      const bp = getSortKey(b).split('.')
       for (let i = 0; i < Math.max(ap.length, bp.length); i++) {
         const aPart = ap[i] || ''
         const bPart = bp[i] || ''
