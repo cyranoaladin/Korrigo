@@ -70,5 +70,20 @@ services:
       DEBUG: "true"
       REDIS_HOST: redis
 
+  celery-beat:
+    build: ../../backend
+    command: celery -A core beat -l info
+    volumes:
+      - ../../backend:/app
+      - media_data:/app/media
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      DEBUG: "true"
+      REDIS_HOST: redis
+
 volumes:
   media_data:

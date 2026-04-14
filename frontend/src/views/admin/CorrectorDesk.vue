@@ -170,7 +170,7 @@ const isHeaderPageForIndex = (pageIndex) => {
     return ((page - 1) % ppb) === 0
 }
 // All masked pages use the same overlay height (identity header zone)
-const overlayHeightForIndex = (_pageIndex) => '23%'
+const overlayHeightForIndex = () => '23%'
 
 const isAssignedCorrector = computed(() => {
     const userId = authStore.user?.id
@@ -438,13 +438,13 @@ const navigateToCopy = (targetCopy) => {
 const refreshAnnotations = async () => {
     try {
         annotations.value = await gradingApi.listAnnotations(copyId)
-    } catch (err) { /* annotations may not exist yet */ }
+    } catch { /* annotations may not exist yet */ }
 }
 
 const fetchHistory = async () => {
     try {
         historyLogs.value = await gradingApi.listAuditLogs(copyId)
-    } catch (err) { /* history may not exist yet */ }
+    } catch { /* history may not exist yet */ }
 }
 
 const fetchRemarks = async () => {
@@ -455,7 +455,7 @@ const fetchRemarks = async () => {
             remarksMap.set(r.question_id, r.remark)
         })
         questionRemarks.value = remarksMap
-    } catch (err) { /* 403/404 expected for copies without remarks yet */ }
+    } catch { /* 403/404 expected for copies without remarks yet */ }
 }
 
 const fetchScores = async () => {
@@ -468,14 +468,14 @@ const fetchScores = async () => {
             })
         }
         questionScores.value = scoresMap
-    } catch (err) { /* 403/404 expected for copies without scores yet */ }
+    } catch { /* 403/404 expected for copies without scores yet */ }
 }
 
 const fetchGlobalAppreciation = async () => {
     try {
         const response = await gradingApi.fetchGlobalAppreciation(copyId)
         globalAppreciation.value = response.global_appreciation || ''
-    } catch (err) { /* appreciation may not exist yet */ }
+    } catch { /* appreciation may not exist yet */ }
 }
 
 const saveRemark = async (questionId, remark) => {
@@ -1202,17 +1202,11 @@ const handleAnnotationClick = (id) => {
     handleDeleteAnnotation(id);
 }
 
-// Helper to format date
-const formatDate = (isoString) => {
-    if (!isoString) return ''
-    return new Date(isoString).toLocaleString()
-}
-
 // --- Sync Protection: beforeunload + connectivity ---
 const onBeforeUnload = (e) => {
     if (hasPendingChanges.value) {
         e.preventDefault()
-        e.returnValue = 'Des modifications non sauvegard\u00e9es sur le serveur seront perdues.'
+        e.returnValue = 'Des modifications non sauvegardées sur le serveur seront perdues.'
         return e.returnValue
     }
 }
@@ -1345,16 +1339,26 @@ onUnmounted(() => {
           class="back-btn"
           @click="router.push(isAdmin ? '/admin/dashboard' : '/corrector-dashboard')"
         >
-          <AppIcon name="arrow-left" :size="14" class="inline" /> Retour
+          <AppIcon
+            name="arrow-left"
+            :size="14"
+            class="inline"
+          /> Retour
         </button>
-        <div v-if="siblingCopies.length > 1" class="copy-nav">
+        <div
+          v-if="siblingCopies.length > 1"
+          class="copy-nav"
+        >
           <button
             class="nav-arrow"
             :disabled="!prevCopy"
             :title="prevCopy ? `Copie précédente : ${prevCopy.anonymous_id}` : 'Première copie'"
             @click="navigateToCopy(prevCopy)"
           >
-            <AppIcon name="chevron-left" :size="14" />
+            <AppIcon
+              name="chevron-left"
+              :size="14"
+            />
           </button>
           <span class="nav-position">{{ copyPositionLabel }}</span>
           <button
@@ -1363,7 +1367,10 @@ onUnmounted(() => {
             :title="nextCopy ? `Copie suivante : ${nextCopy.anonymous_id}` : 'Dernière copie'"
             @click="navigateToCopy(nextCopy)"
           >
-            <AppIcon name="chevron-right" :size="14" />
+            <AppIcon
+              name="chevron-right"
+              :size="14"
+            />
           </button>
         </div>
         <span
@@ -1372,9 +1379,12 @@ onUnmounted(() => {
         >
           <strong>{{ copy.anonymous_id }}</strong>
           <span :class="'status-badge status-' + copy.status.toLowerCase()">{{ getStatusLabel(copy.status) }}</span>
-          <span class="sync-indicator" :class="'sync-' + syncStatusLevel"
-                :title="syncStatusLevel === 'ok' ? 'Synchronisé' : syncStatusLevel === 'offline' ? 'Hors ligne' : syncStatusLevel === 'critical' ? 'Erreur de sync' : 'En attente...'">
-            <span class="sync-dot"></span>
+          <span
+            class="sync-indicator"
+            :class="'sync-' + syncStatusLevel"
+            :title="syncStatusLevel === 'ok' ? 'Synchronisé' : syncStatusLevel === 'offline' ? 'Hors ligne' : syncStatusLevel === 'critical' ? 'Erreur de sync' : 'En attente...'"
+          >
+            <span class="sync-dot" />
           </span>
         </span>
       </div>
@@ -1438,17 +1448,29 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div v-if="gradingProgress.total > 0" class="grading-progress-strip">
+    <div
+      v-if="gradingProgress.total > 0"
+      class="grading-progress-strip"
+    >
       <div class="grading-progress-copy">
         <strong>{{ gradingProgress.scored }}/{{ gradingProgress.total }}</strong> questions notées ({{ gradingProgress.percent }}%)
       </div>
       <div class="grading-progress-bar">
-        <div class="grading-progress-fill" :style="{ width: gradingProgress.percent + '%' }" />
+        <div
+          class="grading-progress-fill"
+          :style="{ width: gradingProgress.percent + '%' }"
+        />
       </div>
-      <div v-if="hasIncompleteScores" class="grading-progress-remaining">
+      <div
+        v-if="hasIncompleteScores"
+        class="grading-progress-remaining"
+      >
         {{ gradingProgress.remaining }} question{{ gradingProgress.remaining > 1 ? 's' : '' }} restante{{ gradingProgress.remaining > 1 ? 's' : '' }}
       </div>
-      <div v-else class="grading-progress-complete">
+      <div
+        v-else
+        class="grading-progress-complete"
+      >
         Barème complet
       </div>
     </div>
@@ -1468,13 +1490,21 @@ onUnmounted(() => {
       v-if="syncStatusLevel === 'offline'"
       class="sync-banner sync-offline"
     >
-      <span><AppIcon name="warning" :size="14" class="inline" /> Hors ligne — Les modifications sont sauvegardées localement mais ne peuvent pas être envoyées au serveur.</span>
+      <span><AppIcon
+        name="warning"
+        :size="14"
+        class="inline"
+      /> Hors ligne — Les modifications sont sauvegardées localement mais ne peuvent pas être envoyées au serveur.</span>
     </div>
     <div
       v-else-if="syncStatusLevel === 'critical'"
       class="sync-banner sync-critical"
     >
-      <span><AppIcon name="alert" :size="14" class="inline" /> {{ syncErrors.length }} erreur(s) de synchronisation — Vos notes ne sont PAS sauvegardées sur le serveur !</span>
+      <span><AppIcon
+        name="alert"
+        :size="14"
+        class="inline"
+      /> {{ syncErrors.length }} erreur(s) de synchronisation — Vos notes ne sont PAS sauvegardées sur le serveur !</span>
       <button
         class="btn-sm btn-retry"
         @click="retryAllPending"
@@ -1486,7 +1516,11 @@ onUnmounted(() => {
       v-else-if="syncStatusLevel === 'warning' && hasPendingChanges"
       class="sync-banner sync-warning"
     >
-      <span><AppIcon name="info" :size="14" class="inline" /> Synchronisation en cours…</span>
+      <span><AppIcon
+        name="info"
+        :size="14"
+        class="inline"
+      /> Synchronisation en cours…</span>
     </div>
 
     <!-- Restore Draft Banner -->
@@ -1538,7 +1572,11 @@ onUnmounted(() => {
               title="Page précédente (← ou PageUp)"
               @click="goPrevPage"
             >
-              <AppIcon name="chevron-left" :size="12" class="inline" /> Préc.
+              <AppIcon
+                name="chevron-left"
+                :size="12"
+                class="inline"
+              /> Préc.
             </button>
             <span>Page {{ currentPage }} / {{ pages.length }}</span>
             <button
@@ -1546,7 +1584,11 @@ onUnmounted(() => {
               title="Page suivante (→ ou PageDown)"
               @click="goNextPage"
             >
-              Suiv. <AppIcon name="chevron-right" :size="12" class="inline" />
+              Suiv. <AppIcon
+                name="chevron-right"
+                :size="12"
+                class="inline"
+              />
             </button>
           </div>
           <div
@@ -1556,7 +1598,10 @@ onUnmounted(() => {
             <span>Aucune page</span>
           </div>
           <!-- Quick Stamp Buttons V/X -->
-          <div v-if="canAnnotate" class="quick-stamp-controls">
+          <div
+            v-if="canAnnotate"
+            class="quick-stamp-controls"
+          >
             <button
               :class="['btn-stamp', 'btn-stamp-vrai', { active: quickStampMode === 'VRAI' }]"
               title="Tampon Vrai (Glisser-Déposer ou Clic)"
@@ -1564,7 +1609,11 @@ onUnmounted(() => {
               @dragstart="handleDragStart('VRAI', $event)"
               @click="setAnnotationMode('stamp', 'VRAI')"
             >
-              <AppIcon name="check-mark" :size="14" class="inline" /> V
+              <AppIcon
+                name="check-mark"
+                :size="14"
+                class="inline"
+              /> V
             </button>
             <button
               :class="['btn-stamp', 'btn-stamp-faux', { active: quickStampMode === 'FAUX' }]"
@@ -1573,50 +1622,88 @@ onUnmounted(() => {
               @dragstart="handleDragStart('FAUX', $event)"
               @click="setAnnotationMode('stamp', 'FAUX')"
             >
-              <AppIcon name="x-mark" :size="14" class="inline" /> F
+              <AppIcon
+                name="x-mark"
+                :size="14"
+                class="inline"
+              /> F
             </button>
           </div>
           <!-- Annotation Type Quick Selectors -->
-          <div v-if="canAnnotate" class="annotation-type-controls">
+          <div
+            v-if="canAnnotate"
+            class="annotation-type-controls"
+          >
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'COMMENTAIRE' }]"
               title="Commentaire (Glisser-Déposer)"
               :draggable="!isTouch"
               @dragstart="handleDragStart('COMMENTAIRE', $event)"
               @click="setAnnotationMode('type', 'COMMENTAIRE')"
-            ><AppIcon name="comment" :size="16" /></button>
+            >
+              <AppIcon
+                name="comment"
+                :size="16"
+              />
+            </button>
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'SURLIGNAGE' }]"
               title="Surlignage (Glisser-Déposer)"
               :draggable="!isTouch"
               @dragstart="handleDragStart('SURLIGNAGE', $event)"
               @click="setAnnotationMode('type', 'SURLIGNAGE')"
-            ><AppIcon name="highlight" :size="16" /></button>
+            >
+              <AppIcon
+                name="highlight"
+                :size="16"
+              />
+            </button>
             <button
               :class="['btn-annot-type', { active: preSelectedAnnotationType === 'ERREUR' }]"
               title="Erreur (Glisser-Déposer)"
               :draggable="!isTouch"
               @dragstart="handleDragStart('ERREUR', $event)"
               @click="setAnnotationMode('type', 'ERREUR')"
-            ><AppIcon name="error-mark" :size="16" /></button>
+            >
+              <AppIcon
+                name="error-mark"
+                :size="16"
+              />
+            </button>
             <button
               :class="['btn-annot-type', 'btn-comment-bank', { active: showCommentBank }]"
               title="Mes commentaires mémorisés"
               @click="showCommentBank = !showCommentBank"
-            ><AppIcon name="star" :size="16" /></button>
+            >
+              <AppIcon
+                name="star"
+                :size="16"
+              />
+            </button>
           </div>
           <div class="zoom-controls">
             <button @click="scale = Math.max(0.3, +(scale - 0.1).toFixed(1))">
               -
             </button>
-            <button class="zoom-reset" @click="scale = 1.0" title="Réinitialiser zoom">
+            <button
+              class="zoom-reset"
+              title="Réinitialiser zoom"
+              @click="scale = 1.0"
+            >
               {{ Math.round(scale * 100) }}%
             </button>
             <button @click="scale = Math.min(3.0, +(scale + 0.1).toFixed(1))">
               +
             </button>
-            <button @click="fitToWidth" title="Ajuster à la largeur" class="btn-fit">
-              <AppIcon name="fit-width" :size="14" />
+            <button
+              title="Ajuster à la largeur"
+              class="btn-fit"
+              @click="fitToWidth"
+            >
+              <AppIcon
+                name="fit-width"
+                :size="14"
+              />
             </button>
           </div>
         </div>
@@ -1646,7 +1733,11 @@ onUnmounted(() => {
                 :style="{ height: overlayHeightForIndex(idx) }"
               >
                 <div class="anonymization-label">
-                  <AppIcon name="lock" :size="14" class="inline" /> Zone d'identification masquée
+                  <AppIcon
+                    name="lock"
+                    :size="14"
+                    class="inline"
+                  /> Zone d'identification masquée
                 </div>
                 <button
                   v-if="isAdmin"
@@ -1682,7 +1773,13 @@ onUnmounted(() => {
             v-else-if="imageError"
             class="empty-state error-state"
           >
-            <p><AppIcon name="warning" :size="14" class="inline" /> Erreur de chargement de l'image.</p>
+            <p>
+              <AppIcon
+                name="warning"
+                :size="14"
+                class="inline"
+              /> Erreur de chargement de l'image.
+            </p>
             <button @click="fetchCopy">
               Réessayer
             </button>
@@ -1706,12 +1803,24 @@ onUnmounted(() => {
         <div class="form-group">
           <label>Type</label>
           <select v-model="draftAnnotation.type">
-            <option value="COMMENTAIRE">Commentaire</option>
-            <option value="SURLIGNAGE">Surlignage</option>
-            <option value="ERREUR">Erreur</option>
-            <option value="BONUS">Bonus</option>
-            <option value="VRAI">✓ Vrai</option>
-            <option value="FAUX">✗ Faux</option>
+            <option value="COMMENTAIRE">
+              Commentaire
+            </option>
+            <option value="SURLIGNAGE">
+              Surlignage
+            </option>
+            <option value="ERREUR">
+              Erreur
+            </option>
+            <option value="BONUS">
+              Bonus
+            </option>
+            <option value="VRAI">
+              ✓ Vrai
+            </option>
+            <option value="FAUX">
+              ✗ Faux
+            </option>
           </select>
         </div>
         <div class="form-group">
@@ -1732,9 +1841,24 @@ onUnmounted(() => {
             class="btn-sm btn-suggestions"
             title="Suggestions"
             @click="showSuggestions = !showSuggestions"
-          ><AppIcon name="lightbulb" :size="14" /></button>
-          <button class="btn-sm btn-secondary" @click="cancelEditor">Annuler</button>
-          <button class="btn-sm btn-primary" @click="saveAnnotation">Enregistrer</button>
+          >
+            <AppIcon
+              name="lightbulb"
+              :size="14"
+            />
+          </button>
+          <button
+            class="btn-sm btn-secondary"
+            @click="cancelEditor"
+          >
+            Annuler
+          </button>
+          <button
+            class="btn-sm btn-primary"
+            @click="saveAnnotation"
+          >
+            Enregistrer
+          </button>
         </div>
         <AnnotationSuggestionsPanel
           v-if="examId"
@@ -1751,17 +1875,33 @@ onUnmounted(() => {
       <div class="inspector-panel">
         <div class="inspector-header">
           <strong>Barème</strong>
-          <span class="inspector-total" :class="{ 'score-overflow': scoreExceeds20 }">{{ totalScore.toFixed(2) }} / 20</span>
-          <span v-if="scoresSaving" class="save-indicator small">...</span>
+          <span
+            class="inspector-total"
+            :class="{ 'score-overflow': scoreExceeds20 }"
+          >{{ totalScore.toFixed(2) }} / 20</span>
+          <span
+            v-if="scoresSaving"
+            class="save-indicator small"
+          >...</span>
         </div>
 
         <div class="grading-panel">
-          <div v-if="exercisesWithQuestions.length === 0" class="empty-list">
+          <div
+            v-if="exercisesWithQuestions.length === 0"
+            class="empty-list"
+          >
             Aucun barème disponible.
           </div>
-          <div v-else class="grading-content">
+          <div
+            v-else
+            class="grading-content"
+          >
             <div class="exercises-list">
-              <div v-for="(exercise, exerciseIndex) in exercisesWithQuestions" :key="exercise.id" class="exercise-block">
+              <div
+                v-for="(exercise, exerciseIndex) in exercisesWithQuestions"
+                :key="exercise.id"
+                class="exercise-block"
+              >
                 <!-- Level 1: Exercise header (collapsible) -->
                 <div
                   class="exercise-header"
@@ -1769,30 +1909,51 @@ onUnmounted(() => {
                   :style="{ borderLeft: '3px solid ' + getExerciseColor(exerciseIndex).bar }"
                   @click="toggleExercise(exercise.id)"
                 >
-                  <span class="exercise-toggle"><AppIcon :name="openExerciseIds.has(exercise.id) ? 'chevron-down' : 'chevron-right'" :size="12" /></span>
+                  <span class="exercise-toggle"><AppIcon
+                    :name="openExerciseIds.has(exercise.id) ? 'chevron-down' : 'chevron-right'"
+                    :size="12"
+                  /></span>
                   <span class="exercise-label">{{ exercise.label }}</span>
-                  <span class="exercise-points"
-                    :style="{ background: getExerciseColor(exerciseIndex).bg, color: getExerciseColor(exerciseIndex).text }">
+                  <span
+                    class="exercise-points"
+                    :style="{ background: getExerciseColor(exerciseIndex).bg, color: getExerciseColor(exerciseIndex).text }"
+                  >
                     {{ exercise.points }} pts
                   </span>
                 </div>
 
-                <div v-show="openExerciseIds.has(exercise.id)" class="exercise-body">
-
+                <div
+                  v-show="openExerciseIds.has(exercise.id)"
+                  class="exercise-body"
+                >
                   <!-- Level 2a: Sub-exercise groups (Exercice 2, 3, …) -->
                   <template v-if="exercise.groups.length > 0">
-                    <div v-for="group in exercise.groups" :key="group.id" class="group-block">
+                    <div
+                      v-for="group in exercise.groups"
+                      :key="group.id"
+                      class="group-block"
+                    >
                       <div
                         class="group-header"
                         :class="{ collapsed: !openGroupIds.has(group.id) }"
                         @click="toggleGroup(group.id)"
                       >
-                        <span class="group-toggle"><AppIcon :name="openGroupIds.has(group.id) ? 'chevron-down' : 'chevron-right'" :size="12" /></span>
+                        <span class="group-toggle"><AppIcon
+                          :name="openGroupIds.has(group.id) ? 'chevron-down' : 'chevron-right'"
+                          :size="12"
+                        /></span>
                         <span class="group-label">{{ group.label }}</span>
                         <span class="group-points">{{ group.points }} pts</span>
                       </div>
-                      <div v-show="openGroupIds.has(group.id)" class="group-questions">
-                        <div v-for="question in group.questions" :key="question.id" class="question-item">
+                      <div
+                        v-show="openGroupIds.has(group.id)"
+                        class="group-questions"
+                      >
+                        <div
+                          v-for="question in group.questions"
+                          :key="question.id"
+                          class="question-item"
+                        >
                           <div class="question-header">
                             <span class="question-title">{{ question.title }}</span>
                             <span class="question-max-score">/ {{ question.maxScore }} pts</span>
@@ -1817,14 +1978,46 @@ onUnmounted(() => {
                               @input="onScoreChange(question.id, $event.target.value)"
                               @blur="onScoreBlur(question.id)"
                             >
-                            <div v-if="!isReadOnly" class="score-slider-row">
-                              <button class="score-step-btn" type="button" @click.stop="stepScore(question.id, question.maxScore, -0.25)">−</button>
-                              <input type="range" class="score-slider" min="0" :max="question.maxScore * 4" step="1" :value="(questionScores.get(question.id) || 0) * 4" @input="onScoreChange(question.id, String(parseInt($event.target.value) / 4))">
-                              <button class="score-step-btn" type="button" @click.stop="stepScore(question.id, question.maxScore, 0.25)">+</button>
+                            <div
+                              v-if="!isReadOnly"
+                              class="score-slider-row"
+                            >
+                              <button
+                                class="score-step-btn"
+                                type="button"
+                                @click.stop="stepScore(question.id, question.maxScore, -0.25)"
+                              >
+                                −
+                              </button>
+                              <input
+                                type="range"
+                                class="score-slider"
+                                min="0"
+                                :max="question.maxScore * 4"
+                                step="1"
+                                :value="(questionScores.get(question.id) || 0) * 4"
+                                @input="onScoreChange(question.id, String(parseInt($event.target.value) / 4))"
+                              >
+                              <button
+                                class="score-step-btn"
+                                type="button"
+                                @click.stop="stepScore(question.id, question.maxScore, 0.25)"
+                              >
+                                +
+                              </button>
                             </div>
-                            <div v-if="!isReadOnly" class="quick-btns">
-                              <button v-for="v in quickVals(question.maxScore)" :key="v" class="qb"
-                                      @click="onScoreChange(question.id, String(v))">{{ v }}</button>
+                            <div
+                              v-if="!isReadOnly"
+                              class="quick-btns"
+                            >
+                              <button
+                                v-for="v in quickVals(question.maxScore)"
+                                :key="v"
+                                class="qb"
+                                @click="onScoreChange(question.id, String(v))"
+                              >
+                                {{ v }}
+                              </button>
                             </div>
                           </div>
                           <div class="question-remark-field">
@@ -1835,7 +2028,12 @@ onUnmounted(() => {
                                 class="btn-suggestion-trigger"
                                 title="Suggestions"
                                 @click="openSuggestionsForRemark(question.id)"
-                              ><AppIcon name="lightbulb" :size="14" /></button>
+                              >
+                                <AppIcon
+                                  name="lightbulb"
+                                  :size="14"
+                                />
+                              </button>
                             </div>
                             <textarea
                               :id="'remark-' + question.id"
@@ -1858,7 +2056,10 @@ onUnmounted(() => {
                               @insert="handleSuggestionInsert"
                               @close="closeSuggestions"
                             />
-                            <span v-if="remarksSaving.get(question.id)" class="save-indicator small">Enregistrement...</span>
+                            <span
+                              v-if="remarksSaving.get(question.id)"
+                              class="save-indicator small"
+                            >Enregistrement...</span>
                           </div>
                         </div>
                       </div>
@@ -1867,7 +2068,11 @@ onUnmounted(() => {
 
                   <!-- Level 2b: Direct questions (no sub-groups) -->
                   <template v-else>
-                    <div v-for="question in exercise.questions" :key="question.id" class="question-item">
+                    <div
+                      v-for="question in exercise.questions"
+                      :key="question.id"
+                      class="question-item"
+                    >
                       <div class="question-header">
                         <span class="question-title">{{ question.title }}</span>
                         <span class="question-max-score">/ {{ question.maxScore }} pts</span>
@@ -1892,14 +2097,46 @@ onUnmounted(() => {
                           @input="onScoreChange(question.id, $event.target.value)"
                           @blur="onScoreBlur(question.id)"
                         >
-                        <div v-if="!isReadOnly" class="score-slider-row">
-                          <button class="score-step-btn" type="button" @click.stop="stepScore(question.id, question.maxScore, -0.25)">−</button>
-                          <input type="range" class="score-slider" min="0" :max="question.maxScore * 4" step="1" :value="(questionScores.get(question.id) || 0) * 4" @input="onScoreChange(question.id, String(parseInt($event.target.value) / 4))">
-                          <button class="score-step-btn" type="button" @click.stop="stepScore(question.id, question.maxScore, 0.25)">+</button>
+                        <div
+                          v-if="!isReadOnly"
+                          class="score-slider-row"
+                        >
+                          <button
+                            class="score-step-btn"
+                            type="button"
+                            @click.stop="stepScore(question.id, question.maxScore, -0.25)"
+                          >
+                            −
+                          </button>
+                          <input
+                            type="range"
+                            class="score-slider"
+                            min="0"
+                            :max="question.maxScore * 4"
+                            step="1"
+                            :value="(questionScores.get(question.id) || 0) * 4"
+                            @input="onScoreChange(question.id, String(parseInt($event.target.value) / 4))"
+                          >
+                          <button
+                            class="score-step-btn"
+                            type="button"
+                            @click.stop="stepScore(question.id, question.maxScore, 0.25)"
+                          >
+                            +
+                          </button>
                         </div>
-                        <div v-if="!isReadOnly" class="quick-btns">
-                          <button v-for="v in quickVals(question.maxScore)" :key="v" class="qb"
-                                  @click="onScoreChange(question.id, String(v))">{{ v }}</button>
+                        <div
+                          v-if="!isReadOnly"
+                          class="quick-btns"
+                        >
+                          <button
+                            v-for="v in quickVals(question.maxScore)"
+                            :key="v"
+                            class="qb"
+                            @click="onScoreChange(question.id, String(v))"
+                          >
+                            {{ v }}
+                          </button>
                         </div>
                       </div>
                       <div class="question-remark-field">
@@ -1910,7 +2147,12 @@ onUnmounted(() => {
                             class="btn-suggestion-trigger"
                             title="Suggestions"
                             @click="openSuggestionsForRemark(question.id)"
-                          ><AppIcon name="lightbulb" :size="14" /></button>
+                          >
+                            <AppIcon
+                              name="lightbulb"
+                              :size="14"
+                            />
+                          </button>
                         </div>
                         <textarea
                           :id="'remark-' + question.id"
@@ -1930,33 +2172,64 @@ onUnmounted(() => {
                           @insert="handleSuggestionInsert"
                           @close="closeSuggestions"
                         />
-                        <span v-if="remarksSaving.get(question.id)" class="save-indicator small">Enregistrement...</span>
+                        <span
+                          v-if="remarksSaving.get(question.id)"
+                          class="save-indicator small"
+                        >Enregistrement...</span>
                       </div>
                     </div>
                   </template>
-
                 </div>
               </div>
               <!-- Total -->
-              <div class="total-score-bar" :class="{ 'score-overflow': scoreExceeds20 }">
+              <div
+                class="total-score-bar"
+                :class="{ 'score-overflow': scoreExceeds20 }"
+              >
                 <span class="total-label">Note totale :</span>
                 <strong>{{ totalScore.toFixed(2) }}</strong> / 20
-                <span v-if="scoreExceeds20" class="overflow-warning"><AppIcon name="warning" :size="12" class="inline" /> Dépasse 20 !</span>
+                <span
+                  v-if="scoreExceeds20"
+                  class="overflow-warning"
+                ><AppIcon
+                  name="warning"
+                  :size="12"
+                  class="inline"
+                /> Dépasse 20 !</span>
               </div>
               <!-- Per-exercise score breakdown -->
-              <div v-if="exercisesWithQuestions.length > 0" class="exercise-scores-breakdown">
-                <div v-for="(exercise, exIdx) in exercisesWithQuestions" :key="'score-' + exercise.id" class="exercise-score-row">
+              <div
+                v-if="exercisesWithQuestions.length > 0"
+                class="exercise-scores-breakdown"
+              >
+                <div
+                  v-for="(exercise, exIdx) in exercisesWithQuestions"
+                  :key="'score-' + exercise.id"
+                  class="exercise-score-row"
+                >
                   <span class="exercise-score-label">{{ exercise.label }}</span>
                   <div class="exercise-score-right">
                     <div class="exercise-mini-bar">
-                      <div class="exercise-mini-fill" :style="{ width: exercise.points > 0 ? Math.min(100, ((exerciseScoreBreakdown[exercise.id]?.obtained || 0) / exercise.points) * 100) + '%' : '0%', background: getExerciseColor(exIdx).bar }" />
+                      <div
+                        class="exercise-mini-fill"
+                        :style="{ width: exercise.points > 0 ? Math.min(100, ((exerciseScoreBreakdown[exercise.id]?.obtained || 0) / exercise.points) * 100) + '%' : '0%', background: getExerciseColor(exIdx).bar }"
+                      />
                     </div>
                     <span class="exercise-score-value">{{ exerciseScoreBreakdown[exercise.id]?.obtained ?? '-' }} / {{ exercise.points }}</span>
                   </div>
                 </div>
               </div>
-              <div v-if="scoresSaving" class="scores-save-status">Sauvegarde des notes...</div>
-              <div v-else-if="lastScoresSaveStatus" class="scores-save-status" :class="{ 'save-ok': lastScoresSaveStatus.success, 'save-err': !lastScoresSaveStatus.success }">
+              <div
+                v-if="scoresSaving"
+                class="scores-save-status"
+              >
+                Sauvegarde des notes...
+              </div>
+              <div
+                v-else-if="lastScoresSaveStatus"
+                class="scores-save-status"
+                :class="{ 'save-ok': lastScoresSaveStatus.success, 'save-err': !lastScoresSaveStatus.success }"
+              >
                 {{ lastScoresSaveStatus.success ? 'Notes sauvegardées' : 'Erreur sauvegarde' }}
               </div>
             </div>
@@ -1974,7 +2247,10 @@ onUnmounted(() => {
                 spellcheck="false"
                 @input="onAppreciationChange($event.target.value)"
               />
-              <span v-if="appreciationSaving" class="save-indicator small">Enregistrement...</span>
+              <span
+                v-if="appreciationSaving"
+                class="save-indicator small"
+              >Enregistrement...</span>
             </div>
           </div>
         </div>

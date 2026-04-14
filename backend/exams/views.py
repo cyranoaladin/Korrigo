@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, generics, serializers # Added serializers import
+from rest_framework import status, generics, serializers # Added serializers import
 from rest_framework.views import APIView
 
 # ... (omitted)
@@ -16,9 +16,8 @@ from core.utils.ratelimit import maybe_ratelimit
 from .models import Exam, Booklet, Copy, ExamPDF, ExamType, JuryReport
 from .serializers import (
     ExamSerializer, BookletSerializer, CopySerializer, CorrectorCopySerializer,
-    ExamPDFSerializer, ExamTypeSerializer, JuryReportSerializer
+    ExamTypeSerializer, JuryReportSerializer
 )
-from processing.services.vision import HeaderDetector
 from grading.services import GradingService
 from .permissions import IsTeacherOrAdmin
 
@@ -392,7 +391,7 @@ class BookletHeaderView(APIView):
     permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request, id):
-        from django.http import FileResponse, HttpResponse
+        from django.http import HttpResponse
         from PIL import Image as PILImage
         from io import BytesIO
         from django.conf import settings
@@ -787,7 +786,7 @@ class StudentCopiesView(generics.ListAPIView):
                 for leaf in extract_leaf_questions(copy.exam.grading_structure):
                     question_map[leaf['id']] = {
                         'exercise_idx': leaf['exercise_idx'],
-                        'label': leaf['label'],
+                        'label': leaf.get('short_label') or leaf['label'],
                         'points': leaf['points'],
                     }
 
@@ -1415,7 +1414,6 @@ class ExamStudentListView(APIView):
     permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request, exam_id):
-        from grading.models import Score
         from grading.services import GradingService
 
         exam = get_object_or_404(Exam, id=exam_id)
@@ -1533,7 +1531,6 @@ class JuryReportListView(generics.ListCreateAPIView):
     serializer_class = JuryReportSerializer
 
     def get_queryset(self):
-        from .models import JuryReport
         from grading.models import Copy
         queryset = JuryReport.objects.select_related('exam_type', 'created_by').all()
         user = self.request.user
@@ -1579,7 +1576,6 @@ class JuryReportDetailView(generics.RetrieveUpdateDestroyAPIView):
     lookup_field = 'id'
 
     def get_queryset(self):
-        from .models import JuryReport
         queryset = JuryReport.objects.all()
         user = self.request.user
         is_admin = user.is_superuser or user.groups.filter(name__iexact=UserRole.ADMIN).exists()

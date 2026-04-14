@@ -1,15 +1,13 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from .services import OCRService
-from exams.models import Copy, Booklet
-from grading.services import GradingService
+from exams.models import Copy
 from grading.models import GradingEvent
 from students.models import Student
-from exams.permissions import IsTeacherOrAdmin, IsAdmin
+from exams.permissions import IsTeacherOrAdmin
 from django.utils import timezone
 
 
@@ -21,7 +19,7 @@ class IdentificationDeskView(APIView):
 
     def get(self, request):
         # Récupérer les copies non identifiées avec en-tête
-        from exams.models import Copy, Booklet
+        from exams.models import Copy
 
         # Get ALL unidentified copies (not limited to a specific exam)
         unidentified_copies = Copy.objects.filter(is_identified=False).select_related('exam')
@@ -45,9 +43,6 @@ class IdentificationDeskView(APIView):
         return Response(data)
 
 
-from exams.models import Copy, Booklet
-from grading.services import GradingService
-from grading.models import GradingEvent
 
 
 class ManualIdentifyView(APIView):

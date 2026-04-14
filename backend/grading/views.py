@@ -2,7 +2,7 @@ from rest_framework import generics, status
 from rest_framework import renderers
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.http import FileResponse, HttpResponse
+from django.http import HttpResponse
 from rest_framework.permissions import IsAuthenticated
 from .models import Annotation, CopyLock, GradingEvent, QuestionRemark, Score
 from exams.models import Copy, Exam
@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404
 from grading.services import AnnotationService, GradingService, LockConflictError
 from core.utils.audit import log_audit
 from core.auth import UserRole, IsKorrigoAdmin
-from django.db.models import Avg, StdDev, Min, Max, Count
+from django.db.models import Count
 import statistics
 import json
 import logging
@@ -232,7 +232,6 @@ class AnnotationHistoryView(APIView):
     permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request):
-        from django.db.models import Count
         from django.db.models.functions import Trim
 
         # Annoter avec le contenu nettoyé (trimé) et compter les occurrences

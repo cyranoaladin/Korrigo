@@ -42,6 +42,8 @@ services:
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
+      - backup_volume:/app/backups
+      - ocr_cache:/app/.cache
       - seed_data:/app/seed_data:ro
     depends_on:
       db:
@@ -63,6 +65,7 @@ services:
       DB_HOST: "db"
       DB_PORT: "5432"
       CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/0"
       REDIS_HOST: "redis"
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:?err}"
       CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:?err}"
@@ -72,6 +75,10 @@ services:
       SEED_ON_START: "${SEED_ON_START:-false}"
       DEFAULT_PASSWORD: "${DEFAULT_PASSWORD:?err}"
       SEED_DATA_DIR: "/app/seed_data"
+      PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
+      XDG_CACHE_HOME: "/app/.cache"
+      EASYOCR_MODULE_PATH: "/app/.cache/easyocr"
+      TORCH_HOME: "/app/.cache/torch"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health/" ]
       interval: 15s
@@ -88,6 +95,7 @@ services:
     volumes:
       - media_volume:/app/media
       - backup_volume:/app/backups
+      - ocr_cache:/app/.cache
     depends_on:
       db:
         condition: service_healthy
@@ -115,6 +123,10 @@ services:
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-}"
       CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:-}"
       METRICS_TOKEN: "${METRICS_TOKEN:-}"
+      PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
+      XDG_CACHE_HOME: "/app/.cache"
+      EASYOCR_MODULE_PATH: "/app/.cache/easyocr"
+      TORCH_HOME: "/app/.cache/torch"
     healthcheck:
       test: ["CMD-SHELL", "celery -A core inspect ping -d celery@$$HOSTNAME"]
       interval: 30s
@@ -130,6 +142,8 @@ services:
     command: celery -A core beat -l info
     volumes:
       - media_volume:/app/media
+      - backup_volume:/app/backups
+      - ocr_cache:/app/.cache
     depends_on:
       db:
         condition: service_healthy
@@ -155,6 +169,10 @@ services:
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-}"
       CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:-}"
       METRICS_TOKEN: "${METRICS_TOKEN:-}"
+      PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
+      XDG_CACHE_HOME: "/app/.cache"
+      EASYOCR_MODULE_PATH: "/app/.cache/easyocr"
+      TORCH_HOME: "/app/.cache/torch"
     healthcheck:
       test: ["CMD-SHELL", "tr '\\0' ' ' < /proc/1/cmdline | grep -q 'celery -A core beat'"]
       interval: 30s
@@ -170,7 +188,6 @@ services:
     volumes:
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
-      - /var/www/labomaths/korrigo/infra/nginx/nginx.conf:/etc/nginx/conf.d/nginx.conf:ro
     depends_on:
       - backend
     healthcheck:
@@ -184,6 +201,7 @@ volumes:
   static_volume:
   media_volume:
   backup_volume:
+  ocr_cache:
   seed_data:
     name: docker_seed_data_v2
     driver: local
