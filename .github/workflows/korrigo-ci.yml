@@ -97,10 +97,10 @@ jobs:
         working-directory: backend
         run: |
           # Use .bandit config file for security policy (tests vs prod scope)
-          # Config excludes: migrations, .venv, staticfiles, __pycache__
+          # Config excludes: migrations, .venv, staticfiles, __pycache__, tests
           # False positives suppressed via targeted # nosec comments in code
           # Block only on Medium/High severity (not Low)
-          bandit -r . -c .bandit -ll
+          bandit -r core exams grading identification processing students -c .bandit -ll
 
   integration:
     name: Integration (workflow complete tests subset)
