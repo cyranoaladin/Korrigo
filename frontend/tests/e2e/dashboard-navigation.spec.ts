@@ -20,7 +20,7 @@ async function loginAsAdmin(page: Page) {
   await page.locator('[data-testid="login.username"]').fill(ADMIN_USER)
   await page.locator('[data-testid="login.password"]').fill(ADMIN_PASS)
   await page.locator('[data-testid="login.submit"]').click()
-  await page.waitForURL('**/admin/dashboard', { timeout: 10000 })
+  await expect(page.locator('[data-testid="admin-dashboard"]')).toBeVisible({ timeout: 10000 })
 }
 
 async function loginAsStudent(page: Page) {
@@ -222,19 +222,15 @@ test.describe('Dashboard & Navigation', () => {
     await expect(page.locator('[data-testid="admin-dashboard-title"]')).toBeVisible()
 
     // Sidebar navigation links
-    const sidebar = page.locator('.sidebar')
+    const sidebar = page.locator('aside')
     await expect(sidebar).toBeVisible()
-    await expect(sidebar.locator('text=Gestion Examens')).toBeVisible()
+    await expect(sidebar.locator('text=Examens')).toBeVisible()
+    await expect(sidebar.locator('text=Nouvel Examen')).toBeVisible()
     await expect(sidebar.locator('text=Utilisateurs')).toBeVisible()
     await expect(sidebar.locator('text=Paramètres')).toBeVisible()
 
-    // Exam list section should be visible
-    await expect(page.locator('[data-testid="exams.list"]')).toBeVisible()
-
-    // "Nouvel examen" and "Importer" buttons
-    const newExamBtn = page.locator('[data-testid="exams.new"]')
-    const importBtn = page.locator('[data-testid="exams.import"]')
-    await expect(newExamBtn).toBeVisible()
-    await expect(importBtn).toBeVisible()
+    // Exams overview section should be visible
+    await expect(page.locator('text=Liste des examens')).toBeVisible()
+    await expect(page.locator('table button:has-text("Voir")').first()).toBeVisible()
   })
 })
