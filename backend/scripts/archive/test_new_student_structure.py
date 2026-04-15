@@ -12,6 +12,8 @@ import django
 from datetime import date
 from io import StringIO
 
+__test__ = False  # Prevent pytest from collecting this archive script as tests
+
 # Setup Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 sys.path.insert(0, os.path.dirname(__file__))
