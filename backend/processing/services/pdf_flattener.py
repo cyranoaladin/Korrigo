@@ -248,11 +248,17 @@ class PDFFlattener:
             text_writer.append(fitz.Point(MARGIN_LEFT, y), "Détail des notes par question :", fontsize=14)
             y += 25
 
-            # Build readable labels from grading_structure
+            # Build readable labels and exercise metadata from grading_structure
             q_labels = {}
+            q_meta = {}   # id -> {exercise_idx, label, points}
+            exercise_config = {}
             if copy.exam and copy.exam.grading_structure:
-                from exams.grading_utils import build_question_labels
+                from exams.grading_utils import build_question_labels, extract_leaf_questions, build_exercise_config
                 q_labels = build_question_labels(copy.exam.grading_structure)
+                for leaf in extract_leaf_questions(copy.exam.grading_structure):
+                    q_meta[leaf['id']] = leaf
+                    q_meta[leaf['positional_id']] = leaf
+                exercise_config = build_exercise_config(copy.exam.grading_structure)
 
             def sort_key(item):
                 parts = item[0].split('.')
@@ -264,19 +270,41 @@ class PDFFlattener:
                         result.append((1, p))
                 return result
 
-            for q_id, q_score in sorted(scores_data.items(), key=sort_key):
-                y = check_overflow(y)
-                score_display = q_score if q_score not in (None, '') else '0'
-                label = q_labels.get(q_id, f'Q{q_id}')
-                # Truncate label if too long for PDF
-                if len(label) > 50:
-                    label = label[:47] + '...'
-                text_writer.append(
-                    fitz.Point(70, y),
-                    f"{label} : {score_display}",
-                    fontsize=11
-                )
-                y += LINE_HEIGHT
+            # Group scores by exercise
+            grouped_scores = {}
+            for q_id, q_score in scores_data.items():
+                meta = q_meta.get(q_id, {})
+                ex_idx = meta.get('exercise_idx', 0)
+                if ex_idx not in grouped_scores:
+                    grouped_scores[ex_idx] = []
+                grouped_scores[ex_idx].append((q_id, q_score))
+
+            # Render each exercise with its questions
+            for ex_idx in sorted(grouped_scores.keys()):
+                ex_items = grouped_scores[ex_idx]
+                ex_cfg = exercise_config.get(ex_idx, {})
+                ex_name = ex_cfg.get('name', f'Exercice {ex_idx}')
+                ex_total = sum(float(s) if s not in (None, '') else 0 for _, s in ex_items)
+                ex_max = ex_cfg.get('max', 0)
+
+                y = check_overflow(y, 20)
+                text_writer.append(fitz.Point(MARGIN_LEFT + 10, y), f"{ex_name} : {ex_total:.2f} / {ex_max:.2f}", fontsize=12)
+                y += 20
+
+                for q_id, q_score in sorted(ex_items, key=sort_key):
+                    y = check_overflow(y)
+                    score_display = q_score if q_score not in (None, '') else '0'
+                    label = q_labels.get(q_id, q_meta.get(q_id, {}).get('label', f'Q{q_id}'))
+                    # Truncate label if too long for PDF
+                    if len(label) > 50:
+                        label = label[:47] + '...'
+                    text_writer.append(
+                        fitz.Point(80, y),
+                        f"- {label} : {score_display}",
+                        fontsize=11
+                    )
+                    y += LINE_HEIGHT
+                y += 5  # small gap between exercises
         else:
             y = check_overflow(y)
             text_writer.append(fitz.Point(MARGIN_LEFT, y), "Aucune note de barème enregistrée.", fontsize=11)
