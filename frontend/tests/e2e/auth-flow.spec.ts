@@ -3,8 +3,8 @@ import { test, expect } from '@playwright/test'
 const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8088'
 
 // --- Credentials (override via env vars in CI) ---
-const ADMIN_USER = process.env.E2E_ADMIN_USER || 'admin'
-const ADMIN_PASS = process.env.E2E_ADMIN_PASS || 'admin'
+const ADMIN_USER = process.env.E2E_ADMIN_USERNAME || process.env.E2E_ADMIN_USER || 'admin'
+const ADMIN_PASS = process.env.E2E_ADMIN_PASSWORD || process.env.E2E_ADMIN_PASS || 'admin'
 const TEACHER_USER = process.env.E2E_TEACHER_USER || 'enseignant'
 const TEACHER_PASS = process.env.E2E_TEACHER_PASS || 'enseignant'
 const STUDENT_EMAIL = process.env.E2E_STUDENT_EMAIL || 'eleve.test-e@ert.tn'

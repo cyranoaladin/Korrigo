@@ -12,8 +12,8 @@ export async function loginAsAdmin(page: Page) {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
     // 2) Perform login via API (same format as frontend auth.js)
-    const username = process.env.E2E_ADMIN_USERNAME || 'admin';
-    const password = process.env.E2E_ADMIN_PASSWORD || 'admin';
+    const username = process.env.E2E_ADMIN_USERNAME || process.env.E2E_ADMIN_USER || 'admin';
+    const password = process.env.E2E_ADMIN_PASSWORD || process.env.E2E_ADMIN_PASS || 'admin';
 
     const loginResult = await page.evaluate(async ({ username, password }) => {
         try {
@@ -59,8 +59,8 @@ export async function loginAsTeacher(page: Page) {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
     // 2) Perform login via API
-    const username = process.env.E2E_TEACHER_USERNAME || 'prof1';
-    const password = process.env.E2E_TEACHER_PASSWORD || 'password';
+    const username = process.env.E2E_TEACHER_USERNAME || process.env.E2E_TEACHER_USER || 'prof1';
+    const password = process.env.E2E_TEACHER_PASSWORD || process.env.E2E_TEACHER_PASS || 'password';
 
     const loginResult = await page.evaluate(async ({ username, password }) => {
         try {
