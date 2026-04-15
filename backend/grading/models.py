@@ -126,6 +126,7 @@ class GradingEvent(models.Model):
         VALIDATE = 'VALIDATE', _("Validation (STAGING→READY)")
         LOCK = 'LOCK', _("Verrouillage (READY→LOCKED)")
         UNLOCK = 'UNLOCK', _("Déverrouillage (LOCKED→READY)")
+        ROTATE_LAST_PAGE = 'ROTATE_LAST_PAGE', _("Rotation dernière page")
         CREATE_ANN = 'CREATE_ANN', _("Création Annotation")
         UPDATE_ANN = 'UPDATE_ANN', _("Modification Annotation")
         DELETE_ANN = 'DELETE_ANN', _("Suppression Annotation")

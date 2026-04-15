@@ -6,6 +6,7 @@ import ExamCopies from '../../src/views/admin/ExamCopies.vue'
 const { mockPush, mockApiGet } = vi.hoisted(() => ({
   mockPush: vi.fn(),
   mockApiGet: vi.fn(),
+  mockApiPost: vi.fn(),
 }))
 
 vi.mock('vue-router', () => ({
@@ -14,7 +15,7 @@ vi.mock('vue-router', () => ({
 }))
 
 vi.mock('../../src/services/api', () => ({
-  default: { get: mockApiGet },
+  default: { get: mockApiGet, post: mockApiPost },
 }))
 
 describe('ExamCopies', () => {
@@ -63,5 +64,53 @@ describe('ExamCopies', () => {
     expect(mockApiGet).toHaveBeenCalledWith('/grading/exams/exam-123/export-all-annotations/', { params: { format: 'json' } })
     expect(createObjectURL).toHaveBeenCalled()
     expect(click).toHaveBeenCalled()
+  })
+
+  it('rotates last pages in batch from the admin modal', async () => {
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === '/exams/exam-123/student-list/') {
+        return Promise.resolve({ data: { summary: { total_students: 1 }, copies: [] } })
+      }
+      return Promise.reject(new Error(`Unexpected URL ${url}`))
+    })
+    mockApiPost.mockImplementation((url: string, body: any) => {
+      if (url === '/exams/exam-123/copies/rotate-last-pages/') {
+        expect(body).toEqual({ anonymous_ids: ['69CB-010', '69CB-074', '69CB-094'] })
+        return Promise.resolve({
+          data: {
+            rotated_count: 3,
+            error_count: 0,
+            rotated: [],
+            errors: [],
+          },
+        })
+      }
+      return Promise.reject(new Error(`Unexpected URL ${url}`))
+    })
+
+    const wrapper = mount(ExamCopies, {
+      global: {
+        stubs: { ExamUploadModal: true },
+      },
+    })
+    await flushPromises()
+
+    const rotateButton = wrapper.findAll('button').find((button) => button.text().includes('Rotation dernière page'))
+    expect(rotateButton).toBeTruthy()
+    await rotateButton.trigger('click')
+    await flushPromises()
+
+    const textarea = wrapper.find('textarea')
+    await textarea.setValue('69CB-010, 69CB-074\n69CB-094')
+    await flushPromises()
+
+    const submitButton = wrapper.findAll('button').find((button) => button.text().includes('Lancer la rotation'))
+    expect(submitButton).toBeTruthy()
+    await submitButton.trigger('click')
+    await flushPromises()
+
+    expect(mockApiPost).toHaveBeenCalledWith('/exams/exam-123/copies/rotate-last-pages/', {
+      anonymous_ids: ['69CB-010', '69CB-074', '69CB-094'],
+    })
   })
 })

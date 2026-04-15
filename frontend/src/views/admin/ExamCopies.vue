@@ -15,6 +15,9 @@ const copies = ref([])
 const totalCount = ref(0)
 const filterStatus = ref('all')
 const showUploadModal = ref(false)
+const showRotateModal = ref(false)
+const rotationInput = ref('')
+const rotationLoading = ref(false)
 
 // Toast
 const toast = ref({ show: false, message: '', type: 'success' })
@@ -86,6 +89,45 @@ const onUploadSuccess = () => {
   fetchCopies()
 }
 
+const parseAnonymousIds = (value) => {
+  const raw = value
+    .split(/[\n,;]+/g)
+    .flatMap((chunk) => chunk.split(/\s+/g))
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+  return [...new Set(raw)]
+}
+
+const rotateLastPages = async () => {
+  const anonymousIds = parseAnonymousIds(rotationInput.value)
+  if (anonymousIds.length === 0) {
+    showToast('Saisissez au moins un anonymat.', 'error')
+    return
+  }
+
+  rotationLoading.value = true
+  try {
+    const response = await api.post(`/exams/${examId}/copies/rotate-last-pages/`, {
+      anonymous_ids: anonymousIds,
+    })
+    const rotatedCount = response.data?.rotated_count ?? 0
+    const errorCount = response.data?.error_count ?? 0
+    showToast(
+      errorCount > 0
+        ? `${rotatedCount} copie(s) tournée(s), ${errorCount} erreur(s).`
+        : `${rotatedCount} copie(s) tournée(s) avec succès.`,
+      errorCount > 0 ? 'error' : 'success'
+    )
+    showRotateModal.value = false
+    rotationInput.value = ''
+    await fetchCopies()
+  } catch (e) {
+    showToast(e.response?.data?.detail || 'Échec de la rotation des dernières pages.', 'error')
+  } finally {
+    rotationLoading.value = false
+  }
+}
+
 const filteredCopies = computed(() => {
   if (filterStatus.value === 'all') return copies.value
   return copies.value.filter(copy => copy.status === filterStatus.value)
@@ -134,6 +176,15 @@ useAutoRefresh(fetchCopies)
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 12l-4-4m4 4l4-4M4 20h16" />
             </svg>
             Exporter annotations JSON
+          </button>
+          <button
+            class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+            @click="showRotateModal = true"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0A8.003 8.003 0 019.582 15m10.417 0H15" />
+            </svg>
+            Rotation dernière page
           </button>
           <button
             class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
@@ -285,6 +336,57 @@ useAutoRefresh(fetchCopies)
       @close="showUploadModal = false"
       @success="onUploadSuccess"
     />
+
+    <transition name="toast">
+      <div
+        v-if="showRotateModal"
+        class="fixed inset-0 z-[90] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center px-4"
+      >
+        <div class="w-full max-w-xl bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-bold text-slate-800">Rotation dernière page</h2>
+              <p class="text-xs text-slate-500">Collez les anonymats à traiter, séparés par des virgules ou des retours ligne.</p>
+            </div>
+            <button class="p-2 rounded-lg hover:bg-slate-100" @click="showRotateModal = false">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div class="p-6 space-y-4">
+            <textarea
+              v-model="rotationInput"
+              rows="7"
+              class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="69CB-010&#10;69CB-074&#10;69CB-094"
+            />
+            <p class="text-xs text-slate-500">
+              Seule la dernière page de chaque copie sera tournée de 180°. Les autres pages restent intactes.
+            </p>
+          </div>
+          <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50/60">
+            <button
+              class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100"
+              @click="showRotateModal = false"
+            >
+              Annuler
+            </button>
+            <button
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              :disabled="rotationLoading"
+              @click="rotateLastPages"
+            >
+              <svg v-if="rotationLoading" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              </svg>
+              Lancer la rotation
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- Toast -->
     <transition name="toast">

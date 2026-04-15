@@ -19,6 +19,7 @@ from .serializers import (
     ExamTypeSerializer, JuryReportSerializer
 )
 from grading.services import GradingService
+from grading.models import GradingEvent
 from .permissions import IsTeacherOrAdmin
 
 import fitz  # PyMuPDF
@@ -47,6 +48,35 @@ def generate_anonymous_id(exam, index: int) -> str:
         uid_clean: str = str(uuid.uuid4()).replace('-', '')
         candidate = f"{prefix}-{uid_clean[:6].upper()}"  # type: ignore[misc]
     return candidate
+
+
+def _rotate_copy_last_page(copy: Copy) -> dict[str, object]:
+    """
+    Rotate the last page image of a copy by 180°.
+
+    The rotated file is written next to the original and only the last page
+    entry in the booklet JSON is updated.
+    """
+    from exams.services.page_rotation import rotate_image_file_180
+
+    booklets = list(copy.booklets.all().order_by('start_page', 'id'))
+    for booklet in reversed(booklets):
+        if not booklet.pages_images:
+            continue
+        last_index = len(booklet.pages_images) - 1
+        original_path = booklet.pages_images[last_index]
+        new_path = rotate_image_file_180(original_path)
+        booklet.pages_images[last_index] = new_path
+        booklet.save(update_fields=['pages_images'])
+        return {
+            'copy_id': str(copy.id),
+            'anonymous_id': copy.anonymous_id,
+            'booklet_id': str(booklet.id),
+            'page_index': last_index,
+            'original_path': original_path,
+            'new_path': new_path,
+        }
+    raise ValueError("Aucune page trouvée pour cette copie.")
 
 
 class GlobalStatsView(APIView):
@@ -536,6 +566,92 @@ class CopyListView(generics.ListAPIView):
             .select_related('exam', 'student', 'locked_by')\
             .prefetch_related('booklets', 'annotations__created_by')\
             .order_by('anonymous_id')
+
+
+class RotateCopyLastPagesView(APIView):
+    """
+    POST /api/exams/<exam_id>/copies/rotate-last-pages/
+
+    Batch admin action: rotate the last page only of the selected copies.
+    """
+    permission_classes = [IsKorrigoAdmin]
+
+    def post(self, request, exam_id):
+        anonymous_ids = request.data.get('anonymous_ids', [])
+        if not isinstance(anonymous_ids, list) or not anonymous_ids:
+            return Response(
+                {"detail": _("La liste des anonymats est requise.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        normalized_ids = []
+        seen = set()
+        for raw in anonymous_ids:
+            if raw is None:
+                continue
+            code = str(raw).strip()
+            if not code or code in seen:
+                continue
+            seen.add(code)
+            normalized_ids.append(code)
+
+        if not normalized_ids:
+            return Response(
+                {"detail": _("La liste des anonymats est vide.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        copies = (
+            Copy.objects.filter(exam_id=exam_id, anonymous_id__in=normalized_ids)
+            .select_related('exam')
+            .prefetch_related('booklets')
+            .order_by('anonymous_id')
+        )
+        copy_map = {copy.anonymous_id: copy for copy in copies}
+
+        results = []
+        errors = []
+
+        with transaction.atomic():
+            for code in normalized_ids:
+                copy = copy_map.get(code)
+                if not copy:
+                    errors.append({
+                        'anonymous_id': code,
+                        'error': _('Copie introuvable pour cet examen.'),
+                    })
+                    continue
+                try:
+                    rotation = _rotate_copy_last_page(copy)
+                    results.append(rotation)
+                    GradingEvent.objects.create(
+                        copy=copy,
+                        actor=request.user,
+                        action=GradingEvent.Action.ROTATE_LAST_PAGE,
+                        metadata={
+                            'anonymous_id': copy.anonymous_id,
+                            'booklet_id': rotation['booklet_id'],
+                            'page_index': rotation['page_index'],
+                            'original_path': rotation['original_path'],
+                            'new_path': rotation['new_path'],
+                        },
+                    )
+                except Exception as e:
+                    logger.exception("Failed to rotate last page for copy %s", code)
+                    errors.append({
+                        'anonymous_id': code,
+                        'error': str(e),
+                    })
+
+        status_code = status.HTTP_200_OK if results else status.HTTP_400_BAD_REQUEST
+        return Response({
+            'exam_id': str(exam_id),
+            'requested_anonymous_ids': normalized_ids,
+            'rotated_count': len(results),
+            'error_count': len(errors),
+            'rotated': results,
+            'errors': errors,
+        }, status=status_code)
 
 
 class MergeBookletsView(APIView):

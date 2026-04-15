@@ -8,6 +8,7 @@ from .views import (
     CopyValidationView, BulkCopyValidationView,
     BulkSubjectVariantView, AutoDetectSubjectVariantView,
     ExamStudentListView,
+    RotateCopyLastPagesView,
     GlobalStatsView,
     ExamTypeListView, ExamTypeDetailView,
     JuryReportListView, JuryReportDetailView,
@@ -50,6 +51,7 @@ urlpatterns = [
     
     # Correction Admin
     path('<uuid:exam_id>/copies/', CopyListView.as_view(), name='copy-list'),
+    path('<uuid:exam_id>/copies/rotate-last-pages/', RotateCopyLastPagesView.as_view(), name='copy-rotate-last-pages'),
     path('<uuid:exam_id>/merge-booklets/', MergeBookletsView.as_view(), name='merge-booklets'),
     
     # Export

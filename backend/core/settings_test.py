@@ -77,3 +77,43 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 # Disable rate limiting in tests (django-ratelimit)
 # This allows login tests to work without Redis and without hitting rate limits
 RATELIMIT_ENABLE = False
+
+# Avoid file-based logging in tests. The repository log directory may be mounted
+# read-only in the sandbox, which makes Django logging setup fail before tests.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'audit': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'grading': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}
