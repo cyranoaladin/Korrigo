@@ -1012,25 +1012,48 @@ class AdminForceUnlockView(APIView):
     """
     POST /api/grading/copies/<uuid>/force-unlock/
     Force-deletes the CopyLock for the given copy.
+    If the copy is FINALIZED, it is also reopened to READY so the admin can edit it
+    without changing the corrector assignment.
     Admin-only (superuser or staff).
     """
     permission_classes = [IsKorrigoAdmin]
 
     def post(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
+        previous_status = copy.status
+        reopened_from_finalized = False
+
+        if copy.status == Copy.Status.FINALIZED:
+            copy.status = Copy.Status.READY
+            copy.final_pdf = None
+            copy.graded_at = None
+            copy.grading_retries = 0
+            copy.save(update_fields=['status', 'final_pdf', 'graded_at', 'grading_retries'])
+            reopened_from_finalized = True
 
         try:
             lock = CopyLock.objects.get(copy=copy)
             lock_owner = lock.owner.username
             lock.delete()
         except CopyLock.DoesNotExist:
-            # No lock exists — log and return 204
+            # No lock exists. If we reopened a FINALIZED copy, still return 200 so
+            # the caller knows the copy is editable again.
             GradingEvent.objects.create(
                 copy=copy,
                 actor=request.user,
                 action=GradingEvent.Action.UNLOCK,
-                metadata={'admin_force': True, 'had_lock': False},
+                metadata={
+                    'admin_force': True,
+                    'had_lock': False,
+                    'previous_status': previous_status,
+                    'reopened_from_finalized': reopened_from_finalized,
+                },
             )
+            if reopened_from_finalized:
+                return Response({
+                    'message': 'Copie rouverte avec succès et prête à être corrigée.',
+                    'copy_id': str(copy.id),
+                })
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         GradingEvent.objects.create(
@@ -1041,8 +1064,16 @@ class AdminForceUnlockView(APIView):
                 'admin_force': True,
                 'had_lock': True,
                 'previous_lock_owner': lock_owner,
+                'previous_status': previous_status,
+                'reopened_from_finalized': reopened_from_finalized,
             },
         )
+
+        if reopened_from_finalized:
+            return Response({
+                'message': f'Verrou supprimé et copie rouverte avec succès (ancien propriétaire: {lock_owner}).',
+                'copy_id': str(copy.id),
+            })
 
         return Response({
             'message': f'Verrou supprimé avec succès (ancien propriétaire: {lock_owner}).',

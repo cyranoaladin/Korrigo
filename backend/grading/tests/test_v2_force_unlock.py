@@ -175,3 +175,35 @@ class TestAdminForceUnlock:
             copy=copy_ready, action=GradingEvent.Action.UNLOCK
         ).first()
         assert event.metadata["previous_lock_owner"] == teacher_user.username
+
+    def test_force_unlock_finalized_copy_reopens_it_without_reassigning(self, admin_user, teacher_user, exam):
+        """Admin force-unlock on FINALIZED copy should make it editable again without changing assignment."""
+        copy = Copy.objects.create(
+            exam=exam,
+            status=Copy.Status.FINALIZED,
+            assigned_corrector=teacher_user,
+            anonymous_id=f"ANON-{uuid.uuid4().hex[:8]}",
+        )
+        client = APIClient()
+        client.force_authenticate(user=admin_user)
+
+        resp = client.post(self._url(copy.id))
+
+        assert resp.status_code == 200
+        copy.refresh_from_db()
+        assert copy.status == Copy.Status.READY
+        assert copy.assigned_corrector == teacher_user
+        assert not CopyLock.objects.filter(copy=copy).exists()
+        assert GradingEvent.objects.filter(
+            copy=copy, action=GradingEvent.Action.UNLOCK
+        ).exists()
+
+        # The copy must now accept autosave drafts again for the assigned corrector.
+        teacher_client = APIClient()
+        teacher_client.force_authenticate(user=teacher_user)
+        draft_resp = teacher_client.put(
+            f"/api/grading/copies/{copy.id}/draft/",
+            {"payload": {"content": "Draft after admin unlock"}, "client_id": str(uuid.uuid4())},
+            format="json",
+        )
+        assert draft_resp.status_code == 200
