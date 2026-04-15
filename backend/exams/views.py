@@ -1408,63 +1408,236 @@ class AutoDetectSubjectVariantView(APIView):
 class ExamStudentListView(APIView):
     """
     GET /api/exams/<exam_id>/student-list/
-    Returns all copies for an exam with student name, score, corrector, status.
+    Returns the exam roster merged with copies so every student is visible,
+    even when no copy has been imported or assigned yet.
     Admin only.
     """
     permission_classes = [IsTeacherOrAdmin]
 
+    @staticmethod
+    def _normalize_name(value):
+        return ' '.join((value or '').split()).strip().upper()
+
+    @staticmethod
+    def _parse_date(value):
+        from datetime import datetime
+
+        raw = (value or '').strip()
+        if not raw:
+            return None
+        for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y'):
+            try:
+                return datetime.strptime(raw, fmt).date()
+            except ValueError:
+                continue
+        return None
+
+    @classmethod
+    def _student_display_name(cls, student):
+        if not student:
+            return None
+        parts = [getattr(student, 'last_name', None), getattr(student, 'first_name', None)]
+        name = ' '.join(p for p in parts if p).strip()
+        if name:
+            return name
+        user = getattr(student, 'user', None)
+        if user:
+            user_name = f"{user.last_name} {user.first_name}".strip()
+            return user_name or user.username
+        return str(student)
+
+    @classmethod
+    def _corrector_display_name(cls, user):
+        if not user:
+            return None
+        name = f"{getattr(user, 'last_name', '')} {getattr(user, 'first_name', '')}".strip()
+        return name or getattr(user, 'username', None) or str(user)
+
+    def _load_roster_rows(self, exam):
+        from students.models import Student
+        import csv
+        from io import StringIO
+
+        if not exam.students_csv:
+            return []
+
+        try:
+            exam.students_csv.open('rb')
+            raw = exam.students_csv.read().decode('utf-8-sig')
+        except Exception:
+            return []
+        finally:
+            try:
+                exam.students_csv.close()
+            except Exception:
+                pass
+
+        if not raw.strip():
+            return []
+
+        sample = raw[:4096]
+        try:
+            dialect = csv.Sniffer().sniff(sample, delimiters=',;\t')
+            delimiter = dialect.delimiter
+        except csv.Error:
+            delimiter = ';'
+
+        reader = csv.DictReader(StringIO(raw), delimiter=delimiter)
+        parsed_rows = []
+        class_names = set()
+
+        for row in reader:
+            normalized = {
+                (k or '').strip().lower(): (v or '').strip()
+                for k, v in row.items()
+            }
+
+            last_name = normalized.get('nom') or normalized.get('last_name') or ''
+            first_name = normalized.get('prenom') or normalized.get('prénom') or normalized.get('first_name') or ''
+            date_raw = (
+                normalized.get('date_naissance')
+                or normalized.get('date naissance')
+                or normalized.get('ddn')
+                or normalized.get('date_de_naissance')
+                or ''
+            )
+            class_name = normalized.get('classe') or normalized.get('class_name') or normalized.get('class') or ''
+            email = normalized.get('mail') or normalized.get('email') or ''
+
+            parsed_date = self._parse_date(date_raw)
+            if not last_name or not first_name or not parsed_date:
+                continue
+
+            class_names.add(class_name)
+            parsed_rows.append({
+                'identity_key': (
+                    self._normalize_name(last_name),
+                    self._normalize_name(first_name),
+                    parsed_date.isoformat(),
+                ),
+                'last_name': self._normalize_name(last_name),
+                'first_name': self._normalize_name(first_name),
+                'date_naissance': parsed_date,
+                'email': email or None,
+                'class_name': class_name or None,
+                'groupe': normalized.get('groupe') or None,
+            })
+
+        if not parsed_rows:
+            return []
+
+        students_qs = Student.objects.all()
+        if class_names:
+            students_qs = students_qs.filter(class_name__in=[c for c in class_names if c])
+
+        students_by_identity = {}
+        for student in students_qs.select_related('user'):
+            key = (
+                self._normalize_name(student.last_name),
+                self._normalize_name(student.first_name),
+                student.date_naissance.isoformat(),
+            )
+            students_by_identity[key] = student
+
+        for row in parsed_rows:
+            student = students_by_identity.get(row['identity_key'])
+            row['student'] = student
+            row['student_id'] = str(student.id) if student else None
+            row['student_name'] = self._student_display_name(student) or f"{row['last_name']} {row['first_name']}".strip()
+            row['student_class'] = getattr(student, 'class_name', None) if student else row['class_name']
+            row['student_groupe'] = getattr(student, 'groupe', None) if student else row['groupe']
+
+        return parsed_rows
+
     def get(self, request, exam_id):
         from grading.services import GradingService
+        from grading.models import Score
 
         exam = get_object_or_404(Exam, id=exam_id)
-        copies = Copy.objects.filter(exam=exam).select_related(
+        copies = list(Copy.objects.filter(exam=exam).select_related(
             'student', 'student__user', 'assigned_corrector'
-        ).order_by('anonymous_id')
-
-        data = []
+        ).prefetch_related('annotations').order_by('anonymous_id'))
+        copies_by_identity = {}
         for copy in copies:
-            # Student name
+            if copy.student:
+                key = (
+                    self._normalize_name(copy.student.last_name),
+                    self._normalize_name(copy.student.first_name),
+                    copy.student.date_naissance.isoformat(),
+                )
+                copies_by_identity.setdefault(key, copy)
+
+        score_lookup = {}
+        for score in Score.objects.filter(copy__in=copies).select_related('copy'):
+            score_data = score.scores_data or {}
+            total = 0
+            if isinstance(score_data, dict):
+                for value in score_data.values():
+                    if value is not None and value != '':
+                        total += float(value)
+            score_lookup[str(score.copy_id)] = round(total, 2)
+
+        roster_rows = self._load_roster_rows(exam)
+        data = []
+        used_copy_ids = set()
+
+        def build_row(copy, roster_row=None):
+            student = copy.student if copy else (roster_row or {}).get('student')
+            student_id = str(student.id) if student else None
             student_name = None
             student_class = None
-            student_id = None
-            if copy.student and copy.student.user:
-                u = copy.student.user
-                student_name = f"{u.last_name} {u.first_name}".strip() or u.username
-                student_class = copy.student.class_name
-                student_groupe = copy.student.groupe
-                student_id = str(copy.student.id)
+            student_groupe = None
+            if student:
+                student_name = self._student_display_name(student)
+                student_class = getattr(student, 'class_name', None)
+                student_groupe = getattr(student, 'groupe', None)
+            elif roster_row:
+                student_name = roster_row.get('student_name')
+                student_class = roster_row.get('student_class')
+                student_groupe = roster_row.get('student_groupe')
 
-            else:
-                student_groupe = None
+            if copy:
+                used_copy_ids.add(str(copy.id))
 
-            # Score
-            total_score = GradingService.compute_score(copy)
+            total_score = score_lookup.get(str(copy.id)) if copy else None
+            if copy and str(copy.id) not in score_lookup:
+                total_score = GradingService.compute_score(copy)
 
-            # Corrector
-            corrector_name = None
-            if copy.assigned_corrector:
-                c = copy.assigned_corrector
-                corrector_name = f"{c.last_name} {c.first_name}".strip() or c.username
+            corrector_name = self._corrector_display_name(copy.assigned_corrector) if copy and copy.assigned_corrector else None
 
-            data.append({
-                "id": str(copy.id),
-                "anonymous_id": copy.anonymous_id,
+            return {
+                "id": str(copy.id) if copy else None,
+                "copy_id": str(copy.id) if copy else None,
+                "anonymous_id": copy.anonymous_id if copy else None,
                 "student_id": student_id,
                 "student_name": student_name,
                 "student_class": student_class,
                 "student_groupe": student_groupe,
                 "total_score": total_score,
-                "status": copy.status,
+                "status": copy.status if copy else "NO_COPY",
+                "has_copy": bool(copy),
                 "corrector": corrector_name,
-                "has_appreciation": bool(copy.global_appreciation and copy.global_appreciation.strip()),
-            })
+                "has_appreciation": bool(copy and copy.global_appreciation and copy.global_appreciation.strip()),
+            }
+
+        for row in roster_rows:
+            copy = copies_by_identity.get(row['identity_key'])
+            data.append(build_row(copy, row))
+
+        for copy in copies:
+            if str(copy.id) in used_copy_ids:
+                continue
+            data.append(build_row(copy))
 
         # Summary stats
         scored = [d for d in data if d['total_score'] is not None]
         summary = {
             "exam_name": exam.name,
             "exam_date": str(exam.date) if exam.date else None,
-            "total_copies": len(data),
+            "total_students": len(roster_rows) if roster_rows else len(data),
+            "total_copies": len(copies),
+            "linked_copies": sum(1 for d in data if d['has_copy']),
+            "missing_copies": sum(1 for d in data if not d['has_copy']),
             "graded": sum(1 for d in data if d['status'] == 'FINALIZED'),
             "ready": sum(1 for d in data if d['status'] == 'READY'),
             "en_cours": sum(1 for d in data if d['status'] == 'IN_PROGRESS'),

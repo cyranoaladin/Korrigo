@@ -12,9 +12,6 @@ const loading = ref(true)
 const error = ref(null)
 const copies = ref([])
 const totalCount = ref(0)
-const currentPage = ref(1)
-const pageSize = ref(20)
-const totalPages = ref(1)
 const filterStatus = ref('all')
 const showUploadModal = ref(false)
 
@@ -51,6 +48,7 @@ const statusLabel = (s) => ({
   IN_PROGRESS: 'En cours',
   FINALIZED: 'Finalisée',
   STAGING: 'En attente',
+  NO_COPY: 'Sans copie',
 }[s] || s)
 
 const statusClass = (s) => ({
@@ -58,28 +56,21 @@ const statusClass = (s) => ({
   IN_PROGRESS: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100',
   FINALIZED: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100',
   STAGING: 'bg-slate-100 text-slate-500 ring-1 ring-slate-200',
+  NO_COPY: 'bg-slate-100 text-slate-500 ring-1 ring-slate-200',
 }[s] || 'bg-gray-100 text-gray-600')
-
-const buildParams = () => {
-  const params = { page: currentPage.value, page_size: pageSize.value }
-  if (filterStatus.value !== 'all') params.status = filterStatus.value
-  return params
-}
 
 const fetchCopies = async () => {
   loading.value = true
   error.value = null
   try {
-    const res = await api.get(`/exams/${examId}/copies/`, { params: buildParams() })
+    const res = await api.get(`/exams/${examId}/student-list/`)
     const data = res.data
     if (Array.isArray(data)) {
       copies.value = data
       totalCount.value = data.length
-      totalPages.value = 1
     } else {
-      copies.value = data.results || []
-      totalCount.value = data.count ?? copies.value.length
-      totalPages.value = Math.max(1, Math.ceil(totalCount.value / pageSize.value))
+      copies.value = data.copies || []
+      totalCount.value = data.summary?.total_students ?? copies.value.length
     }
   } catch (e) {
     error.value = e.response?.data?.detail || 'Erreur lors du chargement des copies.'
@@ -88,44 +79,16 @@ const fetchCopies = async () => {
   }
 }
 
-const onFilterChange = () => {
-  currentPage.value = 1
-  fetchCopies()
-}
-
-const goToPage = (page) => {
-  if (page < 1 || page > totalPages.value) return
-  currentPage.value = page
-  fetchCopies()
-}
-
-const visiblePages = computed(() => {
-  const pages = []
-  const total = totalPages.value
-  const cur = currentPage.value
-  const delta = 2
-  const range = []
-  for (let i = Math.max(1, cur - delta); i <= Math.min(total, cur + delta); i++) {
-    range.push(i)
-  }
-  if (range[0] > 1) {
-    pages.push(1)
-    if (range[0] > 2) pages.push('...')
-  }
-  range.forEach(p => pages.push(p))
-  if (range[range.length - 1] < total) {
-    if (range[range.length - 1] < total - 1) pages.push('...')
-    pages.push(total)
-  }
-  return pages
-})
-
 const onUploadSuccess = () => {
   showUploadModal.value = false
   showToast('Copies importées avec succès.', 'success')
-  currentPage.value = 1
   fetchCopies()
 }
+
+const filteredCopies = computed(() => {
+  if (filterStatus.value === 'all') return copies.value
+  return copies.value.filter(copy => copy.status === filterStatus.value)
+})
 
 onMounted(fetchCopies)
 </script>
@@ -190,23 +153,24 @@ onMounted(fetchCopies)
         <div class="flex items-center gap-2 bg-white rounded-xl ring-1 ring-slate-200 p-1">
           <button
             v-for="opt in [
-              { value: 'all', label: 'Toutes' },
-              { value: 'READY', label: 'Prêtes' },
-              { value: 'IN_PROGRESS', label: 'En cours' },
-              { value: 'FINALIZED', label: 'Finalisées' },
+            { value: 'all', label: 'Toutes' },
+            { value: 'READY', label: 'Prêtes' },
+            { value: 'IN_PROGRESS', label: 'En cours' },
+            { value: 'FINALIZED', label: 'Finalisées' },
+            { value: 'NO_COPY', label: 'Sans copie' },
             ]"
             :key="opt.value"
             class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
             :class="filterStatus === opt.value
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100'"
-            @click="filterStatus = opt.value; onFilterChange()"
+            @click="filterStatus = opt.value"
           >
             {{ opt.label }}
           </button>
         </div>
         <span class="text-sm text-slate-400 ml-auto">
-          {{ totalCount }} copie{{ totalCount !== 1 ? 's' : '' }}
+          {{ filteredCopies.length }} élève{{ filteredCopies.length !== 1 ? 's' : '' }}
         </span>
       </div>
 
@@ -261,11 +225,11 @@ onMounted(fetchCopies)
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
-              <tr
-                v-for="copy in copies"
-                :key="copy.id"
-                class="hover:bg-indigo-50/30 transition-colors"
-              >
+                <tr
+                v-for="copy in filteredCopies"
+                  :key="copy.copy_id || copy.student_id || copy.student_name || copy.anonymous_id || copy.id"
+                  class="hover:bg-indigo-50/30 transition-colors"
+                >
                 <td class="px-4 py-3 font-mono text-xs text-slate-500">
                   {{ copy.anonymous_id || '—' }}
                 </td>
@@ -285,23 +249,25 @@ onMounted(fetchCopies)
                 </td>
                 <td class="px-4 py-3 text-center">
                   <button
+                    :disabled="!copy.has_copy"
                     class="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 text-slate-700 rounded-lg text-xs font-medium hover:bg-indigo-50 hover:text-indigo-700 ring-1 ring-slate-200 transition-colors"
-                    @click="router.push({ name: 'CorrectorDesk', params: { copyId: copy.id } })"
+                    :class="!copy.has_copy ? 'opacity-50 cursor-not-allowed hover:bg-slate-50 hover:text-slate-700' : ''"
+                    @click="copy.has_copy && router.push({ name: 'CorrectorDesk', params: { copyId: copy.copy_id || copy.id } })"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    Voir
+                    {{ copy.has_copy ? 'Voir copie' : 'Pas de copie' }}
                   </button>
                 </td>
               </tr>
-              <tr v-if="copies.length === 0">
+              <tr v-if="filteredCopies.length === 0">
                 <td
                   colspan="5"
                   class="px-4 py-10 text-center text-slate-400"
                 >
-                  Aucune copie trouvée pour ce filtre.
+                  Aucun élève trouvé pour ce filtre.
                 </td>
               </tr>
             </tbody>
@@ -309,47 +275,6 @@ onMounted(fetchCopies)
         </div>
       </div>
 
-      <!-- Pagination -->
-      <div
-        v-if="totalPages > 1"
-        class="flex items-center justify-center gap-1"
-      >
-        <button
-          :disabled="currentPage === 1"
-          class="px-3 py-1.5 rounded-lg text-sm font-medium bg-white ring-1 ring-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          @click="goToPage(currentPage - 1)"
-        >
-          ‹ Préc.
-        </button>
-
-        <template
-          v-for="page in visiblePages"
-          :key="page"
-        >
-          <span
-            v-if="page === '...'"
-            class="px-2 text-slate-400"
-          >…</span>
-          <button
-            v-else
-            class="w-9 h-9 rounded-lg text-sm font-medium transition-colors"
-            :class="page === currentPage
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'bg-white ring-1 ring-slate-200 text-slate-600 hover:bg-slate-50'"
-            @click="goToPage(page)"
-          >
-            {{ page }}
-          </button>
-        </template>
-
-        <button
-          :disabled="currentPage === totalPages"
-          class="px-3 py-1.5 rounded-lg text-sm font-medium bg-white ring-1 ring-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          @click="goToPage(currentPage + 1)"
-        >
-          Suiv. ›
-        </button>
-      </div>
     </main>
 
     <!-- Upload Modal -->

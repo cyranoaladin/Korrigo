@@ -24,8 +24,8 @@ describe('ExamCopies', () => {
 
   it('exports annotations as JSON', async () => {
     mockApiGet.mockImplementation((url: string) => {
-      if (url === '/exams/exam-123/copies/') {
-        return Promise.resolve({ data: { results: [], count: 0 } })
+      if (url === '/exams/exam-123/student-list/') {
+        return Promise.resolve({ data: { summary: { total_students: 0 }, copies: [] } })
       }
       if (url === '/grading/exams/exam-123/export-all-annotations/') {
         return Promise.resolve({ data: { exam_id: 'exam-123', copies: [] } })

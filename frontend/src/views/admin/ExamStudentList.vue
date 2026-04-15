@@ -30,8 +30,18 @@ const fetchData = async () => {
   } finally { loading.value = false }
 }
 
-const statusLabel = (s) => ({ FINALIZED:'Finalisée', READY:'Prête', IN_PROGRESS:'En cours' }[s] || s)
-const statusColor = (s) => ({ FINALIZED:'bg-emerald-100 text-emerald-700', READY:'bg-blue-100 text-blue-700', IN_PROGRESS:'bg-amber-100 text-amber-700' }[s] || 'bg-gray-100 text-gray-600')
+const statusLabel = (s) => ({
+  FINALIZED: 'Finalisée',
+  READY: 'Prête',
+  IN_PROGRESS: 'En cours',
+  NO_COPY: 'Sans copie',
+}[s] || s)
+const statusColor = (s) => ({
+  FINALIZED: 'bg-emerald-100 text-emerald-700',
+  READY: 'bg-blue-100 text-blue-700',
+  IN_PROGRESS: 'bg-amber-100 text-amber-700',
+  NO_COPY: 'bg-slate-100 text-slate-600',
+}[s] || 'bg-gray-100 text-gray-600')
 const scoreColor = (score) => {
   if (score === null) return 'text-gray-400'
   if (score >= 16) return 'text-emerald-600 font-bold'
@@ -115,7 +125,7 @@ onMounted(fetchData)
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-100 px-4 py-3">
             <div class="flex items-center gap-2 mb-1"><AppIcon name="users" class="w-4 h-4 text-slate-400"/><span class="text-xs text-slate-400 uppercase">Total</span></div>
-            <p class="text-2xl font-bold text-slate-800">{{ summary.total_copies }}</p>
+            <p class="text-2xl font-bold text-slate-800">{{ summary.total_students ?? summary.total_copies }}</p>
           </div>
           <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-100 px-4 py-3">
             <div class="flex items-center gap-2 mb-1"><AppIcon name="check" class="w-4 h-4 text-emerald-400"/><span class="text-xs text-slate-400 uppercase">Corrigées</span></div>
@@ -157,8 +167,9 @@ onMounted(fetchData)
             <option value="FINALIZED">Finalisées</option>
             <option value="READY">Prêtes</option>
             <option value="IN_PROGRESS">En cours</option>
+            <option value="NO_COPY">Sans copie</option>
           </select>
-          <span class="text-xs text-slate-400">{{ filteredCopies.length }} résultat(s)</span>
+          <span class="text-xs text-slate-400">{{ filteredCopies.length }} élève{{ filteredCopies.length !== 1 ? 's' : '' }}</span>
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 overflow-hidden">
@@ -178,12 +189,12 @@ onMounted(fetchData)
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-50">
-                <tr v-for="(copy, idx) in filteredCopies" :key="copy.id" class="hover:bg-indigo-50/30 transition-colors">
+                <tr v-for="(copy, idx) in filteredCopies" :key="copy.copy_id || copy.student_id || copy.student_name || copy.anonymous_id || idx" class="hover:bg-indigo-50/30 transition-colors">
                   <td class="px-4 py-3 text-slate-400 text-xs">{{ idx+1 }}</td>
-                  <td class="px-4 py-3 font-mono text-xs text-slate-500">{{ copy.anonymous_id }}</td>
+                  <td class="px-4 py-3 font-mono text-xs text-slate-500">{{ copy.anonymous_id || '—' }}</td>
                   <td class="px-4 py-3 font-medium text-slate-800">
                     <router-link 
-                      v-if="copy.student_id" 
+                      v-if="copy.student_id && copy.has_copy" 
                       :to="{ name: 'StudentBilan', params: { studentId: copy.student_id } }"
                       class="text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
                     >
@@ -198,7 +209,7 @@ onMounted(fetchData)
                   <td class="px-4 py-3 text-slate-600 text-xs">{{ copy.corrector || '—' }}</td>
                   <td class="px-4 py-3 text-center"><AppIcon v-if="copy.has_appreciation" name="check" class="text-emerald-500 mx-auto" :size="16" /><span v-else class="text-slate-300">—</span></td>
                 </tr>
-                <tr v-if="filteredCopies.length===0"><td :colspan="hasGroups ? 9 : 8" class="px-4 py-8 text-center text-slate-400">Aucun résultat.</td></tr>
+                <tr v-if="filteredCopies.length===0"><td :colspan="hasGroups ? 9 : 8" class="px-4 py-8 text-center text-slate-400">Aucun élève trouvé.</td></tr>
               </tbody>
             </table>
           </div>
