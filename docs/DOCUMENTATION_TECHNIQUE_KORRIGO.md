@@ -1169,4 +1169,4 @@ Schéma OpenAPI : `https://korrigo.labomaths.tn/api/schema/`
 ---
 
 *Document généré le 10 mars 2026 — Korrigo v1.0*
-*Contact : Alaeddine BEN RHOUMA — contact@nexusreussite.academy*
+*Contact projet : Alaeddine BEN RHOUMA — contact@nexusreussite.academy*

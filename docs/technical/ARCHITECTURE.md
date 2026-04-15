@@ -3,7 +3,8 @@
 > **Version** : 3.0.0
 > **Date** : 28 mars 2026
 > **Public** : Développeurs, Architectes, DevOps
-> **Production** : https://korrigo.labomaths.tn (alias https://korrigo.nexusreussite.academy)
+> **Production** : https://korrigo.labomaths.tn
+> **Alias DNS éventuel** : https://korrigo.nexusreussite.academy
 
 Ce document décrit l'architecture complète de la plateforme Korrigo v2, une solution de correction numérique d'examens scannés pour établissements scolaires (lycées).
 
@@ -56,7 +57,9 @@ Korrigo est une plateforme de correction numérique d'examens scannés de bout e
 | Domaine | Usage |
 |---------|-------|
 | `korrigo.labomaths.tn` | Domaine principal |
-| `korrigo.nexusreussite.academy` | Alias de production |
+| `korrigo.nexusreussite.academy` | Alias DNS si conservé |
+
+> Note de contexte: Korrigo est une application distincte des autres stacks présentes sur la machine de production. Les services, le code et le déploiement décrits ici concernent uniquement Korrigo.
 
 ---
 

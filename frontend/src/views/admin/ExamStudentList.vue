@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import AppIcon from '../../icons/AppIcon.vue'
+import { useAutoRefresh } from '../../composables/useAutoRefresh'
 
 const route = useRoute()
 const router = useRouter()
@@ -99,7 +100,7 @@ const exportCSV = () => {
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
 }
 
-onMounted(fetchData)
+useAutoRefresh(fetchData)
 </script>
 
 <template>

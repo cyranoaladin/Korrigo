@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import ExamUploadModal from '../../components/ExamUploadModal.vue'
+import { useAutoRefresh } from '../../composables/useAutoRefresh'
 
 const route = useRoute()
 const router = useRouter()
@@ -90,7 +91,7 @@ const filteredCopies = computed(() => {
   return copies.value.filter(copy => copy.status === filterStatus.value)
 })
 
-onMounted(fetchCopies)
+useAutoRefresh(fetchCopies)
 </script>
 
 <template>

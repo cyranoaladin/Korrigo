@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
+import { useAutoRefresh } from '../../composables/useAutoRefresh'
 
 const route = useRoute()
 const router = useRouter()
@@ -129,7 +130,7 @@ const dispatchSummary = computed(() => {
   return []
 })
 
-onMounted(loadData)
+useAutoRefresh(loadData)
 </script>
 
 <template>

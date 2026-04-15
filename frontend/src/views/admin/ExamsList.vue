@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../../services/api'
 import ExamUploadModal from '../../components/ExamUploadModal.vue'
 import ExamTypeIcon from '../../components/ExamTypeIcon.vue'
+import { useAutoRefresh } from '../../composables/useAutoRefresh'
 
 const router = useRouter()
 
@@ -111,7 +112,7 @@ const handleExamUploaded = async () => {
   await fetchExams()
 }
 
-onMounted(fetchExams)
+useAutoRefresh(fetchExams)
 </script>
 
 <template>

@@ -49,7 +49,7 @@ Chemin de déploiement : `/var/www/labomaths/korrigo/`
 DJANGO_SETTINGS_MODULE=core.settings_prod
 SECRET_KEY=<clé 50+ chars — PAS django-insecure->
 DEBUG=False
-ALLOWED_HOSTS=korrigo.labomaths.tn,korrigo.nexusreussite.academy
+ALLOWED_HOSTS=korrigo.labomaths.tn,korrigo.nexusreussite.academy  # alias DNS Korrigo, pas une autre application
 
 # Base de données
 DB_NAME=korrigo

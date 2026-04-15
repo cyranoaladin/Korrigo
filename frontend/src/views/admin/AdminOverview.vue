@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
+import { useAutoRefresh } from '../../composables/useAutoRefresh'
 import AppIcon from '../../icons/AppIcon.vue'
 
 const authStore = useAuthStore()
@@ -118,7 +119,7 @@ const goToExam = (examId) => {
   router.push(`/admin/exams/${examId}/overview`)
 }
 
-onMounted(fetchExams)
+useAutoRefresh(fetchExams)
 </script>
 
 <template>

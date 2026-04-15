@@ -1,11 +1,12 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import gradingApi from '../../services/gradingApi'
 import ExamTypeIcon from '../../components/ExamTypeIcon.vue'
 import AppIcon from '../../icons/AppIcon.vue'
 import JuryReportsModal from '../../components/JuryReportsModal.vue'
+import { useAutoRefresh } from '../../composables/useAutoRefresh'
 
 const route = useRoute()
 const router = useRouter()
@@ -112,7 +113,7 @@ const quickActions = [
   { label: 'Résultats', icon: 'stats', path: (id) => `/admin/exams/${id}/results` },
 ]
 
-onMounted(loadData)
+useAutoRefresh(loadData)
 </script>
 
 <template>

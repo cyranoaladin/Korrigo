@@ -3,6 +3,7 @@
 > **Version** : 3.1
 > **Date** : 2026-04-03
 > **Production** : https://korrigo.labomaths.tn
+> **Alias DNS éventuel** : https://korrigo.nexusreussite.academy
 
 ---
 
@@ -17,8 +18,10 @@ Korrigo v2 est pleinement opérationnel en production. Au 3 avril 2026, l’inst
 ### Serveur
 - **IP** : 88.99.254.59
 - **Domaine principal** : `korrigo.labomaths.tn`
-- **Alias** : `korrigo.nexusreussite.academy`
+- **Alias DNS si maintenu** : `korrigo.nexusreussite.academy`
 - **Chemin de déploiement** : `/var/www/labomaths/korrigo/`
+
+> Ce document concerne uniquement l'instance Korrigo. Une autre stack Nexus peut cohabiter sur la même machine, mais elle est distincte du périmètre décrit ici.
 
 ### Conteneurs Docker
 
