@@ -380,10 +380,11 @@ class StudentImportView(views.APIView):
                         if not user_obj:
                             user_obj = AuthUser.objects.filter(username=email_lower).first()
                         if not user_obj:
+                            effective_password = date_naissance.strftime('%d%m%Y')
                             user_obj = AuthUser.objects.create_user(
                                 username=email_lower,
                                 email=email_lower,
-                                password=settings.DEFAULT_PASSWORD or 'changeme-provision',
+                                password=effective_password or settings.DEFAULT_PASSWORD or 'changeme-provision',
                                 first_name=first_name[:30],
                                 last_name=last_name[:30],
                                 is_active=True,

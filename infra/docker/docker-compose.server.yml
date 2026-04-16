@@ -1,5 +1,5 @@
 # Server override for korrigo.labomaths.tn
-# Usage: docker compose -f docker-compose.yml -f docker-compose.server.yml up -d
+# Usage: docker compose -f docker-compose.prod.yml -f docker-compose.server.yml up -d
 # Reads production values from infra/docker/.env (Docker Compose project .env)
 
 services:

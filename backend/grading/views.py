@@ -694,6 +694,17 @@ class CopyScoresView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+        # Validate total score does not exceed exam max
+        total_score = sum(float(v) for v in scores_data.values() if v is not None and v != '')
+        from exams.grading_utils import extract_leaf_questions
+        _leaves = extract_leaf_questions(copy.exam.grading_structure) if copy.exam else []
+        _max_total = sum(float(q['points']) for q in _leaves) if _leaves else 20.0
+        if total_score > _max_total + 0.01:
+            return Response(
+                {"detail": f"Le total des notes ({total_score}) dépasse le maximum autorisé ({_max_total} pts)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         from django.db import transaction
         with transaction.atomic():
             locked_copy = Copy.objects.select_for_update().filter(id=copy.id).first()
@@ -874,11 +885,13 @@ class CorrectorStatsView(APIView):
         }
 
     def _compute_distribution(self, scores):
-        """Compute histogram distribution (1-point bins from 0 to 20)."""
+        """Compute histogram distribution (1-point bins from 0 to max(20, ceil(max_score)))."""
         if not scores:
             return []
+        import math
+        upper = max(20, int(math.ceil(max(scores))))
         bins = []
-        for note in range(21):
+        for note in range(upper + 1):
             def _safe_round_note(score: float) -> float:
                 return float(round(score, 1))  # type: ignore[call-overload]
             count = sum(1 for s in scores if note <= _safe_round_note(float(s)) < note + 1)
@@ -1030,6 +1043,20 @@ class AdminForceUnlockView(APIView):
             copy.grading_retries = 0
             copy.save(update_fields=['status', 'final_pdf', 'graded_at', 'grading_retries'])
             reopened_from_finalized = True
+
+        # If reopened from FINALIZED, log a dedicated REOPEN event for audit trail
+        if reopened_from_finalized:
+            GradingEvent.objects.create(
+                copy=copy,
+                actor=request.user,
+                action=GradingEvent.Action.REOPEN,
+                metadata={
+                    'previous_status': previous_status,
+                    'previous_final_pdf': str(copy.final_pdf) if copy.final_pdf else None,
+                    'previous_graded_at': None,
+                    'via': 'admin_force_unlock',
+                },
+            )
 
         try:
             lock = CopyLock.objects.get(copy=copy)

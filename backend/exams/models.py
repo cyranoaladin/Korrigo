@@ -342,6 +342,10 @@ class Copy(models.Model):
                 fields=['exam', 'anonymous_id'],
                 name='uq_copy_exam_anonymous_id',
             ),
+            models.CheckConstraint(
+                check=models.Q(status__in=['READY', 'IN_PROGRESS', 'FINALIZED']),
+                name='check_copy_status_valid',
+            ),
         ]
         # LOT 8: Indexes for frequent query patterns
         indexes = [

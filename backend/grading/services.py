@@ -376,6 +376,31 @@ class GradingService:
         if copy.status not in (Copy.Status.READY, Copy.Status.IN_PROGRESS):
             raise ValueError(f"Impossible de finaliser une copie en statut {copy.status}")
 
+        # Validate appreciation
+        if not copy.global_appreciation or not copy.global_appreciation.strip():
+            raise ValueError("Une appréciation globale est requise pour finaliser la copie.")
+
+        # Validate all questions scored
+        try:
+            score = Score.objects.get(copy=copy)
+        except Score.DoesNotExist:
+            raise ValueError("Aucune note n'a été saisie pour cette copie.")
+
+        from exams.grading_utils import extract_leaf_questions
+        leaf_questions = extract_leaf_questions(copy.exam.grading_structure)
+        if leaf_questions:
+            scored_keys = set(score.scores_data.keys()) if score.scores_data else set()
+            for leaf in leaf_questions:
+                if leaf['id'] not in scored_keys:
+                    raise ValueError("Toutes les questions doivent être notées avant finalisation.")
+
+        # Validate total <= max
+        final_score = GradingService.compute_score(copy)
+        _leaves = extract_leaf_questions(copy.exam.grading_structure) if copy.exam else []
+        _max_total = sum(float(q['points']) for q in _leaves) if _leaves else 20.0
+        if final_score > _max_total + 0.01:
+            raise ValueError(f"Le total ({final_score}) dépasse le maximum autorisé ({_max_total} pts). Impossible de finaliser.")
+
         # Atomic compare-and-swap: claim the row with a single UPDATE ... WHERE.
         # Returns 0 if another concurrent transaction already changed the status,
         # guaranteeing exactly one caller proceeds even without real row locks.
@@ -392,8 +417,6 @@ class GradingService:
 
         # Refresh to get the updated fields
         copy.refresh_from_db()
-
-        final_score = GradingService.compute_score(copy)
 
         from processing.services.pdf_flattener import PDFFlattener
         flattener = PDFFlattener()

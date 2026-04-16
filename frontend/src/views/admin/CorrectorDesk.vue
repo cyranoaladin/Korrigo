@@ -7,6 +7,10 @@ import AnnotationSuggestionsPanel from '../../components/AnnotationSuggestionsPa
 import CommentBank from '../../components/CommentBank.vue'
 import AppIcon from '../../icons/AppIcon.vue'
 import { computeGradingProgress } from '../../utils/gradingProgress'
+import {
+    computeMaxTotalScore,
+    getScoreOverflowMessage,
+} from '../../utils/correctorDeskScoreLimits'
 // Removed date-fns, using native Intl
 import { useAuthStore } from '../../stores/auth'
 
@@ -177,8 +181,8 @@ const isAssignedCorrector = computed(() => {
     const correctorId = copy.value?.assigned_corrector?.id || copy.value?.assigned_corrector
     return userId && correctorId && String(userId) === String(correctorId)
 })
-const isReadOnly = computed(() => isFinalized.value && !isAdmin.value && !isAssignedCorrector.value)
-const canAnnotate = computed(() => (isReady.value || isInProgress.value || (isFinalized.value && (isAdmin.value || isAssignedCorrector.value))) && !isReadOnly.value)
+const isReadOnly = computed(() => isFinalized.value && !isAdmin.value)
+const canAnnotate = computed(() => (isReady.value || isInProgress.value) && !isReadOnly.value)
 const examId = computed(() => copy.value?.exam_details?.id || copy.value?.exam || null)
 
 
@@ -685,8 +689,11 @@ const totalScore = computed(() => {
     return Math.round(sum * 100) / 100
 })
 
-// Score validation: total must not exceed 20
-const scoreExceeds20 = computed(() => totalScore.value > 20)
+// Max total score from grading structure
+const maxTotalScore = computed(() => computeMaxTotalScore(flatQuestions.value))
+// Score validation: total must not exceed max
+const scoreExceedsMax = computed(() => totalScore.value > maxTotalScore.value)
+const scoreOverflowMessage = computed(() => getScoreOverflowMessage(maxTotalScore.value))
 
 // Per-exercise score breakdown for corrector overview
 const exerciseScoreBreakdown = computed(() => {
@@ -727,7 +734,7 @@ const canFinalize = computed(() => {
         if (questionScores.value.size === 0) return false
     }
     // Total must not exceed 20
-    if (scoreExceeds20.value) return false
+    if (scoreExceedsMax.value) return false
     // Appreciation must be filled
     if (!globalAppreciation.value || globalAppreciation.value.trim() === '') return false
     return true
@@ -1412,7 +1419,7 @@ onUnmounted(() => {
         </button>
 
         <button
-          v-if="isReady"
+          v-if="isReady || isInProgress"
           :disabled="isSaving || isReadOnly || !canFinalize"
           :class="['btn-success', { 'btn-disabled': !canFinalize }]"
           :title="!canFinalize ? 'Toutes les notes + appréciation requises' : 'Finaliser la correction'"
@@ -1877,8 +1884,8 @@ onUnmounted(() => {
           <strong>Barème</strong>
           <span
             class="inspector-total"
-            :class="{ 'score-overflow': scoreExceeds20 }"
-          >{{ totalScore.toFixed(2) }} / 20</span>
+            :class="{ 'score-overflow': scoreExceedsMax }"
+          >{{ totalScore.toFixed(2) }} / {{ maxTotalScore.toFixed(2) }}</span>
           <span
             v-if="scoresSaving"
             class="save-indicator small"
@@ -2184,18 +2191,18 @@ onUnmounted(() => {
               <!-- Total -->
               <div
                 class="total-score-bar"
-                :class="{ 'score-overflow': scoreExceeds20 }"
+                :class="{ 'score-overflow': scoreExceedsMax }"
               >
                 <span class="total-label">Note totale :</span>
-                <strong>{{ totalScore.toFixed(2) }}</strong> / 20
+                <strong>{{ totalScore.toFixed(2) }}</strong> / {{ maxTotalScore.toFixed(2) }}
                 <span
-                  v-if="scoreExceeds20"
+                  v-if="scoreExceedsMax"
                   class="overflow-warning"
                 ><AppIcon
                   name="warning"
                   :size="12"
                   class="inline"
-                /> Dépasse 20 !</span>
+                /> {{ scoreOverflowMessage }}</span>
               </div>
               <!-- Per-exercise score breakdown -->
               <div

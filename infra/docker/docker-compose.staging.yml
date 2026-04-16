@@ -54,7 +54,7 @@ services:
       SSL_ENABLED: "False"
       SECRET_KEY: "${SECRET_KEY?err}"
       ALLOWED_HOSTS: "${ALLOWED_HOSTS?err}"
-      DATABASE_URL: "postgres://${POSTGRES_USER?err}:${POSTGRES_PASSWORD?err}@db:5432/${POSTGRES_DB?err}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER?err}:${POSTGRES_PASSWORD?err}@db:5432/${POSTGRES_DB?err}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS?err}"
       CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS?err}"
@@ -81,7 +81,7 @@ services:
       - backend
     environment:
       DEBUG: "False"
-      DATABASE_URL: "postgres://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique_staging}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-viatique_user}:${POSTGRES_PASSWORD:-viatique_password}@db:5432/${POSTGRES_DB:-viatique_staging}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
 
   nginx:

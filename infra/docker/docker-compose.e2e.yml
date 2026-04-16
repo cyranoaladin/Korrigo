@@ -13,7 +13,7 @@ services:
       # Bind mount backend code for E2E - ensures latest code without full rebuild
       - ../../backend:/app
     environment:
-      DJANGO_SETTINGS_MODULE: "core.settings_e2e"
+      DJANGO_SETTINGS_MODULE: "core.settings"
       DJANGO_ENV: "e2e"
       RATELIMIT_ENABLE: "false"
       DATABASE_URL: "postgres://korrigo_user:s22g4sLKZPviEqXan%2F4wm0yGMaznJIMSf3Xx%2FUsLtY0%3D@db:5432/korrigo_prod"
@@ -25,7 +25,7 @@ services:
     volumes:
       - ../../backend:/app
     environment:
-      DJANGO_SETTINGS_MODULE: "core.settings_e2e"
+      DJANGO_SETTINGS_MODULE: "core.settings"
       DJANGO_ENV: "e2e"
       RATELIMIT_ENABLE: "false"
       DATABASE_URL: "postgres://korrigo_user:s22g4sLKZPviEqXan%2F4wm0yGMaznJIMSf3Xx%2FUsLtY0%3D@db:5432/korrigo_prod"
