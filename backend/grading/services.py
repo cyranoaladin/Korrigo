@@ -11,7 +11,7 @@ from django.db import transaction, OperationalError
 from django.utils import timezone
 from django.conf import settings
 from django.core.files.base import ContentFile
-from grading.models import Annotation, GradingEvent
+from grading.models import Annotation, GradingEvent, Score
 from exams.models import Copy, Booklet, Exam
 import logging
 import datetime
@@ -380,15 +380,14 @@ class GradingService:
         if not copy.global_appreciation or not copy.global_appreciation.strip():
             raise ValueError("Une appréciation globale est requise pour finaliser la copie.")
 
-        # Validate all questions scored
-        try:
-            score = Score.objects.get(copy=copy)
-        except Score.DoesNotExist:
-            raise ValueError("Aucune note n'a été saisie pour cette copie.")
-
+        # Validate all questions scored (only when exam has a grading structure)
         from exams.grading_utils import extract_leaf_questions
-        leaf_questions = extract_leaf_questions(copy.exam.grading_structure)
+        leaf_questions = extract_leaf_questions(copy.exam.grading_structure) if copy.exam else []
         if leaf_questions:
+            try:
+                score = Score.objects.get(copy=copy)
+            except Score.DoesNotExist:
+                raise ValueError("Aucune note n'a été saisie pour cette copie.")
             scored_keys = set(score.scores_data.keys()) if score.scores_data else set()
             for leaf in leaf_questions:
                 if leaf['id'] not in scored_keys:
@@ -396,8 +395,7 @@ class GradingService:
 
         # Validate total <= max
         final_score = GradingService.compute_score(copy)
-        _leaves = extract_leaf_questions(copy.exam.grading_structure) if copy.exam else []
-        _max_total = sum(float(q['points']) for q in _leaves) if _leaves else 20.0
+        _max_total = sum(float(q['points']) for q in leaf_questions) if leaf_questions else 20.0
         if final_score > _max_total + 0.01:
             raise ValueError(f"Le total ({final_score}) dépasse le maximum autorisé ({_max_total} pts). Impossible de finaliser.")
 

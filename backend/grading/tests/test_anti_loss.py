@@ -29,7 +29,7 @@ class TestAntiLoss:
 
     @pytest.fixture
     def copy(self, exam):
-        c = Copy.objects.create(exam=exam, anonymous_id="SAFE-COPY", status=Copy.Status.READY)
+        c = Copy.objects.create(exam=exam, anonymous_id="SAFE-COPY", status=Copy.Status.READY, global_appreciation="OK")
         Booklet.objects.create(exam=exam, start_page=0, end_page=2, pages_images=["p0.png", "p1.png"])
         c.booklets.add(Booklet.objects.get(exam=exam))
         return c

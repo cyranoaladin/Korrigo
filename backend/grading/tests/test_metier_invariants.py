@@ -277,7 +277,8 @@ class TestStateMachineInvariants(TestCase):
         """READY copies can be finalized (simplified workflow)."""
         import unittest.mock
         copy = Copy.objects.create(
-            exam=self.exam, anonymous_id="SM-002", status=Copy.Status.READY
+            exam=self.exam, anonymous_id="SM-002", status=Copy.Status.READY,
+            global_appreciation="OK",
         )
         with unittest.mock.patch("processing.services.pdf_flattener.PDFFlattener.flatten_copy", return_value=b"%PDF-test"):
             GradingService.finalize_copy(copy, self.teacher)

@@ -36,6 +36,7 @@ def ready_copy(exam, booklet_with_pages, teacher_user):
         anonymous_id="CONTRACT-READY",
         status=Copy.Status.READY,
         assigned_corrector=teacher_user,
+        global_appreciation="OK",
     )
     copy.booklets.add(booklet_with_pages)
     return copy

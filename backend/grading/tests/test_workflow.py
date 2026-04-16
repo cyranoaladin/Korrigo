@@ -44,7 +44,8 @@ def ready_copy(exam, booklet_with_pages):
     copy = Copy.objects.create(
         exam=exam,
         anonymous_id="TEST-READY",
-        status=Copy.Status.READY
+        status=Copy.Status.READY,
+        global_appreciation="Bien.",
     )
     copy.booklets.add(booklet_with_pages)
     return copy

@@ -40,6 +40,7 @@ def ready_copy_with_annotation(exam, booklet_with_pages, admin_user):
         anonymous_id="TEST-READY-ANN",
         status=Copy.Status.READY,
         assigned_corrector=admin_user,
+        global_appreciation="Bon travail.",
     )
     copy.booklets.add(booklet_with_pages)
 

@@ -142,6 +142,7 @@ class TestAuditEvents(TransactionTestCase):
             anonymous_id="AUDIT-FIN-OK",
             status=Copy.Status.READY,
             assigned_corrector=self.teacher,
+            global_appreciation="RAS.",
         )
 
         # Create annotation with score_delta
@@ -215,6 +216,7 @@ class TestAuditEvents(TransactionTestCase):
             anonymous_id="AUDIT-FIN-FAIL",
             status=Copy.Status.READY,
             assigned_corrector=self.teacher,
+            global_appreciation="RAS.",
         )
 
         # Mock PDF flattener to raise exception
