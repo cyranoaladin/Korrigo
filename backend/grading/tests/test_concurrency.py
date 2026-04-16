@@ -77,7 +77,8 @@ class TestConcurrency:
         from grading.services import GradingService
 
         copy.assigned_corrector = teacher
-        copy.save(update_fields=["assigned_corrector"])
+        copy.global_appreciation = "OK"
+        copy.save(update_fields=["assigned_corrector", "global_appreciation"])
 
         called = {"copy": False}
 

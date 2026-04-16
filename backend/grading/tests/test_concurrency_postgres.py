@@ -34,6 +34,7 @@ def test_finalize_concurrent_requests_flatten_called_once_postgres(teacher_user)
         anonymous_id="PG-CONC",
         status=Copy.Status.READY,
         assigned_corrector=teacher_user,
+        global_appreciation="OK",
     )
     copy.booklets.add(b)
 

@@ -57,6 +57,7 @@ class TestWorkflowComplete(TransactionTestCase):
         copy.assigned_corrector = self.teacher
         # Transition to READY (Simulate Identification/Verification step)
         copy.status = Copy.Status.READY
+        copy.global_appreciation = "Bon travail."
         copy.save()
         
         # 2. ANNOTATE (CRUD) — simplified workflow, no lock required
