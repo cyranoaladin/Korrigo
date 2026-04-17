@@ -1207,7 +1207,7 @@ class ExamDispatchView(APIView):
 
 class PronoteExportView(APIView):
     """
-    Export exam grades in PRONOTE CSV format (teacher and admin).
+    Export exam grades in PRONOTE CSV format (admin only).
     
     POST /api/exams/<id>/export-pronote/
     
@@ -1219,14 +1219,14 @@ class PronoteExportView(APIView):
     Response:
         - 200 OK: CSV file download
         - 400 Bad Request: Validation errors (ungraded copies, unidentified students, etc.)
-        - 403 Forbidden: Non-teacher/admin user
+        - 403 Forbidden: Non-admin user
         - 404 Not Found: Exam not found
         - 429 Too Many Requests: Rate limit exceeded (10/hour)
     
     Audit:
         Logs all export attempts (success/failure) with user, exam, timestamp
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsKorrigoAdmin]
 
     @method_decorator(maybe_ratelimit(key='user', rate='10/h', method='POST', block=True))
     def post(self, request, id):

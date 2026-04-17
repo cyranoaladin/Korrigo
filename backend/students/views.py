@@ -213,20 +213,26 @@ class StudentChangePasswordView(views.APIView):
                 'error': 'Mot de passe actuel incorrect.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Validate new password strength
+        # Prevent reusing the default password or date of birth (CHECK BEFORE Django validators)
+        student = Student.objects.filter(user=user).first()
+        dob_pwd = student.date_naissance.strftime('%d%m%Y') if student and student.date_naissance else None
+
+        if settings.DEFAULT_PASSWORD and new_password == settings.DEFAULT_PASSWORD:
+            return Response({
+                'error': 'Veuillez choisir un mot de passe différent du mot de passe par défaut.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if dob_pwd and new_password == dob_pwd:
+            return Response({
+                'error': "Veuillez choisir un mot de passe différent de votre date de naissance."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate new password strength (only after custom checks pass)
         try:
             validate_password(new_password, user=user)
         except ValidationError as e:
             return Response({
                 'error': e.messages
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Prevent reusing the default password or date of birth
-        student = Student.objects.filter(user=user).first()
-        dob_pwd = student.date_naissance.strftime('%d%m%Y') if student and student.date_naissance else None
-        if (settings.DEFAULT_PASSWORD and new_password == settings.DEFAULT_PASSWORD) or (dob_pwd and new_password == dob_pwd):
-            return Response({
-                'error': 'Veuillez choisir un mot de passe différent du mot de passe par défaut.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         user.set_password(new_password)
