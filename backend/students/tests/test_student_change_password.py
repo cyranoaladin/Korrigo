@@ -232,14 +232,10 @@ class TestStudentChangePasswordRateLimit(TransactionTestCase):
         }, content_type="application/json")
     
     def test_rate_limit_allows_multiple_attempts(self):
-        """Test that rate limit allows multiple attempts (20/h)."""
+        """Test that rate limit allows multiple attempts (20/h) or works when disabled."""
         from django.conf import settings
-        # Skip if rate limiting is disabled at the decorator level
-        # (maybe_ratelimit checks at decoration time, not runtime)
-        if not getattr(settings, "RATELIMIT_ENABLE", True):
-            self.skipTest("Rate limiting is disabled via RATELIMIT_ENABLE")
         
-        # Make 15 attempts with wrong current password - all should get 400
+        # Make 15 attempts with wrong current password
         for i in range(15):
             resp = self.client.post("/api/students/change-password/", {
                 "current_password": f"wrongpassword{i}",
@@ -247,17 +243,18 @@ class TestStudentChangePasswordRateLimit(TransactionTestCase):
             }, content_type="application/json")
             
             # Should be 400 (wrong password), not 429 (rate limited)
+            # When rate limiting is disabled, this will always pass
+            # When enabled, verifies rate limit allows 15 attempts
             self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
             self.assertEqual(resp.json()['error'], 'Mot de passe actuel incorrect.')
     
     def test_rate_limit_returns_429_with_message(self):
-        """Test that rate limit returns 429 with clear message when exceeded."""
+        """Test rate limiting behavior - returns 429 when enabled, no 429 when disabled."""
         from django.conf import settings
-        # Skip if rate limiting is disabled at the decorator level
-        if not getattr(settings, "RATELIMIT_ENABLE", True):
-            self.skipTest("Rate limiting is disabled via RATELIMIT_ENABLE")
         
-        # Make many attempts to trigger rate limit
+        ratelimit_enabled = getattr(settings, "RATELIMIT_ENABLE", True)
+        
+        # Make many attempts
         responses = []
         for i in range(25):
             resp = self.client.post("/api/students/change-password/", {
@@ -266,15 +263,19 @@ class TestStudentChangePasswordRateLimit(TransactionTestCase):
             }, content_type="application/json")
             responses.append(resp.status_code)
         
-        # At least one should be 429 (rate limited)
-        self.assertIn(status.HTTP_429_TOO_MANY_REQUESTS, responses)
-        
-        # Find the 429 response and verify message
-        for i, code in enumerate(responses):
-            if code == status.HTTP_429_TOO_MANY_REQUESTS:
-                # Verify that subsequent requests also return 429
-                self.assertIn(429, responses[i:])
-                break
+        if ratelimit_enabled:
+            # When rate limiting is enabled, expect 429 after threshold
+            self.assertIn(status.HTTP_429_TOO_MANY_REQUESTS, responses)
+            # Verify that subsequent requests also return 429
+            for i, code in enumerate(responses):
+                if code == status.HTTP_429_TOO_MANY_REQUESTS:
+                    self.assertIn(429, responses[i:])
+                    break
+        else:
+            # When rate limiting is disabled, no 429 should be returned
+            # All responses should be 400 (wrong password)
+            self.assertNotIn(status.HTTP_429_TOO_MANY_REQUESTS, responses)
+            self.assertEqual(responses.count(status.HTTP_400_BAD_REQUEST), 25)
 
 
 class TestStudentAuthWorkflowE2E(TransactionTestCase):
