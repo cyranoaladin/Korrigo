@@ -233,8 +233,12 @@ class StudentChangePasswordView(views.APIView):
         user.save()
         update_session_auth_hash(request, user)
 
-        # Invalider le cache bcrypt en session
+        # Invalider le cache bcrypt en session et en base de données
         request.session['must_change_password'] = False
+        profile = getattr(user, 'profile', None)
+        if profile:
+            profile.must_change_password = False
+            profile.save(update_fields=['must_change_password'])
 
         log_audit(request, 'student.password_change', 'Student',
                   request.session.get('student_id'))
