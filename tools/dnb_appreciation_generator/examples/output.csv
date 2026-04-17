@@ -1,0 +1,11 @@
+student_id,partie1,e2_total,e3_total,e4_total,e5_total,total,level,regularity,appreciation,source,status,attempts,rejection_reason,raw_text
+ELEVE_01,5.5,3.0,3.5,3.0,4.5,19.0,très bonne maîtrise,homogène,"Très bonne maîtrise globale, régulière et fiable.",llm,ok,1,,
+ELEVE_02,3.0,1.0,1.5,1.0,1.0,7.5,fragile,irrégulier,"Des compétences sont acquises, mais la maîtrise reste inégale.",llm,ok,1,,
+ELEVE_03,4.0,2.5,3.25,2.0,3.0,14.75,satisfaisant,irrégulier,"Ensemble satisfaisant, malgré une maîtrise encore irrégulière.",llm,ok,1,,
+ELEVE_04,2.0,0.5,0.75,1.0,1.0,5.25,très fragile,homogène,"Les bases restent à consolider sur l'ensemble du programme.",fallback,ok_fallback,2,"trop courte (5 mots, min 8)",Les bases sont fragiles.
+ELEVE_05,5.0,2.0,1.5,1.0,1.0,10.5,correct mais insuffisamment maîtrisé,très irrégulier,"Des résultats corrects côtoient des fragilités significatives.",llm,ok,1,,
+ELEVE_06,6.0,3.0,3.5,3.0,4.5,20.0,très bonne maîtrise,homogène,"Ensemble très solide, avec une grande régularité dans les résultats.",llm,ok,1,,
+ELEVE_07,5.0,1.5,1.5,0.5,0.0,8.5,fragile,très irrégulier,"Maîtrise très inégale : des points solides côtoient des difficultés nettes.",fallback,ok_fallback,2,"mot interdit détecté : 'exercice'",Les exercices 1 et 3 sont réussis mais le reste est fragile.
+ELEVE_08,1.0,0.0,0.0,0.0,0.0,1.0,très fragile,homogène,"Un travail de fond est nécessaire pour reconstruire les acquis.",fallback,ok_fallback,2,"trop courte (4 mots, min 8)",Très fragile.
+ELEVE_09,4.0,3.0,3.5,3.0,4.0,17.5,solide,homogène,"Ensemble solide et régulier, avec une bonne maîtrise d'ensemble.",llm,ok,1,,
+ELEVE_10,5.5,3.0,3.5,3.0,3.5,18.5,très bonne maîtrise,homogène,"Très bonne maîtrise générale, malgré quelques petites variations.",llm,ok,1,,
