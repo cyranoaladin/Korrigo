@@ -175,12 +175,18 @@ class StudentChangePasswordView(views.APIView):
     """
     Change password endpoint for students.
     Requires current session authentication (IsStudent).
-    Rate limited to 5 attempts per hour.
+    Rate limited to 20 attempts per hour (augmenté pour éviter blocage élèves).
     """
     permission_classes = [IsStudent]
 
-    @method_decorator(maybe_ratelimit(key='ip', rate='5/h', method='POST', block=True))
+    @method_decorator(maybe_ratelimit(key='ip', rate='20/h', method='POST', block=False))
     def post(self, request):
+        # Rate limit check — return clear French message instead of silent 403
+        if getattr(request, 'limited', False):
+            return Response({
+                'error': 'Trop de tentatives de changement de mot de passe. Veuillez réessayer dans une heure.',
+                'rate_limited': True
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
         # Le changement de mot de passe est TOUJOURS autorisé, même en maintenance.
         # Un élève contraint de changer son MDP ne doit pas être bloqué.
         from django.contrib.auth import update_session_auth_hash
