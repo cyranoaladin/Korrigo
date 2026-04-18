@@ -117,7 +117,17 @@ onMounted(fetchStudents)
       </div>
 
       <div v-else-if="students.length === 0" class="empty-state">
-        Aucun élève trouvé dans votre groupe.
+        <template v-if="examName">
+          <div style="font-size: 1.1rem; margin-bottom: 8px;">
+            <strong>Aucune copie finalisée dans {{ examName }}</strong>
+          </div>
+          <div style="color: #64748b;">
+            La liste de vos élèves apparaîtra ici au fur et à mesure que vous finaliserez leurs copies.
+          </div>
+        </template>
+        <template v-else>
+          Aucun élève trouvé dans votre groupe.
+        </template>
       </div>
 
       <div v-else class="students-grid">
