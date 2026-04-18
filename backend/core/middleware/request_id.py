@@ -180,9 +180,21 @@ class RequestContextLogFilter(logging.Filter):
 
             # Add user ID (if authenticated)
             # SECURITY: User ID only (integer), not email or username
-            if hasattr(request, 'user') and request.user.is_authenticated:
-                record.user_id = request.user.id
-            else:
-                record.user_id = None
+            # Defensive: accessing request.user triggers lazy session decoding,
+            # which may raise (BadSignature, corrupted session, etc.) and the
+            # resulting log call would re-enter this filter, causing infinite
+            # recursion. We use a re-entrancy guard + broad exception handling.
+            record.user_id = None
+            if not getattr(_thread_locals, 'in_filter', False):
+                _thread_locals.in_filter = True
+                try:
+                    if hasattr(request, 'user'):
+                        user = request.user
+                        if getattr(user, 'is_authenticated', False):
+                            record.user_id = getattr(user, 'id', None)
+                except Exception:
+                    record.user_id = None
+                finally:
+                    _thread_locals.in_filter = False
 
         return True
