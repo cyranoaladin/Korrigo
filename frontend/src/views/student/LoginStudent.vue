@@ -27,8 +27,10 @@ const handleLogin = async () => {
     try {
         const success = await authStore.loginStudent(email.value, password.value)
         if (success) {
-            // Always go to portal — App.vue modal handles forced password change
-            router.push('/student-portal')
+            // BUG-09 FIX: Rediriger directement vers /student/dashboard pour éviter
+            // le double passage du guard router via la redirect legacy /student-portal.
+            // App.vue affiche le modal must_change_password si nécessaire.
+            router.push('/student/dashboard')
         } else {
             error.value = authStore.lastError || "Email ou mot de passe incorrect."
         }

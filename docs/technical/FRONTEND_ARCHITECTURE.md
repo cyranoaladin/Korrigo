@@ -120,8 +120,7 @@ frontend/
 │   │   │
 │   │   └── student/                    # Vues élève authentifiées
 │   │       ├── LoginStudent.vue        # Connexion élève (email + mot de passe)
-│   │       ├── ResultView.vue          # Résultats copies corrigées
-│   │       └── ChangePasswordStudent.vue # Changement de mot de passe élève
+│   │       └── ResultView.vue          # Résultats copies corrigées
 │   │
 │   ├── components/                     # 28 composants réutilisables
 │   │   ├── AnnotationSuggestionsPanel.vue
@@ -489,13 +488,6 @@ C'est la vue centrale de la plateforme. Son architecture interne est la plus com
 - Visualisation des pages corrigées avec annotations rendues
 - Score total, appréciation globale
 - Bilan LLM si généré
-
-### 7.8 ChangePasswordStudent.vue — Historique
-
-**Statut :** composant historique hérité d'un ancien flux élève par mot de passe.
-
-- Ne constitue pas le flux d'authentification élève canonique en production actuelle
-- La référence normative courante est l'authentification par email + date de naissance
 
 ---
 

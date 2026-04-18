@@ -259,9 +259,7 @@ const routes = [
     // ── Student routes ──
     {
         path: '/student/change-password',
-        name: 'StudentChangePassword',
-        component: () => import('../views/student/ChangePasswordStudent.vue'),
-        meta: { requiresAuth: true, role: 'Student' }
+        redirect: '/student/dashboard'
     },
     {
         path: '/student/dashboard',

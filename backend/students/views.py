@@ -13,9 +13,9 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
-from core.utils.ratelimit import maybe_ratelimit
+from core.utils.ratelimit import maybe_ratelimit, get_real_ip
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from .models import Student
 from .serializers import StudentSerializer
 from exams.permissions import IsStudent, IsTeacherOrAdmin
@@ -35,7 +35,7 @@ class StudentLoginView(views.APIView):
     permission_classes = [AllowAny]  # Public endpoint - student authentication
     authentication_classes = []  # No auth required, bypass SessionAuth CSRF
 
-    @method_decorator(maybe_ratelimit(key='ip', rate='30/15m', method='POST', block=False))
+    @method_decorator(maybe_ratelimit(key=get_real_ip, rate='30/15m', method='POST', block=False))
     def post(self, request):
         # Rate limit check — return clear French message instead of generic 403
         if getattr(request, 'limited', False):
@@ -94,10 +94,13 @@ class StudentLoginView(views.APIView):
             must_change_password = True
         else:
             dob_pwd = student.date_naissance.strftime('%d%m%Y') if student.date_naissance else None
+            # BUG-15 FIX: un élève sans date_naissance ET sans mot de passe usable
+            # doit quand même être forcé à changer son mot de passe.
             must_change_password = (
                 not user.has_usable_password()
                 or (settings.DEFAULT_PASSWORD and user.check_password(settings.DEFAULT_PASSWORD))
                 or (dob_pwd and user.check_password(dob_pwd))
+                or (not dob_pwd and not settings.DEFAULT_PASSWORD)  # provisonné sans MDP identifiable
             )
             # Cache result in profile so we never re-check bcrypt for this user
             if profile and must_change_password:
@@ -131,6 +134,7 @@ class StudentLogoutView(views.APIView):
         request.session.flush()
         return Response({'message': 'Logged out'})
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class StudentMeView(views.APIView):
     permission_classes = [IsStudent]  # Student-only endpoint
 
@@ -138,11 +142,15 @@ class StudentMeView(views.APIView):
         # Mode 1 : session student (login élève classique)
         student_id = request.session.get('student_id')
 
-        # Mode 2 : User Django avec profil student
+        # Mode 2 : User Django avec profil student (BUG-10 FIX)
         if not student_id and request.user and request.user.is_authenticated:
             student_profile = Student.objects.filter(user=request.user).first()
             if student_profile:
                 student_id = student_profile.id
+                # Peupler la session pour que IsStudent fonctionne aux appels suivants
+                request.session['student_id'] = student_id
+                request.session['role'] = 'Student'
+                request.session.modified = True
 
         if not student_id:
             return Response({'error': 'Non authentifié.'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -171,6 +179,7 @@ class StudentMeView(views.APIView):
         return Response(data)
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class StudentChangePasswordView(views.APIView):
     """
     Change password endpoint for students.
@@ -179,7 +188,7 @@ class StudentChangePasswordView(views.APIView):
     """
     permission_classes = [IsStudent]
 
-    @method_decorator(maybe_ratelimit(key='ip', rate='20/h', method='POST', block=False))
+    @method_decorator(maybe_ratelimit(key=get_real_ip, rate='20/h', method='POST', block=False))
     def post(self, request):
         # Rate limit check — return clear French message instead of silent 403
         if getattr(request, 'limited', False):
@@ -407,6 +416,14 @@ class StudentImportView(views.APIView):
                             )
                         student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
                         user_obj.groups.add(student_group)
+                        
+                        # BUG-14/PATCH-13 FIX: Positionner must_change_password immédiatement
+                        # pour éviter le double bcrypt-check lors de la première connexion.
+                        profile = getattr(user_obj, 'profile', None)
+                        if profile:
+                            profile.must_change_password = True
+                            profile.save(update_fields=['must_change_password'])
+                            
                         student.user = user_obj
                         student.save(update_fields=['user'])
 

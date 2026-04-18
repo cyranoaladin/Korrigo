@@ -37,17 +37,25 @@ export const useAuthStore = defineStore('auth', () => {
     async function loginStudent(email, password) {
         try {
             lastError.value = ''
-            const res = await api.post('/students/login/', { 
-                email,
-                password
-            })
+            const res = await api.post('/students/login/', { email, password })
             if (res.data) {
-                // Fetch student info explicitly
-                await fetchUser(true, true)
-                // Forcer must_change_password depuis la réponse login (source de vérité)
-                if (user.value) {
-                    user.value.must_change_password = !!res.data.must_change_password
+                // BUG-03 FIX: Définir user.value IMMÉDIATEMENT depuis la réponse login
+                // (source de vérité) pour éviter toute race condition avec fetchUser.
+                // La réponse login contient must_change_password issu de la session Django,
+                // cohérent avec ce que /students/me/ retournerait.
+                const mustChange = !!res.data.must_change_password
+                const studentData = res.data.student || {}
+                user.value = {
+                    ...studentData,
+                    role: 'Student',
+                    must_change_password: mustChange
                 }
+                // Marquer comme vérifié pour éviter un re-fetch immédiat par le guard router
+                lastCheckedAt = Date.now()
+                
+                // BUG-08/PATCH-02 FIX: Lancer fetchUser en background pour valider l'état complet
+                // sans bloquer la transition d'UI.
+                fetchUser(true, true).catch(() => {})
                 return true
             }
             return false
@@ -59,13 +67,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function logout() {
+        // BUG-18 FIX: réinitialiser l'état local AVANT la requête backend pour
+        // éviter qu'un onglet concurrent utilise la session si le backend échoue.
+        // La session Django sera expirée naturellement (SESSION_COOKIE_AGE).
+        const endpoint = user.value?.role === 'Student' ? '/students/logout/' : '/logout/'
+        user.value = null
+        lastCheckedAt = 0
         try {
-            const endpoint = user.value?.role === 'Student' ? '/students/logout/' : '/logout/'
             await api.post(endpoint)
         } catch (e) {
-            console.error(e)
-        } finally {
-            user.value = null
+            // Erreur ignorée : l'état local est déjà réinitialisé.
+            // La session Django expirera via SESSION_COOKIE_AGE.
+            console.warn('Logout backend request failed (session will expire naturally):', e?.response?.status)
         }
     }
 

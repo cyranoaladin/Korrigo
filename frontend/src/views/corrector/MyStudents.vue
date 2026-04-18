@@ -126,8 +126,14 @@ onMounted(fetchStudents)
         >
           <div class="student-info">
             <div class="student-name">{{ student.last_name }} {{ student.first_name }}</div>
-            <div class="student-class">{{ student.class_name }}</div>
-            <div class="student-email">{{ student.email }}</div>
+            <div class="student-meta">
+              <span class="class-tag">{{ student.class_name }}</span>
+              <span v-if="student.groupe" class="dot-separator">•</span>
+              <span v-if="student.groupe" class="groupe-tag">{{ student.groupe }}</span>
+            </div>
+            <div v-if="student.email" class="student-email">
+              <AppIcon name="mail" :size="12" class="inline" /> {{ student.email }}
+            </div>
           </div>
           <div class="student-copies">
             <div
@@ -139,16 +145,20 @@ onMounted(fetchStudents)
               <span :class="['status-badge', getStatusClass(copy.status)]">
                 {{ getStatusLabel(copy.status) }}
               </span>
-              <span v-if="copy.total_score !== null" class="score">
-                {{ copy.total_score.toFixed(2) }}/20
-              </span>
-              <span v-else class="score pending">—</span>
-              <span v-if="copy.corrector_name" class="corrector-name">
-                <AppIcon name="teacher-pen" :size="12" class="inline" /> {{ copy.corrector_name }}
+              <div class="score">
+                <template v-if="copy.total_score !== null">
+                  {{ copy.total_score.toFixed(2) }}<span class="max">/20</span>
+                </template>
+                <span v-else class="score pending">—</span>
+              </div>
+              <span v-if="copy.corrector_name" class="corrector-info" :title="'Corrigé par ' + copy.corrector_name">
+                <AppIcon name="user" :size="12" />
               </span>
             </div>
           </div>
-          <div class="action-arrow"><AppIcon name="chevron-right" :size="18" /></div>
+          <div class="action-arrow">
+            <AppIcon name="chevron-right" :size="20" />
+          </div>
         </div>
       </div>
     </main>
@@ -158,60 +168,76 @@ onMounted(fetchStudents)
 <style scoped>
 .my-students-page { background: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif; }
 
-.top-nav { background: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; }
+.top-nav { background: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 100; }
 .brand { font-weight: 700; color: #0f172a; font-size: 1.1rem; display: flex; align-items: center; gap: 1rem; }
-.btn-back { background: none; border: none; color: #6366f1; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
-.btn-back:hover { text-decoration: underline; }
+.btn-back { background: none; border: none; color: #6366f1; cursor: pointer; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; transition: background 0.2s; }
+.btn-back:hover { background: #eef2ff; }
 .user-menu { display: flex; gap: 1rem; align-items: center; font-size: 0.9rem; }
-.groupe-badge { background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
-.btn-logout { border: 1px solid #ef4444; background: white; color: #ef4444; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; }
+.groupe-badge { background: #10b981; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+.btn-logout { border: 1px solid #ef4444; background: white; color: #ef4444; cursor: pointer; font-weight: 500; padding: 4px 12px; border-radius: 6px; transition: all 0.2s; }
 .btn-logout:hover { background: #ef4444; color: white; }
 
-.container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+.container { max-width: 1000px; margin: 2rem auto; padding: 0 1.5rem; }
 
-.page-header { margin-bottom: 2rem; }
-.page-header h1 { margin: 0 0 0.5rem 0; font-size: 1.5rem; color: #1e293b; }
-.page-header p { margin: 0; color: #64748b; }
+.page-header { margin-bottom: 2.5rem; }
+.page-header h1 { margin: 0 0 0.5rem 0; font-size: 2rem; color: #0f172a; font-weight: 800; letter-spacing: -0.025em; }
+.page-header p { margin: 0; color: #64748b; font-size: 1.1rem; }
+.highlight { color: #6366f1; font-weight: 600; }
 
-.loading, .error-message, .empty-state { text-align: center; padding: 3rem; color: #64748b; }
-.error-message { color: #ef4444; background: #fef2f2; border-radius: 8px; }
+.loading, .error-message, .empty-state { text-align: center; padding: 5rem 2rem; color: #64748b; background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
+.error-message { color: #ef4444; background: #fef2f2; border-color: #fee2e2; }
 
-.students-grid { display: flex; flex-direction: column; gap: 1rem; }
+.students-grid { display: flex; flex-direction: column; gap: 1.25rem; }
 
 .student-card {
     background: white;
-    padding: 1.25rem;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     border: 1px solid #e2e8f0;
     display: grid;
     grid-template-columns: 1fr auto auto;
-    gap: 1rem;
+    gap: 2rem;
     align-items: center;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .student-card:hover {
     border-color: #6366f1;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.1);
+    transform: translateY(-2px);
 }
 
-.student-info { }
-.student-name { font-weight: 600; color: #1e293b; font-size: 1rem; margin-bottom: 2px; }
-.student-class { color: #64748b; font-size: 0.85rem; }
-.student-email { color: #94a3b8; font-size: 0.8rem; }
+.student-info { display: flex; flex-direction: column; gap: 4px; }
+.student-name { font-weight: 700; color: #0f172a; font-size: 1.15rem; }
+.student-meta { display: flex; align-items: center; gap: 8px; color: #64748b; font-size: 0.9rem; }
+.dot-separator { color: #cbd5e1; }
 
-.student-copies { display: flex; flex-direction: column; gap: 4px; }
-.copy-summary { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
-.exam-name { color: #475569; font-weight: 500; min-width: 60px; }
-.status-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+.student-copies { display: flex; flex-direction: column; gap: 8px; min-width: 250px; }
+.copy-summary { 
+    display: flex; align-items: center; gap: 0.75rem; font-size: 0.9rem; 
+    background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid #f1f5f9;
+}
+.exam-name { color: #334155; font-weight: 600; flex: 1; }
+.status-badge { padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; }
 .status-badge.finalized { background: #dcfce7; color: #166534; }
 .status-badge.ready { background: #dbeafe; color: #1d4ed8; }
-.status-badge.in_progress { background: #FEF3C7; color: #92400e; }
-.score { font-weight: 700; color: #0f172a; min-width: 50px; text-align: right; }
-.score.pending { color: #94a3b8; }
-.corrector-name { color: #6366f1; font-size: 0.75rem; font-weight: 500; background: #eef2ff; padding: 2px 6px; border-radius: 4px; }
+.status-badge.in_progress { background: #fef3c7; color: #92400e; }
 
-.action-arrow { color: #94a3b8; font-size: 1.2rem; }
-.student-card:hover .action-arrow { color: #6366f1; }
+.score { font-weight: 800; color: #0f172a; font-size: 1.1rem; min-width: 60px; text-align: right; }
+.score .max { font-size: 0.75rem; color: #94a3b8; font-weight: 500; }
+.score.pending { color: #cbd5e1; font-weight: 500; }
+
+.corrector-info { 
+    display: flex; align-items: center; gap: 4px; color: #6366f1; 
+    font-size: 0.75rem; font-weight: 600; background: #eef2ff; 
+    padding: 2px 8px; border-radius: 6px; white-space: nowrap;
+}
+
+.action-arrow { 
+    color: #cbd5e1; width: 32px; height: 32px; display: flex; 
+    align-items: center; justify-content: center; border-radius: 50%; 
+    background: #f8fafc; transition: all 0.2s;
+}
+.student-card:hover .action-arrow { color: #6366f1; background: #eef2ff; transform: translateX(4px); }
 </style>

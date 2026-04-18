@@ -34,6 +34,8 @@ const basicStats = ref({ total: 0, graded: 0, todo: 0 })
 const examStats = ref(null)
 const statsLoading = ref(false)
 const showStats = ref(false)
+const myStudents = ref([])
+const myStudentsLoading = ref(false)
 
 // --- Exam Type Selection ---
 const selectedExamType = ref(null)
@@ -201,10 +203,28 @@ const fetchCopies = async () => {
 
         // Fetch per-question scoring progress in background
         fetchAllCopyScores(data)
+        
+        // Fetch teacher's own students' finalized copies
+        fetchMyStudents()
     } catch (err) {
         console.error("Failed to fetch copies", err)
     } finally {
         isLoading.value = false
+    }
+}
+
+const fetchMyStudents = async () => {
+    if (!selectedExamType.value) return
+    myStudentsLoading.value = true
+    try {
+        const response = await api.get('/grading/my-students/', { 
+            params: { exam_type_id: selectedExamType.value.id } 
+        })
+        myStudents.value = response.data.students || []
+    } catch (err) {
+        console.error("Failed to fetch my students copies", err)
+    } finally {
+        myStudentsLoading.value = false
     }
 }
 
@@ -381,6 +401,10 @@ const scrollToStats = async () => {
 
 const goToMyStudents = () => {
     router.push('/corrector/my-students')
+}
+
+const goToStudentBilan = (studentId) => {
+    router.push(`/corrector/student/${studentId}/bilan`)
 }
 
 const goToQuestionnaire = () => {
@@ -792,6 +816,51 @@ const canSeeQuestionnaire = computed(() =>
           </div>
         </template>
       </div>
+
+      <!-- Section: Bilan des élèves (pour les enseignants) -->
+      <div v-if="selectedExamType && (myStudents.length > 0 || myStudentsLoading)" class="task-list my-students-section">
+        <div class="section-header">
+          <h2>Bilan de vos élèves — {{ selectedExamType.name }}</h2>
+          <span v-if="!myStudentsLoading" class="count-badge">{{ myStudents.length }} élève(s)</span>
+        </div>
+
+        <div v-if="myStudentsLoading" class="loading">
+          Chargement du bilan des élèves...
+        </div>
+
+        <template v-else>
+          <div class="students-results-grid">
+            <div 
+              v-for="student in myStudents" 
+              :key="student.id" 
+              class="student-result-card"
+              @click="goToStudentBilan(student.id)"
+            >
+              <div class="student-main">
+                <div class="student-identity">
+                  <div class="name">{{ student.last_name }} {{ student.first_name }}</div>
+                  <div class="meta">{{ student.class_name }} <span v-if="student.groupe" class="bullet">•</span> {{ student.groupe }}</div>
+                </div>
+                
+                <div class="student-copies-list">
+                  <div v-for="copy in student.copies" :key="copy.copy_id" class="mini-copy-info">
+                    <span class="exam-tag">{{ copy.exam_name }}</span>
+                    <div class="score-display">
+                      <span v-if="copy.total_score !== null" class="score-value">
+                        {{ copy.total_score.toFixed(2) }}<span class="max">/20</span>
+                      </span>
+                      <span v-else class="score-pending">—</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer">
+                <span class="btn-view-bilan">Voir le bilan détaillé <AppIcon name="chevron-right" :size="12" /></span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
     </main>
 
     <JuryReportsModal
@@ -959,4 +1028,32 @@ const canSeeQuestionnaire = computed(() =>
 
 .loading { text-align: center; padding: 2rem; color: #64748b; }
 .empty-state { text-align: center; padding: 2rem; color: #94a3b8; }
+
+/* Section: Bilan des élèves */
+.my-students-section { margin-top: 3rem; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+.section-header h2 { margin-bottom: 0; }
+.count-badge { background: #eef2ff; color: #6366f1; padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+
+.students-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.student-result-card { 
+    background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem; 
+    cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; gap: 0.75rem;
+}
+.student-result-card:hover { border-color: #6366f1; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08); transform: translateY(-2px); }
+
+.student-identity .name { font-weight: 700; color: #0f172a; font-size: 0.95rem; }
+.student-identity .meta { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+.bullet { color: #cbd5e1; margin: 0 4px; }
+
+.student-copies-list { margin-top: 0.75rem; border-top: 1px solid #f1f5f9; padding-top: 0.75rem; }
+.mini-copy-info { display: flex; justify-content: space-between; align-items: center; }
+.exam-tag { font-size: 0.75rem; font-weight: 500; color: #475569; background: #f8fafc; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0; }
+.score-display { font-weight: 700; color: #0f172a; font-size: 1.1rem; }
+.score-display .max { font-size: 0.7rem; color: #94a3b8; font-weight: 500; margin-left: 1px; }
+.score-pending { color: #94a3b8; font-style: italic; font-size: 0.9rem; }
+
+.card-footer { margin-top: auto; padding-top: 0.5rem; border-top: 1px solid #f8fafc; }
+.btn-view-bilan { font-size: 0.75rem; font-weight: 600; color: #6366f1; display: flex; align-items: center; gap: 4px; }
+.student-result-card:hover .btn-view-bilan { color: #4f46e5; text-decoration: underline; }
 </style>

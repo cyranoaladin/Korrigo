@@ -10,6 +10,7 @@ const router = useRouter()
 const copies = ref([])
 const selectedCopy = ref(null)
 const loading = ref(true)
+const error = ref('')
 const expandedExercises = ref({})
 const activeTab = ref('scores')
 const pdfDirectUrl = ref(null)
@@ -154,7 +155,14 @@ const fetchCopies = async () => {
     const res = await api.get('/students/copies/')
     copies.value = res.data
     if (copies.value.length > 0) { selectedCopy.value = copies.value[0]; expandAllExercises(copies.value[0]) }
-  } catch (e) { if(e.response?.status===401) router.push('/student/login'); console.error(e) }
+  } catch (e) {
+    if (e.response?.status === 401) {
+      error.value = "Votre session a expiré. Veuillez vous reconnecter."
+      setTimeout(() => router.push('/student/login'), 2000)
+    } else {
+      console.error(e)
+    }
+  }
   finally { loading.value = false }
 }
 const expandAllExercises = (copy) => {
@@ -237,6 +245,18 @@ onMounted(() => { fetchCopies() })
         <p class="text-slate-500 text-sm">
           Chargement de vos résultats...
         </p>
+      </div>
+    </div>
+
+    <!-- ERROR -->
+    <div
+      v-else-if="error"
+      class="flex items-center justify-center h-[calc(100vh-4rem)]"
+    >
+      <div class="text-center text-red-600 bg-red-50 p-6 rounded-2xl max-w-md">
+        <AppIcon name="alert-circle" :size="48" class="mx-auto mb-4" />
+        <h2 class="text-xl font-semibold mb-2">Erreur</h2>
+        <p>{{ error }}</p>
       </div>
     </div>
 

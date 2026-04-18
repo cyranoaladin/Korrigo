@@ -32,8 +32,9 @@ if DJANGO_ENV == "production":
 else:
     DEBUG = raw_debug
 
-# Student provisioning default password — read from env, fallback for dev only
-DEFAULT_PASSWORD = os.environ.get('DEFAULT_PASSWORD', 'passe123' if DEBUG else '')
+# Student provisioning default password — BUG-20 FIX: never use a hardcoded fallback.
+# En dev, définir DEFAULT_PASSWORD explicitement dans .env si nécessaire.
+DEFAULT_PASSWORD = os.environ.get('DEFAULT_PASSWORD', '')
 
 # Helper for CSV environment variables
 def csv_env(name: str, default: str = "") -> list:
@@ -62,7 +63,10 @@ SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
 CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "Lax")
 
 # In real prod behind TLS, set via env; in local-prod-like keep false
-SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "false").lower() == "true"
+SESSION_COOKIE_SECURE = (
+    DJANGO_ENV == 'production'  # toujours Secure en prod
+    or os.environ.get("SESSION_COOKIE_SECURE", "false").lower() == "true"
+)
 CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "false").lower() == "true"
 
 # Static & Media Files
@@ -288,7 +292,7 @@ SESSION_ENGINE = (
     else 'django.contrib.sessions.backends.db'
 )
 SESSION_COOKIE_AGE = 14400
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # BUG-13 FIX: Évite que la session expire brutalement sur les navigateurs mobiles
 SESSION_COOKIE_HTTPONLY = True
 
 # P1.1 FIX: Ensure logs directory exists before configuring logging
@@ -423,6 +427,11 @@ else:
 # Rate limiting configuration
 RATELIMIT_USE_CACHE = 'default'
 
+# BUG-01/02 FIX: Indiquer à django-ratelimit que 1 proxy de confiance est en amont
+# (Nginx). Sans cela, la résolution d'IP depuis X-Forwarded-For peut être incorrecte.
+# Remplacé par get_real_ip() qui lit X-Real-IP directement depuis le header Nginx.
+NUM_PROXIES = 1
+
 # Enable/disable django-ratelimit via env (default: enabled)
 # Can be disabled for E2E testing environment only (set RATELIMIT_ENABLE=false)
 RATELIMIT_ENABLE = os.environ.get("RATELIMIT_ENABLE", "true").lower() == "true"
@@ -434,6 +443,17 @@ E2E_TEST_MODE = os.environ.get("E2E_TEST_MODE", "false").lower() == "true"
 
 if DJANGO_ENV == "production" and not RATELIMIT_ENABLE and not E2E_TEST_MODE:
     raise ValueError("RATELIMIT_ENABLE cannot be false in production environment (unless E2E_TEST_MODE=true)")
+
+# BUG-02 FIX: Redis obligatoire en production pour que le rate limiting soit
+# partagé entre tous les workers Gunicorn. Sans Redis, chaque worker a son
+# propre compteur (LocMemCache) : seuil effectif = seuil × nb_workers.
+if DJANGO_ENV == "production" and not _REDIS_AVAILABLE and not E2E_TEST_MODE:
+    import logging as _logging
+    _logging.getLogger(__name__).warning(
+        "REDIS_HOST non défini en production. Le rate limiting n'est PAS partagé entre "
+        "les workers Gunicorn (LocMemCache par processus). "
+        "Définissez REDIS_HOST pour un rate limiting cohérent."
+    )
 
 # CORS Configuration
 # Conformité: docs/security/MANUEL_SECURITE.md — CORS

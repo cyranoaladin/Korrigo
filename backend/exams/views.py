@@ -1693,7 +1693,34 @@ class ExamStudentListView(APIView):
                         total += float(value)
             score_lookup[str(score.copy_id)] = round(total, 2)
 
+        from core.auth import UserRole
+        is_admin = (
+            request.user.is_superuser
+            or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+        )
+
         roster_rows = self._load_roster_rows(exam)
+        
+        # Filtrage pour les enseignants : uniquement leurs élèves
+        if not is_admin:
+            from grading.views_my_students import _get_teacher_assignments, _student_matches_assignments
+            # On a besoin d'une version de _student_matches_assignments qui travaille sur les dicts du roster
+            assignments = _get_teacher_assignments(request.user)
+            filtered_roster = []
+            for row in roster_rows:
+                # Création d'un objet Student fictif pour la validation par _student_matches_assignments
+                # ou adaptation de la logique. Utilisons les champs du dict.
+                match = False
+                for a in assignments:
+                    # Check level prefix (simplifié pour le roster)
+                    if a['assignment_type'] == 'classe' and row.get('class_name') == a['group_name']:
+                        match = True; break
+                    if a['assignment_type'] == 'groupe' and row.get('groupe') == a['group_name']:
+                        match = True; break
+                if match:
+                    filtered_roster.append(row)
+            roster_rows = filtered_roster
+
         data = []
         used_copy_ids = set()
 
@@ -1711,6 +1738,10 @@ class ExamStudentListView(APIView):
                 student_name = roster_row.get('student_name')
                 student_class = roster_row.get('student_class')
                 student_groupe = roster_row.get('student_groupe')
+
+            # Pour les enseignants, on masque tout ce qui n'est pas FINALIZED
+            if not is_admin and copy and copy.status != Copy.Status.FINALIZED:
+                copy = None
 
             if copy:
                 used_copy_ids.add(str(copy.id))
@@ -1730,7 +1761,7 @@ class ExamStudentListView(APIView):
                 "student_class": student_class,
                 "student_groupe": student_groupe,
                 "total_score": total_score,
-                "status": copy.status if copy else "NO_COPY",
+                "status": copy.status if copy else ("NO_COPY" if roster_row else "UNKNOWN"),
                 "has_copy": bool(copy),
                 "corrector": corrector_name,
                 "has_appreciation": bool(copy and copy.global_appreciation and copy.global_appreciation.strip()),

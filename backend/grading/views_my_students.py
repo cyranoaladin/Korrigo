@@ -140,58 +140,65 @@ class MyStudentsListView(views.APIView):
             )
 
             # Récupérer les élèves du groupe du correcteur
-            students = _students_for_assignments(assignments)
+            students_qs = _students_for_assignments(assignments).order_by('last_name', 'first_name')
 
             # Récupérer les copies FINALISÉES de l'examen pour ces élèves
-            # Si admin: voit toutes les copies finalisées de l'examen
-            # Si teacher: ne voit que les copies qui lui sont assignées
-            copies_qs = Copy.objects.filter(
-                exam=exam,
-                student__in=students,
-                status=Copy.Status.FINALIZED
-            ).select_related('student', 'student__user', 'exam', 'assigned_corrector').prefetch_related(
-                Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
+            copies_prefetch = Prefetch(
+                'copies',
+                queryset=Copy.objects.filter(
+                    exam=exam,
+                    status=Copy.Status.FINALIZED
+                ).select_related('exam', 'assigned_corrector').prefetch_related(
+                    Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
+                )
             )
-
-            if not is_admin:
-                copies_qs = copies_qs.filter(assigned_corrector=request.user)
-
-            copies = list(copies_qs)
+            
+            students = students_qs.prefetch_related(copies_prefetch)
 
             result = []
-            for copy in copies:
-                student = copy.student
-                scores_list = list(copy.scores.all())
-                score_obj = scores_list[0] if scores_list else None
-                total_score = None
-                if score_obj and score_obj.scores_data:
-                    total_score = sum(
-                        float(v) for v in score_obj.scores_data.values()
-                        if v is not None and v != ''
-                    )
+            for student in students:
+                student_copies = list(student.copies.all())
+                if not student_copies:
+                    continue # On ne garde que les élèves qui ont une copie finalisée pour cet examen
 
-                corrector_name = None
-                if copy.assigned_corrector:
-                    corrector_name = f"{copy.assigned_corrector.first_name} {copy.assigned_corrector.last_name}".strip()
-                    if not corrector_name:
-                        corrector_name = copy.assigned_corrector.username
+                student_data = {
+                    'id': student.id,
+                    'first_name': student.first_name,
+                    'last_name': student.last_name,
+                    'class_name': student.class_name,
+                    'groupe': student.groupe,
+                    'email': student.email,
+                    'copies': []
+                }
 
-                result.append({
-                    'id': student.id if student else None,
-                    'first_name': student.first_name if student else None,
-                    'last_name': student.last_name if student else None,
-                    'class_name': student.class_name if student else None,
-                    'groupe': student.groupe if student else None,
-                    'email': student.email if student else None,
-                    'copy_id': str(copy.id),
-                    'exam_name': exam.name,
-                    'exam_id': str(exam.id),
-                    'status': copy.status,
-                    'total_score': round(total_score, 2) if total_score is not None else None,
-                    'anonymous_id': copy.anonymous_id,
-                    'corrector_name': corrector_name,
-                    'has_appreciation': bool(copy.global_appreciation and copy.global_appreciation.strip()),
-                })
+                for copy in student_copies:
+                    scores_list = list(copy.scores.all())
+                    score_obj = scores_list[0] if scores_list else None
+                    total_score = None
+                    if score_obj and score_obj.scores_data:
+                        total_score = sum(
+                            float(v) for v in score_obj.scores_data.values()
+                            if v is not None and v != ''
+                        )
+
+                    corrector_name = None
+                    if copy.assigned_corrector:
+                        corrector_name = f"{copy.assigned_corrector.first_name} {copy.assigned_corrector.last_name}".strip()
+                        if not corrector_name:
+                            corrector_name = copy.assigned_corrector.username
+
+                    student_data['copies'].append({
+                        'copy_id': str(copy.id),
+                        'exam_name': exam.name,
+                        'exam_id': str(exam.id),
+                        'status': copy.status,
+                        'total_score': round(total_score, 2) if total_score is not None else None,
+                        'anonymous_id': copy.anonymous_id,
+                        'corrector_name': corrector_name,
+                        'has_appreciation': bool(copy.global_appreciation and copy.global_appreciation.strip()),
+                    })
+                
+                result.append(student_data)
 
             return Response({
                 'exam_id': str(exam.id),
