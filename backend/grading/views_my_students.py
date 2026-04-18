@@ -118,22 +118,33 @@ class MyStudentsListView(views.APIView):
                 'students': []
             }, status=status.HTTP_200_OK)
 
-        # Si un examen est spécifié, filtrer les copies pour cet examen uniquement
+        # Si un examen (ou type d'examen) est spécifié, filtrer les copies
         if exam_id or exam_type_id:
             from exams.models import Exam
             from core.auth import UserRole
 
+            # exam : l'examen précis si exam_id donné, sinon None
+            # exams_in_scope : QuerySet d'examens à considérer pour le filtrage
+            exam = None
             if exam_id:
                 exam = get_object_or_404(Exam, id=exam_id)
+                exams_in_scope = Exam.objects.filter(pk=exam.pk)
+                scope_name = exam.name
+                scope_id = str(exam.id)
             else:
-                # Récupérer l'examen le plus récent pour ce type d'examen
+                # exam_type_id : agréger sur TOUS les examens de ce type
+                # (évite le bug 'latest only' qui ratait BB_J1 quand
+                # 'Prod Validation Exam' était plus récent).
                 from exams.models import ExamType
                 exam_type = get_object_or_404(ExamType, id=exam_type_id)
-                exam = Exam.objects.filter(exam_type=exam_type).order_by('-date', '-created_at').first()
-                if not exam:
+                exams_in_scope = Exam.objects.filter(exam_type=exam_type)
+                if not exams_in_scope.exists():
                     return Response({
                         'detail': f'Aucun examen trouvé pour le type {exam_type.code}.'
                     }, status=status.HTTP_404_NOT_FOUND)
+                scope_name = exam_type.name
+                scope_id = str(exam_type.id)
+
             is_admin = (
                 request.user.is_superuser
                 or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
@@ -142,11 +153,9 @@ class MyStudentsListView(views.APIView):
             # Récupérer les élèves du groupe du correcteur
             students_qs = _students_for_assignments(assignments).order_by('last_name', 'first_name')
 
-            # Récupérer les copies FINALISÉES de l'examen pour ces élèves.
-            # Pour un non-admin: STRICTEMENT les copies qui lui sont assignées
-            # (sinon il verrait les copies finalisées par un autre correcteur
-            # sur les mêmes élèves de son groupe).
-            copies_filter = Q(exam=exam, status=Copy.Status.FINALIZED)
+            # Récupérer les copies FINALISÉES dans le périmètre pour ces élèves.
+            # Pour un non-admin: STRICTEMENT les copies qui lui sont assignées.
+            copies_filter = Q(exam__in=exams_in_scope, status=Copy.Status.FINALIZED)
             if not is_admin:
                 copies_filter &= Q(assigned_corrector=request.user)
 
@@ -193,22 +202,26 @@ class MyStudentsListView(views.APIView):
                         if not corrector_name:
                             corrector_name = copy.assigned_corrector.username
 
+                    # Utiliser l'exam RÉEL de la copie (plusieurs examens possibles
+                    # en mode exam_type_id, ex: BB_J1 + BB_J2 agrégés).
+                    copy_exam = copy.exam
                     student_data['copies'].append({
                         'copy_id': str(copy.id),
-                        'exam_name': exam.name,
-                        'exam_id': str(exam.id),
+                        'exam_name': copy_exam.name if copy_exam else 'N/A',
+                        'exam_id': str(copy_exam.id) if copy_exam else None,
                         'status': copy.status,
                         'total_score': round(total_score, 2) if total_score is not None else None,
                         'anonymous_id': copy.anonymous_id,
                         'corrector_name': corrector_name,
                         'has_appreciation': bool(copy.global_appreciation and copy.global_appreciation.strip()),
                     })
-                
+
                 result.append(student_data)
 
             return Response({
-                'exam_id': str(exam.id),
-                'exam_name': exam.name,
+                'exam_id': scope_id,
+                'exam_name': scope_name,
+                'scope': 'exam' if exam else 'exam_type',
                 'filter': 'finalized_only',
                 'count': len(result),
                 'students': result

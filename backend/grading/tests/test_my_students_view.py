@@ -436,24 +436,39 @@ def test_unknown_exam_id_returns_404(alaeddine):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Test régression : exam_type_id (legacy) prend l'examen le plus récent
+# Test : exam_type_id AGRÈGE toutes les copies finalisées du type
+# (comportement corrigé: avant ne prenait que le 'latest exam')
 # ─────────────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
-def test_exam_type_id_picks_latest_exam(
+def test_exam_type_id_aggregates_all_exams(
     alaeddine, bac_type, students_terminale_g3
 ):
-    """Quand on passe exam_type_id (et pas exam_id), le backend choisit
-    l'examen le plus récent. Regression test pour le cas BB_J1/BB_J2."""
-    alice, _ = students_terminale_g3
+    """Avec exam_type_id seul : agrège les copies FINALIZED sur TOUS les
+    examens de ce type (BB_J1 ET BB_J2), pas seulement 'le plus récent'.
+    Régression test : l'ancien code prenait uniquement BB_J2 (plus récent)
+    et ratait les copies BB_J1 du correcteur."""
+    alice, bob = students_terminale_g3
     bb_j1 = _make_exam("BB_J1", bac_type, exam_date=date(2026, 1, 10))
-    bb_j2 = _make_exam("BB_J2", bac_type, exam_date=date(2026, 1, 20))  # plus récent
+    bb_j2 = _make_exam("BB_J2", bac_type, exam_date=date(2026, 1, 20))
 
     _make_copy(bb_j1, alice, "A1", Copy.Status.FINALIZED, corrector=alaeddine)
-    _make_copy(bb_j2, alice, "A2", Copy.Status.FINALIZED, corrector=alaeddine)
+    _make_copy(bb_j2, bob, "B2", Copy.Status.FINALIZED, corrector=alaeddine)
 
     client = APIClient()
     client.force_authenticate(user=alaeddine)
     res = client.get('/api/grading/my-students/', secure=True, data={'exam_type_id': bac_type.id})
+    assert res.status_code == 200
     data = res.json()
-    assert data['exam_name'] == 'BB_J2'  # le plus récent
+
+    # exam_name doit être le nom du TYPE (pas d'un examen précis)
+    assert data['exam_name'] == bac_type.name
+    assert data['scope'] == 'exam_type'
+
+    # Les DEUX élèves doivent apparaître (BB_J1 + BB_J2 agrégés)
+    names = {s['first_name'] for s in data['students']}
+    assert names == {'Alice', 'Bob'}
+
+    # Chaque copie garde son exam_name d'origine
+    all_copy_exams = {c['exam_name'] for s in data['students'] for c in s['copies']}
+    assert all_copy_exams == {'BB_J1', 'BB_J2'}
