@@ -436,6 +436,31 @@ def test_unknown_exam_id_returns_404(alaeddine):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Test régression : correcteur voit ses élèves même hors group_name officiel
+# (cas réel Sami : assigné G1 mais finalise des copies pour G4-G8 + 1.02)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_corrector_sees_students_of_finalized_copies_beyond_assignment(
+    alaeddine, bb_j1, db
+):
+    """Si le correcteur finalise une copie d'un élève en DEHORS de son
+    group_name officiel, cet élève doit quand même apparaître (source de
+    vérité = les copies finalisées, pas l'assignation group_name)."""
+    # Élève hors de l'assignation de alaeddine (pas dans G3 ni G6)
+    external_student = _make_student("Zoé", "Extra", "T.99", groupe="G99")
+    _make_copy(bb_j1, external_student, "EXT-001", Copy.Status.FINALIZED, corrector=alaeddine)
+
+    client = APIClient()
+    client.force_authenticate(user=alaeddine)
+    res = client.get('/api/grading/my-students/', secure=True, data={'exam_id': str(bb_j1.id)})
+    assert res.status_code == 200
+    data = res.json()
+    names = {s['first_name'] for s in data['students']}
+    assert 'Zoé' in names  # Doit apparaître car alaeddine a finalisé sa copie
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Test : exam_type_id AGRÈGE toutes les copies finalisées du type
 # (comportement corrigé: avant ne prenait que le 'latest exam')
 # ─────────────────────────────────────────────────────────────────────────────

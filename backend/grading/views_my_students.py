@@ -150,31 +150,57 @@ class MyStudentsListView(views.APIView):
                 or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
             )
 
-            # Récupérer les élèves du groupe du correcteur
-            students_qs = _students_for_assignments(assignments).order_by('last_name', 'first_name')
-
-            # Récupérer les copies FINALISÉES dans le périmètre pour ces élèves.
-            # Pour un non-admin: STRICTEMENT les copies qui lui sont assignées.
+            # ═══════════════════════════════════════════════════════════════
+            # Construction de la liste des élèves + copies à afficher.
+            #
+            # Stratégie :
+            #   - Non-admin : on part des COPIES finalisées que LE correcteur
+            #     a lui-même finalisées dans ce scope, puis on collecte les
+            #     élèves distincts. C'est la source de vérité la plus
+            #     robuste (plus fiable que l'assignation group_name qui peut
+            #     être désynchronisée avec la réalité des copies attribuées).
+            #   - Admin : filtre par assignation + copies finalisées de tout
+            #     le monde (comportement historique).
+            # ═══════════════════════════════════════════════════════════════
             copies_filter = Q(exam__in=exams_in_scope, status=Copy.Status.FINALIZED)
             if not is_admin:
                 copies_filter &= Q(assigned_corrector=request.user)
 
-            copies_prefetch = Prefetch(
-                'copies',
-                queryset=Copy.objects.filter(copies_filter).select_related(
-                    'exam', 'assigned_corrector'
-                ).prefetch_related(
-                    Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
-                )
+            # Étape 1 : récupérer les copies finalisées matching le filtre.
+            base_copies_qs = Copy.objects.filter(copies_filter).select_related(
+                'exam', 'assigned_corrector', 'student'
+            ).prefetch_related(
+                Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
             )
 
-            students = students_qs.prefetch_related(copies_prefetch)
+            # Étape 2 : déterminer les élèves à afficher.
+            if is_admin:
+                # Admin : on garde le filtre d'assignation (comportement legacy)
+                students_qs = _students_for_assignments(assignments).order_by(
+                    'last_name', 'first_name'
+                )
+                copies_prefetch = Prefetch('copies', queryset=base_copies_qs)
+                students = students_qs.prefetch_related(copies_prefetch)
+            else:
+                # Non-admin : on collecte les élèves distincts depuis les copies.
+                # Pas de filtre par group_name → on voit tous les élèves dont
+                # on a finalisé une copie dans ce scope (tous niveaux confondus).
+                student_ids = list(
+                    base_copies_qs.exclude(student__isnull=True)
+                    .values_list('student_id', flat=True)
+                    .distinct()
+                )
+                students = Student.objects.filter(id__in=student_ids).order_by(
+                    'last_name', 'first_name'
+                ).prefetch_related(
+                    Prefetch('copies', queryset=base_copies_qs)
+                )
 
             result = []
             for student in students:
                 student_copies = list(student.copies.all())
                 if not student_copies:
-                    continue # On ne garde que les élèves qui ont une copie finalisée pour cet examen
+                    continue  # On ne garde que les élèves ayant au moins une copie dans le scope
 
                 student_data = {
                     'id': student.id,
@@ -306,7 +332,15 @@ class StudentBilanView(views.APIView):
             or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
         )
         if not is_admin:
-            if not _student_matches_assignments(student, assignments):
+            # Accès autorisé si :
+            #  - l'élève match une assignation (cas historique), OU
+            #  - le correcteur a finalisé au moins une copie de cet élève
+            has_corrected_student = Copy.objects.filter(
+                student=student,
+                assigned_corrector=request.user,
+                status=Copy.Status.FINALIZED,
+            ).exists()
+            if not (_student_matches_assignments(student, assignments) or has_corrected_student):
                 return Response({
                     'detail': 'Vous n\'avez pas accès à cet élève.'
                 }, status=status.HTTP_403_FORBIDDEN)
