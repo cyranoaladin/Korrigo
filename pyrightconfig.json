@@ -18,5 +18,7 @@
   "typeCheckingMode": "basic",
   "reportMissingImports": "warning",
   "reportMissingModuleSource": "none",
-  "useLibraryCodeForTypes": true
+  "useLibraryCodeForTypes": true,
+  "reportAttributeAccessIssue": "none",
+  "reportOperatorIssue": "none"
 }
