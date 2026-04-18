@@ -38,8 +38,9 @@ def get_real_ip(group, request):
     if forwarded_for:
         return forwarded_for.split(',')[0].strip()
 
-    # Fallback : REMOTE_ADDR (peut être l'IP interne Docker derrière Nginx)
-    return request.META.get('REMOTE_ADDR', '0.0.0.0')
+    # Fallback : REMOTE_ADDR (peut être l'IP interne Docker derrière Nginx).
+    # Si absent, on retourne 'unknown' (clé de rate-limit ; pas un bind réseau).
+    return request.META.get('REMOTE_ADDR', 'unknown')
 
 
 def maybe_ratelimit(*args, **kwargs):
