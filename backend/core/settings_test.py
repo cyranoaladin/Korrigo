@@ -117,3 +117,6 @@ LOGGING = {
         },
     },
 }
+
+# Student provisioning default password for tests
+DEFAULT_PASSWORD = os.environ.get("DEFAULT_PASSWORD", "ChangeMe_Test_123!")

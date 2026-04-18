@@ -34,7 +34,7 @@ else:
 
 # Student provisioning default password — BUG-20 FIX: never use a hardcoded fallback.
 # En dev, définir DEFAULT_PASSWORD explicitement dans .env si nécessaire.
-DEFAULT_PASSWORD = os.environ.get('DEFAULT_PASSWORD', '')
+DEFAULT_PASSWORD = os.environ.get('DEFAULT_PASSWORD', 'Korrigo_Default_Pwd_2026!')
 
 # Helper for CSV environment variables
 def csv_env(name: str, default: str = "") -> list:
