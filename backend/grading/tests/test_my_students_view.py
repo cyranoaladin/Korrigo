@@ -352,16 +352,17 @@ def test_excludes_non_finalized_copies(
 # ─────────────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
-def test_corrector_only_sees_own_assigned_copies(
+def test_corrector_sees_assigned_students_regardless_of_who_finalized(
     alaeddine, other_teacher, bb_j1, students_terminale_g3
 ):
-    """alaeddine ne doit pas voir les copies finalisées par un autre correcteur,
-    même si l'élève est dans son assignation."""
+    """Règle UNION : un élève de l'assignation du correcteur est visible
+    dès lors que sa copie a été finalisée, peu importe par qui.
+    (Spec : 'mes élèves dont la copie a été finalisée')"""
     alice, bob = students_terminale_g3
 
-    # Alice : copie finalisée par alaeddine → visible pour alaeddine
+    # Alice : copie finalisée par alaeddine (lui-même)
     _make_copy(bb_j1, alice, "A-001", Copy.Status.FINALIZED, corrector=alaeddine)
-    # Bob : copie finalisée par OTHER → NON visible pour alaeddine
+    # Bob : copie finalisée par un AUTRE correcteur (other_teacher)
     _make_copy(bb_j1, bob, "B-001", Copy.Status.FINALIZED, corrector=other_teacher)
 
     client = APIClient()
@@ -369,7 +370,8 @@ def test_corrector_only_sees_own_assigned_copies(
     res = client.get('/api/grading/my-students/', secure=True, data={'exam_id': str(bb_j1.id)})
     data = res.json()
     names = {s['first_name'] for s in data['students']}
-    assert names == {'Alice'}  # Bob exclu (assigné à autre correcteur)
+    # Les DEUX sont dans l'assignation terminale G3 → visibles
+    assert names == {'Alice', 'Bob'}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -433,6 +435,31 @@ def test_unknown_exam_id_returns_404(alaeddine):
     client.force_authenticate(user=alaeddine)
     res = client.get('/api/grading/my-students/', secure=True, data={'exam_id': str(uuid.uuid4())})
     assert res.status_code == 404
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Test régression : élève de MON assignation finalisé par AUTRE correcteur
+# ─────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_student_in_my_assignment_finalized_by_other_corrector(
+    alaeddine, other_teacher, eam_exam, students_premiere_g6
+):
+    """Cas réel : alaeddine est assigné Première G6. Un élève G6 en EAM a sa
+    copie finalisée par un AUTRE correcteur. alaeddine doit voir cet élève
+    (car il est dans son assignation et la copie est finalisée)."""
+    chloe, _ = students_premiere_g6
+
+    # Copie finalisée par other_teacher (pas par alaeddine)
+    _make_copy(eam_exam, chloe, "EAM-G6", Copy.Status.FINALIZED, corrector=other_teacher)
+
+    client = APIClient()
+    client.force_authenticate(user=alaeddine)
+    res = client.get('/api/grading/my-students/', secure=True, data={'exam_id': str(eam_exam.id)})
+    assert res.status_code == 200
+    data = res.json()
+    names = {s['first_name'] for s in data['students']}
+    assert 'Chloe' in names  # Dans mon assignation + copie finalisée = visible
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -153,48 +153,65 @@ class MyStudentsListView(views.APIView):
             # ═══════════════════════════════════════════════════════════════
             # Construction de la liste des élèves + copies à afficher.
             #
-            # Stratégie :
-            #   - Non-admin : on part des COPIES finalisées que LE correcteur
-            #     a lui-même finalisées dans ce scope, puis on collecte les
-            #     élèves distincts. C'est la source de vérité la plus
-            #     robuste (plus fiable que l'assignation group_name qui peut
-            #     être désynchronisée avec la réalité des copies attribuées).
-            #   - Admin : filtre par assignation + copies finalisées de tout
-            #     le monde (comportement historique).
+            # Règle métier (UNION) :
+            #   Un élève s'affiche pour un correcteur si :
+            #    (A) il est dans l'assignation officielle du correcteur
+            #        (group_name ou class_name) ET au moins une copie dans
+            #        le scope a été finalisée (par n'importe qui), OU
+            #    (B) le correcteur a personnellement finalisé au moins une
+            #        copie de cet élève dans le scope (couvre le cas
+            #        d'assignations d\u00e9synchronisées).
+            #
+            # Admin : voit tous les élèves ayant une copie finalisée dans
+            # le scope, sans filtre d'assignation.
             # ═══════════════════════════════════════════════════════════════
-            copies_filter = Q(exam__in=exams_in_scope, status=Copy.Status.FINALIZED)
-            if not is_admin:
-                copies_filter &= Q(assigned_corrector=request.user)
+            finalized_in_scope_qs = Copy.objects.filter(
+                exam__in=exams_in_scope, status=Copy.Status.FINALIZED
+            )
 
-            # Étape 1 : récupérer les copies finalisées matching le filtre.
-            base_copies_qs = Copy.objects.filter(copies_filter).select_related(
+            if is_admin:
+                # Admin : tous les élèves ayant une copie finalisée dans le scope
+                student_ids = set(
+                    finalized_in_scope_qs.exclude(student__isnull=True)
+                    .values_list('student_id', flat=True)
+                )
+                copies_display_filter = Q(exam__in=exams_in_scope, status=Copy.Status.FINALIZED)
+            else:
+                # (A) élèves de l'assignation dont une copie est finalisée
+                assigned_students = _students_for_assignments(assignments)
+                ids_A = set(
+                    finalized_in_scope_qs.filter(student__in=assigned_students)
+                    .values_list('student_id', flat=True)
+                )
+                # (B) élèves dont j'ai personnellement finalisé une copie
+                ids_B = set(
+                    finalized_in_scope_qs.filter(assigned_corrector=request.user)
+                    .exclude(student__isnull=True)
+                    .values_list('student_id', flat=True)
+                )
+                student_ids = ids_A | ids_B
+
+                # Pour chaque élève affiché, on veut lui associer ses copies
+                # finalisées dans le scope PERTINENTES :
+                #   - S'il est dans mon assignation : toutes les copies finalisées
+                #     (peu importe le correcteur) pour voir le bilan complet.
+                #   - Sinon (cas B pur) : seulement les copies que j'ai finalisées.
+                copies_display_filter = (
+                    Q(exam__in=exams_in_scope, status=Copy.Status.FINALIZED) & (
+                        Q(student__in=assigned_students) |
+                        Q(assigned_corrector=request.user)
+                    )
+                )
+
+            copies_qs = Copy.objects.filter(copies_display_filter).select_related(
                 'exam', 'assigned_corrector', 'student'
             ).prefetch_related(
                 Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
             )
 
-            # Étape 2 : déterminer les élèves à afficher.
-            if is_admin:
-                # Admin : on garde le filtre d'assignation (comportement legacy)
-                students_qs = _students_for_assignments(assignments).order_by(
-                    'last_name', 'first_name'
-                )
-                copies_prefetch = Prefetch('copies', queryset=base_copies_qs)
-                students = students_qs.prefetch_related(copies_prefetch)
-            else:
-                # Non-admin : on collecte les élèves distincts depuis les copies.
-                # Pas de filtre par group_name → on voit tous les élèves dont
-                # on a finalisé une copie dans ce scope (tous niveaux confondus).
-                student_ids = list(
-                    base_copies_qs.exclude(student__isnull=True)
-                    .values_list('student_id', flat=True)
-                    .distinct()
-                )
-                students = Student.objects.filter(id__in=student_ids).order_by(
-                    'last_name', 'first_name'
-                ).prefetch_related(
-                    Prefetch('copies', queryset=base_copies_qs)
-                )
+            students = Student.objects.filter(id__in=student_ids).order_by(
+                'last_name', 'first_name'
+            ).prefetch_related(Prefetch('copies', queryset=copies_qs))
 
             result = []
             for student in students:
