@@ -468,9 +468,18 @@ const canSeeQuestionnaire = computed(() =>
         >
           <AppIcon name="bar-chart-3" :size="14" class="inline" /> Statistiques
         </button>
-        <!-- Bouton 'Mes Élèves' global supprimé :
-             désormais accessible UNIQUEMENT par exam-group, pour garantir
-             le filtrage strict par examen + copies finalisées. -->
+        <!-- Bouton global 'Mes Élèves' (fallback via exam_type_id).
+             Pour un filtrage STRICT par examen (BB_J1 vs BB_J2), utiliser
+             le bouton dans chaque exam-group-header ci-dessous. -->
+        <button
+          v-if="selectedExamType"
+          class="btn-my-students"
+          data-testid="btn-my-students-global"
+          @click="goToMyStudents(null)"
+          title="Voir tous mes élèves de ce type d'examen"
+        >
+          <AppIcon name="users" :size="14" class="inline" /> Mes Élèves
+        </button>
         <button
           v-if="canSeeQuestionnaire && questionnaireStatusLoaded && !questionnaireSummary.has_response"
           class="btn-questionnaire"
