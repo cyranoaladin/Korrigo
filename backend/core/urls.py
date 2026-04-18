@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/login/', views.LoginView.as_view(), name='login'),
     path('api/logout/', views.LogoutView.as_view(), name='logout'),
     path('api/me/', views.UserDetailView.as_view(), name='user_detail'),
+    path('api/auth/status/', views.AuthStatusView.as_view(), name='auth_status'),
     path('api/settings/', views.GlobalSettingsView.as_view(), name='settings'),
     path('api/change-password/', views.ChangePasswordView.as_view(), name='change_password'),
     path('api/password-reset/', PasswordResetRequestView.as_view(), name='password_reset_request'),

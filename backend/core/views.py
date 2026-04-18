@@ -107,6 +107,78 @@ class LogoutView(APIView):
         logout(request)
         return Response({"message": "Déconnexion réussie."})
 
+class AuthStatusView(APIView):
+    """
+    GET /api/auth/status/
+    Returns 200 always with the auth state. Avoids noisy 403s in browser console
+    when the SPA bootstraps and probes for the current user.
+
+    Response schema:
+        {
+            "authenticated": bool,
+            "role": "Admin" | "Teacher" | "Student" | null,
+            "user": { ... } | null,
+        }
+    """
+    permission_classes = [AllowAny]
+    # SessionAuthentication still attempts to populate request.user from the
+    # session cookie; AllowAny just disables the IsAuthenticated check.
+
+    def get(self, request):
+        user = request.user
+        if not user or not user.is_authenticated:
+            # Try the student session-based auth fallback
+            student_id = request.session.get('student_id') if hasattr(request, 'session') else None
+            if student_id:
+                try:
+                    from students.models import Student
+                    student = Student.objects.filter(id=student_id).first()
+                    if student:
+                        return Response({
+                            'authenticated': True,
+                            'role': 'Student',
+                            'user': {
+                                'id': student.id,
+                                'first_name': student.prenom,
+                                'last_name': student.nom,
+                                'email': getattr(student, 'email', None),
+                            },
+                        })
+                except Exception:
+                    pass
+            return Response({
+                'authenticated': False,
+                'role': None,
+                'user': None,
+            })
+
+        # Authenticated Django user — determine role
+        if user.groups.filter(name__iexact=UserRole.ADMIN).exists() or user.is_superuser:
+            role = 'Admin'
+        elif user.groups.filter(name__iexact=UserRole.TEACHER).exists():
+            role = 'Teacher'
+        else:
+            # Could be a Student account that uses Django auth
+            try:
+                from students.models import Student
+                if Student.objects.filter(user=user).exists():
+                    role = 'Student'
+                else:
+                    role = 'Unknown'
+            except Exception:
+                role = 'Unknown'
+
+        return Response({
+            'authenticated': True,
+            'role': role,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+            },
+        })
+
+
 class UserDetailView(APIView):
     permission_classes = [IsAuthenticated]
 

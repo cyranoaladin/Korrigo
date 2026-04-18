@@ -91,34 +91,47 @@ export const useAuthStore = defineStore('auth', () => {
         isChecking.value = true
         lastCheckedAt = now
         try {
-            // Step 1: Try Admin/Teacher endpoint first
-            if (!preferStudent) {
-                try {
-                    const adminRes = await api.get('/me/')
-                    const adminData = adminRes.data
-                    // If role is a known staff role, stop here
-                    if (adminData.role === 'Admin' || adminData.role === 'Teacher') {
-                        user.value = adminData
+            // Step 1: Single non-failing probe → /api/auth/status/
+            // Returns 200 always with { authenticated, role, user }.
+            // Avoids the noisy 403 spam on /me/ + /students/me/ at bootstrap.
+            try {
+                const statusRes = await api.get('/auth/status/')
+                const s = statusRes.data || {}
+                if (!s.authenticated) {
+                    user.value = null
+                    return
+                }
+                // Authenticated. For Admin/Teacher we still hit /me/ to get the
+                // full payload (assigned_codes, must_change_password, …).
+                if ((s.role === 'Admin' || s.role === 'Teacher') && !preferStudent) {
+                    try {
+                        const adminRes = await api.get('/me/')
+                        user.value = adminRes.data
+                        return
+                    } catch (_) {
+                        // Fallback to minimal payload from status
+                        user.value = { ...(s.user || {}), role: s.role }
                         return
                     }
-                    // role=Unknown means the account exists but has no staff group
-                    // → fall through to student check below
-                } catch (e) {
-                    // Admin check failed, continue to student
                 }
-            }
-
-            // Step 2: Try Student endpoint
-            try {
-                const studentRes = await api.get('/students/me/')
-                const studentData = studentRes.data
-                user.value = { ...studentData, role: 'Student' }
-                if (studentData.must_change_password !== undefined) {
-                    user.value.must_change_password = studentData.must_change_password
+                if (s.role === 'Student') {
+                    try {
+                        const studentRes = await api.get('/students/me/')
+                        const studentData = studentRes.data
+                        user.value = { ...studentData, role: 'Student' }
+                        if (studentData.must_change_password !== undefined) {
+                            user.value.must_change_password = studentData.must_change_password
+                        }
+                        return
+                    } catch (_) {
+                        user.value = { ...(s.user || {}), role: 'Student' }
+                        return
+                    }
                 }
-                return
+                // Unknown role: keep minimal payload
+                user.value = { ...(s.user || {}), role: s.role || 'Unknown' }
             } catch (e) {
-                // Silently handle discovery failure
+                // /auth/status/ itself failed (network, 5xx). Mark as unauthenticated.
                 user.value = null
             }
         } catch (e) {

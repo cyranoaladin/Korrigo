@@ -107,7 +107,7 @@ api.interceptors.response.use(
             // Don't redirect for login attempts (401 = bad credentials, handled by caller)
             // Don't redirect for auth-check calls (expected when not logged in)
             const url = config.url || '';
-            const isAuthEndpoint = url.includes('/login/') || url.includes('/me/');
+            const isAuthEndpoint = url.includes('/login/') || url.includes('/me/') || url.includes('/auth/status/');
             if (!isAuthEndpoint) {
                 const { useAuthStore } = await import('../stores/auth');
                 const router = (await import('../router')).default;
