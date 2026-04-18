@@ -96,9 +96,10 @@ class MyStudentsListView(views.APIView):
 
     Query params:
         - exam_id (optional): UUID de l'examen pour filtrer les élèves de cet examen uniquement
+        - exam_type_id (optional): ID du type d'examen (alternative à exam_id)
         - level (optional): Niveau pour filtrer les assignations (terminale, premiere, troisieme)
 
-    Si exam_id est fourni:
+    Si exam_id ou exam_type_id est fourni:
         - Ne retourne que les élèves qui ont une copie FINALISÉE dans cet examen
         - Le correcteur ne voit que les copies qui lui sont assignées
         - Les copies non finalisées ne sont pas affichées
@@ -108,6 +109,7 @@ class MyStudentsListView(views.APIView):
     def get(self, request):
         level = request.query_params.get('level', None)
         exam_id = request.query_params.get('exam_id', None)
+        exam_type_id = request.query_params.get('exam_type_id', None)
         assignments = _get_teacher_assignments(request.user, level=level)
 
         if not assignments:
@@ -117,11 +119,21 @@ class MyStudentsListView(views.APIView):
             }, status=status.HTTP_200_OK)
 
         # Si un examen est spécifié, filtrer les copies pour cet examen uniquement
-        if exam_id:
+        if exam_id or exam_type_id:
             from exams.models import Exam
             from core.auth import UserRole
 
-            exam = get_object_or_404(Exam, id=exam_id)
+            if exam_id:
+                exam = get_object_or_404(Exam, id=exam_id)
+            else:
+                # Récupérer l'examen le plus récent pour ce type d'examen
+                from exams.models import ExamType
+                exam_type = get_object_or_404(ExamType, id=exam_type_id)
+                exam = Exam.objects.filter(exam_type=exam_type).order_by('-date', '-created_at').first()
+                if not exam:
+                    return Response({
+                        'detail': f'Aucun examen trouvé pour le type {exam_type.code}.'
+                    }, status=status.HTTP_404_NOT_FOUND)
             is_admin = (
                 request.user.is_superuser
                 or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()

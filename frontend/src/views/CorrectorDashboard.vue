@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useExamStore } from '../stores/exam'
 import { useRouter } from 'vue-router'
 import gradingApi from '../services/gradingApi'
 import api from '../services/api'
@@ -10,6 +11,7 @@ import ExamTypeIcon from '../components/ExamTypeIcon.vue'
 import AppIcon from '../icons/AppIcon.vue'
 
 const authStore = useAuthStore()
+const examStore = useExamStore()
 const router = useRouter()
 
 // ═══════════════════════════════════════════════════════════
@@ -48,12 +50,16 @@ const showExamTypeModal = computed(() => !selectedExamType.value)
 const handleExamTypeSelect = (type) => {
     selectedExamType.value = type
     localStorage.setItem('korrigo_selected_exam_type', JSON.stringify(type))
+    // Also update the exam store for "My Students" filtering
+    examStore.setCurrentExamType(type.id, type.name)
     fetchCopies()
 }
 
 const handleChangeExamType = () => {
     selectedExamType.value = null
     localStorage.removeItem('korrigo_selected_exam_type')
+    // Clear the exam store
+    examStore.clearCurrentExamType()
     copies.value = []
     basicStats.value = { total: 0, graded: 0, todo: 0 }
     showStats.value = false
@@ -321,6 +327,9 @@ const medianLineX = computed(() => {
 })
 
 onMounted(async () => {
+    // Restore exam type from storage
+    examStore.restoreFromStorage()
+
     const promises = [fetchQuestionnaireStatus()]
     if (selectedExamType.value) {
         promises.push(fetchCopies())

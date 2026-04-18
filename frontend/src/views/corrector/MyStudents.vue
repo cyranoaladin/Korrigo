@@ -1,28 +1,53 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
+import { useExamStore } from '../../stores/exam'
 import api from '../../services/api'
 import AppIcon from '../../icons/AppIcon.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const examStore = useExamStore()
 
 const students = ref([])
 const groupe = ref('')
 const isLoading = ref(true)
 const error = ref(null)
+const examName = ref('')
+
+// Restore exam type from storage on mount
+examStore.restoreFromStorage()
+
+const currentExamTypeId = computed(() => examStore.currentExamTypeId)
+const currentExamTypeName = computed(() => examStore.currentExamTypeName)
 
 const fetchStudents = async () => {
     isLoading.value = true
     error.value = null
     try {
-        const response = await api.get('/grading/my-students/')
-        students.value = response.data.students || []
-        groupe.value = response.data.groupe || ''
+        // Build query params
+        const params = {}
+        if (currentExamTypeId.value) {
+            params.exam_type_id = currentExamTypeId.value
+        }
+
+        const response = await api.get('/grading/my-students/', { params })
+
+        // If exam_id was passed, response format is different
+        if (response.data.filter === 'finalized_only') {
+            students.value = response.data.students || []
+            examName.value = response.data.exam_name || ''
+            groupe.value = ''  // Not applicable in exam-specific mode
+        } else {
+            // Legacy format
+            students.value = response.data.students || []
+            groupe.value = response.data.groupe || ''
+            examName.value = ''
+        }
     } catch (err) {
         console.error('Failed to fetch students', err)
-        error.value = err.response?.data?.error || 'Erreur lors du chargement des élèves.'
+        error.value = err.response?.data?.error || err.response?.data?.detail || 'Erreur lors du chargement des élèves.'
     } finally {
         isLoading.value = false
     }
@@ -74,7 +99,10 @@ onMounted(fetchStudents)
     <main class="container">
       <div class="page-header">
         <h1><AppIcon name="users" :size="24" class="inline" /> Mes Élèves</h1>
-        <p v-if="groupe">Groupe <strong>{{ groupe }}</strong> — {{ students.length }} élève(s)</p>
+        <p v-if="examName">
+          <strong>{{ examName }}</strong> — {{ students.length }} élève(s) avec copie finalisée
+        </p>
+        <p v-else-if="groupe">Groupe <strong>{{ groupe }}</strong> — {{ students.length }} élève(s)</p>
       </div>
 
       <div v-if="isLoading" class="loading">
