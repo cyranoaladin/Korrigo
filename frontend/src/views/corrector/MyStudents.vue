@@ -16,31 +16,34 @@ const isLoading = ref(true)
 const error = ref(null)
 const examName = ref('')
 
-// Restore exam type from storage on mount
+// Restore exam selection from storage on mount
 examStore.restoreFromStorage()
 
+const currentExamId = computed(() => examStore.currentExamId)
 const currentExamTypeId = computed(() => examStore.currentExamTypeId)
-const currentExamTypeName = computed(() => examStore.currentExamTypeName)
 
 const fetchStudents = async () => {
     isLoading.value = true
     error.value = null
     try {
-        // Build query params
+        // Priorité au filtrage strict par exam_id (sélection depuis un
+        // exam-group). Fallback sur exam_type_id (sélection globale du type).
         const params = {}
-        if (currentExamTypeId.value) {
+        if (currentExamId.value) {
+            params.exam_id = currentExamId.value
+        } else if (currentExamTypeId.value) {
             params.exam_type_id = currentExamTypeId.value
         }
 
         const response = await api.get('/grading/my-students/', { params })
 
-        // If exam_id was passed, response format is different
+        // Si filtrage par examen actif → format avec exam_name + students filtrés FINALIZED
         if (response.data.filter === 'finalized_only') {
             students.value = response.data.students || []
             examName.value = response.data.exam_name || ''
-            groupe.value = ''  // Not applicable in exam-specific mode
+            groupe.value = ''
         } else {
-            // Legacy format
+            // Mode legacy : tous les élèves, toutes copies
             students.value = response.data.students || []
             groupe.value = response.data.groupe || ''
             examName.value = ''

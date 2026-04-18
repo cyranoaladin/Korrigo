@@ -142,17 +142,23 @@ class MyStudentsListView(views.APIView):
             # Récupérer les élèves du groupe du correcteur
             students_qs = _students_for_assignments(assignments).order_by('last_name', 'first_name')
 
-            # Récupérer les copies FINALISÉES de l'examen pour ces élèves
+            # Récupérer les copies FINALISÉES de l'examen pour ces élèves.
+            # Pour un non-admin: STRICTEMENT les copies qui lui sont assignées
+            # (sinon il verrait les copies finalisées par un autre correcteur
+            # sur les mêmes élèves de son groupe).
+            copies_filter = Q(exam=exam, status=Copy.Status.FINALIZED)
+            if not is_admin:
+                copies_filter &= Q(assigned_corrector=request.user)
+
             copies_prefetch = Prefetch(
                 'copies',
-                queryset=Copy.objects.filter(
-                    exam=exam,
-                    status=Copy.Status.FINALIZED
-                ).select_related('exam', 'assigned_corrector').prefetch_related(
+                queryset=Copy.objects.filter(copies_filter).select_related(
+                    'exam', 'assigned_corrector'
+                ).prefetch_related(
                     Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
                 )
             )
-            
+
             students = students_qs.prefetch_related(copies_prefetch)
 
             result = []

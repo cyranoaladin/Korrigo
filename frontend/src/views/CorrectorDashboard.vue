@@ -399,7 +399,14 @@ const scrollToStats = async () => {
     })
 }
 
-const goToMyStudents = () => {
+const goToMyStudents = (exam = null) => {
+    // Si on vient d'un exam-group spécifique, mémoriser l'exam_id pour que
+    // /corrector/my-students filtre strictement sur cet examen.
+    if (exam && exam.examId) {
+        examStore.setCurrentExam(exam.examId, exam.examName)
+    } else {
+        examStore.clearCurrentExam()
+    }
     router.push('/corrector/my-students')
 }
 
@@ -461,12 +468,9 @@ const canSeeQuestionnaire = computed(() =>
         >
           <AppIcon name="bar-chart-3" :size="14" class="inline" /> Statistiques
         </button>
-        <button
-          class="btn-my-students"
-          @click="goToMyStudents"
-        >
-          <AppIcon name="users" :size="14" class="inline" /> Mes Élèves
-        </button>
+        <!-- Bouton 'Mes Élèves' global supprimé :
+             désormais accessible UNIQUEMENT par exam-group, pour garantir
+             le filtrage strict par examen + copies finalisées. -->
         <button
           v-if="canSeeQuestionnaire && questionnaireStatusLoaded && !questionnaireSummary.has_response"
           class="btn-questionnaire"
@@ -757,6 +761,15 @@ const canSeeQuestionnaire = computed(() =>
               <div class="exam-group-meta">
                 <span class="meta-chip todo">{{ group.copies.filter(c => c.status === 'READY').length }} à corriger</span>
                 <span class="meta-chip done">{{ group.copies.filter(c => c.status === 'FINALIZED').length }} finalisées</span>
+                <button
+                  class="btn-my-students-inline"
+                  data-testid="btn-my-students-inline"
+                  :data-exam-id="group.examId"
+                  @click="goToMyStudents(group)"
+                  title="Voir mes élèves de cet examen (copies finalisées uniquement)"
+                >
+                  <AppIcon name="users" :size="14" class="inline" /> Mes Élèves
+                </button>
               </div>
             </div>
 
@@ -973,6 +986,14 @@ const canSeeQuestionnaire = computed(() =>
 .meta-chip { font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
 .meta-chip.todo { background: #dbeafe; color: #1d4ed8; }
 .meta-chip.done { background: #dcfce7; color: #166534; }
+.btn-my-students-inline {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #6366f1; color: white; border: none;
+    padding: 4px 10px; border-radius: 14px; font-size: 0.78rem;
+    font-weight: 600; cursor: pointer; transition: background 0.2s;
+    margin-left: 4px;
+}
+.btn-my-students-inline:hover { background: #4f46e5; }
 .exam-group .copy-card { border-top: none; border-radius: 0; border-color: #e2e8f0; }
 .exam-group .copy-card:last-child { border-radius: 0 0 8px 8px; }
 
