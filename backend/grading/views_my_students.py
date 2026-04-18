@@ -93,20 +93,103 @@ class MyStudentsListView(views.APIView):
     """
     GET /api/grading/my-students/
     Liste les élèves du groupe du correcteur connecté avec leurs notes.
+
+    Query params:
+        - exam_id (optional): UUID de l'examen pour filtrer les élèves de cet examen uniquement
+        - level (optional): Niveau pour filtrer les assignations (terminale, premiere, troisieme)
+
+    Si exam_id est fourni:
+        - Ne retourne que les élèves qui ont une copie FINALISÉE dans cet examen
+        - Le correcteur ne voit que les copies qui lui sont assignées
+        - Les copies non finalisées ne sont pas affichées
     """
     permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request):
         level = request.query_params.get('level', None)
+        exam_id = request.query_params.get('exam_id', None)
         assignments = _get_teacher_assignments(request.user, level=level)
-        
+
         if not assignments:
             return Response({
                 'detail': 'Aucun groupe associé à ce correcteur.' + (f' (niveau={level})' if level else ''),
                 'students': []
             }, status=status.HTTP_200_OK)
-        
-        # Récupérer les élèves couverts par toutes les assignations
+
+        # Si un examen est spécifié, filtrer les copies pour cet examen uniquement
+        if exam_id:
+            from exams.models import Exam
+            from core.auth import UserRole
+
+            exam = get_object_or_404(Exam, id=exam_id)
+            is_admin = (
+                request.user.is_superuser
+                or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+            )
+
+            # Récupérer les élèves du groupe du correcteur
+            students = _students_for_assignments(assignments)
+
+            # Récupérer les copies FINALISÉES de l'examen pour ces élèves
+            # Si admin: voit toutes les copies finalisées de l'examen
+            # Si teacher: ne voit que les copies qui lui sont assignées
+            copies_qs = Copy.objects.filter(
+                exam=exam,
+                student__in=students,
+                status=Copy.Status.FINALIZED
+            ).select_related('student', 'student__user', 'exam', 'assigned_corrector').prefetch_related(
+                Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
+            )
+
+            if not is_admin:
+                copies_qs = copies_qs.filter(assigned_corrector=request.user)
+
+            copies = list(copies_qs)
+
+            result = []
+            for copy in copies:
+                student = copy.student
+                scores_list = list(copy.scores.all())
+                score_obj = scores_list[0] if scores_list else None
+                total_score = None
+                if score_obj and score_obj.scores_data:
+                    total_score = sum(
+                        float(v) for v in score_obj.scores_data.values()
+                        if v is not None and v != ''
+                    )
+
+                corrector_name = None
+                if copy.assigned_corrector:
+                    corrector_name = f"{copy.assigned_corrector.first_name} {copy.assigned_corrector.last_name}".strip()
+                    if not corrector_name:
+                        corrector_name = copy.assigned_corrector.username
+
+                result.append({
+                    'id': student.id if student else None,
+                    'first_name': student.first_name if student else None,
+                    'last_name': student.last_name if student else None,
+                    'class_name': student.class_name if student else None,
+                    'groupe': student.groupe if student else None,
+                    'email': student.email if student else None,
+                    'copy_id': str(copy.id),
+                    'exam_name': exam.name,
+                    'exam_id': str(exam.id),
+                    'status': copy.status,
+                    'total_score': round(total_score, 2) if total_score is not None else None,
+                    'anonymous_id': copy.anonymous_id,
+                    'corrector_name': corrector_name,
+                    'has_appreciation': bool(copy.global_appreciation and copy.global_appreciation.strip()),
+                })
+
+            return Response({
+                'exam_id': str(exam.id),
+                'exam_name': exam.name,
+                'filter': 'finalized_only',
+                'count': len(result),
+                'students': result
+            })
+
+        # Mode legacy (sans exam_id): comportement existant
         students = _students_for_assignments(assignments).order_by('last_name', 'first_name').prefetch_related(
             Prefetch('copies', queryset=Copy.objects.select_related('exam', 'assigned_corrector').prefetch_related(
                 Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
@@ -116,7 +199,7 @@ class MyStudentsListView(views.APIView):
         result = []
         for student in students:
             copies = student.copies.all()
-            
+
             student_data = {
                 'id': student.id,
                 'first_name': student.first_name,
@@ -126,7 +209,7 @@ class MyStudentsListView(views.APIView):
                 'email': student.email,
                 'copies': []
             }
-            
+
             for copy in copies:
                 is_finalized = copy.status == 'FINALIZED'
 
@@ -154,9 +237,9 @@ class MyStudentsListView(views.APIView):
                     'anonymous_id': copy.anonymous_id if is_finalized else None,
                     'corrector_name': corrector_name,
                 })
-            
+
             result.append(student_data)
-        
+
         group_labels = [f"{a['group_name']} ({a['level']})" for a in assignments]
         return Response({
             'assignments': assignments,
