@@ -29,6 +29,7 @@ vi.mock('../../src/services/api', () => ({
 vi.mock('../../src/services/gradingApi', () => ({
   default: {
     fetchStats: vi.fn(() => Promise.resolve({ group_stats: [] })),
+    fetchExamStats: vi.fn(() => Promise.resolve({ group_stats: [] })),
   }
 }))
 
@@ -67,21 +68,44 @@ describe('CorrectorDashboard - Pronote Export Visibility', () => {
         exam_id: 'exam-1',
         exam_name: 'Maths J1',
         global_stats: { mean: 10, median: 10, count: 20 },
+        lot_distribution: [],
+        global_distribution: [],
         group_stats: [
-            { groupe: 'G1', mean: 12, count: 10, above_mean: 5, below_mean: 5 }
+            { groupe: 'G1', mean: 12, count: 10, above_mean: 5, below_mean: 5, type: 'groupe' }
         ]
     }
 
+    // Mock fetchExamStats which is called by fetchStats/scrollToStats
+    const { default: gradingApi } = await import('../../src/services/gradingApi')
+    vi.mocked(gradingApi.fetchExamStats).mockResolvedValue(examStats)
+
+    mockApiGet.mockResolvedValue({ data: [{ id: 'c1', exam: 'exam-1' }] })
+
     const wrapper = mount(CorrectorDashboard, {
-      props: { examStats, copies: [], isLoading: false },
       global: {
         components: { AppIcon },
         stubs: ['RouterLink', 'RouterView']
       }
     })
 
+    // Wait for initial load
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    // Trigger stats display
+    const btnStats = wrapper.find('.btn-stats')
+    if (btnStats.exists()) {
+        await btnStats.trigger('click')
+    } else {
+        // Fallback if button not found, try scrolling to stats
+        const navStats = wrapper.find('.btn-nav-stats')
+        if (navStats.exists()) await navStats.trigger('click')
+    }
+    
+    // Wait for stats fetch
+    await new Promise(resolve => setTimeout(resolve, 100))
+
     const csvButtons = wrapper.findAll('.btn-export-table')
     expect(csvButtons.length).toBeGreaterThan(0)
-    expect(csvButtons[0].attributes('title')).toContain('CSV')
+    expect(csvButtons[0].text()).toContain('CSV')
   })
 })

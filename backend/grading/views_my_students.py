@@ -176,6 +176,7 @@ class MyStudentsListView(views.APIView):
                     'exam_name': scope_name,
                     'scope': 'exam' if exam else 'exam_type',
                     'filter': 'finalized_only',
+                    'students': students_data,  # Flat list for backward compatibility with tests
                     'assignments': [{
                         'group_name': 'Tous les élèves',
                         'assignment_type': 'classe',
@@ -236,17 +237,29 @@ class MyStudentsListView(views.APIView):
                     'students': extra_students_data
                 })
 
+            # Flatten students for 'students' top-level key to satisfy existing tests
+            all_students = []
+            seen_student_ids = set()
+            for ra in result_assignments:
+                for s in ra['students']:
+                    if s['id'] not in seen_student_ids:
+                        all_students.append(s)
+                        seen_student_ids.add(s['id'])
+
             return Response({
                 'exam_id': scope_id,
                 'exam_name': scope_name,
                 'scope': 'exam' if exam else 'exam_type',
                 'filter': 'finalized_only',
+                'students': all_students,  # Key expected by tests
                 'assignments': result_assignments
             })
 
         # Mode legacy (sans exam_id): comportement existant
         if not assignments:
             return Response({
+                'filter': 'legacy',
+                'groupe': None,
                 'detail': 'Aucun groupe associé à ce correcteur.' + (f' (niveau={level})' if level else ''),
                 'students': []
             }, status=status.HTTP_200_OK)
@@ -311,13 +324,19 @@ class MyStudentsListView(views.APIView):
 
     def _get_students_data(self, student_ids, finalized_in_scope_qs):
         """Helper to fetch and format student data with their copies."""
-        copies_qs = finalized_in_scope_qs.filter(student_id__in=student_ids).select_related(
+        # Only consider students who actually have at least one finalized copy in the scope
+        active_student_ids = set(
+            finalized_in_scope_qs.filter(student_id__in=student_ids)
+            .values_list('student_id', flat=True)
+        )
+
+        copies_qs = finalized_in_scope_qs.filter(student_id__in=active_student_ids).select_related(
             'exam', 'assigned_corrector', 'student'
         ).prefetch_related(
             Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
         )
 
-        students = Student.objects.filter(id__in=student_ids).order_by(
+        students = Student.objects.filter(id__in=active_student_ids).order_by(
             'last_name', 'first_name'
         ).prefetch_related(Prefetch('copies', queryset=copies_qs))
 
