@@ -508,7 +508,7 @@ class ExportClassPronoteView(views.APIView):
         level = request.query_params.get('level', 'troisieme')
 
         if not exam_id:
-            return Response({'error': 'exam_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'exam_id is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         from exams.models import Exam
         from exams.services.pronote_export import PronoteExporter
@@ -530,7 +530,7 @@ class ExportClassPronoteView(views.APIView):
                 student_ids = list(Student.objects.filter(groupe=group_name).filter(level_q).values_list('id', flat=True))
 
             if not student_ids:
-                return Response({'error': f'Aucun élève trouvé pour {group_name}'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'detail': f'Aucun élève trouvé pour {group_name}'}, status=status.HTTP_404_NOT_FOUND)
 
         exporter = PronoteExporter(exam, student_ids=student_ids)
         try:
@@ -542,4 +542,4 @@ class ExportClassPronoteView(views.APIView):
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
