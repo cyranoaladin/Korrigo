@@ -112,6 +112,35 @@ const handleExamUploaded = async () => {
   await fetchExams()
 }
 
+const downloadCsv = async (examId, examName = '') => {
+  try {
+    const params = { exam_id: examId }
+    
+    // Auto-detect level from exam name if possible
+    const nameLower = examName.toLowerCase()
+    if (nameLower.includes('terminale') || nameLower.includes('term')) params.level = 'terminale'
+    else if (nameLower.includes('premiere') || nameLower.includes('1ere')) params.level = 'premiere'
+    else if (nameLower.includes('troisieme') || nameLower.includes('3eme')) params.level = 'troisieme'
+
+    const response = await api.get('/grading/my-students/export-csv/', {
+      params,
+      responseType: 'blob'
+    })
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    const filename = `PRONOTE_${examName || 'Examen'}.csv`
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (e) {
+    console.error('Export failed', e)
+    alert('Échec de l\'export CSV.')
+  }
+}
+
 useAutoRefresh(fetchExams)
 </script>
 
@@ -259,6 +288,16 @@ useAutoRefresh(fetchExams)
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                   </svg>
                   Ouvrir
+                </button>
+                <button
+                  class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors"
+                  @click="downloadCsv(exam.id, exam.name)"
+                  title="Exporter vers Pronote"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                  </svg>
+                  Export
                 </button>
                 <button
                   class="inline-flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"

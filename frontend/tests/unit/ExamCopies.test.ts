@@ -3,7 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 
 import ExamCopies from '../../src/views/admin/ExamCopies.vue'
 
-const { mockPush, mockApiGet } = vi.hoisted(() => ({
+const { mockPush, mockApiGet, mockApiPost } = vi.hoisted(() => ({
   mockPush: vi.fn(),
   mockApiGet: vi.fn(),
   mockApiPost: vi.fn(),

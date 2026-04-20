@@ -119,6 +119,35 @@ const goToExam = (examId) => {
   router.push(`/admin/exams/${examId}/overview`)
 }
 
+const downloadCsv = async (examId, examName = '') => {
+  try {
+    const params = { exam_id: examId }
+    
+    // Auto-detect level from exam name if possible
+    const nameLower = examName.toLowerCase()
+    if (nameLower.includes('terminale') || nameLower.includes('term')) params.level = 'terminale'
+    else if (nameLower.includes('premiere') || nameLower.includes('1ere')) params.level = 'premiere'
+    else if (nameLower.includes('troisieme') || nameLower.includes('3eme')) params.level = 'troisieme'
+
+    const response = await api.get('/grading/my-students/export-csv/', {
+      params,
+      responseType: 'blob'
+    })
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    const filename = `PRONOTE_${examName || 'Examen'}.csv`
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (e) {
+    console.error('Export failed', e)
+    alert('Échec de l\'export CSV.')
+  }
+}
+
 useAutoRefresh(fetchExams)
 </script>
 
@@ -325,7 +354,15 @@ useAutoRefresh(fetchExams)
                       {{ getExamStatusLabel(exam).label }}
                     </span>
                   </td>
-                  <td class="px-6 py-4 text-right">
+                  <td class="px-6 py-4 text-right flex items-center justify-end gap-2">
+                    <button
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors"
+                      @click="downloadCsv(exam.id, exam.name)"
+                      title="Exporter vers Pronote"
+                    >
+                      <AppIcon name="download" :size="14" />
+                      Export
+                    </button>
                     <button
                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 active:bg-indigo-800 transition-colors"
                       @click="goToExam(exam.id)"

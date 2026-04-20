@@ -813,20 +813,25 @@ class CorrectorStatsView(APIView):
         return Response(result)
 
     def _compute_group_stats(self, copies_qs, global_scores, scores_by_copy=None):
-        """Compute stats per student group (groupe field on Student model)."""
-        # If no student has a non-empty groupe, return empty list
-        if not any(
-            c.student and c.student.groupe
-            for c in copies_qs
-        ):
-            return []
+        """Compute stats per student group or class."""
+        # Try groups first
+        use_class = False
+        if not any(c.student and c.student.groupe for c in copies_qs):
+            use_class = True
+            if not any(c.student and c.student.class_name for c in copies_qs):
+                return []
+
         from collections import defaultdict
         group_scores = defaultdict(list)
         for copy in copies_qs:
             if not copy.student:
                 continue
-            groupe = copy.student.groupe or 'Non assigné'
-            # LOT 7: Use prefetched scores dict instead of per-copy query
+            
+            if use_class:
+                label = copy.student.class_name or 'Non assignée'
+            else:
+                label = copy.student.groupe or 'Non assigné'
+
             score_obj = scores_by_copy.get(copy.id) if scores_by_copy else Score.objects.filter(copy=copy).first()
             if score_obj and score_obj.scores_data:
                 _sd_g: dict[str, object] = _cast(dict, score_obj.scores_data)
@@ -836,15 +841,16 @@ class CorrectorStatsView(APIView):
                         total += float(val) if val is not None and val != '' else 0.0  # type: ignore[arg-type]
                     except (TypeError, ValueError):
                         pass
-                _gs: list = group_scores[groupe]  # type: ignore[assignment]
+                _gs: list = group_scores[label]  # type: ignore[assignment]
                 _gs.append(total)
 
         global_mean: float = float(statistics.mean(global_scores)) if global_scores else 0.0
         result: list[dict[str, object]] = []
-        for groupe in sorted(group_scores.keys()):
-            scores = group_scores[groupe]
+        for label in sorted(group_scores.keys()):
+            scores = group_scores[label]
             stats: dict[str, object] = dict(self._compute_stats(scores))
-            stats['groupe'] = groupe
+            stats['groupe'] = label # Keep key as 'groupe' for frontend compat
+            stats['type'] = 'classe' if use_class else 'groupe'
             stats['above_mean'] = sum(1 for s in scores if s >= global_mean)
             stats['below_mean'] = sum(1 for s in scores if s < global_mean)
             stats['distribution'] = self._compute_distribution(scores)

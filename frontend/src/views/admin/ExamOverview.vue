@@ -113,6 +113,37 @@ const quickActions = [
   { label: 'Résultats', icon: 'stats', path: (id) => `/admin/exams/${id}/results` },
 ]
 
+const downloadCsv = async (examId, groupName = null, examName = '') => {
+  try {
+    const params = { exam_id: examId }
+    if (groupName) params.group_name = groupName
+    
+    // Auto-detect level from exam name if possible
+    const nameLower = examName.toLowerCase()
+    if (nameLower.includes('terminale') || nameLower.includes('term')) params.level = 'terminale'
+    else if (nameLower.includes('premiere') || nameLower.includes('1ere')) params.level = 'premiere'
+    else if (nameLower.includes('troisieme') || nameLower.includes('3eme')) params.level = 'troisieme'
+
+    const response = await api.get('/grading/my-students/export-csv/', {
+      params,
+      responseType: 'blob'
+    })
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    const filename = `PRONOTE_${examName || 'Examen'}${groupName ? '_' + groupName : ''}.csv`
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    showToast('Export réussi.', 'success')
+  } catch (e) {
+    console.error('Export failed', e)
+    showToast('Échec de l\'export.', 'error')
+  }
+}
+
 useAutoRefresh(loadData)
 </script>
 
@@ -145,6 +176,13 @@ useAutoRefresh(loadData)
           >
             <AppIcon name="document" :size="16" />
             Rapports de Jury
+          </button>
+          <button
+            class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+            @click="downloadCsv(examId, null, exam?.name)"
+          >
+            <AppIcon name="download" :size="16" />
+            Export Pronote
           </button>
           <button
             :disabled="publishing"

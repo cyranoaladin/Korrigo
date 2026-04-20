@@ -1,24 +1,13 @@
 {
-  "include": ["."],
-  "exclude": [
-    "venv",
-    ".venv",
-    "backend/.test_venv",
-    "**/__pycache__",
-    "frontend"
+  "include": [
+    "backend"
   ],
-  "venvPath": ".",
-  "venv": "venv",
-  "pythonVersion": "3.12",
-  "pythonPlatform": "Linux",
   "extraPaths": [
-    "backend",
-    "venv/lib/python3.12/site-packages"
+    "backend"
   ],
   "typeCheckingMode": "basic",
-  "reportMissingImports": "warning",
-  "reportMissingModuleSource": "none",
-  "useLibraryCodeForTypes": true,
-  "reportAttributeAccessIssue": "none",
-  "reportOperatorIssue": "none"
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux",
+  "venvPath": ".",
+  "venv": "venv"
 }

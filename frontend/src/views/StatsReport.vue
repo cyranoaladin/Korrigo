@@ -265,6 +265,15 @@
                   <td class="px-2 py-2 text-center">
                     <span class="font-semibold" :class="parseFloat(g.rate) >= 80 ? 'text-green-700' : parseFloat(g.rate) >= 70 ? 'text-amber-700' : 'text-red-700'">{{ g.rate }}</span>
                   </td>
+                  <td class="px-2 py-2 text-center">
+                    <button
+                      class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                      @click="downloadCsv(header.id_j1, g.name, 'groupe', 'terminale')"
+                      title="Exporter CSV Pronote"
+                    >
+                      <AppIcon name="download" :size="14" />
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -295,6 +304,15 @@
                   <td class="px-2 py-2 text-center font-semibold">{{ g.mean }}</td>
                   <td class="px-2 py-2 text-center">
                     <span class="font-semibold" :class="parseFloat(g.rate) >= 80 ? 'text-green-700' : parseFloat(g.rate) >= 70 ? 'text-amber-700' : 'text-red-700'">{{ g.rate }}</span>
+                  </td>
+                  <td class="px-2 py-2 text-center">
+                    <button
+                      class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                      @click="downloadCsv(header.id_j2, g.name, 'groupe', 'terminale')"
+                      title="Exporter CSV Pronote"
+                    >
+                      <AppIcon name="download" :size="14" />
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -343,6 +361,15 @@
                   <td class="px-2 py-2 text-center">
                     <span class="font-semibold" :class="cl.rateNum >= 80 ? 'text-green-700' : cl.rateNum >= 60 ? 'text-amber-700' : 'text-red-700'">{{ cl.rate }}</span>
                   </td>
+                  <td class="px-2 py-2 text-center">
+                    <button
+                      class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                      @click="downloadCsv(header.id_j1, cl.name, 'classe', 'terminale')"
+                      title="Exporter CSV Pronote"
+                    >
+                      <AppIcon name="download" :size="14" />
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -372,6 +399,15 @@
                   <td class="px-2 py-2 text-center text-gray-500">{{ cl.std }}</td>
                   <td class="px-2 py-2 text-center">
                     <span class="font-semibold" :class="cl.rateNum >= 80 ? 'text-green-700' : cl.rateNum >= 60 ? 'text-amber-700' : 'text-red-700'">{{ cl.rate }}</span>
+                  </td>
+                  <td class="px-2 py-2 text-center">
+                    <button
+                      class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                      @click="downloadCsv(header.id_j2, cl.name, 'classe', 'terminale')"
+                      title="Exporter CSV Pronote"
+                    >
+                      <AppIcon name="download" :size="14" />
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -608,6 +644,31 @@ const tabs = [
   { id: 'qcm', label: 'QCM 5/5', icon: 'clipboard' },
   { id: 'recommendations', label: 'Recommandations', icon: 'lightbulb' }
 ]
+
+const downloadCsv = async (examId, groupName, type, level = 'terminale') => {
+  try {
+    const params = {
+      exam_id: examId,
+      group_name: groupName,
+      assignment_type: type,
+      level: level
+    }
+    const response = await api.get('/grading/my-students/export-csv/', {
+      params,
+      responseType: 'blob'
+    })
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `PRONOTE_${groupName}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (e) {
+    console.error('Export failed', e)
+    alert('Échec de l\'export CSV.')
+  }
+}
 
 const header = computed(() => data.value?.header || {})
 

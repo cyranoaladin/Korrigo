@@ -148,6 +148,8 @@ class StatsReportView(APIView):
 
         # ======================== HEADER ========================
         header = {
+            'id_j1': str(bb_j1.id),
+            'id_j2': str(bb_j2.id),
             'n_candidates': len(all_scores),
             'n_j1': len(j1_scores),
             'n_j2': len(j2_scores),

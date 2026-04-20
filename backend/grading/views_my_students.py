@@ -112,12 +112,6 @@ class MyStudentsListView(views.APIView):
         exam_type_id = request.query_params.get('exam_type_id', None)
         assignments = _get_teacher_assignments(request.user, level=level)
 
-        if not assignments:
-            return Response({
-                'detail': 'Aucun groupe associé à ce correcteur.' + (f' (niveau={level})' if level else ''),
-                'students': []
-            }, status=status.HTTP_200_OK)
-
         # Si un examen (ou type d'examen) est spécifié, filtrer les copies
         if exam_id or exam_type_id:
             from exams.models import Exam
@@ -169,108 +163,94 @@ class MyStudentsListView(views.APIView):
                 exam__in=exams_in_scope, status=Copy.Status.FINALIZED
             )
 
+            # Admin : voit tous les élèves ayant une copie finalisée dans le scope
             if is_admin:
-                # Admin : tous les élèves ayant une copie finalisée dans le scope
                 student_ids = set(
                     finalized_in_scope_qs.exclude(student__isnull=True)
                     .values_list('student_id', flat=True)
                 )
-                copies_display_filter = Q(exam__in=exams_in_scope, status=Copy.Status.FINALIZED)
-            else:
-                # (A) élèves de l'assignation dont une copie est finalisée
-                assigned_students = _students_for_assignments(assignments)
-                ids_A = set(
-                    finalized_in_scope_qs.filter(student__in=assigned_students)
-                    .values_list('student_id', flat=True)
-                )
-                # (B) élèves dont j'ai personnellement finalisé une copie
-                ids_B = set(
-                    finalized_in_scope_qs.filter(assigned_corrector=request.user)
-                    .exclude(student__isnull=True)
-                    .values_list('student_id', flat=True)
-                )
-                student_ids = ids_A | ids_B
+                # For admin, we don't have assignments, so we create a virtual one
+                students_data = self._get_students_data(student_ids, finalized_in_scope_qs)
+                return Response({
+                    'exam_id': scope_id,
+                    'exam_name': scope_name,
+                    'scope': 'exam' if exam else 'exam_type',
+                    'filter': 'finalized_only',
+                    'assignments': [{
+                        'group_name': 'Tous les élèves',
+                        'assignment_type': 'classe',
+                        'level': level or 'tous',
+                        'students': students_data
+                    }]
+                })
 
-                # Pour chaque élève affiché, on veut lui associer ses copies
-                # finalisées dans le scope PERTINENTES :
-                #   - S'il est dans mon assignation : toutes les copies finalisées
-                #     (peu importe le correcteur) pour voir le bilan complet.
-                #   - Sinon (cas B pur) : seulement les copies que j'ai finalisées.
-                copies_display_filter = (
-                    Q(exam__in=exams_in_scope, status=Copy.Status.FINALIZED) & (
-                        Q(student__in=assigned_students) |
-                        Q(assigned_corrector=request.user)
+            # For regular corrector: group by assignments
+            result_assignments = []
+            assigned_students_qs = _students_for_assignments(assignments)
+            
+            for assign in assignments:
+                # Filter students for this specific assignment
+                prefixes = _LEVEL_CLASS_PREFIXES.get(assign['level'], [])
+                level_q = Q()
+                for pfx in prefixes:
+                    level_q |= Q(class_name__startswith=pfx)
+                
+                if assign['assignment_type'] == 'classe':
+                    assign_students_ids = set(
+                        assigned_students_qs.filter(class_name=assign['group_name'])
+                        .filter(level_q)
+                        .values_list('id', flat=True)
                     )
-                )
+                else:
+                    assign_students_ids = set(
+                        assigned_students_qs.filter(groupe=assign['group_name'])
+                        .filter(level_q)
+                        .values_list('id', flat=True)
+                    )
 
-            copies_qs = Copy.objects.filter(copies_display_filter).select_related(
-                'exam', 'assigned_corrector', 'student'
-            ).prefetch_related(
-                Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
+                # Include all assigned students to ensure the class (and export button) is visible
+                # as requested: "visible pour toutes les classes".
+                students_data = self._get_students_data(assign_students_ids, finalized_in_scope_qs)
+                result_assignments.append({
+                    'group_name': assign['group_name'],
+                    'assignment_type': assign['assignment_type'],
+                    'level': assign['level'],
+                    'students': students_data
+                })
+
+            # Handle case B: students I corrected personally but who are NOT in my official assignments
+            all_assigned_ids = set(assigned_students_qs.values_list('id', flat=True))
+            extra_ids = set(
+                finalized_in_scope_qs.filter(assigned_corrector=request.user)
+                .exclude(student__isnull=True)
+                .exclude(student_id__in=all_assigned_ids)
+                .values_list('student_id', flat=True)
             )
-
-            students = Student.objects.filter(id__in=student_ids).order_by(
-                'last_name', 'first_name'
-            ).prefetch_related(Prefetch('copies', queryset=copies_qs))
-
-            result = []
-            for student in students:
-                student_copies = list(student.copies.all())
-                if not student_copies:
-                    continue  # On ne garde que les élèves ayant au moins une copie dans le scope
-
-                student_data = {
-                    'id': student.id,
-                    'first_name': student.first_name,
-                    'last_name': student.last_name,
-                    'class_name': student.class_name,
-                    'groupe': student.groupe,
-                    'email': student.email,
-                    'copies': []
-                }
-
-                for copy in student_copies:
-                    scores_list = list(copy.scores.all())
-                    score_obj = scores_list[0] if scores_list else None
-                    total_score = None
-                    if score_obj and score_obj.scores_data:
-                        total_score = sum(
-                            float(v) for v in score_obj.scores_data.values()
-                            if v is not None and v != ''
-                        )
-
-                    corrector_name = None
-                    if copy.assigned_corrector:
-                        corrector_name = f"{copy.assigned_corrector.first_name} {copy.assigned_corrector.last_name}".strip()
-                        if not corrector_name:
-                            corrector_name = copy.assigned_corrector.username
-
-                    # Utiliser l'exam RÉEL de la copie (plusieurs examens possibles
-                    # en mode exam_type_id, ex: BB_J1 + BB_J2 agrégés).
-                    copy_exam = copy.exam
-                    student_data['copies'].append({
-                        'copy_id': str(copy.id),
-                        'exam_name': copy_exam.name if copy_exam else 'N/A',
-                        'exam_id': str(copy_exam.id) if copy_exam else None,
-                        'status': copy.status,
-                        'total_score': round(total_score, 2) if total_score is not None else None,
-                        'anonymous_id': copy.anonymous_id,
-                        'corrector_name': corrector_name,
-                        'has_appreciation': bool(copy.global_appreciation and copy.global_appreciation.strip()),
-                    })
-
-                result.append(student_data)
+            
+            if extra_ids:
+                extra_students_data = self._get_students_data(extra_ids, finalized_in_scope_qs)
+                result_assignments.append({
+                    'group_name': 'Autres corrections',
+                    'assignment_type': 'extra',
+                    'level': level or 'tous',
+                    'students': extra_students_data
+                })
 
             return Response({
                 'exam_id': scope_id,
                 'exam_name': scope_name,
                 'scope': 'exam' if exam else 'exam_type',
                 'filter': 'finalized_only',
-                'count': len(result),
-                'students': result
+                'assignments': result_assignments
             })
 
         # Mode legacy (sans exam_id): comportement existant
+        if not assignments:
+            return Response({
+                'detail': 'Aucun groupe associé à ce correcteur.' + (f' (niveau={level})' if level else ''),
+                'students': []
+            }, status=status.HTTP_200_OK)
+
         students = _students_for_assignments(assignments).order_by('last_name', 'first_name').prefetch_related(
             Prefetch('copies', queryset=Copy.objects.select_related('exam', 'assigned_corrector').prefetch_related(
                 Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
@@ -328,6 +308,60 @@ class MyStudentsListView(views.APIView):
             'count': len(result),
             'students': result
         })
+
+    def _get_students_data(self, student_ids, finalized_in_scope_qs):
+        """Helper to fetch and format student data with their copies."""
+        copies_qs = finalized_in_scope_qs.filter(student_id__in=student_ids).select_related(
+            'exam', 'assigned_corrector', 'student'
+        ).prefetch_related(
+            Prefetch('scores', queryset=Score.objects.only('id', 'copy_id', 'scores_data'))
+        )
+
+        students = Student.objects.filter(id__in=student_ids).order_by(
+            'last_name', 'first_name'
+        ).prefetch_related(Prefetch('copies', queryset=copies_qs))
+
+        result = []
+        for student in students:
+            student_copies = list(student.copies.all())
+            student_data = {
+                'id': student.id,
+                'first_name': student.first_name,
+                'last_name': student.last_name,
+                'class_name': student.class_name,
+                'groupe': student.groupe,
+                'email': student.email,
+                'copies': []
+            }
+
+            for copy in student_copies:
+                scores_list = list(copy.scores.all())
+                score_obj = scores_list[0] if scores_list else None
+                total_score = None
+                if score_obj and score_obj.scores_data:
+                    total_score = sum(
+                        float(v) for v in score_obj.scores_data.values()
+                        if v is not None and v != ''
+                    )
+
+                corrector_name = None
+                if copy.assigned_corrector:
+                    corrector_name = f"{copy.assigned_corrector.first_name} {copy.assigned_corrector.last_name}".strip()
+                    if not corrector_name:
+                        corrector_name = copy.assigned_corrector.username
+
+                student_data['copies'].append({
+                    'copy_id': str(copy.id),
+                    'exam_name': copy.exam.name if copy.exam else 'N/A',
+                    'exam_id': str(copy.exam.id) if copy.exam else None,
+                    'status': copy.status,
+                    'total_score': round(total_score, 2) if total_score is not None else None,
+                    'anonymous_id': copy.anonymous_id,
+                    'corrector_name': corrector_name,
+                    'has_appreciation': bool(copy.global_appreciation and copy.global_appreciation.strip()),
+                })
+            result.append(student_data)
+        return result
 
 
 class StudentBilanView(views.APIView):
@@ -439,3 +473,54 @@ class StudentBilanView(views.APIView):
             },
             'copies': copies_data
         })
+
+
+class ExportClassPronoteView(views.APIView):
+    """
+    GET /api/grading/my-students/export-csv/
+    Exporte les notes d'une classe spécifique pour un examen donné au format PRONOTE.
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def get(self, request):
+        exam_id = request.query_params.get('exam_id')
+        group_name = request.query_params.get('group_name')
+        assignment_type = request.query_params.get('assignment_type', 'classe')
+        level = request.query_params.get('level', 'troisieme')
+
+        if not exam_id:
+            return Response({'error': 'exam_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from exams.models import Exam
+        from exams.services.pronote_export import PronoteExporter
+        from django.http import HttpResponse
+
+        exam = get_object_or_404(Exam, id=exam_id)
+
+        # Build filter for students
+        student_ids = None
+        if group_name:
+            prefixes = _LEVEL_CLASS_PREFIXES.get(level, [])
+            level_q = Q()
+            for pfx in prefixes:
+                level_q |= Q(class_name__startswith=pfx)
+            
+            if assignment_type == 'classe':
+                student_ids = list(Student.objects.filter(class_name=group_name).filter(level_q).values_list('id', flat=True))
+            else:
+                student_ids = list(Student.objects.filter(groupe=group_name).filter(level_q).values_list('id', flat=True))
+
+            if not student_ids:
+                return Response({'error': f'Aucun élève trouvé pour {group_name}'}, status=status.HTTP_404_NOT_FOUND)
+
+        exporter = PronoteExporter(exam, student_ids=student_ids)
+        try:
+            csv_content, warnings = exporter.generate_csv()
+            filename = f"PRONOTE_{exam.name}_{group_name}.csv"
+            
+            response = HttpResponse(csv_content, content_type='text/csv')
+            # Pronote/Excel expectation: UTF-8 with BOM (handled by service)
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

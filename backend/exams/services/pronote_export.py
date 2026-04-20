@@ -50,16 +50,18 @@ class PronoteExporter:
             csv_content, warnings = exporter.generate_csv()
     """
     
-    def __init__(self, exam, coefficient: float = 1.0):
+    def __init__(self, exam, coefficient: float = 1.0, student_ids: Optional[List[int]] = None):
         """
         Initialize exporter for an exam.
         
         Args:
             exam: Exam model instance
             coefficient: Grade coefficient (default: 1.0)
+            student_ids: Optional list of student IDs to include in export
         """
         self.exam = exam
         self.coefficient = coefficient
+        self.student_ids = student_ids
     
     def format_decimal_french(self, value: float, precision: int = 2) -> str:
         """
@@ -351,11 +353,15 @@ class PronoteExporter:
         
         # Query graded and identified copies with proper optimization
         from exams.models import Copy
-        copies = Copy.objects.filter(
-            exam=self.exam,
-            status=Copy.Status.FINALIZED,
-            is_identified=True
-        ).select_related('student').prefetch_related('annotations')
+        filters = {
+            'exam': self.exam,
+            'status': Copy.Status.FINALIZED,
+            'is_identified': True
+        }
+        if self.student_ids is not None:
+            filters['student_id__in'] = self.student_ids
+
+        copies = Copy.objects.filter(**filters).select_related('student').prefetch_related('annotations')
         
         # Generate rows
         for copy in copies:

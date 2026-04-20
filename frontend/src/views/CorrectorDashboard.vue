@@ -36,6 +36,9 @@ const statsLoading = ref(false)
 const showStats = ref(false)
 const myStudents = ref([])
 const myStudentsLoading = ref(false)
+const allExams = ref([])
+const isExporting = ref(null) // ID or group_name being exported
+const exportError = ref(null)
 
 // --- Exam Type Selection ---
 const selectedExamType = ref(null)
@@ -204,12 +207,27 @@ const fetchCopies = async () => {
         // Fetch per-question scoring progress in background
         fetchAllCopyScores(data)
         
+        // Fetch all exams of this type to ensure groups are shown even without copies
+        fetchAllExams()
+
         // Fetch teacher's own students' finalized copies
         fetchMyStudents()
     } catch (err) {
         console.error("Failed to fetch copies", err)
     } finally {
         isLoading.value = false
+    }
+}
+
+const fetchAllExams = async () => {
+    if (!selectedExamType.value) return
+    try {
+        const response = await api.get('/exams/', { 
+            params: { exam_type_id: selectedExamType.value.id } 
+        })
+        allExams.value = response.data
+    } catch (err) {
+        console.error("Failed to fetch all exams", err)
     }
 }
 
@@ -262,16 +280,30 @@ const fetchStats = async () => {
 
 // Grouper les copies par examen (un même type peut avoir plusieurs examens)
 const copiesByExam = computed(() => {
+    // Start with all exams of the selected type
     const groups = {}
+    for (const exam of allExams.value) {
+        groups[exam.id] = {
+            examId: exam.id,
+            examName: exam.name,
+            examDate: exam.date,
+            examTypeDetails: exam.exam_type_details,
+            copies: []
+        }
+    }
+
+    // Add copies to their respective groups
     for (const copy of copies.value) {
         const examId = copy.exam_details?.id || copy.exam || 'unknown'
-        const examName = copy.exam_details?.name || copy.exam_name || 'Examen'
-        const examDate = copy.exam_details?.date || ''
-        const examTypeDetails = copy.exam_details?.exam_type_details || null
-        if (!groups[examId]) {
-            groups[examId] = { examId, examName, examDate, examTypeDetails, copies: [] }
+        if (groups[examId]) {
+            groups[examId].copies.push(copy)
+        } else {
+            // Case where copy's exam is not in allExams (shouldn't happen with proper filtering)
+            const examName = copy.exam_details?.name || copy.exam_name || 'Examen'
+            const examDate = copy.exam_details?.date || ''
+            const examTypeDetails = copy.exam_details?.exam_type_details || null
+            groups[examId] = { examId, examName, examDate, examTypeDetails, copies: [copy] }
         }
-        groups[examId].copies.push(copy)
     }
     // Trier par nom d'examen
     return Object.values(groups).sort((a, b) => a.examName.localeCompare(b.examName))
@@ -420,6 +452,44 @@ const goToQuestionnaire = () => {
 
 const goToQuestionnaireBilan = () => {
     router.push({ name: 'QuestionnaireBilan' })
+}
+
+const downloadCsv = async (examId, groupName, examName, assignmentType = 'classe') => {
+    isExporting.value = `${examId}_${groupName}`
+    try {
+        const params = {
+            exam_id: examId,
+            assignment_type: assignmentType
+        }
+        if (groupName) {
+            params.group_name = groupName
+        }
+        
+        // Auto-detect level from group name prefix if possible
+        if (groupName) {
+            if (groupName.startsWith('T') || groupName.startsWith('Term')) params.level = 'terminale'
+            else if (groupName.startsWith('1')) params.level = 'premiere'
+            else if (groupName.startsWith('3')) params.level = 'troisieme'
+        }
+
+        const response = await api.get('/grading/my-students/export-csv/', {
+            params,
+            responseType: 'blob'
+        })
+        
+        const url = window.URL.createObjectURL(new Blob([response.data]))
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', `PRONOTE_${examName}_${groupName}.csv`)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    } catch (err) {
+        console.error('CSV Export failed', err)
+        alert('Erreur lors de l\'export CSV.')
+    } finally {
+        isExporting.value = null
+    }
 }
 
 // --- Feature flags (computed from backend /me/ response) ---
@@ -695,12 +765,12 @@ const canSeeQuestionnaire = computed(() =>
             v-if="examStats.group_stats && examStats.group_stats.length"
             class="group-stats-section"
           >
-            <h3>Statistiques par Groupe</h3>
+            <h3>Statistiques par {{ examStats.group_stats[0]?.type === 'classe' ? 'Classe' : 'Groupe' }}</h3>
             <div class="group-table-wrapper">
               <table class="group-stats-table">
                 <thead>
                   <tr>
-                    <th>Groupe</th>
+                    <th>{{ examStats.group_stats[0]?.type === 'classe' ? 'Classe' : 'Groupe' }}</th>
                     <th>Copies</th>
                     <th>Moyenne</th>
                     <th>Médiane</th>
@@ -709,6 +779,7 @@ const canSeeQuestionnaire = computed(() =>
                     <th>Max</th>
                     <th>≥ Moy. globale</th>
                     <th>&lt; Moy. globale</th>
+                    <th class="action-cell">Export</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -724,6 +795,17 @@ const canSeeQuestionnaire = computed(() =>
                     <td>{{ g.max ?? '-' }}</td>
                     <td class="count-above">{{ g.above_mean }}</td>
                     <td class="count-below">{{ g.below_mean }}</td>
+                    <td class="action-cell">
+                      <button 
+                        class="btn-export-table"
+                        @click="downloadCsv(examStats.exam_id, g.groupe, examStats.exam_name, g.type || 'groupe')"
+                        :disabled="isExporting === `${examStats.exam_id}_${g.groupe}`"
+                        title="Exporter les notes de ce groupe vers Pronote"
+                      >
+                        <AppIcon :name="isExporting === `${examStats.exam_id}_${g.groupe}` ? 'loader' : 'download'" :size="12" />
+                        CSV
+                      </button>
+                    </td>
                   </tr>
                 </tbody>
                 <tfoot>
@@ -778,6 +860,14 @@ const canSeeQuestionnaire = computed(() =>
                   title="Voir mes élèves de cet examen (copies finalisées uniquement)"
                 >
                   <AppIcon name="users" :size="14" class="inline" /> Mes Élèves
+                </button>
+                <button
+                  class="btn-export-inline"
+                  @click="downloadCsv(group.examId, null, group.examName)"
+                  :disabled="isExporting === `${group.examId}_null`"
+                  title="Exporter toutes les notes de cet examen vers Pronote"
+                >
+                  <AppIcon :name="isExporting === `${group.examId}_null` ? 'loader' : 'download'" :size="14" class="inline" /> Export
                 </button>
               </div>
             </div>
@@ -1086,4 +1176,52 @@ const canSeeQuestionnaire = computed(() =>
 .card-footer { margin-top: auto; padding-top: 0.5rem; border-top: 1px solid #f8fafc; }
 .btn-view-bilan { font-size: 0.75rem; font-weight: 600; color: #6366f1; display: flex; align-items: center; gap: 4px; }
 .student-result-card:hover .btn-view-bilan { color: #4f46e5; text-decoration: underline; }
+
+.btn-export-table {
+  background: #6366f1;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+.btn-export-table:hover:not(:disabled) {
+  background: #4f46e5;
+  transform: translateY(-1px);
+}
+.btn-export-table:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+.action-cell {
+  padding-left: 1rem;
+}
+.btn-export-inline {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.btn-export-inline:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+}
+.btn-export-inline:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
 </style>

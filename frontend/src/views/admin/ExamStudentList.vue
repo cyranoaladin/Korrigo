@@ -100,6 +100,33 @@ const exportCSV = () => {
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
 }
 
+const exportPronote = async () => {
+    try {
+        const params = { exam_id: examId }
+        if (filterClasse.value !== 'all') {
+            params.group_name = filterClasse.value
+            params.assignment_type = 'classe'
+        }
+        
+        const response = await api.get('/grading/my-students/export-csv/', {
+            params,
+            responseType: 'blob'
+        })
+        
+        const url = window.URL.createObjectURL(new Blob([response.data]))
+        const link = document.createElement('a')
+        link.href = url
+        const suffix = filterClasse.value !== 'all' ? `_${filterClasse.value}` : '_complet'
+        link.setAttribute('download', `PRONOTE_${summary.value?.exam_name || 'exam'}${suffix}.csv`)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    } catch (err) {
+        console.error('Pronote export failed', err)
+        alert('Erreur lors de l\'export Pronote.')
+    }
+}
+
 useAutoRefresh(fetchData)
 </script>
 
@@ -114,7 +141,14 @@ useAutoRefresh(fetchData)
             <p v-if="summary" class="text-xs text-slate-400">{{ summary.exam_name }}</p>
           </div>
         </div>
-        <button @click="exportCSV" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"><AppIcon name="download" class="w-4 h-4"/> Exporter CSV</button>
+        <div class="flex items-center gap-2">
+          <button @click="exportCSV" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
+            <AppIcon name="download" class="w-4 h-4"/> CSV Standard
+          </button>
+          <button @click="exportPronote" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-all shadow-sm hover:shadow-md">
+            <AppIcon name="download" class="w-4 h-4"/> Export Pronote
+          </button>
+        </div>
       </div>
     </header>
 

@@ -47,6 +47,25 @@ const exportAnnotations = async () => {
   }
 }
 
+const exportPronote = async () => {
+  try {
+    const response = await api.get('/grading/my-students/export-csv/', {
+      params: { exam_id: examId },
+      responseType: 'blob'
+    })
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `PRONOTE_Examen_${examId}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    showToast('Export Pronote réussi.', 'success')
+  } catch (e) {
+    showToast('Échec de l\'export Pronote.', 'error')
+  }
+}
+
 const statusLabel = (s) => ({
   READY: 'Prête',
   IN_PROGRESS: 'En cours',
@@ -175,7 +194,16 @@ useAutoRefresh(fetchCopies)
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 12l-4-4m4 4l4-4M4 20h16" />
             </svg>
-            Exporter annotations JSON
+            Annotations JSON
+          </button>
+          <button
+            class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-emerald-700 rounded-lg text-sm font-medium hover:bg-emerald-50 transition-colors"
+            @click="exportPronote"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Export Pronote
           </button>
           <button
             class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
