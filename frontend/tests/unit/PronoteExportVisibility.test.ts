@@ -6,7 +6,7 @@ import { createPinia, setActivePinia } from 'pinia'
 // Use vi.hoisted to avoid ReferenceError
 const { mockPush, mockApiGet } = vi.hoisted(() => ({
   mockPush: vi.fn(),
-  mockApiGet: vi.fn(() => Promise.resolve({ data: [] })),
+  mockApiGet: vi.fn<any[], any>(() => Promise.resolve({ data: [] })),
 }))
 
 // Mock router
