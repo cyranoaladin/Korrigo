@@ -537,7 +537,7 @@ class ExportClassPronoteView(views.APIView):
             csv_content, warnings = exporter.generate_csv()
             filename = f"PRONOTE_{exam.name}_{group_name}.csv"
             
-            response = HttpResponse(csv_content, content_type='text/csv')
+            response = HttpResponse(csv_content.encode('utf-8'), content_type='text/csv')
             # Pronote/Excel expectation: UTF-8 with BOM (handled by service)
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
