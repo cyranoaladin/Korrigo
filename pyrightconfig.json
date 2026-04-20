@@ -3,7 +3,7 @@
     "backend"
   ],
   "extraPaths": [
-    "./backend"
+    "/home/alaeddine/Bureau/KORRIGO/korrigo_v2_improved/backend"
   ],
   "typeCheckingMode": "basic",
   "pythonVersion": "3.12",
