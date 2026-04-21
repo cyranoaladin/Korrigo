@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="copy",
             constraint=models.CheckConstraint(
-                check=models.Q(("status__in", ["READY", "IN_PROGRESS", "FINALIZED"])),
+                check=models.Q(("status__in", ["READY", "LOCKED", "IN_PROGRESS", "GRADED", "FINALIZED"])),
                 name="check_copy_status_valid",
             ),
         ),
