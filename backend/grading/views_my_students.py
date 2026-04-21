@@ -510,7 +510,8 @@ class StudentBilanView(views.APIView):
 class ExportClassPronoteView(views.APIView):
     """
     GET /api/grading/my-students/export-csv/
-    Exporte les notes d'une classe spécifique pour un examen donné au format PRONOTE.
+    Exporte les notes d'une classe spécifique pour un examen donné au format simplifié.
+    Format: NOM;PRENOM;CLASSE;NOTE
     """
     permission_classes = [IsTeacherOrAdmin]
 
@@ -551,9 +552,9 @@ class ExportClassPronoteView(views.APIView):
 
         exporter = PronoteExporter(exam, student_ids=student_ids)
         try:
-            csv_content, warnings = exporter.generate_csv()
+            csv_content, warnings = exporter.generate_simple_csv()
             filename_suffix = normalized_group_name or 'Complet'
-            filename = f"PRONOTE_{exam.name}_{filename_suffix}.csv"
+            filename = f"Notes_{exam.name}_{filename_suffix}.csv"
             
             response = HttpResponse(csv_content.encode('utf-8'), content_type='text/csv')
             # Pronote/Excel expectation: UTF-8 with BOM (handled by service)

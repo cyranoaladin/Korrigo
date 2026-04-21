@@ -403,3 +403,84 @@ class PronoteExporter:
         output.close()
         
         return csv_content, validation.warnings
+
+    def generate_simple_csv(self) -> Tuple[str, List[str]]:
+        """
+        Generate simplified CSV export for corrector use.
+        
+        Format (minimal):
+            NOM;PRENOM;CLASSE;NOTE
+            DUPONT;Jean;3A;15,50
+        
+        Returns:
+            Tuple of (csv_content, warnings)
+        
+        Raises:
+            ValidationError: If validation fails
+        """
+        import csv
+        import io
+        
+        # Validate before export
+        validation = self.validate_export_eligibility()
+        if not validation.is_valid:
+            raise ValidationError(
+                "Export impossible: " + "; ".join(validation.errors)
+            )
+        
+        # Create CSV with proper settings
+        output = io.StringIO()
+        
+        # Add UTF-8 BOM for Excel compatibility
+        output.write('\ufeff')
+        
+        writer = csv.writer(
+            output,
+            delimiter=';',
+            lineterminator='\r\n',
+            quoting=csv.QUOTE_MINIMAL
+        )
+        
+        # Write simplified header (no date_naissance, no matiere, no coeff, no commentaire)
+        writer.writerow(['NOM', 'PRENOM', 'CLASSE', 'NOTE'])
+        
+        # Query graded and identified copies
+        from exams.models import Copy
+        filters = {
+            'exam': self.exam,
+            'status': Copy.Status.FINALIZED,
+            'is_identified': True
+        }
+        if self.student_ids is not None:
+            filters['student_id__in'] = self.student_ids
+
+        copies = Copy.objects.filter(**filters).select_related('student').prefetch_related('annotations')
+        
+        # Generate rows
+        for copy in copies:
+            if copy.student:
+                nom = copy.student.last_name or ''
+                prenom = copy.student.first_name or ''
+                classe = copy.student.class_name or copy.student.groupe or ''
+            else:
+                nom, prenom, classe = '', '', ''
+            
+            # Calculate grade
+            try:
+                grade = self.calculate_copy_grade(copy)
+            except ValueError:
+                validation.add_warning(
+                    f"Copie {copy.anonymous_id} ignorée: aucune donnée de note"
+                )
+                continue
+            
+            # Format grade in French format
+            note = self.format_decimal_french(grade, precision=2)
+            
+            # Write row
+            writer.writerow([nom, prenom, classe, note])
+        
+        csv_content = output.getvalue()
+        output.close()
+        
+        return csv_content, validation.warnings
