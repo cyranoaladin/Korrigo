@@ -211,6 +211,7 @@ class ExamSerializer(serializers.ModelSerializer):
 
 class CopySerializer(serializers.ModelSerializer):
     exam_name = serializers.CharField(source='exam.name', read_only=True)
+    pdf_source_url = serializers.SerializerMethodField()
     final_pdf_url = serializers.SerializerMethodField()
     booklet_ids = serializers.SerializerMethodField()
     assigned_corrector_username = serializers.CharField(
@@ -225,15 +226,15 @@ class CopySerializer(serializers.ModelSerializer):
     class Meta:
         model = Copy
         fields = [
-            'id', 'exam', 'exam_name', 'anonymous_id', 'final_pdf',
-            'final_pdf_url', 'status', 'is_identified', 'student', 'student_name',
-            'booklet_ids', 'assigned_corrector', 'assigned_corrector_username',
-            'corrector',
+            'id', 'exam', 'exam_name', 'anonymous_id', 'pdf_source',
+            'pdf_source_url', 'final_pdf', 'final_pdf_url', 'status', 'is_identified',
+            'student', 'student_name', 'booklet_ids', 'assigned_corrector',
+            'assigned_corrector_username', 'corrector',
             'dispatch_run_id', 'assigned_at', 'graded_at', 'global_appreciation',
             'subject_variant', 'total_score',
         ]
         read_only_fields = [
-            'id', 'exam_name', 'final_pdf_url', 'booklet_ids',
+            'id', 'exam_name', 'pdf_source_url', 'final_pdf_url', 'booklet_ids',
             'assigned_corrector_username', 'dispatch_run_id', 'assigned_at',
             'graded_at', 'total_score', 'student_name', 'corrector',
         ]
@@ -270,6 +271,15 @@ class CopySerializer(serializers.ModelSerializer):
             return sum(float(v) for v in scores.values() if v is not None and v != '')
         except (TypeError, ValueError, AttributeError):
             return None
+
+    def get_pdf_source_url(self, obj):
+        if obj.pdf_source:
+            request = self.context.get('request')
+            if request:
+                protected_path = f'/api/media/{obj.pdf_source.name}'
+                return request.build_absolute_uri(protected_path)
+            return f'/api/media/{obj.pdf_source.name}'
+        return None
 
     def get_final_pdf_url(self, obj):
         if obj.final_pdf:
