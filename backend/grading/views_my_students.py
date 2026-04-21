@@ -476,13 +476,19 @@ class StudentBilanView(views.APIView):
                 llm_summary = copy.llm_summary or ''
 
             pdf_url = f'/grading/copies/{copy.id}/final-pdf/' if is_finalized else None
+            
+            # Build pdf_source_url (direct access to source PDF)
+            pdf_source_url = None
+            if copy.pdf_source:
+                from django.conf import settings
+                pdf_source_url = f'/api/media/{copy.pdf_source.name}'
 
             copies_data.append({
                 'copy_id': str(copy.id),
                 'exam_name': copy.exam.name if copy.exam else 'N/A',
                 'exam_id': str(copy.exam.id) if copy.exam else None,
-                'status': copy.status,
                 'anonymous_id': copy.anonymous_id if is_finalized else None,
+                'status': copy.status,
                 'total_score': round(total_score, 2) if total_score is not None else None,
                 'scores_data': scores_data,
                 'question_labels': question_labels,
@@ -492,6 +498,7 @@ class StudentBilanView(views.APIView):
                 'global_appreciation': global_appreciation,
                 'llm_summary': llm_summary,
                 'pdf_url': pdf_url,
+                'pdf_source_url': pdf_source_url,
             })
         
         return Response({

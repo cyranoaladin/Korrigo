@@ -80,8 +80,10 @@ const handleLogout = async () => {
 }
 
 const openPdf = () => {
-    if (selectedCopy.value?.pdf_url) {
-        window.open(api.defaults.baseURL + selectedCopy.value.pdf_url, '_blank')
+    // Priorité au pdf_source_url (nouveau PDF source remplacé)
+    const pdfUrl = selectedCopy.value?.pdf_source_url || selectedCopy.value?.pdf_url
+    if (pdfUrl) {
+        window.open(api.defaults.baseURL + pdfUrl, '_blank')
     }
 }
 
