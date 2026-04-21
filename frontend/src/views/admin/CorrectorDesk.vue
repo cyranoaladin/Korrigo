@@ -202,7 +202,8 @@ const hasPages = computed(() => pages.value.length > 0)
 // Continuous scroll: per-page URL and annotations helpers
 const getPageUrl = (pageIndex) => {
     if (pageIndex < 0 || pageIndex >= pages.value.length) return null
-    return gradingApi.getMediaUrl(pages.value[pageIndex])
+    // Enable cache-busting to force reload when PDF is replaced
+    return gradingApi.getMediaUrl(pages.value[pageIndex], true)
 }
 const getAnnotationsForPage = (pageIndex) => {
     return annotations.value.filter(a => a.page_index === pageIndex)

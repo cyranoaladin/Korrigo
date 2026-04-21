@@ -5,8 +5,10 @@ const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || '/api/media';
 export default {
     /**
      * Helper to get full media URL robustly
+     * @param {string} path - Media file path
+     * @param {boolean} bustCache - If true, adds a timestamp to bypass browser cache
      */
-    getMediaUrl(path) {
+    getMediaUrl(path, bustCache = false) {
         if (!path) return '';
         if (path.startsWith('http')) return path;
 
@@ -14,7 +16,15 @@ export default {
         const base = MEDIA_URL.replace(/\/+$/, ''); // Remove trailing slash
         const cleanPath = path.startsWith('/') ? path.substring(1) : path;
 
-        return `${base}/${cleanPath}`;
+        let url = `${base}/${cleanPath}`;
+        
+        // Add cache-busting parameter for replaced images
+        if (bustCache) {
+            const timestamp = Date.now();
+            url += (url.includes('?') ? '&' : '?') + `_t=${timestamp}`;
+        }
+
+        return url;
     },
 
     async listCopies(params = {}) {
