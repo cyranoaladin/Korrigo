@@ -86,3 +86,21 @@ class TestPronoteExport:
         content = response.content.decode('utf-8-sig')
         assert 'Dupont;Jean' in content
         assert 'Curie;Marie' not in content
+
+    def test_export_global_alias_complet(self, corrector_user, exam_setup):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        exam, s1, s2 = exam_setup
+        client.force_authenticate(user=corrector_user)
+
+        url = reverse('my-students-export-csv')
+        response = client.get(url, {
+            'exam_id': str(exam.id),
+            'group_name': 'Complet',
+            'assignment_type': 'classe',
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        content = response.content.decode('utf-8-sig')
+        assert 'Dupont;Jean' in content
+        assert 'Curie;Marie' in content

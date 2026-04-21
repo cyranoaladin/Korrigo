@@ -15,12 +15,23 @@ const isLoading = ref(true)
 const isExporting = ref(null) // ID of assignment being exported
 const error = ref(null)
 const examName = ref('')
+const GLOBAL_EXPORT_KEY = '__all__'
 
 // Restore exam selection from storage on mount
 examStore.restoreFromStorage()
 
 const currentExamId = computed(() => examStore.currentExamId)
 const currentExamTypeId = computed(() => examStore.currentExamTypeId)
+
+const bilanScopeQuery = computed(() => {
+    if (currentExamId.value) {
+        return { exam_id: currentExamId.value }
+    }
+    if (currentExamTypeId.value) {
+        return { exam_type_id: currentExamTypeId.value }
+    }
+    return {}
+})
 
 const fetchStudents = async () => {
     isLoading.value = true
@@ -54,9 +65,9 @@ const fetchStudents = async () => {
     }
 }
 
-const downloadCsv = async (assign) => {
+const downloadCsv = async (assign, examIdOverride = null) => {
     // Si on est en vue globale, on essaie de trouver un exam_id dans les copies du groupe
-    let examId = currentExamId.value
+    let examId = examIdOverride || currentExamId.value
     if (!examId && assign.students?.length > 0) {
         // On cherche le premier exam_id disponible dans les copies des élèves du groupe
         for (const student of assign.students) {
@@ -72,12 +83,15 @@ const downloadCsv = async (assign) => {
         return
     }
 
-    isExporting.value = assign.group_name
+    const exportKey = assign.group_name || GLOBAL_EXPORT_KEY
+    isExporting.value = exportKey
     try {
         const params = {
             exam_id: examId,
-            group_name: assign.group_name,
             assignment_type: assign.assignment_type || 'classe'
+        }
+        if (assign.group_name) {
+            params.group_name = assign.group_name
         }
         
         // Auto-detect level from group name prefix if possible
@@ -86,7 +100,6 @@ const downloadCsv = async (assign) => {
         else if (groupName.startsWith('1')) params.level = 'premiere'
         else if (groupName.startsWith('3')) params.level = 'troisieme'
         else if (assign.level) params.level = assign.level
-        else params.level = 'troisieme' // Fallback
 
         const response = await api.get('/grading/my-students/export-csv/', {
             params,
@@ -96,7 +109,7 @@ const downloadCsv = async (assign) => {
         const url = window.URL.createObjectURL(new Blob([response.data]))
         const link = document.createElement('a')
         link.href = url
-        link.setAttribute('download', `PRONOTE_${examName.value}_${assign.group_name}.csv`)
+        link.setAttribute('download', `PRONOTE_${examName.value}_${assign.group_name || 'Complet'}.csv`)
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
@@ -129,14 +142,17 @@ const downloadCsvGlobal = async () => {
     }
 
     await downloadCsv({ 
-        group_name: 'Complet', 
+        group_name: null,
         assignment_type: 'classe',
         students: [] // Not used by downloadCsv if we pass an object with group_name
-    })
+    }, examId)
 }
 
 const goToStudentBilan = (studentId) => {
-    router.push(`/corrector/student/${studentId}/bilan`)
+    router.push({
+        path: `/corrector/student/${studentId}/bilan`,
+        query: bilanScopeQuery.value,
+    })
 }
 
 const goBack = () => {
@@ -189,10 +205,10 @@ onMounted(fetchStudents)
           v-if="examName"
           class="btn-export btn-global-export" 
           @click="downloadCsvGlobal"
-          :disabled="isExporting === 'Complet'"
+          :disabled="isExporting === GLOBAL_EXPORT_KEY"
         >
-          <AppIcon :name="isExporting === 'Complet' ? 'loader' : 'download'" :size="16" />
-          {{ isExporting === 'Complet' ? 'Export...' : 'Export Global Pronote' }}
+          <AppIcon :name="isExporting === GLOBAL_EXPORT_KEY ? 'loader' : 'download'" :size="16" />
+          {{ isExporting === GLOBAL_EXPORT_KEY ? 'Export...' : 'Export Global Pronote' }}
         </button>
       </div>
 
@@ -217,7 +233,7 @@ onMounted(fetchStudents)
         <section v-for="assign in assignments" :key="assign.group_name" class="assignment-section">
           <div class="assignment-header">
             <div class="assignment-info">
-                <h2>Classe {{ assign.group_name }}</h2>
+                <h2>{{ assign.assignment_type === 'groupe' ? 'Groupe' : 'Classe' }} {{ assign.group_name }}</h2>
                 <span class="student-count">{{ assign.students.length }} élève(s)</span>
             </div>
             <button 

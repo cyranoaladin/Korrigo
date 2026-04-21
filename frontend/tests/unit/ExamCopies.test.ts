@@ -56,7 +56,7 @@ describe('ExamCopies', () => {
     })
     await flushPromises()
 
-    const exportButton = wrapper.findAll('button').find((button) => button.text().includes('Exporter annotations JSON'))
+    const exportButton = wrapper.findAll('button').find((button) => button.text().includes('Annotations JSON'))
     expect(exportButton).toBeTruthy()
     await exportButton.trigger('click')
     await flushPromises()

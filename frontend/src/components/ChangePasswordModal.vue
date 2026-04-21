@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
 
@@ -20,6 +20,7 @@ const newPassword = ref('')
 const confirmPassword = ref('')
 const error = ref('')
 const isLoading = ref(false)
+const csrfReady = ref(false)
 const passwordVisible = ref(false)
 const confirmVisible = ref(false)
 const currentVisible = ref(false)
@@ -31,9 +32,54 @@ const passwordsMatch = computed(() => {
 const canSubmit = computed(() => {
   const baseOk = newPassword.value.length >= 12 && passwordsMatch.value && !isLoading.value
   if (isStudent.value) {
-    return baseOk && currentPassword.value.length > 0
+    return baseOk && currentPassword.value.length > 0 && csrfReady.value
   }
   return baseOk
+})
+
+const hasCookie = (name) => {
+  const prefix = `${name}=`
+  return document.cookie.split(';').some((cookie) => cookie.trim().startsWith(prefix))
+}
+
+const ensureCsrfCookie = async () => {
+  if (!isStudent.value) {
+    csrfReady.value = true
+    return true
+  }
+  if (hasCookie('csrftoken')) {
+    csrfReady.value = true
+    return true
+  }
+
+  try {
+    await api.get('/csrf/')
+    csrfReady.value = true
+    return true
+  } catch (e) {
+    csrfReady.value = false
+    return false
+  }
+}
+
+const extractErrorMessage = (payload) => {
+  if (!payload) return ''
+  if (typeof payload === 'string') return payload
+
+  if (Array.isArray(payload.error)) return payload.error.join(' ')
+  if (typeof payload.error === 'string') return payload.error
+  if (Array.isArray(payload.detail)) return payload.detail.join(' ')
+  if (typeof payload.detail === 'string') return payload.detail
+
+  const fieldMessages = Object.values(payload)
+    .flatMap((value) => Array.isArray(value) ? value : [value])
+    .filter((value) => typeof value === 'string')
+
+  return fieldMessages.join(' ')
+}
+
+onMounted(async () => {
+  await ensureCsrfCookie()
 })
 
 const handleSubmit = async () => {
@@ -58,6 +104,11 @@ const handleSubmit = async () => {
 
   try {
     if (isStudent.value) {
+      const csrfOk = await ensureCsrfCookie()
+      if (!csrfOk) {
+        error.value = "Impossible d'initialiser la protection de sécurité. Réessayez."
+        return
+      }
       await api.post('/students/change-password/', {
         current_password: currentPassword.value,
         new_password: newPassword.value,
@@ -67,13 +118,7 @@ const handleSubmit = async () => {
     }
     emit('success')
   } catch (e) {
-    if (e.response?.data?.error) {
-      error.value = Array.isArray(e.response.data.error) 
-        ? e.response.data.error.join(' ')
-        : e.response.data.error
-    } else {
-      error.value = 'Erreur lors du changement de mot de passe.'
-    }
+    error.value = extractErrorMessage(e.response?.data) || 'Erreur lors du changement de mot de passe.'
   } finally {
     isLoading.value = false
   }

@@ -484,6 +484,23 @@ class TestStudentPermissionCoherence(TransactionTestCase):
         # Should be forbidden - teacher doesn't have student_id in session
         self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
 
+    def test_session_only_student_can_change_password(self):
+        """Session-based student auth must work even if request.user is anonymous."""
+        session = self.client.session
+        session['student_id'] = self.student_a.id
+        session['role'] = 'Student'
+        session['must_change_password'] = True
+        session.save()
+
+        resp = self.client.post("/api/students/change-password/", {
+            "current_password": _settings.DEFAULT_PASSWORD,
+            "new_password": "NouveauMdp2026!"
+        }, content_type="application/json")
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.json()['message'], 'Mot de passe modifié avec succès.')
+        self.assertFalse(self.client.session.get('must_change_password', True))
+
 
 class TestStudentPasswordValidation(TransactionTestCase):
     """Tests for password validation rules."""

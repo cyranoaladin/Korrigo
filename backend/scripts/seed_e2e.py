@@ -17,9 +17,9 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import transaction
-from exams.models import Exam, Booklet, Copy
+from exams.models import Exam, ExamType, Booklet, Copy, TeacherGroupAssignment
 from students.models import Student
-from grading.models import GradingEvent
+from grading.models import Annotation, GradingEvent, QuestionRemark, Score
 from pathlib import Path
 
 User = get_user_model()
@@ -34,6 +34,8 @@ E2E_TEACHER_PASSWORD = os.environ.get("E2E_TEACHER_PASSWORD", "password")
 E2E_STUDENT_DOB = os.environ.get("E2E_STUDENT_DOB", "2005-03-15")
 E2E_STUDENT_LASTNAME = os.environ.get("E2E_STUDENT_LASTNAME", "E2E_STUDENT")
 E2E_STUDENT_FIRSTNAME = os.environ.get("E2E_STUDENT_FIRSTNAME", "Jean")
+E2E_STUDENT_EMAIL = os.environ.get("E2E_STUDENT_EMAIL", "eleve.test-e@ert.tn")
+E2E_STUDENT_PASSWORD = os.environ.get("E2E_STUDENT_PASS", "15032005")
 
 # Image dimensions for E2E (A4 ratio ~0.707)
 E2E_IMAGE_WIDTH = 1000
@@ -42,6 +44,10 @@ E2E_IMAGE_HEIGHT = 1414  # A4 ratio
 # Unique tag to identify E2E seed data (reduces collision risk)
 E2E_SEED_TAG = "[E2E-SEED]"
 E2E_EXAM_PREFIX = f"{E2E_SEED_TAG} Exam"
+E2E_EXAM_TYPE_CODE = "E2E_MATH"
+E2E_EXAM_TYPE_NAME = "E2E Mathématiques"
+E2E_GROUP_NAME = "G3"
+E2E_CLASS_NAME = "T.01"
 
 # Minimum expected PNG sizes (discriminant fail-fast)
 # Pillow image ~13KB, fallback 1x1 ~67 bytes
@@ -216,6 +222,7 @@ def main():
     """Seed principal - idempotent et déterministe."""
     teacher = ensure_teacher()
     ensure_admin()
+    student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
     
     # Test admin with must_change_password for E2E tests
     test_admin = ensure_admin(
@@ -239,13 +246,44 @@ def main():
     exams_to_delete.delete()
     # Supprimer aussi les copies orphelines E2E (cas rare mais possible)
     Copy.objects.filter(anonymous_id="E2E-READY").delete()
+    Copy.objects.filter(anonymous_id="E2E-FINALIZED").delete()
+
+    TeacherGroupAssignment.objects.filter(
+        teacher=teacher,
+        group_name=E2E_GROUP_NAME,
+        level='terminale',
+    ).delete()
     
     # Nettoyer les fichiers media E2E pour éviter accumulation
     _cleanup_e2e_media()
     
+    exam_type, _ = ExamType.objects.update_or_create(
+        code=E2E_EXAM_TYPE_CODE,
+        defaults={
+            "name": E2E_EXAM_TYPE_NAME,
+            "description": "Type d'examen dédié aux tests E2E correcteur",
+            "color": "#2563eb",
+            "icon": "graduation-cap",
+            "is_active": True,
+            "sort_order": -100,
+        },
+    )
+
+    TeacherGroupAssignment.objects.create(
+        teacher=teacher,
+        level='terminale',
+        assignment_type='groupe',
+        group_name=E2E_GROUP_NAME,
+    )
+
     exam = Exam.objects.create(
         name=f"{E2E_EXAM_PREFIX} {timezone.now().strftime('%Y%m%d-%H%M%S')}",
         date=timezone.now().date(),
+        exam_type=exam_type,
+        grading_structure=[
+            {"id": "q1", "label": "Question 1", "points": 12},
+            {"id": "q2", "label": "Question 2", "points": 8},
+        ],
     )
     # Assign correctors to enable Dispatch flow tests
     exam.correctors.add(teacher)
@@ -268,7 +306,8 @@ def main():
         exam=exam,
         anonymous_id="E2E-READY",
         status=Copy.Status.READY,
-        is_identified=False
+        is_identified=False,
+        assigned_corrector=teacher,
     )
     copy.booklets.add(booklet)
     print(f"  ✓ Copy created: {copy.id} (status={copy.status})")
@@ -300,9 +339,84 @@ def main():
         anonymous_id="E2E-OTHER",
         status=Copy.Status.READY,
         is_identified=True,
-        student=other_student
+        student=other_student,
     )
     print(f"  ✓ Other Copy created: {other_copy.id} (student={other_student.first_name} {other_student.last_name})")
+
+    # 4c. Finalized student copy for "Mes Élèves" / bilan E2E flow
+    student_user, _ = User.objects.get_or_create(
+        username=E2E_STUDENT_EMAIL,
+        defaults={"email": E2E_STUDENT_EMAIL},
+    )
+    student_user.email = E2E_STUDENT_EMAIL
+    student_user.set_password(E2E_STUDENT_PASSWORD)
+    student_user.is_active = True
+    student_user.save()
+    student_user.groups.add(student_group)
+
+    student_profile, _ = UserProfile.objects.get_or_create(user=student_user)
+    student_profile.must_change_password = True
+    student_profile.save(update_fields=["must_change_password"])
+
+    e2e_student, _ = Student.objects.update_or_create(
+        first_name=E2E_STUDENT_FIRSTNAME,
+        last_name=E2E_STUDENT_LASTNAME,
+        date_naissance=E2E_STUDENT_DOB,
+        defaults={
+            "user": student_user,
+            "email": E2E_STUDENT_EMAIL,
+            "class_name": E2E_CLASS_NAME,
+            "groupe": E2E_GROUP_NAME,
+        },
+    )
+
+    page_image_path_2 = _save_page_image(2)
+    finalized_booklet = Booklet.objects.create(
+        exam=exam,
+        start_page=2,
+        end_page=2,
+        pages_images=[page_image_path_2]
+    )
+
+    finalized_copy = Copy.objects.create(
+        exam=exam,
+        anonymous_id="E2E-FINALIZED",
+        status=Copy.Status.FINALIZED,
+        is_identified=True,
+        student=e2e_student,
+        assigned_corrector=teacher,
+        graded_at=timezone.now(),
+        global_appreciation="Copie solide et bien structurée.",
+        llm_summary="Bonne maîtrise globale avec quelques imprécisions mineures.",
+    )
+    finalized_copy.booklets.add(finalized_booklet)
+    Score.objects.update_or_create(
+        copy=finalized_copy,
+        defaults={
+            "scores_data": {"q1": 9, "q2": 6},
+            "final_comment": "Bon travail dans l'ensemble.",
+        },
+    )
+    QuestionRemark.objects.update_or_create(
+        copy=finalized_copy,
+        question_id="q1",
+        defaults={
+            "remark": "Méthode correcte, résultat à sécuriser.",
+            "created_by": teacher,
+        },
+    )
+    Annotation.objects.create(
+        copy=finalized_copy,
+        page_index=0,
+        x=0.2,
+        y=0.3,
+        w=0.2,
+        h=0.08,
+        content="Bon raisonnement",
+        type=Annotation.Type.COMMENTAIRE,
+        created_by=teacher,
+    )
+    print(f"  ✓ Finalized Copy created: {finalized_copy.id} (student={e2e_student.first_name} {e2e_student.last_name})")
 
     # 5. Trigger Gate 4 Seed (si disponible)
     try:
@@ -321,8 +435,11 @@ def main():
     
     print("\n\u2705 E2E Seed completed successfully!")
     print(f"  Teacher: {teacher.username}")
+    print(f"  Student login: {E2E_STUDENT_EMAIL} / {E2E_STUDENT_PASSWORD}")
+    print(f"  ExamType: {exam_type.code} ({exam_type.id})")
     print(f"  Exam: {exam.id}")
     print(f"  Copy: {copy.id} status={copy.status} anon={copy.anonymous_id}")
+    print(f"  Finalized Copy: {finalized_copy.id} status={finalized_copy.status} anon={finalized_copy.anonymous_id}")
     print(f"  Booklet: {booklet.id} pages_images={booklet.pages_images}")
     print(f"  Media URL: {full_media_url}")
 

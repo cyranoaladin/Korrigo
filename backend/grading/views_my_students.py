@@ -392,6 +392,8 @@ class StudentBilanView(views.APIView):
 
     def get(self, request, student_id):
         assignments = _get_teacher_assignments(request.user)
+        exam_id = request.query_params.get('exam_id')
+        exam_type_id = request.query_params.get('exam_type_id')
         
         student = get_object_or_404(Student, id=student_id)
         
@@ -415,8 +417,19 @@ class StudentBilanView(views.APIView):
                     'detail': 'Vous n\'avez pas accès à cet élève.'
                 }, status=status.HTTP_403_FORBIDDEN)
         
-        # Récupérer toutes les copies de l'élève
-        copies = Copy.objects.filter(student=student).select_related('exam')
+        # Quand un scope d'examen est fourni depuis "Mes élèves", ne retourner
+        # que les copies de ce scope pour éviter d'exposer d'autres bilans.
+        copies = Copy.objects.filter(student=student)
+        if exam_id:
+            from exams.models import Exam
+            exam = get_object_or_404(Exam, id=exam_id)
+            copies = copies.filter(exam=exam)
+        elif exam_type_id:
+            from exams.models import ExamType
+            exam_type = get_object_or_404(ExamType, id=exam_type_id)
+            copies = copies.filter(exam__exam_type=exam_type)
+
+        copies = copies.select_related('exam')
 
         copies_data = []
         for copy in copies:
@@ -518,24 +531,29 @@ class ExportClassPronoteView(views.APIView):
 
         # Build filter for students
         student_ids = None
-        if group_name:
+        normalized_group_name = (group_name or '').strip()
+        if normalized_group_name in {'', 'Complet', 'Tous', 'Tous les élèves', 'All'}:
+            normalized_group_name = ''
+
+        if normalized_group_name:
             prefixes = _LEVEL_CLASS_PREFIXES.get(level, [])
             level_q = Q()
             for pfx in prefixes:
                 level_q |= Q(class_name__startswith=pfx)
             
             if assignment_type == 'classe':
-                student_ids = list(Student.objects.filter(class_name=group_name).filter(level_q).values_list('id', flat=True))
+                student_ids = list(Student.objects.filter(class_name=normalized_group_name).filter(level_q).values_list('id', flat=True))
             else:
-                student_ids = list(Student.objects.filter(groupe=group_name).filter(level_q).values_list('id', flat=True))
+                student_ids = list(Student.objects.filter(groupe=normalized_group_name).filter(level_q).values_list('id', flat=True))
 
             if not student_ids:
-                return Response({'detail': f'Aucun élève trouvé pour {group_name}'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'detail': f'Aucun élève trouvé pour {normalized_group_name}'}, status=status.HTTP_404_NOT_FOUND)
 
         exporter = PronoteExporter(exam, student_ids=student_ids)
         try:
             csv_content, warnings = exporter.generate_csv()
-            filename = f"PRONOTE_{exam.name}_{group_name}.csv"
+            filename_suffix = normalized_group_name or 'Complet'
+            filename = f"PRONOTE_{exam.name}_{filename_suffix}.csv"
             
             response = HttpResponse(csv_content.encode('utf-8'), content_type='text/csv')
             # Pronote/Excel expectation: UTF-8 with BOM (handled by service)

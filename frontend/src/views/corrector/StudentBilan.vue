@@ -20,7 +20,13 @@ const fetchBilan = async () => {
     isLoading.value = true
     error.value = null
     try {
-        const response = await api.get(`/grading/students/${studentId.value}/bilan/`)
+        const params = {}
+        if (route.query.exam_id) {
+            params.exam_id = route.query.exam_id
+        } else if (route.query.exam_type_id) {
+            params.exam_type_id = route.query.exam_type_id
+        }
+        const response = await api.get(`/grading/students/${studentId.value}/bilan/`, { params })
         student.value = response.data.student
         copies.value = response.data.copies || []
     } catch (err) {
@@ -58,7 +64,10 @@ const sortedScores = computed(() => {
 })
 
 const goBack = () => {
-    router.push('/corrector/my-students')
+    router.push({
+        path: '/corrector/my-students',
+        query: route.query,
+    })
 }
 
 const goToDashboard = () => {

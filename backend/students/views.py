@@ -21,6 +21,35 @@ from .serializers import StudentSerializer
 from exams.permissions import IsStudent, IsTeacherOrAdmin
 from core.utils.audit import log_authentication_attempt, log_audit
 
+
+def _get_or_create_user_profile(user):
+    """Return a usable UserProfile even if the reverse relation cache is stale."""
+    from core.models import UserProfile
+
+    try:
+        return user.profile
+    except Exception:
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        return profile
+
+
+def _resolve_student_user_and_profile(request):
+    """Resolve the current student auth context from Django auth or the student session."""
+    user = request.user if request.user and request.user.is_authenticated else None
+    student = Student.objects.filter(user=user).first() if user else None
+    if student:
+        return user, student
+
+    student_id = request.session.get('student_id') if hasattr(request, 'session') else None
+    if not student_id:
+        return None, None
+
+    student = Student.objects.select_related('user').filter(id=student_id).first()
+    if not student or not student.user:
+        return None, student
+    return student.user, student
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class StudentLoginView(views.APIView):
     """
@@ -89,7 +118,7 @@ class StudentLoginView(views.APIView):
         # P2-D FIX: Use UserProfile.must_change_password as primary source
         # to avoid expensive bcrypt checks (2-3x ~100ms) on every login.
         # Fallback to bcrypt only if profile flag is not set (legacy accounts).
-        profile = getattr(user, 'profile', None)
+        profile = _get_or_create_user_profile(user)
         if profile and profile.must_change_password:
             must_change_password = True
         else:
@@ -103,7 +132,7 @@ class StudentLoginView(views.APIView):
                 or (not dob_pwd and not settings.DEFAULT_PASSWORD)  # provisonné sans MDP identifiable
             )
             # Cache result in profile so we never re-check bcrypt for this user
-            if profile and must_change_password:
+            if must_change_password:
                 profile.must_change_password = True
                 profile.save(update_fields=['must_change_password'])
         request.session['must_change_password'] = must_change_password
@@ -163,7 +192,7 @@ class StudentMeView(views.APIView):
         user = student.user
         must_change = request.session.get('must_change_password')
         if must_change is None and user:
-            profile = getattr(user, 'profile', None)
+            profile = _get_or_create_user_profile(user)
             if profile and profile.must_change_password:
                 must_change = True
             else:
@@ -210,8 +239,8 @@ class StudentChangePasswordView(views.APIView):
                 'error': 'Mot de passe actuel et nouveau mot de passe sont requis.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        user = request.user
-        if not user or not user.is_authenticated:
+        user, student = _resolve_student_user_and_profile(request)
+        if not user or not student:
             return Response({
                 'error': 'Non authentifié.'
             }, status=status.HTTP_401_UNAUTHORIZED)
@@ -223,7 +252,6 @@ class StudentChangePasswordView(views.APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # Prevent reusing the default password or date of birth (CHECK BEFORE Django validators)
-        student = Student.objects.filter(user=user).first()
         dob_pwd = student.date_naissance.strftime('%d%m%Y') if student and student.date_naissance else None
 
         if settings.DEFAULT_PASSWORD and new_password == settings.DEFAULT_PASSWORD:
@@ -250,10 +278,9 @@ class StudentChangePasswordView(views.APIView):
 
         # Invalider le cache bcrypt en session et en base de données
         request.session['must_change_password'] = False
-        profile = getattr(user, 'profile', None)
-        if profile:
-            profile.must_change_password = False
-            profile.save(update_fields=['must_change_password'])
+        profile = _get_or_create_user_profile(user)
+        profile.must_change_password = False
+        profile.save(update_fields=['must_change_password'])
 
         log_audit(request, 'student.password_change', 'Student',
                   request.session.get('student_id'))

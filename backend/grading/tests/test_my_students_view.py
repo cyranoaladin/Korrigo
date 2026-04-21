@@ -524,3 +524,27 @@ def test_exam_type_id_aggregates_all_exams(
     # Chaque copie garde son exam_name d'origine
     all_copy_exams = {c['exam_name'] for s in data['students'] for c in s['copies']}
     assert all_copy_exams == {'BB_J1', 'BB_J2'}
+
+
+@pytest.mark.django_db
+def test_student_bilan_respects_exam_id_scope(
+    alaeddine, other_teacher, bb_j1, bb_j2, students_terminale_g3
+):
+    """Le bilan détaillé appelé depuis "Mes élèves" doit respecter le scope exam_id."""
+    alice, _ = students_terminale_g3
+
+    _make_copy(bb_j1, alice, "A-J1", Copy.Status.FINALIZED, corrector=alaeddine)
+    _make_copy(bb_j2, alice, "A-J2", Copy.Status.FINALIZED, corrector=other_teacher)
+
+    client = APIClient()
+    client.force_authenticate(user=alaeddine)
+
+    res = client.get(
+        f'/api/grading/students/{alice.id}/bilan/',
+        secure=True,
+        data={'exam_id': str(bb_j1.id)},
+    )
+    assert res.status_code == 200
+
+    data = res.json()
+    assert [copy['exam_name'] for copy in data['copies']] == ['BB_J1']

@@ -443,7 +443,16 @@ const goToMyStudents = (exam = null) => {
 }
 
 const goToStudentBilan = (studentId) => {
-    router.push(`/corrector/student/${studentId}/bilan`)
+    const query = {}
+    if (examStore.currentExamId) {
+        query.exam_id = examStore.currentExamId
+    } else if (selectedExamType.value?.id) {
+        query.exam_type_id = selectedExamType.value.id
+    }
+    router.push({
+        path: `/corrector/student/${studentId}/bilan`,
+        query,
+    })
 }
 
 const goToQuestionnaire = () => {
