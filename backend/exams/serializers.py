@@ -1,3 +1,6 @@
+import os
+
+from django.conf import settings
 from rest_framework import serializers
 from django.core.validators import FileExtensionValidator
 from django.utils.translation import gettext_lazy as _
@@ -211,6 +214,7 @@ class ExamSerializer(serializers.ModelSerializer):
 
 class CopySerializer(serializers.ModelSerializer):
     exam_name = serializers.CharField(source='exam.name', read_only=True)
+    media_version = serializers.SerializerMethodField()
     pdf_source_url = serializers.SerializerMethodField()
     final_pdf_url = serializers.SerializerMethodField()
     booklet_ids = serializers.SerializerMethodField()
@@ -227,14 +231,14 @@ class CopySerializer(serializers.ModelSerializer):
         model = Copy
         fields = [
             'id', 'exam', 'exam_name', 'anonymous_id', 'pdf_source',
-            'pdf_source_url', 'final_pdf', 'final_pdf_url', 'status', 'is_identified',
+            'media_version', 'pdf_source_url', 'final_pdf', 'final_pdf_url', 'status', 'is_identified',
             'student', 'student_name', 'booklet_ids', 'assigned_corrector',
             'assigned_corrector_username', 'corrector',
             'dispatch_run_id', 'assigned_at', 'graded_at', 'global_appreciation',
             'subject_variant', 'total_score',
         ]
         read_only_fields = [
-            'id', 'exam_name', 'pdf_source_url', 'final_pdf_url', 'booklet_ids',
+            'id', 'exam_name', 'media_version', 'pdf_source_url', 'final_pdf_url', 'booklet_ids',
             'assigned_corrector_username', 'dispatch_run_id', 'assigned_at',
             'graded_at', 'total_score', 'student_name', 'corrector',
         ]
@@ -272,23 +276,67 @@ class CopySerializer(serializers.ModelSerializer):
         except (TypeError, ValueError, AttributeError):
             return None
 
+    def _get_file_version_ms(self, relative_path):
+        if not relative_path:
+            return None
+
+        full_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+        try:
+            return int(os.path.getmtime(full_path) * 1000)
+        except OSError:
+            return None
+
+    def _build_protected_media_url(self, relative_path, version=None):
+        if not relative_path:
+            return None
+
+        protected_path = f'/api/media/{relative_path}'
+        if version is not None:
+            protected_path = f'{protected_path}?v={version}'
+
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(protected_path)
+        return protected_path
+
+    def get_media_version(self, obj):
+        versions = []
+
+        pdf_source_name = getattr(obj.pdf_source, 'name', None) if getattr(obj, 'pdf_source', None) else None
+        final_pdf_name = getattr(obj.final_pdf, 'name', None) if getattr(obj, 'final_pdf', None) else None
+
+        if pdf_source_name:
+            version = self._get_file_version_ms(pdf_source_name)
+            if version is not None:
+                versions.append(version)
+
+        if final_pdf_name:
+            version = self._get_file_version_ms(final_pdf_name)
+            if version is not None:
+                versions.append(version)
+
+        for booklet in obj.booklets.all():
+            for page_path in booklet.pages_images or []:
+                version = self._get_file_version_ms(page_path)
+                if version is not None:
+                    versions.append(version)
+
+        if not versions:
+            return None
+        return max(versions)
+
     def get_pdf_source_url(self, obj):
-        if obj.pdf_source:
-            request = self.context.get('request')
-            if request:
-                protected_path = f'/api/media/{obj.pdf_source.name}'
-                return request.build_absolute_uri(protected_path)
-            return f'/api/media/{obj.pdf_source.name}'
+        pdf_source_name = getattr(obj.pdf_source, 'name', None) if getattr(obj, 'pdf_source', None) else None
+        if pdf_source_name:
+            version = self._get_file_version_ms(pdf_source_name)
+            return self._build_protected_media_url(pdf_source_name, version=version)
         return None
 
     def get_final_pdf_url(self, obj):
-        if obj.final_pdf:
-            request = self.context.get('request')
-            if request:
-                # LOT 2: Route through protected media endpoint
-                protected_path = f'/api/media/{obj.final_pdf.name}'
-                return request.build_absolute_uri(protected_path)
-            return f'/api/media/{obj.final_pdf.name}'
+        final_pdf_name = getattr(obj.final_pdf, 'name', None) if getattr(obj, 'final_pdf', None) else None
+        if final_pdf_name:
+            version = self._get_file_version_ms(final_pdf_name)
+            return self._build_protected_media_url(final_pdf_name, version=version)
         return None
 
     def get_booklet_ids(self, obj):

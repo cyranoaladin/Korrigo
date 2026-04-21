@@ -134,13 +134,15 @@ class AuthStatusView(APIView):
                     from students.models import Student
                     student = Student.objects.filter(id=student_id).first()
                     if student:
+                        first_name = getattr(student, 'first_name', None) or getattr(student, 'prenom', None)
+                        last_name = getattr(student, 'last_name', None) or getattr(student, 'nom', None)
                         return Response({
                             'authenticated': True,
                             'role': 'Student',
                             'user': {
                                 'id': student.id,
-                                'first_name': student.prenom,
-                                'last_name': student.nom,
+                                'first_name': first_name,
+                                'last_name': last_name,
                                 'email': getattr(student, 'email', None),
                             },
                         })

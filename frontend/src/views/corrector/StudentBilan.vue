@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
+import gradingApi from '../../services/gradingApi'
 import AppIcon from '../../icons/AppIcon.vue'
 
 const router = useRouter()
@@ -83,7 +84,7 @@ const openPdf = () => {
     // Priorité au pdf_source_url (nouveau PDF source remplacé)
     const pdfUrl = selectedCopy.value?.pdf_source_url || selectedCopy.value?.pdf_url
     if (pdfUrl) {
-        window.open(api.defaults.baseURL + pdfUrl, '_blank')
+        window.open(gradingApi.resolveUrl(pdfUrl), '_blank')
     }
 }
 

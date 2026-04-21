@@ -1,16 +1,38 @@
 import api from './api';
 
 const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || '/api/media';
+const ABSOLUTE_URL_RE = /^https?:\/\//i;
+
+function appendVersion(url, version) {
+    if (version === null || version === undefined || version === '') return url;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}v=${encodeURIComponent(version)}`;
+}
 
 export default {
+    resolveUrl(path) {
+        if (!path) return '';
+        if (ABSOLUTE_URL_RE.test(path) || path.startsWith('/')) return path;
+
+        const base = (api.defaults.baseURL || '').replace(/\/+$/, '');
+        const cleanPath = path.replace(/^\/+/, '');
+        return base ? `${base}/${cleanPath}` : `/${cleanPath}`;
+    },
+
     /**
      * Helper to get full media URL robustly
      * @param {string} path - Media file path
-     * @param {boolean} bustCache - If true, adds a timestamp to bypass browser cache
+     * @param {boolean|object} options - Legacy boolean bustCache or { version }
      */
-    getMediaUrl(path, bustCache = false) {
+    getMediaUrl(path, options = false) {
         if (!path) return '';
-        if (path.startsWith('http')) return path;
+
+        const normalizedOptions = typeof options === 'boolean'
+            ? { bustCache: options }
+            : (options || {});
+
+        if (ABSOLUTE_URL_RE.test(path)) return appendVersion(path, normalizedOptions.version);
+        if (path.startsWith('/api/media/')) return appendVersion(path, normalizedOptions.version);
 
         // Normalize Base and Path
         const base = MEDIA_URL.replace(/\/+$/, ''); // Remove trailing slash
@@ -19,12 +41,12 @@ export default {
         let url = `${base}/${cleanPath}`;
         
         // Add cache-busting parameter for replaced images
-        if (bustCache) {
+        if (normalizedOptions.bustCache) {
             const timestamp = Date.now();
             url += (url.includes('?') ? '&' : '?') + `_t=${timestamp}`;
         }
 
-        return url;
+        return appendVersion(url, normalizedOptions.version);
     },
 
     async listCopies(params = {}) {

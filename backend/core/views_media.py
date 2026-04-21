@@ -76,11 +76,11 @@ class ProtectedMediaView(APIView):
         response['X-Accel-Redirect'] = f'/internal-media/{clean_path}'
         response['Content-Disposition'] = ''  # inline by default
 
-        # Cache control: images can be cached by the browser for a session
-        if content_type and content_type.startswith('image/'):
-            response['Cache-Control'] = 'private, max-age=3600'
-        else:
-            response['Cache-Control'] = 'private, no-cache'
+        # Protected scans and PDFs must not be reused from stale browser caches.
+        response['Cache-Control'] = 'private, no-store, no-cache, must-revalidate, max-age=0'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        response['X-Content-Type-Options'] = 'nosniff'
 
         return response
 

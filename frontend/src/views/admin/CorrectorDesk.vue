@@ -198,12 +198,12 @@ const pages = computed(() => {
 })
 
 const hasPages = computed(() => pages.value.length > 0)
+const mediaVersion = computed(() => copy.value?.media_version ?? null)
 
 // Continuous scroll: per-page URL and annotations helpers
 const getPageUrl = (pageIndex) => {
     if (pageIndex < 0 || pageIndex >= pages.value.length) return null
-    // Enable cache-busting to force reload when PDF is replaced
-    return gradingApi.getMediaUrl(pages.value[pageIndex], true)
+    return gradingApi.getMediaUrl(pages.value[pageIndex], { version: mediaVersion.value })
 }
 const getAnnotationsForPage = (pageIndex) => {
     return annotations.value.filter(a => a.page_index === pageIndex)

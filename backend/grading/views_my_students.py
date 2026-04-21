@@ -2,6 +2,9 @@
 Views pour la fonctionnalité "Mes Élèves" des correcteurs.
 Permet à un correcteur de voir les élèves de son groupe avec leurs bilans.
 """
+import os
+
+from django.conf import settings
 from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -87,6 +90,28 @@ def _build_question_labels(exam):
     if not exam:
         return {}
     return build_question_labels(exam.grading_structure)
+
+
+def _file_version_ms(relative_path):
+    if not relative_path:
+        return None
+
+    full_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+    try:
+        return int(os.path.getmtime(full_path) * 1000)
+    except OSError:
+        return None
+
+
+def _versioned_media_url(relative_path):
+    if not relative_path:
+        return None
+
+    version = _file_version_ms(relative_path)
+    url = f'/api/media/{relative_path}'
+    if version is not None:
+        url = f'{url}?v={version}'
+    return url
 
 
 class MyStudentsListView(views.APIView):
@@ -480,8 +505,7 @@ class StudentBilanView(views.APIView):
             # Build pdf_source_url (direct access to source PDF)
             pdf_source_url = None
             if copy.pdf_source:
-                from django.conf import settings
-                pdf_source_url = f'/api/media/{copy.pdf_source.name}'
+                pdf_source_url = _versioned_media_url(copy.pdf_source.name)
 
             copies_data.append({
                 'copy_id': str(copy.id),
