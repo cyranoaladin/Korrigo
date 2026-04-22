@@ -17,6 +17,8 @@ jobs:
     name: Release Gate Validation (Zero-Tolerance)
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      RELEASE_GATE_METRICS_TOKEN: ci-release-gate-metrics-token
 
     steps:
       - name: Checkout repository
@@ -158,7 +160,7 @@ jobs:
           DB_PORT=5432
           CORS_ALLOWED_ORIGINS=http://localhost:8088
           CSRF_TRUSTED_ORIGINS=http://localhost:8088
-          METRICS_TOKEN=ci-metrics-token
+          METRICS_TOKEN=ci-release-gate-metrics-token
           SSL_ENABLED=false
           REDIS_HOST=redis
           REDIS_PORT=6379
@@ -188,7 +190,7 @@ jobs:
           DEBUG: "False"
 
           # CI defaults (override via GitHub repository secrets if needed)
-          METRICS_TOKEN: ci-release-gate-metrics-token
+          METRICS_TOKEN: ${{ env.RELEASE_GATE_METRICS_TOKEN }}
           ADMIN_PASSWORD: ""
           TEACHER_PASSWORD: ""
           TEST_PROF_PASSWORD: prof
