@@ -27,6 +27,11 @@ app.conf.beat_schedule = {
         'task': 'grading.tasks.cleanup_expired_locks',
         'schedule': 300.0,  # Every 5 minutes
     },
+    # Integrity guardrail: detect invalid FINALIZED / released copies every 15 minutes
+    'run-copy-integrity-audit': {
+        'task': 'grading.tasks.run_copy_integrity_audit',
+        'schedule': 900.0,
+    },
     # LOT 9 RGPD: Purge audit logs older than 1 year, daily at 03:00
     'purge-old-audit-logs': {
         'task': 'grading.tasks.purge_old_audit_logs',

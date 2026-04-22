@@ -8,6 +8,7 @@ remain deterministic regardless of production env vars being set.
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from core.models import UserProfile
 
 User = get_user_model()
@@ -22,20 +23,28 @@ def _clean_admin_env(monkeypatch):
 
 
 @pytest.mark.django_db
-def test_ensure_admin_creates_admin_user():
+def test_ensure_admin_requires_explicit_password():
     assert not User.objects.filter(username='admin').exists()
+
+    with pytest.raises(CommandError, match='ADMIN_PASSWORD environment variable is required'):
+        call_command('ensure_admin')
+
+
+@pytest.mark.django_db
+def test_ensure_admin_creates_admin_user(monkeypatch):
+    monkeypatch.setenv('ADMIN_PASSWORD', 'custom-secret-42')
 
     call_command('ensure_admin')
 
     admin_user = User.objects.get(username='admin')
     assert admin_user.is_staff is True
     assert admin_user.is_superuser is True
-    # Default password when ADMIN_PASSWORD env var is not set
-    assert admin_user.check_password('admin') is True
+    assert admin_user.check_password('custom-secret-42') is True
 
 
 @pytest.mark.django_db
-def test_ensure_admin_sets_must_change_password():
+def test_ensure_admin_sets_must_change_password(monkeypatch):
+    monkeypatch.setenv('ADMIN_PASSWORD', 'custom-secret-42')
     call_command('ensure_admin')
     
     admin_user = User.objects.get(username='admin')
@@ -44,7 +53,8 @@ def test_ensure_admin_sets_must_change_password():
 
 
 @pytest.mark.django_db
-def test_ensure_admin_idempotent():
+def test_ensure_admin_idempotent(monkeypatch):
+    monkeypatch.setenv('ADMIN_PASSWORD', 'custom-secret-42')
     call_command('ensure_admin')
     admin1 = User.objects.get(username='admin')
     admin1_id = admin1.id
@@ -57,7 +67,8 @@ def test_ensure_admin_idempotent():
 
 
 @pytest.mark.django_db
-def test_ensure_admin_with_existing_admin_without_profile():
+def test_ensure_admin_with_existing_admin_without_profile(monkeypatch):
+    monkeypatch.setenv('ADMIN_PASSWORD', 'custom-secret-42')
     admin = User.objects.create_superuser(
         username='admin',
         email='admin@example.com',
@@ -83,4 +94,3 @@ def test_ensure_admin_respects_env_password(monkeypatch):
 
     admin_user = User.objects.get(username='admin')
     assert admin_user.check_password('custom-secret-42') is True
-    assert admin_user.check_password('admin') is False

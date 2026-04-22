@@ -32,9 +32,15 @@ if DJANGO_ENV == "production":
 else:
     DEBUG = raw_debug
 
-# Student provisioning default password — BUG-20 FIX: never use a hardcoded fallback.
-# En dev, définir DEFAULT_PASSWORD explicitement dans .env si nécessaire.
-DEFAULT_PASSWORD = os.environ.get('DEFAULT_PASSWORD', 'Korrigo_Default_Pwd_2026!')
+# Student provisioning default password.
+# Production must provide it explicitly. Development/test may keep a local fallback.
+DEFAULT_PASSWORD = os.environ.get('DEFAULT_PASSWORD')
+if DEFAULT_PASSWORD is None:
+    if DJANGO_ENV == "production":
+        raise ValueError(
+            "DEFAULT_PASSWORD environment variable must be set in production"
+        )
+    DEFAULT_PASSWORD = 'Korrigo_Default_Pwd_2026!'
 
 # Helper for CSV environment variables
 def csv_env(name: str, default: str = "") -> list:
@@ -566,21 +572,28 @@ if not DEBUG:
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
     SERVER_EMAIL = os.environ.get('SERVER_EMAIL', '')
+    EMAIL_ALERTS_ENABLED = all([
+        EMAIL_HOST,
+        EMAIL_HOST_USER,
+        EMAIL_HOST_PASSWORD,
+        SERVER_EMAIL,
+        os.environ.get('ADMIN_EMAIL', ''),
+    ])
 
-    if not EMAIL_HOST_USER:
-        import logging as _logging
-        _logging.getLogger(__name__).warning(
-            'EMAIL_HOST_USER not configured — error notification emails will not be sent'
+    import logging as _logging
+    if EMAIL_ALERTS_ENABLED:
+        _logging_handlers: dict = LOGGING['handlers']  # type: ignore[index]
+        _logging_handlers['mail_admins'] = {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'filters': ['require_debug_false'],
+        }
+        _logging_loggers: dict = LOGGING['loggers']  # type: ignore[index]
+        _logging_loggers['django']['handlers'].append('mail_admins')
+    else:
+        _logging.getLogger(__name__).info(
+            'Error notification emails disabled — incomplete SMTP configuration'
         )
-    
-    _logging_handlers: dict = LOGGING['handlers']  # type: ignore[index]
-    _logging_handlers['mail_admins'] = {
-        'level': 'ERROR',
-        'class': 'django.utils.log.AdminEmailHandler',
-        'filters': ['require_debug_false'],
-    }
-    _logging_loggers: dict = LOGGING['loggers']  # type: ignore[index]
-    _logging_loggers['django']['handlers'].append('mail_admins')
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 

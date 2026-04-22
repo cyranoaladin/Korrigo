@@ -5,6 +5,7 @@ Prevents worker starvation and request timeouts
 from celery import shared_task
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.core.mail import send_mail
 from django.db import transaction
 import os
@@ -288,6 +289,25 @@ def cleanup_expired_locks():
         expired.delete()
         logger.info(f"Cleaned up {count} expired CopyLock entries")
     return {'deleted': count}
+
+
+@shared_task
+def run_copy_integrity_audit():
+    """
+    Periodic guardrail for critical grading invariants.
+
+    Runs the integrity command in fail-fast mode so Celery Beat logs a hard
+    failure whenever FINALIZED copies or released results drift into an invalid
+    state.
+    """
+    try:
+        call_command("check_copy_integrity", fail_on_issues=True)
+        logger.info("Copy integrity audit completed without issues")
+        return {"status": "ok"}
+    except SystemExit as exc:
+        exit_code = exc.code if isinstance(exc.code, int) else 1
+        logger.error("Copy integrity audit detected issues", extra={"exit_code": exit_code})
+        return {"status": "issues_detected", "exit_code": exit_code}
 
 
 @shared_task

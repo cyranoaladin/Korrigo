@@ -1,5 +1,6 @@
 import os
 from django.core.management.base import BaseCommand
+from django.core.management.base import CommandError
 from django.contrib.auth.models import User
 from core.models import UserProfile
 
@@ -10,13 +11,14 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Ensuring admin user exists...'))
 
         username = os.environ.get('ADMIN_USERNAME', 'admin')
-        password = os.environ.get('ADMIN_PASSWORD', 'admin')
+        password = os.environ.get('ADMIN_PASSWORD')
         email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
 
-        if password == 'admin':
-            self.stdout.write(self.style.WARNING(
-                'Using default admin password. Set ADMIN_PASSWORD env var for production.'
-            ))
+        if not password:
+            raise CommandError(
+                'ADMIN_PASSWORD environment variable is required. '
+                'Refusing to create or reset an admin account with an implicit default password.'
+            )
 
         try:
             admin_user = User.objects.get(username=username)
@@ -27,7 +29,7 @@ class Command(BaseCommand):
                 email=email,
                 password=password
             )
-            self.stdout.write(self.style.SUCCESS(f'Created admin user "{username}" with default password'))
+            self.stdout.write(self.style.SUCCESS(f'Created admin user "{username}"'))
 
         admin_user.is_staff = True
         admin_user.is_superuser = True

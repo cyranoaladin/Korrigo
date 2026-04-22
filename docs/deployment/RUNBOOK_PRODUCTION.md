@@ -52,17 +52,25 @@ Résultats attendus :
 ```bash
 ssh root@88.99.254.59
 cd /var/www/labomaths/korrigo
-git pull origin main
-docker exec docker-backend-1 python manage.py migrate
-docker restart docker-backend-1 docker-celery-1 docker-celery-beat-1
+grep '^KORRIGO_SHA=' .env
+docker compose --env-file .env -f infra/docker/docker-compose.prod.yml pull
+docker compose --env-file .env -f infra/docker/docker-compose.prod.yml run --rm -T --user root backend python manage.py migrate
+docker compose --env-file .env -f infra/docker/docker-compose.prod.yml up -d --wait --wait-timeout 180
+docker compose --env-file .env -f infra/docker/docker-compose.prod.yml up -d --force-recreate nginx
 ```
 
 Après déploiement :
 
 ```bash
 curl -fsS https://korrigo.labomaths.tn/api/health/
+curl -fsS -H "X-Metrics-Token: <token>" https://korrigo.labomaths.tn/metrics | head
 docker ps --format "table {{.Names}}\t{{.Status}}"
 ```
+
+Points importants :
+- la prod est image-based ; `git pull` sur le serveur n'est pas la source de vérité du runtime.
+- le tag réellement déployé est `KORRIGO_SHA` dans `.env`.
+- en cas de recreation du backend, recréer `docker-nginx-1` évite les `502` dus à un upstream Docker périmé.
 
 ---
 

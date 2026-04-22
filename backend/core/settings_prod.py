@@ -51,6 +51,11 @@ DATABASES['default']['OPTIONS'] = {
 }
 DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 
+if "DEFAULT_PASSWORD" not in os.environ:
+    raise ValueError(
+        "DEFAULT_PASSWORD environment variable must be set explicitly in production."
+    )
+
 _TRIVIAL_PASSWORDS = ('passe123', 'password', '123456', 'changeme', '')
 if DEFAULT_PASSWORD in _TRIVIAL_PASSWORDS:  # noqa: F405
     raise ValueError(
