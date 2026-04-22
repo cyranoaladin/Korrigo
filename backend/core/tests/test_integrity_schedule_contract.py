@@ -1,8 +1,14 @@
 from pathlib import Path
+import sys
 import unittest
 
+TESTS_DIR = Path(__file__).resolve().parent
+if str(TESTS_DIR) not in sys.path:
+    sys.path.insert(0, str(TESTS_DIR))
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+from core.tests._repo_paths import repo_root_from
+
+REPO_ROOT = repo_root_from(__file__)
 CELERY_FILE = REPO_ROOT / "backend" / "core" / "celery.py"
 TASKS_FILE = REPO_ROOT / "backend" / "grading" / "tasks.py"
 

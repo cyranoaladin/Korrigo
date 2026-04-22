@@ -146,7 +146,7 @@ class Command(BaseCommand):
                 action="integrity.repair.final_pdf",
                 resource_type="Copy",
                 resource_id=str(copy.id),
-                ip_address="0.0.0.0",
+                ip_address="127.0.0.1",
                 user_agent="management-command/check_copy_integrity",
                 metadata={
                     "repair": "missing_final_pdf",
