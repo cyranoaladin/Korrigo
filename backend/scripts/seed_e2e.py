@@ -132,7 +132,8 @@ def ensure_teacher(username=None, password=None):
         username=username,
         defaults={"email": f"{username}@example.com"}
     )
-    u.set_password(password)
+    if created:
+        u.set_password(password)
     u.is_staff = False
     u.is_superuser = False
     u.save()
@@ -155,7 +156,11 @@ def ensure_admin(username=None, password=None, email="alaeddine.benrhouma@ert.tn
     
     # Update credentials and permissions
     u.email = email
-    u.set_password(password)
+    # SECURITY FIX: Never overwrite password of an existing admin.
+    # Only set password on creation to prevent accidental resets
+    # during E2E seed runs or deploys.
+    if created:
+        u.set_password(password)
     u.is_staff = True
     u.is_superuser = True
     u.role = "Admin"
@@ -344,12 +349,13 @@ def main():
     print(f"  ✓ Other Copy created: {other_copy.id} (student={other_student.first_name} {other_student.last_name})")
 
     # 4c. Finalized student copy for "Mes Élèves" / bilan E2E flow
-    student_user, _ = User.objects.get_or_create(
+    student_user, created = User.objects.get_or_create(
         username=E2E_STUDENT_EMAIL,
         defaults={"email": E2E_STUDENT_EMAIL},
     )
     student_user.email = E2E_STUDENT_EMAIL
-    student_user.set_password(E2E_STUDENT_PASSWORD)
+    if created:
+        student_user.set_password(E2E_STUDENT_PASSWORD)
     student_user.is_active = True
     student_user.save()
     student_user.groups.add(student_group)

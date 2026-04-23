@@ -46,14 +46,15 @@ const fetchStudents = async () => {
 
         const response = await api.get('/grading/my-students/', { params })
 
-        if (response.data.filter === 'finalized_only') {
-            assignments.value = response.data.assignments || []
+        if (response.data?.filter === 'finalized_only') {
+            assignments.value = Array.isArray(response.data.assignments) ? response.data.assignments : []
             examName.value = response.data.exam_name || ''
         } else {
             // Mode legacy fallback (should not happen with exam_id)
+            const students = Array.isArray(response.data?.students) ? response.data.students : []
             assignments.value = [{
-                group_name: response.data.groupe || 'Mes élèves',
-                students: response.data.students || []
+                group_name: response.data?.groupe || 'Mes élèves',
+                students
             }]
             examName.value = ''
         }

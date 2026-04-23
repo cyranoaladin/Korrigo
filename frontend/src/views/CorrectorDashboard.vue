@@ -9,6 +9,7 @@ import JuryReportsModal from '../components/JuryReportsModal.vue'
 import ExamTypeSelectionModal from '../components/ExamTypeSelectionModal.vue'
 import ExamTypeIcon from '../components/ExamTypeIcon.vue'
 import AppIcon from '../icons/AppIcon.vue'
+import { normalizeCollectionResponse } from '../utils/normalizeCollection'
 
 const authStore = useAuthStore()
 const examStore = useExamStore()
@@ -193,7 +194,7 @@ const fetchCopies = async () => {
     isLoading.value = true
     try {
         const data = await gradingApi.listCopies({ exam_type_id: selectedExamType.value.id })
-        copies.value = data
+        copies.value = Array.isArray(data) ? data : []
         basicStats.value.total = data.length
         basicStats.value.graded = data.filter(c => c.status === 'FINALIZED').length
         basicStats.value.todo = data.filter(c => c.status === 'READY').length
@@ -225,9 +226,10 @@ const fetchAllExams = async () => {
         const response = await api.get('/exams/', { 
             params: { exam_type_id: selectedExamType.value.id } 
         })
-        allExams.value = response.data
+        allExams.value = normalizeCollectionResponse(response.data)
     } catch (err) {
         console.error("Failed to fetch all exams", err)
+        allExams.value = []
     }
 }
 
@@ -238,7 +240,7 @@ const fetchMyStudents = async () => {
         const response = await api.get('/grading/my-students/', { 
             params: { exam_type_id: selectedExamType.value.id } 
         })
-        myStudents.value = response.data.students || []
+        myStudents.value = Array.isArray(response.data?.students) ? response.data.students : []
     } catch (err) {
         console.error("Failed to fetch my students copies", err)
     } finally {

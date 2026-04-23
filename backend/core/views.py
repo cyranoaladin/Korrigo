@@ -1,3 +1,4 @@
+import re
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -91,6 +92,25 @@ class LoginView(APIView):
                 "must_change_password": must_change_password
             })
         else:
+            # ROBUSTNESS FIX: if the username looks like a student email or
+            # belongs to a Student user, guide them to the correct portal
+            # instead of a generic 401 that creates confusion.
+            is_student = False
+            if username and '@' in username:
+                user_obj = User.objects.filter(email__iexact=username).first()
+                if user_obj:
+                    from students.models import Student
+                    is_student = Student.objects.filter(user=user_obj).exists()
+                # Fallback heuristic: student emails use the -e@ert.tn pattern
+                if not is_student and re.search(r'-e@ert\.tn$', username, re.IGNORECASE):
+                    is_student = True
+            if is_student:
+                log_authentication_attempt(request, success=False, username=username)
+                return Response(
+                    {"error": "Les eleves doivent se connecter via l'espace eleve. "
+                              "Cliquez sur 'Espace Eleve' ou allez directement sur /student/login"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
             log_authentication_attempt(request, success=False, username=username)
             return Response(
                 {"error": "Identifiants incorrects."},
