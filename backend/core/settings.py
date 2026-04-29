@@ -105,7 +105,9 @@ METRICS_TOKEN = os.environ.get("METRICS_TOKEN")
 if DJANGO_ENV == "production" and not METRICS_TOKEN:
     raise ValueError(
         "METRICS_TOKEN environment variable must be set in production. "
-        "The /metrics endpoint must not be publicly accessible."
+        "The /metrics endpoint must not be publicly accessible. "
+        "Set METRICS_TOKEN in your .env file or deployment secrets "
+        "(generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\")."
     )
 
 # Security Settings for Production

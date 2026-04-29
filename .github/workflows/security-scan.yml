@@ -18,6 +18,8 @@ jobs:
   bandit:
     name: Bandit (Python SAST)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -53,6 +55,8 @@ jobs:
   trivy:
     name: Trivy (Container + Dependencies)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -90,6 +94,8 @@ jobs:
   npm-audit:
     name: npm audit (Frontend deps)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: frontend
