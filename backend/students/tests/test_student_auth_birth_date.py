@@ -138,7 +138,7 @@ class TestStudentAuthEmailPassword(TransactionTestCase):
         }, content_type="application/json")
         
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertIn('profil', resp.json()['error'].lower())
+        self.assertIn('compte non reconnu', resp.json()['error'].lower())
     
     def test_must_change_password_false_after_change(self):
         self.user.set_password('MonNouveauMdp2026!')
