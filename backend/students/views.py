@@ -107,7 +107,7 @@ class StudentLoginView(views.APIView):
         if not student:
             log_authentication_attempt(request, success=False, student_id=None)
             return Response({
-                'error': 'Aucun profil élève associé à ce compte.'
+                'error': 'Compte non reconnu. Contactez votre enseignant.'
             }, status=status.HTTP_401_UNAUTHORIZED)
 
         # Django auth login (creates proper session)

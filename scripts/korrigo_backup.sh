@@ -36,6 +36,15 @@ mkdir -p "${LOCAL_TMP}"
 log "1/6 PostgreSQL dump..."
 if docker exec docker-db-1 pg_dump -U korrigo_user -Fc korrigo_db > "${LOCAL_TMP}/db_${TIMESTAMP}.dump" 2>>"${LOG_FILE}"; then
     log "  OK: $(du -sh "${LOCAL_TMP}/db_${TIMESTAMP}.dump" | cut -f1)"
+    # Encrypt the dump if a GPG passphrase is configured
+    if [ -n "${BACKUP_GPG_PASSPHRASE:-}" ]; then
+        gpg --batch --yes --passphrase "${BACKUP_GPG_PASSPHRASE}" \
+            --symmetric --cipher-algo AES256 \
+            -o "${LOCAL_TMP}/db_${TIMESTAMP}.dump.gpg" \
+            "${LOCAL_TMP}/db_${TIMESTAMP}.dump" 2>>"${LOG_FILE}" && \
+            rm -f "${LOCAL_TMP}/db_${TIMESTAMP}.dump" && \
+            log "  OK: dump chiffré GPG (AES256)"
+    fi
 else
     log "  ERREUR: dump DB echoue"
 fi
@@ -59,6 +68,14 @@ log "3/6 Archive media..."
 if [ -d "${MEDIA_VOLUME}" ]; then
     if tar -czf "${LOCAL_TMP}/media_${TIMESTAMP}.tar.gz" -C "${MEDIA_VOLUME}" --exclude="./tmp" --exclude="./.cache" . 2>>"${LOG_FILE}"; then
         log "  OK: $(du -sh "${LOCAL_TMP}/media_${TIMESTAMP}.tar.gz" | cut -f1)"
+        if [ -n "${BACKUP_GPG_PASSPHRASE:-}" ]; then
+            gpg --batch --yes --passphrase "${BACKUP_GPG_PASSPHRASE}" \
+                --symmetric --cipher-algo AES256 \
+                -o "${LOCAL_TMP}/media_${TIMESTAMP}.tar.gz.gpg" \
+                "${LOCAL_TMP}/media_${TIMESTAMP}.tar.gz" 2>>"${LOG_FILE}" && \
+                rm -f "${LOCAL_TMP}/media_${TIMESTAMP}.tar.gz" && \
+                log "  OK: archive media chiffrée GPG (AES256)"
+        fi
     else
         log "  ERREUR: archive media echouee"
     fi

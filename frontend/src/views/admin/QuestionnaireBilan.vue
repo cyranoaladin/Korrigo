@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
+import DOMPurify from 'dompurify'
 import {
   BLOCK_OPTIONS,
   ERGONOMICS_QUESTION_IDS,
@@ -23,6 +24,7 @@ const infoMessage = ref('')
 const responses = ref([])
 const summary = ref({ responses_count: 0, total_eligible: 0, remaining_count: 0, completion_rate: 0, is_available: false })
 const generatedBilan = ref({ status: 'missing', html: '', generated_at: null, error: '' })
+const sanitizedBilanHtml = computed(() => DOMPurify.sanitize(generatedBilan.value.html || ''))
 const canSeePartialResponses = computed(() => authStore.user?.role === 'Admin' && responses.value.length > 0)
 const selectedResponseUserId = ref(null)
 const activeTab = ref('synthese')
@@ -325,7 +327,7 @@ onMounted(fetchBilan)
               <h2>Bilan automatique</h2>
               <span class="section-badge">{{ formatDate(generatedBilan.generated_at) }}</span>
             </div>
-            <div class="generated-bilan-html" v-html="generatedBilan.html" />
+            <div class="generated-bilan-html" v-html="sanitizedBilanHtml" />
           </section>
 
           <section v-if="generatedBilan.status === 'pending'" class="glass-card info-card">

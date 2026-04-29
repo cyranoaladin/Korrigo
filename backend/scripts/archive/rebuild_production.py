@@ -135,10 +135,10 @@ def setup_users():
         defaults={'email': 'admin@korrigo.tn', 'is_staff': True, 'is_superuser': True}
     )
     if created:
-        admin.set_password('admin')
+        admin.set_password(os.environ['DEFAULT_PASSWORD'])
         admin.save()
         admin.groups.add(admin_group)
-        print("  ✓ Created admin (admin/admin)")
+        print("  ✓ Created admin (admin/<DEFAULT_PASSWORD>)")
     else:
         print("  ↻ Admin already exists")
 
@@ -161,7 +161,7 @@ def setup_users():
             }
         )
         if created:
-            prof.set_password('prof')
+            prof.set_password(os.environ['DEFAULT_PASSWORD'])
             prof.save()
             prof.groups.add(teacher_group)
             print(f"  ✓ Created {username}")
@@ -390,8 +390,8 @@ def main():
     print(f"  Booklets: {Booklet.objects.count()}")
     print("=" * 60)
     print("\n📌 Credentials:")
-    print("  Admin:   admin / admin")
-    print("  Prof:    prof1 / prof  (also prof2, prof3)")
+    print("  Admin:   admin / <DEFAULT_PASSWORD>")
+    print("  Prof:    prof1 / <DEFAULT_PASSWORD>  (also prof2, prof3)")
     print("  Élèves:  <email> / <DEFAULT_PASSWORD>")
 
 

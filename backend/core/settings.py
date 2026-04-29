@@ -90,21 +90,22 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
 # E2E Testing Configuration
 E2E_SEED_TOKEN = os.environ.get("E2E_SEED_TOKEN")  # Only set in prod-like environment
 
+# LLM / Ollama Configuration
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:latest")
+OLLAMA_TIMEOUT = int(os.environ.get("OLLAMA_TIMEOUT", "300"))
+
 # Prometheus Metrics Configuration (S5-B)
-# METRICS_TOKEN: Optional token for /metrics endpoint authentication
+# METRICS_TOKEN: Required token for /metrics endpoint authentication in production.
 # - Development (DEBUG=True): No authentication required
-# - Production (DEBUG=False):
-#   - If METRICS_TOKEN set: Token required via X-Metrics-Token header or ?token= query param
-#   - If METRICS_TOKEN not set: Public access (operator's choice, warning logged on startup)
+# - Production (DEBUG=False): Token required via X-Metrics-Token header or ?token= query param
 METRICS_TOKEN = os.environ.get("METRICS_TOKEN")
 
-# Warn if METRICS_TOKEN not set in production
-if DJANGO_ENV == "production" and not METRICS_TOKEN and not DEBUG:
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.warning(
-        "METRICS_TOKEN not set in production. /metrics endpoint will be publicly accessible. "
-        "Set METRICS_TOKEN environment variable to secure the endpoint."
+# Enforce METRICS_TOKEN in production — public metrics exposure is not allowed
+if DJANGO_ENV == "production" and not METRICS_TOKEN:
+    raise ValueError(
+        "METRICS_TOKEN environment variable must be set in production. "
+        "The /metrics endpoint must not be publicly accessible."
     )
 
 # Security Settings for Production
@@ -297,7 +298,7 @@ SESSION_ENGINE = (
     'django.contrib.sessions.backends.cached_db' if _REDIS_AVAILABLE
     else 'django.contrib.sessions.backends.db'
 )
-SESSION_COOKIE_AGE = 14400
+SESSION_COOKIE_AGE = 3600  # 1 hour — reduced from 4h to limit stolen-session exposure
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # BUG-13 FIX: Évite que la session expire brutalement sur les navigateurs mobiles
 SESSION_COOKIE_HTTPONLY = True
 
