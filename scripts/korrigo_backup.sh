@@ -30,12 +30,40 @@ cleanup_local() {
 }
 trap cleanup_local EXIT
 
+encrypt_artifact_if_configured() {
+    local input_file="$1"
+    local output_file="$2"
+    local label="$3"
+
+    if [ -z "${BACKUP_GPG_PASSPHRASE:-}" ]; then
+        return 0
+    fi
+
+    if gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 \
+        --symmetric --cipher-algo AES256 \
+        -o "${output_file}" \
+        "${input_file}" 3<<<"${BACKUP_GPG_PASSPHRASE}" 2>>"${LOG_FILE}"; then
+        rm -f "${input_file}"
+        log "  OK: ${label} chiffre GPG (AES256)"
+    else
+        rm -f "${output_file}"
+        log "  ERREUR: chiffrement GPG ${label} echoue"
+        exit 1
+    fi
+}
+
 log "=== Backup ${TIMESTAMP} START ==="
 mkdir -p "${LOCAL_TMP}"
 
 log "1/6 PostgreSQL dump..."
 if docker exec docker-db-1 pg_dump -U korrigo_user -Fc korrigo_db > "${LOCAL_TMP}/db_${TIMESTAMP}.dump" 2>>"${LOG_FILE}"; then
     log "  OK: $(du -sh "${LOCAL_TMP}/db_${TIMESTAMP}.dump" | cut -f1)"
+    # Encrypt the dump if a GPG passphrase is configured.
+    # Passphrase is passed via fd 3 to avoid exposure in process listings (ps aux).
+    encrypt_artifact_if_configured \
+        "${LOCAL_TMP}/db_${TIMESTAMP}.dump" \
+        "${LOCAL_TMP}/db_${TIMESTAMP}.dump.gpg" \
+        "dump DB"
 else
     log "  ERREUR: dump DB echoue"
 fi
@@ -59,6 +87,10 @@ log "3/6 Archive media..."
 if [ -d "${MEDIA_VOLUME}" ]; then
     if tar -czf "${LOCAL_TMP}/media_${TIMESTAMP}.tar.gz" -C "${MEDIA_VOLUME}" --exclude="./tmp" --exclude="./.cache" . 2>>"${LOG_FILE}"; then
         log "  OK: $(du -sh "${LOCAL_TMP}/media_${TIMESTAMP}.tar.gz" | cut -f1)"
+        encrypt_artifact_if_configured \
+            "${LOCAL_TMP}/media_${TIMESTAMP}.tar.gz" \
+            "${LOCAL_TMP}/media_${TIMESTAMP}.tar.gz.gpg" \
+            "archive media"
     else
         log "  ERREUR: archive media echouee"
     fi

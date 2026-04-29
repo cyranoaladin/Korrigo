@@ -276,13 +276,8 @@ class UserDetailView(APIView):
         })
 
 class GlobalSettingsView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsKorrigoAdmin]
 
-    def get_permissions(self):
-        if self.request.method in ('POST', 'PUT', 'PATCH'):
-            return [IsKorrigoAdmin()]
-        return [IsAuthenticated()]
-    
     def get(self, request):
         from core.models import GlobalSettings
         settings_obj = GlobalSettings.load()

@@ -1,7 +1,7 @@
 import multiprocessing
 import os
 
-bind = "0.0.0.0:8000"
+bind = os.environ.get("GUNICORN_BIND", "0.0.0.0:8000")
 
 # BUG-11 FIX: utiliser gthread pour absorber les I/O bloquants (PDF, BCrypt)
 # sans monopoliser un worker sync entier. Avec sync workers, une requête PDF
