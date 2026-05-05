@@ -208,6 +208,26 @@ const copyToClipboard = () => {
     alert("Mot de passe copié dans le presse-papier")
 }
 
+const resetStudentPassword = async (student) => {
+    if (!student.date_naissance) {
+        alert("Cet élève n'a pas de date de naissance enregistrée.")
+        return
+    }
+    
+    if (!confirm(`Réinitialiser le mot de passe de ${student.last_name} ${student.first_name} à sa date de naissance (${student.date_naissance}) ?\n\nL'élève devra changer son mot de passe à la prochaine connexion.`)) {
+        return
+    }
+
+    try {
+        const res = await api.post('/students/admin/reset-password/', { student_id: student.id })
+        alert(`Mot de passe réinitialisé avec succès.\n\nNouveau mot de passe: ${res.data.new_password}\n\nL'élève devra le changer à la prochaine connexion.`)
+    } catch (err) {
+        console.error('Password reset failed', err)
+        const msg = err.response?.data?.error || 'Erreur lors de la réinitialisation du mot de passe.'
+        alert(msg)
+    }
+}
+
 </script>
 
 <template>
@@ -313,13 +333,23 @@ const copyToClipboard = () => {
             </td>
             <td>{{ item.class_name }}</td>
             <td>
-              <button
-                class="btn-sm btn-outline btn-with-icon"
-                @click="toggleStudentDetail(item)"
-              >
-                <AppIcon :name="expandedStudentId === item.id ? 'eye-off' : 'eye'" :size="14" />
-                <span>{{ expandedStudentId === item.id ? 'Masquer' : 'Voir' }}</span>
-              </button>
+              <div class="btn-group">
+                <button
+                  class="btn-sm btn-outline btn-with-icon"
+                  @click="toggleStudentDetail(item)"
+                >
+                  <AppIcon :name="expandedStudentId === item.id ? 'eye-off' : 'eye'" :size="14" />
+                  <span>{{ expandedStudentId === item.id ? 'Masquer' : 'Voir' }}</span>
+                </button>
+                <button
+                  class="btn-sm btn-warning btn-with-icon"
+                  title="Réinitialiser MDP (date de naissance)"
+                  @click="resetStudentPassword(item)"
+                >
+                  <AppIcon name="refresh" :size="14" />
+                  <span>Réinitialiser</span>
+                </button>
+              </div>
             </td>
           </tr>
 
