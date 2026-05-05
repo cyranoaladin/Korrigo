@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import StudentListView, StudentLoginView, StudentLogoutView, StudentMeView, StudentImportView, StudentChangePasswordView
+from .views import StudentListView, StudentLoginView, StudentLogoutView, StudentMeView, StudentImportView, StudentChangePasswordView, AdminResetStudentPasswordView
 # Import directly from exams views if possible, or use a wrapper. 
 # To avoid circular imports if exams imports students models, act carefully.
 # exams.views imports students.models inside a method to avoid circularity.
@@ -14,4 +14,5 @@ urlpatterns = [
     path('copies/', StudentCopiesView.as_view(), name='student-copies'),
     path('import/', StudentImportView.as_view(), name='student-import'),
     path('change-password/', StudentChangePasswordView.as_view(), name='student-change-password'),
+    path('admin/reset-password/', AdminResetStudentPasswordView.as_view(), name='admin-reset-student-password'),
 ]

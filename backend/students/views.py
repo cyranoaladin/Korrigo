@@ -274,7 +274,21 @@ class StudentChangePasswordView(views.APIView):
 
         user.set_password(new_password)
         user.save()
+
+        # BUG-20 FIX: update_session_auth_hash only preserves the session if
+        # request.user == user.  When the student was authenticated via session
+        # student_id (not Django auth), request.user is AnonymousUser and the
+        # equality check fails — cycle_key() runs but the new hash is never
+        # written, effectively logging the student out.
+        # Fix: re-login the user so request.user is set, then update the hash.
+        if not request.user.is_authenticated or request.user != user:
+            from django.contrib.auth import login as auth_login
+            auth_login(request, user)
         update_session_auth_hash(request, user)
+
+        # Preserve student session keys that auth_login may have cleared
+        request.session['student_id'] = student.id
+        request.session['role'] = 'Student'
 
         # Invalider le cache bcrypt en session et en base de données
         request.session['must_change_password'] = False
@@ -466,10 +480,59 @@ class StudentImportView(views.APIView):
                 
             status_code = status.HTTP_200_OK if not results['errors'] else status.HTTP_207_MULTI_STATUS
             return Response(results, status=status_code)
-            
+
         except Exception as e:
             from core.utils.errors import safe_error_response
             return Response(
                 safe_error_response(e, context="CSV import", user_message="Failed to import students. Please check file format."),
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+@method_decorator(maybe_ratelimit(key='user', rate='20/h', method='POST', block=True), name='dispatch')
+class AdminResetStudentPasswordView(views.APIView):
+    """
+    Admin-only endpoint to reset a student's password to their date of birth (DDMMYYYY).
+    """
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request):
+        from django.contrib.auth.models import User as AuthUser
+        from core.models import UserProfile
+
+        student_id = request.data.get('student_id')
+        if not student_id:
+            return Response({'error': 'student_id est requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            student = Student.objects.get(id=student_id)
+        except Student.DoesNotExist:
+            return Response({'error': 'Élève non trouvé.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not student.user:
+            return Response({'error': 'Cet élève n\'a pas de compte utilisateur.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not student.date_naissance:
+            return Response({'error': 'Cet élève n\'a pas de date de naissance enregistrée.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Reset password to date of birth (DDMMYYYY)
+        new_password = student.date_naissance.strftime('%d%m%Y')
+        student.user.set_password(new_password)
+        student.user.save()
+
+        # Force must_change_password to True so student must change it on next login
+        profile = _get_or_create_user_profile(student.user)
+        profile.must_change_password = True
+        profile.save(update_fields=['must_change_password'])
+
+        # Log the action (if session exists)
+        if hasattr(request, 'session'):
+            log_audit(request, 'password_reset_student', 'Student', student_id, metadata={'student_name': f'{student.first_name} {student.last_name}'})
+
+        return Response({
+            'message': 'Mot de passe réinitialisé avec succès.',
+            'student_id': student.id,
+            'student_name': f'{student.first_name} {student.last_name}',
+            'new_password': new_password,
+            'must_change_password': True
+        })

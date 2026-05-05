@@ -23,6 +23,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -41,6 +42,12 @@ services:
       - backup_volume:/app/backups
       - ocr_cache:/app/.cache
       - seed_data:/app/seed_data:ro
+      # Overlay hotfixes (persist across restarts)
+      - ${OVERLAY_DIR:-../../overlay}/grading/views.py:/app/grading/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/students/views.py:/app/students/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/students/urls.py:/app/students/urls.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/core/views_platform.py:/app/core/views_platform.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/gunicorn_config.py:/app/gunicorn_config.py:ro
     depends_on:
       db:
         condition: service_healthy
@@ -88,6 +95,9 @@ services:
       - media_volume:/app/media
       - backup_volume:/app/backups
       - ocr_cache:/app/.cache
+      # Overlay hotfixes (same as backend)
+      - ${OVERLAY_DIR:-../../overlay}/grading/views.py:/app/grading/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/students/views.py:/app/students/views.py:ro
     depends_on:
       db:
         condition: service_healthy
@@ -172,6 +182,8 @@ services:
     volumes:
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
+      # Host frontend build overrides image-baked frontend
+      - ${FRONTEND_DIR:-../../frontend}:/usr/share/nginx/html:ro
     depends_on:
       - backend
     healthcheck:

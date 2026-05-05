@@ -107,12 +107,12 @@ const exportPronote = async () => {
             params.group_name = filterClasse.value
             params.assignment_type = 'classe'
         }
-        
+
         const response = await api.get('/grading/my-students/export-csv/', {
             params,
             responseType: 'blob'
         })
-        
+
         const url = window.URL.createObjectURL(new Blob([response.data]))
         const link = document.createElement('a')
         link.href = url
@@ -124,6 +124,21 @@ const exportPronote = async () => {
     } catch (err) {
         console.error('Pronote export failed', err)
         alert('Erreur lors de l\'export Pronote.')
+    }
+}
+
+const resetStudentPassword = async (studentId, studentName) => {
+    if (!confirm(`Réinitialiser le mot de passe de ${studentName} à sa date de naissance (JJMMAAAA) ?\n\nL'élève devra changer son mot de passe à la prochaine connexion.`)) {
+        return
+    }
+
+    try {
+        const res = await api.post('/students/admin/reset-password/', { student_id: studentId })
+        alert(`Mot de passe réinitialisé avec succès.\n\nNouveau mot de passe: ${res.data.new_password}\n\nL'élève devra le changer à la prochaine connexion.`)
+    } catch (err) {
+        console.error('Password reset failed', err)
+        const msg = err.response?.data?.error || 'Erreur lors de la réinitialisation du mot de passe.'
+        alert(msg)
     }
 }
 
@@ -228,14 +243,24 @@ useAutoRefresh(fetchData)
                   <td class="px-4 py-3 text-slate-400 text-xs">{{ idx+1 }}</td>
                   <td class="px-4 py-3 font-mono text-xs text-slate-500">{{ copy.anonymous_id || '—' }}</td>
                   <td class="px-4 py-3 font-medium text-slate-800">
-                    <router-link 
-                      v-if="copy.student_id && copy.has_copy" 
-                      :to="{ name: 'StudentBilan', params: { studentId: copy.student_id } }"
-                      class="text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
-                    >
-                      {{ copy.student_name || '—' }}
-                    </router-link>
-                    <span v-else>{{ copy.student_name || '—' }}</span>
+                    <div class="flex items-center gap-2">
+                      <router-link
+                        v-if="copy.student_id && copy.has_copy"
+                        :to="{ name: 'StudentBilan', params: { studentId: copy.student_id } }"
+                        class="text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                      >
+                        {{ copy.student_name || '—' }}
+                      </router-link>
+                      <span v-else>{{ copy.student_name || '—' }}</span>
+                      <button
+                        v-if="copy.student_id"
+                        @click="resetStudentPassword(copy.student_id, copy.student_name)"
+                        class="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                        title="Réinitialiser le mot de passe (date de naissance)"
+                      >
+                        <AppIcon name="refresh" :size="14" />
+                      </button>
+                    </div>
                   </td>
                   <td class="px-4 py-3 text-slate-500 text-xs">{{ copy.student_class || '—' }}</td>
                   <td v-if="hasGroups" class="px-4 py-3 text-slate-500 text-xs">{{ copy.student_groupe || '—' }}</td>
