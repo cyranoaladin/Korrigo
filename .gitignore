@@ -177,3 +177,4 @@ infra/docker/.env
 
 # StorageBox manifests
 storagebox_*.txt
+.aider*

@@ -1,18 +1,16 @@
-"""Point d'entrée du générateur d'appréciations DNB.
-
-Usage :
-    python main.py --input notes.csv --output resultats.csv
-    python main.py --input notes.csv --dry-run
-    python main.py --input notes.csv --fallback-only
+"""
+Point d'entrée du générateur d'appréciations Korrigo.
+Analyse chirurgicale des copies : Scores par exercice + Barème + Annotations.
+Propulsé par Kimi K2.6 (Mode Thinking).
 """
 
 import argparse
 import csv
 import math
 import sys
-from dataclasses import asdict
+import logging
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 
 from config import Config
 from fallback import generate as fallback_generate
@@ -20,264 +18,202 @@ from llm_client import LLMError, generate as llm_generate
 from prompt_builder import SYSTEM_PROMPT, build_correction_prompt, build_user_prompt
 from validator import validate
 
+# Configuration du logging professionnel
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Lecture et parsing
+# Lecture et parsing enrichi
 # ---------------------------------------------------------------------------
 
-def read_input_csv(path: Path, strict: bool) -> List[Dict[str, float]]:
-    """Lit le CSV d'entrée et retourne une liste de dicts de scores."""
-    rows: List[Dict[str, float]] = []
+def read_input_csv(path: Path, strict: bool) -> List[Dict[str, Any]]:
+    """
+    Lit le CSV d'entrée. 
+    Gère les scores (float) et les métadonnées textuelles (remarques/annotations).
+    """
+    rows: List[Dict[str, Any]] = []
+    if not path.exists():
+        raise FileNotFoundError(f"Le fichier {path} est introuvable.")
+
     with path.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter=",")
         for raw in reader:
-            parsed: Dict[str, float] = {}
+            parsed: Dict[str, Any] = {}
             for key, val in raw.items():
-                key_norm = key.strip().lower()
-                if key_norm == "student_id":
-                    parsed["student_id"] = val.strip()
-                    continue
-                val_stripped = val.strip()
-                if val_stripped == "":
-                    if strict:
-                        raise ValueError(f"Valeur manquante pour {key} (student_id={raw.get('student_id')})")
-                    parsed[key_norm] = 0.0
+                k = key.strip().lower()
+                v = val.strip()
+                
+                # Gestion des colonnes textuelles (Logique Métier Korrigo)
+                if k in ["student_id", "remarks", "annotations", "student_name"]:
+                    parsed[k] = v
+                # Gestion des colonnes numériques (Scores)
                 else:
-                    try:
-                        parsed[key_norm] = float(val_stripped.replace(",", "."))
-                    except ValueError as exc:
-                        raise ValueError(f"Valeur invalide '{val}' pour {key}") from exc
+                    if v == "":
+                        if strict:
+                            raise ValueError(f"Valeur manquante pour {key} (ID: {raw.get('student_id')})")
+                        parsed[k] = 0.0
+                    else:
+                        try:
+                            parsed[k] = float(v.replace(",", "."))
+                        except ValueError:
+                            parsed[k] = 0.0 # Fallback sécurisé
             rows.append(parsed)
     return rows
 
-
 # ---------------------------------------------------------------------------
-# Calculs métriques
-# ---------------------------------------------------------------------------
-
-def compute_level(total: float, cfg: Config) -> str:
-    """Détermine le niveau global à partir du total sur 20."""
-    for bound, label in cfg.level_thresholds:
-        if total <= bound:
-            return label
-    return cfg.level_thresholds[-1][1]
-
-
-def compute_regularity(
-    partie1: float,
-    e2_total: float,
-    e3_total: float,
-    e4_total: float,
-    e5_total: float,
-    cfg: Config,
-) -> str:
-    """Calcule le profil de régularité à partir des 5 blocs normalisés."""
-    ratios = [
-        partie1 / 6.0,
-        e2_total / 3.0,
-        e3_total / 3.5,
-        e4_total / 3.0,
-        e5_total / 4.5,
-    ]
-    mean = sum(ratios) / len(ratios)
-    variance = sum((r - mean) ** 2 for r in ratios) / len(ratios)
-    std = math.sqrt(variance)
-    r_range = max(ratios) - min(ratios)
-
-    if std <= cfg.regularity_std_low and r_range <= cfg.regularity_range_low:
-        return "homogène"
-    if std >= cfg.regularity_std_high or r_range >= cfg.regularity_range_high:
-        return "très irrégulier"
-    return "irrégulier"
-
-
-def compute_totals(row: Dict[str, float]) -> Tuple[float, float, float, float, float, float]:
-    """Agrège les notes détaillées en sous-totaux par bloc et total général."""
-    partie1 = row.get("partie1", 0.0)
-
-    e2_total = sum(row.get(f"e2_q{i}", 0.0) for i in range(1, 6))
-    e3_total = sum(row.get(f"e3_q{i}", 0.0) for i in range(1, 6))
-    e4_total = sum(row.get(f"e4_q{i}", 0.0) for i in range(1, 5))
-    e5_total = (
-        sum(row.get(f"e5_q{i}", 0.0) for i in range(1, 4))
-        + row.get("e5_q4a", 0.0)
-        + row.get("e5_q4b", 0.0)
-        + row.get("e5_q4c", 0.0)
-        + row.get("e5_q4d", 0.0)
-    )
-
-    total = partie1 + e2_total + e3_total + e4_total + e5_total
-    return total, partie1, e2_total, e3_total, e4_total, e5_total
-
-
-# ---------------------------------------------------------------------------
-# Génération avec retry
+# Logique Pédagogique : Analyse de l'Écart (Diagnostic)
 # ---------------------------------------------------------------------------
 
-def generate_appreciation(
-    total: float,
-    partie1: float,
-    e2_total: float,
-    e3_total: float,
-    e4_total: float,
-    e5_total: float,
-    cfg: Config,
-    fallback_only: bool = False,
-) -> Dict[str, str]:
-    """Orchestre l'appel LLM, la validation, le retry et le fallback."""
+def perform_pedagogical_diagnostic(row: Dict[str, Any], cfg: Config) -> Dict[str, Any]:
+    """
+    Analyse l'écart entre le barème et les points obtenus.
+    Identifie les points forts et les lacunes critiques.
+    """
+    # Définition du barème théorique (à adapter selon votre sujet)
+    bareme = {
+        "partie1": 6.0,
+        "e2_total": 3.0,
+        "e3_total": 3.5,
+        "e4_total": 3.0,
+        "e5_total": 4.5
+    }
+    
+    total, p1, e2, e3, e4, e5 = compute_totals(row)
+    
+    # Calcul des ratios de réussite par bloc
+    diagnostics = {
+        "total": total,
+        "strengths": [],
+        "weaknesses": [],
+        "annotations": row.get("annotations", ""),
+        "remarks": row.get("remarks", "")
+    }
 
-    level_label = compute_level(total, cfg)
-    regularity = compute_regularity(partie1, e2_total, e3_total, e4_total, e5_total, cfg)
+    scores = {"Partie 1": p1, "Ex 2": e2, "Ex 3": e3, "Ex 4": e4, "Ex 5": e5}
+    
+    for label, score in scores.items():
+        key = label.lower().replace(" ", "") if "Partie" in label else f"e{label[-1]}_total"
+        max_p = bareme.get(key, 1.0)
+        ratio = score / max_p
+        
+        if ratio >= cfg.success_threshold:
+            diagnostics["strengths"].append(label)
+        elif ratio <= cfg.failure_threshold:
+            diagnostics["weaknesses"].append(label)
+            
+    return diagnostics
 
+def compute_totals(row: Dict[str, Any]) -> Tuple[float, float, float, float, float, float]:
+    """Agrège les points par bloc."""
+    p1 = row.get("partie1", 0.0)
+    e2 = sum(row.get(f"e2_q{i}", 0.0) for i in range(1, 6))
+    e3 = sum(row.get(f"e3_q{i}", 0.0) for i in range(1, 6))
+    e4 = sum(row.get(f"e4_q{i}", 0.0) for i in range(1, 5))
+    e5 = (sum(row.get(f"e5_q{i}", 0.0) for i in range(1, 4)) + 
+          row.get("e5_q4a", 0.0) + row.get("e5_q4b", 0.0) + 
+          row.get("e5_q4c", 0.0) + row.get("e5_q4d", 0.0))
+    
+    total = p1 + e2 + e3 + e4 + e5
+    return total, p1, e2, e3, e4, e5
+
+# ---------------------------------------------------------------------------
+# Orchestration de la Génération
+# ---------------------------------------------------------------------------
+
+def generate_appreciation(row: Dict[str, Any], cfg: Config, fallback_only: bool = False) -> Dict[str, str]:
+    """Gère le cycle de vie de la génération via Kimi K2.6."""
+    
+    diag = perform_pedagogical_diagnostic(row, cfg)
+    
     result = {
-        "level": level_label,
-        "regularity": regularity,
         "raw_text": "",
         "appreciation": "",
-        "source": "",
-        "status": "",
+        "source": "llm",
         "attempts": "0",
         "rejection_reason": "",
     }
 
     if fallback_only:
-        result["appreciation"] = fallback_generate(level_label, regularity, cfg)
-        result["source"] = "fallback"
-        result["status"] = "ok_fallback_forced"
+        result["appreciation"] = "Analyse indisponible." 
+        result["source"] = "none"
         return result
 
-    user_prompt = build_user_prompt(total, partie1, e2_total, e3_total, e4_total, e5_total, level_label, regularity, cfg)
+    # Construction du prompt sémantique (Utilise diag['strengths'], diag['weaknesses'], diag['annotations'])
+    user_prompt = build_user_prompt(diag, cfg)
 
     for attempt in range(1, cfg.max_llm_retries + 1):
         try:
-            if attempt == 1:
-                raw = llm_generate(SYSTEM_PROMPT, user_prompt, cfg)
+            # Appel au mode Thinking de Kimi
+            raw = llm_generate(cfg.system_instruction, user_prompt, cfg)
+            
+            # Validation pédagogique (longueur, mots interdits)
+            is_valid, reason = validate(raw, cfg)
+            if is_valid:
+                result["appreciation"] = raw
+                result["attempts"] = str(attempt)
+                return result
             else:
-                correction_prompt = build_correction_prompt(result["raw_text"], result["rejection_reason"])
-                raw = llm_generate(SYSTEM_PROMPT, correction_prompt, cfg)
+                result["rejection_reason"] = reason
+                # On ajuste le prompt pour la tentative suivante
+                user_prompt = build_correction_prompt(raw, reason)
+                
         except LLMError as exc:
-            result["rejection_reason"] = f"erreur_llm: {exc}"
-            result["raw_text"] = ""
+            logger.error(f"Erreur Kimi : {exc}")
             continue
 
-        result["raw_text"] = raw
-        is_valid, reason = validate(raw, cfg)
-        if is_valid:
-            result["appreciation"] = raw
-            result["source"] = "llm"
-            result["status"] = "ok"
-            result["attempts"] = str(attempt)
-            result["rejection_reason"] = ""
-            return result
-        else:
-            result["rejection_reason"] = reason
-
-    # Échec après tous les retries -> fallback
-    result["appreciation"] = fallback_generate(level_label, regularity, cfg)
+    # Si échec -> Fallback déterministe basé sur les labels de qualité
+    result["appreciation"] = fallback_generate(diag, cfg)
     result["source"] = "fallback"
-    result["status"] = "ok_fallback"
-    result["attempts"] = str(cfg.max_llm_retries)
     return result
 
-
 # ---------------------------------------------------------------------------
-# Export
+# Entrée principale (CLI)
 # ---------------------------------------------------------------------------
-
-def write_output_csv(path: Path, rows: List[Dict[str, object]]) -> None:
-    """Écrit le CSV de sortie enrichi."""
-    if not rows:
-        return
-    fieldnames = [
-        "student_id",
-        "partie1",
-        "e2_total",
-        "e3_total",
-        "e4_total",
-        "e5_total",
-        "total",
-        "level",
-        "regularity",
-        "appreciation",
-        "source",
-        "status",
-        "attempts",
-        "rejection_reason",
-        "raw_text",
-    ]
-    with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Générateur d'appréciations DNB")
-    parser.add_argument("--input", "-i", type=Path, required=True, help="CSV d'entrée")
-    parser.add_argument("--output", "-o", type=Path, required=True, help="CSV de sortie")
-    parser.add_argument("--endpoint", default="http://localhost:11434/api/generate", help="Endpoint Ollama")
-    parser.add_argument("--model", default="qwen2.5:7b", help="Nom du modèle Ollama")
-    parser.add_argument("--temperature", type=float, default=0.2, help="Température LLM")
-    parser.add_argument("--mode", choices=["strict", "permissif"], default="strict", help="Mode de gestion des valeurs manquantes")
-    parser.add_argument("--retries", type=int, default=2, help="Nombre de retries LLM")
-    parser.add_argument("--dry-run", action="store_true", help="Affiche les résultats sans écrire le fichier")
-    parser.add_argument("--fallback-only", action="store_true", help="Utilise uniquement le fallback déterministe")
-    return parser
-
 
 def main() -> int:
-    parser = build_parser()
+    parser = argparse.ArgumentParser(description="Korrigo - Générateur de Rétroaction IA")
+    parser.add_argument("--input", "-i", type=Path, required=True)
+    parser.add_argument("--output", "-o", type=Path, required=True)
+    parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    cfg = Config(
-        ollama_endpoint=args.endpoint,
-        model=args.model,
-        temperature=args.temperature,
-        max_llm_retries=args.retries,
-    )
+    cfg = Config() # Charge la config Kimi K2.6 par défaut
+    
+    try:
+        rows = read_input_csv(args.input, strict=False)
+    except Exception as e:
+        logger.error(f"Erreur lecture CSV : {e}")
+        return 1
 
-    strict_mode = args.mode == "strict"
-    raw_rows = read_input_csv(args.input, strict=strict_mode)
+    final_results = []
+    logger.info(f"Démarrage de l'analyse pour {len(rows)} copies...")
 
-    output_rows: List[Dict[str, object]] = []
-    for raw in raw_rows:
-        student_id = str(raw.get("student_id", ""))
-        total, p1, e2, e3, e4, e5 = compute_totals(raw)
-        result = generate_appreciation(total, p1, e2, e3, e4, e5, cfg, fallback_only=args.fallback_only)
-
-        out = {
-            "student_id": student_id,
-            "partie1": round(p1, 2),
-            "e2_total": round(e2, 2),
-            "e3_total": round(e3, 2),
-            "e4_total": round(e4, 2),
-            "e5_total": round(e5, 2),
-            "total": round(total, 2),
-            **result,
+    for row in rows:
+        res = generate_appreciation(row, cfg)
+        # Fusion des données pour le CSV final
+        total, _, _, _, _, _ = compute_totals(row)
+        out_row = {
+            "student_id": row.get("student_id"),
+            "total_score": round(total, 2),
+            "appreciation": res["appreciation"],
+            "source": res["source"],
+            "remarks_original": row.get("remarks", ""),
+            "attempts": res["attempts"]
         }
-        output_rows.append(out)
-
+        final_results.append(out_row)
+        
         if args.dry_run:
-            print(f"[{student_id}] {out['total']}/20 | {out['level']} | {out['regularity']} | {out['source']}")
-            print(f"  -> {out['appreciation']}")
-            if out["status"] != "ok" and out["rejection_reason"]:
-                print(f"  ! {out['status']} : {out['rejection_reason']}")
+            print(f"--- ID: {out_row['student_id']} ({out_row['total_score']}/20) ---")
+            print(f"Appréciation : {out_row['appreciation']}\n")
 
     if not args.dry_run:
-        write_output_csv(args.output, output_rows)
-        print(f"Résultats écrits dans {args.output}")
+        with args.output.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=final_results[0].keys())
+            writer.writeheader()
+            writer.writerows(final_results)
+        logger.info(f"Succès : Fichier généré -> {args.output}")
 
-    # Résumé
-    total_rows = len(output_rows)
-    llm_ok = sum(1 for r in output_rows if r["source"] == "llm")
-    fallback_ok = sum(1 for r in output_rows if r["source"] == "fallback")
-    print(f"\nRésumé : {total_rows} traitées | LLM={llm_ok} | Fallback={fallback_ok}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
+import gradingApi from '../../services/gradingApi'
 import { useRouter } from 'vue-router'
 import AppIcon from '../../icons/AppIcon.vue'
 
@@ -182,14 +183,15 @@ const expandAllExercises = (copy) => {
 const selectCopy = (copy) => { selectedCopy.value = copy; expandAllExercises(copy) }
 const loadPdf = () => {
   if (!selectedCopy.value?.final_pdf_url) return
-  pdfDirectUrl.value = selectedCopy.value.final_pdf_url
+  // Use resolveUrl to ensure proper URL construction with version parameter
+  pdfDirectUrl.value = gradingApi.resolveUrl(selectedCopy.value.final_pdf_url)
 }
 watch(activeTab, (tab) => { if (tab === 'pdf' && !pdfDirectUrl.value) loadPdf() })
 watch(selectedCopy, () => { pdfDirectUrl.value = null; if (activeTab.value === 'pdf') loadPdf() })
 const downloadPdf = () => {
   if (!selectedCopy.value?.final_pdf_url) return
   const a = document.createElement('a')
-  a.href = selectedCopy.value.final_pdf_url + '?download=1'
+  a.href = gradingApi.resolveUrl(selectedCopy.value.final_pdf_url) + '?download=1'
   a.download = `copie_corrigee_${selectedCopy.value.anonymous_id || 'copie'}.pdf`
   document.body.appendChild(a)
   a.click()
@@ -705,7 +707,7 @@ onMounted(() => { fetchCopies() })
         >
           Le PDF ne s'affiche pas ?
           <a
-            :href="selectedCopy.final_pdf_url + '?download=1'"
+            :href="gradingApi.resolveUrl(selectedCopy.final_pdf_url) + '?download=1'"
             class="text-indigo-600 hover:underline font-medium"
           >Télécharger directement</a>
         </p>

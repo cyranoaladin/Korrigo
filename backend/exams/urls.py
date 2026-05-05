@@ -41,6 +41,7 @@ urlpatterns = [
 
     # Mission 16: Booklet Management
     path('<uuid:exam_id>/booklets/', BookletListView.as_view(), name='booklet-list'),
+    # Booklet Operations (admin/API-only — not exposed via main frontend nav)
     path('booklets/<uuid:id>/header/', BookletHeaderView.as_view(), name='booklet-header'),
     path('booklets/<uuid:id>/split/', BookletSplitView.as_view(), name='booklet-split'),
     path('booklets/<uuid:id>/', BookletDetailView.as_view(), name='booklet-detail'),
@@ -54,16 +55,18 @@ urlpatterns = [
     path('<uuid:exam_id>/copies/rotate-last-pages/', RotateCopyLastPagesView.as_view(), name='copy-rotate-last-pages'),
     path('<uuid:exam_id>/merge-booklets/', MergeBookletsView.as_view(), name='merge-booklets'),
     
-    # Export
+    # Export (admin/API-only — triggered via admin panel or direct API calls)
     path('<uuid:id>/export-pdf/', ExportAllView.as_view(), name='export-all-pdf'),
     path('<uuid:id>/export-csv/', CSVExportView.as_view(), name='export-csv'),
     path('<uuid:id>/export-pronote/', PronoteExportView.as_view(), name='export-pronote'),
     
     # Copy Validation (STAGING → READY)
+    # Note: single-copy validate is admin/API-only; bulk validate is used by frontend
     path('copies/<uuid:id>/validate/', CopyValidationView.as_view(), name='copy-validate'),
     path('<uuid:exam_id>/validate-all/', BulkCopyValidationView.as_view(), name='bulk-copy-validate'),
     
     # Subject Variant (bulk assign A/B)
+    # Note: bulk-subject-variant is admin/API-only; auto-detect is used by frontend
     path('<uuid:exam_id>/bulk-subject-variant/', BulkSubjectVariantView.as_view(), name='bulk-subject-variant'),
     path('<uuid:exam_id>/auto-detect-subject/', AutoDetectSubjectVariantView.as_view(), name='auto-detect-subject'),
     

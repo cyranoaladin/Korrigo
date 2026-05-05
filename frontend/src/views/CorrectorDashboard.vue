@@ -284,7 +284,7 @@ const fetchStats = async () => {
 const copiesByExam = computed(() => {
     // Start with all exams of the selected type
     const groups = {}
-    for (const exam of allExams.value) {
+    for (const exam of (allExams.value || [])) {
         groups[exam.id] = {
             examId: exam.id,
             examName: exam.name,
@@ -295,7 +295,7 @@ const copiesByExam = computed(() => {
     }
 
     // Add copies to their respective groups
-    for (const copy of copies.value) {
+    for (const copy of (copies.value || [])) {
         const examId = copy.exam_details?.id || copy.exam || 'unknown'
         if (groups[examId]) {
             groups[examId].copies.push(copy)

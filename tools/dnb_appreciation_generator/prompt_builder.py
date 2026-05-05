@@ -1,60 +1,53 @@
-"""Construction des prompts system / user pour la LLM."""
+"""Construction des prompts pour Kimi K2.6 : Rétroaction corrective Korrigo."""
 
+from typing import Any, Dict
 from config import Config
 
+SYSTEM_PROMPT = """Tu es un Professeur Agrégé de Mathématiques expert en évaluation.
+Ta mission : rédiger une rétroaction corrective unique et synthétique pour une copie d'examen.
 
-SYSTEM_PROMPT = """Tu es un correcteur de mathématiques expérimenté.
-Ta mission : rédiger une appréciation finale pour un devoir de DNB en classe de troisième.
-
-RÈGLES ABSOLUES (toute infraction invalide la réponse) :
-1. UNE SEULE PHRASE. Pas de liste, pas de puces, pas de point-virgule structurant.
-2. Concision stricte : entre 8 et 18 mots, jamais plus de 22 mots.
-3. AUCUN score chiffré dans la phrase.
-4. AUCUN détail par exercice, par notion ou par question.
-5. AUCUN des mots suivants : copie, devoir, devoir blanc, élève, travail, exercice, question, partie, QCM, fonctions, géométrie, statistiques, calcul littéral, équations, Thalès, Pythagore, automatismes.
-6. AUCUNE formulation creuse : "poursuivez vos efforts", "il faut continuer ainsi", "des efforts sont à fournir", "travail sérieux", "peut mieux faire", "ensemble correct dans l'ensemble".
-7. Ton : sobre, précis, humain, bienveillant, professionnel.
-8. Contenu : refléter le niveau global et la régularité. Éventuellement un point fort général et/ou un axe général, mais sans entrer dans le détail.
-9. Ne pas employer : "cette copie", "cet élève", "travail rendu", "la copie montre que".
-10. Répondre uniquement par la phrase finale. Pas d'introduction, pas de conclusion, pas de guillemets."""
+RÈGLES CRITIQUES (L'infraction à une règle invalide l'analyse) :
+1. UNE SEULE PHRASE. Aucun retour à la ligne, pas de listes, pas de segmentation par points-virgules.
+2. LONGUEUR : Entre 15 et 40 mots maximum.
+3. INTERDICTION : Ne jamais mentionner de scores chiffrés ou de pourcentages.
+4. INTERDICTION : Ne pas utiliser les mots : copie, travail, élève, résultat, note, efforts, mathématiques, exercice, question.
+5. STYLE : Académique, technique et factuel. Bannis les encouragements vagues ("Continuez", "Peut mieux faire").
+6. LOGIQUE : Tu dois lier une lacune identifiée dans les scores à une observation faite dans les annotations.
+7. CONTENU : Identifie le levier de progression principal (ex: la rigueur de rédaction, la maîtrise des algorithmes, la précision géométrique).
+8. RÉPONSE : Produis uniquement la phrase finale, sans guillemets ni introduction."""
 
 
-def _format_float(value: float) -> str:
-    """Affiche un nombre avec virgule française, sans décimale inutile."""
-    s = f"{value:.2f}".replace(".", ",")
-    return s.rstrip("0").replace(",", ".") if "," in s else s
+def build_user_prompt(diag: Dict[str, Any], cfg: Config) -> str:
+    """
+    Construit le prompt utilisateur en fournissant le diagnostic sémantique complet.
+    L'IA reçoit les forces/faiblesses calculées et les annotations textuelles.
+    """
+    strengths = ", ".join(diag["strengths"]) if diag["strengths"] else "Aucun bloc dominant"
+    weaknesses = ", ".join(diag["weaknesses"]) if diag["weaknesses"] else "Aucune lacune majeure"
+    
+    # Intégration des données textuelles saisies par le correcteur
+    annotations = diag.get("annotations", "Aucune annotation technique")
+    remarks = diag.get("remarks", "Aucune remarque globale")
 
-
-def build_user_prompt(
-    total: float,
-    partie1: float,
-    e2_total: float,
-    e3_total: float,
-    e4_total: float,
-    e5_total: float,
-    level_label: str,
-    regularity_profile: str,
-    cfg: Config = Config(),
-) -> str:
-    """Construit le prompt utilisateur à partir des métriques calculées."""
     return (
-        f"Niveau global : {level_label} ({_format_float(total)}/20).\n"
-        f"Profil de régularité : {regularity_profile}.\n"
-        f"Sous-totaux par bloc : Partie 1 = {_format_float(partie1)}/6, "
-        f"Exercice 2 = {_format_float(e2_total)}/3, "
-        f"Exercice 3 = {_format_float(e3_total)}/3,5, "
-        f"Exercice 4 = {_format_float(e4_total)}/3, "
-        f"Exercice 5 = {_format_float(e5_total)}/4,5.\n\n"
-        "Rédige l'appréciation finale."
+        f"--- DONNÉES DE PERFORMANCE ---\n"
+        f"Points forts (maîtrise > {int(cfg.success_threshold*100)}%) : {strengths}\n"
+        f"Points faibles (maîtrise < {int(cfg.failure_threshold*100)}%) : {weaknesses}\n\n"
+        f"--- OBSERVATIONS DU CORRECTEUR ---\n"
+        f"Annotations sur les copies : {annotations}\n"
+        f"Remarques globales : {remarks}\n\n"
+        f"INSTRUCTION : Rédige une synthèse de diagnostic qui explique l'origine des erreurs à partir des observations."
     )
 
 
 def build_correction_prompt(raw_text: str, rejection_reason: str) -> str:
-    """Prompt correctif utilisé lors du retry."""
+    """
+    Prompt utilisé en cas d'échec de validation (trop long, mots interdits, etc.).
+    """
     return (
-        f"L'appréciation précédente a été rejetée pour la raison suivante : {rejection_reason}.\n"
-        f"Texte rejeté : \"{raw_text}\"\n\n"
-        "Corrige-la pour respecter strictement les règles : une seule phrase, 8-18 mots, "
-        "globale, sans détail par exercice, sans chiffre, sans mot interdit. "
-        "Réponds uniquement par la phrase corrigée."
+        f"L'analyse précédente a été rejetée par l'auditeur pédagogique.\n"
+        f"RAISON DU REJET : {rejection_reason}\n"
+        f"TEXTE INCORRECT : \"{raw_text}\"\n\n"
+        f"CORRECTION : Réécris une phrase unique (15-40 mots), sobre, sans chiffres et sans les mots interdits, "
+        f"en te concentrant sur le diagnostic méthodologique."
     )

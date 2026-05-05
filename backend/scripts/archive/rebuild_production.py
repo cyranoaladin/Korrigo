@@ -49,6 +49,17 @@ EXAM_DATE_J1 = date(2026, 2, 6)
 EXAM_DATE_J2 = date(2026, 2, 7)
 
 
+def get_default_password() -> str:
+    """Return the required provisioning password with an operator-friendly error."""
+    password = os.environ.get('DEFAULT_PASSWORD')
+    if not password:
+        raise RuntimeError(
+            "DEFAULT_PASSWORD environment variable must be set before running "
+            "rebuild_production.py."
+        )
+    return password
+
+
 def normalize_name(name: str) -> str:
     """
     Normalize a name for matching: uppercase, remove accents, replace hyphens/spaces.
@@ -124,6 +135,8 @@ def read_csv_students(csv_path: Path) -> list:
 
 def setup_users():
     """Create admin and teacher users."""
+    default_password = get_default_password()
+
     print("\n👥 Creating user groups...")
     admin_group, _ = Group.objects.get_or_create(name='admin')
     teacher_group, _ = Group.objects.get_or_create(name='teacher')
@@ -135,10 +148,10 @@ def setup_users():
         defaults={'email': 'admin@korrigo.tn', 'is_staff': True, 'is_superuser': True}
     )
     if created:
-        admin.set_password('admin')
+        admin.set_password(default_password)
         admin.save()
         admin.groups.add(admin_group)
-        print("  ✓ Created admin (admin/admin)")
+        print("  ✓ Created admin (admin/<DEFAULT_PASSWORD>)")
     else:
         print("  ↻ Admin already exists")
 
@@ -161,7 +174,7 @@ def setup_users():
             }
         )
         if created:
-            prof.set_password('prof')
+            prof.set_password(default_password)
             prof.save()
             prof.groups.add(teacher_group)
             print(f"  ✓ Created {username}")
@@ -177,6 +190,8 @@ def import_students(csv_path: Path, label: str) -> dict:
     Import students from CSV. Returns dict of key -> Student.
     Students are deduplicated by email.
     """
+    default_password = get_default_password()
+
     print(f"\n👨‍🎓 Importing students from {label}...")
     csv_students = read_csv_students(csv_path)
     student_map = {}
@@ -198,7 +213,7 @@ def import_students(csv_path: Path, label: str) -> dict:
             user = User.objects.create_user(
                 username=s['email'],
                 email=s['email'],
-                password=os.environ.get('DEFAULT_PASSWORD', 'changeme')
+                password=default_password
             )
             user.groups.add(grp)
             student.user = user
@@ -390,8 +405,8 @@ def main():
     print(f"  Booklets: {Booklet.objects.count()}")
     print("=" * 60)
     print("\n📌 Credentials:")
-    print("  Admin:   admin / admin")
-    print("  Prof:    prof1 / prof  (also prof2, prof3)")
+    print("  Admin:   admin / <DEFAULT_PASSWORD>")
+    print("  Prof:    prof1 / <DEFAULT_PASSWORD>  (also prof2, prof3)")
     print("  Élèves:  <email> / <DEFAULT_PASSWORD>")
 
 

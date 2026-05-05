@@ -386,8 +386,14 @@ class CopyFinalPdfView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            # LOT 8 FIX: Students can only access PDF after results are officially released
-            if not copy.exam or not copy.exam.results_released_at:
+            # LOT 8 FIX: Students can only access PDF after results are officially released.
+            # Aligned with StudentCopiesView logic:
+            #   - results_released_at is NULL → no embargo → access allowed
+            #   - results_released_at is set → must be in the past
+            from django.utils import timezone
+            if (copy.exam
+                    and copy.exam.results_released_at is not None
+                    and copy.exam.results_released_at > timezone.now()):
                 return Response(
                     {"detail": "Les résultats ne sont pas encore publiés."},
                     status=status.HTTP_403_FORBIDDEN
