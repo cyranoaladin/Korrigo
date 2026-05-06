@@ -334,7 +334,11 @@ test.describe('UI Quality, Speed & Fluidity', () => {
     const hasCopies = await copyAction.isVisible().catch(() => false)
     if (hasCopies) {
       await copyAction.click()
-      await page.waitForURL(/\/corrector\/desk\/\d+/, { timeout: 10000 })
+      // Copy ids can be numeric (legacy) or UUID (current)
+      await page.waitForURL(
+        /\/corrector\/desk\/(\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i,
+        { timeout: 10000 }
+      )
       await page.waitForLoadState('networkidle')
       await page.waitForTimeout(2000)
     }
