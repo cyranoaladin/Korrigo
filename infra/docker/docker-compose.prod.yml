@@ -78,7 +78,9 @@ services:
       METRICS_TOKEN: "${METRICS_TOKEN:?err}"
       # LLM providers (Bilan + OCR Vision). Leave empty to disable LLM features.
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
-      OPENAI_BASE_URL: "${OPENAI_BASE_URL:-}"
+      # NOTE: OpenAI SDK reads OPENAI_BASE_URL even if it is set to an empty string.
+      # If empty, it breaks requests (missing http/https). Default to the official API.
+      OPENAI_BASE_URL: "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
       OPENAI_MODEL: "${OPENAI_MODEL:-}"
       AI_PROVIDER_URL: "${AI_PROVIDER_URL:-}"
       AI_PROVIDER_KEY: "${AI_PROVIDER_KEY:-}"
@@ -142,7 +144,9 @@ services:
       REDIS_HOST: "redis"
       # LLM providers (used by some tasks: OCR / bilans)
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
-      OPENAI_BASE_URL: "${OPENAI_BASE_URL:-}"
+      # NOTE: OpenAI SDK reads OPENAI_BASE_URL even if it is set to an empty string.
+      # If empty, it breaks requests (missing http/https). Default to the official API.
+      OPENAI_BASE_URL: "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
       OPENAI_MODEL: "${OPENAI_MODEL:-}"
       AI_PROVIDER_URL: "${AI_PROVIDER_URL:-}"
       AI_PROVIDER_KEY: "${AI_PROVIDER_KEY:-}"
@@ -199,7 +203,9 @@ services:
       REDIS_HOST: "redis"
       # LLM providers (used by some tasks: OCR / bilans)
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
-      OPENAI_BASE_URL: "${OPENAI_BASE_URL:-}"
+      # NOTE: OpenAI SDK reads OPENAI_BASE_URL even if it is set to an empty string.
+      # If empty, it breaks requests (missing http/https). Default to the official API.
+      OPENAI_BASE_URL: "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
       OPENAI_MODEL: "${OPENAI_MODEL:-}"
       AI_PROVIDER_URL: "${AI_PROVIDER_URL:-}"
       AI_PROVIDER_KEY: "${AI_PROVIDER_KEY:-}"
