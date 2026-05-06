@@ -749,7 +749,7 @@ const formatScore = (p1, p2) => {
 
 const renderMarkdown = (text) => {
   if (!text || typeof text !== 'string') return ''
-  let html = text
+  const html = text
     // Escape HTML first
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     // Headers ### ## #
