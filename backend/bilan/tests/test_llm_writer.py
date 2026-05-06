@@ -147,3 +147,36 @@ def test_write_raises_when_no_provider_configured(monkeypatch):
     with pytest.raises(RuntimeError):
         llm_writer.write("ping", model="gpt-4o-mini", max_tokens=10)
 
+
+@pytest.mark.unit
+def test_write_can_fallback_to_ollama_when_enabled(monkeypatch):
+    from bilan.services import llm_writer
+
+    llm_writer._make_client.cache_clear()
+    _set_llm_settings(
+        monkeypatch,
+        llm_writer.settings,
+        OPENAI_API_KEY="",
+        OPENAI_BASE_URL="",
+        AI_PROVIDER_KEY="",
+        AI_PROVIDER_URL="",
+        AI_MODEL_NAME="",
+        BILAN_ALLOW_OLLAMA_FALLBACK=True,
+        BILAN_OLLAMA_MODEL="qwen2.5:7b",
+        OLLAMA_URL="http://ollama:11434",
+        OLLAMA_TIMEOUT=5,
+    )
+
+    captured = {"prompt": None, "max_tokens": None}
+
+    def _fake_ollama(*, prompt: str, max_tokens: int) -> str:
+        captured["prompt"] = prompt
+        captured["max_tokens"] = max_tokens
+        return "ollama_ok"
+
+    monkeypatch.setattr(llm_writer, "_write_with_ollama", _fake_ollama)
+
+    out = llm_writer.write("ping", model="gpt-4o-mini", max_tokens=9)
+    assert out == "ollama_ok"
+    assert captured["prompt"] == "ping"
+    assert captured["max_tokens"] == 9

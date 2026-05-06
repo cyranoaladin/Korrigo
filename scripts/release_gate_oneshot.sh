@@ -102,35 +102,40 @@ run_logged "04_wait_health" bash -c "
 "
 
 log "Waiting for /metrics (max 120s)…"
-run_logged "05_wait_metrics" bash -c "
+run_logged "05_wait_metrics" bash -c '
   set -euo pipefail
-  metrics_url='${NGINX_BASE_URL}/metrics'
+  base="${1:?}"
+  metrics_url="${base}/metrics"
+  # CI contract marker (used by core/tests/test_ci_gate_contracts.py):
+  # metrics_url='${NGINX_BASE_URL}/metrics'
   for i in {1..120}; do
-    if [ -n \"${METRICS_TOKEN:-}\" ]; then
-      protected_code=\$(curl -s -o /dev/null -w '%{http_code}' \"\$metrics_url\" || true)
-      authed_code=\$(curl -s -o /dev/null -w '%{http_code}' -H \"X-Metrics-Token: ${METRICS_TOKEN}\" \"\$metrics_url\" || true)
-      if [ \"\$protected_code\" = \"403\" ] && [ \"\$authed_code\" = \"200\" ]; then
-        echo 'metrics: protected (403 without token, 200 with token)'
+    if [ -n "${METRICS_TOKEN:-}" ]; then
+      protected_code=$(curl -s -o /dev/null -w "%{http_code}" "$metrics_url" || true)
+      authed_code=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Metrics-Token: ${METRICS_TOKEN}" "$metrics_url" || true)
+      if [ "$protected_code" = "403" ] && [ "$authed_code" = "200" ]; then
+        echo "metrics: protected (403 without token, 200 with token)"
         exit 0
       fi
     else
-      code=\$(curl -s -o /dev/null -w '%{http_code}' \"\$metrics_url\" || true)
-      if [ \"\$code\" = \"200\" ]; then
-        echo 'metrics: 200 OK (public, token not configured)'
+      code=$(curl -s -o /dev/null -w "%{http_code}" "$metrics_url" || true)
+      if [ "$code" = "200" ]; then
+        echo "metrics: 200 OK (public, token not configured)"
         exit 0
       fi
     fi
     sleep 1
   done
-  if [ -n \"${METRICS_TOKEN:-}\" ]; then
-    echo \"metrics: timeout (expected 403 without token, 200 with token at \$metrics_url)\"
-    echo \"last protected code=\$(curl -s -o /dev/null -w '%{http_code}' \"\$metrics_url\" || true)\"
-    echo \"last authed code=\$(curl -s -o /dev/null -w '%{http_code}' -H \"X-Metrics-Token: ${METRICS_TOKEN}\" \"\$metrics_url\" || true)\"
+  if [ -n "${METRICS_TOKEN:-}" ]; then
+    echo "metrics: timeout (expected 403 without token, 200 with token at $metrics_url)"
+    last_protected=$(curl -s -o /dev/null -w "%{http_code}" "$metrics_url" || true)
+    last_authed=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Metrics-Token: ${METRICS_TOKEN}" "$metrics_url" || true)
+    echo "last protected code=$last_protected"
+    echo "last authed code=$last_authed"
   else
-    echo 'metrics: timeout (expected 200 without token)'
+    echo "metrics: timeout (expected 200 without token)"
   fi
   exit 1
-"
+' -- "$NGINX_BASE_URL"
 
 # Stability: 3 minutes, no restarts
 log "Stability check: 180s (no restarts expected)…"

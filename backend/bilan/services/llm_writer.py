@@ -3,11 +3,16 @@ LLM Writer Service for DNB Bilan Generation
 
 Uses OpenAI (or an OpenAI-compatible gateway) to generate pedagogical
 analysis with RAG context.
+
+Optionally supports a local Ollama fallback (opt-in via settings) so that
+bilans can still be generated when no external API provider is configured.
 """
 
 from functools import lru_cache
 from typing import Optional, Tuple, Literal
 
+import re
+import httpx
 import openai
 from openai import OpenAI
 from django.conf import settings
@@ -53,6 +58,8 @@ def _looks_like_placeholder(key: str) -> bool:
         or "CHANGE_THIS" in upper
         or "YOUR_" in upper
         or key.startswith("__CHANGE")
+        # Common placeholder pattern used in env examples / redacted secrets.
+        or bool(re.search(r"x{4,}", key, flags=re.IGNORECASE))
     )
 
 
@@ -109,6 +116,50 @@ def _select_client_and_model(requested_model: Optional[str]) -> Tuple[OpenAI, st
         "Set OPENAI_API_KEY (optionally OPENAI_BASE_URL) or AI_PROVIDER_URL/AI_PROVIDER_KEY/AI_MODEL_NAME."
     )
 
+def _write_with_ollama(*, prompt: str, max_tokens: int) -> str:
+    """
+    Local fallback writer using Ollama's /api/generate.
+
+    This is intentionally simple: we concatenate SYSTEM_PROMPT + user prompt.
+    """
+    ollama_url = _clean(getattr(settings, "OLLAMA_URL", "")) or "http://ollama:11434"
+    model = (
+        _clean(getattr(settings, "BILAN_OLLAMA_MODEL", ""))
+        or "qwen2.5:7b"
+    )
+    timeout = int(getattr(settings, "OLLAMA_TIMEOUT", 300) or 300)
+
+    combined = f"{SYSTEM_PROMPT}\n\n{prompt}".strip()
+    payload = {
+        "model": model,
+        "prompt": combined,
+        "stream": False,
+        "options": {
+            "temperature": 0.25,
+            "top_p": 0.9,
+            # Ollama uses num_predict as a token-ish cap.
+            "num_predict": int(max_tokens),
+        },
+    }
+
+    base_url_for_logs = ollama_url
+    logger.info("bilan.llm_writer provider=ollama model=%s base_url=%s", model, base_url_for_logs)
+
+    try:
+        r = httpx.post(f"{ollama_url.rstrip('/')}/api/generate", json=payload, timeout=float(timeout))
+        r.raise_for_status()
+        data = r.json()
+        content = data.get("response", "")
+        if not content or not isinstance(content, str):
+            raise RuntimeError("Ollama response had no text content.")
+        return _sanitize_for_plaintext_render(content)
+    except httpx.HTTPError as e:
+        logger.error("bilan.llm_writer ollama HTTPError model=%s error=%s", model, str(e))
+        raise
+    except Exception as e:
+        logger.exception("bilan.llm_writer ollama unexpected error model=%s error=%s", model, str(e))
+        raise
+
 
 def write(prompt: str, model: str = MODEL_DEFAULT,
           max_tokens: int = 1000) -> str:
@@ -119,7 +170,12 @@ def write(prompt: str, model: str = MODEL_DEFAULT,
     Si le LLM est indisponible, on lève une exception afin que la génération du bilan
     passe en ERROR (plutôt que d'afficher des données fausses).
     """
-    client, chosen_model, provider, base_url = _select_client_and_model(model)
+    try:
+        client, chosen_model, provider, base_url = _select_client_and_model(model)
+    except RuntimeError:
+        if getattr(settings, "BILAN_ALLOW_OLLAMA_FALLBACK", False):
+            return _write_with_ollama(prompt=prompt, max_tokens=max_tokens)
+        raise
     logger.info(
         "bilan.llm_writer provider=%s model=%s base_url=%s",
         provider,

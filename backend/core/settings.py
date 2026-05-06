@@ -110,6 +110,12 @@ BILAN_LLM_PREMIUM = os.environ.get("BILAN_LLM_PREMIUM", "").strip() or AI_MODEL_
 RAG_URL = os.environ.get("RAG_URL", "http://ingestor:8001").strip()
 RAG_TOKEN = os.environ.get("RAG_TOKEN", "").strip()
 
+# Optional fallback: allow using local Ollama for Bilan generation when no API provider is configured.
+# This remains opt-in to keep "fail-closed" behavior by default.
+BILAN_ALLOW_OLLAMA_FALLBACK = os.environ.get("BILAN_ALLOW_OLLAMA_FALLBACK", "").strip().lower() == "true"
+# Separate model override for bilans (production may not have the default OLLAMA_MODEL pulled).
+BILAN_OLLAMA_MODEL = os.environ.get("BILAN_OLLAMA_MODEL", "").strip()
+
 # Bilan RAG requirement:
 # - Production should fail closed if RAG is unavailable (prevents generic/hallucinated analysis).
 # - Development can override via BILAN_REQUIRE_RAG=true/false.
