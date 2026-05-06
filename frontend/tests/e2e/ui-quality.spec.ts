@@ -1,7 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-
-const TEACHER_USER = process.env.E2E_TEACHER_USER || 'enseignant'
-const TEACHER_PASS = process.env.E2E_TEACHER_PASS || 'enseignant'
+import { TEACHER_USER, TEACHER_PASS } from './e2eEnv'
 
 async function loginAsTeacher(page: Page) {
   await page.goto('/teacher/login')
@@ -102,18 +100,17 @@ test.describe('UI Quality, Speed & Fluidity', () => {
     const hasCopies = await openFirstCopyDesk(page)
 
     if (hasCopies) {
-      const tabs = page.locator('.inspector-tabs button')
-      const tabCount = await tabs.count()
+      // No tab UI: measure the accordion toggle in the grading sidebar instead
+      await expect(page.locator('.grading-panel')).toBeVisible()
+      const header = page.locator('.exercise-header').first()
+      const hasHeader = await header.isVisible().catch(() => false)
+      if (!hasHeader) return
 
-      if (tabCount >= 2) {
-        // Switch to "Bareme" tab and measure
-        const start = Date.now()
-        await tabs.nth(1).click()
-        await expect(page.locator('.grading-panel')).toBeVisible()
-        const elapsed = Date.now() - start
-        // v-show means no DOM insertion, should be very fast
-        expect(elapsed).toBeLessThan(500) // generous for network overhead
-      }
+      const start = Date.now()
+      await header.click()
+      const elapsed = Date.now() - start
+      // Toggle should feel instant (generous threshold under load)
+      expect(elapsed).toBeLessThan(500)
     }
   })
 
@@ -122,7 +119,11 @@ test.describe('UI Quality, Speed & Fluidity', () => {
     const hasCopies = await openFirstCopyDesk(page)
 
     if (hasCopies) {
-      await page.locator('.inspector-tabs button').nth(1).click()
+      await expect(page.locator('.grading-panel')).toBeVisible()
+      const header = page.locator('.exercise-header').first()
+      if (await header.isVisible().catch(() => false)) {
+        await header.click()
+      }
       const scoreInput = page.locator('.score-input').first()
       const isDisabled = await scoreInput.isDisabled()
 
@@ -163,7 +164,6 @@ test.describe('UI Quality, Speed & Fluidity', () => {
     const hasCopies = await openFirstCopyDesk(page)
 
     if (hasCopies) {
-      await page.locator('.inspector-tabs button').nth(1).click()
       const gradingPanel = page.locator('.grading-panel')
       const isVisible = await gradingPanel.isVisible().catch(() => false)
 

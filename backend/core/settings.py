@@ -6,8 +6,12 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env file
+# Load environment variables from .env files.
+# Order matters (python-dotenv does not override existing env vars by default):
+# 1) repo root `.env` (docker-compose/project config)
+# 2) `backend/.env` (backend-specific overrides, e.g. LLM gateway config)
 load_dotenv(BASE_DIR.parent / '.env')
+load_dotenv(BASE_DIR / '.env')
 
 # Security: No dangerous defaults in production
 SECRET_KEY = os.environ.get("SECRET_KEY")
@@ -90,6 +94,30 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
 
 # E2E Testing Configuration
 E2E_SEED_TOKEN = os.environ.get("E2E_SEED_TOKEN")  # Only set in prod-like environment
+
+# LLM Providers (OpenAI / OpenAI-compatible gateways)
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "").strip()
+
+AI_PROVIDER_URL = os.environ.get("AI_PROVIDER_URL", "").strip()
+AI_PROVIDER_KEY = os.environ.get("AI_PROVIDER_KEY", "").strip()
+AI_MODEL_NAME = os.environ.get("AI_MODEL_NAME", "").strip()
+
+BILAN_LLM_DEFAULT = os.environ.get("BILAN_LLM_DEFAULT", "").strip() or AI_MODEL_NAME or "gpt-4o-mini"
+BILAN_LLM_PREMIUM = os.environ.get("BILAN_LLM_PREMIUM", "").strip() or AI_MODEL_NAME or "gpt-4o"
+
+# RAG (retrieval-only) endpoint for bilan prompts
+RAG_URL = os.environ.get("RAG_URL", "http://ingestor:8001").strip()
+RAG_TOKEN = os.environ.get("RAG_TOKEN", "").strip()
+
+# Bilan RAG requirement:
+# - Production should fail closed if RAG is unavailable (prevents generic/hallucinated analysis).
+# - Development can override via BILAN_REQUIRE_RAG=true/false.
+_raw_require_rag = os.environ.get("BILAN_REQUIRE_RAG", "").strip()
+if _raw_require_rag:
+    BILAN_REQUIRE_RAG = _raw_require_rag.lower() == "true"
+else:
+    BILAN_REQUIRE_RAG = DJANGO_ENV == "production"
 
 # LLM / Ollama Configuration
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")
@@ -174,6 +202,7 @@ INSTALLED_APPS = [
     'processing',
     'students',
     'identification',
+    'bilan',
 ]
 
 # Django REST Framework Configuration
@@ -314,9 +343,25 @@ SESSION_COOKIE_AGE = 3600  # 1 hour — reduced from 4h to limit stolen-session 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # BUG-13 FIX: Évite que la session expire brutalement sur les navigateurs mobiles
 SESSION_COOKIE_HTTPONLY = True
 
-# P1.1 FIX: Ensure logs directory exists before configuring logging
+# P1.1 FIX: Ensure logs directory exists *and is writable* before configuring logging.
+# In some environments (containers / restored workspaces), `backend/logs` can be
+# owned by a different user (e.g. dnsmasq) and become read-only for the app user,
+# which breaks *all* Django commands at startup (logging config happens in
+# `django.setup()`).
 LOGS_DIR = os.path.join(BASE_DIR, 'logs')
-os.makedirs(LOGS_DIR, exist_ok=True)
+try:
+    os.makedirs(LOGS_DIR, exist_ok=True)
+    _probe = os.path.join(LOGS_DIR, '.write_probe')
+    with open(_probe, 'a', encoding='utf-8'):
+        pass
+    try:
+        os.remove(_probe)
+    except OSError:
+        pass
+except Exception:
+    # Safe fallback for dev / CI: always writable.
+    LOGS_DIR = os.path.join('/tmp', 'korrigo_logs')
+    os.makedirs(LOGS_DIR, exist_ok=True)
 
 # S5-A: Environment-specific formatter selection
 # Production: JSON logs for parsing by log aggregation tools
@@ -358,7 +403,7 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'filename': os.path.join(LOGS_DIR, 'django.log'),
             'maxBytes': 10485760,  # 10MB
             'backupCount': 10,
             'formatter': LOG_FORMATTER,
@@ -366,7 +411,7 @@ LOGGING = {
         },
         'audit_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'audit.log'),
+            'filename': os.path.join(LOGS_DIR, 'audit.log'),
             'maxBytes': 10485760,  # 10MB
             'backupCount': 10,
             'formatter': LOG_FORMATTER,

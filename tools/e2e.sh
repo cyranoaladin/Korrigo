@@ -4,15 +4,18 @@ set -euo pipefail
 # E2E Test Runner - Single Entrypoint (Docker-only prod-like)
 # Usage: bash tools/e2e.sh
 
-COMPOSE_FILE="infra/docker/docker-compose.local-prod.yml"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+COMPOSE_DIR="$ROOT_DIR/infra/docker"
+COMPOSE_FILE="$COMPOSE_DIR/docker-compose.local-prod.yml"
+ENV_FILE="$ROOT_DIR/.env"
 HEALTH_TIMEOUT=120  # seconds
 HEALTH_URL="http://localhost:8088/api/health/"
 
 # Optional: Load E2E contract environment (if .env.e2e exists)
-if [[ -f .env.e2e ]]; then
+if [[ -f "$ROOT_DIR/.env.e2e" ]]; then
   echo "==> Loading .env.e2e contract"
   set -a
-  source .env.e2e
+  source "$ROOT_DIR/.env.e2e"
   set +a
 fi
 
@@ -24,14 +27,14 @@ cleanup() {
   if [[ "${E2E_CLEANUP:-false}" == "true" ]] || [[ "${CI:-false}" == "true" ]]; then
     echo ""
     echo "==> Cleanup: Stopping Docker Compose"
-    docker compose -f "$COMPOSE_FILE" down -v
+    docker compose --project-directory "$COMPOSE_DIR" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down -v
   fi
 }
 trap cleanup EXIT
 
 echo "==> Up docker env (prod-like)"
-docker compose -f "$COMPOSE_FILE" down -v --remove-orphans
-docker compose -f "$COMPOSE_FILE" up -d --build
+docker compose --project-directory "$COMPOSE_DIR" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down -v --remove-orphans
+docker compose --project-directory "$COMPOSE_DIR" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build
 
 echo "==> Wait health (timeout: ${HEALTH_TIMEOUT}s)"
 SECONDS_WAITED=0
@@ -40,7 +43,7 @@ until curl -fsS "$HEALTH_URL" >/dev/null 2>&1; do
     echo "  ✗ Health check timeout after ${HEALTH_TIMEOUT}s"
     echo ""
     echo "==> Backend logs (last 50 lines):"
-    docker compose -f "$COMPOSE_FILE" logs backend --tail=50
+    docker compose --project-directory "$COMPOSE_DIR" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs backend --tail=50
     exit 1
   fi
   echo "  Waiting for backend... (${SECONDS_WAITED}s)"
@@ -50,15 +53,15 @@ done
 echo "  ✓ Backend healthy"
 
 echo "==> Run migrations"
-docker compose -f "$COMPOSE_FILE" exec -T backend \
+docker compose --project-directory "$COMPOSE_DIR" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T backend \
   bash -lc "export PYTHONPATH=/app && python manage.py migrate"
 
 echo "==> Seed E2E (inside backend container)"
-docker compose -f "$COMPOSE_FILE" exec -T backend \
-  bash -lc "export PYTHONPATH=/app && python scripts/seed_e2e.py"
+docker compose --project-directory "$COMPOSE_DIR" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec -T backend \
+  bash -lc "python manage.py seed_e2e"
 
 echo "==> Run Playwright"
-cd frontend
+cd "$ROOT_DIR/frontend"
 npx playwright test --workers=1
 
 echo ""

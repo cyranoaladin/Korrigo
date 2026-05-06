@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/students/', include('students.urls')), # Mission 18
     path('api/identification/', include('identification.urls')), # ÉTAPE 1-2: OCR & Identification
     path('api/grading/', include('grading.urls')),  # Étape 3: Annotations & Grading (Prefix explicit)
+    path('api/bilan/', include('bilan.urls')),       # Bilan pédagogique DNB
     path('api/csrf/', views.CSRFTokenView.as_view(), name='csrf_token'),
     path('api/login/', views.LoginView.as_view(), name='login'),
     path('api/logout/', views.LogoutView.as_view(), name='logout'),

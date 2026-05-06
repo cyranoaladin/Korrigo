@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import api from '../services/api'
 import ExamTypeIcon from './ExamTypeIcon.vue'
 
@@ -13,6 +13,16 @@ const examTypes = ref([])
 const loading = ref(true)
 const error = ref('')
 
+const tryAutoSelectSingle = () => {
+  if (!props.visible) return
+  if (loading.value) return
+  if (error.value) return
+  if (examTypes.value.length === 1) {
+    // UX + E2E: when only one subject exists, avoid blocking the dashboard.
+    emit('select', examTypes.value[0])
+  }
+}
+
 onMounted(async () => {
     try {
         const res = await api.get('/exams/types/')
@@ -22,12 +32,18 @@ onMounted(async () => {
         error.value = "Impossible de charger les types d'examens."
     } finally {
         loading.value = false
+        tryAutoSelectSingle()
     }
 })
 
 const selectType = (examType) => {
     emit('select', examType)
 }
+
+watch(() => props.visible, () => {
+  // If the modal becomes visible later (rare), retry auto-select.
+  tryAutoSelectSingle()
+})
 </script>
 
 <template>

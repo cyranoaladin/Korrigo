@@ -9,6 +9,7 @@ import JuryReportsModal from '../components/JuryReportsModal.vue'
 import ExamTypeSelectionModal from '../components/ExamTypeSelectionModal.vue'
 import ExamTypeIcon from '../components/ExamTypeIcon.vue'
 import AppIcon from '../icons/AppIcon.vue'
+import BilanButton from '../components/BilanButton.vue'
 import { normalizeCollectionResponse } from '../utils/normalizeCollection'
 
 const authStore = useAuthStore()
@@ -25,6 +26,8 @@ if (authStore.user?.role === 'Admin' || authStore.user?.is_superuser) {
 const statusLabels = {
   'READY': 'Prêt',
   'IN_PROGRESS': 'En cours',
+  'LOCKED': 'Verrouillée',
+  'GRADED': 'Corrigée',
   'FINALIZED': 'Finalisée',
 }
 const getStatusLabel = (status) => statusLabels[status] || status
@@ -32,9 +35,22 @@ const getStatusLabel = (status) => statusLabels[status] || status
 const copies = ref([])
 const isLoading = ref(true)
 const basicStats = ref({ total: 0, graded: 0, todo: 0 })
-const examStats = ref(null)
-const statsLoading = ref(false)
-const showStats = ref(false)
+
+// Stats : une entrée par examen { [examId]: statsObject }
+const examStatsMap = ref({})
+const statsLoadingMap = ref({})
+// Quel examen est actuellement affiché dans la section stats (null = masqué)
+const activeStatsExamId = ref(null)
+
+// Computed rétro-compatibles avec le code des graphiques SVG
+const examStats = computed(() =>
+    activeStatsExamId.value ? (examStatsMap.value[activeStatsExamId.value] ?? null) : null
+)
+const statsLoading = computed(() =>
+    activeStatsExamId.value ? (statsLoadingMap.value[activeStatsExamId.value] ?? false) : false
+)
+const showStats = computed(() => activeStatsExamId.value !== null)
+
 const myStudents = ref([])
 const myStudentsLoading = ref(false)
 const allExams = ref([])
@@ -56,7 +72,6 @@ const showExamTypeModal = computed(() => !selectedExamType.value)
 const handleExamTypeSelect = (type) => {
     selectedExamType.value = type
     localStorage.setItem('korrigo_selected_exam_type', JSON.stringify(type))
-    // Also update the exam store for "My Students" filtering
     examStore.setCurrentExamType(type.id, type.name)
     fetchCopies()
 }
@@ -64,12 +79,11 @@ const handleExamTypeSelect = (type) => {
 const handleChangeExamType = () => {
     selectedExamType.value = null
     localStorage.removeItem('korrigo_selected_exam_type')
-    // Clear the exam store
     examStore.clearCurrentExamType()
     copies.value = []
     basicStats.value = { total: 0, graded: 0, todo: 0 }
-    showStats.value = false
-    examStats.value = null
+    activeStatsExamId.value = null
+    examStatsMap.value = {}
 }
 // ---------------------------
 
@@ -82,30 +96,19 @@ const openJuryReportsModal = () => {
 }
 
 // --- Per-copy scoring progress ---
-const copyScores = ref({})       // { copyId: { scored: N, total: N, questions: [{id, label, scored}] } }
+const copyScores = ref({})
 const scoresLoading = ref(false)
 
-/**
- * Extract leaf (scorable) questions from the grading_structure tree.
- * Leaf nodes are those without children or with empty children arrays.
- * When item.id is missing (legacy structures like BB_J1), positional IDs
- * are generated ("1.1", "1.2", etc.) matching the scores_data key scheme.
- */
 const flattenLeafQuestions = (structure, positionPrefix = '') => {
     const leaves = []
     if (!Array.isArray(structure)) return leaves
     for (let idx = 0; idx < structure.length; idx++) {
         const item = structure[idx]
-        // Positional ID for items without explicit id
         const pos = positionPrefix ? `${positionPrefix}.${idx + 1}` : String(idx + 1)
         const children = item.children || item.sub_questions || []
         if (children.length > 0) {
-            // Recurse: use item.id as prefix when present, else positional
-            // This matches buildGradingNode in CorrectorDesk.vue
             leaves.push(...flattenLeafQuestions(children, item.id || pos))
         } else {
-            // Leaf: use item.id directly if present, else positional
-            // IMPORTANT: don't prefix item.id with parent — matches how CorrectorDesk saves scores
             const leafId = item.id || pos
             const pts = item.points || item.maxScore || item.max_score || 0
             leaves.push({ id: leafId, label: item.label || item.title || leafId, points: pts })
@@ -114,36 +117,23 @@ const flattenLeafQuestions = (structure, positionPrefix = '') => {
     return leaves
 }
 
-/**
- * Get scoring progress for a given copy.
- * Returns { scored, total, percent, questions }
- */
 const getCopyProgress = (copy) => {
     const progress = copyScores.value[copy.id]
     if (progress) return progress
 
-    // Fallback based on status alone
-    // copy.exam is a UUID string; grading_structure is in copy.exam_details (injected by CopySerializer)
     const structure = copy.exam_details?.grading_structure || []
     const leaves = flattenLeafQuestions(structure)
     const total = leaves.length
 
-    if (copy.status === 'FINALIZED') {
+    if (copy.status === 'FINALIZED' || copy.status === 'GRADED') {
         return { scored: total, total, percent: 100, questions: leaves.map(q => ({ ...q, scored: true })) }
     }
-    // READY or IN_PROGRESS: unknown until scores fetched
     return { scored: 0, total, percent: 0, questions: leaves.map(q => ({ ...q, scored: false })), pending: true }
 }
 
-/**
- * Fetch scores for copies that may have partial grading (READY / IN_PROGRESS).
- * Also fetches for FINALIZED to show accurate count.
- * Only fetches for copies assigned to the current user (to avoid 403 errors).
- */
 const fetchAllCopyScores = async (copiesList) => {
-    // Only fetch scores for copies with exam data (to compute progress)
     const relevantCopies = copiesList.filter(c =>
-        (c.status === 'READY' || c.status === 'IN_PROGRESS' || c.status === 'FINALIZED') &&
+        (c.status === 'READY' || c.status === 'IN_PROGRESS' || c.status === 'FINALIZED' || c.status === 'GRADED') &&
         c.exam_details?.grading_structure && c.exam_details.grading_structure.length > 0
     )
     if (!relevantCopies.length) return
@@ -151,7 +141,6 @@ const fetchAllCopyScores = async (copiesList) => {
     scoresLoading.value = true
     const results = {}
 
-    // Fetch scores in parallel (batches of 6 to avoid overwhelming the server)
     const batchSize = 6
     for (let i = 0; i < relevantCopies.length; i += batchSize) {
         const batch = relevantCopies.slice(i, i + batchSize)
@@ -172,8 +161,7 @@ const fetchAllCopyScores = async (copiesList) => {
 
                 results[copy.id] = { scored, total, percent, questions }
             } catch (err) {
-                // Silently ignore 403/404 errors — progress just won't show for this copy
-                // This can happen if the copy is not assigned to this corrector
+                // Silently ignore 403/404
             }
         })
         await Promise.all(promises)
@@ -184,7 +172,6 @@ const fetchAllCopyScores = async (copiesList) => {
 }
 
 const fetchCopies = async () => {
-    // Double-check: if admin somehow reached this page, redirect away
     if (authStore.user?.role === 'Admin' || authStore.user?.is_superuser) {
         router.replace('/admin/dashboard')
         return
@@ -195,21 +182,27 @@ const fetchCopies = async () => {
     try {
         const data = await gradingApi.listCopies({ exam_type_id: selectedExamType.value.id })
         copies.value = Array.isArray(data) ? data : []
-        basicStats.value.total = data.length
-        basicStats.value.graded = data.filter(c => c.status === 'FINALIZED').length
-        basicStats.value.todo = data.filter(c => c.status === 'READY').length
 
-        // Auto-fetch stats when at least 1 copy is graded
-        if (basicStats.value.graded > 0) {
-            showStats.value = true
-            await fetchStats()
-        }
+        const total = data.length
+        const graded = data.filter(c => c.status === 'FINALIZED' || c.status === 'GRADED').length
+        // "À faire" = READY + IN_PROGRESS
+        const todo = data.filter(c => c.status === 'READY' || c.status === 'IN_PROGRESS').length
+        basicStats.value = { total, graded, todo }
 
         // Fetch per-question scoring progress in background
         fetchAllCopyScores(data)
-        
-        // Fetch all exams of this type to ensure groups are shown even without copies
-        fetchAllExams()
+
+        // Fetch all exams of this type
+        await fetchAllExams()
+
+        // Auto-afficher les stats du premier examen qui a des copies corrigées
+        const firstGradedGroup = copiesByExam.value.find(g =>
+            g.copies.some(c => c.status === 'FINALIZED' || c.status === 'GRADED')
+        )
+        if (firstGradedGroup && !activeStatsExamId.value) {
+            await fetchExamStats(firstGradedGroup.examId)
+            activeStatsExamId.value = firstGradedGroup.examId
+        }
 
         // Fetch teacher's own students' finalized copies
         fetchMyStudents()
@@ -223,8 +216,8 @@ const fetchCopies = async () => {
 const fetchAllExams = async () => {
     if (!selectedExamType.value) return
     try {
-        const response = await api.get('/exams/', { 
-            params: { exam_type_id: selectedExamType.value.id } 
+        const response = await api.get('/exams/', {
+            params: { exam_type_id: selectedExamType.value.id }
         })
         allExams.value = normalizeCollectionResponse(response.data)
     } catch (err) {
@@ -237,8 +230,8 @@ const fetchMyStudents = async () => {
     if (!selectedExamType.value) return
     myStudentsLoading.value = true
     try {
-        const response = await api.get('/grading/my-students/', { 
-            params: { exam_type_id: selectedExamType.value.id } 
+        const response = await api.get('/grading/my-students/', {
+            params: { exam_type_id: selectedExamType.value.id }
         })
         myStudents.value = Array.isArray(response.data?.students) ? response.data.students : []
     } catch (err) {
@@ -263,28 +256,24 @@ const fetchQuestionnaireStatus = async () => {
     }
 }
 
-const fetchStats = async () => {
-    if (!copies.value.length) return
-    statsLoading.value = true
+// Fetch et stocke les stats d'un examen donné
+const fetchExamStats = async (examId) => {
+    if (!examId || examStatsMap.value[examId]) return
+    statsLoadingMap.value = { ...statsLoadingMap.value, [examId]: true }
     try {
-        // Get exam_id from first copy (exam is an object with .id or a direct UUID)
-        const examRaw = copies.value[0]?.exam
-        const examId = typeof examRaw === 'object' ? examRaw?.id : examRaw
-        if (examId) {
-            examStats.value = await gradingApi.fetchExamStats(examId)
-        }
+        const stats = await gradingApi.fetchExamStats(examId)
+        examStatsMap.value = { ...examStatsMap.value, [examId]: stats }
     } catch (err) {
-        console.error("Failed to fetch stats", err)
+        console.error("Failed to fetch stats for exam", examId, err)
     } finally {
-        statsLoading.value = false
+        statsLoadingMap.value = { ...statsLoadingMap.value, [examId]: false }
     }
 }
 
-// Grouper les copies par examen (un même type peut avoir plusieurs examens)
+// Grouper les copies par examen
 const copiesByExam = computed(() => {
-    // Start with all exams of the selected type
     const groups = {}
-    for (const exam of allExams.value) {
+    for (const exam of (allExams.value || [])) {
         groups[exam.id] = {
             examId: exam.id,
             examName: exam.name,
@@ -294,22 +283,40 @@ const copiesByExam = computed(() => {
         }
     }
 
-    // Add copies to their respective groups
-    for (const copy of copies.value) {
+    for (const copy of (copies.value || [])) {
         const examId = copy.exam_details?.id || copy.exam || 'unknown'
         if (groups[examId]) {
             groups[examId].copies.push(copy)
         } else {
-            // Case where copy's exam is not in allExams (shouldn't happen with proper filtering)
             const examName = copy.exam_details?.name || copy.exam_name || 'Examen'
             const examDate = copy.exam_details?.date || ''
             const examTypeDetails = copy.exam_details?.exam_type_details || null
             groups[examId] = { examId, examName, examDate, examTypeDetails, copies: [copy] }
         }
     }
-    // Trier par nom d'examen
     return Object.values(groups).sort((a, b) => a.examName.localeCompare(b.examName))
 })
+
+// Nom de l'examen dont les stats sont affichées
+const activeStatsExamName = computed(() => {
+    if (!activeStatsExamId.value) return ''
+    const group = copiesByExam.value.find(g => g.examId === activeStatsExamId.value)
+    return group?.examName || examStats.value?.exam_name || ''
+})
+
+// Toggle stats pour un examen donné
+const toggleExamStats = async (examId) => {
+    if (activeStatsExamId.value === examId) {
+        activeStatsExamId.value = null
+        return
+    }
+    activeStatsExamId.value = examId
+    await fetchExamStats(examId)
+    nextTick(() => {
+        const el = document.getElementById('stats-section')
+        if (el) el.scrollIntoView({ behavior: 'smooth' })
+    })
+}
 
 // SVG chart dimensions
 const chartW = 700
@@ -381,7 +388,6 @@ const medianLineX = computed(() => {
 })
 
 onMounted(async () => {
-    // Restore exam type from storage
     examStore.restoreFromStorage()
 
     const promises = [fetchQuestionnaireStatus()]
@@ -415,27 +421,7 @@ const goToDesk = (copyId) => {
     router.push(`/corrector/desk/${copyId}`)
 }
 
-const toggleStats = async () => {
-    showStats.value = !showStats.value
-    if (showStats.value && !examStats.value) {
-        await fetchStats()
-    }
-}
-
-const scrollToStats = async () => {
-    showStats.value = true
-    if (!examStats.value) {
-        await fetchStats()
-    }
-    nextTick(() => {
-        const el = document.getElementById('stats-section')
-        if (el) el.scrollIntoView({ behavior: 'smooth' })
-    })
-}
-
 const goToMyStudents = (exam = null) => {
-    // Si on vient d'un exam-group spécifique, mémoriser l'exam_id pour que
-    // /corrector/my-students filtre strictement sur cet examen.
     if (exam && exam.examId) {
         examStore.setCurrentExam(exam.examId, exam.examName)
     } else {
@@ -475,8 +461,7 @@ const downloadCsv = async (examId, groupName, examName, assignmentType = 'classe
         if (groupName) {
             params.group_name = groupName
         }
-        
-        // Auto-detect level from group name prefix if possible
+
         if (groupName) {
             if (groupName.startsWith('T') || groupName.startsWith('Term')) params.level = 'terminale'
             else if (groupName.startsWith('1')) params.level = 'premiere'
@@ -487,7 +472,7 @@ const downloadCsv = async (examId, groupName, examName, assignmentType = 'classe
             params,
             responseType: 'blob'
         })
-        
+
         const url = window.URL.createObjectURL(new Blob([response.data]))
         const link = document.createElement('a')
         link.href = url
@@ -503,13 +488,11 @@ const downloadCsv = async (examId, groupName, examName, assignmentType = 'classe
     }
 }
 
-// --- Feature flags (computed from backend /me/ response) ---
-// show_jury_report: user has published jury reports for the currently selected exam type
+// --- Feature flags ---
 const canSeeJuryReport = computed(() => {
     const codes = authStore.user?.features?.jury_report_exam_codes ?? []
     return codes.includes(selectedExamType.value?.code)
 })
-// show_questionnaire: only members of the QUESTIONNAIRE_COORDINATOR group
 const canSeeQuestionnaire = computed(() =>
     authStore.user?.features?.show_questionnaire === true
 )
@@ -543,25 +526,6 @@ const canSeeQuestionnaire = computed(() =>
           Modifier mot de passe
         </button>
         <button
-          v-if="basicStats.graded > 0"
-          class="btn-nav-stats"
-          @click="scrollToStats"
-        >
-          <AppIcon name="bar-chart-3" :size="14" class="inline" /> Statistiques
-        </button>
-        <!-- Bouton global 'Mes Élèves' (fallback via exam_type_id).
-             Pour un filtrage STRICT par examen (BB_J1 vs BB_J2), utiliser
-             le bouton dans chaque exam-group-header ci-dessous. -->
-        <button
-          v-if="selectedExamType"
-          class="btn-my-students"
-          data-testid="btn-my-students-global"
-          @click="goToMyStudents(null)"
-          title="Voir tous mes élèves de ce type d'examen"
-        >
-          <AppIcon name="users" :size="14" class="inline" /> Mes Élèves
-        </button>
-        <button
           v-if="canSeeQuestionnaire && questionnaireStatusLoaded && !questionnaireSummary.has_response"
           class="btn-questionnaire"
           @click="goToQuestionnaire"
@@ -585,6 +549,7 @@ const canSeeQuestionnaire = computed(() =>
         <button
           class="btn-logout"
           @click="handleLogout"
+          data-testid="logout-button"
         >
           Déconnexion
         </button>
@@ -592,62 +557,57 @@ const canSeeQuestionnaire = computed(() =>
     </header>
 
     <main class="container">
+      <!-- KPIs globaux -->
       <div class="stats-overview">
         <div class="card stat">
           <h3>Copies Attribuées</h3>
-          <div class="value">
-            {{ basicStats.total }}
-          </div>
+          <div class="value">{{ basicStats.total }}</div>
         </div>
         <div class="card stat">
-          <h3>Corrigées</h3>
-          <div class="value success">
-            {{ basicStats.graded }}
-          </div>
+          <h3>Finalisées</h3>
+          <div class="value success">{{ basicStats.graded }}</div>
         </div>
         <div class="card stat">
           <h3>Reste à faire</h3>
-          <div class="value warning">
-            {{ basicStats.todo }}
-          </div>
+          <div class="value warning">{{ basicStats.todo }}</div>
         </div>
       </div>
 
-      <!-- Stats Toggle -->
-      <div
-        v-if="basicStats.graded > 0"
-        class="stats-toggle"
-      >
-        <button
-          class="btn-stats"
-          @click="toggleStats"
-        >
-          {{ showStats ? 'Masquer les statistiques' : 'Voir les statistiques' }}
-        </button>
+      <!-- Bilan pédagogique DNB (visible uniquement pour les examens DNB) -->
+      <div v-if="selectedExamType?.code === 'DNB_2026'">
+        <BilanButton exam-name="DNB_2026" />
       </div>
 
-      <!-- Charts Section -->
+      <!-- ════════════════════════════════════════════
+           SECTION STATS (s'affiche sous les copies,
+           contextuelle à l'examen sélectionné)
+           ════════════════════════════════════════════ -->
       <div
         v-if="showStats"
         id="stats-section"
         class="charts-section"
       >
-        <div
-          v-if="statsLoading"
-          class="loading"
-        >
+        <div class="stats-section-title">
+          <AppIcon name="bar-chart-3" :size="16" />
+          Statistiques — <strong>{{ activeStatsExamName }}</strong>
+          <button class="btn-close-stats" @click="activeStatsExamId = null" title="Fermer les statistiques">
+            <AppIcon name="x" :size="14" />
+          </button>
+        </div>
+
+        <div v-if="statsLoading" class="loading">
           Chargement des statistiques...
         </div>
 
         <template v-else-if="examStats">
-          <!-- Comparative Stats -->
+          <!-- Indicateurs comparatifs -->
           <div class="comparative-stats">
             <h3>Indicateurs Comparatifs</h3>
             <div
               v-if="!examStats.all_graded"
               class="partial-warning"
             >
-              Statistiques globales partielles ({{ examStats.graded_copies }}/{{ examStats.total_copies }} copies corrigées)
+              Statistiques partielles ({{ examStats.graded_copies }}/{{ examStats.total_copies }} copies corrigées)
             </div>
             <table class="stats-table">
               <thead>
@@ -692,7 +652,7 @@ const canSeeQuestionnaire = computed(() =>
             </table>
           </div>
 
-          <!-- Combined Distribution Chart (SVG Line) -->
+          <!-- Courbe de répartition -->
           <div
             v-if="mergedBins.length"
             class="chart-container"
@@ -709,7 +669,6 @@ const canSeeQuestionnaire = computed(() =>
               </div>
             </div>
             <svg :viewBox="`0 0 ${chartW} ${chartH}`" class="svg-chart" preserveAspectRatio="xMidYMid meet">
-              <!-- Grid lines -->
               <line v-for="t in yTicks" :key="'gy'+t"
                 :x1="padL" :x2="chartW - padR" :y1="toY(t)" :y2="toY(t)"
                 stroke="#e2e8f0" stroke-width="0.5" />
@@ -717,21 +676,17 @@ const canSeeQuestionnaire = computed(() =>
                 :x1="toX(n-1)" :x2="toX(n-1)" :y1="padT" :y2="padT + plotH"
                 stroke="#f1f5f9" stroke-width="0.5" />
 
-              <!-- Area fills -->
               <path :d="globalArea" fill="#10b98120" />
               <path :d="lotArea" fill="#6366f120" />
 
-              <!-- Curves -->
               <path :d="globalPath" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linejoin="round" />
               <path :d="lotPath" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linejoin="round" />
 
-              <!-- Data points -->
               <template v-for="b in mergedBins" :key="'dp'+b.note">
                 <circle v-if="b.globalCount > 0" :cx="toX(b.note)" :cy="toY(b.globalCount)" r="3" fill="#10b981" />
                 <circle v-if="b.lotCount > 0" :cx="toX(b.note)" :cy="toY(b.lotCount)" r="3" fill="#6366f1" />
               </template>
 
-              <!-- Mean vertical line -->
               <line v-if="meanLineX != null"
                 :x1="meanLineX" :x2="meanLineX" :y1="padT" :y2="padT + plotH"
                 stroke="#ef4444" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.7" />
@@ -741,7 +696,6 @@ const canSeeQuestionnaire = computed(() =>
                 μ={{ examStats.global_stats?.mean }}
               </text>
 
-              <!-- Median vertical line -->
               <line v-if="medianLineX != null"
                 :x1="medianLineX" :x2="medianLineX" :y1="padT" :y2="padT + plotH"
                 stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.7" />
@@ -751,27 +705,23 @@ const canSeeQuestionnaire = computed(() =>
                 Méd={{ examStats.global_stats?.median }}
               </text>
 
-              <!-- X axis labels -->
               <text v-for="n in 21" :key="'xl'+n"
                 :x="toX(n-1)" :y="padT + plotH + 14"
                 text-anchor="middle" fill="#64748b" font-size="9">
                 {{ n - 1 }}
               </text>
-
-              <!-- Y axis labels -->
               <text v-for="t in yTicks" :key="'yl'+t"
                 :x="padL - 6" :y="toY(t) + 3"
                 text-anchor="end" fill="#94a3b8" font-size="9">
                 {{ t }}
               </text>
 
-              <!-- Axes -->
               <line :x1="padL" :x2="chartW - padR" :y1="padT + plotH" :y2="padT + plotH" stroke="#cbd5e1" stroke-width="1" />
               <line :x1="padL" :x2="padL" :y1="padT" :y2="padT + plotH" stroke="#cbd5e1" stroke-width="1" />
             </svg>
           </div>
 
-          <!-- Group Stats Table -->
+          <!-- Stats par groupe -->
           <div
             v-if="examStats.group_stats && examStats.group_stats.length"
             class="group-stats-section"
@@ -807,7 +757,7 @@ const canSeeQuestionnaire = computed(() =>
                     <td class="count-above">{{ g.above_mean }}</td>
                     <td class="count-below">{{ g.below_mean }}</td>
                     <td class="action-cell">
-                      <button 
+                      <button
                         class="btn-export-table"
                         @click="downloadCsv(examStats.exam_id, g.groupe, examStats.exam_name, g.type || 'groupe')"
                         :disabled="isExporting === `${examStats.exam_id}_${g.groupe}`"
@@ -837,8 +787,11 @@ const canSeeQuestionnaire = computed(() =>
         </template>
       </div>
 
+      <!-- ════════════════════════════════════════════
+           LISTE DES COPIES groupées par examen
+           ════════════════════════════════════════════ -->
       <div class="task-list">
-        <h2>Vos copies à corriger</h2>
+        <h2>Vos copies</h2>
         <div
           v-if="isLoading"
           class="loading"
@@ -846,12 +799,12 @@ const canSeeQuestionnaire = computed(() =>
           Chargement des copies…
         </div>
         <template v-else>
-          <!-- Groupement par examen -->
           <div
             v-for="group in copiesByExam"
             :key="group.examId"
             class="exam-group"
           >
+            <!-- En-tête de groupe d'examen -->
             <div class="exam-group-header">
               <div class="exam-group-title">
                 <span v-if="group.examTypeDetails" class="exam-type-badge inline" :style="{ backgroundColor: group.examTypeDetails.color + '20', color: group.examTypeDetails.color }">
@@ -861,17 +814,46 @@ const canSeeQuestionnaire = computed(() =>
                 <span v-if="group.examDate" class="exam-date-tag">{{ group.examDate }}</span>
               </div>
               <div class="exam-group-meta">
-                <span class="meta-chip todo">{{ group.copies.filter(c => c.status === 'READY').length }} à corriger</span>
-                <span class="meta-chip done">{{ group.copies.filter(c => c.status === 'FINALIZED').length }} finalisées</span>
+                <!-- Compteurs par état -->
+                <span
+                  v-if="group.copies.filter(c => c.status === 'READY').length > 0"
+                  class="meta-chip ready"
+                >
+                  {{ group.copies.filter(c => c.status === 'READY').length }} à corriger
+                </span>
+                <span
+                  v-if="group.copies.filter(c => c.status === 'IN_PROGRESS').length > 0"
+                  class="meta-chip in-progress"
+                >
+                  {{ group.copies.filter(c => c.status === 'IN_PROGRESS').length }} en cours
+                </span>
+                <span
+                  v-if="group.copies.filter(c => c.status === 'FINALIZED' || c.status === 'GRADED').length > 0"
+                  class="meta-chip done"
+                >
+                  {{ group.copies.filter(c => c.status === 'FINALIZED' || c.status === 'GRADED').length }} finalisées
+                </span>
+                <!-- Bouton stats (visible dès qu'il y a des copies finalisées) -->
+                <button
+                  v-if="group.copies.some(c => c.status === 'FINALIZED' || c.status === 'GRADED')"
+                  :class="['btn-stats-inline', { active: activeStatsExamId === group.examId }]"
+                  @click="toggleExamStats(group.examId)"
+                  :title="activeStatsExamId === group.examId ? 'Masquer les statistiques' : 'Voir les statistiques de cet examen'"
+                >
+                  <AppIcon name="bar-chart-3" :size="13" />
+                  {{ activeStatsExamId === group.examId ? 'Masquer stats' : 'Statistiques' }}
+                </button>
+                <!-- Bouton Mes Élèves (strict par examen) -->
                 <button
                   class="btn-my-students-inline"
                   data-testid="btn-my-students-inline"
                   :data-exam-id="group.examId"
                   @click="goToMyStudents(group)"
-                  title="Voir mes élèves de cet examen (copies finalisées uniquement)"
+                  title="Voir mes élèves de cet examen (copies finalisées)"
                 >
                   <AppIcon name="users" :size="14" class="inline" /> Mes Élèves
                 </button>
+                <!-- Export CSV -->
                 <button
                   class="btn-export-inline"
                   @click="downloadCsv(group.examId, null, group.examName)"
@@ -883,6 +865,7 @@ const canSeeQuestionnaire = computed(() =>
               </div>
             </div>
 
+            <!-- Copies de cet examen -->
             <div
               v-for="copy in group.copies"
               :key="copy.id"
@@ -904,7 +887,7 @@ const canSeeQuestionnaire = computed(() =>
                   data-testid="copy-action"
                   @click="goToDesk(copy.id)"
                 >
-                  {{ copy.status === 'FINALIZED' ? 'Consulter' : 'Corriger' }}
+                  {{ (copy.status === 'FINALIZED' || copy.status === 'GRADED') ? 'Consulter' : 'Corriger' }}
                 </button>
               </div>
               <!-- Barre de progression par question -->
@@ -929,10 +912,15 @@ const canSeeQuestionnaire = computed(() =>
                 </div>
               </div>
             </div>
+
+            <!-- État vide pour cet examen -->
+            <div v-if="group.copies.length === 0" class="empty-exam-group">
+              Aucune copie attribuée pour cet examen.
+            </div>
           </div>
 
           <div
-            v-if="copies.length === 0"
+            v-if="copies.length === 0 && !isLoading"
             class="empty-state"
           >
             Aucune copie disponible pour le moment.
@@ -940,11 +928,23 @@ const canSeeQuestionnaire = computed(() =>
         </template>
       </div>
 
-      <!-- Section: Bilan des élèves (pour les enseignants) -->
+      <!-- ════════════════════════════════════════════
+           BILAN DES ÉLÈVES (enseignant)
+           ════════════════════════════════════════════ -->
       <div v-if="selectedExamType && (myStudents.length > 0 || myStudentsLoading)" class="task-list my-students-section">
         <div class="section-header">
           <h2>Bilan de vos élèves — {{ selectedExamType.name }}</h2>
-          <span v-if="!myStudentsLoading" class="count-badge">{{ myStudents.length }} élève(s)</span>
+          <div class="section-actions">
+            <button
+              class="btn-my-students-global"
+              data-testid="btn-my-students-global"
+              @click="goToMyStudents()"
+              title="Voir la page complète Mes Élèves"
+            >
+              <AppIcon name="users" :size="14" class="inline" /> Mes Élèves
+            </button>
+            <span v-if="!myStudentsLoading" class="count-badge">{{ myStudents.length }} élève(s)</span>
+          </div>
         </div>
 
         <div v-if="myStudentsLoading" class="loading">
@@ -953,9 +953,9 @@ const canSeeQuestionnaire = computed(() =>
 
         <template v-else>
           <div class="students-results-grid">
-            <div 
-              v-for="student in myStudents" 
-              :key="student.id" 
+            <div
+              v-for="student in myStudents"
+              :key="student.id"
               class="student-result-card"
               @click="goToStudentBilan(student.id)"
             >
@@ -964,7 +964,7 @@ const canSeeQuestionnaire = computed(() =>
                   <div class="name">{{ student.last_name }} {{ student.first_name }}</div>
                   <div class="meta">{{ student.class_name }} <span v-if="student.groupe" class="bullet">•</span> {{ student.groupe }}</div>
                 </div>
-                
+
                 <div class="student-copies-list">
                   <div v-for="copy in student.copies" :key="copy.copy_id" class="mini-copy-info">
                     <span class="exam-tag">{{ copy.exam_name }}</span>
@@ -1005,10 +1005,6 @@ const canSeeQuestionnaire = computed(() =>
 .brand { font-weight: 700; color: #0f172a; font-size: 1.1rem; }
 .user-menu { display: flex; gap: 1rem; align-items: center; font-size: 0.9rem; }
 .btn-text { background: none; border: none; color: #64748b; cursor: pointer; text-decoration: underline; font-size: 0.85rem; }
-.btn-nav-stats { background: #6366f1; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
-.btn-nav-stats:hover { background: #4f46e5; }
-.btn-my-students { background: #10b981; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
-.btn-my-students:hover { background: #059669; }
 .btn-questionnaire { background: #b45309; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
 .btn-questionnaire:hover { background: #92400e; }
 .btn-questionnaire-bilan { background: #7c3aed; color: white; border: none; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; }
@@ -1017,6 +1013,11 @@ const canSeeQuestionnaire = computed(() =>
 .btn-jury-report:hover { background: #d97706; }
 .btn-logout { border: 1px solid #ef4444; background: white; color: #ef4444; cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 4px; }
 .btn-logout:hover { background: #ef4444; color: white; }
+
+.section-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.section-actions { display: flex; align-items: center; gap: 0.75rem; }
+.btn-my-students-global { border: 1px solid #e2e8f0; background: white; color: #0f172a; cursor: pointer; font-weight: 600; padding: 6px 10px; border-radius: 8px; }
+.btn-my-students-global:hover { background: #f1f5f9; }
 
 .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
 
@@ -1027,12 +1028,34 @@ const canSeeQuestionnaire = computed(() =>
 .value.success { color: #10b981; }
 .value.warning { color: #f59e0b; }
 
-.stats-toggle { text-align: center; margin-bottom: 1.5rem; }
-.btn-stats { padding: 0.5rem 1.5rem; background: #6366f1; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; }
-.btn-stats:hover { background: #4f46e5; }
-
+/* Section stats */
 .charts-section { margin-bottom: 2rem; }
-.comparative-stats { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.stats-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: #1e293b;
+  font-weight: 600;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 0.75rem 1rem;
+}
+.btn-close-stats {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+.btn-close-stats:hover { color: #475569; }
+
+.comparative-stats { background: white; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
 .comparative-stats h3 { margin: 0 0 1rem 0; font-size: 1rem; color: #1e293b; }
 .partial-warning { background: #fef3c7; color: #92400e; padding: 0.5rem 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.85rem; }
 .stats-table { width: 100%; border-collapse: collapse; }
@@ -1040,7 +1063,7 @@ const canSeeQuestionnaire = computed(() =>
 .stats-table th { background: #f8fafc; font-weight: 600; font-size: 0.85rem; color: #64748b; }
 .stats-table td:first-child { text-align: left; font-weight: 500; }
 
-.chart-container { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.chart-container { background: white; padding: 1.5rem; border-radius: 0; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
 .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
 .chart-header h3 { margin: 0; font-size: 1rem; color: #1e293b; }
 .chart-legend { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
@@ -1053,7 +1076,7 @@ const canSeeQuestionnaire = computed(() =>
 .median-line { border-color: #f59e0b; }
 .svg-chart { width: 100%; height: auto; max-height: 260px; }
 
-.group-stats-section { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.group-stats-section { background: white; padding: 1.5rem; border-radius: 0 0 8px 8px; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
 .group-stats-section h3 { margin: 0 0 1rem 0; font-size: 1rem; color: #1e293b; }
 .group-table-wrapper { overflow-x: auto; }
 .group-stats-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
@@ -1076,7 +1099,6 @@ const canSeeQuestionnaire = computed(() =>
   justify-content: space-between;
   align-items: center;
   background: white;
-  border-left: 4px solid #6366f1;
   padding: 0.75rem 1rem;
   border-radius: 6px 6px 0 0;
   border: 1px solid #e2e8f0;
@@ -1092,18 +1114,31 @@ const canSeeQuestionnaire = computed(() =>
   color: #1e293b;
 }
 .exam-date-tag { font-size: 0.78rem; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 400; }
-.exam-group-meta { display: flex; gap: 0.5rem; align-items: center; }
+.exam-group-meta { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .meta-chip { font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
-.meta-chip.todo { background: #dbeafe; color: #1d4ed8; }
+.meta-chip.ready { background: #dbeafe; color: #1d4ed8; }
+.meta-chip.in-progress { background: #fef3c7; color: #92400e; }
 .meta-chip.done { background: #dcfce7; color: #166534; }
+
+/* Bouton stats inline dans le header d'examen */
+.btn-stats-inline {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
+  padding: 4px 10px; border-radius: 14px; font-size: 0.78rem;
+  font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.btn-stats-inline:hover { background: #e2e8f0; color: #1e293b; }
+.btn-stats-inline.active { background: #6366f1; color: white; border-color: #6366f1; }
+.btn-stats-inline.active:hover { background: #4f46e5; }
+
 .btn-my-students-inline {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: #6366f1; color: white; border: none;
-    padding: 4px 10px; border-radius: 14px; font-size: 0.78rem;
-    font-weight: 600; cursor: pointer; transition: background 0.2s;
-    margin-left: 4px;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #6366f1; color: white; border: none;
+  padding: 4px 10px; border-radius: 14px; font-size: 0.78rem;
+  font-weight: 600; cursor: pointer; transition: background 0.2s;
 }
 .btn-my-students-inline:hover { background: #4f46e5; }
+
 .exam-group .copy-card { border-top: none; border-radius: 0; border-color: #e2e8f0; }
 .exam-group .copy-card:last-child { border-radius: 0 0 8px 8px; }
 
@@ -1123,22 +1158,23 @@ const canSeeQuestionnaire = computed(() =>
 .copy-id { font-size: 0.875rem; color: #64748b; }
 .copy-status { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; }
 .copy-status.ready { background: #dbeafe; color: #1d4ed8; }
-.copy-status.locked { background: #fef3c7; color: #92400e; }
+.copy-status.in_progress { background: #fef3c7; color: #92400e; }
+.copy-status.locked { background: #fee2e2; color: #991b1b; }
 .copy-status.graded { background: #dcfce7; color: #166534; }
+.copy-status.finalized { background: #dcfce7; color: #166534; }
 .copy-status.staging { background: #f1f5f9; color: #64748b; }
-.copy-status.grading_in_progress { background: #fef3c7; color: #92400e; }
 
 /* ExamType Badge */
 .exam-type-badge {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: white;
-    font-size: 0.70rem;
-    font-weight: 600;
-    margin-right: 6px;
-    vertical-align: middle;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: white;
+  font-size: 0.70rem;
+  font-weight: 600;
+  margin-right: 6px;
+  vertical-align: middle;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 /* Per-copy scoring progress */
@@ -1159,6 +1195,7 @@ const canSeeQuestionnaire = computed(() =>
 
 .loading { text-align: center; padding: 2rem; color: #64748b; }
 .empty-state { text-align: center; padding: 2rem; color: #94a3b8; }
+.empty-exam-group { padding: 1rem; text-align: center; color: #94a3b8; font-size: 0.85rem; background: white; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px; }
 
 /* Section: Bilan des élèves */
 .my-students-section { margin-top: 3rem; }
@@ -1167,9 +1204,9 @@ const canSeeQuestionnaire = computed(() =>
 .count-badge { background: #eef2ff; color: #6366f1; padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
 
 .students-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
-.student-result-card { 
-    background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem; 
-    cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; gap: 0.75rem;
+.student-result-card {
+  background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;
+  cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; gap: 0.75rem;
 }
 .student-result-card:hover { border-color: #6366f1; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08); transform: translateY(-2px); }
 
@@ -1202,37 +1239,24 @@ const canSeeQuestionnaire = computed(() =>
   gap: 4px;
   transition: all 0.2s;
 }
-.btn-export-table:hover:not(:disabled) {
-  background: #4f46e5;
-  transform: translateY(-1px);
-}
-.btn-export-table:disabled {
-  background: #94a3b8;
-  cursor: not-allowed;
-}
-.action-cell {
-  padding-left: 1rem;
-}
+.btn-export-table:hover:not(:disabled) { background: #4f46e5; transform: translateY(-1px); }
+.btn-export-table:disabled { background: #94a3b8; cursor: not-allowed; }
+.action-cell { padding-left: 1rem; }
+
 .btn-export-inline {
   background: #10b981;
   color: white;
   border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   transition: all 0.2s;
 }
-.btn-export-inline:hover:not(:disabled) {
-  background: #059669;
-  transform: translateY(-1px);
-}
-.btn-export-inline:disabled {
-  background: #94a3b8;
-  cursor: not-allowed;
-}
+.btn-export-inline:hover:not(:disabled) { background: #059669; }
+.btn-export-inline:disabled { background: #94a3b8; cursor: not-allowed; }
 </style>

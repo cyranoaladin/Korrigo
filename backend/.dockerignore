@@ -40,6 +40,12 @@ ocr_matching.py
 
 # Log files (created at runtime)
 logs/*.log
+logs/
+
+# Runtime/stateful directories (must not be baked into images)
+media/
+seed_data/
+staticfiles/
 
 # Scripts directory
 scripts/

@@ -32,7 +32,14 @@ def extract_leaf_questions(grading_structure):
 
     result = []
 
-    def _walk(items, parent_label='', position_prefix='', exercise_idx=0):
+    def _walk(
+        items,
+        parent_label='',
+        position_prefix='',
+        exercise_idx=0,
+        inherited_domain='',
+        inherited_competence='',
+    ):
         for idx, item in enumerate(items):
             item_id = str(item.get('id', '')) if item.get('id') else ''
             label = (
@@ -40,6 +47,38 @@ def extract_leaf_questions(grading_structure):
                 or item.get('title', '')
                 or item.get('name', '')
             )
+
+            # Optional pedagogical metadata (may exist in some grading structures).
+            # We keep it if present, and propagate it down the tree.
+            domain = inherited_domain
+            competence = inherited_competence
+
+            for k in ('domain', 'domaine', 'programme_domain', 'program_domain', 'dnb_domain'):
+                v = item.get(k)
+                if isinstance(v, str) and v.strip():
+                    domain = v.strip()
+                    break
+
+            for k in (
+                'competence',
+                'compétence',
+                'competences',
+                'compétences',
+                'competency',
+                'competencies',
+                'dnb_competence',
+            ):
+                v = item.get(k)
+                if isinstance(v, str) and v.strip():
+                    competence = v.strip()
+                    break
+                if isinstance(v, list):
+                    # Keep a readable joined version (engine may parse it later).
+                    parts = [str(x).strip() for x in v if str(x).strip()]
+                    if parts:
+                        competence = " | ".join(parts)
+                        break
+
             points = (
                 item.get('points')
                 or item.get('max_score')
@@ -66,6 +105,8 @@ def extract_leaf_questions(grading_structure):
                     # else positional. But always pass positional for pos tracking.
                     position_prefix=pos,
                     exercise_idx=exercise_idx or (idx + 1),
+                    inherited_domain=domain,
+                    inherited_competence=competence,
                 )
             else:
                 # Leaf: primary ID = explicit id or positional
@@ -81,6 +122,8 @@ def extract_leaf_questions(grading_structure):
                     'label': display,
                     'points': float(points) if points else 0.0,
                     'exercise_idx': exercise_idx or (idx + 1),
+                    'domain': domain,
+                    'competence': competence,
                 })
 
     _walk(gs)

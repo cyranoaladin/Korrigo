@@ -105,6 +105,17 @@
       </router-link>
 
       <router-link
+        to="/admin/bilan"
+        class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
+        :class="route.path === '/admin/bilan' || route.path.startsWith('/admin/bilan/')
+          ? 'bg-blue-600 text-white'
+          : 'text-gray-300 hover:bg-gray-800 hover:text-white'"
+      >
+        <AppIcon name="file-text" :size="16" />
+        <span>Bilans DNB</span>
+      </router-link>
+
+      <router-link
         to="/admin/settings"
         class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
         :class="route.path === '/admin/settings'
@@ -121,6 +132,7 @@
         type="button"
         class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-gray-800 hover:text-red-300 transition-colors"
         @click="handleLogout"
+        data-testid="logout-button"
       >
         <AppIcon name="logout" :size="16" />
         <span>Déconnexion</span>

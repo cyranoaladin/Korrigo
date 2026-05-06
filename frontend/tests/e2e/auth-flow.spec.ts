@@ -1,14 +1,5 @@
 import { test, expect } from '@playwright/test'
-
-const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8088'
-
-// --- Credentials (override via env vars in CI) ---
-const ADMIN_USER = process.env.E2E_ADMIN_USERNAME || process.env.E2E_ADMIN_USER || 'admin'
-const ADMIN_PASS = process.env.E2E_ADMIN_PASSWORD || process.env.E2E_ADMIN_PASS || 'admin'
-const TEACHER_USER = process.env.E2E_TEACHER_USER || 'enseignant'
-const TEACHER_PASS = process.env.E2E_TEACHER_PASS || 'enseignant'
-const STUDENT_EMAIL = process.env.E2E_STUDENT_EMAIL || 'eleve.test-e@ert.tn'
-const STUDENT_PASS = process.env.E2E_STUDENT_PASS || '01012007'
+import { ADMIN_USER, ADMIN_PASS, TEACHER_USER, TEACHER_PASS, STUDENT_EMAIL, STUDENT_PASS } from './e2eEnv'
 
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -78,7 +69,7 @@ test.describe('Authentication Flow', () => {
     await page.locator('button[type="submit"]').click()
 
     // Should redirect to student portal (or change-password on first login)
-    await page.waitForURL(/student-portal|student\/change-password/, { timeout: 10000 })
+    await page.waitForURL(/student-portal|student\/change-password|student\/dashboard/, { timeout: 10000 })
     // Page should have loaded without staying on login
     expect(page.url()).not.toContain('/student/login')
   })
@@ -112,7 +103,7 @@ test.describe('Authentication Flow', () => {
     await page.locator('[data-testid="logout-button"]').click()
 
     // Should be redirected to portal (home) or login
-    await page.waitForURL(/^\/$|\/admin\/login/, { timeout: 10000 })
+    await page.waitForURL(/\/($|admin\/login)/, { timeout: 10000 })
     // Admin dashboard should no longer be visible
     await expect(page.locator('[data-testid="admin-dashboard"]')).not.toBeVisible()
   })
@@ -147,7 +138,7 @@ test.describe('Authentication Flow', () => {
     await page.waitForLoadState('networkidle')
 
     // Should be redirected to / (portal) because requiresAuth guard kicks in
-    await page.waitForURL(/^\/$/, { timeout: 10000 })
+    await page.waitForURL(/\/$/, { timeout: 10000 })
     // Admin dashboard should NOT be visible
     await expect(page.locator('[data-testid="admin-dashboard"]')).not.toBeVisible()
   })
@@ -167,7 +158,7 @@ test.describe('Authentication Flow', () => {
 
     // Logout
     await page.locator('[data-testid="logout-button"]').click()
-    await page.waitForURL(/^\/$|\/admin\/login/, { timeout: 10000 })
+    await page.waitForURL(/\/($|admin\/login)/, { timeout: 10000 })
 
     // Press browser back button
     await page.goBack()
@@ -178,7 +169,7 @@ test.describe('Authentication Flow', () => {
     const onDashboard = await page.locator('[data-testid="admin-dashboard"]').isVisible().catch(() => false)
     if (onDashboard) {
       // If the page rendered from bfcache, it should detect no session and redirect
-      await page.waitForURL(/^\/$|\/admin\/login/, { timeout: 5000 })
+      await page.waitForURL(/\/($|admin\/login)/, { timeout: 5000 })
     }
     expect(page.url()).not.toContain('/admin/dashboard')
   })

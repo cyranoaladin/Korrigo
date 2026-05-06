@@ -200,6 +200,18 @@ const routes = [
                 name: 'QuestionnaireBilan',
                 component: () => import('../views/admin/QuestionnaireBilan.vue'),
                 meta: { title: 'Bilan Questionnaire Correcteurs' }
+            },
+            {
+                path: 'bilan',
+                name: 'BilanList',
+                component: () => import('../views/admin/BilanList.vue'),
+                meta: { title: 'Bilans Pédagogiques DNB' }
+            },
+            {
+                path: 'bilan/:id',
+                name: 'BilanDetail',
+                component: () => import('../views/admin/BilanDetail.vue'),
+                meta: { title: 'Détail du Bilan DNB' }
             }
         ]
     },

@@ -9,6 +9,7 @@ import os
 import django
 import shutil
 from django.utils import timezone
+from datetime import timedelta
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 django.setup()
@@ -285,6 +286,8 @@ def main():
         name=f"{E2E_EXAM_PREFIX} {timezone.now().strftime('%Y%m%d-%H%M%S')}",
         date=timezone.now().date(),
         exam_type=exam_type,
+        # Allow student portal to access results in E2E.
+        results_released_at=timezone.now() - timedelta(days=1),
         grading_structure=[
             {"id": "q1", "label": "Question 1", "points": 12},
             {"id": "q2", "label": "Question 2", "points": 8},

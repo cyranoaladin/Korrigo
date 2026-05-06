@@ -1,12 +1,10 @@
 import { test, expect, type Page } from '@playwright/test'
+import { TEACHER_USER, TEACHER_PASS } from './e2eEnv'
 
 const EXAM_TYPE_NAME = 'E2E Mathématiques'
 const STUDENT_FULL_NAME = 'E2E_STUDENT Jean'
 
 async function loginAsTeacher(page: Page) {
-  const username = process.env.E2E_TEACHER_USERNAME || process.env.E2E_TEACHER_USER || 'prof1'
-  const password = process.env.E2E_TEACHER_PASSWORD || process.env.E2E_TEACHER_PASS || 'password'
-
   await page.goto('/login', { waitUntil: 'domcontentloaded' })
 
   const loginResult = await page.evaluate(async ({ username: user, password: pass }) => {
@@ -22,7 +20,7 @@ async function loginAsTeacher(page: Page) {
       status: response.status,
       body: await response.text(),
     }
-  }, { username, password })
+  }, { username: TEACHER_USER, password: TEACHER_PASS })
 
   expect(loginResult.ok, `Teacher login failed: HTTP ${loginResult.status}\n${loginResult.body}`).toBeTruthy()
 

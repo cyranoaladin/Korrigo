@@ -50,6 +50,9 @@ const copyPositionLabel = computed(() => {
 const scale = ref(1.0)
 const currentPage = ref(1)
 const pdfDimensions = ref({ width: 0, height: 0 })
+// Reserve a stable page box before the first image loads (prevents 0x0 layout + scrollHeight jumps).
+// Matches E2E seed images (1000x1414) and keeps √2 aspect ratio.
+const FALLBACK_PAGE_DIMENSIONS = { width: 1000, height: 1414 }
 const imageError = ref(false)
 const imageLoaded = ref(false)
 const scrollAreaRef = ref(null)
@@ -209,8 +212,8 @@ const getAnnotationsForPage = (pageIndex) => {
     return annotations.value.filter(a => a.page_index === pageIndex)
 }
 
-const displayWidth = computed(() => pdfDimensions.value.width * scale.value)
-const displayHeight = computed(() => pdfDimensions.value.height * scale.value)
+const displayWidth = computed(() => (pdfDimensions.value.width || FALLBACK_PAGE_DIMENSIONS.width) * scale.value)
+const displayHeight = computed(() => (pdfDimensions.value.height || FALLBACK_PAGE_DIMENSIONS.height) * scale.value)
 
 const gradingStructure = computed(() => {
     if (!copy.value?.exam_details?.grading_structure) return []
@@ -1733,10 +1736,9 @@ onUnmounted(() => {
               @dragleave="handleDragLeave"
               @drop="(e) => handleDrop(e, idx)"
             >
-              <!-- Anonymization overlay per page (only after image loaded to prevent 0x0 flash) -->
+              <!-- Anonymization overlay per page -->
               <div
-                v-if="loadedPages.has(idx)"
-                v-show="isHeaderPageForIndex(idx) && !showIdentity"
+                v-show="loadedPages.has(idx) && isHeaderPageForIndex(idx) && !showIdentity"
                 class="anonymization-overlay"
                 :style="{ height: overlayHeightForIndex(idx) }"
               >
@@ -1766,12 +1768,11 @@ onUnmounted(() => {
                 @contextmenu.prevent
               >
               <CanvasLayer
-                v-if="loadedPages.has(idx)"
                 :width="displayWidth"
                 :height="displayHeight"
                 :scale="scale"
                 :initial-annotations="getAnnotationsForPage(idx)"
-                :enabled="canAnnotate && !showEditor"
+                :enabled="loadedPages.has(idx) && canAnnotate && !showEditor"
                 @annotation-created="(rect) => handleDrawComplete(rect, null, idx)"
                 @annotation-clicked="handleAnnotationClick"
               />
@@ -2297,6 +2298,11 @@ onUnmounted(() => {
 .workspace { display: flex; flex: 1; overflow: hidden; }
 .viewer-container { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .viewer-toolbar { padding: 8px 12px; background: white; border-bottom: 1px solid #dee2e6; display: flex; justify-content: center; gap: 12px; align-items: center; flex-wrap: wrap; }
+.pagination { display: flex; align-items: center; gap: 8px; }
+.pagination button { min-height: 25px; min-width: 25px; padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px; background: #f8f9fa; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+.pagination button:hover { background: #e9ecef; }
+.pagination button:disabled { opacity: 0.6; cursor: not-allowed; }
+.pagination span { font-size: 0.9rem; font-weight: 600; color: #1e293b; }
 .zoom-controls { display: flex; align-items: center; gap: 4px; }
 .zoom-controls button { padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px; background: #f8f9fa; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
 .zoom-controls button:hover { background: #e9ecef; }
@@ -2306,7 +2312,7 @@ onUnmounted(() => {
 
 .canvas-wrapper { position: relative; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); will-change: transform; flex-shrink: 0; }
 .page-image { width: 100%; height: 100%; display: block; opacity: 1; transition: opacity 0.15s ease-in; image-rendering: auto; }
-.page-image--loading { opacity: 0; }
+.page-image--loading { opacity: 0.25; }
 
 .anonymization-overlay {
     position: absolute;
@@ -2428,7 +2434,7 @@ onUnmounted(() => {
 .question-max-score { font-size: 0.85rem; color: #666; background: #e9ecef; padding: 2px 8px; border-radius: 4px; }
 .question-score-field { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 .question-score-field label { font-size: 0.85rem; color: #333; font-weight: 600; min-width: 40px; }
-.score-input { width: 65px; min-height: 36px; padding: 4px 6px; border: 1.5px solid #e2e8f0; border-radius: 6px; font-size: 0.95rem; font-weight: 500; text-align: center; transition: border-color 0.2s, background 0.2s; }
+.score-input { width: 65px; min-height: 40px; padding: 6px 8px; border: 1.5px solid #e2e8f0; border-radius: 6px; font-size: 0.95rem; font-weight: 500; text-align: center; transition: border-color 0.2s, background 0.2s; }
 .score-input:focus { outline: none; border-color: #7F77DD; box-shadow: 0 0 0 3px rgba(127,119,221,0.1); }
 .score-input.score-filled { border-color: #5DCAA5; background: #f0fdf9; }
 .score-input.score-missing { border-color: #e2e8f0; background: #fff; }

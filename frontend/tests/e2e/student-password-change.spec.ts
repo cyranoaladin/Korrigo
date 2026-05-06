@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test'
-
-const STUDENT_EMAIL = process.env.E2E_STUDENT_EMAIL || 'eleve.test-e@ert.tn'
-const STUDENT_PASS = process.env.E2E_STUDENT_PASS || '15032005'
+import { STUDENT_EMAIL, STUDENT_PASS } from './e2eEnv'
 
 test.describe('Student forced password change', () => {
   test('student can log in, change password, and reach the dashboard', async ({ page }) => {

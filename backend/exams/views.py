@@ -842,6 +842,29 @@ class StudentCopiesView(generics.ListAPIView):
         from exams.grading_utils import build_exercise_config
         return build_exercise_config(exam.grading_structure)
 
+    @staticmethod
+    def _get_file_version_ms(relative_path):
+        """Get file modification time in milliseconds for cache-busting."""
+        if not relative_path:
+            return None
+        from django.conf import settings
+        import os
+        full_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+        try:
+            return int(os.path.getmtime(full_path) * 1000)
+        except OSError:
+            return None
+
+    def _build_versioned_media_url(self, request, relative_path):
+        """Build protected media URL with version parameter."""
+        if not relative_path:
+            return None
+        version = self._get_file_version_ms(relative_path)
+        url = f'/api/media/{relative_path}'
+        if version is not None:
+            url = f'{url}?v={version}'
+        return request.build_absolute_uri(url)
+
     def _build_q_max(self, exam):
         """Dérive q_max depuis grading_structure, fallback sur score_constraints."""
         from exams.grading_utils import build_q_max as build_q_max_from_structure
@@ -915,7 +938,7 @@ class StudentCopiesView(generics.ListAPIView):
                 "date": copy.exam.date,
                 "total_score": total_score,
                 "status": copy.status,
-                "final_pdf_url": f"/api/grading/copies/{copy.id}/final-pdf/" if copy.final_pdf else None,
+                "final_pdf_url": self._build_versioned_media_url(request, copy.final_pdf.name) if copy.final_pdf else None,
                 "scores_details": scores_data,
                 "remarks": remarks,
                 "global_appreciation": copy.global_appreciation or '',

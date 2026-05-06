@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/auth'
 import api from '../../services/api'
 import { useAutoRefresh } from '../../composables/useAutoRefresh'
 import AppIcon from '../../icons/AppIcon.vue'
+import BilanCard from '../../components/admin/BilanCard.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -270,6 +271,15 @@ useAutoRefresh(fetchExams)
             <p class="text-xs text-slate-400 mt-1">enseignants actifs</p>
           </div>
         </div>
+      </section>
+
+      <!-- DNB Bilan Section -->
+      <section v-if="exams.some(exam => exam.name === 'DNB_2026')">
+        <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Bilan Pédagogique DNB 2026</h2>
+        <BilanCard 
+          :exam-id="exams.find(exam => exam.name === 'DNB_2026')?.id"
+          exam-name="DNB_2026"
+        />
       </section>
 
       <!-- Exams table -->

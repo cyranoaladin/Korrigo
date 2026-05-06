@@ -1,7 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-
-const TEACHER_USER = process.env.E2E_TEACHER_USER || 'enseignant'
-const TEACHER_PASS = process.env.E2E_TEACHER_PASS || 'enseignant'
+import { TEACHER_USER, TEACHER_PASS } from './e2eEnv'
 
 async function loginAsTeacher(page: Page) {
   await page.goto('/teacher/login')
@@ -267,10 +265,6 @@ test.describe('Annotation Tools — Comprehensive Tests', () => {
     const hasCopies = await openFirstCopyDesk(page)
     if (!hasCopies) return
 
-    // Make sure we're on the Annotations tab
-    const tabs = page.locator('.inspector-tabs button')
-    await tabs.first().click()
-
     const countBefore = await countAnnotations(page)
 
     const editorOpened = await drawAnnotationOnCanvas(page, 90, 150, 80, 50)
@@ -285,9 +279,6 @@ test.describe('Annotation Tools — Comprehensive Tests', () => {
     await loginAsTeacher(page)
     const hasCopies = await openFirstCopyDesk(page)
     if (!hasCopies) return
-
-    const tabs = page.locator('.inspector-tabs button')
-    await tabs.first().click()
 
     const countBefore = await countAnnotations(page)
 
@@ -311,9 +302,6 @@ test.describe('Annotation Tools — Comprehensive Tests', () => {
     await loginAsTeacher(page)
     const hasCopies = await openFirstCopyDesk(page)
     if (!hasCopies) return
-
-    const tabs = page.locator('.inspector-tabs button')
-    await tabs.first().click()
 
     const annotations = page.locator('[data-testid="annotation-item"]')
     const countBefore = await annotations.count()
@@ -452,9 +440,6 @@ test.describe('Annotation Tools — Comprehensive Tests', () => {
     const hasCopies = await openFirstCopyDesk(page)
     if (!hasCopies) return
 
-    const tabs = page.locator('.inspector-tabs button')
-    await tabs.first().click()
-
     const countBefore = await countAnnotations(page)
     let created = 0
 
@@ -477,9 +462,6 @@ test.describe('Annotation Tools — Comprehensive Tests', () => {
     await loginAsTeacher(page)
     const hasCopies = await openFirstCopyDesk(page)
     if (!hasCopies) return
-
-    const tabs = page.locator('.inspector-tabs button')
-    await tabs.first().click()
 
     // Count annotations on page 1
     const countPage1 = await countAnnotations(page)
@@ -516,9 +498,6 @@ test.describe('Annotation Tools — Comprehensive Tests', () => {
     const hasCopies = await openFirstCopyDesk(page)
     if (!hasCopies) return
 
-    const tabs = page.locator('.inspector-tabs button')
-    await tabs.first().click()
-
     const countBefore = await countAnnotations(page)
 
     // Reload the page
@@ -528,11 +507,6 @@ test.describe('Annotation Tools — Comprehensive Tests', () => {
       () => !document.querySelector('.loading-state'),
       { timeout: 15000 }
     )
-
-    // Make sure we're on the annotations tab
-    const tabsAfter = page.locator('.inspector-tabs button')
-    await tabsAfter.first().click()
-    await page.waitForTimeout(500)
 
     const countAfter = await countAnnotations(page)
     // Persisted annotations should still be there

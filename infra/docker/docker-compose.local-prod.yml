@@ -128,6 +128,7 @@ services:
       RATELIMIT_ENABLE: "false"
       E2E_TEST_MODE: "true"
       E2E_SEED_TOKEN: "${E2E_SEED_TOKEN:-}"
+      DJANGO_AUTO_MIGRATE: "false"
       # PRD-19: OCR configuration
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
       XDG_CACHE_HOME: "/app/.cache"
@@ -174,6 +175,7 @@ services:
       RATELIMIT_ENABLE: "false"
       E2E_TEST_MODE: "true"
       E2E_SEED_TOKEN: "${E2E_SEED_TOKEN:-}"
+      DJANGO_AUTO_MIGRATE: "false"
       # PRD-19: OCR configuration
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
       XDG_CACHE_HOME: "/app/.cache"

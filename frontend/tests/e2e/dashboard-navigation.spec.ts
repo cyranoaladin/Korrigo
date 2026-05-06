@@ -1,11 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-
-const TEACHER_USER = process.env.E2E_TEACHER_USER || 'enseignant'
-const TEACHER_PASS = process.env.E2E_TEACHER_PASS || 'enseignant'
-const ADMIN_USER = process.env.E2E_ADMIN_USERNAME || process.env.E2E_ADMIN_USER || 'admin'
-const ADMIN_PASS = process.env.E2E_ADMIN_PASSWORD || process.env.E2E_ADMIN_PASS || 'admin'
-const STUDENT_EMAIL = process.env.E2E_STUDENT_EMAIL || 'eleve.test-e@ert.tn'
-const STUDENT_PASS = process.env.E2E_STUDENT_PASS || '01012007'
+import { ADMIN_USER, ADMIN_PASS, TEACHER_USER, TEACHER_PASS, STUDENT_EMAIL, STUDENT_PASS } from './e2eEnv'
 
 async function loginAsTeacher(page: Page) {
   await page.goto('/teacher/login')
@@ -28,7 +22,7 @@ async function loginAsStudent(page: Page) {
   await page.locator('input[type="email"]').fill(STUDENT_EMAIL)
   await page.locator('input[type="password"]').fill(STUDENT_PASS)
   await page.locator('button[type="submit"]').click()
-  await page.waitForURL(/student-portal|student\/change-password/, { timeout: 10000 })
+  await page.waitForURL(/student-portal|student\/change-password|student\/dashboard/, { timeout: 10000 })
 }
 
 test.describe('Dashboard & Navigation', () => {
@@ -42,8 +36,10 @@ test.describe('Dashboard & Navigation', () => {
 
     await expect(page.locator('[data-testid="corrector-dashboard"]')).toBeVisible()
 
-    // Should show the "Vos Copies a Corriger" section
-    await expect(page.locator('.task-list h2')).toContainText('Copies')
+    // Should show the "Vos copies" section (and may also show other task-list sections)
+    await expect(page.getByRole('heading', { name: /vos copies/i })).toBeVisible()
+    // Wait for the copies list to finish loading (avoids counting too early)
+    await expect(page.locator('.task-list .loading')).toBeHidden({ timeout: 15000 })
 
     // Either shows copy cards or empty state
     const hasCopies = await page.locator('[data-testid="copy-card"]').first().isVisible().catch(() => false)
@@ -63,14 +59,14 @@ test.describe('Dashboard & Navigation', () => {
         const card = copyCards.nth(i)
         const statusEl = card.locator('.copy-status')
         await expect(statusEl).toBeVisible()
-        const statusText = await statusEl.textContent()
-        // Status should be one of the known labels
-        const validStatuses = ['En attente', 'Prêt', 'Corrigé', 'Correction en cours', 'Échec']
-        const isValid = validStatuses.some(s => statusText?.includes(s))
-        expect(isValid).toBe(true)
-      }
+      const statusText = await statusEl.textContent()
+      // Status should be one of the known labels
+      const validStatuses = ['Prêt', 'En cours', 'Verrouillée', 'Corrigée', 'Finalisée']
+      const isValid = validStatuses.some(s => statusText?.includes(s))
+      expect(isValid).toBe(true)
     }
-  })
+  }
+})
 
   test('progress indicator shows per-copy scoring progress', async ({ page }) => {
     await loginAsTeacher(page)
@@ -105,7 +101,7 @@ test.describe('Dashboard & Navigation', () => {
 
     if (hasCopies) {
       await copyAction.click()
-      await page.waitForURL(/\/corrector\/desk\/\d+/, { timeout: 10000 })
+      await page.waitForURL(/\/corrector\/desk\/[0-9a-fA-F-]+/, { timeout: 10000 })
       // Should be on the corrector desk page
       await expect(page.locator('.corrector-desk')).toBeVisible({ timeout: 10000 })
     }
@@ -119,7 +115,7 @@ test.describe('Dashboard & Navigation', () => {
 
     if (hasCopies) {
       await copyAction.click()
-      await page.waitForURL(/\/corrector\/desk\/\d+/, { timeout: 10000 })
+      await page.waitForURL(/\/corrector\/desk\/[0-9a-fA-F-]+/, { timeout: 10000 })
 
       // Wait for desk to load
       await page.waitForSelector('.corrector-desk', { timeout: 10000 })
@@ -160,6 +156,9 @@ test.describe('Dashboard & Navigation', () => {
     // We check for the empty state element if the copy list is empty.
     await loginAsTeacher(page)
 
+    // Wait for the copies list to finish loading (otherwise count may be 0 while still loading)
+    await expect(page.locator('.task-list .loading')).toBeHidden({ timeout: 15000 })
+
     const copyCards = page.locator('[data-testid="copy-card"]')
     const count = await copyCards.count()
 
@@ -180,7 +179,7 @@ test.describe('Dashboard & Navigation', () => {
     await loginAsStudent(page)
 
     // If we are on the student portal (not change-password)
-    if (page.url().includes('/student-portal')) {
+    if (page.url().includes('/student-portal') || page.url().includes('/student/dashboard')) {
       // Page should contain student result information
       await page.waitForLoadState('networkidle')
       // The result view should be rendered
@@ -194,7 +193,7 @@ test.describe('Dashboard & Navigation', () => {
   test('student can view corrected copy PDF', async ({ page }) => {
     await loginAsStudent(page)
 
-    if (page.url().includes('/student-portal')) {
+    if (page.url().includes('/student-portal') || page.url().includes('/student/dashboard')) {
       await page.waitForLoadState('networkidle')
 
       // Look for a "Telecharger" or PDF view button

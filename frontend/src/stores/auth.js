@@ -19,6 +19,10 @@ export const useAuthStore = defineStore('auth', () => {
         lastError.value = ''
     }
 
+    function isExpectedAuthFailure(status) {
+        return status === 401 || status === 403
+    }
+
     // Note: api.defaults.baseURL handles the prefix now
 
     async function login(username, password) {
@@ -29,7 +33,9 @@ export const useAuthStore = defineStore('auth', () => {
             return true
         } catch (e) {
             lastError.value = e.response?.data?.error || 'Identifiants incorrects.'
-            console.error(e)
+            if (!isExpectedAuthFailure(e?.response?.status)) {
+                console.error(e)
+            }
             return false
         }
     }
@@ -61,7 +67,9 @@ export const useAuthStore = defineStore('auth', () => {
             return false
         } catch (e) {
             lastError.value = e.response?.data?.error || 'Email ou mot de passe incorrect.'
-            console.error(e)
+            if (!isExpectedAuthFailure(e?.response?.status)) {
+                console.error(e)
+            }
             return false
         }
     }
@@ -76,9 +84,11 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             await api.post(endpoint)
         } catch (e) {
-            // Erreur ignorée : l'état local est déjà réinitialisé.
-            // La session Django expirera via SESSION_COOKIE_AGE.
-            console.warn('Logout backend request failed (session will expire naturally):', e?.response?.status)
+            if (!isExpectedAuthFailure(e?.response?.status)) {
+                // Erreur inattendue seulement : l'état local est déjà réinitialisé,
+                // mais on garde une trace si le backend a réellement un problème.
+                console.warn('Logout backend request failed (session will expire naturally):', e?.response?.status)
+            }
         }
     }
 

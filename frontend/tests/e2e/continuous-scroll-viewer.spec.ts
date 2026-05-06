@@ -1,7 +1,6 @@
 import { test, expect, type Page, type BrowserContext } from '@playwright/test'
+import { TEACHER_USER, TEACHER_PASS } from './e2eEnv'
 
-const TEACHER_USER = process.env.E2E_TEACHER_USER || 'philippe.carr@ert.tn'
-const TEACHER_PASS = process.env.E2E_TEACHER_PASS || 'passe123'
 const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8088'
 
 /**
@@ -369,8 +368,11 @@ test.describe('Tablet Mode — Touch Interactions', () => {
     const hasCopies = await openFirstCopyDesk(page)
     if (!hasCopies) return
 
-    const tabs = page.locator('.inspector-tabs button')
-    if (await tabs.count() >= 2) await tabs.nth(1).click()
+    await expect(page.locator('.grading-panel')).toBeVisible()
+    const header = page.locator('.exercise-header').first()
+    if (await header.isVisible().catch(() => false)) {
+      await header.click()
+    }
 
     const inputs = page.locator('.score-input')
     for (let i = 0; i < Math.min(await inputs.count(), 3); i++) {
