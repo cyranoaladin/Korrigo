@@ -433,11 +433,31 @@ Destinataire : responsable de l'évaluation / administration."""
         domains_list = [d[0] for d in weakest]
         reco_ctx = _rag(rag.search_for_remediation, domains_list)
 
-        recommendations = _llm(
-            "s7_recommendations",
-            model=MODEL_PREMIUM,   # GPT-4o pour la synthèse finale
-            max_tokens=900,
-            prompt=f"""CONTEXTE PÉDAGOGIQUE OFFICIEL :
+        def _validate_recommendations(text: str) -> tuple[list[str], list[str]]:
+            """
+            Validate that the LLM output contains the strict [A]/[/A]/[B]/[/B]/[C]/[/C] delimiters
+            AND that each section is non-empty.
+            """
+            missing: list[str] = []
+            empty: list[str] = []
+
+            if not isinstance(text, str) or not text.strip():
+                return ["A", "B", "C"], ["A", "B", "C"]
+
+            for sec in ("A", "B", "C"):
+                if f"[{sec}]" not in text or f"[/{sec}]" not in text:
+                    missing.append(sec)
+
+            import re
+
+            for sec in ("A", "B", "C"):
+                m = re.search(rf"\\[{sec}\\](.*?)\\[/{sec}\\]", text, flags=re.DOTALL)
+                if not m or not (m.group(1) or "").strip():
+                    empty.append(sec)
+
+            return missing, empty
+
+        base_reco_prompt = f"""CONTEXTE PÉDAGOGIQUE OFFICIEL :
 {reco_ctx}
 
 SYNTHÈSE DES RÉSULTATS DNB 2026 — {global_stats['n_copies']} copies :
@@ -464,36 +484,62 @@ Pour l'équipe pédagogique : réflexivité sur l'évaluation (difficulté, bar�
 Règles :
 - Ne change pas les tags [A]/[/A]/[B]/[/B]/[C]/[/C]
 - Chaque bloc : 6–8 lignes maximum
-- Cite au moins une référence [Réf. X] si le contexte en contient"""
-        )
+- Cite au moins une référence [Réf. X] si le contexte en contient.
+"""
 
-        # Validation format (anti-regex brittle): exige les délimiteurs [A]/[/A]/[B]/[/B]/[C]/[/C]
-        try:
-            missing = []
-            for sec in ("A", "B", "C"):
-                if f"[{sec}]" not in recommendations or f"[/{sec}]" not in recommendations:
-                    missing.append(sec)
-            if missing:
-                raise RuntimeError(
-                    "Format recommandations invalide (délimiteurs manquants). "
-                    f"Sections manquantes: {', '.join(missing)}. "
-                    "Le LLM doit conserver exactement [A]/[/A]/[B]/[/B]/[C]/[/C]."
-                )
-            # Ensure sections are not empty (prevents "Section non trouvée" / blank blocks in UI)
-            import re
-            empty = []
-            for sec in ("A", "B", "C"):
-                m = re.search(rf"\\[{sec}\\](.*?)\\[/{sec}\\]", recommendations, flags=re.DOTALL)
-                if not m or not (m.group(1) or "").strip():
-                    empty.append(sec)
-            if empty:
-                raise RuntimeError(
-                    "Recommandations invalides (sections vides). "
-                    f"Sections vides: {', '.join(empty)}. "
-                    "Chaque bloc [A]/[B]/[C] doit contenir du texte."
-                )
-        except Exception:
-            raise
+        # Generate recommendations with retries (some models tend to output empty tags on first try).
+        recommendations = ""
+        last_missing: list[str] = []
+        last_empty: list[str] = []
+        retry_suffix = ""
+        for attempt in range(3):
+            recommendations = _llm(
+                "s7_recommendations",
+                model=MODEL_PREMIUM,   # GPT-4o pour la synthèse finale (ou fallback provider)
+                max_tokens=950,
+                prompt=(base_reco_prompt + retry_suffix).strip(),
+            )
+            last_missing, last_empty = _validate_recommendations(recommendations)
+            if not last_missing and not last_empty:
+                break
+
+            retry_suffix = (
+                "\n\nIMPORTANT: Ta réponse précédente est invalide.\n"
+                f"- Délimiteurs manquants: {', '.join(last_missing) if last_missing else 'aucun'}\n"
+                f"- Sections vides: {', '.join(last_empty) if last_empty else 'aucune'}\n"
+                "Réécris ENTIÈREMENT en respectant STRICTEMENT:\n"
+                "- conserver exactement [A]/[/A]/[B]/[/B]/[C]/[/C]\n"
+                "- chaque bloc doit contenir au moins 3 puces (lignes commençant par '-')\n"
+                "Template à remplir (ne pas laisser de blancs) :\n"
+                "[A]\n"
+                "- Action 1 (délai / responsable / ressource)\n"
+                "- Action 2 (délai / responsable / ressource)\n"
+                "- Action 3 (délai / responsable / ressource)\n"
+                "[/A]\n"
+                "[B]\n"
+                "- Cible 1 (automatismes / lacune cycle 4)\n"
+                "- Cible 2\n"
+                "- Cible 3\n"
+                "[/B]\n"
+                "[C]\n"
+                "- Point 1 (barème / cohérence)\n"
+                "- Point 2\n"
+                "- Point 3\n"
+                "[/C]\n"
+            )
+
+        if last_missing:
+            raise RuntimeError(
+                "Format recommandations invalide (délimiteurs manquants). "
+                f"Sections manquantes: {', '.join(last_missing)}. "
+                "Le LLM doit conserver exactement [A]/[/A]/[B]/[/B]/[C]/[/C]."
+            )
+        if last_empty:
+            raise RuntimeError(
+                "Recommandations invalides (sections vides). "
+                f"Sections vides: {', '.join(last_empty)}. "
+                "Chaque bloc [A]/[B]/[C] doit contenir du texte."
+            )
 
         # ── 6. ASSEMBLAGE JSON ─────────────────────────────────────
         generation_time = datetime.now() - start_time
