@@ -333,19 +333,19 @@ class DNBAnalyticsEngine:
         if n == 0:
             return []
 
-        def _sort_key(qid: str):
-            parts = qid.split(".")
-            key = []
-            for p in parts:
-                key.append(int(p) if p.isdigit() else p)
-            return key
-
         results: List[Dict[str, Any]] = []
-        for qid in sorted(self._q_max.keys(), key=_sort_key):
-            mx = float(self._q_max.get(qid, 0.0) or 0.0)
+        # IMPORTANT: preserve the order from `grading_structure` traversal.
+        # Sorting question ids is brittle (mix of numeric ids and UUID strings)
+        # and can raise TypeError in Python 3.
+        for leaf in self._leaf_questions:
+            qid = str(leaf.get("id") or "").strip()
+            if not qid:
+                continue
+
+            mx = float(leaf.get("points") or self._q_max.get(qid, 0.0) or 0.0)
             vals: List[float] = []
             blanks = 0
-            pos_id = self._q_pos.get(qid)
+            pos_id = str(leaf.get("positional_id") or self._q_pos.get(qid) or "")
             for sd in all_sd:
                 fv = self._get_sd_value(sd, qid)
                 if fv is None and pos_id and pos_id != qid:
@@ -372,9 +372,9 @@ class DNBAnalyticsEngine:
             )
             blank_pct = round(blanks / n * 100, 1) if n else 0.0
 
-            label = self._q_labels.get(qid, qid)
-            domain = self._q_domain.get(qid, "")
-            competence = self._q_competence.get(qid, "")
+            label = leaf.get("label") or self._q_labels.get(qid, qid)
+            domain = str(leaf.get("domain") or self._q_domain.get(qid, "") or "").strip()
+            competence = str(leaf.get("competence") or self._q_competence.get(qid, "") or "").strip()
             number: str = qid
             if isinstance(label, str):
                 stripped = label.strip()
