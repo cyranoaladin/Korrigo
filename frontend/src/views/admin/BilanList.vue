@@ -191,6 +191,18 @@
               <option value="3C">3ème C</option>
             </select>
           </div>
+
+          <div class="flex items-start gap-2 pt-2">
+            <input
+              id="bilan-force"
+              type="checkbox"
+              v-model="generateForm.force"
+              class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-700 focus:ring-primary-500"
+            />
+            <label for="bilan-force" class="text-sm text-gray-700">
+              Forcer la régénération (crée un nouveau bilan même s'il existe déjà)
+            </label>
+          </div>
         </div>
 
         <div class="flex justify-end gap-3 mt-6">
@@ -237,7 +249,8 @@ const showGenerateModal = ref(false)
 const generateForm = ref({
   exam_type: 'DNB_2026',
   scope: 'ETABLISSEMENT',
-  class_id: ''
+  class_id: '',
+  force: false,
 })
 
 const canGenerate = computed(() => {
@@ -308,7 +321,8 @@ const generateBilan = async () => {
     
     const payload = {
       exam_slug: generateForm.value.exam_type,
-      scope: generateForm.value.scope
+      scope: generateForm.value.scope,
+      force: !!generateForm.value.force,
     }
     
     if (generateForm.value.scope === 'CLASSE') {

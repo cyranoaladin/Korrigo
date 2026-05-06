@@ -15,6 +15,7 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import unicodedata
+import re
 from django.db import models
 
 from exams.grading_utils import extract_leaf_questions
@@ -382,6 +383,13 @@ class DNBAnalyticsEngine:
                     number = stripped[1:].strip()
                 elif stripped.lower().startswith("partie"):
                     number = stripped
+                elif " — " in stripped:
+                    # Common pattern: "Exercice 2 — 1" -> number="2.1" for UI readability
+                    prefix, suffix = [p.strip() for p in stripped.split(" — ", 1)]
+                    # Only apply when suffix is a compact identifier (avoid "Question 1", long text, etc.)
+                    if suffix and (" " not in suffix) and re.search(r"\d", suffix):
+                        m = re.search(r"exercice\s*(\d+)", prefix, flags=re.IGNORECASE)
+                        number = f"{m.group(1)}.{suffix}" if m else suffix
 
             results.append({
                 "question": {

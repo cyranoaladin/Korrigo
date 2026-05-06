@@ -21,18 +21,30 @@ def generate_bilan(request):
     Génère un bilan pédagogique DNB.
 
     POST /api/bilan/generate/
-    { "exam_slug": "DNB_2026" }  (compat: { "exam_type": "DNB_2026" })
+    { "exam_slug": "DNB_2026", "force": false }  (compat: { "exam_type": "DNB_2026" })
     """
     try:
+        def _as_bool(val) -> bool:
+            if isinstance(val, bool):
+                return val
+            if val is None:
+                return False
+            if isinstance(val, (int, float)):
+                return bool(val)
+            if isinstance(val, str):
+                return val.strip().lower() in {"1", "true", "yes", "y", "on"}
+            return bool(val)
+
         # Backward/Frontend compatibility: accept either exam_slug or exam_type.
         exam_slug = request.data.get('exam_slug') or request.data.get('exam_type') or 'DNB_2026'
+        force = _as_bool(request.data.get('force') if 'force' in request.data else request.query_params.get('force'))
 
         existing = BilanReport.objects.filter(
             exam_type=exam_slug,
             status='DONE'
-        ).first()
+        ).order_by('-generated_at').first()
 
-        if existing:
+        if existing and not force:
             return Response({
                 'message': 'Un bilan existe déjà pour cet examen',
                 'report_id': existing.id,
@@ -44,7 +56,7 @@ def generate_bilan(request):
             exam_type=exam_slug,
             scope='ETABLISSEMENT',
             generated_by=request.user,
-            status='PENDING'
+            status='GENERATING'
         )
 
         orchestrator = BilanOrchestrator(exam_slug)

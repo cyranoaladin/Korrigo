@@ -222,8 +222,18 @@
       <section class="bg-white border border-gray-200 rounded-lg p-6">
         <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <AppIcon name="target" :size="20" class="text-indigo-600" />
-          Analyse par domaine du programme
+          {{ domainSectionTitle }}
         </h2>
+
+        <div v-if="bilan?.metadata?.limitations?.length" class="mb-4 space-y-2">
+          <div
+            v-for="(lim, i) in bilan.metadata.limitations"
+            :key="i"
+            class="text-xs bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-lg p-3"
+          >
+            {{ lim }}
+          </div>
+        </div>
 
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -301,7 +311,7 @@
               <tbody>
                 <tr
                   v-for="q in bilan.s3_questions"
-                  :key="q.question?.number"
+                  :key="q.question?.id || q.question?.label || q.question?.number"
                   class="border-t border-gray-200 hover:bg-gray-50"
                 >
                   <td class="px-3 py-2 font-semibold">Q{{ q.question?.number }}</td>
@@ -334,7 +344,7 @@
               <div class="space-y-2">
                 <div
                   v-for="q in getTopQuestions(3)"
-                  :key="q.question?.number"
+                  :key="q.question?.id || q.question?.label || q.question?.number"
                   class="bg-green-50 border border-green-200 p-3 rounded-lg flex justify-between items-center"
                 >
                   <div>
@@ -351,7 +361,7 @@
               <div class="space-y-2">
                 <div
                   v-for="q in getFlopQuestions(3)"
-                  :key="q.question?.number"
+                  :key="q.question?.id || q.question?.label || q.question?.number"
                   class="bg-red-50 border border-red-200 p-3 rounded-lg flex justify-between items-center"
                 >
                   <div>
@@ -398,7 +408,9 @@
                   </div>
                 </div>
               </div>
-              <div v-if="!bilan.s4_competences?.data" class="text-gray-500 text-sm">Aucune donnée</div>
+              <div v-if="!hasCompetenceData" class="text-gray-500 text-sm">
+                Aucune donnée compétence disponible (barème non taggé).
+              </div>
             </div>
           </div>
 
@@ -407,7 +419,10 @@
             <div v-if="bilan.s4_competences?.analysis" class="bg-blue-50 border border-blue-200 rounded-lg p-5">
               <div class="prose prose-sm text-blue-800 max-w-none" v-html="renderMarkdown(bilan.s4_competences.analysis)"></div>
             </div>
-            <div v-else class="text-gray-500 text-sm">Aucune analyse disponible</div>
+            <div v-else class="text-gray-500 text-sm">
+              <span v-if="bilan.s4_competences?.available === false">Analyse non générée : métadonnées compétences absentes.</span>
+              <span v-else>Aucune analyse disponible</span>
+            </div>
           </div>
         </div>
       </section>
@@ -701,6 +716,25 @@ const getCompetenceBarClass = (rate) => {
   if (rate >= 40) return 'bg-orange-500'
   return 'bg-red-500'
 }
+
+// ── Domain section title / breakdown mode ────────────────────────
+
+const domainSectionTitle = computed(() => {
+  const t =
+    bilan.value?.s2_domains?.breakdown_type ||
+    bilan.value?.metadata?.breakdowns?.domain_breakdown_type ||
+    'unknown'
+  if (t === 'programme_domains') return 'Analyse par domaine du programme'
+  if (t === 'exercises') return 'Analyse par blocs du barème (exercices)'
+  return 'Analyse par blocs (barème)'
+})
+
+// ── Competences availability ─────────────────────────────────────
+
+const hasCompetenceData = computed(() => {
+  const data = bilan.value?.s4_competences?.data
+  return !!data && Object.keys(data).length > 0
+})
 
 const getCorrectorProfileClass = (severity) => {
   switch (severity) {

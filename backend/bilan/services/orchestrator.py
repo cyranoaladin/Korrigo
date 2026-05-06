@@ -112,6 +112,7 @@ class BilanOrchestrator:
             return round((part / total) * 100, 1) if total else 0.0
 
         strong_signals: list[dict[str, object]] = []
+        limitations: list[str] = []
         n = int(global_stats.get("n_copies") or 0)
         dist = global_stats.get("distribution") or {}
 
@@ -174,83 +175,180 @@ class BilanOrchestrator:
             pass
 
         # Enrichissement pour le LLM
+        def _is_p1_p2(name: str) -> bool:
+            low = str(name or "").lower().strip()
+            return low.startswith("p1") or low.startswith("p2")
+
+        def _is_exercise(name: str) -> bool:
+            return "exercice" in str(name or "").lower()
+
         def _is_programme_domain(name: str) -> bool:
             low = str(name or "").lower()
             return not (
-                low.startswith("p1")
-                or low.startswith("p2")
+                _is_p1_p2(low)
                 or "partie" in low
                 or "exercice" in low
             )
 
-        domain_candidates = [(d, p) for d, p in domain_stats.items() if _is_programme_domain(d)]
-        if not domain_candidates:
-            domain_candidates = list(domain_stats.items())
+        # Identify which breakdowns are actually available from DB-provided metadata.
+        programme_candidates = [(d, p) for d, p in domain_stats.items() if _is_programme_domain(d)]
+        exercise_candidates = [(d, p) for d, p in domain_stats.items() if _is_exercise(d)]
+        has_competence_breakdown = bool(comp_stats)
 
-        sorted_domains = sorted(domain_candidates, key=lambda x: x[1])
+        if not programme_candidates:
+            limitations.append(
+                "Aucun domaine du programme n'est renseigné dans `Exam.grading_structure` "
+                "(métadonnées `domain` vides). L'analyse par « domaine du programme » est donc approximée "
+                "via les blocs disponibles (exercices / P1-P2) sans simulation."
+            )
+        if not has_competence_breakdown:
+            limitations.append(
+                "Les 6 compétences DNB ne sont pas renseignées dans `Exam.grading_structure` "
+                "(métadonnées `competence` vides). La section compétences n'affiche pas de pourcentages "
+                "pour éviter toute valeur inventée."
+            )
+
+        # Choose which "domains" we can meaningfully analyze with LLM:
+        # - Prefer programme domains when tagged
+        # - Otherwise, fall back to exercises (exclude P1/P2 from this section)
+        if programme_candidates:
+            domain_breakdown_type = "programme_domains"
+            analysis_candidates = programme_candidates
+        elif exercise_candidates:
+            domain_breakdown_type = "exercises"
+            analysis_candidates = exercise_candidates
+        else:
+            domain_breakdown_type = "mixed"
+            analysis_candidates = [
+                (d, p)
+                for d, p in domain_stats.items()
+                if not _is_p1_p2(d) and "partie" not in str(d or "").lower()
+            ] or list(domain_stats.items())
+
+        sorted_domains = sorted(analysis_candidates, key=lambda x: x[1])
         weakest = sorted_domains[:2] if len(sorted_domains) >= 2 else sorted_domains[:1]
-        strongest = sorted_domains[-1] if sorted_domains else None
 
-        # Blank-rate par domaine (si métadonnées domaine disponibles)
+        # Blank-rate par bloc (domaine si taggé, sinon "Exercice N" via label)
         try:
-            dom_blank: dict[str, list[float]] = {}
+            def _block_label(q: dict) -> str:
+                qinfo = q.get("question") or {}
+                dom = str(qinfo.get("domain") or "").strip()
+                if dom:
+                    return dom
+                label = str(qinfo.get("label") or "").strip()
+                if " — " in label:
+                    return label.split(" — ", 1)[0].strip()
+                return label
+
+            block_blank: dict[str, list[float]] = {}
             for q in q_stats:
-                dom = q.get("question", {}).get("domain") or ""
-                if not dom:
+                block = _block_label(q)
+                if not block:
                     continue
-                dom_blank.setdefault(dom, []).append(float(q.get("blank_rate") or 0.0))
-            for dom, blanks in dom_blank.items():
+                block_blank.setdefault(block, []).append(float(q.get("blank_rate") or 0.0))
+            for block, blanks in block_blank.items():
                 if not blanks:
                     continue
                 avg_blank = round(sum(blanks) / len(blanks), 1)
                 if avg_blank >= 10.0:
                     strong_signals.append({
-                        "key": f"blank_rate:{dom}",
+                        "key": f"blank_rate:{block}",
                         "severity": "high",
-                        "message": f"Taux de blancs élevé en « {dom} » (≈ {avg_blank}% de non-réponses).",
+                        "message": f"Taux de blancs élevé en « {block} » (≈ {avg_blank}% de non-réponses).",
                     })
         except Exception:
             pass
 
-        # ── 2. SECTION 2 — Domaines (LLM = analyse qualitative) ────
-        domain_analyses = {}
-        programme_domains = sorted({d for d, _ in domain_candidates if d})
-        for domain, pct in weakest:
-            rag_ctx = _rag(
-                rag.search_for_domain,
-                domain=domain,
-                issue=f"taux réussite {pct}%"
-            )
-            auto_ctx = _rag(rag.search_for_automatismes, domain)
-            forbidden = [d for d in programme_domains if d != domain]
+        def _validate_no_percent(text: str) -> str | None:
+            t = (text or "").strip()
+            if "%" in t or "/20" in t:
+                return "contient des pourcentages ou '/20' malgré la contrainte"
+            return None
 
-            domain_analyses[domain] = _llm(
-                f"s2_domains:{domain}",
-                model=MODEL_DEFAULT,
-                max_tokens=500,
-                prompt=f"""CONTEXTE PROGRAMME OFFICIEL :
+        def _llm_guarded(section: str, *, model: str, max_tokens: int, prompt: str, retries: int = 1) -> str:
+            last_error: str | None = None
+            for attempt in range(retries + 1):
+                txt = _llm(section, model=model, max_tokens=max_tokens, prompt=prompt)
+                err = _validate_no_percent(txt)
+                if not err:
+                    return txt
+                last_error = err
+                prompt = (
+                    prompt
+                    + "\n\nIMPORTANT: Ta réponse précédente est invalide (" + err + "). "
+                    "Réécris entièrement en respectant STRICTEMENT les contraintes."
+                )
+            raise RuntimeError(f"Réponse LLM invalide après retries (section={section}): {last_error}")
+
+        # ── 2. SECTION 2 — Domaines/Blocs (LLM = analyse qualitative) ────
+        domain_analyses: dict[str, str] = {}
+        programme_domains = sorted({d for d, _ in programme_candidates if d})
+        seen_norms: set[str] = set()
+
+        for domain, pct in weakest:
+            if domain_breakdown_type == "programme_domains":
+                rag_ctx = _rag(
+                    rag.search_for_domain,
+                    domain=domain,
+                    issue=f"taux réussite {pct}%"
+                )
+                auto_ctx = _rag(rag.search_for_automatismes, domain)
+                forbidden = [d for d in programme_domains if d != domain]
+            else:
+                # No tagged programme domain available; use a broader programme context.
+                rag_ctx = _rag(
+                    rag.search,
+                    query=f"programme mathématiques cycle 4 attendus remédiation difficultés {domain}",
+                    top_k=4,
+                )
+                auto_ctx = _rag(
+                    rag.search,
+                    query="automatismes DNB octobre 2025 mathématiques partie 1 partie 2",
+                    top_k=3,
+                )
+                forbidden = []
+
+            prompt = f"""CONTEXTE PROGRAMME OFFICIEL :
 {rag_ctx}
 
-AUTOMATISMES DNB CONCERNÉS :
+AUTOMATISMES / ÉVALUATION DNB :
 {auto_ctx}
 
-DONNÉES :
-Domaine : {domain}
+DONNÉES (issues de la DB Korrigo) :
+Bloc analysé : {domain}
 Taux de réussite moyen : {pct}%
 Moyenne promo : {global_stats['mean']}/20
-Questions du domaine : {self._q_summary(q_stats, domain)}
+Questions liées : {self._q_summary_for_block(q_stats, domain)}
 
-Rédige une analyse pédagogique de ce domaine (8–10 lignes) :
-1. Diagnostic précis des lacunes observées
-2. Référence explicite aux attendus Éduscol et automatismes DNB non maîtrisés
+Rédige une analyse pédagogique de ce bloc (8–10 lignes) :
+1. Diagnostic précis des difficultés observées
+2. Référence explicite aux attendus Éduscol et automatismes DNB non maîtrisés (si disponibles dans le contexte)
 3. Proposition d'action concrète pour l'équipe (remédiation, axe prioritaire)
+
 CONTRAINTE STRICTE :
 - Ne donne AUCUN chiffre (pas de %, pas de /20). Les chiffres sont affichés ailleurs dans le bilan.
-- Analyse exclusivement le domaine « {domain} » (ne cite pas d'autres domaines du programme).
-- Domaines interdits à citer : {", ".join(forbidden) if forbidden else "aucun"}.
+- Analyse exclusivement « {domain} ». Ne parle pas d'autres blocs.
+- {"Domaines interdits à citer : " + ", ".join(forbidden) + "." if forbidden else "Si tu ne peux pas être spécifique faute de métadonnées, indique-le explicitement (sans inventer)."}
 - Cite au moins une référence du contexte sous la forme [Réf. X] si le contexte en contient.
 Destinataire : enseignants correcteurs. Style rapport d'inspection."""
-            )
+
+            # Retry if duplicated content (common LLM failure mode)
+            for attempt in range(2):
+                txt = _llm_guarded(
+                    f"s2_domains:{domain}",
+                    model=MODEL_DEFAULT,
+                    max_tokens=550,
+                    prompt=prompt,
+                    retries=1,
+                )
+                norm = " ".join((txt or "").strip().lower().split())
+                if norm and norm not in seen_norms:
+                    domain_analyses[domain] = txt
+                    seen_norms.add(norm)
+                    break
+                prompt = prompt + "\n\nIMPORTANT: Ne réutilise pas mot pour mot une analyse précédente. Réécris différemment."
+            else:
+                domain_analyses[domain] = txt
 
         # Garde-fous post-LLM: détecter duplications et fuites de domaines
         try:
@@ -381,6 +479,19 @@ Règles :
                     f"Sections manquantes: {', '.join(missing)}. "
                     "Le LLM doit conserver exactement [A]/[/A]/[B]/[/B]/[C]/[/C]."
                 )
+            # Ensure sections are not empty (prevents "Section non trouvée" / blank blocks in UI)
+            import re
+            empty = []
+            for sec in ("A", "B", "C"):
+                m = re.search(rf"\\[{sec}\\](.*?)\\[/{sec}\\]", recommendations, flags=re.DOTALL)
+                if not m or not (m.group(1) or "").strip():
+                    empty.append(sec)
+            if empty:
+                raise RuntimeError(
+                    "Recommandations invalides (sections vides). "
+                    f"Sections vides: {', '.join(empty)}. "
+                    "Chaque bloc [A]/[B]/[C] doit contenir du texte."
+                )
         except Exception:
             raise
 
@@ -399,16 +510,24 @@ Règles :
                 'rag_stats': rag_stats,
                 'llm_stats': llm_stats,
                 'strong_signals': strong_signals,
+                'limitations': limitations,
+                'breakdowns': {
+                    'domain_breakdown_type': domain_breakdown_type,
+                    'programme_domains_available': bool(programme_candidates),
+                    'competences_available': bool(has_competence_breakdown),
+                },
             },
             's1_stats': global_stats,
             's2_domains': {
                 'data': domain_stats,
                 'analyses': domain_analyses,
+                'breakdown_type': domain_breakdown_type,
             },
             's3_questions': q_stats,
             's4_competences': {
                 'data': comp_stats,
                 'analysis': competence_analysis,
+                'available': bool(has_competence_breakdown),
             },
             's5_correctors': {
                 'data': corrector_stats,
@@ -449,6 +568,33 @@ Règles :
         qs = [q for q in q_stats if q.get('question', {}).get('domain') == domain]
         return " | ".join(
             f"Q{q['question']['number']}: {q['success_rate']:.0f}%"
+            for q in qs
+        )
+
+    def _q_summary_for_block(self, q_stats: List[Dict], block_label: str) -> str:
+        """
+        Résumé des questions liées à un "bloc" de réussite.
+
+        - Si la question a un `question.domain` taggé, on matche dessus.
+        - Sinon, on matche par préfixe de `question.label` (ex: "Exercice 2 — 1").
+        """
+        block = str(block_label or "").strip()
+        if not block:
+            return ""
+
+        qs: list[dict] = []
+        for q in q_stats:
+            qinfo = q.get("question") or {}
+            dom = str(qinfo.get("domain") or "").strip()
+            if dom and dom == block:
+                qs.append(q)
+                continue
+            label = str(qinfo.get("label") or "").strip()
+            if label.startswith(f"{block} —"):
+                qs.append(q)
+
+        return " | ".join(
+            f"Q{(q.get('question') or {}).get('number', '?')}: {float(q.get('success_rate') or 0.0):.0f}%"
             for q in qs
         )
 
