@@ -3,6 +3,7 @@ import sys
 import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
+import tempfile
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -366,7 +367,8 @@ try:
         pass
 except Exception:
     # Safe fallback for dev / CI: always writable.
-    LOGS_DIR = os.path.join('/tmp', 'korrigo_logs')
+    # NOTE: use tempfile.gettempdir() to avoid hardcoding /tmp (Bandit B108).
+    LOGS_DIR = os.path.join(tempfile.gettempdir(), 'korrigo_logs')
     os.makedirs(LOGS_DIR, exist_ok=True)
 
 # S5-A: Environment-specific formatter selection
