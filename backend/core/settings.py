@@ -81,11 +81,11 @@ SESSION_COOKIE_SECURE = (
 CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "false").lower() == "true"
 
 # Static & Media Files
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_URL = os.environ.get("STATIC_URL", "/static/").strip() or "/static/"
+STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", "")).expanduser() if os.environ.get("STATIC_ROOT") else (BASE_DIR / "staticfiles")
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = os.environ.get("MEDIA_URL", "/media/").strip() or "/media/"
+MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", "")).expanduser() if os.environ.get("MEDIA_ROOT") else (BASE_DIR / "media")
 
 # File Upload Limits (Mission 5.1)
 # Allow large PDF uploads (up to 100MB)

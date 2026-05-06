@@ -173,6 +173,7 @@ class LLMSummaryService:
             "- N'invente rien. Ne mentionne pas le numero de copie.\n"
             "- NE SIGNE PAS le bilan (pas de 'Cordialement', pas de '[Votre Nom]', "
             "pas de signature).\n"
+            "- Écris en texte brut SANS Markdown (pas de '##', pas de '**', pas de tableaux, pas de code fences).\n"
             "- Ton encourageant mais honnete. 200 a 350 mots.\n\n"
             "STRUCTURE :\n"
             "1) Appreciation generale (2-3 phrases situant le niveau).\n"
@@ -203,6 +204,36 @@ class LLMSummaryService:
         return prompt
 
     @staticmethod
+    def _sanitize_plaintext(text: str) -> str:
+        """
+        The student portal renders summaries as plain text.
+        Strip common Markdown wrappers that would otherwise show as raw characters.
+        """
+        t = (text or "").strip()
+
+        # Strip code fences (```lang ... ```)
+        if t.startswith("```") and "```" in t[3:]:
+            parts = t.split("```")
+            if len(parts) >= 3:
+                inner = "```".join(parts[1:-1]).strip()
+                lines = inner.splitlines()
+                if lines and lines[0].strip().lower() in {"json", "markdown", "md", "text"}:
+                    inner = "\n".join(lines[1:]).strip()
+                t = inner
+
+        t = t.replace("**", "").replace("__", "")
+
+        out_lines = []
+        for line in t.splitlines():
+            stripped = line.lstrip()
+            if stripped.startswith("###") or stripped.startswith("##") or stripped.startswith("#"):
+                out_lines.append(stripped.lstrip("#").strip())
+                continue
+            out_lines.append(line)
+
+        return "\n".join(out_lines).strip()
+
+    @staticmethod
     def _call_ollama(prompt: str) -> str:
         """Appelle l'API Ollama et retourne la réponse textuelle."""
         payload = json.dumps({
@@ -229,7 +260,7 @@ class LLMSummaryService:
             response_text = data.get('response', '').strip()
             if not response_text:
                 raise ValueError("Réponse LLM vide")
-            return response_text
+            return LLMSummaryService._sanitize_plaintext(response_text)
         except urllib.error.URLError as e:
             raise ConnectionError(f"Impossible de contacter Ollama ({OLLAMA_URL}): {e}")
         except json.JSONDecodeError as e:

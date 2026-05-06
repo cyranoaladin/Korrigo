@@ -31,7 +31,8 @@ async function openFirstCopyDesk(page: Page): Promise<boolean> {
   const hasCopies = await copyAction.isVisible({ timeout: 10000 }).catch(() => false)
   if (hasCopies) {
     await copyAction.click()
-    await page.waitForURL(/\/corrector\/desk\/\d+/, { timeout: 10000 })
+    // Copy IDs are UUIDs in production/test DBs (not numeric).
+    await page.waitForURL(/\/corrector\/desk\/[^/]+/, { timeout: 10000 })
     await page.waitForSelector('.corrector-desk', { timeout: 10000 })
     await page.waitForFunction(
       () => !document.querySelector('.loading-state'),

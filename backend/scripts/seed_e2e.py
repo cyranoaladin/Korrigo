@@ -133,8 +133,8 @@ def ensure_teacher(username=None, password=None):
         username=username,
         defaults={"email": f"{username}@example.com"}
     )
-    if created:
-        u.set_password(password)
+    # Deterministic E2E: always reset password to the contract value.
+    u.set_password(password)
     u.is_staff = False
     u.is_superuser = False
     u.save()
@@ -157,9 +157,8 @@ def ensure_admin(username=None, password=None, email="alaeddine.benrhouma@ert.tn
     
     # Update credentials and permissions
     u.email = email
-    # SECURITY FIX: Never overwrite password of an existing admin.
-    # Only set password on creation to prevent accidental resets
-    # during E2E seed runs or deploys.
+    # Safety: avoid overwriting admin credentials unless the user is created.
+    # This script is guarded by E2E_TEST_MODE=true, but keep the behaviour conservative.
     if created:
         u.set_password(password)
     u.is_staff = True
@@ -357,8 +356,8 @@ def main():
         defaults={"email": E2E_STUDENT_EMAIL},
     )
     student_user.email = E2E_STUDENT_EMAIL
-    if created:
-        student_user.set_password(E2E_STUDENT_PASSWORD)
+    # Deterministic E2E: always reset password to the contract value.
+    student_user.set_password(E2E_STUDENT_PASSWORD)
     student_user.is_active = True
     student_user.save()
     student_user.groups.add(student_group)

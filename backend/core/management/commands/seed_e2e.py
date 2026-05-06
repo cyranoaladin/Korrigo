@@ -146,6 +146,9 @@ def _ensure_admin() -> User:
         username=E2E_ADMIN_USERNAME,
         defaults={"email": "e2e-admin@example.com"},
     )
+    # Safety: avoid overwriting admin credentials unless it is a fresh E2E DB.
+    # E2E tests do not mutate the admin password, and this prevents accidental
+    # resets if the seed is ever pointed at a non-ephemeral DB by mistake.
     if created:
         user.set_password(E2E_ADMIN_PASSWORD)
     user.is_staff = True
@@ -169,8 +172,8 @@ def _ensure_teacher() -> User:
         username=E2E_TEACHER_USERNAME,
         defaults={"email": f"{E2E_TEACHER_USERNAME}@example.com"},
     )
-    if created:
-        user.set_password(E2E_TEACHER_PASSWORD)
+    # Deterministic E2E: always reset password to the contract value.
+    user.set_password(E2E_TEACHER_PASSWORD)
     user.is_staff = False
     user.is_superuser = False
     user.is_active = True
@@ -185,8 +188,8 @@ def _ensure_student() -> Student:
         username=E2E_STUDENT_EMAIL,
         defaults={"email": E2E_STUDENT_EMAIL},
     )
-    if created:
-        user.set_password(E2E_STUDENT_PASSWORD)
+    # Deterministic E2E: always reset password to the contract value.
+    user.set_password(E2E_STUDENT_PASSWORD)
     user.is_active = True
     user.save()
     user.groups.add(students)

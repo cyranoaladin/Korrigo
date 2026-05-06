@@ -6,6 +6,9 @@ services:
   backend:
     ports: !override
       - "8000"
+    networks:
+      - default
+      - rag_ui_net
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       SECRET_KEY: ${SECRET_KEY}
@@ -18,12 +21,63 @@ services:
       REDIS_HOST: ${REDIS_HOST:-redis}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini-2025-04-14}
+      AI_PROVIDER_URL: ${AI_PROVIDER_URL:-}
+      AI_PROVIDER_KEY: ${AI_PROVIDER_KEY:-}
+      AI_MODEL_NAME: ${AI_MODEL_NAME:-}
+      # Bilan
+      BILAN_LLM_DEFAULT: ${BILAN_LLM_DEFAULT:-}
+      BILAN_LLM_PREMIUM: ${BILAN_LLM_PREMIUM:-}
+      BILAN_REQUIRE_RAG: ${BILAN_REQUIRE_RAG:-}
+      RAG_URL: ${RAG_URL:-http://ingestor:8001}
+      RAG_TOKEN: ${RAG_TOKEN:-}
 
   celery:
+    networks:
+      - default
+      - rag_ui_net
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       SECRET_KEY: ${SECRET_KEY}
       DJANGO_ENV: ${DJANGO_ENV:-production}
       DEBUG: ${DEBUG:-False}
       REDIS_HOST: ${REDIS_HOST:-redis}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini-2025-04-14}
+      AI_PROVIDER_URL: ${AI_PROVIDER_URL:-}
+      AI_PROVIDER_KEY: ${AI_PROVIDER_KEY:-}
+      AI_MODEL_NAME: ${AI_MODEL_NAME:-}
+      BILAN_LLM_DEFAULT: ${BILAN_LLM_DEFAULT:-}
+      BILAN_LLM_PREMIUM: ${BILAN_LLM_PREMIUM:-}
+      BILAN_REQUIRE_RAG: ${BILAN_REQUIRE_RAG:-}
+      RAG_URL: ${RAG_URL:-http://ingestor:8001}
+      RAG_TOKEN: ${RAG_TOKEN:-}
+
+  celery-beat:
+    networks:
+      - default
+      - rag_ui_net
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY}
+      DJANGO_ENV: ${DJANGO_ENV:-production}
+      DEBUG: ${DEBUG:-False}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini-2025-04-14}
+      AI_PROVIDER_URL: ${AI_PROVIDER_URL:-}
+      AI_PROVIDER_KEY: ${AI_PROVIDER_KEY:-}
+      AI_MODEL_NAME: ${AI_MODEL_NAME:-}
+      BILAN_LLM_DEFAULT: ${BILAN_LLM_DEFAULT:-}
+      BILAN_LLM_PREMIUM: ${BILAN_LLM_PREMIUM:-}
+      BILAN_REQUIRE_RAG: ${BILAN_REQUIRE_RAG:-}
+      RAG_URL: ${RAG_URL:-http://ingestor:8001}
+      RAG_TOKEN: ${RAG_TOKEN:-}
+
+networks:
+  rag_ui_net:
+    external: true
+    name: ${RAG_DOCKER_NETWORK:-compose_rag_ui_net}
