@@ -31,6 +31,9 @@ services:
       retries: 5
 
   backend:
+    networks:
+      - default
+      - rag_ui_net
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
     restart: unless-stopped
     command: gunicorn core.wsgi:application -c gunicorn_config.py
@@ -84,7 +87,7 @@ services:
       BILAN_LLM_DEFAULT: "${BILAN_LLM_DEFAULT:-}"
       BILAN_LLM_PREMIUM: "${BILAN_LLM_PREMIUM:-}"
       BILAN_REQUIRE_RAG: "${BILAN_REQUIRE_RAG:-}"
-      RAG_URL: "${RAG_URL:-}"
+      RAG_URL: "${RAG_URL:-http://ingestor:8001}"
       RAG_TOKEN: "${RAG_TOKEN:-}"
       SEED_ON_START: "${SEED_ON_START:-false}"
       DEFAULT_PASSWORD: "${DEFAULT_PASSWORD:?err}"
@@ -101,6 +104,9 @@ services:
       start_period: 120s
 
   celery:
+    networks:
+      - default
+      - rag_ui_net
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
     restart: unless-stopped
     command: celery -A core worker -l info --concurrency=4 --max-tasks-per-child=100
@@ -145,7 +151,7 @@ services:
       BILAN_LLM_DEFAULT: "${BILAN_LLM_DEFAULT:-}"
       BILAN_LLM_PREMIUM: "${BILAN_LLM_PREMIUM:-}"
       BILAN_REQUIRE_RAG: "${BILAN_REQUIRE_RAG:-}"
-      RAG_URL: "${RAG_URL:-}"
+      RAG_URL: "${RAG_URL:-http://ingestor:8001}"
       RAG_TOKEN: "${RAG_TOKEN:-}"
       DEFAULT_PASSWORD: "${DEFAULT_PASSWORD:?err}"
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
@@ -160,6 +166,9 @@ services:
       start_period: 30s
 
   celery-beat:
+    networks:
+      - default
+      - rag_ui_net
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
     restart: unless-stopped
     command: celery -A core beat -l info
@@ -199,7 +208,7 @@ services:
       BILAN_LLM_DEFAULT: "${BILAN_LLM_DEFAULT:-}"
       BILAN_LLM_PREMIUM: "${BILAN_LLM_PREMIUM:-}"
       BILAN_REQUIRE_RAG: "${BILAN_REQUIRE_RAG:-}"
-      RAG_URL: "${RAG_URL:-}"
+      RAG_URL: "${RAG_URL:-http://ingestor:8001}"
       RAG_TOKEN: "${RAG_TOKEN:-}"
       DEFAULT_PASSWORD: "${DEFAULT_PASSWORD:?err}"
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
@@ -247,3 +256,6 @@ volumes:
 
 networks:
   default:
+  rag_ui_net:
+    external: true
+    name: ${RAG_DOCKER_NETWORK:-compose_rag_ui_net}
