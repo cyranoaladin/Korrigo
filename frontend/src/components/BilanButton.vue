@@ -6,36 +6,60 @@
           <AppIcon name="file-text" :size="20" class="text-white" />
         </div>
         <div>
-          <h3 class="text-lg font-semibold">{{ examName === 'BAC_BLANC_MATHS_2026' ? 'Bilan Bac Blanc Maths 2026' : 'Bilan Pédagogique DNB' }}</h3>
-          <p class="text-sm text-white/90">Consultez l'analyse complète des résultats</p>
+          <h3 class="text-lg font-semibold">{{ isBacBlanc ? 'Bilan Bac Blanc Maths 2026' : 'Bilan Pédagogique DNB' }}</h3>
+          <p v-if="isBacBlanc" class="text-sm text-white/90">209 candidats · Moy. 13.25/20 · 77.5% de réussite</p>
+          <p v-else class="text-sm text-white/90">Consultez l'analyse complète des résultats</p>
         </div>
       </div>
-      
+
       <div class="flex items-center gap-3">
+        <!-- Badge statique pour Bac Blanc -->
+        <span v-if="isBacBlanc" class="px-3 py-1 text-xs font-medium rounded-full bg-green-500 text-white">
+          Disponible
+        </span>
+        <!-- Badge dynamique pour DNB -->
         <span
-          v-if="bilan"
+          v-else-if="bilan"
           :class="getStatusClass(bilan.status)"
           class="px-3 py-1 text-xs font-medium rounded-full"
         >
           {{ getStatusText(bilan.status) }}
         </span>
-        
+
         <button
           @click="viewBilan"
           class="inline-flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
         >
           <AppIcon name="eye" :size="14" />
-          {{ bilan ? 'Consulter' : 'Voir les bilans' }}
+          Consulter
         </button>
       </div>
     </div>
 
-    <!-- Loading state -->
-    <div v-if="loading" class="mt-4">
+    <!-- Infos statiques Bac Blanc -->
+    <div v-if="isBacBlanc" class="mt-4 pt-4 border-t border-white/20">
+      <div class="grid grid-cols-3 gap-4 text-sm">
+        <div>
+          <div class="text-white/70">Copies analysées</div>
+          <div class="font-semibold">209</div>
+        </div>
+        <div>
+          <div class="text-white/70">Moyenne</div>
+          <div class="font-semibold">13.25 / 20</div>
+        </div>
+        <div>
+          <div class="text-white/70">Taux de réussite</div>
+          <div class="font-semibold">77.5 %</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading state DNB -->
+    <div v-else-if="loading" class="mt-4">
       <div class="h-2 bg-white/20 rounded animate-pulse"></div>
     </div>
 
-    <!-- Bilan info -->
+    <!-- Bilan info DNB -->
     <div v-else-if="bilan" class="mt-4 pt-4 border-t border-white/20">
       <div class="grid grid-cols-3 gap-4 text-sm">
         <div>
@@ -51,7 +75,7 @@
           <div class="font-semibold">{{ getStatusText(bilan.status) }}</div>
         </div>
       </div>
-      
+
       <div v-if="bilan.pdf_available" class="mt-3">
         <button
           @click="downloadPDF"
@@ -66,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '../composables/useToast'
 import { bilanService } from '../services/bilan'
@@ -81,6 +105,9 @@ const props = defineProps({
 
 const router = useRouter()
 const toast = useToast()
+
+// Le bilan Bac Blanc est statique — pas d'appel API
+const isBacBlanc = computed(() => props.examName === 'BAC_BLANC_MATHS_2026')
 
 const bilan = ref(null)
 const loading = ref(false)
@@ -121,6 +148,8 @@ const formatDate = (dateString) => {
 }
 
 const fetchBilan = async () => {
+  // Pas d'appel API pour le bilan statique Bac Blanc
+  if (isBacBlanc.value) return
   try {
     loading.value = true
     const response = await bilanService.list()
