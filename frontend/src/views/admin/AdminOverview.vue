@@ -273,10 +273,35 @@ useAutoRefresh(fetchExams)
         </div>
       </section>
 
+      <!-- Bac Blanc Bilan Section -->
+      <section>
+        <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Bilan Pédagogique Bac Blanc Maths 2026</h2>
+        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                <AppIcon name="bar-chart-2" :size="20" class="text-white" />
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold">Bilan Bac Blanc Maths 2026</h3>
+                <p class="text-sm text-white/90">209 candidats · Moy. 13.25/20 · 77.5% de réussite</p>
+              </div>
+            </div>
+            <button
+              @click="router.push({ name: 'BilanBacBlanc' })"
+              class="inline-flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
+            >
+              <AppIcon name="eye" :size="14" />
+              Consulter le bilan
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- DNB Bilan Section -->
       <section v-if="exams.some(exam => exam.name === 'DNB_2026')">
         <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Bilan Pédagogique DNB 2026</h2>
-        <BilanCard 
+        <BilanCard
           :exam-id="exams.find(exam => exam.name === 'DNB_2026')?.id"
           exam-name="DNB_2026"
         />
