@@ -523,6 +523,8 @@ class StudentBilanView(views.APIView):
                 'llm_summary': llm_summary,
                 'pdf_url': pdf_url,
                 'pdf_source_url': pdf_source_url,
+                'assigned_corrector_id': copy.assigned_corrector_id if copy.assigned_corrector else None,
+                'pdf_regeneration_pending': copy.pdf_regeneration_pending,
             })
         
         return Response({
