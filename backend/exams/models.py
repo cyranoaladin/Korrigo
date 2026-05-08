@@ -203,6 +203,11 @@ class Copy(models.Model):
         blank=True,
         null=True
     )
+    pdf_regeneration_pending = models.BooleanField(
+        default=False,
+        verbose_name=_("Régénération PDF en attente"),
+        help_text=_("Indique que le PDF final doit être régénéré suite à une correction de note")
+    )
     pdf_source = models.FileField(
         upload_to='copies/source/',
         verbose_name=_("Fichier PDF source"),

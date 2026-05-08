@@ -23,6 +23,8 @@ from grading.views import (
     CopyReopenView,
     CopyAnnotationsExportView,
     ExamAnnotationsExportView,
+    CopyScoreCorrectionView,
+    CopyPdfRegenerationView,
 )
 from grading.views_draft import DraftReturnView
 from grading.views_async import task_status, cancel_task
@@ -96,6 +98,12 @@ urlpatterns = [
     path('copies/<uuid:copy_id>/reopen/', CopyReopenView.as_view(), name='copy-reopen'),
     path('copies/<uuid:copy_id>/export-annotations/', CopyAnnotationsExportView.as_view(), name='copy-export-annotations'),
     path('exams/<uuid:exam_id>/export-all-annotations/', ExamAnnotationsExportView.as_view(), name='exam-export-annotations'),
+
+    # Score Correction (after finalization)
+    path('copies/<uuid:copy_id>/score-correction/', CopyScoreCorrectionView.as_view(), name='copy-score-correction'),
+
+    # PDF Regeneration (admin only)
+    path('copies/<uuid:copy_id>/regenerate-final-pdf/', CopyPdfRegenerationView.as_view(), name='copy-regenerate-final-pdf'),
 
     # Mes Élèves (correcteur)
     path('my-students/', MyStudentsListView.as_view(), name='my-students-list'),

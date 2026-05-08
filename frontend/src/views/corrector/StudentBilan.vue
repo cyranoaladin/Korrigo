@@ -16,6 +16,11 @@ const copies = ref([])
 const isLoading = ref(true)
 const error = ref(null)
 const selectedCopyIndex = ref(0)
+const showCorrectionModal = ref(false)
+const correctionReason = ref('')
+const correctionScores = ref({})
+const isCorrecting = ref(false)
+const correctionError = ref(null)
 
 const fetchBilan = async () => {
     isLoading.value = true
@@ -95,6 +100,57 @@ const getStatusLabel = (status) => {
     return labels[status] || status
 }
 
+const openCorrectionModal = () => {
+  if (!selectedCopy.value || selectedCopy.value.status !== 'FINALIZED') return
+  correctionReason.value = ''
+  correctionScores.value = { ...(selectedCopy.value.scores_data || {}) }
+  correctionError.value = null
+  showCorrectionModal.value = true
+}
+
+const closeCorrectionModal = () => {
+  showCorrectionModal.value = false
+  correctionReason.value = ''
+  correctionScores.value = {}
+  correctionError.value = null
+}
+
+const submitCorrection = async () => {
+  if (!correctionReason.value.trim()) {
+    correctionError.value = 'La justification est obligatoire.'
+    return
+  }
+
+  isCorrecting.value = true
+  correctionError.value = null
+  try {
+    await api.post(`/grading/copies/${selectedCopy.value.copy_id}/score-correction/`, {
+      scores_data: correctionScores.value,
+      final_comment: selectedCopy.value.final_comment || '',
+      reason: correctionReason.value.trim(),
+    })
+    closeCorrectionModal()
+    await fetchBilan() // Refresh data
+  } catch (err) {
+    console.error('Correction failed', err)
+    correctionError.value = err.response?.data?.detail || 'Erreur lors de la correction.'
+  } finally {
+    isCorrecting.value = false
+  }
+}
+
+const canCorrectCopy = computed(() => {
+  if (!selectedCopy.value) return false
+  if (selectedCopy.value.status !== 'FINALIZED') return false
+  const user = authStore.user
+  if (!user) return false
+  // Admin can always correct
+  if (user.is_superuser || user.groups?.some(g => g.name === 'ADMIN')) return true
+  // Assigned corrector can correct
+  if (selectedCopy.value.assigned_corrector_id === user.id) return true
+  return false
+})
+
 onMounted(fetchBilan)
 </script>
 
@@ -156,12 +212,22 @@ onMounted(fetchBilan)
               {{ getStatusLabel(selectedCopy.status) }}
             </span>
             <span class="anon-id">Anonymat: {{ selectedCopy.anonymous_id }}</span>
+            <span v-if="selectedCopy.pdf_regeneration_pending" class="pdf-regenerating-badge">
+              <AppIcon name="loader" :size="14" class="inline spin" /> PDF en régénération
+            </span>
             <button
-              v-if="selectedCopy.pdf_url"
+              v-if="selectedCopy.pdf_url && !selectedCopy.pdf_regeneration_pending"
               class="btn-pdf"
               @click="openPdf"
             >
               <AppIcon name="document" :size="16" class="inline" /> Voir le PDF corrigé
+            </button>
+            <button
+              v-if="canCorrectCopy"
+              class="btn-correct"
+              @click="openCorrectionModal"
+            >
+              <AppIcon name="edit" :size="16" class="inline" /> Corriger la note
             </button>
           </div>
 
@@ -236,6 +302,62 @@ onMounted(fetchBilan)
           Aucune copie trouvée pour cet élève.
         </div>
       </template>
+
+      <!-- Score Correction Modal -->
+      <div v-if="showCorrectionModal" class="modal-overlay" @click.self="closeCorrectionModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Corriger la note</h3>
+            <button class="btn-close" @click="closeCorrectionModal">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="correction-info">
+              <p><strong>Copie :</strong> {{ selectedCopy?.exam_name }}</p>
+              <p><strong>Note actuelle :</strong> {{ totalScore !== null ? totalScore.toFixed(2) : '—' }} / 20</p>
+            </div>
+            <div class="form-group">
+              <label>Justification (obligatoire) *</label>
+              <textarea
+                v-model="correctionReason"
+                placeholder="Expliquez la raison de cette correction..."
+                rows="3"
+                class="form-textarea"
+              ></textarea>
+            </div>
+            <div class="form-group">
+              <label>Notes par question</label>
+              <div class="scores-input-grid">
+                <div
+                  v-for="[qid, score] in sortedScores"
+                  :key="qid"
+                  class="score-input-item"
+                >
+                  <label>{{ qLabel(qid) }}</label>
+                  <input
+                    type="number"
+                    v-model.number="correctionScores[qid]"
+                    step="0.5"
+                    min="0"
+                    class="form-input"
+                  />
+                </div>
+              </div>
+            </div>
+            <div v-if="correctionError" class="error-message">{{ correctionError }}</div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-cancel" @click="closeCorrectionModal">Annuler</button>
+            <button
+              class="btn-submit"
+              @click="submitCorrection"
+              :disabled="isCorrecting || !correctionReason.trim()"
+            >
+              <AppIcon v-if="isCorrecting" name="loader" :size="16" class="inline spin" />
+              {{ isCorrecting ? 'Correction...' : 'Corriger' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -279,8 +401,11 @@ onMounted(fetchBilan)
 .status-badge.ready { background: #dbeafe; color: #1d4ed8; }
 .status-badge.in_progress { background: #FEF3C7; color: #92400e; }
 .anon-id { color: #64748b; font-size: 0.85rem; }
+.pdf-regenerating-badge { color: #f59e0b; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 0.25rem; }
 .btn-pdf { margin-left: auto; background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.85rem; }
 .btn-pdf:hover { background: #1d4ed8; }
+.btn-correct { background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.85rem; margin-left: 0.5rem; }
+.btn-correct:hover { background: #d97706; }
 
 .bilan-section { background: white; padding: 1.25rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 .bilan-section h2 { margin: 0 0 1rem 0; font-size: 1rem; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem; }
@@ -308,4 +433,185 @@ onMounted(fetchBilan)
 
 .appreciation-box, .final-comment-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 1rem; color: #166534; line-height: 1.5; }
 
+/* Score Correction Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1e293b;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #64748b;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.btn-close:hover { color: #1e293b; }
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.correction-info {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.correction-info p {
+  margin: 0.25rem 0;
+  color: #334155;
+  font-size: 0.9rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.scores-input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.score-input-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.score-input-item label {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.form-input {
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-cancel {
+  background: white;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.btn-cancel:hover {
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.btn-submit {
+  background: #f59e0b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: #d97706;
+}
+
+.btn-submit:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 </style>

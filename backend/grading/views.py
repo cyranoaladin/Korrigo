@@ -403,6 +403,13 @@ class CopyFinalPdfView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
+        # Check if PDF is pending regeneration after score correction
+        if copy.pdf_regeneration_pending:
+            return Response(
+                {"detail": "Le PDF final est en cours de régénération suite à une correction de note. Veuillez réessayer dans quelques instants."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
         if not copy.final_pdf:
             return Response({"detail": "PDF final non disponible."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -1273,3 +1280,244 @@ class ExamAnnotationsExportView(APIView):
         response = HttpResponse(buffer.getvalue(), content_type='application/zip')
         response['Content-Disposition'] = f'attachment; filename="exam-{exam.id}-annotations.zip"'
         return response
+
+
+class CopyScoreCorrectionView(APIView):
+    """
+    POST /api/grading/copies/<uuid:copy_id>/score-correction/
+    Allow authorized users to correct scores on FINALIZED copies with mandatory justification.
+    
+    Permissions:
+    - Admin: can correct directly
+    - Assigned corrector: can correct directly
+    - Assigned teacher (via TeacherGroupAssignment): can correct directly
+    
+    Requirements:
+    - Copy must be FINALIZED
+    - 'reason' field is mandatory (justification for correction)
+    - Scores must respect the barème (same validation as CopyScoresView)
+    - Creates GradingEvent SCORE_CORRECTED with old/new totals
+    - Invalidates final_pdf (sets to None) to force regeneration
+    """
+    permission_classes = [IsAuthenticated]
+
+    def _can_correct_copy(self, user, copy: Copy) -> tuple[bool, str]:
+        """
+        Check if user is allowed to correct this FINALIZED copy.
+        Returns (allowed, error_message).
+
+        Rules:
+        - Admin/superuser: can correct directly
+        - Assigned corrector: can correct directly
+        - Teacher assigned to student's group but not corrector: NOT allowed (403)
+        - Unrelated teacher: NOT allowed (403)
+        """
+        if user.is_superuser:
+            return True, ""
+        if user.groups.filter(name__iexact=UserRole.ADMIN).exists():
+            return True, ""
+        
+        # Only assigned corrector can correct
+        if copy.assigned_corrector_id == user.id:
+            return True, ""
+        
+        # All other users (including teachers assigned to student's group) are denied
+        return False, "Vous n'êtes pas autorisé à corriger cette copie."
+
+    def post(self, request, copy_id):
+        copy = get_object_or_404(Copy, id=copy_id)
+
+        # Check copy status
+        if copy.status != Copy.Status.FINALIZED:
+            return Response(
+                {"detail": "Seules les copies finalisées peuvent être corrigées via ce endpoint."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check permissions
+        allowed, error_msg = self._can_correct_copy(request.user, copy)
+        if not allowed:
+            return Response({"detail": error_msg}, status=status.HTTP_403_FORBIDDEN)
+
+        # Validate mandatory reason
+        reason = request.data.get('reason', '').strip()
+        if not reason:
+            return Response(
+                {"detail": "La justification (reason) est obligatoire pour toute correction de note."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        scores_data = request.data.get('scores_data', {})
+        final_comment = request.data.get('final_comment', '')
+
+        if not isinstance(scores_data, dict):
+            return Response(
+                {"detail": "scores_data must be a dict."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate score values (reuse CopyScoresView logic)
+        from exams.grading_utils import build_q_max, extract_leaf_questions
+
+        # Build q_max from grading_structure
+        q_max = build_q_max(copy.exam.grading_structure) if copy.exam and copy.exam.grading_structure else {}
+        # Fallback to hardcoded constraints
+        if not q_max:
+            q_max = Q_MAX_BY_EXAM.get(copy.exam.name, {}) if copy.exam else {}
+
+        for qid, val in scores_data.items():
+            if val is not None and val != '':
+                try:
+                    fval = float(val)
+                except (TypeError, ValueError):
+                    return Response(
+                        {"detail": f"La note pour '{qid}' doit être numérique, reçu '{val}'."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                if fval < 0:
+                    return Response(
+                        {"detail": f"La note pour '{qid}' ne peut pas être négative."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                # Validate against max score if defined
+                if q_max and qid in q_max:
+                    max_score = float(q_max[qid])
+                    if fval > max_score + 0.01:
+                        return Response(
+                            {"detail": f"La note pour '{qid}' dépasse le maximum autorisé ({max_score} pts)."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+
+        # Validate total score does not exceed exam max
+        total_score = sum(float(v) for v in scores_data.values() if v is not None and v != '')
+        leaves = extract_leaf_questions(copy.exam.grading_structure) if copy.exam else []
+        max_total = sum(float(q['points']) for q in leaves) if leaves else 20.0
+        if total_score > max_total + 0.01:
+            return Response(
+                {"detail": f"Le total des notes ({total_score}) dépasse le maximum autorisé ({max_total} pts)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get old total for audit
+        old_score = Score.objects.filter(copy=copy).first()
+        old_total = 0.0
+        if old_score and old_score.scores_data:
+            old_total = sum(float(v) for v in old_score.scores_data.values() if v is not None and v != '')
+
+        from django.db import transaction
+        with transaction.atomic():
+            # Update or create score
+            score, created = Score.objects.update_or_create(
+                copy=copy,
+                defaults={
+                    'scores_data': scores_data,
+                    'final_comment': final_comment,
+                }
+            )
+
+            # Mark PDF for regeneration instead of deleting it
+            copy.pdf_regeneration_pending = True
+            copy.save(update_fields=['pdf_regeneration_pending'])
+
+            # Audit trail: log correction with old/new scores and totals
+            try:
+                nq = len([v for v in scores_data.values() if v is not None and v != ''])
+                new_total = float(round(total_score, 2))
+                GradingEvent.objects.create(
+                    copy=copy,
+                    actor=request.user,
+                    action=GradingEvent.Action.SCORE_CORRECTED,
+                    metadata={
+                        'old_scores_data': old_score.scores_data if old_score else {},
+                        'new_scores_data': scores_data,
+                        'old_total': float(round(old_total, 2)),
+                        'new_total': new_total,
+                        'reason': reason[:500],  # Truncate to 500 chars
+                        'nq': nq,
+                    }
+                )
+            except Exception:
+                logger.warning("Failed to create GradingEvent for score correction on copy %s", copy_id)
+
+        return Response({
+            'copy_id': str(copy.id),
+            'scores_data': score.scores_data,
+            'final_comment': score.final_comment or '',
+            'old_total': float(round(old_total, 2)),
+            'new_total': float(round(total_score, 2)),
+            'pdf_regeneration_pending': copy.pdf_regeneration_pending,
+        })
+
+
+class CopyPdfRegenerationView(APIView):
+    """
+    POST /api/grading/copies/<uuid:copy_id>/regenerate-final-pdf/
+
+    Admin-only endpoint to regenerate the final PDF for a copy after score correction.
+
+    This endpoint:
+    - Is restricted to admin/superuser only
+    - Verifies that pdf_regeneration_pending=True
+    - Regenerates the final PDF using PDFFlattener
+    - Sets pdf_regeneration_pending=False after success
+    - Updates final_pdf
+    - Creates a GradingEvent with action PDF_REGENERATED
+
+    Security: Only admin/superuser can access this endpoint.
+    """
+    from rest_framework.permissions import IsAuthenticated
+    from core.auth import IsKorrigoAdmin
+    permission_classes = [IsAuthenticated, IsKorrigoAdmin]
+
+    def post(self, request, copy_id):
+        from django.core.files.base import ContentFile
+        from django.utils import timezone
+        from processing.services.pdf_flattener import PDFFlattener
+
+        copy = get_object_or_404(Copy, id=copy_id)
+
+        # Check copy status
+        if copy.status != Copy.Status.FINALIZED:
+            return Response(
+                {"detail": "Seules les copies finalisées peuvent avoir leur PDF régénéré."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check if PDF regeneration is pending
+        if not copy.pdf_regeneration_pending:
+            return Response(
+                {"detail": "Aucune régénération de PDF en attente pour cette copie."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Regenerate PDF using PDFFlattener (same service used in finalization)
+        flattener = PDFFlattener()
+        try:
+            pdf_bytes = flattener.flatten_copy(copy)
+            if pdf_bytes is None:
+                pdf_bytes = b""
+            output_filename = f"copy_{copy.id}_corrected.pdf"
+            copy.final_pdf.save(output_filename, ContentFile(pdf_bytes), save=False)
+            copy.pdf_regeneration_pending = False
+            copy.save(update_fields=["final_pdf", "pdf_regeneration_pending"])
+
+            # Audit trail: log PDF regeneration
+            GradingEvent.objects.create(
+                copy=copy,
+                actor=request.user,
+                action=GradingEvent.Action.PDF_REGENERATED,
+                metadata={'regenerated_at': timezone.now().isoformat()}
+            )
+
+            return Response({
+                'copy_id': str(copy.id),
+                'status': 'success',
+                'pdf_regenerated': True,
+            })
+
+        except Exception as exc:
+            logger.error(f"PDF regeneration failed for copy {copy_id}: {exc}", exc_info=True)
+            return Response(
+                {"detail": f"Échec de la régénération du PDF : {str(exc)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

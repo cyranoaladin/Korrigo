@@ -605,3 +605,72 @@ class PronoteExporterMaxScoreCalculationTests(TestCase):
         
         max_score = exporter._calculate_max_score(exam.grading_structure)
         self.assertEqual(max_score, 20.0)
+
+
+class PronoteExportIntegrationTests(TestCase):
+    """Integration tests for Pronote export with score correction workflow"""
+
+    def setUp(self):
+        from django.contrib.auth.models import Group
+        from students.models import Student
+        from exams.models import ExamType
+
+        # Create users
+        teacher_group, _ = Group.objects.get_or_create(name='teacher')
+        self.corrector_user = User.objects.create_user(username='corrector', password='password')
+        self.corrector_user.groups.add(teacher_group)
+
+        self.admin_user = User.objects.create_superuser(username='admin', password='admin')
+
+        # Create exam
+        exam_type = ExamType.objects.create(name='Bac Blanc', code='BB')
+        self.exam = Exam.objects.create(name='BB Maths J1', exam_type=exam_type)
+        self.exam.correctors.add(self.corrector_user)
+
+        # Create students
+        from datetime import date
+        self.s1 = Student.objects.create(first_name='Jean', last_name='Dupont', class_name='T.01', groupe='G1', date_naissance=date(2005, 3, 15))
+        self.s2 = Student.objects.create(first_name='Marie', last_name='Curie', class_name='T.01', groupe='G2', date_naissance=date(2005, 1, 1))
+
+        # Create finalized copies
+        self.c1 = Copy.objects.create(exam=self.exam, student=self.s1, status=Copy.Status.FINALIZED, is_identified=True, anonymous_id='ANON1')
+        self.c2 = Copy.objects.create(exam=self.exam, student=self.s2, status=Copy.Status.FINALIZED, is_identified=True, anonymous_id='ANON2')
+
+        # Add scores
+        from grading.models import Score
+        Score.objects.create(copy=self.c1, scores_data={'q1': 15})
+        Score.objects.create(copy=self.c2, scores_data={'q1': 18})
+
+    def test_export_reflects_corrected_score(self):
+        """Test that Pronote export reflects corrected scores after score correction."""
+        from rest_framework.test import APIClient
+        from django.urls import reverse
+
+        client = APIClient()
+
+        # Initial export
+        url = reverse('my-students-export-csv')
+        client.force_authenticate(user=self.corrector_user)
+        response = client.get(url, {'exam_id': str(self.exam.id)})
+        self.assertEqual(response.status_code, 200)
+        content_before = response.content.decode('utf-8-sig')
+        self.assertIn('Dupont;Jean', content_before)
+
+        # Correct score for s1's copy (c1) - need admin for correction
+        client.force_authenticate(user=self.admin_user)
+
+        correction_url = reverse('copy-score-correction', kwargs={'copy_id': self.c1.id})
+        correction_payload = {
+            "scores_data": {"q1": 16},  # Change from 15 to 16
+            "final_comment": "Correction après relecture",
+            "reason": "Erreur de calcul détectée"
+        }
+        response = client.post(correction_url, correction_payload, format='json')
+        self.assertEqual(response.status_code, 200)
+
+        # Export again after correction
+        client.force_authenticate(user=self.corrector_user)
+        response = client.get(url, {'exam_id': str(self.exam.id)})
+        self.assertEqual(response.status_code, 200)
+        content_after = response.content.decode('utf-8-sig')
+        self.assertIn('Dupont;Jean', content_after)
