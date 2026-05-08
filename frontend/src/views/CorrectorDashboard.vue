@@ -574,7 +574,7 @@ const canSeeQuestionnaire = computed(() =>
       </div>
 
       <!-- Bilan pédagogique DNB (visible uniquement pour les examens DNB) -->
-      <div v-if="selectedExamType?.code === 'DNB_2026'">
+      <div v-if="selectedExamType?.code === 'DNB_BLANC_MATHS_2026'">
         <BilanButton exam-name="DNB_2026" />
       </div>
 
