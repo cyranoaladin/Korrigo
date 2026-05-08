@@ -6,7 +6,7 @@
           <AppIcon name="file-text" :size="20" class="text-white" />
         </div>
         <div>
-          <h3 class="text-lg font-semibold">Bilan Pédagogique DNB</h3>
+          <h3 class="text-lg font-semibold">{{ examName === 'BAC_BLANC_MATHS_2026' ? 'Bilan Bac Blanc Maths 2026' : 'Bilan Pédagogique DNB' }}</h3>
           <p class="text-sm text-white/90">Consultez l'analyse complète des résultats</p>
         </div>
       </div>
@@ -138,6 +138,10 @@ const fetchBilan = async () => {
 }
 
 const viewBilan = () => {
+  if (props.examName === 'BAC_BLANC_MATHS_2026') {
+    router.push({ name: 'BilanBacBlanc' })
+    return
+  }
   if (bilan.value) {
     router.push(`/admin/bilan/${bilan.value.id}`)
   } else {

@@ -578,6 +578,11 @@ const canSeeQuestionnaire = computed(() =>
         <BilanButton exam-name="DNB_2026" />
       </div>
 
+      <!-- Bilan Bac Blanc Maths 2026 (visible pour les correcteurs BB_J1/BB_J2) -->
+      <div v-if="selectedExamType?.code === 'BAC_BLANC_MATHS_2026' || selectedExamType?.code === 'BB_J1' || selectedExamType?.code === 'BB_J2'">
+        <BilanButton exam-name="BAC_BLANC_MATHS_2026" />
+      </div>
+
       <!-- ════════════════════════════════════════════
            SECTION STATS (s'affiche sous les copies,
            contextuelle à l'examen sélectionné)

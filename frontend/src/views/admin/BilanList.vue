@@ -342,6 +342,10 @@ const generateBilan = async () => {
 }
 
 const viewBilan = (bilan) => {
+  if (bilan.exam_type === 'BAC_BLANC_MATHS_2026') {
+    router.push({ name: 'BilanBacBlanc' })
+    return
+  }
   router.push(`/admin/bilan/${bilan.id}`)
 }
 

@@ -5,6 +5,8 @@ from rest_framework.permissions import BasePermission
 
 User = get_user_model()
 
+DIRECTION_GROUPS = ['direction_all', 'direction_lycee', 'direction_college']
+
 class UserRole:
     ADMIN = 'admin'
     TEACHER = 'teacher'
@@ -25,6 +27,10 @@ def create_user_roles():
 
     # Groupe coordinateur questionnaire (feature flag)
     Group.objects.get_or_create(name='questionnaire_coordinator')
+
+    # Groupes direction (proviseurs, chefs d'établissement)
+    for direction_group in DIRECTION_GROUPS:
+        Group.objects.get_or_create(name=direction_group)
 
     return admin_group, teacher_group, student_group
 
@@ -75,6 +81,14 @@ class IsStudent(BasePermission):
             from students.models import Student
             return Student.objects.filter(user=request.user).exists()
         return False
+
+class IsDirection(BasePermission):
+    """Permission pour les utilisateurs direction (proviseurs, chefs d'établissement)."""
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+        return request.user.groups.filter(name__in=DIRECTION_GROUPS).exists()
+
 
 class IsAdminOrTeacher(BasePermission):
     """

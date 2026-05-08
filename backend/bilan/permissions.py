@@ -4,21 +4,22 @@ Permissions for DNB Bilan Module
 
 from rest_framework.permissions import BasePermission
 from django.contrib.auth import get_user_model
+from core.auth import DIRECTION_GROUPS
 
 User = get_user_model()
 
 
 class IsAdminOrTeacher(BasePermission):
     """
-    Permission class that allows access to admin and teacher users.
+    Permission class that allows access to admin, teacher, and direction users.
     """
-    
+
     def has_permission(self, request, view):
         return (
             request.user.is_staff
             or request.user.is_superuser
             or request.user.groups.filter(
-                name__in=['admin', 'teacher', 'corrector']
+                name__in=['admin', 'teacher', 'corrector'] + DIRECTION_GROUPS
             ).exists()
         )
 

@@ -9,7 +9,7 @@ from core.utils.ratelimit import maybe_ratelimit
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from core.utils.audit import log_authentication_attempt
-from core.auth import UserRole, IsKorrigoAdmin
+from core.auth import UserRole, IsKorrigoAdmin, DIRECTION_GROUPS
 
 
 def _is_admin_user(user) -> bool:
@@ -179,6 +179,8 @@ class AuthStatusView(APIView):
             role = 'Admin'
         elif user.groups.filter(name__iexact=UserRole.TEACHER).exists():
             role = 'Teacher'
+        elif user.groups.filter(name__in=DIRECTION_GROUPS).exists():
+            role = 'Direction'
         else:
             # Could be a Student account that uses Django auth
             try:
@@ -211,6 +213,8 @@ class UserDetailView(APIView):
             role = "Admin"
         elif user.groups.filter(name__iexact=UserRole.TEACHER).exists():
             role = "Teacher"
+        elif user.groups.filter(name__in=DIRECTION_GROUPS).exists():
+            role = "Direction"
         else:
             # Pure student account — reject, must use /api/students/me/
             from students.models import Student

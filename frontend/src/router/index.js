@@ -19,6 +19,7 @@ function getDashboardForRole(role) {
     if (role === 'Admin') return '/admin/dashboard'
     if (role === 'Teacher') return '/corrector-dashboard'
     if (role === 'Student') return '/student/dashboard'
+    if (role === 'Direction') return '/bilan/bac-blanc-2026'
     return '/'
 }
 
@@ -228,6 +229,14 @@ const routes = [
         name: 'StapleView',
         component: () => import('../views/admin/StapleView.vue'),
         meta: { requiresAuth: true, role: 'Admin' }
+    },
+
+    // ── Bilan Bac Blanc ──
+    {
+        path: '/bilan/bac-blanc-2026',
+        name: 'BilanBacBlanc',
+        component: () => import('../views/BilanBacBlanc.vue'),
+        meta: { requiresAuth: true, role: ['Teacher', 'Admin', 'Direction'], title: 'Bilan Bac Blanc Maths 2026' }
     },
 
     // ── Teacher / corrector routes ──
