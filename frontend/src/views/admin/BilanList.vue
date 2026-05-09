@@ -2,12 +2,15 @@
   <div class="p-6">
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-900 mb-2">Bilans Pédagogiques DNB</h1>
-      <p class="text-gray-600">Générez et consultez les bilans pédagogiques du DNB 2026</p>
+      <p class="text-gray-600">
+        {{ isAdmin ? 'Générez et consultez les bilans pédagogiques du DNB 2026' : 'Consultez les bilans pédagogiques du DNB 2026' }}
+      </p>
     </div>
 
     <!-- Actions -->
     <div class="mb-6 flex flex-wrap gap-4">
       <button
+        v-if="isAdmin"
         @click="showGenerateModal = true"
         :disabled="isGenerating"
         class="inline-flex items-center gap-2 bg-primary-700 text-white px-4 py-2 rounded-lg hover:bg-primary-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
@@ -132,8 +135,11 @@
         <AppIcon name="file-text" :size="32" class="text-gray-400" />
       </div>
       <h3 class="text-lg font-medium text-gray-900 mb-2">Aucun bilan disponible</h3>
-      <p class="text-gray-600 mb-4">Générez votre premier bilan pédagogique DNB</p>
+      <p class="text-gray-600 mb-4">
+        {{ isAdmin ? 'Générez votre premier bilan pédagogique DNB' : 'Un bilan apparaîtra ici dès qu’il sera généré.' }}
+      </p>
       <button
+        v-if="isAdmin"
         @click="showGenerateModal = true"
         class="inline-flex items-center gap-2 bg-primary-700 text-white px-4 py-2 rounded-lg hover:bg-primary-800 transition-colors font-medium"
       >
@@ -144,7 +150,7 @@
 
     <!-- Generate Modal -->
     <div
-      v-if="showGenerateModal"
+      v-if="isAdmin && showGenerateModal"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
       @click.self="showGenerateModal = false"
     >
@@ -231,13 +237,14 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import AppIcon from '../../icons/AppIcon.vue'
 import { useToast } from '../../composables/useToast'
 import { bilanService } from '../../services/bilan'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const toast = useToast()
 
@@ -252,6 +259,8 @@ const generateForm = ref({
   class_id: '',
   force: false,
 })
+
+const isAdmin = computed(() => authStore.user?.role === 'Admin' || authStore.user?.is_superuser)
 
 const canGenerate = computed(() => {
   return generateForm.value.exam_type && 
@@ -303,7 +312,10 @@ const fetchBilans = async () => {
   try {
     isLoading.value = true
     const data = await bilanService.list()
-    bilans.value = data.bilans || data.results || data
+    const list = data.bilans || data.results || data
+    const arr = Array.isArray(list) ? list : []
+    // Page dédiée DNB : filtrer pour éviter l'affichage de bilans hors périmètre.
+    bilans.value = arr.filter(b => String(b.exam_type || '').toUpperCase().startsWith('DNB'))
   } catch (error) {
     console.error('Error fetching bilans:', error)
     toast.error('Erreur lors du chargement des bilans')
@@ -344,6 +356,13 @@ const generateBilan = async () => {
 const viewBilan = (bilan) => {
   if (bilan.exam_type === 'BAC_BLANC_MATHS_2026') {
     router.push({ name: 'BilanBacBlanc' })
+    return
+  }
+  // Cette vue est utilisée dans 2 contextes :
+  // - Admin : /admin/bilan
+  // - Correcteur : /bilan/dnb
+  if (route.path.startsWith('/bilan/')) {
+    router.push(`/bilan/dnb/${bilan.id}`)
     return
   }
   router.push(`/admin/bilan/${bilan.id}`)

@@ -50,7 +50,7 @@ const handleLogout = async () => {
 }
 
 const goToQuestionnaireBilan = () => {
-  router.push({ name: 'QuestionnaireBilan' })
+  router.push({ name: 'QuestionnaireBilanPublic' })
 }
 
 const formatDate = (value) => {

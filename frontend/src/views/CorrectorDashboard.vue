@@ -9,7 +9,6 @@ import JuryReportsModal from '../components/JuryReportsModal.vue'
 import ExamTypeSelectionModal from '../components/ExamTypeSelectionModal.vue'
 import ExamTypeIcon from '../components/ExamTypeIcon.vue'
 import AppIcon from '../icons/AppIcon.vue'
-import BilanButton from '../components/BilanButton.vue'
 import { normalizeCollectionResponse } from '../utils/normalizeCollection'
 
 const authStore = useAuthStore()
@@ -49,7 +48,6 @@ const examStats = computed(() =>
 const statsLoading = computed(() =>
     activeStatsExamId.value ? (statsLoadingMap.value[activeStatsExamId.value] ?? false) : false
 )
-const showStats = computed(() => activeStatsExamId.value !== null)
 
 const myStudents = ref([])
 const myStudentsLoading = ref(false)
@@ -297,13 +295,6 @@ const copiesByExam = computed(() => {
     return Object.values(groups).sort((a, b) => a.examName.localeCompare(b.examName))
 })
 
-// Nom de l'examen dont les stats sont affichées
-const activeStatsExamName = computed(() => {
-    if (!activeStatsExamId.value) return ''
-    const group = copiesByExam.value.find(g => g.examId === activeStatsExamId.value)
-    return group?.examName || examStats.value?.exam_name || ''
-})
-
 // Toggle stats pour un examen donné
 const toggleExamStats = async (examId) => {
     if (activeStatsExamId.value === examId) {
@@ -448,7 +439,20 @@ const goToQuestionnaire = () => {
 }
 
 const goToQuestionnaireBilan = () => {
-    router.push({ name: 'QuestionnaireBilan' })
+    router.push({ name: 'QuestionnaireBilanPublic' })
+}
+
+const bilanRoutesByExamTypeCode = {
+    BAC_BLANC_MATHS_2026: { name: 'BilanBacBlanc' },
+    DNB_BLANC_MATHS_2026: { name: 'DnbBilanList' },
+}
+
+const canSeeExamBilan = (examTypeCode) => !!bilanRoutesByExamTypeCode[examTypeCode]
+
+const goToExamBilan = (examTypeCode) => {
+    const target = bilanRoutesByExamTypeCode[examTypeCode]
+    if (!target) return
+    router.push(target)
 }
 
 const downloadCsv = async (examId, groupName, examName, assignmentType = 'classe') => {
@@ -573,225 +577,6 @@ const canSeeQuestionnaire = computed(() =>
         </div>
       </div>
 
-      <!-- Bilan pédagogique DNB (visible uniquement pour les examens DNB) -->
-      <div v-if="selectedExamType?.code === 'DNB_BLANC_MATHS_2026'">
-        <BilanButton exam-name="DNB_2026" />
-      </div>
-
-      <!-- Bilan Bac Blanc Maths 2026 (visible pour les correcteurs BAC_BLANC_MATHS_2026) -->
-      <div v-if="selectedExamType?.code === 'BAC_BLANC_MATHS_2026'">
-        <BilanButton exam-name="BAC_BLANC_MATHS_2026" />
-      </div>
-
-      <!-- ════════════════════════════════════════════
-           SECTION STATS (s'affiche sous les copies,
-           contextuelle à l'examen sélectionné)
-           ════════════════════════════════════════════ -->
-      <div
-        v-if="showStats"
-        id="stats-section"
-        class="charts-section"
-      >
-        <div class="stats-section-title">
-          <AppIcon name="bar-chart-3" :size="16" />
-          Statistiques — <strong>{{ activeStatsExamName }}</strong>
-          <button class="btn-close-stats" @click="activeStatsExamId = null" title="Fermer les statistiques">
-            <AppIcon name="x" :size="14" />
-          </button>
-        </div>
-
-        <div v-if="statsLoading" class="loading">
-          Chargement des statistiques...
-        </div>
-
-        <template v-else-if="examStats">
-          <!-- Indicateurs comparatifs -->
-          <div class="comparative-stats">
-            <h3>Indicateurs Comparatifs</h3>
-            <div
-              v-if="!examStats.all_graded"
-              class="partial-warning"
-            >
-              Statistiques partielles ({{ examStats.graded_copies }}/{{ examStats.total_copies }} copies corrigées)
-            </div>
-            <table class="stats-table">
-              <thead>
-                <tr>
-                  <th>Indicateur</th>
-                  <th>Mon Lot</th>
-                  <th>Global</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Moyenne</td>
-                  <td>{{ examStats.lot_stats?.mean ?? '-' }}</td>
-                  <td>{{ examStats.global_stats?.mean ?? '-' }}</td>
-                </tr>
-                <tr>
-                  <td>Médiane</td>
-                  <td>{{ examStats.lot_stats?.median ?? '-' }}</td>
-                  <td>{{ examStats.global_stats?.median ?? '-' }}</td>
-                </tr>
-                <tr>
-                  <td>Écart-type</td>
-                  <td>{{ examStats.lot_stats?.std_dev ?? '-' }}</td>
-                  <td>{{ examStats.global_stats?.std_dev ?? '-' }}</td>
-                </tr>
-                <tr>
-                  <td>Minimum</td>
-                  <td>{{ examStats.lot_stats?.min ?? '-' }}</td>
-                  <td>{{ examStats.global_stats?.min ?? '-' }}</td>
-                </tr>
-                <tr>
-                  <td>Maximum</td>
-                  <td>{{ examStats.lot_stats?.max ?? '-' }}</td>
-                  <td>{{ examStats.global_stats?.max ?? '-' }}</td>
-                </tr>
-                <tr>
-                  <td>Nombre de copies</td>
-                  <td>{{ examStats.lot_stats?.count ?? '-' }}</td>
-                  <td>{{ examStats.global_stats?.count ?? '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Courbe de répartition -->
-          <div
-            v-if="mergedBins.length"
-            class="chart-container"
-          >
-            <div class="chart-header">
-              <h3>
-                Répartition des Notes (0–20){{ !examStats.all_graded ? ' — partiel' : '' }}
-              </h3>
-              <div class="chart-legend">
-                <span class="legend-item"><span class="legend-dot lot-dot" /> Mon Lot</span>
-                <span class="legend-item"><span class="legend-dot global-dot" /> Global</span>
-                <span class="legend-item"><span class="legend-line mean-line" /> Moyenne</span>
-                <span class="legend-item"><span class="legend-line median-line" /> Médiane</span>
-              </div>
-            </div>
-            <svg :viewBox="`0 0 ${chartW} ${chartH}`" class="svg-chart" preserveAspectRatio="xMidYMid meet">
-              <line v-for="t in yTicks" :key="'gy'+t"
-                :x1="padL" :x2="chartW - padR" :y1="toY(t)" :y2="toY(t)"
-                stroke="#e2e8f0" stroke-width="0.5" />
-              <line v-for="n in 21" :key="'gx'+n"
-                :x1="toX(n-1)" :x2="toX(n-1)" :y1="padT" :y2="padT + plotH"
-                stroke="#f1f5f9" stroke-width="0.5" />
-
-              <path :d="globalArea" fill="#10b98120" />
-              <path :d="lotArea" fill="#6366f120" />
-
-              <path :d="globalPath" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linejoin="round" />
-              <path :d="lotPath" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linejoin="round" />
-
-              <template v-for="b in mergedBins" :key="'dp'+b.note">
-                <circle v-if="b.globalCount > 0" :cx="toX(b.note)" :cy="toY(b.globalCount)" r="3" fill="#10b981" />
-                <circle v-if="b.lotCount > 0" :cx="toX(b.note)" :cy="toY(b.lotCount)" r="3" fill="#6366f1" />
-              </template>
-
-              <line v-if="meanLineX != null"
-                :x1="meanLineX" :x2="meanLineX" :y1="padT" :y2="padT + plotH"
-                stroke="#ef4444" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.7" />
-              <text v-if="meanLineX != null"
-                :x="meanLineX" :y="padT - 4" text-anchor="middle"
-                fill="#ef4444" font-size="9" font-weight="600">
-                μ={{ examStats.global_stats?.mean }}
-              </text>
-
-              <line v-if="medianLineX != null"
-                :x1="medianLineX" :x2="medianLineX" :y1="padT" :y2="padT + plotH"
-                stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.7" />
-              <text v-if="medianLineX != null"
-                :x="medianLineX" :y="padT + plotH + 26" text-anchor="middle"
-                fill="#f59e0b" font-size="9" font-weight="600">
-                Méd={{ examStats.global_stats?.median }}
-              </text>
-
-              <text v-for="n in 21" :key="'xl'+n"
-                :x="toX(n-1)" :y="padT + plotH + 14"
-                text-anchor="middle" fill="#64748b" font-size="9">
-                {{ n - 1 }}
-              </text>
-              <text v-for="t in yTicks" :key="'yl'+t"
-                :x="padL - 6" :y="toY(t) + 3"
-                text-anchor="end" fill="#94a3b8" font-size="9">
-                {{ t }}
-              </text>
-
-              <line :x1="padL" :x2="chartW - padR" :y1="padT + plotH" :y2="padT + plotH" stroke="#cbd5e1" stroke-width="1" />
-              <line :x1="padL" :x2="padL" :y1="padT" :y2="padT + plotH" stroke="#cbd5e1" stroke-width="1" />
-            </svg>
-          </div>
-
-          <!-- Stats par groupe -->
-          <div
-            v-if="examStats.group_stats && examStats.group_stats.length"
-            class="group-stats-section"
-          >
-            <h3>Statistiques par {{ examStats.group_stats[0]?.type === 'classe' ? 'Classe' : 'Groupe' }}</h3>
-            <div class="group-table-wrapper">
-              <table class="group-stats-table">
-                <thead>
-                  <tr>
-                    <th>{{ examStats.group_stats[0]?.type === 'classe' ? 'Classe' : 'Groupe' }}</th>
-                    <th>Copies</th>
-                    <th>Moyenne</th>
-                    <th>Médiane</th>
-                    <th>Écart-type</th>
-                    <th>Min</th>
-                    <th>Max</th>
-                    <th>≥ Moy. globale</th>
-                    <th>&lt; Moy. globale</th>
-                    <th class="action-cell">Export</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="g in examStats.group_stats" :key="g.groupe">
-                    <td class="group-name">{{ g.groupe }}</td>
-                    <td>{{ g.count }}</td>
-                    <td :class="{ 'above-global': g.mean >= examStats.global_stats?.mean, 'below-global': g.mean < examStats.global_stats?.mean }">
-                      <strong>{{ g.mean ?? '-' }}</strong>
-                    </td>
-                    <td>{{ g.median ?? '-' }}</td>
-                    <td>{{ g.std_dev ?? '-' }}</td>
-                    <td>{{ g.min ?? '-' }}</td>
-                    <td>{{ g.max ?? '-' }}</td>
-                    <td class="count-above">{{ g.above_mean }}</td>
-                    <td class="count-below">{{ g.below_mean }}</td>
-                    <td class="action-cell">
-                      <button
-                        class="btn-export-table"
-                        @click="downloadCsv(examStats.exam_id, g.groupe, examStats.exam_name, g.type || 'groupe')"
-                        :disabled="isExporting === `${examStats.exam_id}_${g.groupe}`"
-                        title="Exporter les notes de ce groupe vers Pronote"
-                      >
-                        <AppIcon :name="isExporting === `${examStats.exam_id}_${g.groupe}` ? 'loader' : 'download'" :size="12" />
-                        CSV
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr class="global-row">
-                    <td class="group-name"><strong>Global</strong></td>
-                    <td><strong>{{ examStats.global_stats?.count ?? '-' }}</strong></td>
-                    <td><strong>{{ examStats.global_stats?.mean ?? '-' }}</strong></td>
-                    <td><strong>{{ examStats.global_stats?.median ?? '-' }}</strong></td>
-                    <td><strong>{{ examStats.global_stats?.std_dev ?? '-' }}</strong></td>
-                    <td><strong>{{ examStats.global_stats?.min ?? '-' }}</strong></td>
-                    <td><strong>{{ examStats.global_stats?.max ?? '-' }}</strong></td>
-                    <td colspan="2" />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        </template>
-      </div>
-
       <!-- ════════════════════════════════════════════
            LISTE DES COPIES groupées par examen
            ════════════════════════════════════════════ -->
@@ -848,6 +633,15 @@ const canSeeQuestionnaire = computed(() =>
                   <AppIcon name="bar-chart-3" :size="13" />
                   {{ activeStatsExamId === group.examId ? 'Masquer stats' : 'Statistiques' }}
                 </button>
+                <!-- Bouton Bilan (si disponible pour le type d'examen) -->
+                <button
+                  v-if="canSeeExamBilan(group.examTypeDetails?.code)"
+                  class="btn-bilan-inline"
+                  @click="goToExamBilan(group.examTypeDetails?.code)"
+                  title="Consulter le bilan de cet examen"
+                >
+                  <AppIcon name="file-text" :size="14" class="inline" /> Bilan
+                </button>
                 <!-- Bouton Mes Élèves (strict par examen) -->
                 <button
                   class="btn-my-students-inline"
@@ -868,6 +662,212 @@ const canSeeQuestionnaire = computed(() =>
                   <AppIcon :name="isExporting === `${group.examId}_null` ? 'loader' : 'download'" :size="14" class="inline" /> Export
                 </button>
               </div>
+            </div>
+
+            <!-- Stats de cet examen (accordion : une seule section ouverte) -->
+            <div
+              v-if="activeStatsExamId === group.examId"
+              id="stats-section"
+              class="charts-section"
+            >
+              <div class="stats-section-title">
+                <AppIcon name="bar-chart-3" :size="16" />
+                Statistiques — <strong>{{ group.examName }}</strong>
+                <button class="btn-close-stats" @click="activeStatsExamId = null" title="Fermer les statistiques">
+                  <AppIcon name="x" :size="14" />
+                </button>
+              </div>
+
+              <div v-if="statsLoading" class="loading">
+                Chargement des statistiques...
+              </div>
+
+              <template v-else-if="examStats">
+                <!-- Indicateurs comparatifs -->
+                <div class="comparative-stats">
+                  <h3>Indicateurs Comparatifs</h3>
+                  <div
+                    v-if="!examStats.all_graded"
+                    class="partial-warning"
+                  >
+                    Statistiques partielles ({{ examStats.graded_copies }}/{{ examStats.total_copies }} copies corrigées)
+                  </div>
+                  <table class="stats-table">
+                    <thead>
+                      <tr>
+                        <th>Indicateur</th>
+                        <th>Mon Lot</th>
+                        <th>Global</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Moyenne</td>
+                        <td>{{ examStats.lot_stats?.mean ?? '-' }}</td>
+                        <td>{{ examStats.global_stats?.mean ?? '-' }}</td>
+                      </tr>
+                      <tr>
+                        <td>Médiane</td>
+                        <td>{{ examStats.lot_stats?.median ?? '-' }}</td>
+                        <td>{{ examStats.global_stats?.median ?? '-' }}</td>
+                      </tr>
+                      <tr>
+                        <td>Écart-type</td>
+                        <td>{{ examStats.lot_stats?.std_dev ?? '-' }}</td>
+                        <td>{{ examStats.global_stats?.std_dev ?? '-' }}</td>
+                      </tr>
+                      <tr>
+                        <td>Minimum</td>
+                        <td>{{ examStats.lot_stats?.min ?? '-' }}</td>
+                        <td>{{ examStats.global_stats?.min ?? '-' }}</td>
+                      </tr>
+                      <tr>
+                        <td>Maximum</td>
+                        <td>{{ examStats.lot_stats?.max ?? '-' }}</td>
+                        <td>{{ examStats.global_stats?.max ?? '-' }}</td>
+                      </tr>
+                      <tr>
+                        <td>Nombre de copies</td>
+                        <td>{{ examStats.lot_stats?.count ?? '-' }}</td>
+                        <td>{{ examStats.global_stats?.count ?? '-' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Courbe de répartition -->
+                <div
+                  v-if="mergedBins.length"
+                  class="chart-container"
+                >
+                  <div class="chart-header">
+                    <h3>
+                      Répartition des Notes (0–20){{ !examStats.all_graded ? ' — partiel' : '' }}
+                    </h3>
+                    <div class="chart-legend">
+                      <span class="legend-item"><span class="legend-dot lot-dot" /> Mon Lot</span>
+                      <span class="legend-item"><span class="legend-dot global-dot" /> Global</span>
+                      <span class="legend-item"><span class="legend-line mean-line" /> Moyenne</span>
+                      <span class="legend-item"><span class="legend-line median-line" /> Médiane</span>
+                    </div>
+                  </div>
+                  <svg :viewBox="`0 0 ${chartW} ${chartH}`" class="svg-chart" preserveAspectRatio="xMidYMid meet">
+                    <line v-for="t in yTicks" :key="'gy'+t"
+                      :x1="padL" :x2="chartW - padR" :y1="toY(t)" :y2="toY(t)"
+                      stroke="#e2e8f0" stroke-width="0.5" />
+                    <line v-for="n in 21" :key="'gx'+n"
+                      :x1="toX(n-1)" :x2="toX(n-1)" :y1="padT" :y2="padT + plotH"
+                      stroke="#f1f5f9" stroke-width="0.5" />
+
+                    <path :d="globalArea" fill="#10b98120" />
+                    <path :d="lotArea" fill="#6366f120" />
+
+                    <path :d="globalPath" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linejoin="round" />
+                    <path :d="lotPath" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linejoin="round" />
+
+                    <template v-for="b in mergedBins" :key="'dp'+b.note">
+                      <circle v-if="b.globalCount > 0" :cx="toX(b.note)" :cy="toY(b.globalCount)" r="3" fill="#10b981" />
+                      <circle v-if="b.lotCount > 0" :cx="toX(b.note)" :cy="toY(b.lotCount)" r="3" fill="#6366f1" />
+                    </template>
+
+                    <line v-if="meanLineX != null"
+                      :x1="meanLineX" :x2="meanLineX" :y1="padT" :y2="padT + plotH"
+                      stroke="#ef4444" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.7" />
+                    <text v-if="meanLineX != null"
+                      :x="meanLineX" :y="padT - 4" text-anchor="middle"
+                      fill="#ef4444" font-size="9" font-weight="600">
+                      μ={{ examStats.global_stats?.mean }}
+                    </text>
+
+                    <line v-if="medianLineX != null"
+                      :x1="medianLineX" :x2="medianLineX" :y1="padT" :y2="padT + plotH"
+                      stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.7" />
+                    <text v-if="medianLineX != null"
+                      :x="medianLineX" :y="padT + plotH + 26" text-anchor="middle"
+                      fill="#f59e0b" font-size="9" font-weight="600">
+                      Méd={{ examStats.global_stats?.median }}
+                    </text>
+
+                    <text v-for="n in 21" :key="'xl'+n"
+                      :x="toX(n-1)" :y="padT + plotH + 14"
+                      text-anchor="middle" fill="#64748b" font-size="9">
+                      {{ n - 1 }}
+                    </text>
+                    <text v-for="t in yTicks" :key="'yl'+t"
+                      :x="padL - 6" :y="toY(t) + 3"
+                      text-anchor="end" fill="#94a3b8" font-size="9">
+                      {{ t }}
+                    </text>
+
+                    <line :x1="padL" :x2="chartW - padR" :y1="padT + plotH" :y2="padT + plotH" stroke="#cbd5e1" stroke-width="1" />
+                    <line :x1="padL" :x2="padL" :y1="padT" :y2="padT + plotH" stroke="#cbd5e1" stroke-width="1" />
+                  </svg>
+                </div>
+
+                <!-- Stats par groupe -->
+                <div
+                  v-if="examStats.group_stats && examStats.group_stats.length"
+                  class="group-stats-section"
+                >
+                  <h3>Statistiques par {{ examStats.group_stats[0]?.type === 'classe' ? 'Classe' : 'Groupe' }}</h3>
+                  <div class="group-table-wrapper">
+                    <table class="group-stats-table">
+                      <thead>
+                        <tr>
+                          <th>{{ examStats.group_stats[0]?.type === 'classe' ? 'Classe' : 'Groupe' }}</th>
+                          <th>Copies</th>
+                          <th>Moyenne</th>
+                          <th>Médiane</th>
+                          <th>Écart-type</th>
+                          <th>Min</th>
+                          <th>Max</th>
+                          <th>≥ Moy. globale</th>
+                          <th>&lt; Moy. globale</th>
+                          <th class="action-cell">Export</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="g in examStats.group_stats" :key="g.groupe">
+                          <td class="group-name">{{ g.groupe }}</td>
+                          <td>{{ g.count }}</td>
+                          <td :class="{ 'above-global': g.mean >= examStats.global_stats?.mean, 'below-global': g.mean < examStats.global_stats?.mean }">
+                            <strong>{{ g.mean ?? '-' }}</strong>
+                          </td>
+                          <td>{{ g.median ?? '-' }}</td>
+                          <td>{{ g.std_dev ?? '-' }}</td>
+                          <td>{{ g.min ?? '-' }}</td>
+                          <td>{{ g.max ?? '-' }}</td>
+                          <td class="count-above">{{ g.above_mean }}</td>
+                          <td class="count-below">{{ g.below_mean }}</td>
+                          <td class="action-cell">
+                            <button
+                              class="btn-export-table"
+                              @click="downloadCsv(examStats.exam_id, g.groupe, examStats.exam_name, g.type || 'groupe')"
+                              :disabled="isExporting === `${examStats.exam_id}_${g.groupe}`"
+                              title="Exporter les notes de ce groupe vers Pronote"
+                            >
+                              <AppIcon :name="isExporting === `${examStats.exam_id}_${g.groupe}` ? 'loader' : 'download'" :size="12" />
+                              CSV
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                      <tfoot>
+                        <tr class="global-row">
+                          <td class="group-name"><strong>Global</strong></td>
+                          <td><strong>{{ examStats.global_stats?.count ?? '-' }}</strong></td>
+                          <td><strong>{{ examStats.global_stats?.mean ?? '-' }}</strong></td>
+                          <td><strong>{{ examStats.global_stats?.median ?? '-' }}</strong></td>
+                          <td><strong>{{ examStats.global_stats?.std_dev ?? '-' }}</strong></td>
+                          <td><strong>{{ examStats.global_stats?.min ?? '-' }}</strong></td>
+                          <td><strong>{{ examStats.global_stats?.max ?? '-' }}</strong></td>
+                          <td colspan="2" />
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              </template>
             </div>
 
             <!-- Copies de cet examen -->
@@ -1135,6 +1135,14 @@ const canSeeQuestionnaire = computed(() =>
 .btn-stats-inline:hover { background: #e2e8f0; color: #1e293b; }
 .btn-stats-inline.active { background: #6366f1; color: white; border-color: #6366f1; }
 .btn-stats-inline.active:hover { background: #4f46e5; }
+
+.btn-bilan-inline {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #7c3aed; color: white; border: none;
+  padding: 4px 10px; border-radius: 14px; font-size: 0.78rem;
+  font-weight: 600; cursor: pointer; transition: background 0.2s;
+}
+.btn-bilan-inline:hover { background: #6d28d9; }
 
 .btn-my-students-inline {
   display: inline-flex; align-items: center; gap: 6px;

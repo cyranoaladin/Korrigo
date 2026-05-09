@@ -239,6 +239,28 @@ const routes = [
         meta: { requiresAuth: true, role: ['Teacher', 'Admin', 'Direction'], title: 'Bilan Bac Blanc Maths 2026' }
     },
 
+    // ── Bilans DNB (accessible aux correcteurs) ──
+    {
+        path: '/bilan/dnb',
+        name: 'DnbBilanList',
+        component: () => import('../views/admin/BilanList.vue'),
+        meta: { requiresAuth: true, role: ['Teacher', 'Admin', 'Direction'], title: 'Bilans DNB' }
+    },
+    {
+        path: '/bilan/dnb/:id',
+        name: 'DnbBilanDetail',
+        component: () => import('../views/admin/BilanDetail.vue'),
+        meta: { requiresAuth: true, role: ['Teacher', 'Admin', 'Direction'], title: 'Bilan DNB' }
+    },
+
+    // ── Bilan questionnaire correcteurs (hors /admin pour Teacher) ──
+    {
+        path: '/questionnaire/bilan',
+        name: 'QuestionnaireBilanPublic',
+        component: () => import('../views/admin/QuestionnaireBilan.vue'),
+        meta: { requiresAuth: true, role: ['Teacher', 'Admin'], title: 'Bilan Questionnaire Correcteurs' }
+    },
+
     // ── Teacher / corrector routes ──
     {
         path: '/corrector-dashboard',
@@ -300,7 +322,6 @@ const routes = [
     { path: '/exam/:examId/staple', redirect: to => `/admin/exams/${to.params.examId}/staple` },
     { path: '/exam/:examId/grading-scale', redirect: to => `/admin/exams/${to.params.examId}/scale` },
     { path: '/exam/:examId/students', redirect: to => `/admin/exams/${to.params.examId}/results` },
-    { path: '/questionnaire/bilan', redirect: '/admin/questionnaire' },
 
     // ── Catch-all ──
     {
