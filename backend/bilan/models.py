@@ -83,18 +83,15 @@ class BilanReport(models.Model):
         if user.is_staff or user.is_superuser:
             return True
 
-        # Les enseignants peuvent voir les bilans d'établissement
+        # Bilan lié à un examen : seuls les correcteurs assignés à cet examen peuvent voir
+        if self.exam:
+            return self.exam.correctors.filter(id=user.id).exists()
+
+        # Bilan sans examen lié : accessible aux groupes admin/teacher/corrector
         if self.scope == 'ETABLISSEMENT' and user.groups.filter(
             name__in=['admin', 'teacher', 'corrector']
         ).exists():
-            # Si le bilan est lié à un examen, vérifier que l'utilisateur est assigné à cet examen
-            if self.exam:
-                if self.exam.correctors.filter(id=user.id).exists():
-                    return True
-            # Sinon, permettre l'accès aux correcteurs/admins/teachers
             return True
-
-        # TODO: Ajouter logique pour classe/groupe
 
         return False
 

@@ -25,14 +25,14 @@ MODEL_DEFAULT = getattr(settings, 'BILAN_LLM_DEFAULT', 'gpt-4o-mini')   # Bilans
 MODEL_PREMIUM = getattr(settings, 'BILAN_LLM_PREMIUM', 'gpt-4o')        # Synthèse finale direction/proviseur uniquement
 
 SYSTEM_PROMPT = """Tu es un expert en ingénierie pédagogique et en évaluation
-des apprentissages mathématiques au collège (cycle 4, classe de 3e).
+des apprentissages mathématiques au lycée.
 Tu rédiges des bilans pédagogiques destinés exclusivement aux enseignants
-et à l'équipe de direction d'un lycée.
+et à l'équipe de direction d'un établissement scolaire.
 
 Tes bilans sont :
 - Précis et factuels : chaque affirmation s'appuie sur des données chiffrées
 - Ancrés dans le programme officiel : tu cites les attendus Éduscol et les
-  automatismes DNB quand ils sont fournis dans le contexte
+  compétences attendues quand ils sont fournis dans le contexte
 - Opérationnels : chaque point faible identifié est suivi d'une action concrète
 - Professionnels : ton style est celui d'un rapport d'inspection, sans jargon
   excessif, sans langue de bois
@@ -43,6 +43,30 @@ Tu rédiges toujours en français.
 IMPORTANT (rendu front) : écris en texte brut, sans Markdown (pas de `##`, pas de `**`,
 pas de tableaux Markdown, pas de blocs ```). Utilise des paragraphes et, si besoin,
 des listes simples en texte."""
+
+EAM_SYSTEM_PROMPT = """Tu es un expert en ingénierie pédagogique spécialisé dans l'épreuve
+anticipée de mathématiques (EAM) de Première Spécialité Mathématiques.
+Tu rédiges des bilans pédagogiques destinés aux professeurs de mathématiques
+et à l'équipe de direction d'un lycée.
+
+L'épreuve EAM est structurée en :
+- Partie A (Automatismes) : 12 questions QCM, notée sur 6 points
+- Partie B (Exercices) : 3 exercices avec sous-parties, notés sur 14 points
+- Total : 20 points
+
+Tes bilans sont :
+- Précis et factuels : chaque affirmation s'appuie sur des données chiffrées réelles
+- Ancrés dans le programme officiel Première Spé Maths (Éduscol 2021) :
+  fonctions, suites, probabilités, géométrie, trigonométrie
+- Opérationnels : chaque point faible identifié est suivi d'une action concrète
+- Professionnels : rapport d'inspection, ton sobre, sans jargon ni langue de bois
+
+IMPORTANT :
+- Ne mentionne JAMAIS le DNB, le brevet, le collège, le cycle 4, la classe de 3e
+- Cette épreuve concerne exclusivement les élèves de Première Spé Maths au lycée
+- Écris en texte brut, sans Markdown (pas de ##, **, tableaux, blocs ```)
+- Utilise des paragraphes et des listes simples en texte
+Tu n'inventes jamais de données. Tu rédiges toujours en français."""
 
 ProviderName = Literal["openai", "gateway"]
 
@@ -162,7 +186,7 @@ def _write_with_ollama(*, prompt: str, max_tokens: int) -> str:
 
 
 def write(prompt: str, model: str = MODEL_DEFAULT,
-          max_tokens: int = 1000) -> str:
+          max_tokens: int = 1000, system_prompt: Optional[str] = None) -> str:
     """
     Appel LLM (OpenAI ou gateway OpenAI-compatible).
 
@@ -183,11 +207,12 @@ def write(prompt: str, model: str = MODEL_DEFAULT,
         base_url or "https://api.openai.com/v1",
     )
 
+    active_system_prompt = system_prompt or SYSTEM_PROMPT
     try:
         r = client.chat.completions.create(
             model=chosen_model,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": active_system_prompt},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.25,

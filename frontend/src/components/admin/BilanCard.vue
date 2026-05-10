@@ -182,7 +182,10 @@ const generateBilan = async () => {
 }
 
 const viewBilan = () => {
-  if (bilan.value) {
+  if (!bilan.value) return
+  if (props.examName === 'EAM BLANCHE 2026') {
+    router.push(`/bilan/eam/${bilan.value.id}`)
+  } else {
     router.push(`/admin/bilan/${bilan.value.id}`)
   }
 }

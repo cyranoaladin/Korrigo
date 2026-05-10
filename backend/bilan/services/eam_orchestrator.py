@@ -19,7 +19,7 @@ import logging
 from typing import Dict, List, Optional, Any, Tuple
 from django.conf import settings
 from .rag_retriever import RAGRetriever
-from .llm_writer import write
+from .llm_writer import write, EAM_SYSTEM_PROMPT
 from .analytics_simple import DNBAnalyticsEngine as AnalyticsEngine
 from exams.grading_utils import extract_leaf_questions
 
@@ -46,8 +46,9 @@ FORBIDDEN_TERMS: List[Tuple[str, bool]] = [
 ]
 
 # EAM-specific LLM models (overridable via Django settings)
-EAM_LLM_SYNTHESIS = getattr(settings, 'EAM_LLM_SYNTHESIS', 'openai/gpt-5.5')
-EAM_LLM_ANALYSIS = getattr(settings, 'EAM_LLM_ANALYSIS', 'openai/gpt-5.4')
+# Default to claude-3.5-haiku via OpenRouter (fast, cheap, excellent French)
+EAM_LLM_SYNTHESIS = getattr(settings, 'EAM_LLM_SYNTHESIS', getattr(settings, 'BILAN_LLM_PREMIUM', 'anthropic/claude-3.5-haiku'))
+EAM_LLM_ANALYSIS = getattr(settings, 'EAM_LLM_ANALYSIS', getattr(settings, 'BILAN_LLM_DEFAULT', 'anthropic/claude-3.5-haiku'))
 
 # EAM grading structure constants
 EAM_NODE_AUTOMATISMES = 'automatismes'
@@ -620,7 +621,7 @@ RÈGLES ABSOLUES : Ne mentionne JAMAIS DNB, brevet, cycle 4, 3e, troisième, col
         """Generate text with anti-DNB validation and retry logic."""
         for attempt in range(max_retries):
             try:
-                text = write(prompt, max_tokens=max_tokens, model=model)
+                text = write(prompt, max_tokens=max_tokens, model=model, system_prompt=EAM_SYSTEM_PROMPT)
                 is_valid, forbidden = validate_no_dnb_references(text)
 
                 if is_valid:

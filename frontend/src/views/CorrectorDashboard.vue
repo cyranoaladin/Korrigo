@@ -445,7 +445,7 @@ const goToQuestionnaireBilan = () => {
 const bilanRoutesByExamTypeCode = {
     BAC_BLANC_MATHS_2026: { name: 'BilanBacBlanc' },
     DNB_BLANC_MATHS_2026: { name: 'DnbBilanList' },
-    EAM_2026: { name: 'BilanDetail' },
+    EAM_2026: { name: 'EamBilanDetail' },
 }
 
 const canSeeExamBilan = (examTypeCode) => !!bilanRoutesByExamTypeCode[examTypeCode]
@@ -454,20 +454,20 @@ const goToExamBilan = async (examTypeCode) => {
     const target = bilanRoutesByExamTypeCode[examTypeCode]
     if (!target) return
 
-    // For EAM, fetch the bilan ID first
+    // For EAM, fetch the bilan ID first then navigate to /bilan/eam/:id
     if (examTypeCode === 'EAM_2026') {
         try {
             const response = await api.get('/bilan/')
             const bilans = response.data.bilans || []
             const eamBilan = bilans.find(b => b.exam_type === 'EAM BLANCHE 2026' && b.status === 'DONE')
             if (eamBilan) {
-                router.push(`/admin/bilan/${eamBilan.id}`)
+                router.push(`/bilan/eam/${eamBilan.id}`)
             } else {
-                alert('Aucun bilan EAM disponible')
+                alert('Aucun bilan EAM disponible pour le moment.')
             }
         } catch (err) {
             console.error('Failed to fetch EAM bilan:', err)
-            alert('Erreur lors de la récupération du bilan')
+            alert('Erreur lors de la récupération du bilan EAM.')
         }
     } else {
         router.push(target)

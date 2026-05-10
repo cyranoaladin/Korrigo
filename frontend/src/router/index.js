@@ -253,6 +253,14 @@ const routes = [
         meta: { requiresAuth: true, role: ['Teacher', 'Admin', 'Direction'], title: 'Bilan DNB' }
     },
 
+    // ── Bilan EAM (accessible aux correcteurs EAM) ──
+    {
+        path: '/bilan/eam/:id',
+        name: 'EamBilanDetail',
+        component: () => import('../views/admin/EamBilanDetail.vue'),
+        meta: { requiresAuth: true, role: ['Teacher', 'Admin', 'Direction'], title: 'Bilan EAM BLANCHE 2026' }
+    },
+
     // ── Bilan questionnaire correcteurs (hors /admin pour Teacher) ──
     {
         path: '/questionnaire/bilan',
