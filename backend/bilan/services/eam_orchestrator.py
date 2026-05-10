@@ -1,43 +1,51 @@
 """
-EAM Bilan Orchestrator - Pipeline dédié pour l'épreuve anticipée de mathématiques (Première Spé Maths)
+EAM Bilan Orchestrator - Pipeline dédié pour l'Épreuve Anticipée de Mathématiques (Première Spécialité Maths)
 
-Structure du rapport :
-- S0 — Synthèse exécutive (1 page)
-- S1 — Tableau de bord (stats globales + Partie A vs Partie B)
-- S2A — Partie A (Automatismes/QCM)
-- S2B — Partie B (Exercices)
-- S3 — Questions (tableau complet question-par-question)
-- S4 — Recommandations (3 blocs [A] Automatismes, [B] Raisonnement, [C] Pilotage)
+Structure du rapport S0-S4 :
+- S0 — Synthèse exécutive (stats globales + 5 actions prioritaires)
+- S1 — Tableau de bord (stats globales + Automatismes vs Exercices)
+- S2A — Automatismes (12 QCM, 6 pts) — analyse qualitative + plan d'entraînement
+- S2B — Exercices (Exercice 1/2/3, 14 pts) — analyse par sous-partie + leviers méthodo
+- S3 — Analyse question-par-question (tableau complet)
+- S4 — Recommandations (3 blocs : Automatismes / Raisonnement / Pilotage)
 
-Sources : DB data (copies FINALIZED/GRADED + Score.scores_data) + RAG rag_maths_premiere
+Sources exclusives : DB data (copies FINALIZED/GRADED + Score.scores_data) + RAG rag_maths_premiere
+Garde-fous : anti-DNB validation + retry automatique si termes interdits détectés
 """
 
+import statistics
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from .rag_retriever import RAGRetriever
-from .llm_writer import write, MODEL_DEFAULT, MODEL_PREMIUM
+from .llm_writer import write
 from .analytics_simple import DNBAnalyticsEngine as AnalyticsEngine
+from exams.grading_utils import extract_leaf_questions
 
-User = get_user_model()
 logger = logging.getLogger(__name__)
 
-# Forbidden terms for EAM (anti-confusion with DNB)
+# Forbidden terms — anti-confusion EAM / DNB (exhaustif)
 FORBIDDEN_TERMS = [
     'DNB', 'brevet', 'cycle 4', '3e', 'troisième', '3ème', '3eme',
     'brevet des collèges', 'collège', 'college',
+    'brevet des colleges', 'diplôme national', 'diplome national',
 ]
 
-# EAM-specific LLM models
+# EAM-specific LLM models (overridable via Django settings)
 EAM_LLM_SYNTHESIS = getattr(settings, 'EAM_LLM_SYNTHESIS', 'openai/gpt-5.5')
 EAM_LLM_ANALYSIS = getattr(settings, 'EAM_LLM_ANALYSIS', 'openai/gpt-5.4')
 
+# EAM grading structure constants
+EAM_NODE_AUTOMATISMES = 'automatismes'
+EAM_TOTAL_POINTS = 20.0
+EAM_AUTOMATISMES_MAX_POINTS = 6.0
+EAM_EXERCICES_MAX_POINTS = 14.0
 
-def validate_no_dnb_references(text: str) -> tuple[bool, List[str]]:
+
+def validate_no_dnb_references(text: str) -> Tuple[bool, List[str]]:
     """
     Validate that text contains no DNB/cycle 4 references.
-    
+
     Returns:
         (is_valid, forbidden_terms_found)
     """
@@ -52,371 +60,621 @@ def validate_no_dnb_references(text: str) -> tuple[bool, List[str]]:
 class EamBilanOrchestrator:
     """
     Orchestrator dédié pour le bilan EAM BLANCHE (Première Spé Maths).
-    
-    Pipeline isolé pour éviter toute confusion avec le DNB.
+    Pipeline 100% isolé — aucune dépendance au pipeline DNB.
     """
-    
+
     def __init__(self, exam_slug: str = 'EAM BLANCHE 2026'):
         self.exam_slug = exam_slug
         self.engine = AnalyticsEngine(exam_slug)
         self.rag_retriever = RAGRetriever(collection='rag_maths_premiere')
-        
+        # Parse EAM grading structure once
+        self._automatismes_leaves, self._exercices_leaves = self._parse_eam_structure()
+
+    # ─────────────────────────────────────────── structure EAM ─────────────────
+
+    def _parse_eam_structure(self) -> Tuple[List[dict], List[dict]]:
+        """
+        Parse la structure barème EAM pour séparer :
+        - Automatismes (nœud dont le label contient 'automatisme')
+        - Exercices (tous les autres nœuds top-level)
+
+        Returns:
+            (automatismes_leaves, exercices_leaves)
+        """
+        gs = self.engine.grading_structure
+        if not gs:
+            return [], []
+
+        auto_leaves: List[dict] = []
+        exo_leaves: List[dict] = []
+
+        for node in gs:
+            label = str(
+                node.get('label') or node.get('title') or node.get('name') or ''
+            ).lower()
+            leaves = extract_leaf_questions([node])
+            if EAM_NODE_AUTOMATISMES in label:
+                auto_leaves.extend(leaves)
+            else:
+                exo_leaves.extend(leaves)
+
+        return auto_leaves, exo_leaves
+
+    def _sum_for_leaves(self, scores_data: Dict, leaves: List[dict]) -> float:
+        """Somme les points pour un ensemble de feuilles depuis scores_data."""
+        return self.engine._sum_for_leaves(scores_data, leaves)
+
+    def _max_for_leaves(self, leaves: List[dict]) -> float:
+        """Calcule le barème max pour un ensemble de feuilles."""
+        return self.engine._max_for_leaves(leaves)
+
+    # ─────────────────────────────────────────── analytique EAM ────────────────
+
+    def _compute_part_stats(
+        self, leaves: List[dict], label: str
+    ) -> Dict[str, Any]:
+        """
+        Calcule les stats (moyenne/médiane/std/taux) pour un sous-ensemble de feuilles.
+        Utilisé pour les Automatismes et les Exercices.
+        """
+        pairs, _ = self.engine._scored_pairs()
+        if not pairs or not leaves:
+            return {}
+
+        max_pts = self._max_for_leaves(leaves)
+        scores = [self._sum_for_leaves(sd, leaves) for _, _, sd in pairs]
+
+        if not scores:
+            return {}
+
+        n = len(scores)
+        mean_v = statistics.mean(scores)
+        median_v = statistics.median(scores)
+        std_v = statistics.stdev(scores) if n > 1 else 0.0
+        pct_above_half = (
+            round(sum(1 for s in scores if s >= max_pts * 0.5) / n * 100, 1)
+            if max_pts > 0 else 0.0
+        )
+
+        return {
+            'label': label,
+            'n_copies': n,
+            'max_points': round(max_pts, 2),
+            'mean': round(mean_v, 2),
+            'mean_pct': round(mean_v / max_pts * 100, 1) if max_pts > 0 else 0.0,
+            'median': round(median_v, 2),
+            'std': round(std_v, 2),
+            'min': round(min(scores), 2),
+            'max': round(max(scores), 2),
+            'pct_above_half': pct_above_half,
+        }
+
+    def _compute_question_stats_for_leaves(
+        self, leaves: List[dict]
+    ) -> List[Dict[str, Any]]:
+        """Retourne les stats question-par-question pour un sous-ensemble de feuilles."""
+        all_q = self.engine.stats_by_question()
+        leaf_ids = {str(l.get('id') or '') for l in leaves}
+        return [q for q in all_q if q.get('question', {}).get('id') in leaf_ids]
+
+    def _build_exercise_details(self) -> List[Dict[str, Any]]:
+        """
+        Construit les détails par exercice (Exercice 1, 2, 3) avec stats
+        par sous-partie basées sur la structure du barème EAM.
+        """
+        gs = self.engine.grading_structure or []
+        pairs, _ = self.engine._scored_pairs()
+        exercises = []
+
+        for node in gs:
+            label = str(
+                node.get('label') or node.get('title') or node.get('name') or ''
+            )
+            label_lower = label.lower()
+            if EAM_NODE_AUTOMATISMES in label_lower:
+                continue  # skip Automatismes node
+
+            node_leaves = extract_leaf_questions([node])
+            if not node_leaves:
+                continue
+
+            max_pts = self._max_for_leaves(node_leaves)
+            scores = [self._sum_for_leaves(sd, node_leaves) for _, _, sd in pairs]
+            n = len(scores)
+            mean_v = statistics.mean(scores) if scores else 0.0
+            mean_pct = round(mean_v / max_pts * 100, 1) if max_pts > 0 else 0.0
+
+            # Sub-parts = children of the node
+            subparts = []
+            for child in node.get('children') or []:
+                child_label = str(
+                    child.get('label') or child.get('title') or child.get('name') or child.get('id') or ''
+                )
+                child_leaves = extract_leaf_questions([child])
+                child_max = self._max_for_leaves(child_leaves)
+                child_scores = [
+                    self._sum_for_leaves(sd, child_leaves) for _, _, sd in pairs
+                ]
+                child_mean = statistics.mean(child_scores) if child_scores else 0.0
+                child_success = (
+                    round(
+                        sum(1 for s in child_scores if child_max > 0 and s >= 0.8 * child_max)
+                        / len(child_scores) * 100,
+                        1,
+                    )
+                    if child_scores and child_max > 0
+                    else 0.0
+                )
+                subparts.append({
+                    'id': child.get('id') or child_label,
+                    'label': child_label,
+                    'max_points': round(child_max, 2),
+                    'mean_score': round(child_mean, 2),
+                    'success_rate': child_success,
+                    'n_attempts': len(child_scores),
+                })
+
+            exercises.append({
+                'id': node.get('id') or label,
+                'name': label,
+                'max_points': round(max_pts, 2),
+                'mean_score': round(mean_v, 2),
+                'mean_pct': mean_pct,
+                'n_copies': n,
+                'subparts': subparts,
+            })
+
+        return exercises
+
+    # ─────────────────────────────────────────── generate ──────────────────────
+
     def generate(self, scope: str = 'ETABLISSEMENT', class_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Génère le bilan EAM complet avec la structure S0-S4.
+        Toutes les données sont issues de la DB réelle (copies FINALIZED/GRADED).
         """
         logger.info(f"EamBilanOrchestrator: Generating bilan for {self.exam_slug}, scope={scope}")
-        
-        # Fetch analytics data using individual methods
+
+        # Fetch analytics data
+        global_stats = self.engine.global_stats()
+        stats_by_question = self.engine.stats_by_question()
+        stats_by_domain = self.engine.stats_by_domain()
+        inter_corrector = self.engine.inter_corrector_analysis()
+        stats_by_class = self.engine.stats_by_class()
+        at_risk = self.engine.at_risk_students()
+
+        # EAM-specific analytics
+        auto_stats = self._compute_part_stats(self._automatismes_leaves, 'Automatismes')
+        exo_stats = self._compute_part_stats(self._exercices_leaves, 'Exercices')
+        auto_questions = self._compute_question_stats_for_leaves(self._automatismes_leaves)
+        exo_questions = self._compute_question_stats_for_leaves(self._exercices_leaves)
+        exercise_details = self._build_exercise_details()
+
         analytics = {
-            'global_stats': self.engine.global_stats(),
-            'stats_by_question': self.engine.stats_by_question(),
-            'stats_by_domain': self.engine.stats_by_domain(),
-            'inter_corrector_analysis': self.engine.inter_corrector_analysis(),
-            'stats_by_class': self.engine.stats_by_class(),
-            'at_risk_students': self.engine.at_risk_students(),
+            'global_stats': global_stats,
+            'stats_by_question': stats_by_question,
+            'stats_by_domain': stats_by_domain,
+            'inter_corrector': inter_corrector,
+            'stats_by_class': stats_by_class,
+            'at_risk': at_risk,
+            'auto_stats': auto_stats,
+            'exo_stats': exo_stats,
+            'auto_questions': auto_questions,
+            'exo_questions': exo_questions,
+            'exercise_details': exercise_details,
         }
-        
-        # Build report sections
+
         report = {
             'exam_slug': self.exam_slug,
             'scope': scope,
             'class_id': class_id,
-            'metadata': self._build_metadata(analytics),
+            'metadata': self._build_metadata(global_stats),
             'sections': {
                 'S0': self._generate_s0_synthesis(analytics),
                 'S1': self._generate_s1_dashboard(analytics),
-                'S2A': self._generate_s2a_partie_automatismes(analytics),
-                'S2B': self._generate_s2b_partie_exercices(analytics),
+                'S2A': self._generate_s2a_automatismes(analytics),
+                'S2B': self._generate_s2b_exercices(analytics),
                 'S3': self._generate_s3_questions(analytics),
                 'S4': self._generate_s4_recommendations(analytics),
             },
             'llm_model': f"{EAM_LLM_SYNTHESIS} / {EAM_LLM_ANALYSIS}",
             'rag_collection': self.rag_retriever.collection,
         }
-        
-        logger.info(f"EamBilanOrchestrator: Bilan generated successfully")
+
+        logger.info("EamBilanOrchestrator: Bilan generated successfully")
         return report
-    
-    def _build_metadata(self, analytics: Dict) -> Dict[str, Any]:
-        """Build metadata section."""
+
+    # ─────────────────────────────────────────── metadata ──────────────────────
+
+    def _build_metadata(self, global_stats: Dict) -> Dict[str, Any]:
+        """Build metadata from real global_stats keys."""
         return {
-            'total_copies': analytics.get('total_copies', 0),
-            'graded_copies': analytics.get('graded_copies', 0),
-            'mean_score': analytics.get('mean_score', 0),
-            'median_score': analytics.get('median_score', 0),
-            'std_dev': analytics.get('std_dev', 0),
-            'min_score': analytics.get('min_score', 0),
-            'max_score': analytics.get('max_score', 0),
+            'n_copies': global_stats.get('n_copies', 0),
+            'mean': global_stats.get('mean'),
+            'median': global_stats.get('median'),
+            'std': global_stats.get('std'),
+            'min': global_stats.get('min'),
+            'max': global_stats.get('max'),
+            'pct_above_10': global_stats.get('pct_above_10', 0),
+            'distribution': global_stats.get('distribution', {}),
+            'data_quality': global_stats.get('data_quality', {}),
         }
-    
-    def _generate_s0_synthesis(self, analytics: Dict) -> Dict[str, str]:
-        """
-        S0 — Synthèse exécutive (1 page).
-        6-10 lignes + 5 puces d'actions prioritaires (focus A/B).
-        """
+
+    # ─────────────────────────────────────────── sections ──────────────────────
+
+    def _generate_s0_synthesis(self, analytics: Dict) -> Dict[str, Any]:
+        """S0 — Synthèse exécutive (6-10 lignes + 5 actions prioritaires)."""
         logger.info("EamBilanOrchestrator: Generating S0 synthesis")
-        
-        # Prepare context
-        stats = self._format_stats(analytics)
+
+        stats_text = self._format_stats_text(analytics)
         rag_ctx = self.rag_retriever.search(
-            query="épreuve anticipée mathématiques première synthèse bilan pédagogique",
-            top_k=3
+            query="épreuve anticipée mathématiques première synthèse bilan pédagogique résultats",
+            top_k=3,
         )
-        
-        # Build prompt
-        prompt = f"""Rédige une synthèse exécutive du bilan de l'épreuve anticipée de mathématiques (Première Spé Maths).
 
-CONTEXTE STATISTIQUE :
-{stats}
+        prompt = f"""Tu es un expert en analyse pédagogique pour l'épreuve anticipée de mathématiques (Première Spécialité Maths, lycée).
 
-CONTEXTE PÉDAGOGIQUE (RAG) :
+DONNÉES STATISTIQUES RÉELLES :
+{stats_text}
+
+CONTEXTE PÉDAGOGIQUE :
 {rag_ctx}
 
-CONSIGNE :
-- Rédige 6 à 10 lignes de synthèse générale
-- Ensuite, liste 5 actions prioritaires (puces) avec focus sur les parties A (Automatismes) et B (Exercices)
-- Format : "• [Action prioritaire] (Partie A ou B)"
-- IMPORTANT : Ne mentionne JAMAIS DNB, brevet, cycle 4, 3e, troisième
-- Adopte un ton professionnel et opérationnel pour direction et professeurs"""
-        
-        # Generate with validation
-        text = self._generate_with_validation(prompt, EAM_LLM_SYNTHESIS, max_tokens=800)
-        
+MISSION :
+Rédige une synthèse exécutive (6 à 10 lignes) destinée à la direction et aux professeurs de mathématiques.
+Termine par 5 actions prioritaires en puces, en précisant si elles portent sur les Automatismes (Partie A) ou les Exercices de raisonnement (Partie B).
+
+RÈGLES ABSOLUES :
+- Ne mentionne JAMAIS : DNB, brevet, cycle 4, 3e, troisième, 3ème, collège
+- Parle uniquement de l'épreuve de Première Spécialité Mathématiques
+- Utilise les thèmes du programme de Première : suites, fonctions, probabilités, géométrie dans l'espace, trigonométrie, second degré"""
+
+        text = self._generate_with_validation(prompt, EAM_LLM_SYNTHESIS, max_tokens=900)
+
         return {
             'type': 'synthesis',
             'title': 'Synthèse Exécutive',
             'content': text,
-        }
-    
-    def _generate_s1_dashboard(self, analytics: Dict) -> Dict[str, Any]:
-        """
-        S1 — Tableau de bord.
-        Stats globales + comparaison Partie A vs Partie B.
-        """
-        logger.info("EamBilanOrchestrator: Generating S1 dashboard")
-        
-        # Extract Part A and Part B stats if available
-        part_a_stats = analytics.get('part_a_stats', {})
-        part_b_stats = analytics.get('part_b_stats', {})
-        
-        # Build dashboard data
-        dashboard = {
-            'type': 'dashboard',
-            'title': 'Tableau de Bord',
-            'global_stats': self._build_metadata(analytics),
-            'part_a_stats': part_a_stats,
-            'part_b_stats': part_b_stats,
-            'comparison': self._compare_part_a_b(part_a_stats, part_b_stats),
-        }
-        
-        return dashboard
-    
-    def _generate_s2a_partie_automatismes(self, analytics: Dict) -> Dict[str, str]:
-        """
-        S2A — Partie A (Automatismes/QCM).
-        Top réussites/échecs + analyse qualitative + plan d'entraînement.
-        """
-        logger.info("EamBilanOrchestrator: Generating S2A Partie A")
-        
-        part_a_data = analytics.get('part_a_details', {})
-        top_success = part_a_data.get('top_success', [])
-        top_failures = part_a_data.get('top_failures', [])
-        
-        # RAG context for automatismes
-        rag_ctx = self.rag_retriever.search(
-            query="automatismes mathématiques première QCM entraînement plan",
-            top_k=3
-        )
-        
-        # Build prompt
-        prompt = f"""Analyse la Partie A (Automatismes/QCM) de l'épreuve anticipée de mathématiques.
-
-RÉUSSITES (top) :
-{self._format_list(top_success)}
-
-ÉCHECS (top) :
-{self._format_list(top_failures)}
-
-CONTEXTE PÉDAGOGIQUE (RAG) :
-{rag_ctx}
-
-CONSIGNE :
-- Analyse qualitative des réussites et échecs
-- Propose un plan d'entraînement pour améliorer les automatismes
-- Format : 3 paragraphes (analyse réussites, analyse échecs, plan d'entraînement)
-- IMPORTANT : Ne mentionne JAMAIS DNB, brevet, cycle 4, 3e, troisième
-- Utilise un vocabulaire spécifique à la Première (suites, fonctions, probabilités, géométrie, etc.)"""
-        
-        text = self._generate_with_validation(prompt, EAM_LLM_ANALYSIS, max_tokens=1000)
-        
-        return {
-            'type': 'partie_automatismes',
-            'title': 'Partie A — Automatismes (QCM)',
-            'content': text,
-            'data': part_a_data,
-        }
-    
-    def _generate_s2b_partie_exercices(self, analytics: Dict) -> Dict[str, Any]:
-        """
-        S2B — Partie B (Exercices).
-        Analyse par exercice puis par sous-parties (A., B., ...) + leviers méthodo.
-        """
-        logger.info("EamBilanOrchestrator: Generating S2B Partie B")
-        
-        part_b_data = analytics.get('part_b_details', {})
-        exercises = part_b_data.get('exercises', [])
-        
-        # RAG context for exercises
-        rag_ctx = self.rag_retriever.search(
-            query="exercices raisonnement mathématiques première méthodologie leviers",
-            top_k=3
-        )
-        
-        # Build exercise analysis
-        exercise_analysis = []
-        for ex in exercises:
-            ex_name = ex.get('name', f'Exercice {ex.get("id", "")}')
-            subparts = ex.get('subparts', [])
-            ex_prompt = f"""Analyse l'exercice "{ex_name}" de la Partie B.
-
-SOUS-PARTIES :
-{self._format_subparts(subparts)}
-
-CONTEXTE PÉDAGOGIQUE (RAG) :
-{rag_ctx}
-
-CONSIGNE :
-- Analyse par sous-partie (A., B., C., ...)
-- Identifie les leviers méthodologiques
-- Format : 2-3 paragraphes
-- IMPORTANT : Ne mentionne JAMAIS DNB, brevet, cycle 4, 3e, troisième"""
-            
-            ex_text = self._generate_with_validation(ex_prompt, EAM_LLM_ANALYSIS, max_tokens=600)
-            exercise_analysis.append({
-                'name': ex_name,
-                'analysis': ex_text,
-                'data': ex,
-            })
-        
-        return {
-            'type': 'partie_exercices',
-            'title': 'Partie B — Exercices de Raisonnement',
-            'exercises': exercise_analysis,
-            'data': part_b_data,
-        }
-    
-    def _generate_s3_questions(self, analytics: Dict) -> Dict[str, Any]:
-        """
-        S3 — Questions.
-        Tableau complet question-par-question (existe déjà).
-        """
-        logger.info("EamBilanOrchestrator: Generating S3 questions")
-        
-        questions_data = analytics.get('questions_details', {})
-        
-        return {
-            'type': 'questions',
-            'title': 'Analyse Question par Question',
-            'data': questions_data,
-        }
-    
-    def _generate_s4_recommendations(self, analytics: Dict) -> Dict[str, Any]:
-        """
-        S4 — Recommandations.
-        3 blocs [A] Automatismes, [B] Raisonnement, [C] Pilotage évaluation.
-        Sans référence DNB.
-        """
-        logger.info("EamBilanOrchestrator: Generating S4 recommendations")
-        
-        # RAG context for recommendations
-        rag_auto = self.rag_retriever.search(
-            query="recommandations automatismes mathématiques première entraînement",
-            top_k=2
-        )
-        rag_raisonnement = self.rag_retriever.search(
-            query="recommandations raisonnement mathématiques première méthodologie",
-            top_k=2
-        )
-        rag_pilotage = self.rag_retriever.search(
-            query="pilotage évaluation mathématiques première",
-            top_k=2
-        )
-        
-        # Build prompt for each block
-        prompt_a = f"""Propose des recommandations pour améliorer les automatismes (Partie A).
-
-CONTEXTE :
-{self._format_stats(analytics)}
-
-RAG :
-{rag_auto}
-
-CONSIGNE :
-- Format : bloc [A] avec 3-4 recommandations concrètes
-- IMPORTANT : Ne mentionne JAMAIS DNB, brevet, cycle 4, 3e, troisième"""
-        
-        prompt_b = f"""Propose des recommandations pour améliorer le raisonnement (Partie B).
-
-CONTEXTE :
-{self._format_stats(analytics)}
-
-RAG :
-{rag_raisonnement}
-
-CONSIGNE :
-- Format : bloc [B] avec 3-4 recommandations concrètes
-- IMPORTANT : Ne mentionne JAMAIS DNB, brevet, cycle 4, 3e, troisième"""
-        
-        prompt_c = f"""Propose des recommandations pour le pilotage de l'évaluation.
-
-CONTEXTE :
-{self._format_stats(analytics)}
-
-RAG :
-{rag_pilotage}
-
-CONSIGNE :
-- Format : bloc [C] avec 3-4 recommandations concrètes pour l'équipe pédagogique
-- IMPORTANT : Ne mentionne JAMAIS DNB, brevet, cycle 4, 3e, troisième"""
-        
-        block_a = self._generate_with_validation(prompt_a, EAM_LLM_SYNTHESIS, max_tokens=400)
-        block_b = self._generate_with_validation(prompt_b, EAM_LLM_SYNTHESIS, max_tokens=400)
-        block_c = self._generate_with_validation(prompt_c, EAM_LLM_SYNTHESIS, max_tokens=400)
-        
-        return {
-            'type': 'recommendations',
-            'title': 'Recommandations',
-            'blocks': {
-                'A': block_a,
-                'B': block_b,
-                'C': block_c,
+            'stats_snapshot': {
+                'n_copies': analytics['global_stats'].get('n_copies', 0),
+                'mean': analytics['global_stats'].get('mean'),
+                'pct_above_10': analytics['global_stats'].get('pct_above_10'),
             },
         }
-    
-    def _generate_with_validation(self, prompt: str, model: str, max_tokens: int = 1000, max_retries: int = 3) -> str:
-        """
-        Generate text with anti-DNB validation and retry logic.
-        """
+
+    def _generate_s1_dashboard(self, analytics: Dict) -> Dict[str, Any]:
+        """S1 — Tableau de bord : stats globales + comparaison Automatismes vs Exercices."""
+        logger.info("EamBilanOrchestrator: Generating S1 dashboard")
+
+        auto = analytics.get('auto_stats', {})
+        exo = analytics.get('exo_stats', {})
+
+        comparison: Dict[str, Any] = {}
+        if auto and exo:
+            auto_pct = auto.get('mean_pct', 0)
+            exo_pct = exo.get('mean_pct', 0)
+            comparison = {
+                'auto_mean_pct': auto_pct,
+                'exo_mean_pct': exo_pct,
+                'diff_pct': round(auto_pct - exo_pct, 1),
+                'stronger_part': 'Automatismes' if auto_pct >= exo_pct else 'Exercices',
+                'weaker_part': 'Exercices' if auto_pct >= exo_pct else 'Automatismes',
+            }
+
+        return {
+            'type': 'dashboard',
+            'title': 'Tableau de Bord',
+            'global_stats': analytics['global_stats'],
+            'automatismes_stats': auto,
+            'exercices_stats': exo,
+            'comparison': comparison,
+            'stats_by_class': analytics.get('stats_by_class', []),
+            'inter_corrector': analytics.get('inter_corrector', []),
+            'at_risk_count': len(analytics.get('at_risk', [])),
+        }
+
+    def _generate_s2a_automatismes(self, analytics: Dict) -> Dict[str, Any]:
+        """S2A — Automatismes (12 QCM, 6 pts) : analyse qualitative + plan entraînement."""
+        logger.info("EamBilanOrchestrator: Generating S2A Automatismes")
+
+        auto_qs = analytics.get('auto_questions', [])
+        auto_stats = analytics.get('auto_stats', {})
+
+        # Sort by success_rate to find top/bottom
+        sorted_qs = sorted(auto_qs, key=lambda q: q.get('success_rate', 0), reverse=True)
+        top_success = sorted_qs[:3]
+        top_failures = sorted_qs[-3:][::-1]
+
+        rag_ctx = self.rag_retriever.search(
+            query="automatismes QCM mathématiques Première calcul algébrique probabilités fonctions",
+            top_k=3,
+        )
+
+        top_success_text = self._format_question_list(top_success)
+        top_failures_text = self._format_question_list(top_failures)
+
+        prompt = f"""Tu analyses la Partie Automatismes (12 QCM, 6 points) de l'épreuve anticipée de mathématiques de Première Spécialité.
+
+STATISTIQUES AUTOMATISMES :
+- Moyenne : {auto_stats.get('mean', 'N/A')}/6 ({auto_stats.get('mean_pct', 'N/A')}%)
+- Médiane : {auto_stats.get('median', 'N/A')}/6
+- Écart-type : {auto_stats.get('std', 'N/A')}
+- % au-dessus de 3/6 : {auto_stats.get('pct_above_half', 'N/A')}%
+
+MEILLEURES RÉUSSITES (QCM) :
+{top_success_text}
+
+PRINCIPALES DIFFICULTÉS (QCM) :
+{top_failures_text}
+
+RESSOURCES PÉDAGOGIQUES :
+{rag_ctx}
+
+MISSION :
+1. Analyse qualitative des réussites (paragraphe 1)
+2. Analyse qualitative des difficultés (paragraphe 2)
+3. Plan d'entraînement ciblé sur les QCM de Première Spécialité (paragraphe 3)
+
+RÈGLES ABSOLUES : Ne mentionne JAMAIS DNB, brevet, cycle 4, 3e, troisième, collège
+Cite des thèmes de Première : suites arithmétiques/géométriques, probabilités, loi binomiale, second degré, vecteurs, fonctions dérivées."""
+
+        text = self._generate_with_validation(prompt, EAM_LLM_ANALYSIS, max_tokens=1000)
+
+        return {
+            'type': 'automatismes',
+            'title': 'Automatismes (Partie A — QCM)',
+            'content': text,
+            'stats': auto_stats,
+            'questions': auto_qs,
+            'top_success': top_success,
+            'top_failures': top_failures,
+        }
+
+    def _generate_s2b_exercices(self, analytics: Dict) -> Dict[str, Any]:
+        """S2B — Exercices de raisonnement (3 exercices, 14 pts) : analyse + leviers méthodo."""
+        logger.info("EamBilanOrchestrator: Generating S2B Exercices")
+
+        exercise_details = analytics.get('exercise_details', [])
+        exo_stats = analytics.get('exo_stats', {})
+
+        rag_ctx = self.rag_retriever.search(
+            query="exercices raisonnement mathématiques Première démonstration résolution problème",
+            top_k=3,
+        )
+
+        exercise_analyses = []
+        for ex in exercise_details:
+            ex_name = ex.get('name', 'Exercice')
+            subparts = ex.get('subparts', [])
+            subparts_text = self._format_subparts_text(subparts)
+
+            prompt = f"""Tu analyses l'exercice "{ex_name}" (Partie B — Raisonnement) de l'épreuve anticipée de mathématiques de Première Spécialité.
+
+STATISTIQUES EXERCICE :
+- Maximum : {ex.get('max_points', 'N/A')} pts
+- Moyenne : {ex.get('mean_score', 'N/A')} pts ({ex.get('mean_pct', 'N/A')}%)
+- Nombre de copies : {ex.get('n_copies', 'N/A')}
+
+DÉTAIL PAR SOUS-PARTIE :
+{subparts_text}
+
+RESSOURCES PÉDAGOGIQUES :
+{rag_ctx}
+
+MISSION :
+1. Analyse des résultats par sous-partie (identification des obstacles)
+2. Leviers méthodologiques pour améliorer le raisonnement et la rédaction
+Format : 2-3 paragraphes concis.
+
+RÈGLES ABSOLUES : Ne mentionne JAMAIS DNB, brevet, cycle 4, 3e, troisième, collège
+Parle de Première Spécialité Mathématiques."""
+
+            text = self._generate_with_validation(prompt, EAM_LLM_ANALYSIS, max_tokens=700)
+            exercise_analyses.append({
+                'id': ex.get('id'),
+                'name': ex_name,
+                'analysis': text,
+                'stats': {
+                    'max_points': ex.get('max_points'),
+                    'mean_score': ex.get('mean_score'),
+                    'mean_pct': ex.get('mean_pct'),
+                    'n_copies': ex.get('n_copies'),
+                },
+                'subparts': subparts,
+            })
+
+        return {
+            'type': 'exercices',
+            'title': 'Exercices de Raisonnement (Partie B)',
+            'exercices_stats': exo_stats,
+            'exercises': exercise_analyses,
+        }
+
+    def _generate_s3_questions(self, analytics: Dict) -> Dict[str, Any]:
+        """S3 — Tableau complet question-par-question (Automatismes + Exercices)."""
+        logger.info("EamBilanOrchestrator: Generating S3 questions table")
+
+        all_questions = analytics.get('stats_by_question', [])
+
+        return {
+            'type': 'questions_table',
+            'title': 'Analyse Question par Question',
+            'questions': all_questions,
+            'n_questions': len(all_questions),
+            'auto_questions': analytics.get('auto_questions', []),
+            'exo_questions': analytics.get('exo_questions', []),
+        }
+
+    def _generate_s4_recommendations(self, analytics: Dict) -> Dict[str, Any]:
+        """S4 — Recommandations : 3 blocs [A] Automatismes / [B] Raisonnement / [C] Pilotage."""
+        logger.info("EamBilanOrchestrator: Generating S4 recommendations")
+
+        stats_text = self._format_stats_text(analytics)
+        auto = analytics.get('auto_stats', {})
+        exo = analytics.get('exo_stats', {})
+
+        rag_auto = self.rag_retriever.search(
+            query="amélioration automatismes Première Spé entraînement quotidien QCM calcul mental",
+            top_k=2,
+        )
+        rag_raison = self.rag_retriever.search(
+            query="raisonnement mathématique Première démonstration rédaction méthodologie exercice",
+            top_k=2,
+        )
+        rag_pilotage = self.rag_retriever.search(
+            query="pilotage pédagogique évaluation progression mathématiques lycée",
+            top_k=2,
+        )
+
+        auto_summary = (
+            f"Automatismes : moyenne {auto.get('mean', 'N/A')}/6 "
+            f"({auto.get('mean_pct', 'N/A')}%), {auto.get('pct_above_half', 'N/A')}% au-dessus de 3/6"
+        )
+        exo_summary = (
+            f"Exercices : moyenne {exo.get('mean', 'N/A')}/14 "
+            f"({exo.get('mean_pct', 'N/A')}%)"
+        )
+
+        prompt_a = f"""Tu es expert en pédagogie des mathématiques au lycée (Première Spécialité).
+
+CONTEXTE :
+{stats_text}
+{auto_summary}
+
+RESSOURCES :
+{rag_auto}
+
+Rédige le Bloc [A] — Recommandations pour les Automatismes (3 à 4 recommandations concrètes et actionnables).
+Exemples : rituel de 5 min en début de cours, fiches de révision thématiques, etc.
+RÈGLES ABSOLUES : Ne mentionne JAMAIS DNB, brevet, cycle 4, 3e, troisième, collège."""
+
+        prompt_b = f"""Tu es expert en pédagogie des mathématiques au lycée (Première Spécialité).
+
+CONTEXTE :
+{stats_text}
+{exo_summary}
+
+RESSOURCES :
+{rag_raison}
+
+Rédige le Bloc [B] — Recommandations pour le Raisonnement et la Rédaction (3 à 4 recommandations concrètes).
+Exemples : entraînement à la démonstration, gestion du temps sur exercice, méthode de rédaction, etc.
+RÈGLES ABSOLUES : Ne mentionne JAMAIS DNB, brevet, cycle 4, 3e, troisième, collège."""
+
+        prompt_c = f"""Tu es expert en pilotage pédagogique au lycée (Première Spécialité Maths).
+
+CONTEXTE :
+{stats_text}
+
+RESSOURCES :
+{rag_pilotage}
+
+Rédige le Bloc [C] — Recommandations de Pilotage pour l'équipe pédagogique (3 à 4 recommandations).
+Exemples : analyse de la progression par classe, suivi des élèves à risque, harmonisation correction, etc.
+RÈGLES ABSOLUES : Ne mentionne JAMAIS DNB, brevet, cycle 4, 3e, troisième, collège."""
+
+        block_a = self._generate_with_validation(prompt_a, EAM_LLM_SYNTHESIS, max_tokens=450)
+        block_b = self._generate_with_validation(prompt_b, EAM_LLM_SYNTHESIS, max_tokens=450)
+        block_c = self._generate_with_validation(prompt_c, EAM_LLM_SYNTHESIS, max_tokens=450)
+
+        return {
+            'type': 'recommendations',
+            'title': 'Recommandations Pédagogiques',
+            'blocks': {
+                'A': {'title': 'Automatismes', 'content': block_a},
+                'B': {'title': 'Raisonnement et Rédaction', 'content': block_b},
+                'C': {'title': 'Pilotage Pédagogique', 'content': block_c},
+            },
+        }
+
+    # ─────────────────────────────────────────── LLM + validation ──────────────
+
+    def _generate_with_validation(
+        self, prompt: str, model: str, max_tokens: int = 1000, max_retries: int = 3
+    ) -> str:
+        """Generate text with anti-DNB validation and retry logic."""
         for attempt in range(max_retries):
             try:
                 text = write(prompt, max_tokens=max_tokens, model=model)
                 is_valid, forbidden = validate_no_dnb_references(text)
-                
+
                 if is_valid:
                     return text
-                else:
-                    logger.warning(
-                        f"EamBilanOrchestrator: Forbidden terms found (attempt {attempt + 1}/{max_retries}): {forbidden}. Retrying..."
+
+                logger.warning(
+                    f"EamBilanOrchestrator: Forbidden terms (attempt {attempt + 1}/{max_retries}): {forbidden}"
+                )
+                if attempt < max_retries - 1:
+                    prompt = (
+                        prompt
+                        + "\n\nATTENTION : Ta réponse précédente contenait des termes interdits. "
+                        + "Reformule sans employer : "
+                        + ", ".join(forbidden)
                     )
-                    if attempt < max_retries - 1:
-                        # Add warning to prompt for next attempt
-                        prompt = prompt + "\n\nATTENTION : Votre réponse précédente contenait des termes interdits. Évitez absolument : " + ", ".join(forbidden)
-                    else:
-                        logger.error(f"EamBilanOrchestrator: Max retries exceeded. Forbidden terms: {forbidden}")
-                        return text  # Return last attempt despite validation failure
+                else:
+                    logger.error(
+                        f"EamBilanOrchestrator: Max retries exceeded. Forbidden: {forbidden}"
+                    )
+                    return text
+
             except Exception as e:
-                logger.error(f"EamBilanOrchestrator: Error in generation (attempt {attempt + 1}/{max_retries}): {e}")
+                logger.error(
+                    f"EamBilanOrchestrator: Error attempt {attempt + 1}/{max_retries}: {e}"
+                )
                 if attempt == max_retries - 1:
                     raise
-        
+
         return ""
-    
-    def _format_stats(self, analytics: Dict) -> str:
-        """Format analytics stats for prompt."""
-        stats = self._build_metadata(analytics)
+
+    # ─────────────────────────────────────────── formatters ────────────────────
+
+    def _format_stats_text(self, analytics: Dict) -> str:
+        """Format les stats globales + EAM pour les prompts LLM."""
+        gs = analytics.get('global_stats', {})
+        auto = analytics.get('auto_stats', {})
+        exo = analytics.get('exo_stats', {})
+
         lines = [
-            f"Total copies : {stats['total_copies']}",
-            f"Copies corrigées : {stats['graded_copies']}",
-            f"Moyenne : {stats['mean_score']:.2f}/20",
-            f"Médiane : {stats['median_score']:.2f}/20",
-            f"Écart-type : {stats['std_dev']:.2f}",
-            f"Min : {stats['min_score']}/20",
-            f"Max : {stats['max_score']}/20",
+            f"Copies analysées : {gs.get('n_copies', 0)}",
+            f"Moyenne générale : {gs.get('mean', 'N/A')}/20 ({gs.get('pct_above_10', 'N/A')}% ≥ 10)",
+            f"Médiane : {gs.get('median', 'N/A')}/20 | Écart-type : {gs.get('std', 'N/A')}",
+            f"Min : {gs.get('min', 'N/A')} | Max : {gs.get('max', 'N/A')}",
         ]
+        if auto:
+            lines.append(
+                f"Automatismes (6 pts) : moy={auto.get('mean', 'N/A')} "
+                f"({auto.get('mean_pct', 'N/A')}% du barème)"
+            )
+        if exo:
+            lines.append(
+                f"Exercices (14 pts) : moy={exo.get('mean', 'N/A')} "
+                f"({exo.get('mean_pct', 'N/A')}% du barème)"
+            )
         return "\n".join(lines)
-    
-    def _format_list(self, items: List[Any]) -> str:
-        """Format a list for prompt."""
-        if not items:
-            return "Aucune donnée disponible"
-        return "\n".join(f"- {item}" for item in items[:10])
-    
-    def _format_subparts(self, subparts: List[Dict]) -> str:
-        """Format subparts for prompt."""
+
+    def _format_question_list(self, questions: List[Dict]) -> str:
+        """Format une liste de questions pour les prompts."""
+        if not questions:
+            return "Aucune donnée"
+        lines = []
+        for q in questions:
+            info = q.get('question', {})
+            label = info.get('label') or info.get('number') or info.get('id', '?')
+            lines.append(
+                f"- {label} : taux réussite {q.get('success_rate', 0)}%, "
+                f"moyenne {q.get('mean_score', 0)}/{info.get('max_points', '?')}"
+            )
+        return "\n".join(lines)
+
+    def _format_subparts_text(self, subparts: List[Dict]) -> str:
+        """Format les sous-parties d'un exercice pour les prompts."""
         if not subparts:
             return "Aucune sous-partie disponible"
         lines = []
         for sp in subparts:
-            name = sp.get('name', sp.get('id', ''))
-            score = sp.get('mean_score', 0)
-            lines.append(f"- {name} : {score:.2f}/20")
+            lines.append(
+                f"- {sp.get('label', sp.get('id', '?'))} : "
+                f"moy={sp.get('mean_score', 0)}/{sp.get('max_points', '?')} pts | "
+                f"réussite={sp.get('success_rate', 0)}%"
+            )
         return "\n".join(lines)
-    
-    def _compare_part_a_b(self, part_a: Dict, part_b: Dict) -> Dict[str, Any]:
-        """Compare Part A and Part B stats."""
-        return {
-            'mean_diff': part_b.get('mean_score', 0) - part_a.get('mean_score', 0),
-            'success_rate_diff': part_b.get('success_rate', 0) - part_a.get('success_rate', 0),
-            'stronger_part': 'A' if part_a.get('mean_score', 0) > part_b.get('mean_score', 0) else 'B',
-        }
