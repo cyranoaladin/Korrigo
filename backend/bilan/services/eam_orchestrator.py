@@ -13,6 +13,7 @@ Sources exclusives : DB data (copies FINALIZED/GRADED + Score.scores_data) + RAG
 Garde-fous : anti-DNB validation + retry automatique si termes interdits détectés
 """
 
+import re
 import statistics
 import logging
 from typing import Dict, List, Optional, Any, Tuple
@@ -25,10 +26,23 @@ from exams.grading_utils import extract_leaf_questions
 logger = logging.getLogger(__name__)
 
 # Forbidden terms — anti-confusion EAM / DNB (exhaustif)
-FORBIDDEN_TERMS = [
-    'DNB', 'brevet', 'cycle 4', '3e', 'troisième', '3ème', '3eme',
-    'brevet des collèges', 'collège', 'college',
-    'brevet des colleges', 'diplôme national', 'diplome national',
+# Format: (term, use_word_boundary)
+# use_word_boundary=True -> match only as whole word (avoids "Troisième action" false positive)
+FORBIDDEN_TERMS: List[Tuple[str, bool]] = [
+    ('DNB', False),
+    ('brevet', True),
+    ('cycle 4', False),
+    ('3e', True),                  # word boundary: évite "3ème" collision
+    ('3ème', True),
+    ('3eme', True),
+    ('classe de troisième', False),   # contextualised: only flags grade-level references
+    ('en troisième', False),          # contextualised: "en troisième" = classe
+    ('brevet des collèges', False),
+    ('brevet des colleges', False),
+    ('collège', True),
+    ('college', True),
+    ('diplôme national', False),
+    ('diplome national', False),
 ]
 
 # EAM-specific LLM models (overridable via Django settings)
@@ -46,14 +60,25 @@ def validate_no_dnb_references(text: str) -> Tuple[bool, List[str]]:
     """
     Validate that text contains no DNB/cycle 4 references.
 
+    Uses word-boundary matching for context-sensitive terms to avoid false positives
+    (e.g. "Troisième action" should NOT be flagged, but "3e" as class level should).
+
     Returns:
         (is_valid, forbidden_terms_found)
     """
     text_lower = text.lower()
     found = []
-    for term in FORBIDDEN_TERMS:
-        if term.lower() in text_lower:
-            found.append(term)
+    for term, word_boundary in FORBIDDEN_TERMS:
+        term_lower = term.lower()
+        if word_boundary:
+            # Unicode-aware word boundary: preceded/followed by non-letter/non-digit
+            # re.UNICODE ensures accented chars (é, è, ...) are treated as word chars
+            pattern = r'(?<![^\W])' + re.escape(term_lower) + r'(?![^\W])'
+            if re.search(pattern, text_lower, re.UNICODE):
+                found.append(term)
+        else:
+            if term_lower in text_lower:
+                found.append(term)
     return len(found) == 0, found
 
 
