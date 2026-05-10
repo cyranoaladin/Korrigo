@@ -6,7 +6,7 @@
           <AppIcon name="file-text" :size="20" class="text-white" />
         </div>
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">Bilan Pédagogique DNB</h3>
+          <h3 class="text-lg font-semibold text-gray-900">Bilan Pédagogique {{ examName === 'DNB_2026' ? 'DNB' : examName === 'EAM BLANCHE 2026' ? 'EAM' : examName }}</h3>
           <p class="text-sm text-gray-600">Analyse complète des résultats</p>
         </div>
       </div>

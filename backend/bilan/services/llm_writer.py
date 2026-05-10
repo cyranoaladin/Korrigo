@@ -208,6 +208,10 @@ def write(prompt: str, model: str = MODEL_DEFAULT,
             req_id,
             str(e),
         )
+        # Fallback to Ollama on 402 Payment Required or other API errors
+        if getattr(settings, "BILAN_ALLOW_OLLAMA_FALLBACK", False):
+            logger.info("bilan.llm_writer falling back to Ollama due to API error")
+            return _write_with_ollama(prompt=prompt, max_tokens=max_tokens)
         raise
     except openai.APIConnectionError as e:
         logger.error(

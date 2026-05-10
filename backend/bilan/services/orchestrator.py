@@ -5,16 +5,17 @@ Coordinates the generation of the complete DNB pedagogical report.
 """
 
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
-from .rag_retriever import RAGRetriever
+from .rag_retriever import RAGRetriever, RAG_COLLECTION
 from .llm_writer import write, MODEL_DEFAULT, MODEL_PREMIUM
 from .analytics_simple import DNBAnalyticsEngine as DNBAnalyticsEngine
 
 User = get_user_model()
-rag = RAGRetriever()
+logger = logging.getLogger(__name__)
 
 
 class BilanOrchestrator:
@@ -22,10 +23,16 @@ class BilanOrchestrator:
     Orchestrates the generation of the complete DNB pedagogical report.
     """
 
-    def __init__(self, exam_slug: str = 'DNB_2026'):
+    def __init__(self, exam_slug: str = 'DNB_2026', rag_collection: Optional[str] = None):
         self.exam_slug = exam_slug
         self.engine = DNBAnalyticsEngine(exam_slug)
-        self.rag_retriever = rag
+        # Use rag_maths_premiere for EAM BLANCHE 2026, otherwise use default
+        if 'EAM BLANCHE' in exam_slug:
+            self.rag_retriever = RAGRetriever(collection='rag_maths_premiere')
+        elif rag_collection:
+            self.rag_retriever = RAGRetriever(collection=rag_collection)
+        else:
+            self.rag_retriever = RAGRetriever(collection=RAG_COLLECTION)
 
     def generate(self, requested_by) -> Dict[str, Any]:
         """
@@ -288,21 +295,20 @@ class BilanOrchestrator:
         for domain, pct in weakest:
             if domain_breakdown_type == "programme_domains":
                 rag_ctx = _rag(
-                    rag.search_for_domain,
+                    self.rag_retriever.search_for_domain,
                     domain=domain,
                     issue=f"taux réussite {pct}%"
                 )
-                auto_ctx = _rag(rag.search_for_automatismes, domain)
+                auto_ctx = _rag(self.rag_retriever.search_for_automatismes, domain)
                 forbidden = [d for d in programme_domains if d != domain]
             else:
                 # No tagged programme domain available; use a broader programme context.
                 rag_ctx = _rag(
-                    rag.search,
+                    self.rag_retriever.search,
                     query=f"programme mathématiques cycle 4 attendus remédiation difficultés {domain}",
-                    top_k=4,
                 )
                 auto_ctx = _rag(
-                    rag.search,
+                    self.rag_retriever.search,
                     query="automatismes DNB octobre 2025 mathématiques partie 1 partie 2",
                     top_k=3,
                 )
@@ -380,7 +386,7 @@ Destinataire : enseignants correcteurs. Style rapport d'inspection."""
         competence_analysis = ""
         if weak_comps:
             rag_ctx = "\n\n".join(
-                _rag(rag.search_for_competence, c) for c in list(weak_comps.keys())[:3]
+                _rag(self.rag_retriever.search_for_competence, c) for c in list(weak_comps.keys())[:3]
             )
             competence_analysis = _llm(
                 "s4_competences",
@@ -431,7 +437,7 @@ Destinataire : responsable de l'évaluation / administration."""
         # ── 5. SECTION 7 — Recommandations ────────────────────────
         # Contexte RAG large pour les recommandations finales
         domains_list = [d[0] for d in weakest]
-        reco_ctx = _rag(rag.search_for_remediation, domains_list)
+        reco_ctx = _rag(self.rag_retriever.search_for_remediation, domains_list)
 
         def _validate_recommendations(text: str) -> tuple[list[str], list[str]]:
             """
@@ -535,11 +541,19 @@ Règles :
                 "Le LLM doit conserver exactement [A]/[/A]/[B]/[/B]/[C]/[/C]."
             )
         if last_empty:
-            raise RuntimeError(
-                "Recommandations invalides (sections vides). "
-                f"Sections vides: {', '.join(last_empty)}. "
-                "Chaque bloc [A]/[B]/[C] doit contenir du texte."
-            )
+            # Allow empty sections when using Ollama fallback (BILAN_ALLOW_OLLAMA_FALLBACK)
+            if getattr(settings, "BILAN_ALLOW_OLLAMA_FALLBACK", False):
+                logger.warning(
+                    "Recommandations with empty sections (Ollama fallback enabled). "
+                    f"Sections vides: {', '.join(last_empty)}. "
+                    "Proceeding with partial content."
+                )
+            else:
+                raise RuntimeError(
+                    "Recommandations invalides (sections vides). "
+                    f"Sections vides: {', '.join(last_empty)}. "
+                    "Chaque bloc [A]/[B]/[C] doit contenir du texte."
+                )
 
         # ── 6. ASSEMBLAGE JSON ─────────────────────────────────────
         generation_time = datetime.now() - start_time
@@ -551,7 +565,7 @@ Règles :
                 'n_copies': global_stats['n_copies'],
                 'generation_time_seconds': generation_time.total_seconds(),
                 'llm_model': f"{MODEL_DEFAULT} / {MODEL_PREMIUM}",
-                'rag_collection': 'rag_maths_3e_dnb',
+                'rag_collection': self.rag_retriever.collection,
                 'data_quality': global_stats.get('data_quality', {}),
                 'rag_stats': rag_stats,
                 'llm_stats': llm_stats,
@@ -603,7 +617,7 @@ Règles :
         return {
             "json_data": bilan_data,
             "llm_model": f"{MODEL_DEFAULT} / {MODEL_PREMIUM}",
-            "rag_collection": "rag_maths_3e_dnb",
+            "rag_collection": self.rag_retriever.collection,
             "generation_time": generation_time,
         }
 

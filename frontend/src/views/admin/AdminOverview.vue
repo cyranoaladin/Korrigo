@@ -307,6 +307,15 @@ useAutoRefresh(fetchExams)
         />
       </section>
 
+      <!-- EAM BLANCHE Bilan Section -->
+      <section v-if="exams.some(exam => exam.name === 'EAM BLANCHE 2026')">
+        <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Bilan Pédagogique EAM BLANCHE 2026</h2>
+        <BilanCard
+          :exam-id="exams.find(exam => exam.name === 'EAM BLANCHE 2026')?.id"
+          exam-name="EAM BLANCHE 2026"
+        />
+      </section>
+
       <!-- Exams table -->
       <section>
         <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Liste des examens</h2>

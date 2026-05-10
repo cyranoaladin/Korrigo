@@ -11,6 +11,7 @@ from django.http import HttpResponse
 
 from .permissions import IsAdminOrTeacher
 from .services.orchestrator import BilanOrchestrator
+from .services.eam_orchestrator import EamBilanOrchestrator
 from .models import BilanReport
 
 
@@ -18,10 +19,10 @@ from .models import BilanReport
 @permission_classes([IsAuthenticated, IsAdminOrTeacher])
 def generate_bilan(request):
     """
-    Génère un bilan pédagogique DNB.
+    Génère un bilan pédagogique.
 
     POST /api/bilan/generate/
-    { "exam_slug": "DNB_2026", "force": false }  (compat: { "exam_type": "DNB_2026" })
+    { "exam_slug": "DNB_2026" | "EAM BLANCHE 2026", "force": false }
     """
     try:
         def _as_bool(val) -> bool:
@@ -59,14 +60,22 @@ def generate_bilan(request):
             status='GENERATING'
         )
 
-        orchestrator = BilanOrchestrator(exam_slug)
+        # Use EamBilanOrchestrator for EAM exams, BilanOrchestrator for others
+        if 'EAM BLANCHE' in exam_slug:
+            orchestrator = EamBilanOrchestrator(exam_slug)
+        else:
+            orchestrator = BilanOrchestrator(exam_slug)
+
         try:
-            generated = orchestrator.generate(request.user)
+            if isinstance(orchestrator, EamBilanOrchestrator):
+                generated = orchestrator.generate()
+            else:
+                generated = orchestrator.generate(request.user)
+
             report.status = 'DONE'
-            report.json_data = generated.get("json_data")
+            report.json_data = generated
             report.llm_model = generated.get("llm_model", "")
             report.rag_collection = generated.get("rag_collection", "")
-            report.generation_time = generated.get("generation_time")
             report.exam = orchestrator.engine.exam
             report.save()
 

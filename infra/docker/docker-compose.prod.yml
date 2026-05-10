@@ -51,6 +51,12 @@ services:
       - ${OVERLAY_DIR:-../../overlay}/students/urls.py:/app/students/urls.py:ro
       - ${OVERLAY_DIR:-../../overlay}/core/views_platform.py:/app/core/views_platform.py:ro
       - ${OVERLAY_DIR:-../../overlay}/gunicorn_config.py:/app/gunicorn_config.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/rag_retriever.py:/app/bilan/services/rag_retriever.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/orchestrator.py:/app/bilan/services/orchestrator.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/eam_orchestrator.py:/app/bilan/services/eam_orchestrator.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/llm_writer.py:/app/bilan/services/llm_writer.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/models.py:/app/bilan/models.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/views.py:/app/bilan/views.py:ro
     depends_on:
       db:
         condition: service_healthy

@@ -24,7 +24,8 @@ class RAGRetriever:
     on récupère les chunks et on les passe à GPT-4o-mini.
     """
 
-    def __init__(self):
+    def __init__(self, collection: Optional[str] = None):
+        self.collection = collection or RAG_COLLECTION
         self.client = httpx.Client(timeout=30.0)
         self.headers = {
             "Content-Type": "application/json",
@@ -42,7 +43,7 @@ class RAGRetriever:
         payload = {
             "q": query,
             "k": top_k,
-            "collection": RAG_COLLECTION,
+            "collection": self.collection,
             "include_documents": True,
         }
         # IMPORTANT:

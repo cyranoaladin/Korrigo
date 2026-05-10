@@ -19,6 +19,7 @@ class BilanReport(models.Model):
     EXAM_TYPES = [
         ('DNB_2026', 'DNB 2026'),
         ('BILAN_BLANC', 'Bilan Blanc'),
+        ('EAM BLANCHE 2026', 'EAM BLANCHE 2026'),
     ]
     
     SCOPES = [
@@ -81,15 +82,20 @@ class BilanReport(models.Model):
         """Vérifier si l'utilisateur peut voir ce bilan."""
         if user.is_staff or user.is_superuser:
             return True
-        
+
         # Les enseignants peuvent voir les bilans d'établissement
         if self.scope == 'ETABLISSEMENT' and user.groups.filter(
             name__in=['admin', 'teacher', 'corrector']
         ).exists():
+            # Si le bilan est lié à un examen, vérifier que l'utilisateur est assigné à cet examen
+            if self.exam:
+                if self.exam.correctors.filter(id=user.id).exists():
+                    return True
+            # Sinon, permettre l'accès aux correcteurs/admins/teachers
             return True
-        
+
         # TODO: Ajouter logique pour classe/groupe
-        
+
         return False
 
 
