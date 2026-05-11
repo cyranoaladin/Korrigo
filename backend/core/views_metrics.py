@@ -4,7 +4,7 @@ Exposes collected metrics via HTTP endpoint
 """
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
+from core.auth import IsKorrigoAdmin
 from django.utils.decorators import method_decorator
 from core.middleware.metrics import metrics_collector
 from core.utils.ratelimit import maybe_ratelimit
@@ -21,7 +21,7 @@ class MetricsView(APIView):
     P0-OP-08 FIX: Provides observability endpoint for monitoring systems
     Security: Rate limited to prevent reconnaissance, audit logged
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsKorrigoAdmin]
     
     @method_decorator(maybe_ratelimit(key='user', rate='60/h', method='GET', block=True))
     def get(self, request):

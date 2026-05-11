@@ -9,10 +9,14 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 
+import logging
+
 from .permissions import IsAdminOrTeacher
 from .services.orchestrator import BilanOrchestrator
 from .services.eam_orchestrator import EamBilanOrchestrator
 from .models import BilanReport
+
+logger = logging.getLogger(__name__)
 
 
 @api_view(['POST'])
@@ -87,17 +91,19 @@ def generate_bilan(request):
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            logger.exception("generate_bilan orchestration error for report %s", report.id)
             report.status = 'ERROR'
             report.save()
             return Response({
-                'message': f'Erreur lors de la génération: {str(e)}',
+                'message': 'Une erreur s\'est produite pendant la génération du bilan.',
                 'report_id': report.id,
                 'status': 'ERROR'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     except Exception as e:
+        logger.exception("generate_bilan internal error")
         return Response({
-            'message': f'Erreur serveur: {str(e)}',
+            'message': 'Une erreur interne s\'est produite. Veuillez réessayer.',
             'status': 'ERROR'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -139,8 +145,9 @@ def list_bilans(request):
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
+        logger.exception("list_bilans internal error")
         return Response({
-            'message': f'Erreur serveur: {str(e)}',
+            'message': 'Une erreur interne s\'est produite. Veuillez réessayer.',
             'status': 'ERROR'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -201,8 +208,9 @@ def bilan_detail(request, pk):
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
+        logger.exception("bilan_detail internal error for pk=%s", pk)
         return Response({
-            'message': f'Erreur serveur: {str(e)}',
+            'message': 'Une erreur interne s\'est produite. Veuillez réessayer.',
             'status': 'ERROR'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

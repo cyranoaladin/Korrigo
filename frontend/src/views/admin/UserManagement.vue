@@ -174,38 +174,27 @@ const deleteUser = async (user) => {
     }
 }
 
-const showResetModal = ref(false)
-const temporaryPassword = ref('')
 const resettingUser = ref(null)
 const resettingPassword = ref(false)
 
 const openResetPasswordModal = async (user) => {
-    if (!confirm(`Voulez-vous vraiment réinitialiser le mot de passe de ${user.username} ?`)) return
-    
+    if (!confirm(`Voulez-vous vraiment réinitialiser le mot de passe de ${user.username} ?
+
+Un mot de passe temporaire sera généré. L'utilisateur devra le changer à sa prochaine connexion.`)) return
+
     resettingUser.value = user
     resettingPassword.value = true
-    
+
     try {
-        const res = await api.post(`/users/${user.id}/reset-password/`)
-        temporaryPassword.value = res.data.temporary_password
-        showResetModal.value = true
+        await api.post(`/users/${user.id}/reset-password/`)
+        alert(`Mot de passe réinitialisé pour ${user.username}.\nL'utilisateur devra le changer à sa prochaine connexion.`)
     } catch (e) {
-        console.error("Password reset failed", e)
-        alert("Erreur réinitialisation: " + (e.response?.data?.error || e.message))
+        console.error('Password reset failed', e)
+        alert('Erreur réinitialisation: ' + (e.response?.data?.error || e.message))
     } finally {
         resettingPassword.value = false
+        resettingUser.value = null
     }
-}
-
-const closeResetModal = () => {
-    showResetModal.value = false
-    temporaryPassword.value = ''
-    resettingUser.value = null
-}
-
-const copyToClipboard = () => {
-    navigator.clipboard.writeText(temporaryPassword.value)
-    alert("Mot de passe copié dans le presse-papier")
 }
 
 const resetStudentPassword = async (student) => {
@@ -219,8 +208,8 @@ const resetStudentPassword = async (student) => {
     }
 
     try {
-        const res = await api.post('/students/admin/reset-password/', { student_id: student.id })
-        alert(`Mot de passe réinitialisé avec succès.\n\nNouveau mot de passe: ${res.data.new_password}\n\nL'élève devra le changer à la prochaine connexion.`)
+        await api.post('/students/admin/reset-password/', { student_id: student.id })
+        alert(`Mot de passe réinitialisé avec succès.\nL'élève devra le changer à la prochaine connexion.`)
     } catch (err) {
         console.error('Password reset failed', err)
         const msg = err.response?.data?.error || 'Erreur lors de la réinitialisation du mot de passe.'
@@ -493,52 +482,6 @@ const resetStudentPassword = async (student) => {
       </div>
     </div>
 
-    <!-- Password Reset Modal -->
-    <div 
-      v-if="showResetModal" 
-      class="modal-overlay"
-    >
-      <div class="modal-card">
-        <h3>⚠️ Mot de passe temporaire</h3>
-        
-        <div class="warning-box">
-          <p><strong>ATTENTION :</strong> Communiquez ce mot de passe à l'utilisateur <strong>{{ resettingUser?.username }}</strong>.</p>
-          <p>Ce mot de passe ne sera affiché qu'une seule fois.</p>
-        </div>
-
-        <div class="form-group">
-          <label>Mot de passe temporaire</label>
-          <div class="password-display">
-            <input 
-              :value="temporaryPassword" 
-              type="text" 
-              readonly 
-              class="form-input password-readonly"
-            >
-            <button 
-              class="btn btn-outline btn-copy btn-with-icon"
-              @click="copyToClipboard"
-            >
-              <AppIcon name="copy" :size="16" />
-              <span>Copier</span>
-            </button>
-          </div>
-        </div>
-
-        <p class="info-text">
-          L'utilisateur devra changer ce mot de passe lors de sa prochaine connexion.
-        </p>
-
-        <div class="modal-actions">
-          <button 
-            class="btn btn-primary"
-            @click="closeResetModal"
-          >
-            J'ai noté le mot de passe
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 

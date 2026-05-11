@@ -500,7 +500,7 @@ class StudentBilanView(views.APIView):
                 global_appreciation = copy.global_appreciation or ''
                 llm_summary = copy.llm_summary or ''
 
-            pdf_url = f'/grading/copies/{copy.id}/final-pdf/' if is_finalized else None
+            pdf_url = f'/api/grading/copies/{copy.id}/final-pdf/' if is_finalized else None
             
             # Build pdf_source_url (direct access to source PDF)
             pdf_source_url = None

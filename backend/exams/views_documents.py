@@ -25,6 +25,47 @@ from exams.models import (
 
 logger = logging.getLogger(__name__)
 
+_MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB
+
+
+def _validate_pdf_upload(uploaded_file):
+    """
+    P1.2: Validate an uploaded file is a safe, well-formed PDF.
+    Returns (is_valid, error_message, http_status).
+    Checks: extension, size, magic bytes (%PDF-), PyMuPDF integrity.
+    """
+    # 1. Extension
+    if not uploaded_file.name.lower().endswith('.pdf'):
+        return False, f"'{uploaded_file.name}' doit être un fichier PDF (.pdf).", 400
+
+    # 2. Size
+    if uploaded_file.size > _MAX_PDF_BYTES:
+        mb = uploaded_file.size / (1024 * 1024)
+        return False, f"'{uploaded_file.name}' dépasse la taille maximale autorisée (20 Mo). Taille reçue : {mb:.1f} Mo.", 413
+
+    # 3. Magic bytes — read first 5 bytes without consuming the stream
+    header = uploaded_file.read(5)
+    uploaded_file.seek(0)
+    if header != b'%PDF-':
+        return False, f"'{uploaded_file.name}' ne semble pas être un PDF valide (en-tête incorrect).", 400
+
+    # 4. Structural integrity via PyMuPDF
+    try:
+        import fitz
+        import io
+        data = uploaded_file.read()
+        uploaded_file.seek(0)
+        doc = fitz.open(stream=data, filetype='pdf')
+        if doc.page_count < 1:
+            doc.close()
+            return False, f"'{uploaded_file.name}' est un PDF vide (0 pages).", 400
+        doc.close()
+    except Exception as exc:
+        logger.warning("PDF integrity check failed for %s: %s", uploaded_file.name, exc)
+        return False, f"'{uploaded_file.name}' est corrompu ou illisible.", 400
+
+    return True, None, None
+
 
 def _is_admin(user):
     """Vérifie si l'utilisateur est admin via group membership (exclut is_staff seul)."""
@@ -56,17 +97,16 @@ class DocumentSetUploadView(APIView):
 
         exam = get_object_or_404(Exam, id=exam_id)
 
-        # Vérifier qu'au moins un fichier est fourni
+        # Vérifier qu'au moins un fichier est fourni + validation complète
         doc_types = ['sujet', 'corrige', 'bareme']
         files = {}
         for dt in doc_types:
             f = request.FILES.get(dt)
             if f:
-                if not f.name.lower().endswith('.pdf'):
-                    return Response(
-                        {"detail": f"Le fichier '{dt}' doit être un PDF."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+                ok, err_msg, err_status = _validate_pdf_upload(f)
+                if not ok:
+                    http_status = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE if err_status == 413 else status.HTTP_400_BAD_REQUEST
+                    return Response({"detail": err_msg}, status=http_status)
                 files[dt] = f
 
         if not files:

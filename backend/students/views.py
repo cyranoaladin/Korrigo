@@ -19,6 +19,7 @@ from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from .models import Student
 from .serializers import StudentSerializer
 from exams.permissions import IsStudent, IsTeacherOrAdmin
+from core.auth import IsKorrigoAdmin
 from core.utils.audit import log_authentication_attempt, log_audit
 
 
@@ -493,8 +494,9 @@ class StudentImportView(views.APIView):
 class AdminResetStudentPasswordView(views.APIView):
     """
     Admin-only endpoint to reset a student's password to their date of birth (DDMMYYYY).
+    P0.3: Restricted to IsKorrigoAdmin (admin group or superuser only, not teacher).
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsKorrigoAdmin]
 
     def post(self, request):
         from django.contrib.auth.models import User as AuthUser
@@ -530,9 +532,8 @@ class AdminResetStudentPasswordView(views.APIView):
             log_audit(request, 'password_reset_student', 'Student', student_id, metadata={'student_name': f'{student.first_name} {student.last_name}'})
 
         return Response({
-            'message': 'Mot de passe réinitialisé avec succès.',
+            'detail': 'Mot de passe réinitialisé. L\'élève devra le changer à sa prochaine connexion.',
             'student_id': student.id,
             'student_name': f'{student.first_name} {student.last_name}',
-            'new_password': new_password,
             'must_change_password': True
         })

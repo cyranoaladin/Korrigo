@@ -476,6 +476,5 @@ class UserResetPasswordView(APIView):
         )
         
         return Response({
-            "message": "Mot de passe réinitialisé.",
-            "temporary_password": temporary_password
+            "message": "Mot de passe réinitialisé. L'utilisateur devra le changer à sa prochaine connexion."
         })

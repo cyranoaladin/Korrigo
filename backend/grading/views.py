@@ -61,6 +61,22 @@ def _can_write_copy(user, copy: Copy) -> bool:
     return copy.assigned_corrector_id == user.id
 
 
+def _can_read_copy_scores(user, copy: Copy) -> bool:
+    """
+    P0.1: Check if user is allowed to READ the scores of a copy.
+    Only admins/superusers and the assigned corrector may access raw scores.
+    Students and unrelated teachers are denied.
+    """
+    if user.is_superuser:
+        return True
+    if user.groups.filter(name__iexact=UserRole.ADMIN).exists():
+        return True
+    # Teacher must be the assigned corrector for this copy
+    if user.groups.filter(name__iexact=UserRole.TEACHER).exists():
+        return copy.assigned_corrector_id == user.id
+    return False
+
+
 def _handle_service_error(e, context="API"):
     """
     Formate les erreurs du service layer (ValueError, PermissionError, etc.) en réponses HTTP.
@@ -605,18 +621,22 @@ class CopyScoresView(APIView):
     GET/PUT /api/grading/copies/<uuid>/scores/
     Save and retrieve per-question scores for a copy.
     scores_data format: {"question_id": score_value, ...}
-    
-    GET requires only authentication (read-only, no data leakage risk).
+
+    GET requires teacher/admin AND assigned-corrector ownership (P0.1).
     PUT requires IsTeacherOrAdmin + assigned corrector ownership.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacherOrAdmin]
 
     def get(self, request, copy_id):
         copy = get_object_or_404(Copy, id=copy_id)
-        
-        # IsTeacherOrAdmin handles global access.
-        # GET is allowed for any teacher/admin.
-        
+
+        # P0.1: Only assigned corrector or admin may read raw scores
+        if not _can_read_copy_scores(request.user, copy):
+            return Response(
+                {"detail": "Vous n'êtes pas autorisé à consulter les notes de cette copie."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         score = Score.objects.filter(copy=copy).first()
         if not score:
             return Response({
