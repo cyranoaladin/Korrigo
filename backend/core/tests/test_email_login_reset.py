@@ -60,8 +60,8 @@ class PasswordResetTest(TestCase):
     def test_admin_can_reset_user_password(self):
         response = self.client.post(f'/api/users/{self.user.id}/reset-password/')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('temporary_password', response.data)
-        self.assertEqual(len(response.data['temporary_password']), 12)
+        self.assertIn('message', response.data)
+        self.assertNotIn('temporary_password', response.data, "P0.2: password must not be returned in API response")
     
     def test_reset_sets_must_change_password_flag(self):
         response = self.client.post(f'/api/users/{self.user.id}/reset-password/')

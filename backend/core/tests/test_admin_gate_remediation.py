@@ -121,7 +121,8 @@ class TestAdminGateRemediation(TestCase):
         self.client.force_authenticate(user=self.group_admin)
         resp = self.client.post(f"/api/users/{self.target.id}/reset-password/")
         self.assertEqual(resp.status_code, 200)
-        self.assertIn("temporary_password", resp.data)
+        self.assertIn("message", resp.data)
+        self.assertNotIn("temporary_password", resp.data, "P0.2: password must not be returned in API response")
 
     def test_teacher_cannot_reset_password(self):
         self.client.force_authenticate(user=self.teacher)
