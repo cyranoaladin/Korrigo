@@ -50,6 +50,7 @@ services:
       - ${OVERLAY_DIR:-../../overlay}/students/views.py:/app/students/views.py:ro
       - ${OVERLAY_DIR:-../../overlay}/students/urls.py:/app/students/urls.py:ro
       - ${OVERLAY_DIR:-../../overlay}/core/views_platform.py:/app/core/views_platform.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/core/views.py:/app/core/views.py:ro
       - ${OVERLAY_DIR:-../../overlay}/gunicorn_config.py:/app/gunicorn_config.py:ro
       - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/rag_retriever.py:/app/bilan/services/rag_retriever.py:ro
       - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/orchestrator.py:/app/bilan/services/orchestrator.py:ro
