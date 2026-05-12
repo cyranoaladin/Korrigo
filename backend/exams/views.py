@@ -1716,7 +1716,11 @@ class ExamStudentListView(APIView):
                         total += float(value)
             score_lookup[str(score.copy_id)] = round(total, 2)
 
-        from core.auth import UserRole, DIRECTION_GROUPS
+        from core.auth import UserRole
+        try:
+            from core.auth import DIRECTION_GROUPS
+        except ImportError:
+            DIRECTION_GROUPS = ['direction_all', 'direction_lycee', 'direction_college']
         is_admin = (
             request.user.is_superuser
             or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
