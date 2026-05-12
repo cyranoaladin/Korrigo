@@ -7,6 +7,7 @@ import Home from '../views/Home.vue'
 import GuideEnseignant from '../views/GuideEnseignant.vue'
 import GuideEtudiant from '../views/GuideEtudiant.vue'
 import DirectionConformite from '../views/DirectionConformite.vue'
+import DirectionDashboard from '../views/DirectionDashboard.vue'
 import StatsReport from '../views/StatsReport.vue'
 import Login from '../views/Login.vue'
 import CorrectorDashboard from '../views/CorrectorDashboard.vue'
@@ -15,12 +16,55 @@ import LoginStudent from '../views/student/LoginStudent.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
 import ResetPasswordConfirm from '../views/ResetPasswordConfirm.vue'
 
-function getDashboardForRole(role) {
+function getDashboardForRole(role, email = '') {
     if (role === 'Admin') return '/admin/dashboard'
     if (role === 'Teacher') return '/corrector-dashboard'
     if (role === 'Student') return '/student/dashboard'
-    if (role === 'Direction') return '/bilan/bac-blanc-2026'
+    // ── Redirections personnalisées proviseurs ─────────────────────────────
+    if (role === 'Direction') {
+        // Tous les proviseurs accèdent au Dashboard Direction par défaut
+        // Les restrictions de routes sont gérées par canAccessRoute()
+        return '/direction/dashboard'
+    }
     return '/'
+}
+
+function safeRedirect(next, targetPath, currentPath) {
+    if (!targetPath || targetPath === currentPath) {
+        redirectCount = 0
+        return next()
+    }
+    redirectCount++
+    return next({ path: targetPath, replace: true })
+}
+
+// ── Permissions personnalisées proviseurs ──────────────────────────────────
+const PROVISEUR_ACCESS = {
+    // Gilles Emardlacroix : accès TOTAL (tous les examens et bilans)
+    'gilles.emardlacroix@ert.tn': { 
+        routes: ['all'], 
+        label: 'Direction (accès complet)' 
+    },
+    // Guillaume Verbeke : Bac Blanc + EAM uniquement
+    'guillaume.verbeke@ert.tn':   {
+        routes: ['/direction/dashboard', '/bilan/bac-blanc-2026', '/bilan/eam', '/corrector-dashboard', '/direction/exams/'],
+        label: 'Direction (Bac Blanc + EAM)',
+        hideSections: ['dnb']  // Masquer la section DNB
+    },
+    // Didier Morel : DNB uniquement
+    'didier.morel@ert.tn':        {
+        routes: ['/direction/dashboard', '/bilan/dnb', '/direction/exams/'],
+        label: 'Direction (DNB uniquement)',
+        hideSections: ['bac-blanc', 'eam']  // Masquer les sections Bac Blanc et EAM
+    }
+}
+
+function canAccessRoute(email, path) {
+    const emailLower = email.toLowerCase()
+    const perm = PROVISEUR_ACCESS[emailLower]
+    if (!perm) return true  // Pas de restriction
+    if (perm.routes.includes('all')) return true  // Accès total
+    return perm.routes.some(route => path.startsWith(route))
 }
 
 function isLoginPage(routeName) {
@@ -231,6 +275,23 @@ const routes = [
         meta: { requiresAuth: true, role: 'Admin' }
     },
 
+    // ── Direction Dashboard ──
+    {
+        path: '/direction/dashboard',
+        name: 'DirectionDashboard',
+        component: DirectionDashboard,
+        meta: { requiresAuth: true, role: 'Direction', title: 'Dashboard Direction' }
+    },
+
+    // ── Direction: résultats par examen (lecture seule) ──
+    {
+        path: '/direction/exams/:examId/results',
+        name: 'DirectionExamResults',
+        component: () => import('../views/admin/ExamStudentList.vue'),
+        props: { readonly: true },
+        meta: { requiresAuth: true, role: 'Direction', title: 'Résultats' }
+    },
+
     // ── Bilan Bac Blanc ──
     {
         path: '/bilan/bac-blanc-2026',
@@ -375,9 +436,8 @@ router.beforeEach(async (to, from, next) => {
     // users away from login pages to their dashboard
     if (to.meta.public) {
         if (isLoginPage(to.name) && authStore.user) {
-            const dashboardPath = getDashboardForRole(authStore.user.role)
-            redirectCount++
-            return next({ path: dashboardPath, replace: true })
+            const dashboardPath = getDashboardForRole(authStore.user.role, authStore.user.email)
+            return safeRedirect(next, dashboardPath, to.path)
         }
         return next()
     }
@@ -399,8 +459,7 @@ router.beforeEach(async (to, from, next) => {
         } catch (error) {
             console.error('Router guard: fetchUser failed', error)
             if (to.meta.requiresAuth) {
-                redirectCount++
-                return next({ path: '/', replace: true })
+                return safeRedirect(next, '/', to.path)
             }
         }
     }
@@ -408,24 +467,30 @@ router.beforeEach(async (to, from, next) => {
     const isAuthenticated = !!authStore.user
     const userRole = authStore.user?.role
 
+    const userEmail = authStore.user?.email || ''
+
     if (to.meta.requiresAuth) {
         if (!isAuthenticated || userRole === 'Unknown') {
-            redirectCount++
-            return next({ path: '/', replace: true })
+            return safeRedirect(next, '/', to.path)
         }
 
         const allowedRoles = Array.isArray(to.meta.role) ? to.meta.role : [to.meta.role]
         if (to.meta.role && !allowedRoles.includes(userRole)) {
-            const dashboardPath = getDashboardForRole(userRole)
-            redirectCount++
-            return next({ path: dashboardPath, replace: true })
+            const dashboardPath = getDashboardForRole(userRole, userEmail)
+            return safeRedirect(next, dashboardPath, to.path)
+        }
+
+        // ── Vérification des permissions personnalisées proviseurs ────────────
+        if (userRole === 'Direction' && !canAccessRoute(userEmail, to.path)) {
+            const dashboardPath = getDashboardForRole(userRole, userEmail)
+            console.warn(`[Router] Accès refusé pour ${userEmail} vers ${to.path}. Redirection vers ${dashboardPath}`)
+            return safeRedirect(next, dashboardPath, to.path)
         }
     }
 
     if (isLoginPage(to.name) && isAuthenticated) {
-        const dashboardPath = getDashboardForRole(userRole)
-        redirectCount++
-        return next({ path: dashboardPath, replace: true })
+        const dashboardPath = getDashboardForRole(userRole, userEmail)
+        return safeRedirect(next, dashboardPath, to.path)
     }
 
     next()

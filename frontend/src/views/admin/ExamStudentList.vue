@@ -1,13 +1,17 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import AppIcon from '../../icons/AppIcon.vue'
 import { useAutoRefresh } from '../../composables/useAutoRefresh'
 
+const props = defineProps({
+  readonly: { type: Boolean, default: false }
+})
+
 const route = useRoute()
 const router = useRouter()
-const examId = route.params.examId
+const examId = computed(() => route.params.examId)
 const loading = ref(true)
 const error = ref(null)
 const summary = ref(null)
@@ -23,7 +27,7 @@ const fetchData = async () => {
   loading.value = true
   error.value = null
   try {
-    const res = await api.get(`/exams/${examId}/student-list/`)
+    const res = await api.get(`/exams/${examId.value}/student-list/`)
     summary.value = res.data.summary
     copies.value = res.data.copies
   } catch (e) {
@@ -102,7 +106,7 @@ const exportCSV = () => {
 
 const exportPronote = async () => {
     try {
-        const params = { exam_id: examId }
+        const params = { exam_id: examId.value }
         if (filterClasse.value !== 'all') {
             params.group_name = filterClasse.value
             params.assignment_type = 'classe'
@@ -142,6 +146,7 @@ const resetStudentPassword = async (studentId, studentName) => {
     }
 }
 
+watch(() => route.params.examId, fetchData)
 useAutoRefresh(fetchData)
 </script>
 
@@ -150,7 +155,7 @@ useAutoRefresh(fetchData)
     <header class="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-50">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <button @click="router.push({name:'AdminDashboard'})" class="p-2 rounded-lg hover:bg-slate-100"><AppIcon name="arrow-left" class="w-5 h-5 text-slate-600"/></button>
+          <button @click="props.readonly ? router.push({name:'DirectionDashboard'}) : router.push({name:'AdminDashboard'})" class="p-2 rounded-lg hover:bg-slate-100"><AppIcon name="arrow-left" class="w-5 h-5 text-slate-600"/></button>
           <div>
             <h1 class="text-lg font-bold text-slate-800">Liste des élèves</h1>
             <p v-if="summary" class="text-xs text-slate-400">{{ summary.exam_name }}</p>
@@ -160,7 +165,7 @@ useAutoRefresh(fetchData)
           <button @click="exportCSV" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
             <AppIcon name="download" class="w-4 h-4"/> CSV Standard
           </button>
-          <button @click="exportPronote" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-all shadow-sm hover:shadow-md">
+          <button v-if="!props.readonly" @click="exportPronote" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-all shadow-sm hover:shadow-md">
             <AppIcon name="download" class="w-4 h-4"/> Export Pronote
           </button>
         </div>
@@ -253,7 +258,7 @@ useAutoRefresh(fetchData)
                       </router-link>
                       <span v-else>{{ copy.student_name || '—' }}</span>
                       <button
-                        v-if="copy.student_id"
+                        v-if="!props.readonly && copy.student_id"
                         @click="resetStudentPassword(copy.student_id, copy.student_name)"
                         class="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
                         title="Réinitialiser le mot de passe (date de naissance)"

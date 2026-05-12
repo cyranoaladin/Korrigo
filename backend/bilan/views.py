@@ -8,6 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
+from django.core.exceptions import ValidationError
+import uuid
 
 import logging
 
@@ -158,8 +160,12 @@ def bilan_detail(request, pk):
     """
     GET  /api/bilan/{pk}/  — Récupère un bilan.
     DELETE /api/bilan/{pk}/  — Supprime un bilan (admin uniquement).
+    
+    Le pk peut être soit l'ID du bilan (int), soit l'ID de l'examen (UUID).
     """
-    report = get_object_or_404(BilanReport, pk=pk)
+    # Le pattern URL <uuid:pk> garantit que pk est un UUID (l'UUID de l'examen).
+    # BilanReport.pk est un entier → chercher par exam_id.
+    report = get_object_or_404(BilanReport, exam_id=pk)
 
     if request.method == 'DELETE':
         if not request.user.is_staff and not request.user.groups.filter(name='admin').exists():

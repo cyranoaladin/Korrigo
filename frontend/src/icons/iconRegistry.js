@@ -29,6 +29,8 @@ import {
   ArrowRight,
   ArrowLeft,
   ArrowUpDown,
+  ArrowUpRight,
+  Send,
   RefreshCw,
   Clock,
 
@@ -246,6 +248,8 @@ const ICON_REGISTRY = {
   'lock':           Lock,
   'warning':        AlertTriangle,
   'arrow-left':     ArrowLeft,
+  'arrow-up-right': ArrowUpRight,
+  'send':           Send,
   'chevron-left':   ChevronLeft,
   'lightbulb':      Lightbulb,
   'fit-width':      MoveHorizontal,

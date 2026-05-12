@@ -80,7 +80,13 @@ class BilanReport(models.Model):
     
     def can_view(self, user):
         """Vérifier si l'utilisateur peut voir ce bilan."""
+        DIRECTION_GROUPS = ['direction_all', 'direction_lycee', 'direction_college']
+        
         if user.is_staff or user.is_superuser:
+            return True
+
+        # Direction (proviseurs) peuvent voir tous les bilans
+        if user.groups.filter(name__in=DIRECTION_GROUPS).exists():
             return True
 
         # Bilan lié à un examen : seuls les correcteurs assignés à cet examen peuvent voir

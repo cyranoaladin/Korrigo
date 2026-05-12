@@ -73,7 +73,7 @@
           Développement
         </h3>
         <p class="text-sm text-gray-600">
-          Alaeddine BEN RHOUMA<br><span class="text-xs text-gray-400">alaeddine.benrhouma@ert.tn</span>
+          Équipe Labo Maths<br><span class="text-xs text-gray-400">labo.maths@ert.tn</span>
         </p>
       </div>
       <div class="bg-white p-5 rounded-lg border border-borderSoft shadow-sm">

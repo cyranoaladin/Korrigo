@@ -1,8 +1,25 @@
 from rest_framework import permissions
-from core.auth import IsAdmin, IsTeacher, IsStudent, IsAdminOrTeacher, IsAdminOnly, UserRole
+from core.auth import IsAdmin, IsTeacher, IsStudent, IsAdminOrTeacher, IsAdminOnly, UserRole, DIRECTION_GROUPS
 
 # Re-export IsAdminOrTeacher as IsTeacherOrAdmin for backward compatibility
 IsTeacherOrAdmin = IsAdminOrTeacher
+
+
+class IsTeacherOrAdminOrDirection(permissions.BasePermission):
+    """
+    Permission pour les enseignants, administrateurs ET proviseurs (Direction).
+    Autorise l'accès en lecture seule aux proviseurs pour consulter les examens.
+    """
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+
+        return (
+            request.user.is_superuser
+            or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+            or request.user.groups.filter(name__iexact=UserRole.TEACHER).exists()
+            or request.user.groups.filter(name__in=DIRECTION_GROUPS).exists()
+        )
 
 class IsOwnerOrAdmin(permissions.BasePermission):
     """

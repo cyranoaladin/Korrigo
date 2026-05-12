@@ -11,6 +11,6 @@ urlpatterns = [
     path('', views.list_bilans, name='list_bilans'),
     path('generate/', views.generate_bilan, name='generate_bilan'),
     path('stats/', views.bilan_stats, name='bilan_stats'),
-    path('<int:pk>/', views.bilan_detail, name='bilan_detail'),
-    path('<int:pk>/pdf/', views.download_bilan_pdf, name='download_bilan_pdf'),
+    path('<uuid:pk>/', views.bilan_detail, name='bilan_detail'),
+    path('<uuid:pk>/pdf/', views.download_bilan_pdf, name='download_bilan_pdf'),
 ]

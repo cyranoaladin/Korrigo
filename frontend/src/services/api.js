@@ -123,11 +123,25 @@ api.interceptors.response.use(
         }
 
         if (error.response?.status === 403) {
-            const errorMessage = error.response?.data?.detail || '';
-            if (errorMessage.toLowerCase().includes('csrf') && !config.__csrfRetried) {
+            const detail = (error.response?.data?.detail || '').toLowerCase();
+            if (detail.includes('csrf') && !config.__csrfRetried) {
                 config.__csrfRetried = true;
                 window.location.reload();
                 return new Promise(() => {});
+            }
+            // Session expirée : DRF retourne 403 avec "not provided" (SessionAuthentication)
+            if (detail.includes('not provided') || detail.includes('authentication credentials')) {
+                const url = config.url || '';
+                const isAuthEndpoint = url.includes('/login/') || url.includes('/me/') || url.includes('/auth/status/');
+                if (!isAuthEndpoint) {
+                    const { useAuthStore } = await import('../stores/auth');
+                    const router = (await import('../router')).default;
+                    const authStore = useAuthStore();
+                    authStore.user = null;
+                    if (router.currentRoute.value.path !== '/') {
+                        router.push('/');
+                    }
+                }
             }
         }
 

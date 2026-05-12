@@ -14,6 +14,7 @@ from .views import (
     JuryReportListView, JuryReportDetailView,
 )
 from .views_stats import StatsReportView
+from .views_direction import DirectionExamListView
 from .views_documents import (
     DocumentSetUploadView,
     DocumentSetListView,
@@ -22,6 +23,9 @@ from .views_documents import (
 )
 
 urlpatterns = [
+    # Direction endpoints (accessible to proviseurs)
+    path('direction/exams/', DirectionExamListView.as_view(), name='direction-exam-list'),
+    
     # Exam Types and Jury Reports (Moved UP to avoid shadowing)
     path('types/', ExamTypeListView.as_view(), name='examtype-list'),
     path('types/<uuid:id>/', ExamTypeDetailView.as_view(), name='examtype-detail'),

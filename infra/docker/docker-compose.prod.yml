@@ -57,6 +57,8 @@ services:
       - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/llm_writer.py:/app/bilan/services/llm_writer.py:ro
       - ${OVERLAY_DIR:-../../overlay}/backend/bilan/models.py:/app/bilan/models.py:ro
       - ${OVERLAY_DIR:-../../overlay}/backend/bilan/views.py:/app/bilan/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/urls.py:/app/bilan/urls.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/permissions.py:/app/bilan/permissions.py:ro
     depends_on:
       db:
         condition: service_healthy

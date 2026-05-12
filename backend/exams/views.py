@@ -20,7 +20,7 @@ from .serializers import (
 )
 from grading.services import GradingService
 from grading.models import GradingEvent
-from .permissions import IsTeacherOrAdmin
+from .permissions import IsTeacherOrAdmin, IsTeacherOrAdminOrDirection
 
 import fitz  # PyMuPDF
 import logging
@@ -390,7 +390,7 @@ class BookletListView(generics.ListAPIView):
         return Booklet.objects.filter(exam_id=exam_id).order_by('start_page')
 
 class ExamListView(generics.ListCreateAPIView):
-    permission_classes = [IsTeacherOrAdmin]  # Teacher/Admin only
+    permission_classes = [IsTeacherOrAdminOrDirection]  # Teacher/Admin/Direction
     serializer_class = ExamSerializer
 
     def get_queryset(self):
@@ -1551,7 +1551,7 @@ class ExamStudentListView(APIView):
     even when no copy has been imported or assigned yet.
     Admin only.
     """
-    permission_classes = [IsTeacherOrAdmin]
+    permission_classes = [IsTeacherOrAdminOrDirection]
 
     @staticmethod
     def _normalize_name(value):
@@ -1716,10 +1716,11 @@ class ExamStudentListView(APIView):
                         total += float(value)
             score_lookup[str(score.copy_id)] = round(total, 2)
 
-        from core.auth import UserRole
+        from core.auth import UserRole, DIRECTION_GROUPS
         is_admin = (
             request.user.is_superuser
             or request.user.groups.filter(name__iexact=UserRole.ADMIN).exists()
+            or request.user.groups.filter(name__in=DIRECTION_GROUPS).exists()
         )
 
         roster_rows = self._load_roster_rows(exam)

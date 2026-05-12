@@ -659,7 +659,26 @@ import { useAuthStore } from '../stores/auth'
 import AppIcon from '../icons/AppIcon.vue'
 
 const authStore = useAuthStore()
+const userEmail = computed(() => authStore.user?.email || authStore.user?.username || '')
 const isAdmin = computed(() => authStore.user?.role === 'Admin' || authStore.user?.is_superuser)
+const isDirection = computed(() => authStore.user?.role === 'Direction')
+
+// ── Permissions personnalisées proviseurs ────────────────────────────────
+// gilles.emardlacroix@ert.tn : accès total à tous les examens et bilans
+// guillaume.verbeke@ert.tn : accès uniquement à BB_J1, BB_J2, EAM BLANCHE 2026
+// didier.morel@ert.tn : accès uniquement à DNB 2026
+const PROVISEUR_PERMS = {
+  'gilles.emardlacroix@ert.tn': { access: 'all', label: 'Direction (accès complet)' },
+  'guillaume.verbeke@ert.tn':   { access: 'bb_eam', label: 'Direction (Bac Blanc + EAM)', allowedExams: ['BB_J1', 'BB_J2', 'EAM BLANCHE 2026'] },
+  'didier.morel@ert.tn':        { access: 'dnb', label: 'Direction (DNB uniquement)', allowedExams: ['DNB 2026'] }
+}
+
+const proviseurPerm = computed(() => PROVISEUR_PERMS[userEmail.value.toLowerCase()] || null)
+const canViewCorrecteurs = computed(() => isAdmin.value || isDirection.value)
+const canAccessThisView = computed(() => {
+  if (!proviseurPerm.value) return true // Pas de restriction spécifique
+  return proviseurPerm.value.access === 'all' || proviseurPerm.value.access === 'bb_eam'
+})
 
 const HISTOGRAM = [
   { range: '[0;2[',   count: 2,  j1: 1,  j2: 1  },
@@ -683,14 +702,14 @@ const MENTIONS = [
 ]
 
 const CORRECTEURS = [
-  { name: 'Alaeddine BEN RHOUMA', exam: 'BB_J1', n: 26, mean: 14.84, std: 3.60, pct: 92.3, severity: 'calibré'   },
-  { name: 'Selima KLIBI',         exam: 'BB_J1', n: 27, mean: 13.84, std: 4.42, pct: 81.5, severity: 'calibré'   },
-  { name: 'Patrick DUPONT',       exam: 'BB_J1', n: 26, mean: 13.34, std: 4.50, pct: 69.2, severity: 'calibré'   },
-  { name: 'Philippe CARR',        exam: 'BB_J1', n: 27, mean: 13.17, std: 4.35, pct: 70.4, severity: 'calibré'   },
-  { name: 'Chawki SAADI',         exam: 'BB_J2', n: 25, mean: 13.47, std: 4.17, pct: 80.0, severity: 'calibré'   },
-  { name: 'Edouard ROUSSEAU',     exam: 'BB_J2', n: 26, mean: 12.80, std: 5.04, pct: 76.9, severity: 'indulgent' },
-  { name: 'Sami BEN TIBA',        exam: 'BB_J2', n: 26, mean: 12.69, std: 4.74, pct: 73.1, severity: 'calibré'   },
-  { name: 'Laroussi LAROUSSI',    exam: 'BB_J2', n: 26, mean: 11.80, std: 3.70, pct: 76.9, severity: 'sévère'    },
+  { name: 'Correcteur A', exam: 'BB_J1', n: 26, mean: 14.84, std: 3.60, pct: 92.3, severity: 'calibré'   },
+  { name: 'Correcteur B', exam: 'BB_J1', n: 27, mean: 13.84, std: 4.42, pct: 81.5, severity: 'calibré'   },
+  { name: 'Correcteur C', exam: 'BB_J1', n: 26, mean: 13.34, std: 4.50, pct: 69.2, severity: 'calibré'   },
+  { name: 'Correcteur D', exam: 'BB_J1', n: 27, mean: 13.17, std: 4.35, pct: 70.4, severity: 'calibré'   },
+  { name: 'Correcteur E', exam: 'BB_J2', n: 25, mean: 13.47, std: 4.17, pct: 80.0, severity: 'calibré'   },
+  { name: 'Correcteur F', exam: 'BB_J2', n: 26, mean: 12.80, std: 5.04, pct: 76.9, severity: 'indulgent' },
+  { name: 'Correcteur G', exam: 'BB_J2', n: 26, mean: 12.69, std: 4.74, pct: 73.1, severity: 'calibré'   },
+  { name: 'Correcteur H', exam: 'BB_J2', n: 26, mean: 11.80, std: 3.70, pct: 76.9, severity: 'sévère'    },
 ]
 
 const CLASSES_J1 = [
@@ -718,51 +737,51 @@ const CLASSES_J2 = [
 ]
 
 const GROUPES_CLASSEMENT = [
-  { groupe: 'G2',   prof: 'Patrick DUPONT',      exam: 'BB_J1', n: 26, mean: 15.38, pct: 92.3, alerte: false },
-  { groupe: 'T.06', prof: 'Selima KLIBI',         exam: 'BB_J1', n: 25, mean: 14.51, pct: 92.0, alerte: false },
-  { groupe: 'T.04', prof: 'Edouard ROUSSEAU',     exam: 'BB_J2', n: 27, mean: 14.39, pct: 88.9, alerte: false },
-  { groupe: 'G6',   prof: 'Sami BEN TIBA',        exam: 'BB_J2', n: 25, mean: 13.53, pct: 84.0, alerte: false },
-  { groupe: 'G1',   prof: 'Philippe CARR',        exam: 'BB_J1', n: 27, mean: 12.90, pct: 70.4, alerte: false },
-  { groupe: 'G4',   prof: 'Chawki SAADI',         exam: 'BB_J2', n: 27, mean: 12.84, pct: 74.1, alerte: false },
-  { groupe: 'G3',   prof: 'Alaeddine BEN RHOUMA', exam: 'BB_J1', n: 28, mean: 12.54, pct: 60.7, alerte: false },
-  { groupe: 'G5',   prof: 'Laroussi LAROUSSI',    exam: 'BB_J2', n: 24, mean:  9.70, pct: 58.3, alerte: true  },
+  { groupe: 'G2',   prof: 'Professeur C',      exam: 'BB_J1', n: 26, mean: 15.38, pct: 92.3, alerte: false },
+  { groupe: 'T.06', prof: 'Professeur B',      exam: 'BB_J1', n: 25, mean: 14.51, pct: 92.0, alerte: false },
+  { groupe: 'T.04', prof: 'Professeur F',      exam: 'BB_J2', n: 27, mean: 14.39, pct: 88.9, alerte: false },
+  { groupe: 'G6',   prof: 'Professeur G',      exam: 'BB_J2', n: 25, mean: 13.53, pct: 84.0, alerte: false },
+  { groupe: 'G1',   prof: 'Professeur D',      exam: 'BB_J1', n: 27, mean: 12.90, pct: 70.4, alerte: false },
+  { groupe: 'G4',   prof: 'Professeur E',      exam: 'BB_J2', n: 27, mean: 12.84, pct: 74.1, alerte: false },
+  { groupe: 'G3',   prof: 'Professeur A',      exam: 'BB_J1', n: 28, mean: 12.54, pct: 60.7, alerte: false },
+  { groupe: 'G5',   prof: 'Professeur H',      exam: 'BB_J2', n: 24, mean:  9.70, pct: 58.3, alerte: true  },
 ]
 
 const PALMARES_TOP = [
-  { nom: 'HACHICH Selim',       classe: 'T.01', exam: 'BB_J1', note: 20.00 },
-  { nom: 'BEN REGUIGA Nour',    classe: 'T.04', exam: 'BB_J2', note: 20.00 },
-  { nom: 'BEN RAYANA Mohamed',  classe: 'T.07', exam: 'BB_J1', note: 19.95 },
-  { nom: 'DRISS Yacine',        classe: 'T.02', exam: 'BB_J1', note: 19.95 },
-  { nom: 'DOGGAZ Enis',         classe: 'T.09', exam: 'BB_J2', note: 19.75 },
-  { nom: 'BEN BRAHIM Jawad',    classe: 'T.08', exam: 'BB_J1', note: 19.50 },
-  { nom: 'ISSA Mourad',         classe: 'T.06', exam: 'BB_J1', note: 19.50 },
-  { nom: 'BLOUZA Emna',         classe: 'T.04', exam: 'BB_J2', note: 19.50 },
-  { nom: 'AMARA Fares',         classe: 'T.06', exam: 'BB_J1', note: 19.45 },
-  { nom: 'AMMAR Amal',          classe: 'T.04', exam: 'BB_J2', note: 19.00 },
-  { nom: 'BENNANI Lilya',       classe: 'T.05', exam: 'BB_J2', note: 19.00 },
-  { nom: 'AMEUR Selim',         classe: 'T.02', exam: 'BB_J1', note: 18.95 },
-  { nom: 'BELCADHI Yoldez',     classe: 'T.02', exam: 'BB_J1', note: 18.95 },
-  { nom: 'BOUKER Fares',        classe: 'T.07', exam: 'BB_J1', note: 18.95 },
-  { nom: 'SFIA Iyad Alex',      classe: 'T.06', exam: 'BB_J1', note: 18.90 },
-  { nom: 'JOMAA Emine',         classe: 'T.06', exam: 'BB_J1', note: 18.80 },
-  { nom: 'ZAIER Khalil',        classe: 'T.01', exam: 'BB_J2', note: 18.75 },
-  { nom: 'AKROUT Mehdi',        classe: 'T.04', exam: 'BB_J2', note: 18.25 },
-  { nom: 'BEN AYED Salma',      classe: 'T.07', exam: 'BB_J1', note: 18.10 },
-  { nom: 'MEHERZI Ines',        classe: 'T.07', exam: 'BB_J1', note: 18.05 },
+  { nom: 'Élève 1',  classe: 'T.01', exam: 'BB_J1', note: 20.00 },
+  { nom: 'Élève 2',  classe: 'T.04', exam: 'BB_J2', note: 20.00 },
+  { nom: 'Élève 3',  classe: 'T.07', exam: 'BB_J1', note: 19.95 },
+  { nom: 'Élève 4',  classe: 'T.02', exam: 'BB_J1', note: 19.95 },
+  { nom: 'Élève 5',  classe: 'T.09', exam: 'BB_J2', note: 19.75 },
+  { nom: 'Élève 6',  classe: 'T.08', exam: 'BB_J1', note: 19.50 },
+  { nom: 'Élève 7',  classe: 'T.06', exam: 'BB_J1', note: 19.50 },
+  { nom: 'Élève 8',  classe: 'T.04', exam: 'BB_J2', note: 19.50 },
+  { nom: 'Élève 9',  classe: 'T.06', exam: 'BB_J1', note: 19.45 },
+  { nom: 'Élève 10', classe: 'T.04', exam: 'BB_J2', note: 19.00 },
+  { nom: 'Élève 11', classe: 'T.05', exam: 'BB_J2', note: 19.00 },
+  { nom: 'Élève 12', classe: 'T.02', exam: 'BB_J1', note: 18.95 },
+  { nom: 'Élève 13', classe: 'T.02', exam: 'BB_J1', note: 18.95 },
+  { nom: 'Élève 14', classe: 'T.07', exam: 'BB_J1', note: 18.95 },
+  { nom: 'Élève 15', classe: 'T.06', exam: 'BB_J1', note: 18.90 },
+  { nom: 'Élève 16', classe: 'T.06', exam: 'BB_J1', note: 18.80 },
+  { nom: 'Élève 17', classe: 'T.01', exam: 'BB_J2', note: 18.75 },
+  { nom: 'Élève 18', classe: 'T.04', exam: 'BB_J2', note: 18.25 },
+  { nom: 'Élève 19', classe: 'T.07', exam: 'BB_J1', note: 18.10 },
+  { nom: 'Élève 20', classe: 'T.07', exam: 'BB_J1', note: 18.05 },
 ]
 
 const DIFFICULTE = [
-  { nom: 'SNOUSSI Yasmine',           classe: 'T.03', groupe: 'G5', note: 1.00  },
-  { nom: 'SATOURI Adem',              classe: 'T.07', groupe: 'G1', note: 1.45, alerte: true },
-  { nom: 'CHANNOUFI Mohamed Yassine', classe: 'T.08', groupe: 'G5', note: 2.00  },
-  { nom: 'MEZIOU Ines Celia',         classe: 'T.03', groupe: 'G4', note: 2.25  },
-  { nom: 'BEN MEZIANE Maya',          classe: 'T.09', groupe: 'G5', note: 2.50  },
-  { nom: 'IDANI Mariem',              classe: 'T.05', groupe: 'G5', note: 2.75  },
-  { nom: 'DEKHIL Mohamed Selim',      classe: 'T.03', groupe: 'G5', note: 3.25  },
-  { nom: 'EBEYE Yahya',               classe: 'T.09', groupe: 'G4', note: 4.25  },
-  { nom: 'JARRAYA Abdelhamid',        classe: 'T.10', groupe: 'G6', note: 4.50  },
-  { nom: 'MAATOUG Safa',              classe: 'T.08', groupe: 'G3', note: 4.50  },
-  { nom: 'BOUGHABA Sirine',           classe: 'T.03', groupe: 'G1', note: 4.60  },
+  { nom: 'Élève A',  classe: 'T.03', groupe: 'G5', note: 1.00  },
+  { nom: 'Élève B',  classe: 'T.07', groupe: 'G1', note: 1.45, alerte: true },
+  { nom: 'Élève C',  classe: 'T.08', groupe: 'G5', note: 2.00  },
+  { nom: 'Élève D',  classe: 'T.03', groupe: 'G4', note: 2.25  },
+  { nom: 'Élève E',  classe: 'T.09', groupe: 'G5', note: 2.50  },
+  { nom: 'Élève F',  classe: 'T.05', groupe: 'G5', note: 2.75  },
+  { nom: 'Élève G',  classe: 'T.03', groupe: 'G5', note: 3.25  },
+  { nom: 'Élève H',  classe: 'T.09', groupe: 'G4', note: 4.25  },
+  { nom: 'Élève I',  classe: 'T.10', groupe: 'G6', note: 4.50  },
+  { nom: 'Élève J',  classe: 'T.08', groupe: 'G3', note: 4.50  },
+  { nom: 'Élève K',  classe: 'T.03', groupe: 'G1', note: 4.60  },
 ]
 
 const RECO = {
@@ -853,7 +872,7 @@ const ALL_TABS = [
   { id: 'correcteurs',     label: 'Correcteurs',      icon: 'shield', adminOnly: true },
 ]
 
-const visibleTabs = computed(() => ALL_TABS.filter(t => !t.adminOnly || isAdmin.value))
+const visibleTabs = computed(() => ALL_TABS.filter(t => !t.adminOnly || canViewCorrecteurs.value))
 const activeTab = ref('overview')
 const printPage = () => window.print()
 </script>
