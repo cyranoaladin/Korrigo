@@ -59,6 +59,12 @@ services:
       - ${OVERLAY_DIR:-../../overlay}/backend/bilan/views.py:/app/bilan/views.py:ro
       - ${OVERLAY_DIR:-../../overlay}/backend/bilan/urls.py:/app/bilan/urls.py:ro
       - ${OVERLAY_DIR:-../../overlay}/backend/bilan/permissions.py:/app/bilan/permissions.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/0002_alter_bilanreport_exam_type.py:/app/bilan/migrations/0002_alter_bilanreport_exam_type.py:ro
+      # Exams overlay hotfixes
+      - ${OVERLAY_DIR:-../../overlay}/exams/views.py:/app/exams/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/exams/permissions.py:/app/exams/permissions.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/exams/urls.py:/app/exams/urls.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/exams/views_direction.py:/app/exams/views_direction.py:ro
     depends_on:
       db:
         condition: service_healthy
