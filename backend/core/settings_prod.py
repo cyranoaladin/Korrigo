@@ -74,6 +74,10 @@ SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "31536000"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get("SECURE_HSTS_INCLUDE_SUBDOMAINS", "true").lower() == "true"
 SECURE_HSTS_PRELOAD = os.environ.get("SECURE_HSTS_PRELOAD", "true").lower() == "true"
 
+# Session: 8h par défaut, renouvelée à chaque requête active
+SESSION_COOKIE_AGE = int(os.environ.get('SESSION_COOKIE_AGE', 28800))  # 8h
+SESSION_SAVE_EVERY_REQUEST = True
+
 # P1.1: Extend inherited LOGGING from settings.py instead of overwriting it.
 # This preserves audit_file, file handlers, json formatter, and request_context filters.
 import copy

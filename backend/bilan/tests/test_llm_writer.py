@@ -142,6 +142,7 @@ def test_write_raises_when_no_provider_configured(monkeypatch):
         AI_PROVIDER_KEY="",
         AI_PROVIDER_URL="",
         AI_MODEL_NAME="",
+        BILAN_ALLOW_OLLAMA_FALLBACK=False,
     )
 
     with pytest.raises(RuntimeError):
