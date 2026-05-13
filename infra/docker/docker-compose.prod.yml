@@ -75,7 +75,7 @@ services:
       DJANGO_SETTINGS_MODULE: core.settings_prod
       DJANGO_ENV: production
       DEBUG: "False"
-      SSL_ENABLED: "${SSL_ENABLED:-False}"
+      SSL_ENABLED: "${SSL_ENABLED:-True}"
       SECRET_KEY: "${SECRET_KEY:?err}"
       ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
       DJANGO_ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
@@ -136,6 +136,23 @@ services:
       # Overlay hotfixes (same as backend)
       - ${OVERLAY_DIR:-../../overlay}/grading/views.py:/app/grading/views.py:ro
       - ${OVERLAY_DIR:-../../overlay}/students/views.py:/app/students/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/students/urls.py:/app/students/urls.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/core/views_platform.py:/app/core/views_platform.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/core/views.py:/app/core/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/rag_retriever.py:/app/bilan/services/rag_retriever.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/orchestrator.py:/app/bilan/services/orchestrator.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/eam_orchestrator.py:/app/bilan/services/eam_orchestrator.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/llm_writer.py:/app/bilan/services/llm_writer.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/models.py:/app/bilan/models.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/views.py:/app/bilan/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/urls.py:/app/bilan/urls.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/permissions.py:/app/bilan/permissions.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/0002_alter_bilanreport_exam_type.py:/app/bilan/migrations/0002_alter_bilanreport_exam_type.py:ro
+      # Exams overlay hotfixes
+      - ${OVERLAY_DIR:-../../overlay}/exams/views.py:/app/exams/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/exams/permissions.py:/app/exams/permissions.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/exams/urls.py:/app/exams/urls.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/exams/views_direction.py:/app/exams/views_direction.py:ro
     depends_on:
       db:
         condition: service_healthy
@@ -199,6 +216,26 @@ services:
       - media_volume:/app/media
       - backup_volume:/app/backups
       - ocr_cache:/app/.cache
+      # Overlay hotfixes (same as backend)
+      - ${OVERLAY_DIR:-../../overlay}/grading/views.py:/app/grading/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/students/views.py:/app/students/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/students/urls.py:/app/students/urls.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/core/views_platform.py:/app/core/views_platform.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/core/views.py:/app/core/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/rag_retriever.py:/app/bilan/services/rag_retriever.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/orchestrator.py:/app/bilan/services/orchestrator.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/eam_orchestrator.py:/app/bilan/services/eam_orchestrator.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/llm_writer.py:/app/bilan/services/llm_writer.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/models.py:/app/bilan/models.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/views.py:/app/bilan/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/urls.py:/app/bilan/urls.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/permissions.py:/app/bilan/permissions.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/0002_alter_bilanreport_exam_type.py:/app/bilan/migrations/0002_alter_bilanreport_exam_type.py:ro
+      # Exams overlay hotfixes
+      - ${OVERLAY_DIR:-../../overlay}/exams/views.py:/app/exams/views.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/exams/permissions.py:/app/exams/permissions.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/exams/urls.py:/app/exams/urls.py:ro
+      - ${OVERLAY_DIR:-../../overlay}/exams/views_direction.py:/app/exams/views_direction.py:ro
     depends_on:
       db:
         condition: service_healthy
