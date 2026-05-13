@@ -1,0 +1,296 @@
+"""
+LLM Writer Service for DNB Bilan Generation
+
+Uses OpenAI (or an OpenAI-compatible gateway) to generate pedagogical
+analysis with RAG context.
+
+Optionally supports a local Ollama fallback (opt-in via settings) so that
+bilans can still be generated when no external API provider is configured.
+"""
+
+from functools import lru_cache
+from typing import Optional, Tuple, Literal
+
+import re
+import httpx
+import openai
+from openai import OpenAI
+from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Modèles selon criticité
+MODEL_DEFAULT = getattr(settings, 'BILAN_LLM_DEFAULT', 'gpt-4o-mini')   # Bilans domaines, compétences, correcteurs
+MODEL_PREMIUM = getattr(settings, 'BILAN_LLM_PREMIUM', 'gpt-4o')        # Synthèse finale direction/proviseur uniquement
+
+SYSTEM_PROMPT = """Tu es un expert en ingénierie pédagogique et en évaluation
+des apprentissages mathématiques au lycée.
+Tu rédiges des bilans pédagogiques destinés exclusivement aux enseignants
+et à l'équipe de direction d'un établissement scolaire.
+
+Tes bilans sont :
+- Précis et factuels : chaque affirmation s'appuie sur des données chiffrées
+- Ancrés dans le programme officiel : tu cites les attendus Éduscol et les
+  compétences attendues quand ils sont fournis dans le contexte
+- Opérationnels : chaque point faible identifié est suivi d'une action concrète
+- Professionnels : ton style est celui d'un rapport d'inspection, sans jargon
+  excessif, sans langue de bois
+
+Tu n'inventes jamais de données. Si une information manque, tu le signales.
+Tu rédiges toujours en français.
+
+IMPORTANT (rendu front) : écris en texte brut, sans Markdown (pas de `##`, pas de `**`,
+pas de tableaux Markdown, pas de blocs ```). Utilise des paragraphes et, si besoin,
+des listes simples en texte."""
+
+EAM_SYSTEM_PROMPT = """Tu es un expert en ingénierie pédagogique spécialisé dans l'épreuve
+anticipée de mathématiques (EAM) de Première Spécialité Mathématiques.
+Tu rédiges des bilans pédagogiques destinés aux professeurs de mathématiques
+et à l'équipe de direction d'un lycée.
+
+L'épreuve EAM est structurée en :
+- Partie A (Automatismes) : 12 questions QCM, notée sur 6 points
+- Partie B (Exercices) : 3 exercices avec sous-parties, notés sur 14 points
+- Total : 20 points
+
+Tes bilans sont :
+- Précis et factuels : chaque affirmation s'appuie sur des données chiffrées réelles
+- Ancrés dans le programme officiel Première Spé Maths (Éduscol 2021) :
+  fonctions, suites, probabilités, géométrie, trigonométrie
+- Opérationnels : chaque point faible identifié est suivi d'une action concrète
+- Professionnels : rapport d'inspection, ton sobre, sans jargon ni langue de bois
+
+IMPORTANT :
+- Ne mentionne JAMAIS le DNB, le brevet, le collège, le cycle 4, la classe de 3e
+- Cette épreuve concerne exclusivement les élèves de Première Spé Maths au lycée
+- Écris en texte brut, sans Markdown (pas de ##, **, tableaux, blocs ```)
+- Utilise des paragraphes et des listes simples en texte
+Tu n'inventes jamais de données. Tu rédiges toujours en français."""
+
+ProviderName = Literal["openai", "gateway"]
+
+
+def _clean(s: object) -> str:
+    return s.strip() if isinstance(s, str) else ""
+
+
+def _looks_like_placeholder(key: str) -> bool:
+    upper = key.upper()
+    return (
+        not key
+        or "CHANGE_THIS" in upper
+        or "YOUR_" in upper
+        or key.startswith("__CHANGE")
+        # Common placeholder pattern used in env examples / redacted secrets.
+        or bool(re.search(r"x{4,}", key, flags=re.IGNORECASE))
+    )
+
+
+@lru_cache(maxsize=8)
+def _make_client(api_key: str, base_url: str) -> OpenAI:
+    kwargs = {"api_key": api_key}
+    if base_url:
+        kwargs["base_url"] = base_url
+    return OpenAI(**kwargs)
+
+
+def _select_client_and_model(requested_model: Optional[str]) -> Tuple[OpenAI, str, ProviderName, str]:
+    """
+    Pick the best available provider and the model to use.
+
+    Priority:
+    1) OpenAI (OPENAI_API_KEY) — optionally with OPENAI_BASE_URL
+    2) OpenAI-compatible gateway (AI_PROVIDER_KEY + AI_PROVIDER_URL)
+
+    Returns: (client, model_to_use, provider_name, base_url_for_logs)
+    """
+    gateway_key = _clean(getattr(settings, "AI_PROVIDER_KEY", ""))
+    gateway_url = _clean(getattr(settings, "AI_PROVIDER_URL", ""))
+    gateway_model = _clean(getattr(settings, "AI_MODEL_NAME", ""))
+
+    requested = _clean(requested_model)
+
+    # If caller requests a gateway-native model id (ex: Cloudflare Workers AI),
+    # we MUST route through the configured gateway (OpenAI's API will reject it).
+    if requested.startswith("@cf/") and gateway_key and gateway_url and not _looks_like_placeholder(gateway_key):
+        model = requested
+        client = _make_client(gateway_key, gateway_url)
+        return client, model, "gateway", gateway_url
+
+    openai_key = _clean(getattr(settings, "OPENAI_API_KEY", "")) or _clean(getattr(settings, "OPENAI_KEY", ""))
+    openai_base_url = _clean(getattr(settings, "OPENAI_BASE_URL", ""))
+
+    if openai_key and not _looks_like_placeholder(openai_key):
+        model = requested or _clean(getattr(settings, "BILAN_LLM_DEFAULT", "")) or MODEL_DEFAULT
+        client = _make_client(openai_key, openai_base_url)
+        return client, model, "openai", openai_base_url
+
+    if gateway_key and gateway_url and not _looks_like_placeholder(gateway_key):
+        # If caller already requests a gateway-native model id, keep it.
+        if requested.startswith("@cf/"):
+            model = requested
+        else:
+            model = gateway_model or requested or MODEL_DEFAULT
+        client = _make_client(gateway_key, gateway_url)
+        return client, model, "gateway", gateway_url
+
+    raise RuntimeError(
+        "No LLM provider configured for bilan. "
+        "Set OPENAI_API_KEY (optionally OPENAI_BASE_URL) or AI_PROVIDER_URL/AI_PROVIDER_KEY/AI_MODEL_NAME."
+    )
+
+def _write_with_ollama(*, prompt: str, max_tokens: int) -> str:
+    """
+    Local fallback writer using Ollama's /api/generate.
+
+    This is intentionally simple: we concatenate SYSTEM_PROMPT + user prompt.
+    """
+    ollama_url = _clean(getattr(settings, "OLLAMA_URL", "")) or "http://ollama:11434"
+    model = (
+        _clean(getattr(settings, "BILAN_OLLAMA_MODEL", ""))
+        or "qwen2.5:7b"
+    )
+    timeout = int(getattr(settings, "OLLAMA_TIMEOUT", 300) or 300)
+
+    combined = f"{SYSTEM_PROMPT}\n\n{prompt}".strip()
+    payload = {
+        "model": model,
+        "prompt": combined,
+        "stream": False,
+        "options": {
+            "temperature": 0.25,
+            "top_p": 0.9,
+            # Ollama uses num_predict as a token-ish cap.
+            "num_predict": int(max_tokens),
+        },
+    }
+
+    base_url_for_logs = ollama_url
+    logger.info("bilan.llm_writer provider=ollama model=%s base_url=%s", model, base_url_for_logs)
+
+    try:
+        r = httpx.post(f"{ollama_url.rstrip('/')}/api/generate", json=payload, timeout=float(timeout))
+        r.raise_for_status()
+        data = r.json()
+        content = data.get("response", "")
+        if not content or not isinstance(content, str):
+            raise RuntimeError("Ollama response had no text content.")
+        return _sanitize_for_plaintext_render(content)
+    except httpx.HTTPError as e:
+        logger.error("bilan.llm_writer ollama HTTPError model=%s error=%s", model, str(e))
+        raise
+    except Exception as e:
+        logger.exception("bilan.llm_writer ollama unexpected error model=%s error=%s", model, str(e))
+        raise
+
+
+def write(prompt: str, model: str = MODEL_DEFAULT,
+          max_tokens: int = 1000, system_prompt: Optional[str] = None) -> str:
+    """
+    Appel LLM (OpenAI ou gateway OpenAI-compatible).
+
+    IMPORTANT: aucun fallback "démo" ne doit produire de contenu inventé pour un bilan.
+    Si le LLM est indisponible, on lève une exception afin que la génération du bilan
+    passe en ERROR (plutôt que d'afficher des données fausses).
+    """
+    try:
+        client, chosen_model, provider, base_url = _select_client_and_model(model)
+    except RuntimeError:
+        if getattr(settings, "BILAN_ALLOW_OLLAMA_FALLBACK", False):
+            return _write_with_ollama(prompt=prompt, max_tokens=max_tokens)
+        raise
+    logger.info(
+        "bilan.llm_writer provider=%s model=%s base_url=%s",
+        provider,
+        chosen_model,
+        base_url or "https://api.openai.com/v1",
+    )
+
+    active_system_prompt = system_prompt or SYSTEM_PROMPT
+    try:
+        r = client.chat.completions.create(
+            model=chosen_model,
+            messages=[
+                {"role": "system", "content": active_system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.25,
+            max_tokens=max_tokens,
+        )
+        content = r.choices[0].message.content
+        if not content or not isinstance(content, str):
+            raise RuntimeError("LLM response had no text content.")
+        return _sanitize_for_plaintext_render(content)
+
+    except openai.APIStatusError as e:
+        req_id = getattr(e, "request_id", None)
+        logger.error(
+            "bilan.llm_writer APIStatusError provider=%s model=%s status=%s request_id=%s error=%s",
+            provider,
+            chosen_model,
+            getattr(e, "status_code", None),
+            req_id,
+            str(e),
+        )
+        # Fallback to Ollama on 402 Payment Required or other API errors
+        if getattr(settings, "BILAN_ALLOW_OLLAMA_FALLBACK", False):
+            logger.info("bilan.llm_writer falling back to Ollama due to API error")
+            return _write_with_ollama(prompt=prompt, max_tokens=max_tokens)
+        raise
+    except openai.APIConnectionError as e:
+        logger.error(
+            "bilan.llm_writer APIConnectionError provider=%s model=%s error=%s",
+            provider,
+            chosen_model,
+            str(e),
+        )
+        raise
+    except Exception as e:
+        logger.exception(
+            "bilan.llm_writer unexpected error provider=%s model=%s error=%s",
+            provider,
+            chosen_model,
+            str(e),
+        )
+        raise
+
+
+def _sanitize_for_plaintext_render(text: str) -> str:
+    """
+    Frontend currently renders LLM outputs as plain text.
+    Remove the most common Markdown wrappers that leak into the UI.
+    """
+    t = (text or "").strip()
+
+    # Strip code fences (```lang ... ```)
+    if t.startswith("```") and "```" in t[3:]:
+        parts = t.split("```")
+        # Typical: ["", "json\n{...}\n", ""] or ["", "...\n", ""]
+        if len(parts) >= 3:
+            inner = "```".join(parts[1:-1]).strip()
+            lines = inner.splitlines()
+            if lines and lines[0].strip().lower() in {"json", "markdown", "md", "text"}:
+                inner = "\n".join(lines[1:]).strip()
+            t = inner
+
+    # Remove lightweight emphasis markers that show as raw text
+    t = t.replace("**", "")
+    t = t.replace("__", "")
+
+    # Avoid heading markers leaking (keep line text)
+    out_lines = []
+    for line in t.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("###"):
+            out_lines.append(stripped.lstrip("#").strip())
+            continue
+        if stripped.startswith("##"):
+            out_lines.append(stripped.lstrip("#").strip())
+            continue
+        if stripped.startswith("#"):
+            out_lines.append(stripped.lstrip("#").strip())
+            continue
+        out_lines.append(line)
+
+    return "\n".join(out_lines).strip()

@@ -1,8 +1,15 @@
 from rest_framework import permissions
-from core.auth import IsAdmin, IsTeacher, IsStudent, IsAdminOrTeacher, IsAdminOnly, UserRole, DIRECTION_GROUPS
+from core.auth import IsAdmin, IsTeacher, IsStudent, IsAdminOrTeacher, IsAdminOnly, UserRole
 
 # Re-export IsAdminOrTeacher as IsTeacherOrAdmin for backward compatibility
 IsTeacherOrAdmin = IsAdminOrTeacher
+
+# Direction groups — defined locally for backward compat with older image versions
+# that may not export DIRECTION_GROUPS from core.auth
+try:
+    from core.auth import DIRECTION_GROUPS
+except ImportError:
+    DIRECTION_GROUPS = ['direction_all', 'direction_lycee', 'direction_college']
 
 
 class IsTeacherOrAdminOrDirection(permissions.BasePermission):
