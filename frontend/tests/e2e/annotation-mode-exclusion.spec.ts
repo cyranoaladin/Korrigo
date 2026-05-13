@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { TEACHER_USER, TEACHER_PASS } from './e2eEnv'
+import { loginAsTeacher } from './authHelpers'
 
 /**
  * REGRESSION TEST — Annotation Mode Mutual Exclusion
@@ -14,14 +14,6 @@ import { TEACHER_USER, TEACHER_PASS } from './e2eEnv'
  * Fix: Single annotationMode ref with setAnnotationMode() that structurally
  * prevents both groups from being active simultaneously.
  */
-
-async function loginAsTeacher(page: Page) {
-  await page.goto('/teacher/login')
-  await page.locator('[data-testid="login.username"]').fill(TEACHER_USER)
-  await page.locator('[data-testid="login.password"]').fill(TEACHER_PASS)
-  await page.locator('[data-testid="login.submit"]').click()
-  await page.waitForURL('**/corrector-dashboard', { timeout: 10000 })
-}
 
 async function openFirstCopyDesk(page: Page): Promise<boolean> {
   const copyAction = page.locator('[data-testid="copy-action"]').first()

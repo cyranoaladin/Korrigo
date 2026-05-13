@@ -1,13 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { TEACHER_USER, TEACHER_PASS } from './e2eEnv'
-
-async function loginAsTeacher(page: Page) {
-  await page.goto('/teacher/login')
-  await page.locator('[data-testid="login.username"]').fill(TEACHER_USER)
-  await page.locator('[data-testid="login.password"]').fill(TEACHER_PASS)
-  await page.locator('[data-testid="login.submit"]').click()
-  await page.waitForURL('**/corrector-dashboard', { timeout: 10000 })
-}
+import { loginAsTeacher } from './authHelpers'
 
 async function openFirstCopyDesk(page: Page) {
   const copyAction = page.locator('[data-testid="copy-action"]').first()

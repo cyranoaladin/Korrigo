@@ -1,21 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
-import { ADMIN_USER, ADMIN_PASS, TEACHER_USER, TEACHER_PASS, STUDENT_EMAIL, STUDENT_PASS } from './e2eEnv'
-
-async function loginAsTeacher(page: Page) {
-  await page.goto('/teacher/login')
-  await page.locator('[data-testid="login.username"]').fill(TEACHER_USER)
-  await page.locator('[data-testid="login.password"]').fill(TEACHER_PASS)
-  await page.locator('[data-testid="login.submit"]').click()
-  await page.waitForURL('**/corrector-dashboard', { timeout: 10000 })
-}
-
-async function loginAsAdmin(page: Page) {
-  await page.goto('/admin/login')
-  await page.locator('[data-testid="login.username"]').fill(ADMIN_USER)
-  await page.locator('[data-testid="login.password"]').fill(ADMIN_PASS)
-  await page.locator('[data-testid="login.submit"]').click()
-  await expect(page.locator('[data-testid="admin-dashboard"]')).toBeVisible({ timeout: 10000 })
-}
+import { STUDENT_EMAIL, STUDENT_PASS } from './e2eEnv'
+import { loginAsAdmin, loginAsTeacher } from './authHelpers'
 
 async function loginAsStudent(page: Page) {
   await page.goto('/student/login')

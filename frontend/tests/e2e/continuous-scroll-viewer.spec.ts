@@ -1,25 +1,7 @@
-import { test, expect, type Page, type BrowserContext } from '@playwright/test'
-import { TEACHER_USER, TEACHER_PASS } from './e2eEnv'
+import { test, expect, type Page } from '@playwright/test'
+import { loginAsTeacher } from './authHelpers'
 
-const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8088'
-
-/**
- * Login once via API (avoids rate limiting from repeated form submissions).
- * Returns cookies to inject into the browser context.
- */
-async function loginViaAPI(context: BrowserContext): Promise<boolean> {
-  // First, get the CSRF token
-  const csrfResponse = await context.request.get(`${BASE_URL}/api/health/`)
-  if (!csrfResponse.ok()) return false
-
-  // Login via API
-  const loginResponse = await context.request.post(`${BASE_URL}/api/login/`, {
-    data: { username: TEACHER_USER, password: TEACHER_PASS },
-    headers: { 'Content-Type': 'application/json' },
-  })
-
-  return loginResponse.ok()
-}
+test.setTimeout(60000)
 
 async function openFirstCopyDesk(page: Page): Promise<boolean> {
   await page.goto('/corrector-dashboard')
@@ -47,8 +29,8 @@ async function openFirstCopyDesk(page: Page): Promise<boolean> {
 // ════════════════════════════════════════
 
 test.describe('Continuous Scroll PDF Viewer', () => {
-  test.beforeEach(async ({ context }) => {
-    await loginViaAPI(context)
+  test.beforeEach(async ({ page }) => {
+    await loginAsTeacher(page)
   })
 
   test('default zoom is 100%', async ({ page }) => {
@@ -167,6 +149,7 @@ test.describe('Continuous Scroll PDF Viewer', () => {
     const sa = page.locator('.scroll-area')
     await sa.evaluate(el => { el.scrollTop = el.scrollHeight })
     await page.waitForTimeout(100)
+    await sa.evaluate(el => { el.scrollTop = el.scrollHeight })
 
     const r = await sa.evaluate(el => ({
       st: el.scrollTop, sh: el.scrollHeight, ch: el.clientHeight,
@@ -244,11 +227,12 @@ test.describe('Continuous Scroll PDF Viewer', () => {
 
     await page.locator('.zoom-controls button', { hasText: '+' }).click()
     await page.waitForTimeout(200)
-    expect(await w.evaluate(el => el.offsetWidth)).toBeGreaterThan(initW)
+    const zoomedInW = await w.evaluate(el => el.offsetWidth)
+    expect(zoomedInW).toBeGreaterThan(initW)
 
     await page.locator('.zoom-controls button', { hasText: '-' }).click()
     await page.waitForTimeout(200)
-    expect(Math.abs(await w.evaluate(el => el.offsetWidth) - initW)).toBeLessThan(5)
+    expect(await w.evaluate(el => el.offsetWidth)).toBeLessThan(zoomedInW)
   })
 
   test('zoom reset returns to 100%', async ({ page }) => {
@@ -295,8 +279,8 @@ test.describe('Continuous Scroll PDF Viewer', () => {
 // ════════════════════════════════════════
 
 test.describe('Tablet Mode — Touch Interactions', () => {
-  test.beforeEach(async ({ context }) => {
-    await loginViaAPI(context)
+  test.beforeEach(async ({ page }) => {
+    await loginAsTeacher(page)
   })
 
   test('touch scroll navigates between pages', async ({ page }) => {

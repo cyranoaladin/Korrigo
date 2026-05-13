@@ -46,6 +46,8 @@ const handleLogin = async () => {
             router.push('/admin/dashboard')
         } else if (authStore.user?.role === 'Teacher') {
             router.push('/corrector-dashboard')
+        } else if (authStore.user?.role === 'Direction') {
+            router.push('/direction/dashboard')
         } else {
              router.push('/')
         }

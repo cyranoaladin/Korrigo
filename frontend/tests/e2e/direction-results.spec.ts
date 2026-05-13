@@ -8,31 +8,10 @@
  * Requires an e2e seed with at least one Direction user and one exam with copies.
  */
 import { test, expect } from '@playwright/test'
-import { ADMIN_USER, ADMIN_PASS } from './e2eEnv'
+import { loginAsAdmin, loginAsDirection } from './authHelpers'
 
-const DIRECTION_USER = process.env.E2E_DIRECTION_USER || 'gilles.emardlacroix@ert.tn'
-const DIRECTION_PASS = process.env.E2E_DIRECTION_PASS || 'TempSrpSyKsT'
-
-// Helper: log in as Direction user via the admin login page (same portal)
-async function loginAsDirection(page: any) {
-  await page.context().clearCookies()
-  await page.goto('/admin/login')
-  await page.waitForLoadState('networkidle')
-  await page.locator('[data-testid="login.username"]').fill(DIRECTION_USER)
-  await page.locator('[data-testid="login.password"]').fill(DIRECTION_PASS)
-  await page.locator('[data-testid="login.submit"]').click()
-  await page.waitForURL('**/direction/dashboard', { timeout: 10000 })
-}
-
-// Helper: log in as Admin
-async function loginAsAdmin(page: any) {
-  await page.context().clearCookies()
-  await page.goto('/admin/login')
-  await page.waitForLoadState('networkidle')
-  await page.locator('[data-testid="login.username"]').fill(ADMIN_USER)
-  await page.locator('[data-testid="login.password"]').fill(ADMIN_PASS)
-  await page.locator('[data-testid="login.submit"]').click()
-  await page.waitForURL('**/admin/dashboard', { timeout: 10000 })
+function normalizeExamList(payload: any) {
+  return Array.isArray(payload) ? payload : (payload?.results || [])
 }
 
 test.describe('Direction — Résultats tab (read-only)', () => {
@@ -109,8 +88,10 @@ test.describe('Direction — Résultats tab (read-only)', () => {
   test('Admin results page still shows Export Pronote (not read-only)', async ({ page }) => {
     await loginAsAdmin(page)
 
-    const res = await page.request.get('/api/exams/direction/exams/')
-    const exams = await res.json()
+    const res = await page.request.get('/api/exams/')
+    expect(res.ok()).toBeTruthy()
+    const exams = normalizeExamList(await res.json())
+    expect(exams.length).toBeGreaterThan(0)
     const examId = exams[0].id
 
     await page.goto(`/admin/exams/${examId}/results`)

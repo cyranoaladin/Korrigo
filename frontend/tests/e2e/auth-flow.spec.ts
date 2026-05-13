@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test'
 import { ADMIN_USER, ADMIN_PASS, TEACHER_USER, TEACHER_PASS, STUDENT_EMAIL, STUDENT_PASS } from './e2eEnv'
+import {
+  clearAdminSessionCache,
+  loginAsAdmin,
+  resetProdAdminPassword,
+  resetProdStudentPassword,
+  resetProdTeacherPassword,
+} from './authHelpers'
 
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -12,6 +19,8 @@ test.describe('Authentication Flow', () => {
   // ────────────────────────────────────────
 
   test('admin login with valid credentials redirects to admin dashboard', async ({ page }) => {
+    resetProdAdminPassword()
+
     await page.goto('/admin/login')
     await page.waitForLoadState('networkidle')
 
@@ -43,6 +52,8 @@ test.describe('Authentication Flow', () => {
   // ────────────────────────────────────────
 
   test('teacher login with valid credentials redirects to corrector dashboard', async ({ page }) => {
+    resetProdTeacherPassword()
+
     await page.goto('/teacher/login')
     await page.waitForLoadState('networkidle')
 
@@ -60,6 +71,8 @@ test.describe('Authentication Flow', () => {
   // ────────────────────────────────────────
 
   test('student login with valid credentials redirects to student portal', async ({ page }) => {
+    resetProdStudentPassword()
+
     await page.goto('/student/login')
     await page.waitForLoadState('networkidle')
 
@@ -92,15 +105,11 @@ test.describe('Authentication Flow', () => {
   // ────────────────────────────────────────
 
   test('logout from admin dashboard redirects to portal', async ({ page }) => {
-    // First, log in
-    await page.goto('/admin/login')
-    await page.locator('[data-testid="login.username"]').fill(ADMIN_USER)
-    await page.locator('[data-testid="login.password"]').fill(ADMIN_PASS)
-    await page.locator('[data-testid="login.submit"]').click()
-    await page.waitForURL('**/admin/dashboard', { timeout: 10000 })
+    await loginAsAdmin(page)
 
     // Click logout
     await page.locator('[data-testid="logout-button"]').click()
+    clearAdminSessionCache()
 
     // Should be redirected to portal (home) or login
     await page.waitForURL(/\/($|admin\/login)/, { timeout: 10000 })
@@ -113,12 +122,7 @@ test.describe('Authentication Flow', () => {
   // ────────────────────────────────────────
 
   test('session persists after page refresh', async ({ page }) => {
-    // Log in as admin
-    await page.goto('/admin/login')
-    await page.locator('[data-testid="login.username"]').fill(ADMIN_USER)
-    await page.locator('[data-testid="login.password"]').fill(ADMIN_PASS)
-    await page.locator('[data-testid="login.submit"]').click()
-    await page.waitForURL('**/admin/dashboard', { timeout: 10000 })
+    await loginAsAdmin(page)
 
     // Refresh the page
     await page.reload()
@@ -148,16 +152,11 @@ test.describe('Authentication Flow', () => {
   // ────────────────────────────────────────
 
   test('back button after logout does not expose protected pages', async ({ page }) => {
-    // Log in as admin
-    await page.goto('/admin/login')
-    await page.locator('[data-testid="login.username"]').fill(ADMIN_USER)
-    await page.locator('[data-testid="login.password"]').fill(ADMIN_PASS)
-    await page.locator('[data-testid="login.submit"]').click()
-    await page.waitForURL('**/admin/dashboard', { timeout: 10000 })
-    await expect(page.locator('[data-testid="admin-dashboard"]')).toBeVisible()
+    await loginAsAdmin(page)
 
     // Logout
     await page.locator('[data-testid="logout-button"]').click()
+    clearAdminSessionCache()
     await page.waitForURL(/\/($|admin\/login)/, { timeout: 10000 })
 
     // Press browser back button
@@ -179,6 +178,8 @@ test.describe('Authentication Flow', () => {
   // ────────────────────────────────────────
 
   test('student forced password change on first login', async ({ page }) => {
+    resetProdStudentPassword()
+
     // This test verifies the password change modal/page appears for students
     // who still have the default password (JJMMAAAA).
     // In production, App.vue shows a modal for must_change_password users.
