@@ -16,6 +16,11 @@
             <div v-if="scopeLabel" class="px-3 py-1 bg-white/10 rounded-full border border-white/15 text-xs text-slate-300 font-medium">
               {{ scopeLabel }}
             </div>
+            <button @click="showChangePassword = true"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+              <AppIcon name="lock" :size="13" />
+              Mot de passe
+            </button>
             <button @click="logout"
               class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
               <AppIcon name="logout" :size="13" />
@@ -168,6 +173,13 @@
 
       </template>
     </main>
+
+    <!-- ── Changement de mot de passe ────────────────────────────────── -->
+    <ChangePasswordModal
+      v-if="showChangePassword"
+      @close="showChangePassword = false"
+      @success="showChangePassword = false"
+    />
   </div>
 </template>
 
@@ -177,6 +189,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import AppIcon from '../icons/AppIcon.vue'
+import ChangePasswordModal from '../components/ChangePasswordModal.vue'
 
 const router    = useRouter()
 const authStore = useAuthStore()
@@ -212,6 +225,8 @@ const canViewDNB = computed(() => {
   const s = directionScope.value
   return !s || s === 'all' || (Array.isArray(s) && s.includes('dnb'))
 })
+
+const showChangePassword = ref(false)
 
 // ── Data ─────────────────────────────────────────────────────────────────
 const loading = ref(true)
