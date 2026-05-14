@@ -20,6 +20,7 @@ watch(() => authStore.lastError, (newError) => {
 })
 
 const handleLogin = async () => {
+    if (loading.value) return   // guard synchrone contre les doubles-clics avant re-render DOM
     error.value = ''
     loading.value = true
     authStore.clearError()

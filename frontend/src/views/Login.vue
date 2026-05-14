@@ -33,6 +33,7 @@ const title = computed(() => {
 })
 
 const handleLogin = async () => {
+    if (isLoading.value) return   // guard synchrone contre les doubles-clics avant re-render DOM
     isLoading.value = true
     error.value = ''
     authStore.clearError()
