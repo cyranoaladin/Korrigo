@@ -38,33 +38,18 @@ function safeRedirect(next, targetPath, currentPath) {
     return next({ path: targetPath, replace: true })
 }
 
-// ── Permissions personnalisées proviseurs ──────────────────────────────────
-const PROVISEUR_ACCESS = {
-    // Gilles Emardlacroix : accès TOTAL (tous les examens et bilans)
-    'gilles.emardlacroix@ert.tn': { 
-        routes: ['all'], 
-        label: 'Direction (accès complet)' 
-    },
-    // Guillaume Verbeke : Bac Blanc + EAM uniquement
-    'guillaume.verbeke@ert.tn':   {
-        routes: ['/direction/dashboard', '/bilan/bac-blanc-2026', '/bilan/eam', '/corrector-dashboard', '/direction/exams/'],
-        label: 'Direction (Bac Blanc + EAM)',
-        hideSections: ['dnb']  // Masquer la section DNB
-    },
-    // Didier Morel : DNB uniquement
-    'didier.morel@ert.tn':        {
-        routes: ['/direction/dashboard', '/bilan/dnb', '/direction/exams/'],
-        label: 'Direction (DNB uniquement)',
-        hideSections: ['bac-blanc', 'eam']  // Masquer les sections Bac Blanc et EAM
-    }
-}
-
-function canAccessRoute(email, path) {
-    const emailLower = email.toLowerCase()
-    const perm = PROVISEUR_ACCESS[emailLower]
-    if (!perm) return true  // Pas de restriction
-    if (perm.routes.includes('all')) return true  // Accès total
-    return perm.routes.some(route => path.startsWith(route))
+function canAccessRoute(user, path) {
+    const scope = user?.direction_scope
+    if (!scope) return true
+    if (scope === 'all') return true
+    // scope is an array of exam-type slugs, e.g. ['bac-blanc','eam'] or ['dnb']
+    if (path === '/direction/dashboard') return true
+    if (path === '/direction/exams/') return true
+    if (path.startsWith('/direction/exams/')) return true
+    if (path.startsWith('/bilan/bac-blanc-2026') && scope.includes('bac-blanc')) return true
+    if (path.startsWith('/bilan/eam') && scope.includes('eam')) return true
+    if (path.startsWith('/bilan/dnb') && scope.includes('dnb')) return true
+    return false
 }
 
 function isLoginPage(routeName) {
@@ -480,10 +465,10 @@ router.beforeEach(async (to, from, next) => {
             return safeRedirect(next, dashboardPath, to.path)
         }
 
-        // ── Vérification des permissions personnalisées proviseurs ────────────
-        if (userRole === 'Direction' && !canAccessRoute(userEmail, to.path)) {
+        // ── Vérification des permissions Direction ────────────────────────────
+        if (userRole === 'Direction' && !canAccessRoute(authStore.user, to.path)) {
             const dashboardPath = getDashboardForRole(userRole, userEmail)
-            console.warn(`[Router] Accès refusé pour ${userEmail} vers ${to.path}. Redirection vers ${dashboardPath}`)
+            console.warn(`[Router] Accès refusé Direction vers ${to.path}. Redirection vers ${dashboardPath}`)
             return safeRedirect(next, dashboardPath, to.path)
         }
     }

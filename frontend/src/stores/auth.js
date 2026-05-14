@@ -111,9 +111,9 @@ export const useAuthStore = defineStore('auth', () => {
                     user.value = null
                     return
                 }
-                // Authenticated. For Admin/Teacher we still hit /me/ to get the
-                // full payload (assigned_codes, must_change_password, …).
-                if ((s.role === 'Admin' || s.role === 'Teacher') && !preferStudent) {
+                // Authenticated. For Admin/Teacher/Direction we still hit /me/
+                // to get the full payload (assigned_codes, must_change_password, direction_scope, …).
+                if ((s.role === 'Admin' || s.role === 'Teacher' || s.role === 'Direction') && !preferStudent) {
                     try {
                         const adminRes = await api.get('/me/')
                         user.value = adminRes.data

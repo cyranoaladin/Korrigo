@@ -79,7 +79,10 @@ SESSION_COOKIE_SECURE = (
     DJANGO_ENV == 'production'  # toujours Secure en prod
     or os.environ.get("SESSION_COOKIE_SECURE", "false").lower() == "true"
 )
-CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "false").lower() == "true"
+CSRF_COOKIE_SECURE = (
+    DJANGO_ENV == 'production'  # toujours Secure en prod (miroir de SESSION_COOKIE_SECURE)
+    or os.environ.get("CSRF_COOKIE_SECURE", "false").lower() == "true"
+)
 
 # Static & Media Files
 STATIC_URL = os.environ.get("STATIC_URL", "/static/").strip() or "/static/"
@@ -462,8 +465,10 @@ USE_TZ = True
 # STATIC_URL is defined at the top
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
+_REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "")
+_redis_auth = f":{_REDIS_PASSWORD}@" if _REDIS_PASSWORD else ""
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", f"redis://{_redis_auth}redis:6379/0")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", f"redis://{_redis_auth}redis:6379/0")
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -482,10 +487,12 @@ REDIS_HOST = os.environ.get("REDIS_HOST")
 if REDIS_HOST:
     REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
     REDIS_DB = os.environ.get("REDIS_DB", "1")
+    # REDIS_PASSWORD: optional, enables Redis AUTH (P1-6 audit fix)
+    _cache_redis_auth = f":{_REDIS_PASSWORD}@" if _REDIS_PASSWORD else ""
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
+            'LOCATION': f'redis://{_cache_redis_auth}{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
         }
     }
 else:

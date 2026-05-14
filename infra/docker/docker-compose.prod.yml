@@ -23,9 +23,16 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    # If REDIS_PASSWORD is set, Redis requires AUTH on every connection (P1-6 audit fix).
+    # Set REDIS_PASSWORD in .env to enable. Leave empty for no-auth (development / air-gapped).
+    command: >-
+      sh -c "redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+      $${REDIS_PASSWORD:+--requirepass $$REDIS_PASSWORD}"
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: >-
+        sh -c "redis-cli $${REDIS_PASSWORD:+-a $$REDIS_PASSWORD} ping"
       interval: 5s
       timeout: 5s
       retries: 5
@@ -85,9 +92,10 @@ services:
       DB_PASSWORD: "${POSTGRES_PASSWORD:?err}"
       DB_HOST: "db"
       DB_PORT: "5432"
-      CELERY_BROKER_URL: "redis://redis:6379/0"
-      CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      CELERY_BROKER_URL: "${CELERY_BROKER_URL:-redis://redis:6379/0}"
+      CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/0}"
       REDIS_HOST: "redis"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:?err}"
       CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:?err}"
       METRICS_TOKEN: "${METRICS_TOKEN:?err}"
@@ -173,9 +181,10 @@ services:
       DB_PASSWORD: "${POSTGRES_PASSWORD:?err}"
       DB_HOST: "db"
       DB_PORT: "5432"
-      CELERY_BROKER_URL: "redis://redis:6379/0"
-      CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      CELERY_BROKER_URL: "${CELERY_BROKER_URL:-redis://redis:6379/0}"
+      CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/0}"
       REDIS_HOST: "redis"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
       # LLM providers (used by some tasks: OCR / bilans)
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
       # NOTE: OpenAI SDK reads OPENAI_BASE_URL even if it is set to an empty string.
@@ -254,9 +263,10 @@ services:
       DB_PASSWORD: "${POSTGRES_PASSWORD:?err}"
       DB_HOST: "db"
       DB_PORT: "5432"
-      CELERY_BROKER_URL: "redis://redis:6379/0"
-      CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      CELERY_BROKER_URL: "${CELERY_BROKER_URL:-redis://redis:6379/0}"
+      CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/0}"
       REDIS_HOST: "redis"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
       # LLM providers (used by some tasks: OCR / bilans)
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
       # NOTE: OpenAI SDK reads OPENAI_BASE_URL even if it is set to an empty string.

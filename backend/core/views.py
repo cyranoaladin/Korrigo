@@ -268,6 +268,16 @@ class UserDetailView(APIView):
             ).exists(),
         }
 
+        # Direction scope: replaces hardcoded PROVISEUR_ACCESS in frontend bundle
+        direction_scope = None
+        if role == 'Direction':
+            if user.groups.filter(name='direction_all').exists():
+                direction_scope = 'all'
+            elif user.groups.filter(name='direction_lycee').exists():
+                direction_scope = ['bac-blanc', 'eam']
+            elif user.groups.filter(name='direction_college').exists():
+                direction_scope = ['dnb']
+
         return Response({
             "id": user.id,
             "username": user.username,
@@ -277,6 +287,7 @@ class UserDetailView(APIView):
             "must_change_password": must_change_password,
             "assigned_exam_type_codes": assigned_codes,
             "features": features,
+            "direction_scope": direction_scope,
         })
 
 class GlobalSettingsView(APIView):

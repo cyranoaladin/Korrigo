@@ -13,8 +13,8 @@
             <span class="text-slate-400 text-xs uppercase tracking-widest font-medium">Lycée Pierre Mendès France de Tunis</span>
           </div>
           <div class="flex items-center gap-3">
-            <div v-if="proviseurPerm" class="px-3 py-1 bg-white/10 rounded-full border border-white/15 text-xs text-slate-300 font-medium">
-              {{ proviseurPerm.label }}
+            <div v-if="scopeLabel" class="px-3 py-1 bg-white/10 rounded-full border border-white/15 text-xs text-slate-300 font-medium">
+              {{ scopeLabel }}
             </div>
             <button @click="logout"
               class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
@@ -181,15 +181,18 @@ import AppIcon from '../icons/AppIcon.vue'
 const router    = useRouter()
 const authStore = useAuthStore()
 
-// ── Access control ───────────────────────────────────────────────────────
-const PROVISEUR_ACCESS = {
-  'gilles.emardlacroix@ert.tn': { access: 'all',   label: 'Accès complet' },
-  'guillaume.verbeke@ert.tn':   { access: 'bb_eam', label: 'Bac Blanc · EAM', hideSections: ['dnb'] },
-  'didier.morel@ert.tn':        { access: 'dnb',    label: 'DNB uniquement',   hideSections: ['bac-blanc', 'eam'] },
-}
-const userEmail     = computed(() => (authStore.user?.email || authStore.user?.username || '').toLowerCase())
-const proviseurPerm = computed(() => PROVISEUR_ACCESS[userEmail.value] || null)
-const firstName     = computed(() => {
+// ── Access control via backend direction_scope (no hardcoded emails) ────
+const directionScope = computed(() => authStore.user?.direction_scope)
+const scopeLabel = computed(() => {
+  const s = directionScope.value
+  if (s === 'all') return 'Accès complet'
+  if (Array.isArray(s)) {
+    const map = { 'bac-blanc': 'Bac Blanc', 'eam': 'EAM', 'dnb': 'DNB' }
+    return s.map(k => map[k] || k).join(' · ')
+  }
+  return null
+})
+const firstName = computed(() => {
   const u = authStore.user
   if (!u) return ''
   if (u.first_name) return u.first_name
@@ -197,9 +200,18 @@ const firstName     = computed(() => {
   return email.split('.')[0]?.replace(/^./, c => c.toUpperCase()) || email
 })
 
-const canViewBacBlanc = computed(() => !proviseurPerm.value || proviseurPerm.value.access === 'all' || !proviseurPerm.value.hideSections?.includes('bac-blanc'))
-const canViewEAM      = computed(() => !proviseurPerm.value || proviseurPerm.value.access === 'all' || !proviseurPerm.value.hideSections?.includes('eam'))
-const canViewDNB      = computed(() => !proviseurPerm.value || proviseurPerm.value.access === 'all' || !proviseurPerm.value.hideSections?.includes('dnb'))
+const canViewBacBlanc = computed(() => {
+  const s = directionScope.value
+  return !s || s === 'all' || (Array.isArray(s) && s.includes('bac-blanc'))
+})
+const canViewEAM = computed(() => {
+  const s = directionScope.value
+  return !s || s === 'all' || (Array.isArray(s) && s.includes('eam'))
+})
+const canViewDNB = computed(() => {
+  const s = directionScope.value
+  return !s || s === 'all' || (Array.isArray(s) && s.includes('dnb'))
+})
 
 // ── Data ─────────────────────────────────────────────────────────────────
 const loading = ref(true)
