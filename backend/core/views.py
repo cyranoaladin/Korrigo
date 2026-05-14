@@ -5,11 +5,16 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
-from core.utils.ratelimit import maybe_ratelimit
+from core.utils.ratelimit import maybe_ratelimit, get_real_ip
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from core.utils.audit import log_authentication_attempt
-from core.auth import UserRole, IsKorrigoAdmin, DIRECTION_GROUPS
+from core.auth import UserRole, IsKorrigoAdmin
+try:
+    from core.auth import DIRECTION_GROUPS
+except ImportError:
+    # Fallback pour les images Docker qui n'ont pas encore la constante (pre-rebuild)
+    DIRECTION_GROUPS = ['direction_all', 'direction_lycee', 'direction_college']
 
 
 def _is_admin_user(user) -> bool:
@@ -47,7 +52,7 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []  # No auth required, bypass SessionAuth CSRF
 
-    @method_decorator(maybe_ratelimit(key='ip', rate='5/15m', method='POST', block=True))
+    @method_decorator(maybe_ratelimit(key=get_real_ip, rate='5/15m', method='POST', block=True))
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
