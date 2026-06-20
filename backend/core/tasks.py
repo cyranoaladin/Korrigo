@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -11,20 +12,73 @@ logger = logging.getLogger(__name__)
 
 BACKUP_DIR = os.environ.get('BACKUP_DIR', '/app/backups')
 BACKUP_RETAIN_DAYS = int(os.environ.get('BACKUP_RETAIN_DAYS', '7'))
+EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+
+
+def redact_backup_log_message(message: str) -> str:
+    return EMAIL_RE.sub("<redacted-email>", message)
+
+
+def _env_truthy(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def get_required_backup_gpg_passphrase() -> str | None:
+    passphrase = os.environ.get("BACKUP_GPG_PASSPHRASE")
+    if _env_truthy("REQUIRE_BACKUP_GPG") and not passphrase:
+        raise RuntimeError(
+            "BACKUP_GPG_PASSPHRASE must be set when REQUIRE_BACKUP_GPG=true"
+        )
+    return passphrase
+
+
+def encrypt_backup_artifact(path: Path, *, passphrase: str, label: str) -> Path:
+    encrypted_path = path.with_suffix(path.suffix + ".gpg")
+    cmd = [
+        "gpg",
+        "--batch",
+        "--yes",
+        "--pinentry-mode",
+        "loopback",
+        "--passphrase-fd",
+        "0",
+        "--symmetric",
+        "--cipher-algo",
+        "AES256",
+        "-o",
+        str(encrypted_path),
+        str(path),
+    ]
+    try:
+        subprocess.run(
+            cmd,
+            input=passphrase.encode(),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        stderr = redact_backup_log_message(exc.stderr.decode(errors="replace"))
+        encrypted_path.unlink(missing_ok=True)
+        raise RuntimeError(f"GPG encryption failed for {label}: {stderr}") from exc
+
+    path.unlink()
+    return encrypted_path
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=300)
 def scheduled_backup(self):
     """
-    Automated daily database backup via pg_dump.
-    Stores compressed SQL dumps and rotates old backups.
+    Automated daily database backup via pg_dump custom format.
+    Encrypts dumps when BACKUP_GPG_PASSPHRASE is set and rotates old backups.
     """
     try:
         backup_path = Path(BACKUP_DIR)
         backup_path.mkdir(parents=True, exist_ok=True)
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'korrigo_db_{timestamp}.sql.gz'
+        passphrase = get_required_backup_gpg_passphrase()
+        filename = f'korrigo_db_{timestamp}.dump'
         filepath = backup_path / filename
 
         db = settings.DATABASES['default']
@@ -49,12 +103,19 @@ def scheduled_backup(self):
             )
 
         if proc.returncode != 0:
-            err = proc.stderr.decode(errors='replace')
+            err = redact_backup_log_message(proc.stderr.decode(errors='replace'))
             logger.error('pg_dump failed (rc=%d): %s', proc.returncode, err)
             raise RuntimeError(f'pg_dump failed: {err}')
 
+        if passphrase:
+            filepath = encrypt_backup_artifact(
+                filepath,
+                passphrase=passphrase,
+                label="database dump",
+            )
+
         size_mb = filepath.stat().st_size / (1024 * 1024)
-        logger.info('Backup created: %s (%.1f MB)', filename, size_mb)
+        logger.info('Backup created: %s (%.1f MB)', filepath.name, size_mb)
 
         # Rotate old backups
         _cleanup_old_backups(backup_path)
@@ -70,9 +131,16 @@ def _cleanup_old_backups(backup_path: Path):
     """Remove backups older than BACKUP_RETAIN_DAYS."""
     cutoff = datetime.now() - timedelta(days=BACKUP_RETAIN_DAYS)
     removed = 0
-    for f in backup_path.glob('korrigo_db_*.sql.gz'):
+    for f in (
+        list(backup_path.glob('korrigo_db_*.dump'))
+        + list(backup_path.glob('korrigo_db_*.dump.gpg'))
+    ):
         if datetime.fromtimestamp(f.stat().st_mtime) < cutoff:
             f.unlink()
             removed += 1
     if removed:
-        logger.info('Rotated %d old backup(s) (retain=%d days)', removed, BACKUP_RETAIN_DAYS)
+        logger.info(
+            'Rotated %d old backup(s) (retain=%d days)',
+            removed,
+            BACKUP_RETAIN_DAYS,
+        )

@@ -1,6 +1,12 @@
-# Production Docker Compose (Image-based, SHA-tagged)
-# Usage: KORRIGO_SHA=<commit_sha> docker compose -f docker-compose.prod.yml up -d
-# Breaking Change: Front+Back must deploy together (client_id enforcement)
+# Korrigo production compose.
+#
+# Canonical runtime file for Step 3.
+# - Images are pinned by immutable GHCR digest.
+# - No overlay or host frontend bind mount is used.
+# - Project name is fixed to keep existing Korrigo container/volume names
+#   such as docker-db-1 and docker_media_volume.
+
+name: docker
 
 services:
   db:
@@ -11,37 +17,32 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: ${POSTGRES_DB?err}
-      POSTGRES_USER: ${POSTGRES_USER?err}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?err}
+      POSTGRES_DB: "${POSTGRES_DB:?err}"
+      POSTGRES_USER: "${POSTGRES_USER:?err}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?err}"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?err} -d ${POSTGRES_DB:?err}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?err} -d ${POSTGRES_DB:?err}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    # If REDIS_PASSWORD is set, Redis requires AUTH on every connection (P1-6 audit fix).
-    # Set REDIS_PASSWORD in .env to enable. Leave empty for no-auth (development / air-gapped).
     command: >-
-      sh -c "redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
-      $${REDIS_PASSWORD:+--requirepass $$REDIS_PASSWORD}"
+      sh -c "exec redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+      --requirepass $$REDIS_PASSWORD"
     environment:
-      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?err}"
     healthcheck:
       test: >-
-        sh -c "redis-cli $${REDIS_PASSWORD:+-a $$REDIS_PASSWORD} ping"
+        sh -c "redis-cli -a $$REDIS_PASSWORD ping"
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   backend:
-    networks:
-      - default
-      - rag_ui_net
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
+    image: ghcr.io/cyranoaladin/korrigo-backend@sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8
     restart: unless-stopped
     command: gunicorn core.wsgi:application -c gunicorn_config.py
     expose:
@@ -51,28 +52,6 @@ services:
       - media_volume:/app/media
       - backup_volume:/app/backups
       - ocr_cache:/app/.cache
-      - seed_data:/app/seed_data:ro
-      # Overlay hotfixes (persist across restarts)
-      - ${OVERLAY_DIR:-../../overlay}/grading/views.py:/app/grading/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/students/views.py:/app/students/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/students/urls.py:/app/students/urls.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/core/views_platform.py:/app/core/views_platform.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/core/views.py:/app/core/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/gunicorn_config.py:/app/gunicorn_config.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/rag_retriever.py:/app/bilan/services/rag_retriever.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/orchestrator.py:/app/bilan/services/orchestrator.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/eam_orchestrator.py:/app/bilan/services/eam_orchestrator.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/llm_writer.py:/app/bilan/services/llm_writer.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/models.py:/app/bilan/models.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/views.py:/app/bilan/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/urls.py:/app/bilan/urls.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/permissions.py:/app/bilan/permissions.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/0002_alter_bilanreport_exam_type.py:/app/bilan/migrations/0002_alter_bilanreport_exam_type.py:ro
-      # Exams overlay hotfixes
-      - ${OVERLAY_DIR:-../../overlay}/exams/views.py:/app/exams/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/exams/permissions.py:/app/exams/permissions.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/exams/urls.py:/app/exams/urls.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/exams/views_direction.py:/app/exams/views_direction.py:ro
     depends_on:
       db:
         condition: service_healthy
@@ -83,6 +62,9 @@ services:
       DJANGO_ENV: production
       DEBUG: "False"
       SSL_ENABLED: "${SSL_ENABLED:-True}"
+      DJANGO_AUTO_MIGRATE: "false"
+      SEED_ON_START: "false"
+      ENABLE_API_DOCS: "false"
       SECRET_KEY: "${SECRET_KEY:?err}"
       ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
       DJANGO_ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
@@ -92,75 +74,50 @@ services:
       DB_PASSWORD: "${POSTGRES_PASSWORD:?err}"
       DB_HOST: "db"
       DB_PORT: "5432"
-      CELERY_BROKER_URL: "${CELERY_BROKER_URL:-redis://redis:6379/0}"
-      CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/0}"
       REDIS_HOST: "redis"
-      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?err}"
+      REDIS_DB: "${REDIS_DB:-1}"
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:?err}"
       CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS:?err}"
       METRICS_TOKEN: "${METRICS_TOKEN:?err}"
-      # LLM providers (Bilan + OCR Vision). Leave empty to disable LLM features.
+      GUNICORN_WORKERS: "${GUNICORN_WORKERS:-4}"
+      GUNICORN_FORWARDED_IPS: "${GUNICORN_FORWARDED_IPS:-*}"
+      BACKUP_DIR: "/app/backups"
+      BACKUP_GPG_PASSPHRASE: "${BACKUP_GPG_PASSPHRASE:?err}"
+      REQUIRE_BACKUP_GPG: "true"
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
-      # NOTE: OpenAI SDK reads OPENAI_BASE_URL even if it is set to an empty string.
-      # If empty, it breaks requests (missing http/https). Default to the official API.
       OPENAI_BASE_URL: "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
       OPENAI_MODEL: "${OPENAI_MODEL:-}"
       AI_PROVIDER_URL: "${AI_PROVIDER_URL:-}"
       AI_PROVIDER_KEY: "${AI_PROVIDER_KEY:-}"
       AI_MODEL_NAME: "${AI_MODEL_NAME:-}"
-      # Bilan (LLM + RAG)
       BILAN_LLM_DEFAULT: "${BILAN_LLM_DEFAULT:-}"
       BILAN_LLM_PREMIUM: "${BILAN_LLM_PREMIUM:-}"
       BILAN_REQUIRE_RAG: "${BILAN_REQUIRE_RAG:-}"
       BILAN_ALLOW_OLLAMA_FALLBACK: "${BILAN_ALLOW_OLLAMA_FALLBACK:-}"
       BILAN_OLLAMA_MODEL: "${BILAN_OLLAMA_MODEL:-}"
-      RAG_URL: "${RAG_URL:-http://ingestor:8001}"
+      RAG_URL: "${RAG_URL:-}"
       RAG_TOKEN: "${RAG_TOKEN:-}"
-      SEED_ON_START: "${SEED_ON_START:-false}"
       DEFAULT_PASSWORD: "${DEFAULT_PASSWORD:?err}"
-      SEED_DATA_DIR: "/app/seed_data"
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
       XDG_CACHE_HOME: "/app/.cache"
       EASYOCR_MODULE_PATH: "/app/.cache/easyocr"
       TORCH_HOME: "/app/.cache/torch"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health/" ]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
       interval: 15s
       timeout: 10s
-      retries: 5
+      retries: 8
       start_period: 120s
 
   celery:
-    networks:
-      - default
-      - rag_ui_net
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
+    image: ghcr.io/cyranoaladin/korrigo-backend@sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8
     restart: unless-stopped
     command: celery -A core worker -l info --concurrency=4 --max-tasks-per-child=100
     volumes:
       - media_volume:/app/media
       - backup_volume:/app/backups
       - ocr_cache:/app/.cache
-      # Overlay hotfixes (same as backend)
-      - ${OVERLAY_DIR:-../../overlay}/grading/views.py:/app/grading/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/students/views.py:/app/students/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/students/urls.py:/app/students/urls.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/core/views_platform.py:/app/core/views_platform.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/core/views.py:/app/core/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/rag_retriever.py:/app/bilan/services/rag_retriever.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/orchestrator.py:/app/bilan/services/orchestrator.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/eam_orchestrator.py:/app/bilan/services/eam_orchestrator.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/llm_writer.py:/app/bilan/services/llm_writer.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/models.py:/app/bilan/models.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/views.py:/app/bilan/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/urls.py:/app/bilan/urls.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/permissions.py:/app/bilan/permissions.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/0002_alter_bilanreport_exam_type.py:/app/bilan/migrations/0002_alter_bilanreport_exam_type.py:ro
-      # Exams overlay hotfixes
-      - ${OVERLAY_DIR:-../../overlay}/exams/views.py:/app/exams/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/exams/permissions.py:/app/exams/permissions.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/exams/urls.py:/app/exams/urls.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/exams/views_direction.py:/app/exams/views_direction.py:ro
     depends_on:
       db:
         condition: service_healthy
@@ -172,6 +129,10 @@ services:
       DJANGO_SETTINGS_MODULE: core.settings_prod
       DJANGO_ENV: production
       DEBUG: "False"
+      SSL_ENABLED: "${SSL_ENABLED:-True}"
+      DJANGO_AUTO_MIGRATE: "false"
+      SEED_ON_START: "false"
+      ENABLE_API_DOCS: "false"
       SECRET_KEY: "${SECRET_KEY:?err}"
       ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
       DJANGO_ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
@@ -181,26 +142,24 @@ services:
       DB_PASSWORD: "${POSTGRES_PASSWORD:?err}"
       DB_HOST: "db"
       DB_PORT: "5432"
-      CELERY_BROKER_URL: "${CELERY_BROKER_URL:-redis://redis:6379/0}"
-      CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/0}"
       REDIS_HOST: "redis"
-      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
-      # LLM providers (used by some tasks: OCR / bilans)
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?err}"
+      REDIS_DB: "${REDIS_DB:-1}"
+      BACKUP_DIR: "/app/backups"
+      BACKUP_GPG_PASSPHRASE: "${BACKUP_GPG_PASSPHRASE:?err}"
+      REQUIRE_BACKUP_GPG: "true"
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
-      # NOTE: OpenAI SDK reads OPENAI_BASE_URL even if it is set to an empty string.
-      # If empty, it breaks requests (missing http/https). Default to the official API.
       OPENAI_BASE_URL: "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
       OPENAI_MODEL: "${OPENAI_MODEL:-}"
       AI_PROVIDER_URL: "${AI_PROVIDER_URL:-}"
       AI_PROVIDER_KEY: "${AI_PROVIDER_KEY:-}"
       AI_MODEL_NAME: "${AI_MODEL_NAME:-}"
-      # Bilan (LLM + RAG)
       BILAN_LLM_DEFAULT: "${BILAN_LLM_DEFAULT:-}"
       BILAN_LLM_PREMIUM: "${BILAN_LLM_PREMIUM:-}"
       BILAN_REQUIRE_RAG: "${BILAN_REQUIRE_RAG:-}"
       BILAN_ALLOW_OLLAMA_FALLBACK: "${BILAN_ALLOW_OLLAMA_FALLBACK:-}"
       BILAN_OLLAMA_MODEL: "${BILAN_OLLAMA_MODEL:-}"
-      RAG_URL: "${RAG_URL:-http://ingestor:8001}"
+      RAG_URL: "${RAG_URL:-}"
       RAG_TOKEN: "${RAG_TOKEN:-}"
       DEFAULT_PASSWORD: "${DEFAULT_PASSWORD:?err}"
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
@@ -211,40 +170,17 @@ services:
       test: ["CMD-SHELL", "celery -A core inspect ping -d celery@$$HOSTNAME"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
       start_period: 30s
 
   celery-beat:
-    networks:
-      - default
-      - rag_ui_net
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-backend:${KORRIGO_SHA:-latest}
+    image: ghcr.io/cyranoaladin/korrigo-backend@sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8
     restart: unless-stopped
     command: celery -A core beat -l info
     volumes:
       - media_volume:/app/media
       - backup_volume:/app/backups
       - ocr_cache:/app/.cache
-      # Overlay hotfixes (same as backend)
-      - ${OVERLAY_DIR:-../../overlay}/grading/views.py:/app/grading/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/students/views.py:/app/students/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/students/urls.py:/app/students/urls.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/core/views_platform.py:/app/core/views_platform.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/core/views.py:/app/core/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/rag_retriever.py:/app/bilan/services/rag_retriever.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/orchestrator.py:/app/bilan/services/orchestrator.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/eam_orchestrator.py:/app/bilan/services/eam_orchestrator.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/services/llm_writer.py:/app/bilan/services/llm_writer.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/models.py:/app/bilan/models.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/views.py:/app/bilan/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/urls.py:/app/bilan/urls.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/permissions.py:/app/bilan/permissions.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/backend/bilan/0002_alter_bilanreport_exam_type.py:/app/bilan/migrations/0002_alter_bilanreport_exam_type.py:ro
-      # Exams overlay hotfixes
-      - ${OVERLAY_DIR:-../../overlay}/exams/views.py:/app/exams/views.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/exams/permissions.py:/app/exams/permissions.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/exams/urls.py:/app/exams/urls.py:ro
-      - ${OVERLAY_DIR:-../../overlay}/exams/views_direction.py:/app/exams/views_direction.py:ro
     depends_on:
       db:
         condition: service_healthy
@@ -254,6 +190,10 @@ services:
       DJANGO_SETTINGS_MODULE: core.settings_prod
       DJANGO_ENV: production
       DEBUG: "False"
+      SSL_ENABLED: "${SSL_ENABLED:-True}"
+      DJANGO_AUTO_MIGRATE: "false"
+      SEED_ON_START: "false"
+      ENABLE_API_DOCS: "false"
       SECRET_KEY: "${SECRET_KEY:?err}"
       ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
       DJANGO_ALLOWED_HOSTS: "${ALLOWED_HOSTS:?err}"
@@ -263,26 +203,24 @@ services:
       DB_PASSWORD: "${POSTGRES_PASSWORD:?err}"
       DB_HOST: "db"
       DB_PORT: "5432"
-      CELERY_BROKER_URL: "${CELERY_BROKER_URL:-redis://redis:6379/0}"
-      CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/0}"
       REDIS_HOST: "redis"
-      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
-      # LLM providers (used by some tasks: OCR / bilans)
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?err}"
+      REDIS_DB: "${REDIS_DB:-1}"
+      BACKUP_DIR: "/app/backups"
+      BACKUP_GPG_PASSPHRASE: "${BACKUP_GPG_PASSPHRASE:?err}"
+      REQUIRE_BACKUP_GPG: "true"
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
-      # NOTE: OpenAI SDK reads OPENAI_BASE_URL even if it is set to an empty string.
-      # If empty, it breaks requests (missing http/https). Default to the official API.
       OPENAI_BASE_URL: "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
       OPENAI_MODEL: "${OPENAI_MODEL:-}"
       AI_PROVIDER_URL: "${AI_PROVIDER_URL:-}"
       AI_PROVIDER_KEY: "${AI_PROVIDER_KEY:-}"
       AI_MODEL_NAME: "${AI_MODEL_NAME:-}"
-      # Bilan (LLM + RAG)
       BILAN_LLM_DEFAULT: "${BILAN_LLM_DEFAULT:-}"
       BILAN_LLM_PREMIUM: "${BILAN_LLM_PREMIUM:-}"
       BILAN_REQUIRE_RAG: "${BILAN_REQUIRE_RAG:-}"
       BILAN_ALLOW_OLLAMA_FALLBACK: "${BILAN_ALLOW_OLLAMA_FALLBACK:-}"
       BILAN_OLLAMA_MODEL: "${BILAN_OLLAMA_MODEL:-}"
-      RAG_URL: "${RAG_URL:-http://ingestor:8001}"
+      RAG_URL: "${RAG_URL:-}"
       RAG_TOKEN: "${RAG_TOKEN:-}"
       DEFAULT_PASSWORD: "${DEFAULT_PASSWORD:?err}"
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
@@ -293,26 +231,25 @@ services:
       test: ["CMD-SHELL", "tr '\\0' ' ' < /proc/1/cmdline | grep -q 'celery -A core beat'"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
       start_period: 30s
 
   nginx:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/korrigo-nginx:${KORRIGO_SHA:-latest}
+    image: ghcr.io/cyranoaladin/korrigo-nginx@sha256:09401293f50173ce8483df7ea7897ba880e6d3b79450955f9eb70c0fd8ebf7fd
     restart: unless-stopped
     ports:
       - "127.0.0.1:8088:80"
     volumes:
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
-      # Host frontend build overrides image-baked frontend
-      - ${FRONTEND_DIR:-../../frontend}:/usr/share/nginx/html:ro
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
 
 volumes:
   postgres_data:
@@ -320,16 +257,3 @@ volumes:
   media_volume:
   backup_volume:
   ocr_cache:
-  seed_data:
-    name: docker_seed_data_v2
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${SEED_DATA_HOST_PATH:-./seed_data}
-
-networks:
-  default:
-  rag_ui_net:
-    external: true
-    name: ${RAG_DOCKER_NETWORK:-compose_rag_ui_net}
