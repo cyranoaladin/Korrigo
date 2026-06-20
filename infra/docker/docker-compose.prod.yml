@@ -42,7 +42,7 @@ services:
       retries: 10
 
   backend:
-    image: ghcr.io/cyranoaladin/korrigo-backend@sha256:332866d285ce4d831a5e605aa7793cba003efc7a96b81059ef5ca5d480bb09d7
+    image: ghcr.io/cyranoaladin/korrigo-backend@sha256:aafe75e7e4bc475f066ed57cc4b16dc816ea3497c70f3e8e954c5ba496929e1e
     restart: unless-stopped
     command: gunicorn core.wsgi:application -c gunicorn_config.py
     expose:
@@ -112,7 +112,7 @@ services:
       start_period: 120s
 
   celery:
-    image: ghcr.io/cyranoaladin/korrigo-backend@sha256:332866d285ce4d831a5e605aa7793cba003efc7a96b81059ef5ca5d480bb09d7
+    image: ghcr.io/cyranoaladin/korrigo-backend@sha256:aafe75e7e4bc475f066ed57cc4b16dc816ea3497c70f3e8e954c5ba496929e1e
     restart: unless-stopped
     command: celery -A core worker -l info --concurrency=4 --max-tasks-per-child=100
     volumes:
@@ -174,7 +174,7 @@ services:
       start_period: 30s
 
   celery-beat:
-    image: ghcr.io/cyranoaladin/korrigo-backend@sha256:332866d285ce4d831a5e605aa7793cba003efc7a96b81059ef5ca5d480bb09d7
+    image: ghcr.io/cyranoaladin/korrigo-backend@sha256:aafe75e7e4bc475f066ed57cc4b16dc816ea3497c70f3e8e954c5ba496929e1e
     restart: unless-stopped
     command: celery -A core beat -l info
     volumes:
@@ -234,7 +234,7 @@ services:
       start_period: 30s
 
   nginx:
-    image: ghcr.io/cyranoaladin/korrigo-nginx@sha256:81bce3acc1388bbb4e4208b88c6ab921aea9f123186b9adff46da7149bb36616
+    image: ghcr.io/cyranoaladin/korrigo-nginx@sha256:5c4dda163f3ce4a4ff7e4a2b321adafb398cc3cdaa4461d708de89dabae0f61a
     restart: unless-stopped
     ports:
       - "127.0.0.1:8088:80"
