@@ -105,24 +105,32 @@
 - [x] Redis protégé par mot de passe ; backend/celery/celery-beat configurés avec `REDIS_PASSWORD`
 - [x] Chiffrement GPG des backups activé (`BACKUP_GPG_PASSPHRASE`) ; cycle backup → déchiffrement → restore jetable prouvé
 - [x] `SEED_ON_START=false`, `E2E_SEED_TOKEN` retiré du runtime prod, docs d'API désactivées en prod (`ENABLE_API_DOCS=false`)
-- [x] `KORRIGO_SHA` = tag Git `korrigo-step3-20260620-e81958e`, image labels OCI `revision=e81958e66c15c665185418ad372362d9ae4eddc1`
+- [x] `KORRIGO_SHA` = tag Git `korrigo-step3-20260620-ead834e`, image labels OCI `revision=ead834eb790dd651d1d1be9d71d26992a61c8171`
 - [x] Nom des dumps corrigé (`.dump.gpg`, pas `.sql.gz` trompeur) ; image backend contient `pg_dump/pg_restore` 15 et `gpg`
+- [x] Entrypoint durci : base vide sans migration = arrêt explicite ; migrations uniquement par one-shot ; `/app/backups` préparé pour Celery
+- [x] Rate-limit login élève validé : 10 échecs / 15 min par identifiant tenté ; 11e tentative `429` ; IP partagée non pénalisée sous seuil
+- [x] `DEFAULT_PASSWORD` absent du runtime backend/celery/celery-beat ; login élève par mot de passe date de naissance validé
+- [x] Alias silencieux `n_copies_graded` supprimé : statut métier canonique = `FINALIZED`
+- [x] Sweep logs RGPD : backend/celery/entrypoint/nginx sans email, secret ni identifiant de probe en clair
 - [x] Staging : redémarrage backend/celery/celery-beat/nginx + health + parcours HTTP par rôle `OK`
 - [x] Anciennes images conservées (rollback) ; aucun prune image/volume effectué
 - [ ] Prod : backup frais, migrations explicites, déploiement par digest, health, parcours et logs — en attente du `go`
 
 **Runbook de bascule prévu (ne pas exécuter sans `go`)**
-1. Backup complet frais StorageBox + vérification rapide de restaurabilité.
-2. Déployer `infra/docker/docker-compose.prod.yml` par digest final : backend `sha256:1abd594998f7109a93f46b059f1d2657e517d8945f57e0bd12f664d5cae51f10`, nginx `sha256:63cd6627cd1a45d1b44d9bd4c7c4db77f6e07dee4400d6c2fcc8f631d9fff451`.
-3. `.env` prod hors dépôt, permissions `600` : `DJANGO_AUTO_MIGRATE=false`, `SEED_ON_START=false`, `ENABLE_API_DOCS=false`, `GUNICORN_WORKERS=4`, `REDIS_PASSWORD`, `BACKUP_GPG_PASSPHRASE`, `REQUIRE_BACKUP_GPG=true`.
-4. Appliquer explicitement les migrations via conteneur one-shot (`exams.0042`, `exams.0043`, `grading.0028`) ; ne pas dépendre de l'entrypoint.
-5. Démarrer backend/celery/celery-beat/nginx ; vérifier health, Redis auth, Celery, médias protégés, parcours admin/correcteur/élève/direction, logs sans PII.
+1. Pré-bascule : annoncer la fenêtre de maintenance ; confirmer disque hôte ; vérifier `.env` prod hors dépôt en `600` avec `DJANGO_AUTO_MIGRATE=false`, `SEED_ON_START=false`, `ENABLE_API_DOCS=false`, `GUNICORN_WORKERS=4`, `REDIS_PASSWORD`, `BACKUP_GPG_PASSPHRASE`, `REQUIRE_BACKUP_GPG=true`, `STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS=10`, `STUDENT_LOGIN_RATE_LIMIT_WINDOW=900`.
+2. Backup frais : lancer backup complet StorageBox juste avant bascule ; vérifier checksums et restaurabilité rapide sur pile jetable si le temps de fenêtre le permet ; ne poursuivre que si le backup est exploitable.
+3. Déployer le compose canonique par digest final : backend `sha256:332866d285ce4d831a5e605aa7793cba003efc7a96b81059ef5ca5d480bb09d7`, nginx `sha256:81bce3acc1388bbb4e4208b88c6ab921aea9f123186b9adff46da7149bb36616`. Retirer effectivement tout montage `overlay/`.
+4. Appliquer explicitement les migrations via conteneur one-shot (`exams.0042`, `exams.0043`, `grading.0028`) ; observer les verrous PostgreSQL. Les changements attendus sont des contraintes `DROP/ADD`, brefs sur environ `733` lignes `exams_copy`.
+5. Démarrer backend/celery/celery-beat/nginx ; vérifier health, `showmigrations --check`, Redis AUTH, absence d'overlay, absence de `DEFAULT_PASSWORD`, backup `.dump.gpg`, Celery `async_finalize_copy`, médias protégés, rendu PDF iframe, parcours admin/correcteur/élève/direction et logs sans PII.
+6. Critères de succès chiffrés : health `{"status":"healthy","database":"connected"}` ; conteneurs Korrigo `healthy` ; `overlay_mount_count=0` ; `bind_mount_count=0` hors volumes nommés ; `migrate --check` code `0` ; login élève 10 échecs non limités puis 11e `429` ; IP partagée distincte sans `429` sous seuil ; backup planifié `.dump.gpg` ; `runtime_log_email_count=0`, `runtime_log_secret_count=0`.
+7. Critères d'échec déclenchant rollback : health non vert après correction simple ; migration explicite échouée ou verrou long ; Redis AUTH cassé ; Celery ne consomme pas `async_finalize_copy` ; médias protégés exposés ou inaccessibles ; logs contenant PII/secret ; régression bloquante d'un parcours rôle ; échec backup frais/restaurabilité.
 
 **Rollback prévu**
 1. Stopper la pile Korrigo uniquement.
 2. Revenir aux digests Porte 2 conservés : backend `sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8`, nginx `sha256:09401293f50173ce8483df7ea7897ba880e6d3b79450955f9eb70c0fd8ebf7fd`.
 3. Restaurer le backup frais si des migrations explicites ont été appliquées et qu'un retour DB est nécessaire.
 4. Redémarrer et vérifier health/parcours ; aucune image/volume ancienne n'est élagué avant validation.
+5. Post-bascule immédiat si succès : surveiller disque hôte (~83 %), premier backup chiffré planifié, logs, Celery ; fusionner `release/prod-unification` vers `main` seulement après validation prod pour que `main = prod`; nettoyage branches `wip/*` reporté à une étape ultérieure.
 
 > **Porte de sortie 3** — [ ] Prod sans overlay, configuration unifiée, health vert, rollback encore possible.
 
@@ -274,3 +282,12 @@
 | 2026-06-20T18:49Z | 3 | Pile staging jetable démontée : conteneurs/volumes/réseaux `korrigo_step3_*` restants `0`; aucun prune image/volume effectué | `proofs/20260620_step3/staging_final_teardown.txt` |
 | 2026-06-20T18:58Z | 3 | Celery finalisation PDF complète via broker sur pile jetable et image prod propre : `async_finalize_copy` retourne `status=success`, copie `FINALIZED`, score `18.0`, PDF final généré (`53672` octets) | `proofs/20260620_step3/staging_async_finalize_copy_probe.txt` |
 | 2026-06-20T18:59Z | 3 | Sweep final après remontée jetable : conteneurs/volumes/réseaux `korrigo_step3_*` restants `0`; scan PII/secrets des preuves Étape 3 sans résultat; prod non touchée; aucun prune effectué | `proofs/20260620_step3/final_hygiene_sweep.txt` |
+| 2026-06-20T19:46Z | J/K/L | Correctifs runtime finaux sur `release/prod-unification` : entrypoint fail-fast, redaction échec notification Celery, préparation `/app/backups` pour Celery, suppression alias `n_copies_graded`, `DEFAULT_PASSWORD` hors runtime | commits `afa9323410534b6e20b5479d4adc125f9589f54b`, `ead834eb790dd651d1d1be9d71d26992a61c8171` |
+| 2026-06-20T19:47Z | J/K/L | Build complet depuis Dockerfiles committés au tag Git `korrigo-step3-20260620-ead834e`; labels OCI vers `ead834eb790dd651d1d1be9d71d26992a61c8171`; image prod sans `pytest`, clients `pg_dump/pg_restore` 15 et GPG présents | `proofs/20260620_step3_jkl/build_korrigo-step3-20260620-ead834e.log`; `proofs/20260620_step3_jkl/image_runtime_labels_korrigo-step3-20260620-ead834e.txt` |
+| 2026-06-20T19:48Z | J/K/L | Images GHCR finales publiées : backend `sha256:332866d285ce4d831a5e605aa7793cba003efc7a96b81059ef5ca5d480bb09d7`, nginx `sha256:81bce3acc1388bbb4e4208b88c6ab921aea9f123186b9adff46da7149bb36616`; tag Git poussé | `proofs/20260620_step3_jkl/push_backend_korrigo-step3-20260620-ead834e.log`; `proofs/20260620_step3_jkl/push_nginx_korrigo-step3-20260620-ead834e.log` |
+| 2026-06-20T19:48Z | J/K/L | Tests finaux : backend complet `989 passed, 1 skipped, 3 deselected`; frontend `vitest` `334 passed` | `proofs/20260620_step3_jkl/backend_full_pytest_korrigo-step3-20260620-ead834e.txt`; `proofs/20260620_step3_jkl/frontend_vitest_korrigo-step3-20260620-ead834e.txt` |
+| 2026-06-20T19:49Z | J | Staging final `ead834e` : base vide refusée explicitement (`EMPTY_DB_ENTRYPOINT_RC=1`), migration one-shot `OK`, health `{"status":"healthy","database":"connected"}`, `bind_mount_count=0`, `overlay_mount_count=0`, `DEFAULT_PASSWORD` absent, Redis `NOAUTH` sans mot de passe | `proofs/20260620_step3_jkl/staging_final_core_ead834e.txt` |
+| 2026-06-20T19:49Z | K | Backup GPG final via Celery : `/app/backups` writable par `korrigo`, `scheduled_backup` produit uniquement `.dump.gpg` (`26036` octets sur DB staging), logs sans secret | `proofs/20260620_step3_jkl/staging_final_core_ead834e.txt` |
+| 2026-06-20T19:50Z | J/L | Rate-limit final : 10 échecs par identifiant non limités, 11e `429`; 10 identifiants distincts depuis IP partagée sans `429`; Celery `async_finalize_copy` finalise une copie avec PDF (`48554` octets); `analytics_has_n_copies_graded=False`, redaction notification active | `proofs/20260620_step3_jkl/staging_final_app_flows_ead834e.txt` |
+| 2026-06-20T19:51Z | K | Sweep confidentialité final : logs backend/celery/entrypoint/nginx `email_count=0`, `secret_count=0`, `probe_identifier_count=0`; preuves conservées `proof_email_file_count=0`, `proof_secret_file_count=0`; aucun dump/media dans le dépôt | `proofs/20260620_step3_jkl/final_pii_logs_sweep_ead834e.txt` |
+| 2026-06-20T19:51Z | 3 | Pile staging jetable `korrigo_step3_jkl` démontée : conteneurs/volumes/réseaux restants `0`; aucun prune image/volume effectué ; prod active non touchée | `proofs/20260620_step3_jkl/final_staging_teardown_ead834e.txt` |
