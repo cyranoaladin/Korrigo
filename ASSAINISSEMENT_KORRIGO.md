@@ -29,7 +29,7 @@
 ## Tableau de bord (portes franchies)
 
 - [x] **Porte 1** — Point de référence établi
-- [ ] **Porte 2** — Release réconciliée reconstructible validée *(gate central)*
+- [x] **Porte 2** — Release réconciliée reconstructible validée *(gate central)*
 - [ ] **Porte 3** — Prod basculée sans overlay, configuration unifiée
 - [ ] **Porte 4** — Élagage Docker effectué (rollback préservé)
 - [ ] **Porte 5** — Orphelins / zombies / scratch supprimés
@@ -146,6 +146,7 @@
 ## Étape 6 — Orphelins au niveau données
 **Mode : inventaire puis suppression validée.** *(réf. §21.5)*
 
+- [ ] Recette UI/UX par profil admin / correcteur / élève / direction : parcours complets, états vides, états d'erreur, cohérence visuelle, responsive, accessibilité clavier de base
 - [ ] Médias orphelins (fichiers non référencés par un `FileField`) — rapport
 - [ ] Lignes orphelines (copies/annotations/scores/`OCRResult`/sessions expirées) — rapport
 - [ ] État de la purge de rétention (`purge_old_exam_data`) vérifié ; reste-t-il des données > 1 an ?
@@ -163,6 +164,15 @@
 - [ ] `docs/` (normatif) vs `documentation/` (archive) clarifiés ; `docs/INDEX.md` rafraîchi (chiffres périmés)
 - [ ] Code mort détecté : `ruff` (imports inutilisés), `vulture` (Python mort), `ts-prune`/`knip` (exports TS), `depcheck` (dépendances)
 - [ ] Routes/vues Django non câblées, commandes de management inutilisées, composants/routes Vue morts identifiés
+- [ ] **Audit de cohérence FE ↔ BE ↔ DB ↔ nginx ↔ routage** :
+  - [ ] Chaque appel API front correspond à une route DRF réelle, versionnée et autorisée
+  - [ ] Chaque route Vue correspond à un composant réel et à un guard cohérent
+  - [ ] Chaque URL Django correspond à une vue réelle et testée
+  - [ ] Chaque `location` nginx cible un upstream réel ou un répertoire explicitement monté
+  - [ ] Permissions DRF, guards front, menus et profils utilisateur alignés
+  - [ ] Zéro route, composant, endpoint ou service mort non documenté
+- [ ] Cibles connues à trancher : `bilan/services/orchestrator_eam.py` (`BilanOrchestratorEAM` dormant), commande one-shot `create_peer_review_produit_scalaire_g6.py` (examen codé en dur)
+- [ ] Sweep hardcoding : IDs, noms d'examens, groupes/classes, chemins, seuils, tokens et valeurs métier en dur remplacés par config/env ou fixtures explicites
 - [ ] Suppression du code mort confirmé, suite de tests verte
 - [ ] Worktree stabilisé (commits propres ou stash documenté)
 
@@ -193,9 +203,12 @@
 - [ ] CI échoue si le compose contient un montage `overlay/`
 - [ ] CI échoue si `KORRIGO_SHA` n'est pas relié à un commit/tag
 - [ ] Gates `ruff` / `vulture` sur le code mort
-- [ ] Contrôle de cohérence migrations (`django_migrations` vs fichiers — `migrate --check` ne suffit pas)
+- [ ] Contrôle de cohérence d'historique migrations (`django_migrations` vs fichiers, dans les deux sens, toutes apps — `migrate --check` ne suffit pas)
+- [ ] Job PostgreSQL obligatoire pour migrations et contraintes PG-only (les migrations PG-only sont skippées sous SQLite)
+- [ ] Détection bloquante de tout montage `overlay/` ou bind source dans une release/staging/prod candidate
 - [ ] Exigence des labels OCI sur les images publiées
-- [ ] Test de restauration automatisé périodique
+- [ ] Vérification `KORRIGO_SHA` / label OCI `revision` / tag Git / digest GHCR résolvent vers le même commit
+- [ ] Test de restauration automatisé périodique : backup complet → restore pile jetable → health → parité fichiers référencés
 
 > **Porte de sortie 9** — [ ] Dérive structurellement empêchée ; CI verte.
 
@@ -235,3 +248,4 @@
 | 2026-06-20T17:30Z | 2 | Images prod propres publiées GHCR sous tag Git `korrigo-reconcile-20260620-7306c5a`; backend digest `sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8`; nginx digest `sha256:09401293f50173ce8483df7ea7897ba880e6d3b79450955f9eb70c0fd8ebf7fd`; image test dev non publiée | `proofs/assainissement_step2_20260620T131006Z/publish_ghcr_clean_korrigo-reconcile-20260620-7306c5a.txt` |
 | 2026-06-20T17:32Z | I | Sweep confidentialité final : preuves conservées `proof_data_artifact_count=0`, `proof_email_file_count=0`; image dev non publiée; `seed_e2e.py` exclu du contexte Docker volontairement (script dev, non runtime) | `proofs/assainissement_step2_20260620T131006Z/final_pii_sweep_clean_korrigo-reconcile-20260620-7306c5a.txt` |
 | 2026-06-20T17:33Z | 2 | Pile staging jetable démontée : `korrigo-reconcile-p2` containers/volumes/networks restants `0`; aucun prune image/volume effectué | `proofs/assainissement_step2_20260620T131006Z/teardown_staging_clean_korrigo-reconcile-20260620-7306c5a.txt` |
+| 2026-06-20T17:51Z | 2/3 | Validation humaine Porte 2 accordée ; Porte 2 cochée. Critères de sortie enrichis avant Étape 3 : recette UI/UX par profil, audit cohérence FE/BE/DB/nginx/routage, cibles code mort connues, sweep hardcoding, CI migrations PostgreSQL/overlay/OCI/KORRIGO_SHA/restore | `ASSAINISSEMENT_KORRIGO.md` |
