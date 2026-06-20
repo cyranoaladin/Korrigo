@@ -65,7 +65,7 @@ class StudentLoginView(views.APIView):
     permission_classes = [AllowAny]  # Public endpoint - student authentication
     authentication_classes = []  # No auth required, bypass SessionAuth CSRF
 
-    @method_decorator(maybe_ratelimit(key=get_real_ip, rate='30/15m', method='POST', block=False))
+    @method_decorator(maybe_ratelimit(key=get_real_ip, rate='60/15m', method='POST', block=False))
     def post(self, request):
         # Rate limit check — return clear French message instead of generic 403
         if getattr(request, 'limited', False):

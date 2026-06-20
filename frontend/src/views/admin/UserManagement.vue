@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import api from '../../services/api'
 import AppIcon from '../../icons/AppIcon.vue'
+import PasswordResetDialog from '../../components/admin/PasswordResetDialog.vue'
 
 const activeTab = ref('students') // 'students', 'teachers', 'admins'
 const items = ref([])
@@ -174,46 +175,89 @@ const deleteUser = async (user) => {
     }
 }
 
-const resettingUser = ref(null)
-const resettingPassword = ref(false)
+const passwordResetDialog = ref({
+    visible: false,
+    mode: 'user',
+    target: null,
+    targetLabel: '',
+    targetDetail: '',
+    loading: false,
+    successMessage: '',
+    errorMessage: '',
+})
 
-const openResetPasswordModal = async (user) => {
-    if (!confirm(`Voulez-vous vraiment réinitialiser le mot de passe de ${user.username} ?
-
-Un mot de passe temporaire sera généré. L'utilisateur devra le changer à sa prochaine connexion.`)) return
-
-    resettingUser.value = user
-    resettingPassword.value = true
-
-    try {
-        await api.post(`/users/${user.id}/reset-password/`)
-        alert(`Mot de passe réinitialisé pour ${user.username}.\nL'utilisateur devra le changer à sa prochaine connexion.`)
-    } catch (e) {
-        console.error('Password reset failed', e)
-        alert('Erreur réinitialisation: ' + (e.response?.data?.error || e.message))
-    } finally {
-        resettingPassword.value = false
-        resettingUser.value = null
+const closePasswordResetDialog = () => {
+    if (passwordResetDialog.value.loading) return
+    passwordResetDialog.value = {
+        visible: false,
+        mode: 'user',
+        target: null,
+        targetLabel: '',
+        targetDetail: '',
+        loading: false,
+        successMessage: '',
+        errorMessage: '',
     }
 }
 
-const resetStudentPassword = async (student) => {
-    if (!student.date_naissance) {
-        alert("Cet élève n'a pas de date de naissance enregistrée.")
-        return
+const openResetPasswordModal = (user) => {
+    passwordResetDialog.value = {
+        visible: true,
+        mode: 'user',
+        target: user,
+        targetLabel: user.username,
+        targetDetail: user.email || 'Utilisateur sans courriel renseigné',
+        loading: false,
+        successMessage: '',
+        errorMessage: '',
     }
-    
-    if (!confirm(`Réinitialiser le mot de passe de ${student.last_name} ${student.first_name} à sa date de naissance (${student.date_naissance}) ?\n\nL'élève devra changer son mot de passe à la prochaine connexion.`)) {
+}
+
+const resetStudentPassword = (student) => {
+    if (!student.date_naissance) {
+        passwordResetDialog.value = {
+            visible: true,
+            mode: 'student',
+            target: student,
+            targetLabel: `${student.last_name} ${student.first_name}`,
+            targetDetail: student.class_name || 'Élève',
+            loading: false,
+            successMessage: '',
+            errorMessage: "Cet élève n'a pas de date de naissance enregistrée.",
+        }
         return
     }
 
+    passwordResetDialog.value = {
+        visible: true,
+        mode: 'student',
+        target: student,
+        targetLabel: `${student.last_name} ${student.first_name}`,
+        targetDetail: `Date de naissance enregistrée : ${student.date_naissance}`,
+        loading: false,
+        successMessage: '',
+        errorMessage: '',
+    }
+}
+
+const confirmPasswordReset = async () => {
+    const dialog = passwordResetDialog.value
+    if (!dialog.target || dialog.loading || dialog.successMessage) return
+
+    dialog.loading = true
+    dialog.errorMessage = ''
     try {
-        await api.post('/students/admin/reset-password/', { student_id: student.id })
-        alert(`Mot de passe réinitialisé avec succès.\nL'élève devra le changer à la prochaine connexion.`)
+        if (dialog.mode === 'student') {
+            await api.post('/students/admin/reset-password/', { student_id: dialog.target.id })
+        } else {
+            await api.post(`/users/${dialog.target.id}/reset-password/`)
+        }
+        dialog.successMessage = "Mot de passe réinitialisé avec succès. L'utilisateur devra le changer à sa prochaine connexion."
     } catch (err) {
         console.error('Password reset failed', err)
-        const msg = err.response?.data?.error || 'Erreur lors de la réinitialisation du mot de passe.'
-        alert(msg)
+        dialog.errorMessage = err.response?.data?.error || 'Erreur lors de la réinitialisation du mot de passe.'
+    } finally {
+        dialog.loading = false
     }
 }
 
@@ -381,7 +425,7 @@ const resetStudentPassword = async (student) => {
                 <button
                   class="btn-sm btn-warning btn-with-icon"
                   title="Réinitialiser MDP"
-                  :disabled="resettingPassword"
+                  :disabled="passwordResetDialog.loading"
                   @click="openResetPasswordModal(item)"
                 >
                   <AppIcon name="reset" :size="14" />
@@ -481,6 +525,18 @@ const resetStudentPassword = async (student) => {
         </div>
       </div>
     </div>
+
+    <PasswordResetDialog
+      :visible="passwordResetDialog.visible"
+      :mode="passwordResetDialog.mode"
+      :target-label="passwordResetDialog.targetLabel"
+      :target-detail="passwordResetDialog.targetDetail"
+      :loading="passwordResetDialog.loading"
+      :success-message="passwordResetDialog.successMessage"
+      :error-message="passwordResetDialog.errorMessage"
+      @confirm="confirmPasswordReset"
+      @close="closePasswordResetDialog"
+    />
 
   </div>
 </template>

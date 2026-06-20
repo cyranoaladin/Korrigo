@@ -16,25 +16,7 @@ const expandedExercises = ref({})
 const activeTab = ref('scores')
 const pdfDirectUrl = ref(null)
 
-// Détection du niveau de l'élève
-const isTerminale = computed(() => {
-  const cn = auth.user?.class_name || ''
-  return /^T\./i.test(cn) || /terminale/i.test(cn) || /^tle$/i.test(cn)
-})
-const isTroisieme = computed(() => {
-  const cn = auth.user?.class_name || ''
-  return /^3\./.test(cn) || /troisième/i.test(cn) || /troisieme/i.test(cn) || /^3[eèê]/i.test(cn)
-})
-const isPremiere = computed(() => {
-  const cn = auth.user?.class_name || ''
-  return /^1\./.test(cn) || /première/i.test(cn) || /premiere/i.test(cn) || /^1[eèê]/i.test(cn)
-})
-const levelTitle = computed(() => {
-  if (isTerminale.value) return 'Bac Blanc — Espace Résultats'
-  if (isTroisieme.value) return 'DNB — Espace Résultats'
-  if (isPremiere.value) return 'EAM — Espace Résultats'
-  return 'Espace Résultats'
-})
+const levelTitle = 'Espace Résultats'
 
 const currentExerciseConfig = computed(() => {
   if (selectedCopy.value?.exercise_config && Object.keys(selectedCopy.value.exercise_config).length > 0) {
@@ -715,3 +697,4 @@ onMounted(() => { fetchCopies() })
     </main>
   </div>
 </template>
+

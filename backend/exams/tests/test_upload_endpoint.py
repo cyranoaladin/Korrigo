@@ -727,6 +727,9 @@ class TestIndividualPDFUpload:
         copy = Copy.objects.get(id=uploaded['copy_id'])
         assert copy.status == Copy.Status.READY
         assert copy.is_identified is False
+        assert copy.booklets.count() == 1
+        booklet = copy.booklets.get()
+        assert len(booklet.pages_images) == 4
     
     def test_upload_multiple_individual_pdfs(self, teacher_client):
         """
@@ -754,9 +757,11 @@ class TestIndividualPDFUpload:
         assert ExamPDF.objects.filter(exam=exam).count() == 3
         assert Copy.objects.filter(exam=exam).count() == 3
     
-    def test_upload_to_batch_mode_exam_rejected(self, teacher_client):
+    def test_upload_to_batch_mode_exam_accepts_individual_import(self, teacher_client):
         """
-        Uploading individual PDFs to BATCH_A3 exam should fail.
+        Existing metadata-only exams may still have the default BATCH_A3 mode.
+        The explicit individual import endpoint should accept them to keep the
+        admin workflow frictionless.
         """
         from exams.models import Exam
         exam = Exam.objects.create(
@@ -774,8 +779,8 @@ class TestIndividualPDFUpload:
             format='multipart'
         )
         
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert 'INDIVIDUAL_A4' in response.data['error']
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['total_copies'] == 1
     
     def test_upload_without_files_rejected(self, teacher_client):
         """

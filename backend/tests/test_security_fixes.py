@@ -10,6 +10,7 @@ P1.5 — MetricsView: IsKorrigoAdmin (pas IsAdminUser/is_staff seul)
 """
 import io
 import uuid
+from datetime import date
 
 from django.contrib.auth.models import User, Group
 from django.test import TestCase
@@ -17,6 +18,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from core.auth import UserRole, create_user_roles
+from core.models import UserProfile
 from exams.models import Exam, Copy
 from students.models import Student
 
@@ -123,6 +125,18 @@ class PasswordResetNoLeakTest(TestCase):
             self.assertNotIn('password', data,
                              "password must not appear in response")
 
+    def test_user_reset_changes_password_hash_and_forces_password_change(self):
+        c = APIClient()
+        _auth(c, self.admin)
+
+        r = c.post(f'/api/users/{self.target.id}/reset-password/')
+
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.target.refresh_from_db()
+        self.assertFalse(self.target.check_password('testpass123'))
+        profile = UserProfile.objects.get(user=self.target)
+        self.assertTrue(profile.must_change_password)
+
     def test_student_reset_no_password_in_response(self):
         create_user_roles()
         student_user = _make_user('pr_student_user', UserRole.STUDENT)
@@ -178,6 +192,24 @@ class AdminResetStudentPasswordRBACTest(TestCase):
         r = c.post('/api/students/admin/reset-password/', {'student_id': self.student.id})
         self.assertNotEqual(r.status_code, status.HTTP_403_FORBIDDEN,
                             "Admin should be able to reset student password")
+
+    def test_admin_reset_student_password_sets_birth_date_password_and_force_change(self):
+        self.student.date_naissance = date(2006, 1, 20)
+        self.student.user.set_password('old-password')
+        self.student.user.save()
+        self.student.save()
+
+        c = APIClient()
+        _auth(c, self.admin)
+        r = c.post('/api/students/admin/reset-password/', {'student_id': self.student.id})
+
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.student.user.refresh_from_db()
+        self.assertTrue(self.student.user.check_password('20012006'))
+        profile = UserProfile.objects.get(user=self.student.user)
+        self.assertTrue(profile.must_change_password)
+        self.assertNotIn('new_password', r.json())
+        self.assertNotIn('temporary_password', r.json())
 
     def test_anonymous_cannot_reset_student_password(self):
         c = APIClient()

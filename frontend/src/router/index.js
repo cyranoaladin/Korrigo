@@ -352,6 +352,12 @@ const routes = [
         component: () => import('../views/corrector/StudentBilan.vue'),
         meta: { requiresAuth: true, role: ['Teacher', 'Admin'] }
     },
+    {
+        path: '/corrector/peer-review/:peerReviewId',
+        name: 'TeacherPeerReviewDetail',
+        component: () => import('../views/peer/PeerReviewDesk.vue'),
+        meta: { requiresAuth: true, role: ['Teacher', 'Admin'], mode: 'teacher' }
+    },
 
     // ── Student routes ──
     {
@@ -363,6 +369,12 @@ const routes = [
         name: 'StudentDashboard',
         component: () => import('../views/student/ResultView.vue'),
         meta: { requiresAuth: true, role: 'Student', title: 'Mon Espace Élève' }
+    },
+    {
+        path: '/student/peer-review/:peerReviewId',
+        name: 'StudentPeerReviewDesk',
+        component: () => import('../views/peer/PeerReviewDesk.vue'),
+        meta: { requiresAuth: true, role: 'Student', title: 'Correction participative', mode: 'student' }
     },
     // Legacy redirect
     {

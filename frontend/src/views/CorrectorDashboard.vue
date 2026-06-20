@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/auth'
 import { useExamStore } from '../stores/exam'
 import { useRouter } from 'vue-router'
 import gradingApi from '../services/gradingApi'
+import peerReviewApi from '../services/peerReviewApi'
 import api from '../services/api'
 import JuryReportsModal from '../components/JuryReportsModal.vue'
 import ExamTypeSelectionModal from '../components/ExamTypeSelectionModal.vue'
@@ -52,6 +53,7 @@ const statsLoading = computed(() =>
 const myStudents = ref([])
 const myStudentsLoading = ref(false)
 const allExams = ref([])
+const peerReviewsByExam = ref({})
 const isExporting = ref(null) // ID or group_name being exported
 const exportError = ref(null)
 
@@ -218,10 +220,26 @@ const fetchAllExams = async () => {
             params: { exam_type_id: selectedExamType.value.id }
         })
         allExams.value = normalizeCollectionResponse(response.data)
+        fetchPeerReviewsForExams(allExams.value)
     } catch (err) {
         console.error("Failed to fetch all exams", err)
         allExams.value = []
     }
+}
+
+const fetchPeerReviewsForExams = async (exams) => {
+    const nextMap = {}
+    try {
+        await Promise.all((exams || []).map(async (exam) => {
+            try {
+                const rows = await peerReviewApi.listTeacherPeerReviews(exam.id)
+                if (Array.isArray(rows) && rows.length > 0) nextMap[exam.id] = rows
+            } catch {
+                // Peer-review supervision is optional per exam.
+            }
+        }))
+        peerReviewsByExam.value = nextMap
+    } catch { /* peer review fetch is best-effort */ }
 }
 
 const fetchMyStudents = async () => {
@@ -436,6 +454,10 @@ const goToStudentBilan = (studentId) => {
 
 const goToQuestionnaire = () => {
     router.push('/corrector/questionnaire')
+}
+
+const goToPeerReview = (peerReviewId) => {
+    router.push(`/corrector/peer-review/${peerReviewId}`)
 }
 
 const goToQuestionnaireBilan = () => {
@@ -680,6 +702,41 @@ const canSeeQuestionnaire = computed(() =>
                 >
                   <AppIcon :name="isExporting === `${group.examId}_null` ? 'loader' : 'download'" :size="14" class="inline" /> Export
                 </button>
+              </div>
+            </div>
+
+            <div
+              v-if="peerReviewsByExam[group.examId]?.length"
+              class="peer-review-panel"
+            >
+              <div class="peer-review-header">
+                <div>
+                  <h3>Corrections participatives</h3>
+                  <p>Corrections élèves séparées de la correction officielle.</p>
+                </div>
+                <span>{{ peerReviewsByExam[group.examId].length }} correction(s)</span>
+              </div>
+              <div class="peer-review-table">
+                <div class="peer-review-row peer-review-row-head">
+                  <span>Copie anonymisée</span>
+                  <span>Élève correcteur</span>
+                  <span>Statut</span>
+                  <span>Note proposée</span>
+                  <span>Action</span>
+                </div>
+                <div
+                  v-for="peerReview in peerReviewsByExam[group.examId]"
+                  :key="peerReview.id"
+                  class="peer-review-row"
+                >
+                  <strong>{{ peerReview.anonymous_id }}</strong>
+                  <span>{{ peerReview.assigned_student?.name || '—' }}</span>
+                  <span>{{ peerReview.status === 'FINALIZED' ? 'Finalisée' : peerReview.status === 'IN_PROGRESS' ? 'En cours' : 'Non commencée' }}</span>
+                  <span>{{ peerReview.total_score !== null && peerReview.total_score !== undefined ? Number(peerReview.total_score).toFixed(2) + '/20' : '—' }}</span>
+                  <button class="btn-action secondary-peer" @click="goToPeerReview(peerReview.id)">
+                    Ouvrir
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1170,6 +1227,153 @@ const canSeeQuestionnaire = computed(() =>
   font-weight: 600; cursor: pointer; transition: background 0.2s;
 }
 .btn-my-students-inline:hover { background: #4f46e5; }
+
+.peer-review-panel {
+  background: #fff;
+  border: 1px solid #dbe3ef;
+  border-top: 0;
+  padding: 1rem;
+}
+.peer-review-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.peer-review-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #0f172a;
+}
+.peer-review-header p {
+  margin: 0.15rem 0 0;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+.peer-review-header span {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.peer-review-table {
+  display: grid;
+  gap: 1px;
+  background: #e2e8f0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.peer-review-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  background: #fff;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.84rem;
+}
+.peer-review-row-head {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.secondary-peer {
+  background: #334155;
+  padding: 0.4rem 0.75rem;
+  min-height: 44px;
+}
+.secondary-peer:hover { background: #1e293b; }
+
+@media (max-width: 900px) {
+  .peer-review-panel {
+    padding: 0.85rem;
+  }
+
+  .peer-review-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .peer-review-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .peer-review-row-head {
+    display: none;
+  }
+
+  .peer-review-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.85rem;
+    font-size: 0.9rem;
+  }
+
+  .peer-review-row > strong {
+    font-size: 1rem;
+    color: #0f172a;
+  }
+
+  .peer-review-row > span {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: baseline;
+    line-height: 1.35;
+  }
+
+  .peer-review-row > span:nth-of-type(1)::before {
+    content: "Élève";
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .peer-review-row > span:nth-of-type(2)::before {
+    content: "Statut";
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .peer-review-row > span:nth-of-type(3)::before {
+    content: "Note";
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .secondary-peer {
+    width: 100%;
+    min-height: 46px;
+    margin-top: 0.25rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .peer-review-row > span {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+}
 
 .exam-group .copy-card { border-top: none; border-radius: 0; border-color: #e2e8f0; }
 .exam-group .copy-card:last-child { border-radius: 0 0 8px 8px; }

@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext_lazy as _
 from django.utils.decorators import method_decorator
+from django.utils import timezone
 from django.db import transaction
 from django.db.models import Count
 from core.utils.ratelimit import maybe_ratelimit
@@ -269,13 +270,6 @@ class IndividualPDFUploadView(APIView):
         logger = logging.getLogger(__name__)
         exam = get_object_or_404(Exam, id=exam_id)
         
-        # Verify exam is in INDIVIDUAL_A4 mode
-        if exam.upload_mode != Exam.UploadMode.INDIVIDUAL_A4:
-            return Response(
-                {"error": _("Cet examen n'est pas en mode INDIVIDUAL_A4. Utilisez l'endpoint d'upload standard.")},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
         # Get all uploaded PDF files (can be multiple)
         uploaded_files = request.FILES.getlist('pdf_files')
         
@@ -298,6 +292,7 @@ class IndividualPDFUploadView(APIView):
         
         try:
             with transaction.atomic():
+                copy_field_names = {field.name for field in Copy._meta.fields}
                 for i, pdf_file in enumerate(uploaded_files):
                     # Extract student identifier from filename (optional)
                     filename = pdf_file.name
@@ -310,12 +305,38 @@ class IndividualPDFUploadView(APIView):
                         student_identifier=student_identifier
                     )
                     
+                    copy_kwargs = {
+                        'exam': exam,
+                        'anonymous_id': generate_anonymous_id(exam, i),
+                        'status': Copy.Status.READY,
+                        'is_identified': False,
+                        'pdf_source': exam_pdf.pdf_file,
+                        'validated_at': timezone.now(),
+                    }
+                    if 'pdf_regeneration_pending' in copy_field_names:
+                        copy_kwargs['pdf_regeneration_pending'] = False
+
                     copy = Copy.objects.create(
+                        **copy_kwargs
+                    )
+
+                    pages_images = GradingService._rasterize_pdf(copy)
+                    if not pages_images:
+                        raise ValueError(f"Aucune page produite pour {filename}.")
+
+                    booklet = Booklet.objects.create(
                         exam=exam,
-                        anonymous_id=generate_anonymous_id(exam, i),
-                        status=Copy.Status.READY,
-                        is_identified=False,
-                        pdf_source=exam_pdf.pdf_file
+                        start_page=1,
+                        end_page=len(pages_images),
+                        pages_images=pages_images,
+                    )
+                    copy.booklets.add(booklet)
+
+                    GradingEvent.objects.create(
+                        copy=copy,
+                        action=GradingEvent.Action.IMPORT,
+                        actor=request.user,
+                        metadata={'filename': filename, 'pages': len(pages_images)},
                     )
                     
                     created_copies.append({
@@ -947,6 +968,7 @@ class StudentCopiesView(generics.ListAPIView):
                 "exercise_config": exercise_config,
                 "q_max": q_max,
                 "question_map": question_map,
+                "grading_structure": copy.exam.grading_structure or [],
             })
         return Response(data)
 class ExamSourceUploadView(APIView):

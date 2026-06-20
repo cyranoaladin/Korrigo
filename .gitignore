@@ -138,8 +138,20 @@ enseignants.csv
 # Sensitive data dumps
 korrigo_recovery*.json
 *.json.backup
+*.dump
+*.sql
+*.sql.gz
+db_*.dump
+media_*.tar.gz
+copies_data.json
+pages_manifest.json
+exams_bareme.json
+summary.json
+korrigo_backup_*/
+korrigo-restore-*/
 
 # Student exam data docs
+DS_NSI_Premiere_Algo/
 copies_DNB_BLANC.md
 stat_*.md
 scan_DNB_*/

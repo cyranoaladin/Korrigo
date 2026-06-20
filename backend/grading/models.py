@@ -540,3 +540,210 @@ class QuestionnaireResponse(models.Model):
 
     def __str__(self):
         return f"Questionnaire {self.user.username}"
+
+
+class PeerReviewCorrection(models.Model):
+    """
+    Correction participative realisee par un eleve.
+
+    Cette table est volontairement separee de Copy/Score/Annotation afin que
+    l'activite pedagogique ne modifie jamais la correction officielle.
+    """
+    class Status(models.TextChoices):
+        NOT_STARTED = 'NOT_STARTED', _("Non commencée")
+        IN_PROGRESS = 'IN_PROGRESS', _("En cours")
+        FINALIZED = 'FINALIZED', _("Finalisée")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    exam = models.ForeignKey(
+        'exams.Exam',
+        on_delete=models.PROTECT,
+        related_name='peer_review_corrections',
+        verbose_name=_("Examen")
+    )
+    source_copy = models.ForeignKey(
+        Copy,
+        on_delete=models.PROTECT,
+        related_name='peer_review_corrections',
+        verbose_name=_("Copie source officielle")
+    )
+    assigned_student = models.ForeignKey(
+        'students.Student',
+        on_delete=models.PROTECT,
+        related_name='assigned_peer_reviews',
+        verbose_name=_("Élève correcteur")
+    )
+    assigned_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='assigned_peer_reviews',
+        verbose_name=_("Utilisateur élève correcteur")
+    )
+    supervising_teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='supervised_peer_reviews',
+        verbose_name=_("Enseignant superviseur")
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.NOT_STARTED,
+        verbose_name=_("Statut")
+    )
+    scores_data = models.JSONField(
+        default=dict,
+        blank=True,
+        validators=[validate_scores_data],
+        verbose_name=_("Notes proposées")
+    )
+    global_appreciation = models.TextField(blank=True, verbose_name=_("Appréciation globale proposée"))
+    final_comment = models.TextField(blank=True, verbose_name=_("Commentaire final proposé"))
+    started_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Date de début"))
+    finalized_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Date de finalisation"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+
+    class Meta:
+        verbose_name = _("Correction participative")
+        verbose_name_plural = _("Corrections participatives")
+        constraints = [
+            models.UniqueConstraint(fields=['exam', 'source_copy'], name='uniq_peer_review_exam_source_copy'),
+            models.UniqueConstraint(fields=['exam', 'assigned_student'], name='uniq_peer_review_exam_assigned_student'),
+            models.CheckConstraint(
+                check=models.Q(status__in=['NOT_STARTED', 'IN_PROGRESS', 'FINALIZED']),
+                name='check_peer_review_status_valid',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['exam', 'status'], name='idx_peer_review_exam_status'),
+            models.Index(fields=['assigned_user', 'status'], name='idx_peer_review_user_status'),
+            models.Index(fields=['supervising_teacher', 'exam'], name='idx_peer_review_teacher_exam'),
+        ]
+
+    @property
+    def total_score(self):
+        return sum(float(v) for v in (self.scores_data or {}).values() if v is not None and v != '')
+
+    def clean(self):
+        super().clean()
+        if self.source_copy_id and self.exam_id and self.source_copy.exam_id != self.exam_id:
+            raise ValidationError("La copie source doit appartenir au même examen.")
+        if self.source_copy_id and self.assigned_student_id and self.source_copy.student_id == self.assigned_student_id:
+            raise ValidationError("Un élève ne peut pas corriger sa propre copie.")
+        if self.assigned_student_id and self.assigned_user_id and self.assigned_student.user_id != self.assigned_user_id:
+            raise ValidationError("assigned_user doit correspondre au compte de assigned_student.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Peer review {self.source_copy.anonymous_id} -> {self.assigned_user}"
+
+
+class PeerReviewAnnotation(models.Model):
+    """
+    Annotation participative separee des annotations officielles.
+    Coordonnees normalisees [0,1], meme convention que Annotation.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    peer_review = models.ForeignKey(
+        PeerReviewCorrection,
+        on_delete=models.CASCADE,
+        related_name='annotations',
+        verbose_name=_("Correction participative")
+    )
+    page_index = models.PositiveIntegerField(verbose_name=_("Index de page"))
+    x = models.FloatField(verbose_name=_("Position X normalisée"))
+    y = models.FloatField(verbose_name=_("Position Y normalisée"))
+    w = models.FloatField(default=0.1, verbose_name=_("Largeur normalisée"))
+    h = models.FloatField(default=0.1, verbose_name=_("Hauteur normalisée"))
+    content = models.TextField(blank=True, verbose_name=_("Contenu"))
+    type = models.CharField(
+        max_length=20,
+        choices=Annotation.Type.choices,
+        default=Annotation.Type.COMMENTAIRE,
+        verbose_name=_("Type")
+    )
+    color = models.CharField(max_length=30, blank=True, verbose_name=_("Couleur"))
+    metadata = models.JSONField(default=dict, blank=True, verbose_name=_("Métadonnées"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+
+    class Meta:
+        verbose_name = _("Annotation participative")
+        verbose_name_plural = _("Annotations participatives")
+        ordering = ['page_index', 'created_at']
+        indexes = [
+            models.Index(fields=['peer_review', 'page_index'], name='idx_peer_ann_review_page'),
+        ]
+
+    def __str__(self):
+        return f"Peer annotation {self.type} page {self.page_index}"
+
+
+class PeerReviewQuestionRemark(models.Model):
+    """Remarque participative par question, separee des remarques officielles."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    peer_review = models.ForeignKey(
+        PeerReviewCorrection,
+        on_delete=models.CASCADE,
+        related_name='question_remarks',
+        verbose_name=_("Correction participative")
+    )
+    question_id = models.CharField(max_length=255, verbose_name=_("ID de question"))
+    remark = models.TextField(blank=True, verbose_name=_("Remarque"))
+    points_awarded = models.FloatField(null=True, blank=True, verbose_name=_("Points proposés"))
+    max_points = models.FloatField(null=True, blank=True, verbose_name=_("Maximum"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Date de création"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Date de modification"))
+
+    class Meta:
+        verbose_name = _("Remarque participative")
+        verbose_name_plural = _("Remarques participatives")
+        constraints = [
+            models.UniqueConstraint(fields=['peer_review', 'question_id'], name='uniq_peer_remark_review_question'),
+        ]
+        indexes = [
+            models.Index(fields=['peer_review', 'question_id'], name='idx_peer_remark_review_q'),
+        ]
+
+    def __str__(self):
+        return f"Peer remark {self.question_id}"
+
+
+class PeerReviewEvent(models.Model):
+    """Journal leger des actions sur corrections participatives."""
+    class Action(models.TextChoices):
+        CREATE = 'CREATE', _("Création")
+        SAVE = 'SAVE', _("Sauvegarde")
+        FINALIZE = 'FINALIZE', _("Finalisation")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    peer_review = models.ForeignKey(
+        PeerReviewCorrection,
+        on_delete=models.CASCADE,
+        related_name='events',
+        verbose_name=_("Correction participative")
+    )
+    action = models.CharField(max_length=20, choices=Action.choices, verbose_name=_("Action"))
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='peer_review_events',
+        verbose_name=_("Acteur")
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name=_("Horodatage"))
+    metadata = models.JSONField(default=dict, blank=True, verbose_name=_("Métadonnées"))
+
+    class Meta:
+        verbose_name = _("Événement de correction participative")
+        verbose_name_plural = _("Événements de correction participative")
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['peer_review', 'timestamp'], name='idx_peer_event_review_time'),
+        ]
+
+    def __str__(self):
+        return f"{self.action} - {self.peer_review_id}"

@@ -5,6 +5,11 @@ from .views import StudentListView, StudentLoginView, StudentLogoutView, Student
 # exams.views imports students.models inside a method to avoid circularity.
 # We can import exams.views here safely usually.
 from exams.views import StudentCopiesView
+from grading.views_peer_review import (
+    StudentPeerReviewDetailView,
+    StudentPeerReviewFinalizeView,
+    StudentPeerReviewListView,
+)
 
 urlpatterns = [
     path('', StudentListView.as_view(), name='student-list'),
@@ -12,6 +17,10 @@ urlpatterns = [
     path('logout/', StudentLogoutView.as_view(), name='student-logout'),
     path('me/', StudentMeView.as_view(), name='student-me'),
     path('copies/', StudentCopiesView.as_view(), name='student-copies'),
+    path('peer-reviews/', StudentPeerReviewListView.as_view(), name='student-peer-review-list'),
+    path('peer-reviews/<uuid:pk>/', StudentPeerReviewDetailView.as_view(), name='student-peer-review-detail'),
+    path('peer-reviews/<uuid:pk>/save/', StudentPeerReviewDetailView.as_view(), name='student-peer-review-save'),
+    path('peer-reviews/<uuid:pk>/finalize/', StudentPeerReviewFinalizeView.as_view(), name='student-peer-review-finalize'),
     path('import/', StudentImportView.as_view(), name='student-import'),
     path('change-password/', StudentChangePasswordView.as_view(), name='student-change-password'),
     path('admin/reset-password/', AdminResetStudentPasswordView.as_view(), name='admin-reset-student-password'),

@@ -129,11 +129,16 @@ class ProtectedMediaView(APIView):
         except Student.DoesNotExist:
             return False
 
-        # Get all copy IDs for this student where results are released
+        # Get all copy IDs for this student where results are visible.
+        # Aligned with StudentCopiesView: NULL results_released_at means no
+        # embargo (copy visible immediately); non-null means check <= now.
+        from django.db.models import Q
+        from django.utils import timezone
         student_copies = Copy.objects.filter(
+            Q(exam__results_released_at__isnull=True)
+            | Q(exam__results_released_at__lte=timezone.now()),
             student=student,
             status=Copy.Status.FINALIZED,
-            exam__results_released_at__isnull=False,
         )
 
         # Check if file_path matches any booklet page or final PDF
@@ -146,5 +151,21 @@ class ProtectedMediaView(APIView):
             for booklet in copy.booklets.all():
                 if booklet.pages_images and file_path in booklet.pages_images:
                     return True
+
+        # Peer-review activity: a student may access the anonymized source
+        # pages/PDF of the copy explicitly assigned for participative grading.
+        try:
+            from grading.models import PeerReviewCorrection
+            from grading.peer_review_media import is_peer_review_anonymized_path_for_copy
+
+            peer_source_copies = Copy.objects.filter(
+                peer_review_corrections__assigned_student=student,
+                peer_review_corrections__assigned_user=user,
+            ).distinct()
+            for copy in peer_source_copies:
+                if is_peer_review_anonymized_path_for_copy(file_path, copy.id):
+                    return True
+        except (ImportError, ValueError, TypeError):
+            logger.warning("Peer review media permission check failed", exc_info=True)
 
         return False
