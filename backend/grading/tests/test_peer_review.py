@@ -401,14 +401,24 @@ class PeerReviewCommandTestCase(TestCase):
             )
 
     def test_command_dry_run_creates_nothing_then_real_run_is_idempotent(self):
-        call_command("create_peer_review_produit_scalaire_g6", "--dry-run")
+        call_command(
+            "create_peer_review_produit_scalaire_g6",
+            "--dry-run",
+            supervising_teacher_email=self.teacher.email,
+        )
         self.assertEqual(PeerReviewCorrection.objects.filter(exam=self.exam).count(), 0)
 
-        call_command("create_peer_review_produit_scalaire_g6")
+        call_command(
+            "create_peer_review_produit_scalaire_g6",
+            supervising_teacher_email=self.teacher.email,
+        )
         self.assertEqual(PeerReviewCorrection.objects.filter(exam=self.exam).count(), 23)
         for peer_review in PeerReviewCorrection.objects.select_related("source_copy", "assigned_student"):
             self.assertNotEqual(peer_review.source_copy.student_id, peer_review.assigned_student_id)
             self.assertEqual(peer_review.scores_data, {})
 
-        call_command("create_peer_review_produit_scalaire_g6")
+        call_command(
+            "create_peer_review_produit_scalaire_g6",
+            supervising_teacher_email=self.teacher.email,
+        )
         self.assertEqual(PeerReviewCorrection.objects.filter(exam=self.exam).count(), 23)

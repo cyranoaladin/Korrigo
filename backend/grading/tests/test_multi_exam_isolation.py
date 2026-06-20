@@ -218,11 +218,13 @@ def test_dispatch_bac_does_not_touch_dnb_copies(bac_exam, dnb_exam, corrector_ba
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_copy_statuses_are_exactly_five_values(bac_exam):
-    """Les statuts valides sont READY, LOCKED, IN_PROGRESS, GRADED, FINALIZED."""
+def test_copy_statuses_are_exactly_three_values(bac_exam):
+    """Les statuts valides sont READY, IN_PROGRESS, FINALIZED."""
     valid_statuses = {c[0] for c in Copy.Status.choices}
-    assert valid_statuses == {"READY", "LOCKED", "IN_PROGRESS", "GRADED", "FINALIZED"}
+    assert valid_statuses == {"READY", "IN_PROGRESS", "FINALIZED"}
     # Aucun ancien statut ne doit exister
     assert "STAGING" not in valid_statuses
+    assert "LOCKED" not in valid_statuses
+    assert "GRADED" not in valid_statuses
     assert "GRADING_IN_PROGRESS" not in valid_statuses
     assert "GRADING_FAILED" not in valid_statuses
