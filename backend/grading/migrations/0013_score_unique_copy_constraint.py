@@ -18,7 +18,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('grading', '0012_annotation_bank_and_documents'),
+        ('grading', '0013_alter_annotation_type'),
     ]
 
     operations = [

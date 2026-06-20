@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('grading', '0019_reconcile_annotation_types_french'),
+        ('grading', '0020_alter_annotation_type'),
     ]
 
     operations = [

@@ -28,13 +28,15 @@ Etat observe:
 - La DB restauree depuis StorageBox marque `exams.0038`, `0039`, `0040`, `0041` comme appliquees.
 - Le schema live restaure expose une contrainte physique a 3 statuts: `READY`, `IN_PROGRESS`, `FINALIZED`.
 
-Le controle complet d'historique doit comparer `django_migrations` restaure avec les fichiers presents dans l'image propre sur toutes les apps. La decision attendue est:
+Le controle complet d'historique compare `django_migrations` restaure avec les fichiers presents dans l'image propre sur toutes les apps. La decision attendue est:
 
 - aucune migration appliquee en DB sans fichier dans l'image;
 - aucune migration fichier inattendue en attente, sauf `exams.0042`, `exams.0043`, `grading.0028`;
 - aucune migration fantome expliquant le passage de 5 a 3 statuts.
 
 Si ce controle confirme l'absence de migration fantome, la cause formelle est un drift physique non trace par `django_migrations` (probablement SQL manuel ou artefact de deploiement historique non versionne). `exams.0043_reconcile_copy_status_constraint.py` est alors la reconciliation volontaire de l'etat final live dans le graphe Django.
+
+Le controle exhaustif a trouve deux entrees appliquees sans fichier dans `grading`: `0013_alter_annotation_type` et `0020_alter_annotation_type`. Elles ne concernent pas `exams.0038` et ne changent pas les contraintes physiques PostgreSQL; elles portent sur l'etat Django des choices `Annotation.type`. Elles sont reintegrees comme fichiers canoniques et les migrations voisines sont linearisees pour qu'une base vide et la DB live partagent le meme graphe.
 
 ## Contrainte `grading.0028`
 
