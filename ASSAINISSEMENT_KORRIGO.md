@@ -121,7 +121,7 @@
 - [x] One-shot migration : preuve staging que `docker compose run --rm --no-deps --entrypoint python backend` hérite de `REDIS_PASSWORD`, ping Redis AUTH, puis `migrate`/`migrate --check` OK
 - [x] Verrou commit image : labels OCI des images déployées doivent pointer vers `1958681b082402e06d0f463e685d8a9895c460c5`; aucun code runtime ne doit avoir divergé après ce commit. Le HEAD Git de déploiement peut être postérieur uniquement pour doc/config digests/runbook.
 - [x] Préparation reprise sans Git : prod historique confirmée non-Git ; voie retenue = clone propre dans `RELEASE_DIR`, legacy intact ; Étape 0 ajoutée pour constituer un `.env` complet hors dépôt avant toute reprise de bascule
-- [ ] Pré-requis prod à fournir avant reprise : `/etc/korrigo/korrigo.env` complet, hors dépôt, en `600`, avec secrets neufs générés par l'administrateur
+- [ ] Pré-requis prod à vérifier avant reprise : `/var/www/labomaths/korrigo/.env` complété par l'administrateur, en `600`, avec secrets neufs présents, clés interdites absentes et aucun doublon
 - [x] Alias silencieux `n_copies_graded` supprimé : statut métier canonique = `FINALIZED`
 - [x] Sweep logs RGPD : backend/celery/entrypoint/nginx sans email, secret ni identifiant de probe en clair
 - [x] Staging : redémarrage backend/celery/celery-beat/nginx + health + parcours HTTP par rôle `OK`
@@ -134,7 +134,7 @@ Table de séquence. Chaque étape s'arrête après son critère de passage et at
 
 | Étape | Action | Commande clé | Critère de passage | Arrêt |
 |---|---|---|---|---|
-| 0 | Constituer et vérifier l'env prod | admin crée `/etc/korrigo/korrigo.env`, contrôles présence/absence sans valeurs | toutes clés obligatoires présentes, secrets neufs présents, clés interdites absentes, fichier `600` | attendre `go étape 1` |
+| 0 | Vérifier le `.env` prod complété | contrôles présence/absence sur `/var/www/labomaths/korrigo/.env`, sans valeurs | toutes clés obligatoires présentes, secrets neufs présents, clés interdites absentes, fichier `600`, aucun doublon | attendre `go étape 1` |
 | 1 | Clone propre + préflight | `git clone/fetch` dans `RELEASE_DIR`, contrôles digest/OCI | disque OK, clone propre, compose final, images OCI `revision=1958681...`, DB/Redis IDs inchangés | attendre `go étape 2` |
 | 2 | Gel applicatif | `$COMPOSE stop nginx celery-beat celery` | nginx inaccessible, backend/db/redis encore disponibles, aucun worker actif | attendre `go étape 3` |
 | 3 | Backup ancien état | `pg_dump`, exports JSON, archive média, GPG, StorageBox | backup chiffré, checksums OK, média listable, JSON conteneur supprimés | attendre `go étape 4` |
@@ -148,13 +148,13 @@ Table de séquence. Chaque étape s'arrête après son critère de passage et at
 | 11 | Vérification prod | health, Redis, Celery, médias, logs, parcours rôles | critères de succès chiffrés atteints, aucun critère rollback | attendre validation Porte 3 |
 | R | Rollback si critère bloquant | stop app, `DROP/CREATE DATABASE`, restore dump, images Porte 2 | health rollback OK, schéma ancien prouvé (`LOCKED/GRADED`, default 0042 absent) | attendre décision humaine |
 
-### Étape 0 — Constitution du `.env` prod complet
+### Étape 0 — Vérification du `.env` prod complet
 
-Le `.env` final est constitué par l'administrateur, sans affichage de valeurs et sans transit par Git. Cible recommandée : `/etc/korrigo/korrigo.env`, propriétaire `root:root`, permissions `600`. Ce choix garde `LEGACY_DIR` intact et évite de placer les secrets dans un worktree Git, même ignoré.
+Le `.env` final a été complété par l'administrateur dans `LEGACY_DIR/.env` (`/var/www/labomaths/korrigo/.env`), sans affichage de valeurs et sans transit par Git. Il reste le seul fichier lu depuis `LEGACY_DIR` pendant la bascule : on lit le `.env` du legacy, on ne lit rien d'autre du legacy pour piloter la release, et on n'y écrit pas. Le compose, les scripts et le code de déploiement viennent de `RELEASE_DIR`.
 
 Variables extraites du compose canonique final :
 
-| Variable | Statut compose | Présence ancien `.env` | Provenance v3.2 | Décision |
+| Variable | Statut compose | Présence ancien `.env` avant complément | Provenance v3.2 | Décision |
 |---|---|---:|---|---|
 | `ALLOWED_HOSTS` | obligatoire `${VAR:?err}` | présente | réutiliser ancien `.env` | conserver |
 | `CORS_ALLOWED_ORIGINS` | obligatoire `${VAR:?err}` | présente | réutiliser ancien `.env` | conserver |
@@ -181,55 +181,16 @@ Variables extraites du compose canonique final :
 | `DEFAULT_PASSWORD` | interdit runtime | présente | ne pas reporter | retiré Step 3, seed/import one-shot seulement |
 | `E2E_SEED_TOKEN` | interdit runtime | absente | ne pas reporter | token E2E hors prod |
 
-Procédure administrateur, sans affichage de secrets :
-
-```bash
-ssh root@88.99.254.59
-set -euo pipefail
-export LEGACY_DIR="/var/www/labomaths/korrigo"
-export ENV_FILE="/etc/korrigo/korrigo.env"
-install -d -m 700 -o root -g root /etc/korrigo
-umask 077
-
-# Base : partir du contenu de `.env.prod.example` validé dans la branche
-# `release/prod-unification` (consulté côté admin/local ou après clone validé),
-# puis écrire uniquement les clés retenues dans "$ENV_FILE".
-# Ne jamais copier l'ancien `.env` en bloc et ne jamais afficher les valeurs.
-touch "$ENV_FILE"
-chmod 600 "$ENV_FILE"
-chown root:root "$ENV_FILE"
-
-# L'administrateur copie manuellement les valeurs existantes nécessaires depuis
-# "$LEGACY_DIR/.env" vers "$ENV_FILE" : ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS,
-# CSRF_TRUSTED_ORIGINS, METRICS_TOKEN, POSTGRES_DB, POSTGRES_USER,
-# POSTGRES_PASSWORD, SECRET_KEY, SSL_ENABLED, et les clés LLM/RAG utiles.
-
-# Génération de secrets NEUFS par l'administrateur, sans les afficher dans le shell history :
-read -rsp "REDIS_PASSWORD neuf: " REDIS_PASSWORD; echo
-read -rsp "BACKUP_GPG_PASSPHRASE neuf: " BACKUP_GPG_PASSPHRASE; echo
-printf 'REDIS_PASSWORD=%s\n' "$REDIS_PASSWORD" >> "$ENV_FILE"
-printf 'BACKUP_GPG_PASSPHRASE=%s\n' "$BACKUP_GPG_PASSPHRASE" >> "$ENV_FILE"
-unset REDIS_PASSWORD BACKUP_GPG_PASSPHRASE
-
-# Valeurs de politique Step 3 à écrire dans "$ENV_FILE" :
-# REQUIRE_BACKUP_GPG=true
-# DJANGO_AUTO_MIGRATE=false
-# SEED_ON_START=false
-# ENABLE_API_DOCS=false
-# GUNICORN_WORKERS=4
-# STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS=10
-# STUDENT_LOGIN_RATE_LIMIT_WINDOW=900
-# REDIS_DB=1
-```
-
 Contrôle de présence/absence, sans imprimer de valeurs :
 
 ```bash
 set -euo pipefail
-export ENV_FILE="/etc/korrigo/korrigo.env"
+export ENV_FILE="/var/www/labomaths/korrigo/.env"
+test -s "$ENV_FILE"
 test "$(stat -c %a "$ENV_FILE")" = "600"
 for key in ALLOWED_HOSTS BACKUP_GPG_PASSPHRASE CORS_ALLOWED_ORIGINS CSRF_TRUSTED_ORIGINS METRICS_TOKEN POSTGRES_DB POSTGRES_PASSWORD POSTGRES_USER REDIS_PASSWORD SECRET_KEY REQUIRE_BACKUP_GPG DJANGO_AUTO_MIGRATE SEED_ON_START ENABLE_API_DOCS GUNICORN_WORKERS STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS STUDENT_LOGIN_RATE_LIMIT_WINDOW REDIS_DB; do
   grep -qE "^${key}=.+" "$ENV_FILE" || { echo "MISSING_OR_EMPTY=$key"; exit 1; }
+  test "$(grep -cE "^${key}=" "$ENV_FILE")" = "1" || { echo "DUPLICATE_KEY=$key"; exit 1; }
 done
 for key in DEFAULT_PASSWORD E2E_SEED_TOKEN; do
   if grep -qE "^${key}=" "$ENV_FILE"; then echo "FORBIDDEN_KEY_PRESENT=$key"; exit 1; fi
@@ -245,14 +206,14 @@ Variables confirmées en lecture seule :
 - hôte : `root@88.99.254.59`
 - legacy intact : `/var/www/labomaths/korrigo`
 - release propre : `/var/www/labomaths/korrigo_release`
-- env final hors dépôt : `/etc/korrigo/korrigo.env`
+- env final : `/var/www/labomaths/korrigo/.env` complété par l'administrateur, seul fichier lu depuis `LEGACY_DIR`
 - compose cible : `/var/www/labomaths/korrigo_release/infra/docker/docker-compose.prod.yml`
 - projet Compose : `docker`
 - DB : conteneur `docker-db-1`, user `korrigo_user`, base `korrigo_db`, volume `docker_postgres_data`
 - média : volume `docker_media_volume`, mountpoint confirmé `/var/lib/docker/volumes/docker_media_volume/_data`, `8528` fichiers, `14G`
 - StorageBox : clé `/root/.ssh/storagebox_ed25519` en `600`, cible `u554481@u554481.your-storagebox.de:23/backups/korrigo_backups`
 - disque : `/` et `/var/lib/docker` sur `/dev/md2`, `170G` libres, `81%` utilisés ; seuil bloquant avant pull : moins de `15G` libres ou plus de `90%` utilisés
-- anomalie corrigée : legacy `.env` est passé de `664` à `600` lors de l'arrêt contrôlé Étape 1 ; le nouvel env final reste `/etc/korrigo/korrigo.env`
+- anomalie corrigée : legacy `.env` est passé de `664` à `600` lors de l'arrêt contrôlé Étape 1 interrompue ; ce même fichier a été complété par l'administrateur et reste l'env final
 - comportement Compose attendu : un `$COMPOSE up -d` global est interdit ; aucun `--remove-orphans` ; DB non recréée et vérifiée par ID ; Redis recréé explicitement une seule fois pour activer `requirepass` ; backend/celery/celery-beat/nginx recréés par changement d'image/digest et retrait overlays
 
 Étape 1 après validation Étape 0, avant gel applicatif :
@@ -262,7 +223,7 @@ ssh root@88.99.254.59
 set -euo pipefail
 export LEGACY_DIR="/var/www/labomaths/korrigo"
 export RELEASE_DIR="/var/www/labomaths/korrigo_release"
-export ENV_FILE="/etc/korrigo/korrigo.env"
+export ENV_FILE="$LEGACY_DIR/.env"
 export TS="$(date -u +%Y%m%d_%H%M%S)"
 export IMAGE_COMMIT="1958681b082402e06d0f463e685d8a9895c460c5"
 export COMPOSE="docker compose --env-file $ENV_FILE -f $RELEASE_DIR/infra/docker/docker-compose.prod.yml -p docker"
@@ -663,3 +624,4 @@ Post-bascule immédiat si succès : surveiller disque hôte (`df -h / /var/lib/d
 | 2026-06-20T20:52Z | Q.2/Q.3/Q.4/Q.5 | Runbook M v3.1 : table de séquence numérotée avec arrêts humains ; backup explicitement pris sur ancienne image prod avant bascule ; aucun worker pendant migrations ; verrou image par tag/labels OCI `1958681b082402e06d0f463e685d8a9895c460c5` et absence de drift runtime post-image | `ASSAINISSEMENT_KORRIGO.md` |
 | 2026-06-20T21:03Z | R.1/R.2 | Variables du compose canonique extraites : 10 obligatoires bloquantes ; ancien `.env` a `REDIS_PASSWORD` et `BACKUP_GPG_PASSPHRASE` absents, `DEFAULT_PASSWORD` présent ; décision : `.env` final hors dépôt `/etc/korrigo/korrigo.env`, secrets neufs générés par admin, contrôles présence/absence sans valeurs | `proofs/20260620_step3_r/env_requirements_presence_no_values.txt` |
 | 2026-06-20T21:05Z | R.3/R.4/R.5 | Runbook M v3.2 : voie (a) intégrée (`LEGACY_DIR` intact, `RELEASE_DIR` clone propre), `COMPOSE` pointe release + env hors dépôt, scripts lus depuis `RELEASE_DIR`, Étape 0 ajoutée avant préflight, Redis password injecté dans backend/celery/celery-beat par le compose | `ASSAINISSEMENT_KORRIGO.md` |
+| 2026-06-20T21:18Z | T1 | Runbook M v3.2 réaligné sur la décision administrateur : `ENV_FILE=/var/www/labomaths/korrigo/.env`, Étape 0 limitée à la vérification présence/absence/permissions sans valeurs, `LEGACY_DIR` lu uniquement pour ce `.env`, release pilotée depuis `RELEASE_DIR` | `ASSAINISSEMENT_KORRIGO.md` |
