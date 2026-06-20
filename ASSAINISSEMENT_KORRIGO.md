@@ -99,16 +99,30 @@
 ## Étape 3 — Bascule prod et unification de la configuration
 **Mode : exécution prod, rollback conservé.** *(réf. §10.4, §11.5, §21.2)*
 
-- [ ] Bascule prod sur l'image réconciliée **par digest** (pas un tag flottant)
-- [ ] Montages `overlay/` retirés du compose
-- [ ] **Compose unique** (suppression de la divergence racine vs `infra/docker/`)
-- [ ] Redis protégé par mot de passe
-- [ ] Chiffrement GPG des backups activé (`BACKUP_GPG_PASSPHRASE`)
-- [ ] `SEED_ON_START=false`, `E2E_SEED_TOKEN` retiré, docs d'API désactivées en prod
-- [ ] `KORRIGO_SHA` = tag/commit relié à Git
-- [ ] Nom des dumps corrigé (`.dump`, pas `.sql.gz` trompeur)
-- [ ] Redémarrage backend/celery/celery-beat/nginx + health + parcours par rôle `OK`
-- [ ] Anciennes images conservées (rollback) jusqu'à validation finale
+- [ ] Bascule prod sur l'image réconciliée **par digest** (pas un tag flottant) — en attente du `go` explicite
+- [x] Montages `overlay/` retirés du compose canonique et validés en staging (`overlay_mount_count=0`)
+- [x] **Compose unique** : `infra/docker/docker-compose.prod.yml` canonique ; pas de compose racine concurrent dans la branche
+- [x] Redis protégé par mot de passe ; backend/celery/celery-beat configurés avec `REDIS_PASSWORD`
+- [x] Chiffrement GPG des backups activé (`BACKUP_GPG_PASSPHRASE`) ; cycle backup → déchiffrement → restore jetable prouvé
+- [x] `SEED_ON_START=false`, `E2E_SEED_TOKEN` retiré du runtime prod, docs d'API désactivées en prod (`ENABLE_API_DOCS=false`)
+- [x] `KORRIGO_SHA` = tag Git `korrigo-step3-20260620-e81958e`, image labels OCI `revision=e81958e66c15c665185418ad372362d9ae4eddc1`
+- [x] Nom des dumps corrigé (`.dump.gpg`, pas `.sql.gz` trompeur) ; image backend contient `pg_dump/pg_restore` 15 et `gpg`
+- [x] Staging : redémarrage backend/celery/celery-beat/nginx + health + parcours HTTP par rôle `OK`
+- [x] Anciennes images conservées (rollback) ; aucun prune image/volume effectué
+- [ ] Prod : backup frais, migrations explicites, déploiement par digest, health, parcours et logs — en attente du `go`
+
+**Runbook de bascule prévu (ne pas exécuter sans `go`)**
+1. Backup complet frais StorageBox + vérification rapide de restaurabilité.
+2. Déployer `infra/docker/docker-compose.prod.yml` par digest final : backend `sha256:1abd594998f7109a93f46b059f1d2657e517d8945f57e0bd12f664d5cae51f10`, nginx `sha256:63cd6627cd1a45d1b44d9bd4c7c4db77f6e07dee4400d6c2fcc8f631d9fff451`.
+3. `.env` prod hors dépôt, permissions `600` : `DJANGO_AUTO_MIGRATE=false`, `SEED_ON_START=false`, `ENABLE_API_DOCS=false`, `GUNICORN_WORKERS=4`, `REDIS_PASSWORD`, `BACKUP_GPG_PASSPHRASE`, `REQUIRE_BACKUP_GPG=true`.
+4. Appliquer explicitement les migrations via conteneur one-shot (`exams.0042`, `exams.0043`, `grading.0028`) ; ne pas dépendre de l'entrypoint.
+5. Démarrer backend/celery/celery-beat/nginx ; vérifier health, Redis auth, Celery, médias protégés, parcours admin/correcteur/élève/direction, logs sans PII.
+
+**Rollback prévu**
+1. Stopper la pile Korrigo uniquement.
+2. Revenir aux digests Porte 2 conservés : backend `sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8`, nginx `sha256:09401293f50173ce8483df7ea7897ba880e6d3b79450955f9eb70c0fd8ebf7fd`.
+3. Restaurer le backup frais si des migrations explicites ont été appliquées et qu'un retour DB est nécessaire.
+4. Redémarrer et vérifier health/parcours ; aucune image/volume ancienne n'est élagué avant validation.
 
 > **Porte de sortie 3** — [ ] Prod sans overlay, configuration unifiée, health vert, rollback encore possible.
 
@@ -249,3 +263,12 @@
 | 2026-06-20T17:32Z | I | Sweep confidentialité final : preuves conservées `proof_data_artifact_count=0`, `proof_email_file_count=0`; image dev non publiée; `seed_e2e.py` exclu du contexte Docker volontairement (script dev, non runtime) | `proofs/assainissement_step2_20260620T131006Z/final_pii_sweep_clean_korrigo-reconcile-20260620-7306c5a.txt` |
 | 2026-06-20T17:33Z | 2 | Pile staging jetable démontée : `korrigo-reconcile-p2` containers/volumes/networks restants `0`; aucun prune image/volume effectué | `proofs/assainissement_step2_20260620T131006Z/teardown_staging_clean_korrigo-reconcile-20260620-7306c5a.txt` |
 | 2026-06-20T17:51Z | 2/3 | Validation humaine Porte 2 accordée ; Porte 2 cochée. Critères de sortie enrichis avant Étape 3 : recette UI/UX par profil, audit cohérence FE/BE/DB/nginx/routage, cibles code mort connues, sweep hardcoding, CI migrations PostgreSQL/overlay/OCI/KORRIGO_SHA/restore | `ASSAINISSEMENT_KORRIGO.md` |
+| 2026-06-20T18:43Z | 3 | Build final Étape 3 depuis Dockerfiles committés ; image backend prod sans pytest ; client PostgreSQL 15 et GPG présents ; labels OCI vers `e81958e66c15c665185418ad372362d9ae4eddc1` | `proofs/20260620_step3/build_step3_e81958e.log` ; `proofs/20260620_step3/backend_runtime_versions_e81958e.txt` ; `proofs/20260620_step3/image_inspect_labels_e81958e.txt` |
+| 2026-06-20T18:44Z | 3 | Images GHCR finales publiées sous tag Git `korrigo-step3-20260620-e81958e` : backend digest `sha256:1abd594998f7109a93f46b059f1d2657e517d8945f57e0bd12f664d5cae51f10`, nginx digest `sha256:63cd6627cd1a45d1b44d9bd4c7c4db77f6e07dee4400d6c2fcc8f631d9fff451` | `proofs/20260620_step3/push_backend_e81958e.log` ; `proofs/20260620_step3/push_nginx_e81958e.log` |
+| 2026-06-20T18:44Z | 3 | Tests backend complets dans image test du même commit : `980 passed, 1 skipped, 3 deselected`; vitest frontend : `334 passed` | `proofs/20260620_step3/backend_full_pytest_e81958e.txt` ; `proofs/20260620_step3/frontend_vitest_e81958e.txt` |
+| 2026-06-20T18:45Z | 3 | Staging jetable `korrigo_step3` démarrée avec compose unifié, images par digest, Redis auth, `DJANGO_AUTO_MIGRATE=false`, zéro overlay, health `{"status":"healthy","database":"connected"}` | `proofs/20260620_step3/staging_compose_gpg_final_redacted.txt` ; `proofs/20260620_step3/staging_gpg_ps.txt` ; `proofs/20260620_step3/staging_gpg_health.json` ; `proofs/20260620_step3/staging_final_mounts.txt` |
+| 2026-06-20T18:46Z | 3 | Backup GPG runtime prouvé : `scheduled_backup` produit seulement `.dump.gpg`; SHA-256 `dab4b32a5ee7bc24e3d633fb3fb94b5c749eb076b57fa2ab747763d9451930a7`; déchiffrement et restore DB jetable `RESTORE_PROBE_OK`, `django_migrations=113`, `exams_copy=3` | `proofs/20260620_step3/staging_gpg_backup_task_result.txt` ; `proofs/20260620_step3/staging_gpg_backup_restore_probe.txt` |
+| 2026-06-20T18:46Z | 3 | Parcours HTTP staging via nginx : admin, correcteur, élève, direction `200`; upload PDF `201`; médias directs bloqués (`/media` `404`), médias protégés et PDF final `200` avec headers iframe/CSP ; 35 logins élèves depuis IP partagée sans `429` | `proofs/20260620_step3/http_runtime_checks_redacted.txt` ; `proofs/20260620_step3/staging_upload_pdf_probe_redacted.txt` |
+| 2026-06-20T18:46Z | 3 | Celery final : worker avec `DJANGO_SETTINGS_MODULE=core.settings_prod`, Redis/GPG env présents, code réconcilié (`analytics_has_graded=False`), tâche broker `update_copy_status_metrics` exécutée avec résultat | `proofs/20260620_step3/staging_final_celery_env_redacted.txt` ; `proofs/20260620_step3/staging_final_celery_reconciled_code.txt` ; `proofs/20260620_step3/staging_celery_task_probe.txt` |
+| 2026-06-20T18:47Z | 3 | Sweep confidentialité preuves Étape 3 : aucun email, secret Redis/GPG/Postgres/metrics/secret key non expurgé détecté ; aucun dump/media téléchargé dans le dépôt ; preuves sous `proofs/` ignorées par Git | `proofs/20260620_step3/` ; `.gitignore` |
+| 2026-06-20T18:49Z | 3 | Pile staging jetable démontée : conteneurs/volumes/réseaux `korrigo_step3_*` restants `0`; aucun prune image/volume effectué | `proofs/20260620_step3/staging_final_teardown.txt` |
