@@ -73,3 +73,38 @@ def test_notify_students_results_released_sends_mail(teacher_user):
     assert mail.outbox[0].to == ["eleve.mail@ert.tn"]
     assert "Vos résultats" in mail.outbox[0].subject
 
+
+@pytest.mark.django_db
+@override_settings(SERVER_EMAIL="noreply@korrigo.test")
+def test_notify_students_results_released_redacts_email_on_failure(teacher_user):
+    exam = Exam.objects.create(name="Release Mail Failure", date="2026-04-02")
+    student = Student.objects.create(
+        first_name="Eleve",
+        last_name="Mail",
+        class_name="TG1",
+        date_naissance="2007-01-01",
+        email="eleve.mail@ert.tn",
+    )
+    Copy.objects.create(
+        exam=exam,
+        anonymous_id="REL003",
+        status=Copy.Status.FINALIZED,
+        student=student,
+        assigned_corrector=teacher_user,
+    )
+
+    with (
+        patch("grading.tasks.send_mail", side_effect=RuntimeError("smtp refused for eleve.mail@ert.tn")),
+        patch("grading.tasks.logger.warning") as warning,
+    ):
+        result = notify_students_results_released(str(exam.id))
+
+    assert result["sent"] == 0
+    assert result["errors"] == ["smtp refused for <redacted-email>"]
+    warning.assert_called_once()
+    _, kwargs = warning.call_args
+    extra = kwargs["extra"]
+    assert extra["student_identifier"] == "<redacted-email>"
+    assert extra["error_message"] == "smtp refused for <redacted-email>"
+    assert "email" not in extra
+    assert "eleve.mail@ert.tn" not in extra.values()
