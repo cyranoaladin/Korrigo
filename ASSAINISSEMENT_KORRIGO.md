@@ -113,27 +113,199 @@
 - [x] Nginx `/api/students/login/` conservé comme garde-fou anti-flood haut (`30r/s`, `burst=60`), non comme limite métier ; la limite métier reste par identifiant côté Django
 - [x] `DEFAULT_PASSWORD` absent du runtime backend/celery/celery-beat ; login élève par mot de passe date de naissance validé
 - [x] `_TRIVIAL_PASSWORDS` documenté comme garde-fou du secret d'import/seed one-shot, pas comme exigence runtime permanente
+- [x] Runbook v2 durci avant `go` prod : rollback par base recréée, plan de migration contrôlé, migrations one-shot via `--entrypoint python`, média résolu par `docker volume inspect`, gel applicatif avant dump
+- [x] Hypothèses infra levées en lecture seule : projet Compose `docker`, répertoire `/var/www/labomaths/korrigo`, DB `docker-db-1`, volume média `docker_media_volume`, PostgreSQL `korrigo_user/korrigo_db`, StorageBox `u554481@u554481.your-storagebox.de:23`, disque `170G` libre
+- [ ] Pré-requis prod à corriger pendant la bascule : `.env` confirmé en `664` au lieu de `600`; exécuter `chmod 600 .env` avant démarrage de la pile unifiée
 - [x] Alias silencieux `n_copies_graded` supprimé : statut métier canonique = `FINALIZED`
 - [x] Sweep logs RGPD : backend/celery/entrypoint/nginx sans email, secret ni identifiant de probe en clair
 - [x] Staging : redémarrage backend/celery/celery-beat/nginx + health + parcours HTTP par rôle `OK`
 - [x] Anciennes images conservées (rollback) ; aucun prune image/volume effectué
 - [ ] Prod : backup frais, migrations explicites, déploiement par digest, health, parcours et logs — en attente du `go`
 
-**Runbook de bascule prévu (ne pas exécuter sans `go`)**
-1. Pré-bascule : annoncer la fenêtre de maintenance ; confirmer disque hôte ; vérifier `.env` prod hors dépôt en `600` avec `DJANGO_AUTO_MIGRATE=false`, `SEED_ON_START=false`, `ENABLE_API_DOCS=false`, `GUNICORN_WORKERS=4`, `REDIS_PASSWORD`, `BACKUP_GPG_PASSPHRASE`, `REQUIRE_BACKUP_GPG=true`, `STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS=10`, `STUDENT_LOGIN_RATE_LIMIT_WINDOW=900`.
-2. Backup frais : lancer backup complet StorageBox juste avant bascule ; vérifier checksums et restaurabilité rapide sur pile jetable si le temps de fenêtre le permet ; ne poursuivre que si le backup est exploitable.
-3. Déployer le compose canonique par digest final : backend `sha256:aafe75e7e4bc475f066ed57cc4b16dc816ea3497c70f3e8e954c5ba496929e1e`, nginx `sha256:5c4dda163f3ce4a4ff7e4a2b321adafb398cc3cdaa4461d708de89dabae0f61a`. Retirer effectivement tout montage `overlay/`.
-4. Appliquer explicitement les migrations via conteneur one-shot (`exams.0042`, `exams.0043`, `grading.0028`) ; observer les verrous PostgreSQL. Les changements attendus sont des contraintes `DROP/ADD`, brefs sur environ `733` lignes `exams_copy`.
-5. Démarrer backend/celery/celery-beat/nginx ; vérifier health, `showmigrations --check`, Redis AUTH, absence d'overlay, absence de `DEFAULT_PASSWORD`, backup `.dump.gpg`, Celery `async_finalize_copy`, médias protégés, rendu PDF iframe, parcours admin/correcteur/élève/direction et logs sans PII.
-6. Critères de succès chiffrés : health `{"status":"healthy","database":"connected"}` ; conteneurs Korrigo `healthy` ; `overlay_mount_count=0` ; `bind_mount_count=0` hors volumes nommés ; `migrate --check` code `0` ; login élève 10 échecs non limités puis 11e `429` ; IP partagée distincte sans `429` sous seuil ; backup planifié `.dump.gpg` ; `runtime_log_email_count=0`, `runtime_log_secret_count=0`.
-7. Critères d'échec déclenchant rollback : health non vert après correction simple ; migration explicite échouée ou verrou long ; Redis AUTH cassé ; Celery ne consomme pas `async_finalize_copy` ; médias protégés exposés ou inaccessibles ; logs contenant PII/secret ; régression bloquante d'un parcours rôle ; échec backup frais/restaurabilité.
+**Runbook M v2 de bascule prévu (ne pas exécuter sans `go`)**
 
-**Rollback prévu**
-1. Stopper la pile Korrigo uniquement.
-2. Revenir aux digests Porte 2 conservés : backend `sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8`, nginx `sha256:09401293f50173ce8483df7ea7897ba880e6d3b79450955f9eb70c0fd8ebf7fd`.
-3. Restaurer le backup frais si des migrations explicites ont été appliquées et qu'un retour DB est nécessaire.
-4. Redémarrer et vérifier health/parcours ; aucune image/volume ancienne n'est élagué avant validation.
-5. Post-bascule immédiat si succès : surveiller disque hôte (~83 %), premier backup chiffré planifié, logs, Celery ; fusionner `release/prod-unification` vers `main` seulement après validation prod pour que `main = prod`; nettoyage branches `wip/*` reporté à une étape ultérieure.
+Variables confirmées en lecture seule :
+- hôte : `root@88.99.254.59`
+- répertoire : `/var/www/labomaths/korrigo`
+- compose cible : `/var/www/labomaths/korrigo/infra/docker/docker-compose.prod.yml`
+- projet Compose : `docker`
+- DB : conteneur `docker-db-1`, user `korrigo_user`, base `korrigo_db`, volume `docker_postgres_data`
+- média : volume `docker_media_volume`, mountpoint confirmé `/var/lib/docker/volumes/docker_media_volume/_data`, `8528` fichiers, `14G`
+- StorageBox : clé `/root/.ssh/storagebox_ed25519` en `600`, cible `u554481@u554481.your-storagebox.de:23/backups/korrigo_backups`
+- disque : `/` et `/var/lib/docker` sur `/dev/md2`, `170G` libres, `81%` utilisés ; seuil bloquant avant pull : moins de `15G` libres ou plus de `90%` utilisés
+- anomalie à corriger pendant la bascule : `.env` actuellement en `664`, attendu `600`
+
+Préparation après `go`, avant gel applicatif :
+
+```bash
+ssh root@88.99.254.59
+set -euo pipefail
+cd /var/www/labomaths/korrigo
+export TS="$(date -u +%Y%m%d_%H%M%S)"
+export COMPOSE="docker compose --env-file /var/www/labomaths/korrigo/.env -f /var/www/labomaths/korrigo/infra/docker/docker-compose.prod.yml -p docker"
+export BACKEND_NEW="ghcr.io/cyranoaladin/korrigo-backend@sha256:aafe75e7e4bc475f066ed57cc4b16dc816ea3497c70f3e8e954c5ba496929e1e"
+export NGINX_NEW="ghcr.io/cyranoaladin/korrigo-nginx@sha256:5c4dda163f3ce4a4ff7e4a2b321adafb398cc3cdaa4461d708de89dabae0f61a"
+export BACKEND_ROLLBACK="ghcr.io/cyranoaladin/korrigo-backend@sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8"
+export NGINX_ROLLBACK="ghcr.io/cyranoaladin/korrigo-nginx@sha256:09401293f50173ce8483df7ea7897ba880e6d3b79450955f9eb70c0fd8ebf7fd"
+test -f infra/docker/docker-compose.prod.yml
+test -f .env
+df -h / /var/lib/docker
+docker system df
+test "$(df -BG /var/lib/docker | awk 'NR==2 {gsub(\"G\",\"\",$4); print ($4 >= 15)}')" = "1"
+test "$(df -P /var/lib/docker | awk 'NR==2 {gsub(\"%\",\"\",$5); print ($5 < 90)}')" = "1"
+chmod 600 .env
+test "$(stat -c %a .env)" = "600"
+git status --short --untracked-files=no
+test -z "$(git status --porcelain --untracked-files=no)"
+git fetch origin release/prod-unification --tags
+git switch release/prod-unification
+git pull --ff-only origin release/prod-unification
+git rev-parse HEAD
+git tag --points-at 1958681b082402e06d0f463e685d8a9895c460c5 | grep -x 'korrigo-step3-20260620-1958681'
+grep -E '^(DJANGO_AUTO_MIGRATE|SEED_ON_START|ENABLE_API_DOCS|GUNICORN_WORKERS|REQUIRE_BACKUP_GPG|STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS|STUDENT_LOGIN_RATE_LIMIT_WINDOW)=' .env
+test "$(grep -E '^DJANGO_AUTO_MIGRATE=' .env | cut -d= -f2)" = "false"
+test "$(grep -E '^SEED_ON_START=' .env | cut -d= -f2)" = "false"
+test "$(grep -E '^ENABLE_API_DOCS=' .env | cut -d= -f2)" = "false"
+test "$(grep -E '^REQUIRE_BACKUP_GPG=' .env | cut -d= -f2)" = "true"
+test -n "$(grep -E '^REDIS_PASSWORD=' .env | cut -d= -f2-)"
+test -n "$(grep -E '^BACKUP_GPG_PASSPHRASE=' .env | cut -d= -f2-)"
+$COMPOSE config | grep -E 'image:|DJANGO_AUTO_MIGRATE|SEED_ON_START|ENABLE_API_DOCS'
+```
+
+Gel applicatif avant dump de référence :
+
+```bash
+# Coupe les écritures externes et asynchrones, tout en gardant backend/db/redis
+# disponibles pour l'export JSON interne. Backend n'est pas publié sur l'hôte ;
+# nginx arrêté = plus d'ingress HTTP public ; celery/beat arrêtés = plus de tâches
+# asynchrones qui modifient copies/bilans/backups pendant le dump.
+$COMPOSE stop nginx celery-beat celery
+$COMPOSE ps
+curl -fsS http://127.0.0.1:8088/ && exit 1 || true
+```
+
+Backup complet chiffré après gel, avec média résolu dynamiquement :
+
+```bash
+set -a; . ./.env; set +a
+export LOCAL_TMP="/tmp/korrigo_predeploy_${TS}"
+export MEDIA_VOLUME="docker_media_volume"
+export MEDIA_MOUNT="$(docker volume inspect "$MEDIA_VOLUME" --format '{{.Mountpoint}}')"
+mkdir -p "$LOCAL_TMP"
+test -d "$MEDIA_MOUNT"
+MEDIA_FILE_COUNT="$(find "$MEDIA_MOUNT" -type f | wc -l)"
+test "$MEDIA_FILE_COUNT" -gt 0
+docker exec docker-db-1 pg_dump -U korrigo_user -Fc korrigo_db > "$LOCAL_TMP/db_${TS}.dump"
+gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 -o "$LOCAL_TMP/db_${TS}.dump.gpg" "$LOCAL_TMP/db_${TS}.dump" 3<<<"$BACKUP_GPG_PASSPHRASE"
+shred -u "$LOCAL_TMP/db_${TS}.dump"
+docker exec -i docker-backend-1 sh -lc 'cat > /app/extract_correction_data.py' < scripts/extract_correction_data.py
+if ! docker exec docker-backend-1 python manage.py shell -c 'exec(open("/app/extract_correction_data.py").read())' > "$LOCAL_TMP/extract_${TS}.log" 2>&1; then
+  sed -E 's/[[:alnum:]_.%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}/<redacted-email>/g' "$LOCAL_TMP/extract_${TS}.log" >&2 || true
+  shred -u "$LOCAL_TMP/extract_${TS}.log"
+  exit 1
+fi
+shred -u "$LOCAL_TMP/extract_${TS}.log"
+for f in copies_data.json pages_manifest.json exams_bareme.json summary.json; do
+  docker exec docker-backend-1 sh -lc "cat /tmp/korrigo_extract/${f}" > "$LOCAL_TMP/${f}"
+  gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 -o "$LOCAL_TMP/${f}.gpg" "$LOCAL_TMP/${f}" 3<<<"$BACKUP_GPG_PASSPHRASE"
+  shred -u "$LOCAL_TMP/${f}"
+done
+tar -czf "$LOCAL_TMP/media_${TS}.tar.gz" -C "$MEDIA_MOUNT" --exclude="./tmp" --exclude="./.cache" .
+test "$(stat -c %s "$LOCAL_TMP/media_${TS}.tar.gz")" -gt 1048576
+gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 -o "$LOCAL_TMP/media_${TS}.tar.gz.gpg" "$LOCAL_TMP/media_${TS}.tar.gz" 3<<<"$BACKUP_GPG_PASSPHRASE"
+shred -u "$LOCAL_TMP/media_${TS}.tar.gz"
+sha256sum "$LOCAL_TMP"/*.gpg > "$LOCAL_TMP/SHA256SUMS"
+rsync -az --timeout=120 -e "ssh -p 23 -i /root/.ssh/storagebox_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" "$LOCAL_TMP/" u554481@u554481.your-storagebox.de:backups/korrigo_backups/${TS}_predeploy/
+ssh -p 23 -i /root/.ssh/storagebox_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no u554481@u554481.your-storagebox.de "cd backups/korrigo_backups/${TS}_predeploy && sha256sum -c SHA256SUMS"
+```
+
+Test rapide de restaurabilité du dump :
+
+```bash
+docker network create "korrigo_restore_${TS}"
+docker run -d --name "korrigo_restore_db_${TS}" --network "korrigo_restore_${TS}" -e POSTGRES_USER=korrigo_user -e POSTGRES_PASSWORD=restore -e POSTGRES_DB=korrigo_db postgres:15-alpine
+until docker exec "korrigo_restore_db_${TS}" pg_isready -U korrigo_user -d korrigo_db; do sleep 2; done
+gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 -d "$LOCAL_TMP/db_${TS}.dump.gpg" 3<<<"$BACKUP_GPG_PASSPHRASE" | docker exec -i "korrigo_restore_db_${TS}" pg_restore -U korrigo_user -d korrigo_db --no-owner
+docker exec "korrigo_restore_db_${TS}" psql -U korrigo_user -d korrigo_db -Atc "select count(*) from django_migrations;"
+docker rm -f "korrigo_restore_db_${TS}"
+docker network rm "korrigo_restore_${TS}"
+```
+
+Déploiement image et migrations explicites. Important : les migrations one-shot contournent l'entrypoint fail-fast avec `--entrypoint python`; l'entrypoint reste actif uniquement pour les services longs.
+
+```bash
+$COMPOSE pull backend celery celery-beat nginx
+$COMPOSE stop backend
+$COMPOSE run --rm --no-deps --entrypoint python backend manage.py migrate --plan | tee "/tmp/korrigo_migrate_plan_${TS}.txt"
+awk '!/^(Planned operations:|exams\\.0042_copy_pdf_regeneration_pending_db_default|    Raw Python operation|exams\\.0043_reconcile_copy_status_constraint|    Alter field status on copy|    Remove constraint check_copy_status_valid from model copy|    Create constraint check_copy_status_valid on model copy|grading\\.0028_reconcile_peer_review_status_constraint|$)/ {count++} END {exit count}' "/tmp/korrigo_migrate_plan_${TS}.txt"
+grep -x 'exams.0042_copy_pdf_regeneration_pending_db_default' "/tmp/korrigo_migrate_plan_${TS}.txt"
+grep -x 'exams.0043_reconcile_copy_status_constraint' "/tmp/korrigo_migrate_plan_${TS}.txt"
+grep -x 'grading.0028_reconcile_peer_review_status_constraint' "/tmp/korrigo_migrate_plan_${TS}.txt"
+$COMPOSE run --rm --no-deps --entrypoint python backend manage.py migrate exams 0042 --noinput
+$COMPOSE run --rm --no-deps --entrypoint python backend manage.py migrate exams 0043 --noinput
+$COMPOSE run --rm --no-deps --entrypoint python backend manage.py migrate grading 0028 --noinput
+$COMPOSE run --rm --no-deps --entrypoint python backend manage.py migrate --check --noinput
+$COMPOSE run --rm --no-deps --entrypoint python backend manage.py showmigrations exams grading | grep -E '\\[X\\] 0042|\\[X\\] 0043|\\[X\\] 0028'
+docker exec docker-db-1 psql -U korrigo_user -d korrigo_db -Atc "select column_default from information_schema.columns where table_schema='public' and table_name='exams_copy' and column_name='pdf_regeneration_pending';" | grep -x 'false'
+docker exec docker-db-1 psql -U korrigo_user -d korrigo_db -Atc "select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.exams_copy'::regclass and conname='check_copy_status_valid';" | grep FINALIZED
+docker exec docker-db-1 psql -U korrigo_user -d korrigo_db -Atc "select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.grading_peerreviewcorrection'::regclass and conname='check_peer_review_status_valid';" | grep FINALIZED
+$COMPOSE up -d db redis backend celery celery-beat nginx
+$COMPOSE ps
+```
+
+Vérifications succès :
+
+```bash
+curl -fsS https://korrigo.labomaths.tn/api/health/
+$COMPOSE exec -T redis sh -lc 'redis-cli -a "$REDIS_PASSWORD" ping'
+$COMPOSE exec -T redis sh -lc 'redis-cli -a "$REDIS_PASSWORD" info stats | grep evicted_keys'
+$COMPOSE exec -T backend sh -lc '! env | grep -q "^DEFAULT_PASSWORD="'
+for c in docker-backend-1 docker-celery-1 docker-celery-beat-1 docker-nginx-1; do docker inspect "$c" --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'; done | grep -i overlay && exit 1 || true
+$COMPOSE exec -T celery celery -A core inspect ping
+$COMPOSE logs --since 15m backend celery celery-beat nginx | grep -Ei '[[:alnum:]_.%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}|DEFAULT_PASSWORD|BACKUP_GPG_PASSPHRASE|REDIS_PASSWORD' && exit 1 || true
+```
+
+Critères de succès chiffrés : backup distant et restore test `OK`; plan de migrations limité strictement à `exams.0042`, `exams.0043`, `grading.0028`; `migrate --check` code `0`; health `{"status":"healthy","database":"connected"}` ; conteneurs Korrigo `healthy` ; `overlay_mount_count=0` ; `DEFAULT_PASSWORD` absent ; Redis AUTH `PONG` ; Celery `ping` OK ; login élève 10 échecs non limités puis 11e `429` ; IP partagée distincte sans `429` sous seuil ; backup planifié `.dump.gpg` ; `runtime_log_email_count=0`, `runtime_log_secret_count=0`.
+
+Critères d'échec déclenchant rollback : backup frais ou restaurabilité échoué ; plan de migration contenant une migration inattendue ; migration explicite échouée ou verrou long ; health non vert après correction simple ; Redis AUTH cassé ; Celery ne consomme pas `async_finalize_copy` ; médias protégés exposés ou inaccessibles ; logs contenant PII/secret ; régression bloquante d'un parcours rôle.
+
+**Rollback M v2, schéma-conscient**
+
+Le rollback DB ne restaure jamais par-dessus une base déjà migrée. Il recrée `korrigo_db`, puis restaure le dump pré-bascule, afin d'éviter un schéma hybride où des contraintes postérieures au dump subsisteraient.
+
+```bash
+$COMPOSE stop nginx celery-beat celery backend
+cat >/tmp/korrigo-rollback-port2.yml <<'YAML'
+services:
+  backend:
+    image: ghcr.io/cyranoaladin/korrigo-backend@sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8
+  celery:
+    image: ghcr.io/cyranoaladin/korrigo-backend@sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8
+  celery-beat:
+    image: ghcr.io/cyranoaladin/korrigo-backend@sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8
+  nginx:
+    image: ghcr.io/cyranoaladin/korrigo-nginx@sha256:09401293f50173ce8483df7ea7897ba880e6d3b79450955f9eb70c0fd8ebf7fd
+YAML
+docker exec docker-db-1 psql -U korrigo_user -d postgres -v ON_ERROR_STOP=1 -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='korrigo_db' AND pid <> pg_backend_pid();"
+docker exec docker-db-1 psql -U korrigo_user -d postgres -v ON_ERROR_STOP=1 -c "DROP DATABASE korrigo_db;"
+docker exec docker-db-1 psql -U korrigo_user -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE korrigo_db OWNER korrigo_user;"
+gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 -d "$LOCAL_TMP/db_${TS}.dump.gpg" 3<<<"$BACKUP_GPG_PASSPHRASE" | docker exec -i docker-db-1 pg_restore -U korrigo_user -d korrigo_db --no-owner
+$COMPOSE -f /tmp/korrigo-rollback-port2.yml up -d backend celery celery-beat nginx
+curl -fsS https://korrigo.labomaths.tn/api/health/
+```
+
+Si des écritures média ont eu lieu après réouverture du trafic et avant décision rollback, restaurer aussi le média depuis `media_${TS}.tar.gz.gpg` vers le mountpoint dynamique :
+
+```bash
+MEDIA_MOUNT="$(docker volume inspect docker_media_volume --format '{{.Mountpoint}}')"
+test -d "$MEDIA_MOUNT"
+MEDIA_ROLLBACK_HOLD="/tmp/korrigo_media_hold_${TS}"
+mkdir -p "$MEDIA_ROLLBACK_HOLD"
+find "$MEDIA_MOUNT" -mindepth 1 -maxdepth 1 -exec mv -t "$MEDIA_ROLLBACK_HOLD" {} +
+gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 -d "$LOCAL_TMP/media_${TS}.tar.gz.gpg" 3<<<"$BACKUP_GPG_PASSPHRASE" | tar -xzf - -C "$MEDIA_MOUNT"
+```
+
+Post-bascule immédiat si succès : surveiller disque hôte (`df -h / /var/lib/docker`, actuellement `170G` libres), premier backup chiffré planifié, logs, Celery ; fusionner `release/prod-unification` vers `main` seulement après validation prod pour que `main = prod`; nettoyage branches `wip/*` reporté à une étape ultérieure.
 
 > **Porte de sortie 3** — [ ] Prod sans overlay, configuration unifiée, health vert, rollback encore possible.
 
@@ -300,3 +472,6 @@
 | 2026-06-20T20:05Z | N | Tests finaux après N : backend complet `990 passed, 1 skipped, 3 deselected`; frontend `vitest` `334 passed` | `proofs/20260620_step3_n/backend_full_pytest_korrigo-step3-20260620-1958681.txt`; `proofs/20260620_step3_n/frontend_vitest_korrigo-step3-20260620-1958681.txt` |
 | 2026-06-20T20:06Z | N | Staging final combiné : health OK ; Redis `maxmemory-policy=allkeys-lru`, `maxmemory=268435456`, `evicted_keys=0`; 60 identifiants distincts depuis même IP → `401` sans `429/503`; même identifiant → 11e `429` | `proofs/20260620_step3_n/staging_n_rate_limit_combined_1958681.txt` |
 | 2026-06-20T20:07Z | N | Sweep final N : preuves `proof_email_file_count=0`, `proof_secret_file_count=0`; pile `korrigo_step3_n` démontée, conteneurs/volumes/réseaux restants `0`; aucun prune ; prod non touchée | `proofs/20260620_step3_n/final_pii_sweep_1958681.txt`; `proofs/20260620_step3_n/final_staging_teardown_1958681.txt` |
+| 2026-06-20T20:21Z | O.6 | Inventaire prod lecture seule : projet Compose `docker`, chemin `/var/www/labomaths/korrigo`, DB `docker-db-1`, media `docker_media_volume` (`8528` fichiers, `14G`), PostgreSQL `korrigo_user/korrigo_db`, StorageBox confirmé, disque `170G` libre ; `.env` constaté `664` donc correction `600` exigée dans runbook | `proofs/20260620_step3_o/prod_readonly_inventory_20260620T201959Z.txt` |
+| 2026-06-20T20:28Z | O.1/O.2/O.3 | Preuve staging jetable : plan pré-bascule strictement limité à `exams.0042`, `exams.0043`, `grading.0028` (`unexpected_line_count=0`) ; entrypoint service refuse la base non à jour (`rc=1`) ; one-shot `--entrypoint python` applique les migrations ; rollback par DB recréée supprime les lignes postérieures et le défaut DB, ancienne contrainte restaurée | `proofs/20260620_step3_o/rollback_recreated_db_and_entrypoint_1958681.txt` |
+| 2026-06-20T20:30Z | O | Runbook M v2 corrigé : gel applicatif avant dump, backup complet chiffré avec média résolu par `docker volume inspect`, plan de migration vérifié avant application, migrations one-shot sans entrypoint, rollback schéma-conscient par `DROP DATABASE`/`CREATE DATABASE`, aucune action prod en écriture réalisée | `ASSAINISSEMENT_KORRIGO.md` |
