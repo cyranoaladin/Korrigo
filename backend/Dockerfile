@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     poppler-utils \
     curl \
     libmagic1 \
+    gnupg \
     tesseract-ocr \
     tesseract-ocr-fra \
     postgresql-client \
