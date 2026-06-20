@@ -51,6 +51,10 @@ DATABASES['default']['OPTIONS'] = {
 }
 DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 
+# Guardrail for explicit one-shot import/seed commands only.
+# Production backend/celery runtime must not carry DEFAULT_PASSWORD permanently;
+# if an operator provides it for a provisioning command, keep blocking trivial
+# values at settings load time before any import can create accounts.
 _TRIVIAL_PASSWORDS = ('passe123', 'password', '123456', 'changeme', '')
 if DEFAULT_PASSWORD and DEFAULT_PASSWORD in _TRIVIAL_PASSWORDS:  # noqa: F405
     raise ValueError(

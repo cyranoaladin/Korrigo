@@ -109,7 +109,10 @@
 - [x] Nom des dumps corrigé (`.dump.gpg`, pas `.sql.gz` trompeur) ; image backend contient `pg_dump/pg_restore` 15 et `gpg`
 - [x] Entrypoint durci : base vide sans migration = arrêt explicite ; migrations uniquement par one-shot ; `/app/backups` préparé pour Celery
 - [x] Rate-limit login élève validé : 10 échecs / 15 min par identifiant tenté ; 11e tentative `429` ; IP partagée non pénalisée sous seuil
+- [x] Redis rate-limit : risque d'éviction `allkeys-lru` accepté et documenté (`volume attendu << 256 Mo`) ; alerte mémoire Redis à traiter en Étape 8
+- [x] Nginx `/api/students/login/` conservé comme garde-fou anti-flood haut (`30r/s`, `burst=60`), non comme limite métier ; la limite métier reste par identifiant côté Django
 - [x] `DEFAULT_PASSWORD` absent du runtime backend/celery/celery-beat ; login élève par mot de passe date de naissance validé
+- [x] `_TRIVIAL_PASSWORDS` documenté comme garde-fou du secret d'import/seed one-shot, pas comme exigence runtime permanente
 - [x] Alias silencieux `n_copies_graded` supprimé : statut métier canonique = `FINALIZED`
 - [x] Sweep logs RGPD : backend/celery/entrypoint/nginx sans email, secret ni identifiant de probe en clair
 - [x] Staging : redémarrage backend/celery/celery-beat/nginx + health + parcours HTTP par rôle `OK`
@@ -211,6 +214,7 @@
 - [ ] Rotation des logs (`json-file` `max-size`/`max-file` ou journald)
 - [ ] Format de log Nginx enrichi (`$request_time`, `$request_length`, `$body_bytes_sent`, `$request_id`) + rétention
 - [ ] Alertes : disque (>80/90 %), échec de backup, expiration certificat, conteneur non `healthy`
+- [ ] Alerte mémoire Redis : surveiller `used_memory`, `maxmemory`, `evicted_keys`; le rate-limit élève partage Redis `allkeys-lru` et peut être affaibli si évictions non nulles
 - [ ] `.env` en permissions `600`, secrets hors dépôt
 - [ ] Déploiement idempotent par digest
 - [ ] Runbook d'exploitation rédigé
