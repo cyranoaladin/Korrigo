@@ -27,6 +27,7 @@ class LocalProdBackendImageContractTests(unittest.TestCase):
     def test_dockerfile_supports_optional_dev_requirements_install(self):
         dockerfile_text = DOCKERFILE.read_text()
 
+        self.assertIn("FROM python:3.11-slim-bookworm", dockerfile_text)
         self.assertIn("COPY requirements.txt requirements-dev.txt ./", dockerfile_text)
         self.assertIn("ARG INSTALL_DEV_REQUIREMENTS=false", dockerfile_text)
         self.assertIn("pip install --no-cache-dir -r requirements.txt", dockerfile_text)
