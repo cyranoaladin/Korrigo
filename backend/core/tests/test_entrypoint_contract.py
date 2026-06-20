@@ -47,6 +47,11 @@ class EntrypointContractTests(unittest.TestCase):
             entrypoint_text.index("ensure_roles"),
         )
 
+    def test_entrypoint_prepares_backup_volume_for_celery_tasks(self):
+        entrypoint_text = ENTRYPOINT.read_text()
+        self.assertIn("mkdir -p /app/staticfiles /app/media /app/backups /app/.cache /app/logs", entrypoint_text)
+        self.assertIn("chown -R korrigo:korrigo /app/staticfiles /app/media /app/backups /app/.cache /app/logs", entrypoint_text)
+
 
 if __name__ == "__main__":
     unittest.main()

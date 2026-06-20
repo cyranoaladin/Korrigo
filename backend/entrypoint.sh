@@ -16,8 +16,8 @@ prepare_volumes() {
     fi
 
     echo "--> Preparing writable runtime directories..."
-    mkdir -p /app/staticfiles /app/media /app/.cache /app/logs
-    if ! chown -R korrigo:korrigo /app/staticfiles /app/media /app/.cache /app/logs; then
+    mkdir -p /app/staticfiles /app/media /app/backups /app/.cache /app/logs
+    if ! chown -R korrigo:korrigo /app/staticfiles /app/media /app/backups /app/.cache /app/logs; then
         echo "WARNING: could not adjust runtime directory ownership; continuing"
     fi
 }
