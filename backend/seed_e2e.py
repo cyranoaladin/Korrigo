@@ -8,8 +8,8 @@ django.setup()
 
 from django.contrib.auth import get_user_model
 from django.core.files import File
-from exams.models import Exam
-from grading.models import Copy, Annotation, GradingEvent
+from exams.models import Copy, Exam
+from grading.models import Annotation, GradingEvent
 from datetime import date
 
 User = get_user_model()

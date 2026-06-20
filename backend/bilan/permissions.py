@@ -55,8 +55,7 @@ class IsAdminOrDNBCorrector(BasePermission):
             return False
         
         # Check if user has access to DNB exams via assigned copies
-        from grading.models import Copy
-        from exams.models import Exam
+        from exams.models import Copy, Exam
         
         # Find DNB exams
         dnb_exams = Exam.objects.filter(name__contains='DNB')

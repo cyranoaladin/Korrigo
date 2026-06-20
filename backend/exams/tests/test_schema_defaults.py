@@ -14,6 +14,9 @@ def test_copy_status_choices_match_live_schema():
 
 @pytest.mark.django_db
 def test_copy_pdf_regeneration_pending_has_database_default():
+    if connection.vendor != "postgresql":
+        pytest.skip("Database default assertion is PostgreSQL-specific")
+
     with connection.cursor() as cursor:
         cursor.execute(
             """

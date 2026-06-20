@@ -1901,7 +1901,7 @@ class JuryReportListView(generics.ListCreateAPIView):
     serializer_class = JuryReportSerializer
 
     def get_queryset(self):
-        from grading.models import Copy
+        from exams.models import Copy
         queryset = JuryReport.objects.select_related('exam_type', 'created_by').all()
         user = self.request.user
 

@@ -12,8 +12,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User, Group
 from rest_framework.test import APIClient
 from core.auth import UserRole, create_user_roles
-from exams.models import ExamType, Exam, JuryReport
-from grading.models import Copy
+from exams.models import Copy, ExamType, Exam, JuryReport
 
 
 def _make_exam_type(code, name):

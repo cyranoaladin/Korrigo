@@ -239,8 +239,7 @@ class UserDetailView(APIView):
         
         # Compute which exam-type codes this corrector actually has copies in.
         # Admins/superusers get the full list so their dashboards work correctly.
-        from grading.models import Copy
-        from exams.models import ExamType, JuryReport
+        from exams.models import Copy, ExamType, JuryReport
         if _is_admin_user(user):
             assigned_codes = list(
                 ExamType.objects.values_list('code', flat=True)
