@@ -60,34 +60,36 @@
 ## Étape 2 — Release réconciliée reconstructible *(gate central)*
 **Mode : branche dédiée + staging.** *(réf. §19.3, §19.5)*
 
-- [ ] Branche `release/reconcile` créée depuis l'état courant
-- [ ] Overlays **DIFFERS** repliés dans le code source canonique :
-  - [ ] `exams/views.py`
-  - [ ] `exams/urls.py`
-  - [ ] `exams/permissions.py`
-  - [ ] `core/views.py`
-  - [ ] `core/settings_prod.py`
-  - [ ] `backend/bilan/permissions.py`
-  - [ ] `gunicorn_config.py`
-  - [ ] `students/serializers.py`
-  - [ ] `core/views_platform.py`
-- [ ] Overlays **MISSING_IN_IMAGE** intégrés à la source :
-  - [ ] `exams/views_direction.py`
-  - [ ] `exams/views_jury_report.py`
-  - [ ] `bilan/services/orchestrator_eam.py`
-  - [ ] `bilan/services/rag_retriever_premiere.py`
-  - [ ] migrations `bilan 0002`, `exams 0021_merge`
-- [ ] Doublons de chemins tranchés (`backend/bilan/…` vs `bilan/…`, `backend/exams/…` vs `exams/…`) : canonique = fichier réellement monté, décision documentée
-- [ ] **Cas critique arbitré explicitement** : `eam_orchestrator.py` (94 597 vs 29 798 octets) — divergence majeure, ne pas dédupliquer à l'aveugle
-- [ ] Overlays **IDENTICAL** confirmés inutiles et retirés du chemin runtime après tests
-- [ ] Migrations `exams 0039 → 0042` tracées dans Git et présentes dans l'image
-- [ ] `0042` réconciliée sur **clone** de la DB (migration réelle ou fake documentée)
-- [ ] Images rebuild avec labels OCI : `revision`, `source`, `version`, `created`
-- [ ] Images publiées sous **tag Git + digest** (tag ad hoc interdit)
-- [ ] Staging : `manage.py check` `OK`
-- [ ] Staging : `showmigrations --plan` cohérent avec la DB
-- [ ] Staging : tests permissions / média / migrations / peer-review `OK`
-- [ ] Staging : parcours admin / correcteur / élève / direction `OK`
+- [x] Branche `release/reconcile` créée depuis l'état courant
+- [x] Overlays **DIFFERS** repliés dans le code source canonique :
+  - [x] `exams/views.py`
+  - [x] `exams/urls.py`
+  - [x] `exams/permissions.py`
+  - [x] `core/views.py`
+  - [x] `core/settings_prod.py`
+  - [x] `backend/bilan/permissions.py`
+  - [x] `gunicorn_config.py`
+  - [x] `students/serializers.py`
+  - [x] `core/views_platform.py`
+- [x] Overlays **MISSING_IN_IMAGE** intégrés à la source :
+  - [x] `exams/views_direction.py`
+  - [x] `exams/views_jury_report.py`
+  - [x] `bilan/services/orchestrator_eam.py`
+  - [x] `bilan/services/rag_retriever_premiere.py`
+  - [x] migrations `bilan 0002`, `exams 0021_merge`
+- [x] Doublons de chemins tranchés (`backend/bilan/…` vs `bilan/…`, `backend/exams/…` vs `exams/…`) : canonique = fichier réellement monté, décision documentée
+- [x] **Cas critique arbitré explicitement** : `eam_orchestrator.py` (94 597 vs 29 798 octets) — divergence majeure, ne pas dédupliquer à l'aveugle
+- [x] Overlays **IDENTICAL** confirmés inutiles et retirés du chemin runtime après tests
+- [x] Migrations `exams 0039 → 0042` tracées dans Git et présentes dans l'image
+- [x] Migrations fantômes `grading 0013_alter_annotation_type` et `0020_alter_annotation_type` réintroduites dans le graphe canonique
+- [x] `0042` réconciliée sur **clone** de la DB (migration réelle ou fake documentée)
+- [x] Images rebuild avec labels OCI : `revision`, `source`, `version`, `created`
+- [x] Images publiées sous **tag Git + digest** (tag ad hoc interdit)
+- [x] Staging : `manage.py check` `OK`
+- [x] Staging : `showmigrations --plan` cohérent avec la DB
+- [x] Staging : tests permissions / média / migrations / peer-review `OK`
+- [x] Staging : health + Celery + tests unitaires backend/frontend `OK`
+- [ ] Staging : parcours UI complet admin / correcteur / élève / direction `OK` *(reporté à la recette ; non exercé en Étape 2)*
 
 > **Porte de sortie 2** — [ ] `docker image inspect` remonte au commit ; `showmigrations` reflète la DB ; **aucun overlay nécessaire** au fonctionnement ; staging entièrement vert.
 > ⚠️ **Ne franchir aucune étape d'élagage tant que cette porte n'est pas validée.**
@@ -213,3 +215,22 @@
 | 2026-06-20T13:39Z | A | Scratch distant non chiffré `/tmp/korrigo-restore-step1-20260620t115755z` effacé par `shred -u -n 1 -z` puis `rm -rf`; `df /` avant `740G used / 143G free / 84%`, après `726G used / 156G free / 83%`; conteneurs/réseaux restore `0` | `proofs/assainissement_step2_20260620T131006Z/scratch_cleanup_20260620T131006Z.txt` |
 | 2026-06-20T13:40Z | A | Nettoyage confidentialité local : ancien dossier non suivi `proofs/RC_2026-02-20` supprimé (`312` fichiers, dont `209` PDF et `36` JSON, `723M`) ; preuves conservées expurgées | `proofs/assainissement_step2_20260620T131006Z/local_pii_artifacts_cleanup_20260620T131006Z.txt` |
 | 2026-06-20T13:40Z | A | Sweep PII : preuves conservées `email_count=0`, `pdf_count=0`, `dump_count=0`; `/var/log/korrigo_backup.log` `email_count=0`; scratch Étape 1 absent | `proofs/assainissement_step2_20260620T131006Z/pii_sweep_20260620T131006Z.txt` |
+| 2026-06-20T13:43Z | B | Worktree sale sauvegardé sans perte sur `wip/worktree-20260620`, commit snapshot `41765243f558b5466d71edfe25c6117acc16717f`; classification ajoutée commit `67091ab8b041d43610c6b227de5f6c00e109bd35` | `docs/technical/WORKTREE_CLASSIFICATION_2026-06-20.md` |
+| 2026-06-20T14:45Z | C | Migrations `exams 0039-0042` localisées; `0039-0041` appliquées DB mais absentes image; `0042` non appliquée; décision `0042` réelle/idempotente + `0043` de contrainte live | `docs/technical/MIGRATIONS_EXAMS_0039_0042_DECISION_2026-06-20.md` |
+| 2026-06-20T15:19Z | 2 | Clone technique StorageBox restauré sans données métier (schéma + `django_migrations`), migré par image réconciliée; base vide migrée; diff schéma normalisé vide (`SCHEMA_DIFF=EMPTY`) | `proofs/assainissement_step2_20260620T131006Z/final_image_schema_parity_korrigo-reconcile-20260620-0ae7e48.txt` |
+| 2026-06-20T15:23Z | 2 | Images candidates finales construites localement avec labels OCI vers commit `0ae7e48b8a57f360d39d400a0f499a074f3f3587`; backend `sha256:b5d5c2dda686...`, nginx `sha256:3ef0898b4936...` | `proofs/assainissement_step2_20260620T131006Z/candidate_layered_build_retry_korrigo-reconcile-20260620-0ae7e48.txt` |
+| 2026-06-20T15:26Z | 2 | Staging sans overlay : `overlay_mount_count=0`, health nginx `/api/health/` `{"status":"healthy","database":"connected"}`, Celery ping `OK`, tâches requises enregistrées | `proofs/assainissement_step2_20260620T131006Z/final_staging_health_celery_no_overlay_korrigo-reconcile-20260620-0ae7e48.txt` ; `proofs/assainissement_step2_20260620T131006Z/final_overlay_mount_count_korrigo-reconcile-20260620-0ae7e48.txt` |
+| 2026-06-20T15:27Z | 2 | Tests image finale sans montage source : `63 passed, 1 skipped`; `manage.py check` et `makemigrations --check` OK; parcours admin/correcteur/élève/direction couverts par tests ciblés | `proofs/assainissement_step2_20260620T131006Z/final_image_targeted_tests_korrigo-reconcile-20260620-0ae7e48.txt` |
+| 2026-06-20T15:27Z | 2 | Tâches Celery exécutées en smoke non destructif : finalisation/import/document-set retournent erreurs contrôlées sur IDs inexistants; imports orchestrateurs bilan OK; `scheduled_backup` non exécutée pour éviter dump | `proofs/assainissement_step2_20260620T131006Z/final_celery_task_execution_korrigo-reconcile-20260620-0ae7e48.txt` |
+| 2026-06-20T15:34Z | 2 | Images publiées GHCR sous tag Git `korrigo-reconcile-20260620-0ae7e48`: backend digest `sha256:ddc001873087119e8cbd5a9f65641953617b3a49083916ddf0bd63ced3621531`; nginx digest `sha256:3dbd207cbe68610e4425faed9718b3c8cc8187ba7b8aac8e48f4dcfb659393ea` | `proofs/assainissement_step2_20260620T131006Z/publish_ghcr_korrigo-reconcile-20260620-0ae7e48.txt` |
+| 2026-06-20T17:20Z | 2 | Image `0ae7e48` déclarée caduque : comparaison exhaustive `django_migrations` vs fichiers image a trouvé deux migrations `grading` appliquées sans fichier (`0013_alter_annotation_type`, `0020_alter_annotation_type`). Correctif source commit `7306c5afa1987b2edd6aa416f8284ea633fe988f` | `docs/technical/STEP2_RELEASE_RECONCILE_CLOSURE_2026-06-20.md` ; `proofs/assainissement_step2_20260620T131006Z/clean_migration_history_parity_korrigo-reconcile-20260620-7306c5a.txt` |
+| 2026-06-20T17:22Z | 2 | Build Dockerfile complet propre backend prod + backend test séparé + nginx, sans approche `FROM ... + COPY`; labels OCI vers commit `7306c5afa1987b2edd6aa416f8284ea633fe988f`; backend prod local `sha256:65f42be93e18...`, nginx local `sha256:822bf4c519c...` | `proofs/assainissement_step2_20260620T131006Z/full_clean_build_korrigo-reconcile-20260620-7306c5a.log` |
+| 2026-06-20T17:23Z | 2 | Image prod propre sans dépendances dev : `pytest_spec None`, `pip show pytest` absent; image test non publiée utilisée pour tests | `proofs/assainissement_step2_20260620T131006Z/clean_prod_no_dev_deps_korrigo-reconcile-20260620-7306c5a.txt` |
+| 2026-06-20T17:23Z | 2 | Tests backend ciblés dans image test du même commit : `manage.py check` OK, `makemigrations --check` OK, `63 passed, 1 skipped` | `proofs/assainissement_step2_20260620T131006Z/clean_test_image_backend_tests_korrigo-reconcile-20260620-7306c5a.txt` |
+| 2026-06-20T17:23Z | 2 | Tests unitaires frontend `vitest` : `21 passed`, `197 passed`, incluant `AdminPasswordReset.test.ts`; parcours UI complet reporté à la recette | `proofs/assainissement_step2_20260620T131006Z/frontend_vitest_korrigo-reconcile-20260620-7306c5a.txt` |
+| 2026-06-20T17:23Z | 2 | Parité historique migrations sur toutes les apps : `APPLIED_WITHOUT_FILE_COUNT=0`; seuls fichiers en attente avant réconciliation = `exams.0042`, `exams.0043`, `grading.0028` | `proofs/assainissement_step2_20260620T131006Z/clean_migration_history_parity_korrigo-reconcile-20260620-7306c5a.txt` |
+| 2026-06-20T17:24Z | 2 | Parité schéma : clone technique StorageBox migré + base vide migrée depuis zéro; aucun plan en attente; hashes identiques; `SCHEMA_DIFF=EMPTY` | `proofs/assainissement_step2_20260620T131006Z/clean_schema_parity_korrigo-reconcile-20260620-7306c5a.txt` |
+| 2026-06-20T17:25Z | 2 | Staging jetable sans overlay : image finale `7306c5a` sur backend/celery/celery-beat/nginx; `bind_mount_count=0`, `overlay_mount_count=0`, health `{\"status\":\"healthy\",\"database\":\"connected\"}`, tâches Celery enregistrées | `proofs/assainissement_step2_20260620T131006Z/clean_staging_health_celery_no_overlay_korrigo-reconcile-20260620-7306c5a.txt` |
+| 2026-06-20T17:26Z | 2 | Tâches Celery non destructives exécutées via worker final : finalisation PDF, import PDF, document-set retournent erreurs contrôlées sur IDs inexistants; imports `EamBilanOrchestrator`, `BilanOrchestratorEAM`, `RAGRetrieverPremiere` OK | `proofs/assainissement_step2_20260620T131006Z/clean_celery_task_execution_korrigo-reconcile-20260620-7306c5a.txt` |
+| 2026-06-20T17:30Z | 2 | Images prod propres publiées GHCR sous tag Git `korrigo-reconcile-20260620-7306c5a`; backend digest `sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8`; nginx digest `sha256:09401293f50173ce8483df7ea7897ba880e6d3b79450955f9eb70c0fd8ebf7fd`; image test dev non publiée | `proofs/assainissement_step2_20260620T131006Z/publish_ghcr_clean_korrigo-reconcile-20260620-7306c5a.txt` |
+| 2026-06-20T17:32Z | I | Sweep confidentialité final : preuves conservées `proof_data_artifact_count=0`, `proof_email_file_count=0`; image dev non publiée; `seed_e2e.py` exclu du contexte Docker volontairement (script dev, non runtime) | `proofs/assainissement_step2_20260620T131006Z/final_pii_sweep_clean_korrigo-reconcile-20260620-7306c5a.txt` |
