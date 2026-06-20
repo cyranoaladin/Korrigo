@@ -4,9 +4,11 @@ Permissions for DNB Bilan Module
 
 from rest_framework.permissions import BasePermission
 from django.contrib.auth import get_user_model
-from core.auth import DIRECTION_GROUPS
 
 User = get_user_model()
+
+# Direction groups - defined locally to avoid import issues
+DIRECTION_GROUPS = ['direction_all', 'direction_lycee', 'direction_college']
 
 
 class IsAdminOrTeacher(BasePermission):

@@ -30,6 +30,16 @@ RUN groupadd -r korrigo && useradd -r -g korrigo -d /app -s /sbin/nologin korrig
 # P0-OP-01 fix: Logging directory must exist for RotatingFileHandler
 RUN mkdir -p /app/logs && chown -R korrigo:korrigo /app
 
+ARG OCI_REVISION=unknown
+ARG OCI_SOURCE=unknown
+ARG OCI_VERSION=dev
+ARG OCI_CREATED=unknown
+
+LABEL org.opencontainers.image.revision="${OCI_REVISION}" \
+      org.opencontainers.image.source="${OCI_SOURCE}" \
+      org.opencontainers.image.version="${OCI_VERSION}" \
+      org.opencontainers.image.created="${OCI_CREATED}"
+
 # Note: Container starts as root so entrypoint.sh can fix volume permissions,
 # then drops to korrigo user before running gunicorn.
 ENTRYPOINT ["/app/entrypoint.sh"]

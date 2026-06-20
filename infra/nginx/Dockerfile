@@ -18,3 +18,12 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # Directory for backend static files (collected via volume)
 RUN mkdir -p /app/staticfiles /app/media
 
+ARG OCI_REVISION=unknown
+ARG OCI_SOURCE=unknown
+ARG OCI_VERSION=dev
+ARG OCI_CREATED=unknown
+
+LABEL org.opencontainers.image.revision="${OCI_REVISION}" \
+      org.opencontainers.image.source="${OCI_SOURCE}" \
+      org.opencontainers.image.version="${OCI_VERSION}" \
+      org.opencontainers.image.created="${OCI_CREATED}"

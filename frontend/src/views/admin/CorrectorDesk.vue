@@ -405,6 +405,11 @@ const fetchCopy = async () => {
   showIdentity.value = false
   try {
     copy.value = await gradingApi.getCopy(copyId)
+    // Preload first page image (header page) so it's cached before DOM renders
+    if (pages.value.length > 0) {
+      const firstUrl = getPageUrl(0)
+      if (firstUrl) { const img = new Image(); img.src = firstUrl }
+    }
     await refreshAnnotations()
     await fetchHistory()
     await fetchRemarks()
@@ -1736,9 +1741,9 @@ onUnmounted(() => {
               @dragleave="handleDragLeave"
               @drop="(e) => handleDrop(e, idx)"
             >
-              <!-- Anonymization overlay per page -->
+              <!-- Anonymization overlay per page — shown immediately (before image loads) to prevent identity flash -->
               <div
-                v-show="loadedPages.has(idx) && isHeaderPageForIndex(idx) && !showIdentity"
+                v-show="isHeaderPageForIndex(idx) && !showIdentity"
                 class="anonymization-overlay"
                 :style="{ height: overlayHeightForIndex(idx) }"
               >
@@ -1759,9 +1764,10 @@ onUnmounted(() => {
               </div>
               <img
                 :src="getPageUrl(idx)"
-                :class="['page-image', { 'page-image--loading': !loadedPages.has(idx) }]"
+                :class="['page-image', { 'page-image--loading': !loadedPages.has(idx), 'page-image--header-loading': !loadedPages.has(idx) && isHeaderPageForIndex(idx) }]"
                 draggable="false"
-                loading="lazy"
+                :loading="idx === 0 ? 'eager' : 'lazy'"
+                :fetchpriority="idx === 0 ? 'high' : 'auto'"
                 style="pointer-events: none; user-select: none;"
                 @load="(e) => handleImageLoad(e, idx)"
                 @error="handleImageError"
@@ -2311,8 +2317,9 @@ onUnmounted(() => {
 .scroll-area { flex: 1; overflow: auto; background: #525659; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px; -webkit-overflow-scrolling: touch; will-change: scroll-position; }
 
 .canvas-wrapper { position: relative; background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); will-change: transform; flex-shrink: 0; }
-.page-image { width: 100%; height: 100%; display: block; opacity: 1; transition: opacity 0.15s ease-in; image-rendering: auto; }
+.page-image { width: 100%; height: 100%; display: block; opacity: 1; transition: opacity 0.3s ease-in; image-rendering: auto; }
 .page-image--loading { opacity: 0.25; }
+.page-image--header-loading { opacity: 0; }
 
 .anonymization-overlay {
     position: absolute;

@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
 import AppIcon from '../../icons/AppIcon.vue'
+import PasswordResetDialog from '../../components/admin/PasswordResetDialog.vue'
 import { useAutoRefresh } from '../../composables/useAutoRefresh'
 
 const props = defineProps({
@@ -22,6 +23,15 @@ const sortAsc = ref(true)
 const filterStatus = ref('all')
 const filterClasse = ref('all')
 const filterGroupe = ref('all')
+const passwordResetDialog = ref({
+  visible: false,
+  target: null,
+  targetLabel: '',
+  targetDetail: '',
+  loading: false,
+  successMessage: '',
+  errorMessage: '',
+})
 
 const fetchData = async () => {
   loading.value = true
@@ -131,18 +141,45 @@ const exportPronote = async () => {
     }
 }
 
-const resetStudentPassword = async (studentId, studentName) => {
-    if (!confirm(`Réinitialiser le mot de passe de ${studentName} à sa date de naissance (JJMMAAAA) ?\n\nL'élève devra changer son mot de passe à la prochaine connexion.`)) {
-        return
+const resetStudentPassword = (studentId, studentName) => {
+    passwordResetDialog.value = {
+        visible: true,
+        target: { id: studentId, name: studentName },
+        targetLabel: studentName || 'Élève',
+        targetDetail: 'Réinitialisation à la date de naissance enregistrée',
+        loading: false,
+        successMessage: '',
+        errorMessage: '',
     }
+}
 
+const closePasswordResetDialog = () => {
+    if (passwordResetDialog.value.loading) return
+    passwordResetDialog.value = {
+        visible: false,
+        target: null,
+        targetLabel: '',
+        targetDetail: '',
+        loading: false,
+        successMessage: '',
+        errorMessage: '',
+    }
+}
+
+const confirmPasswordReset = async () => {
+    const dialog = passwordResetDialog.value
+    if (!dialog.target?.id || dialog.loading || dialog.successMessage) return
+
+    dialog.loading = true
+    dialog.errorMessage = ''
     try {
-        const res = await api.post('/students/admin/reset-password/', { student_id: studentId })
-        alert(`Mot de passe réinitialisé avec succès.\n\nNouveau mot de passe: ${res.data.new_password}\n\nL'élève devra le changer à la prochaine connexion.`)
+        await api.post('/students/admin/reset-password/', { student_id: dialog.target.id })
+        dialog.successMessage = "Mot de passe réinitialisé avec succès. L'élève devra le changer à la prochaine connexion."
     } catch (err) {
         console.error('Password reset failed', err)
-        const msg = err.response?.data?.error || 'Erreur lors de la réinitialisation du mot de passe.'
-        alert(msg)
+        dialog.errorMessage = err.response?.data?.error || 'Erreur lors de la réinitialisation du mot de passe.'
+    } finally {
+        dialog.loading = false
     }
 }
 
@@ -281,5 +318,17 @@ useAutoRefresh(fetchData)
         </div>
       </template>
     </main>
+
+    <PasswordResetDialog
+      :visible="passwordResetDialog.visible"
+      mode="student"
+      :target-label="passwordResetDialog.targetLabel"
+      :target-detail="passwordResetDialog.targetDetail"
+      :loading="passwordResetDialog.loading"
+      :success-message="passwordResetDialog.successMessage"
+      :error-message="passwordResetDialog.errorMessage"
+      @confirm="confirmPasswordReset"
+      @close="closePasswordResetDialog"
+    />
   </div>
 </template>

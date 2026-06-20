@@ -38,6 +38,7 @@ from grading.views_annotation_bank import (
 )
 from grading.views_my_students import MyStudentsListView, StudentBilanView, ExportClassPronoteView
 from grading.views_questionnaire import QuestionnaireResponseView, QuestionnaireBilanView
+from grading.views_peer_review import TeacherExamPeerReviewListView, TeacherPeerReviewDetailView
 
 urlpatterns = [
     # Drafts
@@ -111,4 +112,8 @@ urlpatterns = [
     path('students/<int:student_id>/bilan/', StudentBilanView.as_view(), name='student-bilan'),
     path('questionnaire/', QuestionnaireResponseView.as_view(), name='questionnaire-response'),
     path('questionnaire/bilan/', QuestionnaireBilanView.as_view(), name='questionnaire-bilan'),
+
+    # Corrections participatives supervisees par l'enseignant
+    path('teacher/exams/<uuid:exam_id>/peer-reviews/', TeacherExamPeerReviewListView.as_view(), name='teacher-peer-review-list'),
+    path('teacher/peer-reviews/<uuid:pk>/', TeacherPeerReviewDetailView.as_view(), name='teacher-peer-review-detail'),
 ]

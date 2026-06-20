@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../../services/api'
-import ExamUploadModal from '../../components/ExamUploadModal.vue'
+import ImportCopiesModal from '../../components/ImportCopiesModal.vue'
 import { useAutoRefresh } from '../../composables/useAutoRefresh'
 
 const route = useRoute()
@@ -358,7 +358,7 @@ useAutoRefresh(fetchCopies)
     </main>
 
     <!-- Upload Modal -->
-    <ExamUploadModal
+    <ImportCopiesModal
       v-if="showUploadModal"
       :exam-id="examId"
       @close="showUploadModal = false"
