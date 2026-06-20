@@ -120,20 +120,22 @@
 - [x] Rollback : contrôle post-restore exige contrainte `check_copy_status_valid` revenue à `LOCKED/GRADED` et défaut `pdf_regeneration_pending` absent
 - [x] One-shot migration : preuve staging que `docker compose run --rm --no-deps --entrypoint python backend` hérite de `REDIS_PASSWORD`, ping Redis AUTH, puis `migrate`/`migrate --check` OK
 - [x] Verrou commit image : labels OCI des images déployées doivent pointer vers `1958681b082402e06d0f463e685d8a9895c460c5`; aucun code runtime ne doit avoir divergé après ce commit. Le HEAD Git de déploiement peut être postérieur uniquement pour doc/config digests/runbook.
-- [ ] Pré-requis prod à corriger pendant la bascule : `.env` confirmé en `664` au lieu de `600`; exécuter `chmod 600 .env` avant démarrage de la pile unifiée
+- [x] Préparation reprise sans Git : prod historique confirmée non-Git ; voie retenue = clone propre dans `RELEASE_DIR`, legacy intact ; Étape 0 ajoutée pour constituer un `.env` complet hors dépôt avant toute reprise de bascule
+- [ ] Pré-requis prod à fournir avant reprise : `/etc/korrigo/korrigo.env` complet, hors dépôt, en `600`, avec secrets neufs générés par l'administrateur
 - [x] Alias silencieux `n_copies_graded` supprimé : statut métier canonique = `FINALIZED`
 - [x] Sweep logs RGPD : backend/celery/entrypoint/nginx sans email, secret ni identifiant de probe en clair
 - [x] Staging : redémarrage backend/celery/celery-beat/nginx + health + parcours HTTP par rôle `OK`
 - [x] Anciennes images conservées (rollback) ; aucun prune image/volume effectué
 - [ ] Prod : backup frais, migrations explicites, déploiement par digest, health, parcours et logs — en attente du `go`
 
-**Runbook M v3.1 de bascule prévu (ne pas exécuter sans `go étape N`)**
+**Runbook M v3.2 de bascule prévu (ne pas exécuter sans `go étape N`)**
 
 Table de séquence. Chaque étape s'arrête après son critère de passage et attend une confirmation humaine explicite avant la suivante.
 
 | Étape | Action | Commande clé | Critère de passage | Arrêt |
 |---|---|---|---|---|
-| 1 | Préflight dépôt/env/disque | `git pull --ff-only`, `chmod 600 .env`, contrôles digest/OCI | disque OK, `.env=600`, compose final, images OCI `revision=1958681...`, DB/Redis IDs inchangés | attendre `go étape 2` |
+| 0 | Constituer et vérifier l'env prod | admin crée `/etc/korrigo/korrigo.env`, contrôles présence/absence sans valeurs | toutes clés obligatoires présentes, secrets neufs présents, clés interdites absentes, fichier `600` | attendre `go étape 1` |
+| 1 | Clone propre + préflight | `git clone/fetch` dans `RELEASE_DIR`, contrôles digest/OCI | disque OK, clone propre, compose final, images OCI `revision=1958681...`, DB/Redis IDs inchangés | attendre `go étape 2` |
 | 2 | Gel applicatif | `$COMPOSE stop nginx celery-beat celery` | nginx inaccessible, backend/db/redis encore disponibles, aucun worker actif | attendre `go étape 3` |
 | 3 | Backup ancien état | `pg_dump`, exports JSON, archive média, GPG, StorageBox | backup chiffré, checksums OK, média listable, JSON conteneur supprimés | attendre `go étape 4` |
 | 4 | Restore test rapide | `pg_restore` sur DB jetable | `django_migrations` lisible dans la DB restaurée, pile jetable supprimée | attendre `go étape 5` |
@@ -146,43 +148,141 @@ Table de séquence. Chaque étape s'arrête après son critère de passage et at
 | 11 | Vérification prod | health, Redis, Celery, médias, logs, parcours rôles | critères de succès chiffrés atteints, aucun critère rollback | attendre validation Porte 3 |
 | R | Rollback si critère bloquant | stop app, `DROP/CREATE DATABASE`, restore dump, images Porte 2 | health rollback OK, schéma ancien prouvé (`LOCKED/GRADED`, default 0042 absent) | attendre décision humaine |
 
+### Étape 0 — Constitution du `.env` prod complet
+
+Le `.env` final est constitué par l'administrateur, sans affichage de valeurs et sans transit par Git. Cible recommandée : `/etc/korrigo/korrigo.env`, propriétaire `root:root`, permissions `600`. Ce choix garde `LEGACY_DIR` intact et évite de placer les secrets dans un worktree Git, même ignoré.
+
+Variables extraites du compose canonique final :
+
+| Variable | Statut compose | Présence ancien `.env` | Provenance v3.2 | Décision |
+|---|---|---:|---|---|
+| `ALLOWED_HOSTS` | obligatoire `${VAR:?err}` | présente | réutiliser ancien `.env` | conserver |
+| `CORS_ALLOWED_ORIGINS` | obligatoire `${VAR:?err}` | présente | réutiliser ancien `.env` | conserver |
+| `CSRF_TRUSTED_ORIGINS` | obligatoire `${VAR:?err}` | présente | réutiliser ancien `.env` | conserver |
+| `METRICS_TOKEN` | obligatoire `${VAR:?err}` | présente | réutiliser ancien `.env` | conserver secret existant |
+| `POSTGRES_DB` | obligatoire `${VAR:?err}` | présente | réutiliser ancien `.env` | conserver |
+| `POSTGRES_USER` | obligatoire `${VAR:?err}` | présente | réutiliser ancien `.env` | conserver |
+| `POSTGRES_PASSWORD` | obligatoire `${VAR:?err}` | présente | réutiliser ancien `.env` | conserver secret existant |
+| `SECRET_KEY` | obligatoire `${VAR:?err}` | présente | réutiliser ancien `.env` | conserver secret existant |
+| `REDIS_PASSWORD` | obligatoire `${VAR:?err}` | absente | générer neuf par admin | secret neuf requis Redis AUTH |
+| `BACKUP_GPG_PASSPHRASE` | obligatoire `${VAR:?err}` | absente | générer neuf par admin | secret neuf requis backups GPG |
+| `REQUIRE_BACKUP_GPG` | env runtime fixe/contrôle | absente | définir `true` | obligatoire politique RGPD |
+| `DJANGO_AUTO_MIGRATE` | env runtime fixe/contrôle | absente | définir `false` | migrations uniquement one-shot |
+| `SEED_ON_START` | env runtime fixe/contrôle | présente | définir `false` dans nouvel env | ne pas reprendre l'ancien comportement |
+| `ENABLE_API_DOCS` | env runtime fixe/contrôle | absente | définir `false` | docs API désactivées prod |
+| `GUNICORN_WORKERS` | optionnelle `${VAR:-4}` | absente | définir `4` | valeur attendue Step 3 |
+| `STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS` | optionnelle `${VAR:-10}` | absente | définir `10` | expliciter la limite métier |
+| `STUDENT_LOGIN_RATE_LIMIT_WINDOW` | optionnelle `${VAR:-900}` | absente | définir `900` | expliciter la fenêtre |
+| `REDIS_DB` | optionnelle `${VAR:-1}` | absente | définir `1` | cohérence backend/celery |
+| `SSL_ENABLED` | optionnelle `${VAR:-True}` | présente | réutiliser ou définir `True` | conserver prod |
+| `OPENAI_API_KEY` / `OPENAI_BASE_URL` | optionnelles | présentes | réutiliser ancien `.env` si nécessaires | valeurs non affichées |
+| `OPENAI_MODEL`, `AI_PROVIDER_*`, `AI_MODEL_NAME` | optionnelles | majoritairement absentes | laisser vide ou définir par admin | non bloquant |
+| `BILAN_*`, `RAG_URL`, `RAG_TOKEN` | optionnelles | partiellement présentes | réutiliser si présent | non bloquant |
+| `DEFAULT_PASSWORD` | interdit runtime | présente | ne pas reporter | retiré Step 3, seed/import one-shot seulement |
+| `E2E_SEED_TOKEN` | interdit runtime | absente | ne pas reporter | token E2E hors prod |
+
+Procédure administrateur, sans affichage de secrets :
+
+```bash
+ssh root@88.99.254.59
+set -euo pipefail
+export LEGACY_DIR="/var/www/labomaths/korrigo"
+export ENV_FILE="/etc/korrigo/korrigo.env"
+install -d -m 700 -o root -g root /etc/korrigo
+umask 077
+
+# Base : partir du contenu de `.env.prod.example` validé dans la branche
+# `release/prod-unification` (consulté côté admin/local ou après clone validé),
+# puis écrire uniquement les clés retenues dans "$ENV_FILE".
+# Ne jamais copier l'ancien `.env` en bloc et ne jamais afficher les valeurs.
+touch "$ENV_FILE"
+chmod 600 "$ENV_FILE"
+chown root:root "$ENV_FILE"
+
+# L'administrateur copie manuellement les valeurs existantes nécessaires depuis
+# "$LEGACY_DIR/.env" vers "$ENV_FILE" : ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS,
+# CSRF_TRUSTED_ORIGINS, METRICS_TOKEN, POSTGRES_DB, POSTGRES_USER,
+# POSTGRES_PASSWORD, SECRET_KEY, SSL_ENABLED, et les clés LLM/RAG utiles.
+
+# Génération de secrets NEUFS par l'administrateur, sans les afficher dans le shell history :
+read -rsp "REDIS_PASSWORD neuf: " REDIS_PASSWORD; echo
+read -rsp "BACKUP_GPG_PASSPHRASE neuf: " BACKUP_GPG_PASSPHRASE; echo
+printf 'REDIS_PASSWORD=%s\n' "$REDIS_PASSWORD" >> "$ENV_FILE"
+printf 'BACKUP_GPG_PASSPHRASE=%s\n' "$BACKUP_GPG_PASSPHRASE" >> "$ENV_FILE"
+unset REDIS_PASSWORD BACKUP_GPG_PASSPHRASE
+
+# Valeurs de politique Step 3 à écrire dans "$ENV_FILE" :
+# REQUIRE_BACKUP_GPG=true
+# DJANGO_AUTO_MIGRATE=false
+# SEED_ON_START=false
+# ENABLE_API_DOCS=false
+# GUNICORN_WORKERS=4
+# STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS=10
+# STUDENT_LOGIN_RATE_LIMIT_WINDOW=900
+# REDIS_DB=1
+```
+
+Contrôle de présence/absence, sans imprimer de valeurs :
+
+```bash
+set -euo pipefail
+export ENV_FILE="/etc/korrigo/korrigo.env"
+test "$(stat -c %a "$ENV_FILE")" = "600"
+for key in ALLOWED_HOSTS BACKUP_GPG_PASSPHRASE CORS_ALLOWED_ORIGINS CSRF_TRUSTED_ORIGINS METRICS_TOKEN POSTGRES_DB POSTGRES_PASSWORD POSTGRES_USER REDIS_PASSWORD SECRET_KEY REQUIRE_BACKUP_GPG DJANGO_AUTO_MIGRATE SEED_ON_START ENABLE_API_DOCS GUNICORN_WORKERS STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS STUDENT_LOGIN_RATE_LIMIT_WINDOW REDIS_DB; do
+  grep -qE "^${key}=.+" "$ENV_FILE" || { echo "MISSING_OR_EMPTY=$key"; exit 1; }
+done
+for key in DEFAULT_PASSWORD E2E_SEED_TOKEN; do
+  if grep -qE "^${key}=" "$ENV_FILE"; then echo "FORBIDDEN_KEY_PRESENT=$key"; exit 1; fi
+done
+grep -qE '^REQUIRE_BACKUP_GPG=true$' "$ENV_FILE"
+grep -qE '^DJANGO_AUTO_MIGRATE=false$' "$ENV_FILE"
+grep -qE '^SEED_ON_START=false$' "$ENV_FILE"
+grep -qE '^ENABLE_API_DOCS=false$' "$ENV_FILE"
+echo "ENV_STEP0_CHECK=PASS"
+```
+
 Variables confirmées en lecture seule :
 - hôte : `root@88.99.254.59`
-- répertoire : `/var/www/labomaths/korrigo`
-- compose cible : `/var/www/labomaths/korrigo/infra/docker/docker-compose.prod.yml`
+- legacy intact : `/var/www/labomaths/korrigo`
+- release propre : `/var/www/labomaths/korrigo_release`
+- env final hors dépôt : `/etc/korrigo/korrigo.env`
+- compose cible : `/var/www/labomaths/korrigo_release/infra/docker/docker-compose.prod.yml`
 - projet Compose : `docker`
 - DB : conteneur `docker-db-1`, user `korrigo_user`, base `korrigo_db`, volume `docker_postgres_data`
 - média : volume `docker_media_volume`, mountpoint confirmé `/var/lib/docker/volumes/docker_media_volume/_data`, `8528` fichiers, `14G`
 - StorageBox : clé `/root/.ssh/storagebox_ed25519` en `600`, cible `u554481@u554481.your-storagebox.de:23/backups/korrigo_backups`
 - disque : `/` et `/var/lib/docker` sur `/dev/md2`, `170G` libres, `81%` utilisés ; seuil bloquant avant pull : moins de `15G` libres ou plus de `90%` utilisés
-- anomalie à corriger pendant la bascule : `.env` actuellement en `664`, attendu `600`
+- anomalie corrigée : legacy `.env` est passé de `664` à `600` lors de l'arrêt contrôlé Étape 1 ; le nouvel env final reste `/etc/korrigo/korrigo.env`
 - comportement Compose attendu : un `$COMPOSE up -d` global est interdit ; aucun `--remove-orphans` ; DB non recréée et vérifiée par ID ; Redis recréé explicitement une seule fois pour activer `requirepass` ; backend/celery/celery-beat/nginx recréés par changement d'image/digest et retrait overlays
 
-Préparation après `go`, avant gel applicatif :
+Étape 1 après validation Étape 0, avant gel applicatif :
 
 ```bash
 ssh root@88.99.254.59
 set -euo pipefail
-cd /var/www/labomaths/korrigo
+export LEGACY_DIR="/var/www/labomaths/korrigo"
+export RELEASE_DIR="/var/www/labomaths/korrigo_release"
+export ENV_FILE="/etc/korrigo/korrigo.env"
 export TS="$(date -u +%Y%m%d_%H%M%S)"
 export IMAGE_COMMIT="1958681b082402e06d0f463e685d8a9895c460c5"
-export COMPOSE="docker compose --env-file /var/www/labomaths/korrigo/.env -f /var/www/labomaths/korrigo/infra/docker/docker-compose.prod.yml -p docker"
+export COMPOSE="docker compose --env-file $ENV_FILE -f $RELEASE_DIR/infra/docker/docker-compose.prod.yml -p docker"
 export BACKEND_NEW="ghcr.io/cyranoaladin/korrigo-backend@sha256:aafe75e7e4bc475f066ed57cc4b16dc816ea3497c70f3e8e954c5ba496929e1e"
 export NGINX_NEW="ghcr.io/cyranoaladin/korrigo-nginx@sha256:5c4dda163f3ce4a4ff7e4a2b321adafb398cc3cdaa4461d708de89dabae0f61a"
 export BACKEND_ROLLBACK="ghcr.io/cyranoaladin/korrigo-backend@sha256:a6b750e56dd976153d62bec16128ebf4d8a1efc6a68fb24fc86c11d46b5657c8"
 export NGINX_ROLLBACK="ghcr.io/cyranoaladin/korrigo-nginx@sha256:09401293f50173ce8483df7ea7897ba880e6d3b79450955f9eb70c0fd8ebf7fd"
 export DB_ID_BEFORE="$(docker inspect -f '{{.Id}}' docker-db-1)"
 export REDIS_ID_BEFORE="$(docker inspect -f '{{.Id}}' docker-redis-1)"
-test -f infra/docker/docker-compose.prod.yml
-test -f .env
+test -d "$LEGACY_DIR"
+test -f "$ENV_FILE"
 df -h / /var/lib/docker
 docker system df
 test "$(df -BG /var/lib/docker | awk 'NR==2 {gsub(\"G\",\"\",$4); print ($4 >= 15)}')" = "1"
 test "$(df -P /var/lib/docker | awk 'NR==2 {gsub(\"%\",\"\",$5); print ($5 < 90)}')" = "1"
-chmod 600 .env
-test "$(stat -c %a .env)" = "600"
-git status --short --untracked-files=no
-test -z "$(git status --porcelain --untracked-files=no)"
+test "$(stat -c %a "$ENV_FILE")" = "600"
+if [ ! -d "$RELEASE_DIR/.git" ]; then
+  git clone --branch release/prod-unification --single-branch https://github.com/cyranoaladin/Korrigo.git "$RELEASE_DIR"
+fi
+cd "$RELEASE_DIR"
 git fetch origin release/prod-unification --tags
 git switch release/prod-unification
 git pull --ff-only origin release/prod-unification
@@ -198,13 +298,13 @@ if git diff --name-only "$IMAGE_COMMIT"..HEAD -- backend frontend infra/nginx Do
 fi
 test "$(docker inspect -f '{{.Id}}' docker-db-1)" = "$DB_ID_BEFORE"
 test "$(docker inspect -f '{{.Id}}' docker-redis-1)" = "$REDIS_ID_BEFORE"
-grep -E '^(DJANGO_AUTO_MIGRATE|SEED_ON_START|ENABLE_API_DOCS|GUNICORN_WORKERS|REQUIRE_BACKUP_GPG|STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS|STUDENT_LOGIN_RATE_LIMIT_WINDOW)=' .env
-test "$(grep -E '^DJANGO_AUTO_MIGRATE=' .env | cut -d= -f2)" = "false"
-test "$(grep -E '^SEED_ON_START=' .env | cut -d= -f2)" = "false"
-test "$(grep -E '^ENABLE_API_DOCS=' .env | cut -d= -f2)" = "false"
-test "$(grep -E '^REQUIRE_BACKUP_GPG=' .env | cut -d= -f2)" = "true"
-test -n "$(grep -E '^REDIS_PASSWORD=' .env | cut -d= -f2-)"
-test -n "$(grep -E '^BACKUP_GPG_PASSPHRASE=' .env | cut -d= -f2-)"
+grep -E '^(DJANGO_AUTO_MIGRATE|SEED_ON_START|ENABLE_API_DOCS|GUNICORN_WORKERS|REQUIRE_BACKUP_GPG|STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS|STUDENT_LOGIN_RATE_LIMIT_WINDOW)=' "$ENV_FILE"
+test "$(grep -E '^DJANGO_AUTO_MIGRATE=' "$ENV_FILE" | cut -d= -f2)" = "false"
+test "$(grep -E '^SEED_ON_START=' "$ENV_FILE" | cut -d= -f2)" = "false"
+test "$(grep -E '^ENABLE_API_DOCS=' "$ENV_FILE" | cut -d= -f2)" = "false"
+test "$(grep -E '^REQUIRE_BACKUP_GPG=' "$ENV_FILE" | cut -d= -f2)" = "true"
+test -n "$(grep -E '^REDIS_PASSWORD=' "$ENV_FILE" | cut -d= -f2-)"
+test -n "$(grep -E '^BACKUP_GPG_PASSPHRASE=' "$ENV_FILE" | cut -d= -f2-)"
 $COMPOSE config | grep -E 'image:|DJANGO_AUTO_MIGRATE|SEED_ON_START|ENABLE_API_DOCS'
 $COMPOSE config | grep -F 'ghcr.io/cyranoaladin/korrigo-backend@sha256:aafe75e7e4bc475f066ed57cc4b16dc816ea3497c70f3e8e954c5ba496929e1e'
 $COMPOSE config | grep -F 'ghcr.io/cyranoaladin/korrigo-nginx@sha256:5c4dda163f3ce4a4ff7e4a2b321adafb398cc3cdaa4461d708de89dabae0f61a'
@@ -241,7 +341,7 @@ curl -fsS http://127.0.0.1:8088/ && exit 1 || true
 Backup complet chiffré après gel, avec média résolu dynamiquement. Ce backup est volontairement pris sur l'ANCIENNE image en production (`peer-review-20260525`) avec ses overlays encore montés, avant pull/bascule applicative : c'est le point de rollback vers l'état pré-bascule.
 
 ```bash
-set -a; . ./.env; set +a
+set -a; . "$ENV_FILE"; set +a
 export LOCAL_TMP="/tmp/korrigo_predeploy_${TS}"
 export MEDIA_VOLUME="docker_media_volume"
 export MEDIA_MOUNT="$(docker volume inspect "$MEDIA_VOLUME" --format '{{.Mountpoint}}')"
@@ -254,7 +354,7 @@ test "$MEDIA_ARCHIVE_FILE_COUNT" -gt 0
 docker exec docker-db-1 pg_dump -U korrigo_user -Fc korrigo_db > "$LOCAL_TMP/db_${TS}.dump"
 gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 -o "$LOCAL_TMP/db_${TS}.dump.gpg" "$LOCAL_TMP/db_${TS}.dump" 3<<<"$BACKUP_GPG_PASSPHRASE"
 shred -u "$LOCAL_TMP/db_${TS}.dump"
-docker exec -i docker-backend-1 sh -lc 'cat > /app/extract_correction_data.py' < scripts/extract_correction_data.py
+docker exec -i docker-backend-1 sh -lc 'cat > /app/extract_correction_data.py' < "$RELEASE_DIR/scripts/extract_correction_data.py"
 if ! docker exec docker-backend-1 python manage.py shell -c 'exec(open("/app/extract_correction_data.py").read())' > "$LOCAL_TMP/extract_${TS}.log" 2>&1; then
   sed -E 's/[[:alnum:]_.%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}/<redacted-email>/g' "$LOCAL_TMP/extract_${TS}.log" >&2 || true
   shred -u "$LOCAL_TMP/extract_${TS}.log"
@@ -561,3 +661,5 @@ Post-bascule immédiat si succès : surveiller disque hôte (`df -h / /var/lib/d
 | 2026-06-20T20:42Z | P.5 | Runbook M v3 : contrôle post-rollback exige défaut `pdf_regeneration_pending` absent (`<NULL>`) et contrainte `check_copy_status_valid` contenant `LOCKED` et `GRADED`; aucune écriture prod réalisée | `ASSAINISSEMENT_KORRIGO.md` |
 | 2026-06-20T20:49Z | Q.1 | Staging jetable : Redis AUTH obligatoire (`NOAUTH` sans mot de passe, `PONG` avec auth) ; `docker compose run --rm --no-deps --entrypoint python backend` hérite de `REDIS_PASSWORD`, ping Redis OK, puis `manage.py migrate` et `migrate --check` OK ; nettoyage ciblé final conteneurs/volumes/réseaux `0` | `proofs/20260620_step3_q/oneshot_redis_auth_env_1958681.txt` |
 | 2026-06-20T20:52Z | Q.2/Q.3/Q.4/Q.5 | Runbook M v3.1 : table de séquence numérotée avec arrêts humains ; backup explicitement pris sur ancienne image prod avant bascule ; aucun worker pendant migrations ; verrou image par tag/labels OCI `1958681b082402e06d0f463e685d8a9895c460c5` et absence de drift runtime post-image | `ASSAINISSEMENT_KORRIGO.md` |
+| 2026-06-20T21:03Z | R.1/R.2 | Variables du compose canonique extraites : 10 obligatoires bloquantes ; ancien `.env` a `REDIS_PASSWORD` et `BACKUP_GPG_PASSPHRASE` absents, `DEFAULT_PASSWORD` présent ; décision : `.env` final hors dépôt `/etc/korrigo/korrigo.env`, secrets neufs générés par admin, contrôles présence/absence sans valeurs | `proofs/20260620_step3_r/env_requirements_presence_no_values.txt` |
+| 2026-06-20T21:05Z | R.3/R.4/R.5 | Runbook M v3.2 : voie (a) intégrée (`LEGACY_DIR` intact, `RELEASE_DIR` clone propre), `COMPOSE` pointe release + env hors dépôt, scripts lus depuis `RELEASE_DIR`, Étape 0 ajoutée avant préflight, Redis password injecté dans backend/celery/celery-beat par le compose | `ASSAINISSEMENT_KORRIGO.md` |
