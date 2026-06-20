@@ -3,8 +3,11 @@ Tests pour l'audit trail (AuditLog)
 Conformité: Phase 1 - Corrections Critiques Sécurité
 """
 import pytest
+import io
+import logging
 from django.contrib.auth.models import User
 from django.test import RequestFactory
+from core.logging import ViatiqueJSONFormatter
 from core.models import AuditLog
 from core.utils.audit import (
     log_audit,
@@ -124,6 +127,50 @@ class TestAuditHelpers:
         log = AuditLog.objects.get(action='login.failed')
         assert log.metadata['success'] is False
         assert log.metadata['username'] == 'baduser'
+
+    def test_authentication_audit_redacts_email_like_identifier(self):
+        factory = RequestFactory()
+        request = factory.post('/api/login/')
+        request.session = {}
+
+        log_authentication_attempt(
+            request,
+            success=False,
+            username='student.leak@example.test',
+        )
+
+        log = AuditLog.objects.get(action='login.failed')
+        assert 'student.leak@example.test' not in str(log.metadata)
+        assert log.metadata['username'] == '<redacted-email>'
+
+    def test_structured_audit_log_does_not_emit_email_like_identifier(self):
+        factory = RequestFactory()
+        request = factory.post('/api/login/')
+        request.session = {}
+        stream = io.StringIO()
+        handler = logging.StreamHandler(stream)
+        handler.setFormatter(ViatiqueJSONFormatter())
+        logger = logging.getLogger('audit')
+        previous_handlers = list(logger.handlers)
+        previous_propagate = logger.propagate
+        previous_level = logger.level
+        logger.handlers = [handler]
+        logger.propagate = False
+        logger.setLevel(logging.INFO)
+        try:
+            log_authentication_attempt(
+                request,
+                success=False,
+                username='student.log@example.test',
+            )
+        finally:
+            logger.handlers = previous_handlers
+            logger.propagate = previous_propagate
+            logger.setLevel(previous_level)
+
+        output = stream.getvalue()
+        assert 'student.log@example.test' not in output
+        assert '<redacted-email>' in output
 
     def test_log_data_access(self):
         """Test log accès données"""

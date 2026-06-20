@@ -5,10 +5,24 @@ Conformité RGPD/CNIL - Traçabilité des actions critiques
 Référence: docs/security/MANUEL_SECURITE.md — Audit Trail RGPD
 """
 import logging
+import re
 from django.utils import timezone
 from django.http import HttpRequest
 
 audit_logger = logging.getLogger('audit')
+EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+
+
+def redact_log_value(value):
+    if isinstance(value, str):
+        return EMAIL_RE.sub("<redacted-email>", value)
+    if isinstance(value, dict):
+        return {key: redact_log_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [redact_log_value(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(redact_log_value(item) for item in value)
+    return value
 
 
 def get_client_ip(request: HttpRequest) -> str:
@@ -44,15 +58,18 @@ def log_audit(request: HttpRequest, action: str, resource_type: str, resource_id
     student_id = request.session.get('student_id')
 
     # Créer l'entrée d'audit
+    safe_resource_id = redact_log_value(str(resource_id))
+    safe_metadata = redact_log_value(metadata or {})
+
     audit_entry = AuditLog.objects.create(
         user=user if user and user.is_authenticated else None,
         student_id=student_id,
         action=action,
         resource_type=resource_type,
-        resource_id=str(resource_id),
+        resource_id=safe_resource_id,
         ip_address=get_client_ip(request),
         user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],  # Limite pour éviter overflow
-        metadata=metadata or {}
+        metadata=safe_metadata
     )
 
     # Log structuré pour monitoring externe (Sentry, CloudWatch, etc.)
@@ -60,8 +77,8 @@ def log_audit(request: HttpRequest, action: str, resource_type: str, resource_id
         "audit",
         extra={
             'action': action,
-            'resource': f"{resource_type}:{resource_id}",
-            'user': user.username if user and user.is_authenticated else 'anonymous',
+            'resource': f"{resource_type}:{safe_resource_id}",
+            'user': redact_log_value(user.username) if user and user.is_authenticated else 'anonymous',
             'student_id': student_id,
             'ip': get_client_ip(request),
             'timestamp': timezone.now().isoformat()
@@ -83,11 +100,11 @@ def log_authentication_attempt(request: HttpRequest, success: bool, username: st
     """
     action = 'login.success' if success else 'login.failed'
     resource_type = 'Student' if student_id else 'User'
-    resource_id = student_id if student_id else username or 'unknown'
+    resource_id = student_id if student_id else redact_log_value(username or 'unknown')
     
     metadata = {
         'success': success,
-        'username': username,
+        'username': redact_log_value(username),
         'student_id': student_id,
     }
     

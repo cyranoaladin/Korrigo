@@ -37,16 +37,13 @@ class TestDefaultPasswordSetting(TestCase):
         self.assertIn("'passe123'", source)
         self.assertIn('_TRIVIAL_PASSWORDS', source)
 
-    def test_default_password_is_explicitly_required_in_production(self):
-        """Production config must fail fast if DEFAULT_PASSWORD is omitted."""
+    def test_default_password_is_not_required_in_production_runtime(self):
+        """Production runtime must not require a standing student initial password."""
         import importlib.util
         spec = importlib.util.find_spec('core.settings')
         with open(spec.origin) as f:
             source = f.read()
-        self.assertIn(
-            'DEFAULT_PASSWORD environment variable must be set in production',
-            source,
-        )
+        self.assertNotIn('DEFAULT_PASSWORD environment variable must be set in production', source)
 
 
 class TestStudentLogoutPermission(TestCase):

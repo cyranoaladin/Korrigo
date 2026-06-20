@@ -91,6 +91,17 @@ class ProdComposeContractTests(unittest.TestCase):
         self.assertNotIn("env_file:", backend_block)
         self.assertNotIn("ADMIN_PASSWORD:", backend_block)
         self.assertNotIn("TEACHER_PASSWORD:", backend_block)
+        self.assertNotIn("DEFAULT_PASSWORD:", backend_block)
+
+    def test_default_student_password_is_not_runtime_environment(self):
+        compose_text = PROD_COMPOSE.read_text()
+        backend_block = _section(compose_text, "\n  backend:\n", "\n  celery:\n")
+        celery_block = _section(compose_text, "\n  celery:\n", "\n  celery-beat:\n")
+        beat_block = _section(compose_text, "\n  celery-beat:\n", "\n  nginx:\n")
+
+        for block in (backend_block, celery_block, beat_block):
+            self.assertNotIn("DEFAULT_PASSWORD:", block)
+            self.assertNotIn("STUDENT_INITIAL_PASSWORD:", block)
 
     def test_celery_workers_do_not_receive_http_only_secrets(self):
         compose_text = PROD_COMPOSE.read_text()

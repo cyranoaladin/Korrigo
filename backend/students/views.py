@@ -1,4 +1,5 @@
 import os
+import hashlib
 
 # MAINTENANCE MODE - Pour bloquer: STUDENT_ACCESS_BLOCKED=true dans .env
 MAINTENANCE_MESSAGE = "L'accès élève est temporairement suspendu pour maintenance. Veuillez réessayer ultérieurement."
@@ -8,6 +9,7 @@ def is_student_access_blocked():
     return os.environ.get("STUDENT_ACCESS_BLOCKED", "false").lower() == "true"
 
 from django.conf import settings
+from django.core.cache import cache
 from rest_framework import generics, filters, status, views
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
@@ -51,11 +53,56 @@ def _resolve_student_user_and_profile(request):
     return student.user, student
 
 
+def _student_login_rate_key(email: str) -> str:
+    normalized = (email or "").strip().lower()
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return f"student-login-fail:{digest}"
+
+
+def _student_login_limit_enabled() -> bool:
+    return bool(getattr(settings, "RATELIMIT_ENABLE", True))
+
+
+def _student_login_limit_attempts() -> int:
+    return int(getattr(settings, "STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS", 10))
+
+
+def _student_login_limit_window() -> int:
+    return int(getattr(settings, "STUDENT_LOGIN_RATE_LIMIT_WINDOW", 900))
+
+
+def _is_student_login_limited(email: str) -> bool:
+    if not _student_login_limit_enabled() or not email:
+        return False
+    attempts = cache.get(_student_login_rate_key(email), 0)
+    return int(attempts or 0) >= _student_login_limit_attempts()
+
+
+def _record_student_login_failure(email: str) -> int:
+    if not _student_login_limit_enabled() or not email:
+        return 0
+
+    key = _student_login_rate_key(email)
+    timeout = _student_login_limit_window()
+    cache.add(key, 0, timeout=timeout)
+    try:
+        return int(cache.incr(key))
+    except ValueError:
+        cache.set(key, 1, timeout=timeout)
+        return 1
+
+
+def _clear_student_login_failures(email: str) -> None:
+    if email:
+        cache.delete(_student_login_rate_key(email))
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class StudentLoginView(views.APIView):
     """
     Login endpoint for students.
-    Rate limited to 30 attempts per 15 minutes per IP.
+    Rate limited by attempted identifier, not IP, to avoid blocking a whole
+    school NAT. Default: 10 failed attempts per 15 minutes.
     CSRF exempt: Public authentication endpoint, protected by rate limiting.
     
     Authentification par: Email + Mot de passe
@@ -65,14 +112,7 @@ class StudentLoginView(views.APIView):
     permission_classes = [AllowAny]  # Public endpoint - student authentication
     authentication_classes = []  # No auth required, bypass SessionAuth CSRF
 
-    @method_decorator(maybe_ratelimit(key=get_real_ip, rate='60/15m', method='POST', block=False))
     def post(self, request):
-        # Rate limit check — return clear French message instead of generic 403
-        if getattr(request, 'limited', False):
-            return Response({
-                'error': 'Trop de tentatives de connexion. Veuillez réessayer dans quelques minutes.',
-                'rate_limited': True
-            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
         # MAINTENANCE MODE CHECK - Blocage temporaire des étudiants
         if is_student_access_blocked():
             return Response({
@@ -90,6 +130,12 @@ class StudentLoginView(views.APIView):
                 'error': 'Email et mot de passe sont requis.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        if _is_student_login_limited(email):
+            return Response({
+                'error': 'Trop de tentatives de connexion. Veuillez réessayer dans quelques minutes.',
+                'rate_limited': True
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
         # Authenticate: try email as username first, then lookup by email field
         user = authenticate(request, username=email, password=password)
         if user is None:
@@ -99,6 +145,7 @@ class StudentLoginView(views.APIView):
 
         if user is None or not user.is_active:
             log_authentication_attempt(request, success=False, student_id=None)
+            _record_student_login_failure(email)
             return Response({
                 'error': 'Email ou mot de passe incorrect.'
             }, status=status.HTTP_401_UNAUTHORIZED)
@@ -107,6 +154,7 @@ class StudentLoginView(views.APIView):
         student = Student.objects.filter(user=user).first()
         if not student:
             log_authentication_attempt(request, success=False, student_id=None)
+            _record_student_login_failure(email)
             return Response({
                 'error': 'Compte non reconnu. Contactez votre enseignant.'
             }, status=status.HTTP_401_UNAUTHORIZED)
@@ -139,6 +187,7 @@ class StudentLoginView(views.APIView):
         request.session['must_change_password'] = must_change_password
 
         log_authentication_attempt(request, success=True, student_id=student.id)
+        _clear_student_login_failures(email)
         return Response({
             'message': 'Connexion réussie.',
             'role': 'Student',

@@ -23,17 +23,28 @@ class EntrypointContractTests(unittest.TestCase):
         pre_drop = _pre_drop_section(entrypoint_text)
 
         self.assertIn("run_as_app_user()", entrypoint_text)
-        self.assertIn('run_as_app_user "python manage.py migrate"', pre_drop)
+        self.assertIn('run_as_app_user "python manage.py migrate --noinput"', pre_drop)
         self.assertIn('run_as_app_user "python manage.py collectstatic --noinput"', pre_drop)
-        self.assertIn(
-            'run_as_app_user "python manage.py shell -c \\"from core.auth import create_user_roles; create_user_roles()\\""',
-            pre_drop,
-        )
+        self.assertIn('run_as_app_user "python manage.py migrate --check --noinput"', pre_drop)
+        self.assertIn("ensure_schema_ready()", pre_drop)
 
-        self.assertNotIn("python manage.py migrate", pre_drop.replace('run_as_app_user "python manage.py migrate"', ""))
+        self.assertNotIn("python manage.py migrate", pre_drop.replace('run_as_app_user "python manage.py migrate --noinput"', "").replace('run_as_app_user "python manage.py migrate --check --noinput"', ""))
         self.assertNotIn(
             "python manage.py collectstatic --noinput",
             pre_drop.replace('run_as_app_user "python manage.py collectstatic --noinput"', ""),
+        )
+
+    def test_entrypoint_is_fail_fast_and_allows_explicit_migration_oneshot(self):
+        entrypoint_text = ENTRYPOINT.read_text()
+
+        self.assertNotIn("|| true", entrypoint_text)
+        self.assertIn("is_explicit_migration_command()", entrypoint_text)
+        self.assertIn("Skipping schema invariant checks for explicit migration command", entrypoint_text)
+        self.assertIn("Database schema is not up to date", entrypoint_text)
+        self.assertIn("DJANGO_AUTO_MIGRATE=false", entrypoint_text)
+        self.assertLess(
+            entrypoint_text.index("ensure_schema_ready"),
+            entrypoint_text.index("ensure_roles"),
         )
 
 

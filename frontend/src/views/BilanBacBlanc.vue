@@ -798,7 +798,7 @@ const RECO = {
     'Bac blanc supplémentaire ciblé pour les groupes G5 et G3',
   ],
   processus: [
-    'Finaliser les 182 copies en statut READY (passage GRADED)',
+    'Finaliser les 182 copies en statut READY (passage FINALIZED)',
     'Générer les bilans LLM pour les 167 copies manquantes',
     'Déployer les résultats sur le portail élève Korrigo',
   ],

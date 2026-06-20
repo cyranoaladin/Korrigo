@@ -106,7 +106,7 @@ class DNBAnalyticsEngine:
             return self._cache_pairs, self._cache_quality
 
         all_copies = Copy.objects.filter(exam=self.exam)
-        graded_qs = (
+        finalized_qs = (
             all_copies.filter(status=Copy.Status.FINALIZED)
             .select_related("student", "assigned_corrector")
             .prefetch_related("scores")
@@ -121,7 +121,7 @@ class DNBAnalyticsEngine:
         n_with_corrector = 0
         n_without_corrector = 0
 
-        for c in graded_qs:
+        for c in finalized_qs:
             score_obj = c.scores.first()
             sd = getattr(score_obj, "scores_data", None) if score_obj else None
             total = self._sum_scores_data(sd)
@@ -144,8 +144,7 @@ class DNBAnalyticsEngine:
         quality = {
             "n_copies_total": all_copies.count(),
             "n_copies_finalized": all_copies.filter(status=Copy.Status.FINALIZED).count(),
-            "n_copies_graded": all_copies.filter(status=Copy.Status.FINALIZED).count(),
-            "n_copies_included_in_bilan": graded_qs.count(),
+            "n_copies_included_in_bilan": finalized_qs.count(),
             "n_copies_with_scores": len(pairs),
             "n_copies_missing_score_row": missing_scores,
             "n_copies_empty_or_invalid_scores": empty_scores,

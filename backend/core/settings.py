@@ -39,15 +39,12 @@ if DJANGO_ENV == "production":
 else:
     DEBUG = raw_debug
 
-# Student provisioning default password.
-# Production must provide it explicitly. Development/test may keep a local fallback.
+# Optional student provisioning default password.
+# Production runtime must not carry a standing initial student password; explicit
+# import/seed commands may provide DEFAULT_PASSWORD only for that one-shot run.
 DEFAULT_PASSWORD = os.environ.get('DEFAULT_PASSWORD')
 if DEFAULT_PASSWORD is None:
-    if DJANGO_ENV == "production":
-        raise ValueError(
-            "DEFAULT_PASSWORD environment variable must be set in production"
-        )
-    DEFAULT_PASSWORD = 'Korrigo_Default_Pwd_2026!'
+    DEFAULT_PASSWORD = '' if DJANGO_ENV == "production" else 'Korrigo_Default_Pwd_2026!'
 
 # Helper for CSV environment variables
 def csv_env(name: str, default: str = "") -> list:
@@ -535,6 +532,8 @@ NUM_PROXIES = 1
 # Enable/disable django-ratelimit via env (default: enabled)
 # Can be disabled for E2E testing environment only (set RATELIMIT_ENABLE=false)
 RATELIMIT_ENABLE = os.environ.get("RATELIMIT_ENABLE", "true").lower() == "true"
+STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS = int(os.environ.get("STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS", "10"))
+STUDENT_LOGIN_RATE_LIMIT_WINDOW = int(os.environ.get("STUDENT_LOGIN_RATE_LIMIT_WINDOW", "900"))
 
 # Production guard: prevent accidental rate limiting disable in production
 # Exception: If specific E2E_TEST_MODE flag is set (for pre-production validation)

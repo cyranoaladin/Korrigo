@@ -30,7 +30,6 @@ class ReleaseGateLocalProdContractTests(unittest.TestCase):
         self.assertIn("../../.env", celery_block)
 
         required_env_lines = [
-            'DEFAULT_PASSWORD: "${DEFAULT_PASSWORD?err}"',
             'REDIS_HOST: "redis"',
             'REDIS_PORT: "6379"',
             'REDIS_DB: "1"',
@@ -44,6 +43,8 @@ class ReleaseGateLocalProdContractTests(unittest.TestCase):
 
         for line in required_env_lines:
             self.assertIn(line, celery_block)
+
+        self.assertNotIn("DEFAULT_PASSWORD:", celery_block)
 
     def test_local_prod_nginx_healthcheck_avoids_localhost_ipv6_probe(self):
         compose_text = LOCAL_PROD_COMPOSE.read_text()
