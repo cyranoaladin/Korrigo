@@ -122,13 +122,14 @@
 - [x] Verrou commit image : labels OCI des images déployées doivent pointer vers `1958681b082402e06d0f463e685d8a9895c460c5`; aucun code runtime ne doit avoir divergé après ce commit. Le HEAD Git de déploiement peut être postérieur uniquement pour doc/config digests/runbook.
 - [x] Préparation reprise sans Git : prod historique confirmée non-Git ; voie retenue = clone propre dans `RELEASE_DIR`, legacy intact ; Étape 0 ajoutée pour constituer un `.env` complet hors dépôt avant toute reprise de bascule
 - [ ] Pré-requis prod à vérifier avant reprise : `/var/www/labomaths/korrigo/.env` complété par l'administrateur, en `600`, avec secrets neufs présents, clés interdites absentes et aucun doublon
+- [x] Lecture secrets runbook corrigée : aucun `source`/`. "$ENV_FILE"` ; secrets lus via `docker compose config --format json` puis passés à GPG par `--passphrase-fd`, sans affichage ni évaluation shell
 - [x] Alias silencieux `n_copies_graded` supprimé : statut métier canonique = `FINALIZED`
 - [x] Sweep logs RGPD : backend/celery/entrypoint/nginx sans email, secret ni identifiant de probe en clair
 - [x] Staging : redémarrage backend/celery/celery-beat/nginx + health + parcours HTTP par rôle `OK`
 - [x] Anciennes images conservées (rollback) ; aucun prune image/volume effectué
 - [ ] Prod : backup frais, migrations explicites, déploiement par digest, health, parcours et logs — en attente du `go`
 
-**Runbook M v3.2 de bascule prévu (ne pas exécuter sans `go étape N`)**
+**Runbook M v3.3 de bascule prévu (ne pas exécuter sans `go étape N`)**
 
 Table de séquence. Chaque étape s'arrête après son critère de passage et attend une confirmation humaine explicite avant la suivante.
 
@@ -302,7 +303,46 @@ curl -fsS http://127.0.0.1:8088/ && exit 1 || true
 Backup complet chiffré après gel, avec média résolu dynamiquement. Ce backup est volontairement pris sur l'ANCIENNE image en production (`peer-review-20260525`) avec ses overlays encore montés, avant pull/bascule applicative : c'est le point de rollback vers l'état pré-bascule.
 
 ```bash
-set -a; . "$ENV_FILE"; set +a
+# Ne jamais sourcer "$ENV_FILE" : Docker Compose accepte des valeurs qui ne sont
+# pas du shell valide (parenthèses, $, espaces, guillemets). Les secrets sont lus
+# depuis l'environnement résolu par Compose, sans affichage et sans évaluation shell.
+# Les guillemets/espaces sont gérés par le parseur Compose. Si une valeur contient
+# un dollar littéral, il doit être écrit en forme Compose-safe (`$$`) ; tout warning
+# Compose d'interpolation fait échouer la lecture sans afficher son contenu.
+compose_env_value() {
+  service="$1"
+  key="$2"
+  cfg_json="$(mktemp)"
+  cfg_err="$(mktemp)"
+  if ! $COMPOSE config --format json >"$cfg_json" 2>"$cfg_err"; then
+    rm -f "$cfg_json" "$cfg_err"
+    echo "ERREUR: compose config impossible pour lire $key" >&2
+    return 1
+  fi
+  if test -s "$cfg_err"; then
+    rm -f "$cfg_json" "$cfg_err"
+    echo "ERREUR: compose config a produit des warnings pour $key; verifier l'echappement Compose des dollars avec \\$\\$" >&2
+    return 1
+  fi
+  python3 -c '
+import json, sys
+service, key = sys.argv[1], sys.argv[2]
+env = json.load(open(sys.argv[3]))["services"][service].get("environment", {})
+value = env.get(key, "")
+if value is None:
+    value = ""
+elif isinstance(value, bool):
+    value = "true" if value else "false"
+else:
+    value = str(value)
+sys.stdout.write(value)
+' "$service" "$key" "$cfg_json"
+  rc="$?"
+  rm -f "$cfg_json" "$cfg_err"
+  return "$rc"
+}
+BACKUP_GPG_PASSPHRASE="$(compose_env_value backend BACKUP_GPG_PASSPHRASE)"
+test -n "$BACKUP_GPG_PASSPHRASE"
 export LOCAL_TMP="/tmp/korrigo_predeploy_${TS}"
 export MEDIA_VOLUME="docker_media_volume"
 export MEDIA_MOUNT="$(docker volume inspect "$MEDIA_VOLUME" --format '{{.Mountpoint}}')"
@@ -349,6 +389,8 @@ Test rapide de restaurabilité du dump :
 docker network create "korrigo_restore_${TS}"
 docker run -d --name "korrigo_restore_db_${TS}" --network "korrigo_restore_${TS}" -e POSTGRES_USER=korrigo_user -e POSTGRES_PASSWORD=restore -e POSTGRES_DB=korrigo_db postgres:15-alpine
 until docker exec "korrigo_restore_db_${TS}" pg_isready -U korrigo_user -d korrigo_db; do sleep 2; done
+BACKUP_GPG_PASSPHRASE="$(compose_env_value backend BACKUP_GPG_PASSPHRASE)"
+test -n "$BACKUP_GPG_PASSPHRASE"
 gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 -d "$LOCAL_TMP/db_${TS}.dump.gpg" 3<<<"$BACKUP_GPG_PASSPHRASE" | docker exec -i "korrigo_restore_db_${TS}" pg_restore -U korrigo_user -d korrigo_db --no-owner
 docker exec "korrigo_restore_db_${TS}" psql -U korrigo_user -d korrigo_db -Atc "select count(*) from django_migrations;"
 docker rm -f "korrigo_restore_db_${TS}"
@@ -407,9 +449,10 @@ Critères de succès chiffrés : backup distant et restore test `OK`; plan de mi
 
 Critères d'échec déclenchant rollback : backup frais ou restaurabilité échoué ; plan de migration contenant une migration inattendue ; migration explicite échouée ou verrou long ; health non vert après correction simple ; Redis AUTH cassé ; Celery ne consomme pas `async_finalize_copy` ; médias protégés exposés ou inaccessibles ; logs contenant PII/secret ; régression bloquante d'un parcours rôle.
 
-**Rollback M v2, schéma-conscient**
+**Rollback M v3.3, schéma-conscient**
 
 Le rollback DB ne restaure jamais par-dessus une base déjà migrée. Il recrée `korrigo_db`, puis restaure le dump pré-bascule, afin d'éviter un schéma hybride où des contraintes postérieures au dump subsisteraient.
+Le déchiffrement réutilise obligatoirement la même méthode robuste que le backup (`compose_env_value`, lecture via `docker compose config --format json`). Si le rollback est exécuté depuis un shell neuf, redéfinir d'abord la fonction `compose_env_value` du bloc backup ; ne jamais sourcer `ENV_FILE`.
 
 ```bash
 $COMPOSE stop nginx celery-beat celery backend
@@ -428,6 +471,8 @@ YAML
 docker exec docker-db-1 psql -U korrigo_user -d postgres -v ON_ERROR_STOP=1 -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='korrigo_db' AND pid <> pg_backend_pid();"
 docker exec docker-db-1 psql -U korrigo_user -d postgres -v ON_ERROR_STOP=1 -c "DROP DATABASE korrigo_db;"
 docker exec docker-db-1 psql -U korrigo_user -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE korrigo_db OWNER korrigo_user;"
+BACKUP_GPG_PASSPHRASE="$(compose_env_value backend BACKUP_GPG_PASSPHRASE)"
+test -n "$BACKUP_GPG_PASSPHRASE"
 gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 -d "$LOCAL_TMP/db_${TS}.dump.gpg" 3<<<"$BACKUP_GPG_PASSPHRASE" | docker exec -i docker-db-1 pg_restore -U korrigo_user -d korrigo_db --no-owner
 docker exec docker-db-1 psql -U korrigo_user -d korrigo_db -Atc "select coalesce(column_default,'<NULL>') from information_schema.columns where table_schema='public' and table_name='exams_copy' and column_name='pdf_regeneration_pending';" | grep -x '<NULL>'
 docker exec docker-db-1 psql -U korrigo_user -d korrigo_db -Atc "select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.exams_copy'::regclass and conname='check_copy_status_valid';" | grep LOCKED
@@ -444,6 +489,8 @@ test -d "$MEDIA_MOUNT"
 MEDIA_ROLLBACK_HOLD="/tmp/korrigo_media_hold_${TS}"
 mkdir -p "$MEDIA_ROLLBACK_HOLD"
 find "$MEDIA_MOUNT" -mindepth 1 -maxdepth 1 -exec mv -t "$MEDIA_ROLLBACK_HOLD" {} +
+BACKUP_GPG_PASSPHRASE="$(compose_env_value backend BACKUP_GPG_PASSPHRASE)"
+test -n "$BACKUP_GPG_PASSPHRASE"
 gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 -d "$LOCAL_TMP/media_${TS}.tar.gz.gpg" 3<<<"$BACKUP_GPG_PASSPHRASE" | tar -xzf - -C "$MEDIA_MOUNT"
 ```
 
@@ -625,3 +672,4 @@ Post-bascule immédiat si succès : surveiller disque hôte (`df -h / /var/lib/d
 | 2026-06-20T21:03Z | R.1/R.2 | Variables du compose canonique extraites : 10 obligatoires bloquantes ; ancien `.env` a `REDIS_PASSWORD` et `BACKUP_GPG_PASSPHRASE` absents, `DEFAULT_PASSWORD` présent ; décision : `.env` final hors dépôt `/etc/korrigo/korrigo.env`, secrets neufs générés par admin, contrôles présence/absence sans valeurs | `proofs/20260620_step3_r/env_requirements_presence_no_values.txt` |
 | 2026-06-20T21:05Z | R.3/R.4/R.5 | Runbook M v3.2 : voie (a) intégrée (`LEGACY_DIR` intact, `RELEASE_DIR` clone propre), `COMPOSE` pointe release + env hors dépôt, scripts lus depuis `RELEASE_DIR`, Étape 0 ajoutée avant préflight, Redis password injecté dans backend/celery/celery-beat par le compose | `ASSAINISSEMENT_KORRIGO.md` |
 | 2026-06-20T21:18Z | T1 | Runbook M v3.2 réaligné sur la décision administrateur : `ENV_FILE=/var/www/labomaths/korrigo/.env`, Étape 0 limitée à la vérification présence/absence/permissions sans valeurs, `LEGACY_DIR` lu uniquement pour ce `.env`, release pilotée depuis `RELEASE_DIR` | `ASSAINISSEMENT_KORRIGO.md` |
+| 2026-06-20T21:43Z | Étape 3 / S | Tentative backup arrêtée avant chiffrement valide : `ENV_FILE` non shell-sourceable, dump clair temporaire shredé, aucun upload StorageBox, aucune migration, service resté gelé ; runbook M v3.3 corrigé pour lire les secrets via `docker compose config --format json` sans sourcing shell, avec round-trip GPG prouvé sur `.env` jetable à caractères spéciaux | `proofs/20260620_step3_s/env_secret_reader_roundtrip.txt`; `ASSAINISSEMENT_KORRIGO.md` |
