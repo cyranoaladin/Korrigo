@@ -129,7 +129,7 @@
 - [x] Anciennes images conservées (rollback) ; aucun prune image/volume effectué
 - [ ] Prod : backup frais, migrations explicites, déploiement par digest, health, parcours et logs — en attente du `go`
 
-**Runbook M v3.3 de bascule prévu (ne pas exécuter sans `go étape N`)**
+**Runbook M v3.4 de bascule prévu (ne pas exécuter sans `go étape N`)**
 
 Table de séquence. Chaque étape s'arrête après son critère de passage et attend une confirmation humaine explicite avant la suivante.
 
@@ -372,8 +372,24 @@ test "$(stat -c %s "$LOCAL_TMP/media_${TS}.tar.gz")" -gt 1048576
 gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 -o "$LOCAL_TMP/media_${TS}.tar.gz.gpg" "$LOCAL_TMP/media_${TS}.tar.gz" 3<<<"$BACKUP_GPG_PASSPHRASE"
 shred -u "$LOCAL_TMP/media_${TS}.tar.gz"
 sha256sum "$LOCAL_TMP"/*.gpg > "$LOCAL_TMP/SHA256SUMS"
-rsync -az --timeout=120 -e "ssh -p 23 -i /root/.ssh/storagebox_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" "$LOCAL_TMP/" u554481@u554481.your-storagebox.de:backups/korrigo_backups/${TS}_predeploy/
-ssh -p 23 -i /root/.ssh/storagebox_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no u554481@u554481.your-storagebox.de "cd backups/korrigo_backups/${TS}_predeploy && sha256sum -c SHA256SUMS"
+# StorageBox Hetzner : shell SSH restreint. SFTP/rsync fonctionnent, mais aucune
+# commande distante (`test`, `mkdir`, `sha256sum`) ne doit être utilisée.
+REMOTE_DIR="backups/korrigo_backups/${TS}_predeploy"
+RSYNC_RSH="ssh -p 23 -i /root/.ssh/storagebox_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no"
+rsync -az --partial --timeout=300 -e "$RSYNC_RSH" "$LOCAL_TMP/" "u554481@u554481.your-storagebox.de:${REMOTE_DIR}/"
+# Vérification distante compatible shell restreint : dry-run checksum depuis la
+# source locale vers la cible distante. Critère : aucune ligne de transfert.
+rsync -az --checksum --dry-run --itemize-changes --timeout=300 -e "$RSYNC_RSH" "$LOCAL_TMP/" "u554481@u554481.your-storagebox.de:${REMOTE_DIR}/" | tee "/tmp/korrigo_rsync_verify_${TS}.txt"
+test ! -s "/tmp/korrigo_rsync_verify_${TS}.txt"
+# Complément SFTP : présence et tailles des 7 fichiers attendus (6 .gpg + SHA256SUMS).
+printf 'ls -la %s\nbye\n' "$REMOTE_DIR" | sftp -i /root/.ssh/storagebox_ed25519 -P 23 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no u554481@u554481.your-storagebox.de | tee "/tmp/korrigo_sftp_listing_${TS}.txt"
+grep -q "db_${TS}.dump.gpg" "/tmp/korrigo_sftp_listing_${TS}.txt"
+grep -q "media_${TS}.tar.gz.gpg" "/tmp/korrigo_sftp_listing_${TS}.txt"
+grep -q "copies_data.json.gpg" "/tmp/korrigo_sftp_listing_${TS}.txt"
+grep -q "pages_manifest.json.gpg" "/tmp/korrigo_sftp_listing_${TS}.txt"
+grep -q "exams_bareme.json.gpg" "/tmp/korrigo_sftp_listing_${TS}.txt"
+grep -q "summary.json.gpg" "/tmp/korrigo_sftp_listing_${TS}.txt"
+grep -q "SHA256SUMS" "/tmp/korrigo_sftp_listing_${TS}.txt"
 MEDIA_TAR_COUNT="$(gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 -d "$LOCAL_TMP/media_${TS}.tar.gz.gpg" 3<<<"$BACKUP_GPG_PASSPHRASE" | tar -tzf - | grep -v '/$' | wc -l)"
 test "$MEDIA_TAR_COUNT" -eq "$MEDIA_ARCHIVE_FILE_COUNT"
 docker exec docker-backend-1 sh -lc 'rm -rf /tmp/korrigo_extract && test ! -e /tmp/korrigo_extract'
@@ -449,10 +465,11 @@ Critères de succès chiffrés : backup distant et restore test `OK`; plan de mi
 
 Critères d'échec déclenchant rollback : backup frais ou restaurabilité échoué ; plan de migration contenant une migration inattendue ; migration explicite échouée ou verrou long ; health non vert après correction simple ; Redis AUTH cassé ; Celery ne consomme pas `async_finalize_copy` ; médias protégés exposés ou inaccessibles ; logs contenant PII/secret ; régression bloquante d'un parcours rôle.
 
-**Rollback M v3.3, schéma-conscient**
+**Rollback M v3.4, schéma-conscient**
 
 Le rollback DB ne restaure jamais par-dessus une base déjà migrée. Il recrée `korrigo_db`, puis restaure le dump pré-bascule, afin d'éviter un schéma hybride où des contraintes postérieures au dump subsisteraient.
 Le déchiffrement réutilise obligatoirement la même méthode robuste que le backup (`compose_env_value`, lecture via `docker compose config --format json`). Si le rollback est exécuté depuis un shell neuf, redéfinir d'abord la fonction `compose_env_value` du bloc backup ; ne jamais sourcer `ENV_FILE`.
+Le rollback utilise en priorité le backup local `LOCAL_TMP`. Si le local est perdu, récupérer le jeu depuis le StorageBox par `rsync` ou `sftp` uniquement : le shell distant Hetzner est restreint et ne permet pas `sha256sum`, `test` ou `mkdir`.
 
 ```bash
 $COMPOSE stop nginx celery-beat celery backend
@@ -494,6 +511,17 @@ test -n "$BACKUP_GPG_PASSPHRASE"
 gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 -d "$LOCAL_TMP/media_${TS}.tar.gz.gpg" 3<<<"$BACKUP_GPG_PASSPHRASE" | tar -xzf - -C "$MEDIA_MOUNT"
 ```
 
+Récupération distante de secours si `LOCAL_TMP` n'existe plus :
+
+```bash
+REMOTE_DIR="backups/korrigo_backups/${TS}_predeploy"
+RSYNC_RSH="ssh -p 23 -i /root/.ssh/storagebox_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no"
+mkdir -p "$LOCAL_TMP"
+rsync -az --partial --timeout=300 -e "$RSYNC_RSH" "u554481@u554481.your-storagebox.de:${REMOTE_DIR}/" "$LOCAL_TMP/"
+# Vérification locale après téléchargement ; aucune commande exécutée sur StorageBox.
+cd "$LOCAL_TMP" && sha256sum -c SHA256SUMS
+```
+
 Post-bascule immédiat si succès : surveiller disque hôte (`df -h / /var/lib/docker`, actuellement `170G` libres), premier backup chiffré planifié, logs, Celery ; fusionner `release/prod-unification` vers `main` seulement après validation prod pour que `main = prod`; nettoyage branches `wip/*` reporté à une étape ultérieure.
 
 > **Porte de sortie 3** — [ ] Prod sans overlay, configuration unifiée, health vert, rollback encore possible.
@@ -507,6 +535,8 @@ Post-bascule immédiat si succès : surveiller disque hôte (`df -h / /var/lib/d
 - [ ] Images Korrigo anciennes supprimées (conserver l'**active + 3 dernières releases**)
 - [ ] Images dangling + cache de build élagués (ciblés Korrigo)
 - [ ] (Optionnel) Backend allégé : build multi-stage, base slim, `.dockerignore` (image actuelle ~5,98 Go)
+- [ ] Dette post-bascule : les backups planifiés StorageBox historiques sont en clair (`backups/korrigo_backups/<TS>`) ; migrer le cron vers backups GPG chiffrés et restaurabilité testée
+- [ ] Dette post-bascule : `/usr/local/bin/korrigo_sync_storagebox_retention.sh` pointe `backups/korrigo/automated/` et échoue faute de dossiers locaux ; corriger ou supprimer ce sync après bascule
 - [ ] Espace récupéré rapporté
 - [ ] Aucune image d'un autre projet touchée
 
