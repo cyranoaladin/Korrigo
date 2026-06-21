@@ -129,7 +129,7 @@
 - [x] Anciennes images conservées (rollback) ; aucun prune image/volume effectué
 - [ ] Prod : backup frais, migrations explicites, déploiement par digest, health, parcours et logs — en attente du `go`
 
-**Runbook M v3.4 de bascule prévu (ne pas exécuter sans `go étape N`)**
+**Runbook M v3.5 de bascule prévu (ne pas exécuter sans `go étape N`)**
 
 Table de séquence. Chaque étape s'arrête après son critère de passage et attend une confirmation humaine explicite avant la suivante.
 
@@ -138,7 +138,7 @@ Table de séquence. Chaque étape s'arrête après son critère de passage et at
 | 0 | Vérifier le `.env` prod complété | contrôles présence/absence sur `/var/www/labomaths/korrigo/.env`, sans valeurs | toutes clés obligatoires présentes, secrets neufs présents, clés interdites absentes, fichier `600`, aucun doublon | attendre `go étape 1` |
 | 1 | Clone propre + préflight | `git clone/fetch` dans `RELEASE_DIR`, contrôles digest/OCI | disque OK, clone propre, compose final, images OCI `revision=1958681...`, DB/Redis IDs inchangés | attendre `go étape 2` |
 | 2 | Gel applicatif | `$COMPOSE stop nginx celery-beat celery` | nginx inaccessible, backend/db/redis encore disponibles, aucun worker actif | attendre `go étape 3` |
-| 3 | Backup ancien état | `pg_dump`, exports JSON, archive média, GPG, StorageBox | backup chiffré, checksums OK, média listable, JSON conteneur supprimés | attendre `go étape 4` |
+| 3 | Backup ancien état allégé | `pg_dump`, exports JSON, GPG, StorageBox | DB + JSON chiffrés, checksums légers OK, JSON conteneur supprimés | attendre `go étape 4` |
 | 4 | Restore test rapide | `pg_restore` sur DB jetable | `django_migrations` lisible dans la DB restaurée, pile jetable supprimée | attendre `go étape 5` |
 | 5 | Pull images finales | `$COMPOSE pull backend celery celery-beat nginx` | digests `aafe75...`/`5c4dda...` présents, DB ID inchangé | attendre `go étape 6` |
 | 6 | Redis AUTH isolé | `$COMPOSE up -d --no-deps --force-recreate redis` | Redis ID change une seule fois, `redis-cli -a "$REDIS_PASSWORD" ping=PONG`, DB ID inchangé | attendre `go étape 7` |
@@ -300,7 +300,9 @@ $COMPOSE ps
 curl -fsS http://127.0.0.1:8088/ && exit 1 || true
 ```
 
-Backup complet chiffré après gel, avec média résolu dynamiquement. Ce backup est volontairement pris sur l'ANCIENNE image en production (`peer-review-20260525`) avec ses overlays encore montés, avant pull/bascule applicative : c'est le point de rollback vers l'état pré-bascule.
+Backup predeploy allégé après gel : DB + exports JSON métier uniquement. Ce backup est volontairement pris sur l'ANCIENNE image en production (`peer-review-20260525`) avec ses overlays encore montés, avant pull/bascule applicative : c'est le point de rollback vers l'état pré-bascule.
+
+Le média n'est pas inclus dans le filet predeploy de bascule : les migrations appliquées en Étape 8 sont schéma-only (`exams.0042`, `exams.0043`, `grading.0028`) et ne modifient aucun fichier média ; en rollback, le volume média reste donc conservé tel quel. Les médias restent couverts par les backups planifiés existants, et la dette de chiffrement RGPD de ces backups est traitée après bascule. Si un backup média chiffré local existe déjà, il peut être conservé comme exemplaire supplémentaire, mais il n'est pas requis pour franchir l'Étape 3.
 
 ```bash
 # Ne jamais sourcer "$ENV_FILE" : Docker Compose accepte des valeurs qui ne sont
@@ -344,14 +346,7 @@ sys.stdout.write(value)
 BACKUP_GPG_PASSPHRASE="$(compose_env_value backend BACKUP_GPG_PASSPHRASE)"
 test -n "$BACKUP_GPG_PASSPHRASE"
 export LOCAL_TMP="/tmp/korrigo_predeploy_${TS}"
-export MEDIA_VOLUME="docker_media_volume"
-export MEDIA_MOUNT="$(docker volume inspect "$MEDIA_VOLUME" --format '{{.Mountpoint}}')"
 mkdir -p "$LOCAL_TMP"
-test -d "$MEDIA_MOUNT"
-MEDIA_FILE_COUNT="$(find "$MEDIA_MOUNT" -type f | wc -l)"
-test "$MEDIA_FILE_COUNT" -gt 0
-MEDIA_ARCHIVE_FILE_COUNT="$(find "$MEDIA_MOUNT" -type f ! -path "$MEDIA_MOUNT/tmp/*" ! -path "$MEDIA_MOUNT/.cache/*" | wc -l)"
-test "$MEDIA_ARCHIVE_FILE_COUNT" -gt 0
 docker exec docker-db-1 pg_dump -U korrigo_user -Fc korrigo_db > "$LOCAL_TMP/db_${TS}.dump"
 gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 -o "$LOCAL_TMP/db_${TS}.dump.gpg" "$LOCAL_TMP/db_${TS}.dump" 3<<<"$BACKUP_GPG_PASSPHRASE"
 shred -u "$LOCAL_TMP/db_${TS}.dump"
@@ -367,31 +362,45 @@ for f in copies_data.json pages_manifest.json exams_bareme.json summary.json; do
   gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 -o "$LOCAL_TMP/${f}.gpg" "$LOCAL_TMP/${f}" 3<<<"$BACKUP_GPG_PASSPHRASE"
   shred -u "$LOCAL_TMP/${f}"
 done
-tar -czf "$LOCAL_TMP/media_${TS}.tar.gz" -C "$MEDIA_MOUNT" --exclude="./tmp" --exclude="./.cache" .
-test "$(stat -c %s "$LOCAL_TMP/media_${TS}.tar.gz")" -gt 1048576
-gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 -o "$LOCAL_TMP/media_${TS}.tar.gz.gpg" "$LOCAL_TMP/media_${TS}.tar.gz" 3<<<"$BACKUP_GPG_PASSPHRASE"
-shred -u "$LOCAL_TMP/media_${TS}.tar.gz"
-sha256sum "$LOCAL_TMP"/*.gpg > "$LOCAL_TMP/SHA256SUMS"
+sha256sum \
+  "$LOCAL_TMP/db_${TS}.dump.gpg" \
+  "$LOCAL_TMP/copies_data.json.gpg" \
+  "$LOCAL_TMP/pages_manifest.json.gpg" \
+  "$LOCAL_TMP/exams_bareme.json.gpg" \
+  "$LOCAL_TMP/summary.json.gpg" \
+  > "$LOCAL_TMP/SHA256SUMS_LIGHT"
+cd "$LOCAL_TMP" && sha256sum -c SHA256SUMS_LIGHT
 # StorageBox Hetzner : shell SSH restreint. SFTP/rsync fonctionnent, mais aucune
 # commande distante (`test`, `mkdir`, `sha256sum`) ne doit être utilisée.
 REMOTE_DIR="backups/korrigo_backups/${TS}_predeploy"
 RSYNC_RSH="ssh -p 23 -i /root/.ssh/storagebox_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no"
-rsync -az --partial --timeout=300 -e "$RSYNC_RSH" "$LOCAL_TMP/" "u554481@u554481.your-storagebox.de:${REMOTE_DIR}/"
+rsync -az --partial --timeout=300 -e "$RSYNC_RSH" \
+  "$LOCAL_TMP/db_${TS}.dump.gpg" \
+  "$LOCAL_TMP/copies_data.json.gpg" \
+  "$LOCAL_TMP/pages_manifest.json.gpg" \
+  "$LOCAL_TMP/exams_bareme.json.gpg" \
+  "$LOCAL_TMP/summary.json.gpg" \
+  "$LOCAL_TMP/SHA256SUMS_LIGHT" \
+  "u554481@u554481.your-storagebox.de:${REMOTE_DIR}/"
 # Vérification distante compatible shell restreint : dry-run checksum depuis la
 # source locale vers la cible distante. Critère : aucune ligne de transfert.
-rsync -az --checksum --dry-run --itemize-changes --timeout=300 -e "$RSYNC_RSH" "$LOCAL_TMP/" "u554481@u554481.your-storagebox.de:${REMOTE_DIR}/" | tee "/tmp/korrigo_rsync_verify_${TS}.txt"
+rsync -az --checksum --dry-run --itemize-changes --timeout=300 -e "$RSYNC_RSH" \
+  "$LOCAL_TMP/db_${TS}.dump.gpg" \
+  "$LOCAL_TMP/copies_data.json.gpg" \
+  "$LOCAL_TMP/pages_manifest.json.gpg" \
+  "$LOCAL_TMP/exams_bareme.json.gpg" \
+  "$LOCAL_TMP/summary.json.gpg" \
+  "$LOCAL_TMP/SHA256SUMS_LIGHT" \
+  "u554481@u554481.your-storagebox.de:${REMOTE_DIR}/" | tee "/tmp/korrigo_rsync_verify_${TS}.txt"
 test ! -s "/tmp/korrigo_rsync_verify_${TS}.txt"
-# Complément SFTP : présence et tailles des 7 fichiers attendus (6 .gpg + SHA256SUMS).
+# Complément SFTP : présence et tailles des 6 fichiers attendus (5 .gpg + SHA256SUMS_LIGHT).
 printf 'ls -la %s\nbye\n' "$REMOTE_DIR" | sftp -i /root/.ssh/storagebox_ed25519 -P 23 -o IdentitiesOnly=yes -o StrictHostKeyChecking=no u554481@u554481.your-storagebox.de | tee "/tmp/korrigo_sftp_listing_${TS}.txt"
 grep -q "db_${TS}.dump.gpg" "/tmp/korrigo_sftp_listing_${TS}.txt"
-grep -q "media_${TS}.tar.gz.gpg" "/tmp/korrigo_sftp_listing_${TS}.txt"
 grep -q "copies_data.json.gpg" "/tmp/korrigo_sftp_listing_${TS}.txt"
 grep -q "pages_manifest.json.gpg" "/tmp/korrigo_sftp_listing_${TS}.txt"
 grep -q "exams_bareme.json.gpg" "/tmp/korrigo_sftp_listing_${TS}.txt"
 grep -q "summary.json.gpg" "/tmp/korrigo_sftp_listing_${TS}.txt"
-grep -q "SHA256SUMS" "/tmp/korrigo_sftp_listing_${TS}.txt"
-MEDIA_TAR_COUNT="$(gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 -d "$LOCAL_TMP/media_${TS}.tar.gz.gpg" 3<<<"$BACKUP_GPG_PASSPHRASE" | tar -tzf - | grep -v '/$' | wc -l)"
-test "$MEDIA_TAR_COUNT" -eq "$MEDIA_ARCHIVE_FILE_COUNT"
+grep -q "SHA256SUMS_LIGHT" "/tmp/korrigo_sftp_listing_${TS}.txt"
 docker exec docker-backend-1 sh -lc 'rm -rf /tmp/korrigo_extract && test ! -e /tmp/korrigo_extract'
 docker exec docker-backend-1 sh -lc 'find /tmp -path "/tmp/korrigo_extract/*.json" -o -name "copies_data.json"' | tee "/tmp/korrigo_backend_tmp_json_${TS}.txt"
 test ! -s "/tmp/korrigo_backend_tmp_json_${TS}.txt"
@@ -461,11 +470,11 @@ $COMPOSE exec -T celery celery -A core inspect ping
 $COMPOSE logs --since 15m backend celery celery-beat nginx | grep -Ei '[[:alnum:]_.%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}|DEFAULT_PASSWORD|BACKUP_GPG_PASSPHRASE|REDIS_PASSWORD' && exit 1 || true
 ```
 
-Critères de succès chiffrés : backup distant et restore test `OK`; plan de migrations limité strictement à `exams.0042`, `exams.0043`, `grading.0028`; `migrate --check` code `0`; health `{"status":"healthy","database":"connected"}` ; conteneurs Korrigo `healthy` ; `overlay_mount_count=0` ; `DEFAULT_PASSWORD` absent ; Redis AUTH `PONG` ; Celery `ping` OK ; login élève 10 échecs non limités puis 11e `429` ; IP partagée distincte sans `429` sous seuil ; backup planifié `.dump.gpg` ; `runtime_log_email_count=0`, `runtime_log_secret_count=0`.
+Critères de succès chiffrés : backup predeploy allégé distant (DB + JSON chiffrés) et restore test DB `OK`; plan de migrations limité strictement à `exams.0042`, `exams.0043`, `grading.0028`; `migrate --check` code `0`; health `{"status":"healthy","database":"connected"}` ; conteneurs Korrigo `healthy` ; `overlay_mount_count=0` ; `DEFAULT_PASSWORD` absent ; Redis AUTH `PONG` ; Celery `ping` OK ; login élève 10 échecs non limités puis 11e `429` ; IP partagée distincte sans `429` sous seuil ; backup planifié `.dump.gpg` ; `runtime_log_email_count=0`, `runtime_log_secret_count=0`.
 
 Critères d'échec déclenchant rollback : backup frais ou restaurabilité échoué ; plan de migration contenant une migration inattendue ; migration explicite échouée ou verrou long ; health non vert après correction simple ; Redis AUTH cassé ; Celery ne consomme pas `async_finalize_copy` ; médias protégés exposés ou inaccessibles ; logs contenant PII/secret ; régression bloquante d'un parcours rôle.
 
-**Rollback M v3.4, schéma-conscient**
+**Rollback M v3.5, schéma-conscient**
 
 Le rollback DB ne restaure jamais par-dessus une base déjà migrée. Il recrée `korrigo_db`, puis restaure le dump pré-bascule, afin d'éviter un schéma hybride où des contraintes postérieures au dump subsisteraient.
 Le déchiffrement réutilise obligatoirement la même méthode robuste que le backup (`compose_env_value`, lecture via `docker compose config --format json`). Si le rollback est exécuté depuis un shell neuf, redéfinir d'abord la fonction `compose_env_value` du bloc backup ; ne jamais sourcer `ENV_FILE`.
@@ -498,7 +507,7 @@ $COMPOSE -f /tmp/korrigo-rollback-port2.yml up -d backend celery celery-beat ngi
 curl -fsS https://korrigo.labomaths.tn/api/health/
 ```
 
-Si des écritures média ont eu lieu après réouverture du trafic et avant décision rollback, restaurer aussi le média depuis `media_${TS}.tar.gz.gpg` vers le mountpoint dynamique :
+La restauration média n'est pas nécessaire pour cette bascule schéma-only : les migrations ne modifient aucun fichier média et le volume média est conservé. La procédure ci-dessous reste documentée uniquement si un incident ultérieur hors périmètre migration a réellement modifié les médias et si un `media_${TS}.tar.gz.gpg` chiffré est disponible.
 
 ```bash
 MEDIA_MOUNT="$(docker volume inspect docker_media_volume --format '{{.Mountpoint}}')"
@@ -519,7 +528,7 @@ RSYNC_RSH="ssh -p 23 -i /root/.ssh/storagebox_ed25519 -o IdentitiesOnly=yes -o S
 mkdir -p "$LOCAL_TMP"
 rsync -az --partial --timeout=300 -e "$RSYNC_RSH" "u554481@u554481.your-storagebox.de:${REMOTE_DIR}/" "$LOCAL_TMP/"
 # Vérification locale après téléchargement ; aucune commande exécutée sur StorageBox.
-cd "$LOCAL_TMP" && sha256sum -c SHA256SUMS
+cd "$LOCAL_TMP" && sha256sum -c SHA256SUMS_LIGHT
 ```
 
 Post-bascule immédiat si succès : surveiller disque hôte (`df -h / /var/lib/docker`, actuellement `170G` libres), premier backup chiffré planifié, logs, Celery ; fusionner `release/prod-unification` vers `main` seulement après validation prod pour que `main = prod`; nettoyage branches `wip/*` reporté à une étape ultérieure.
@@ -703,3 +712,4 @@ Post-bascule immédiat si succès : surveiller disque hôte (`df -h / /var/lib/d
 | 2026-06-20T21:05Z | R.3/R.4/R.5 | Runbook M v3.2 : voie (a) intégrée (`LEGACY_DIR` intact, `RELEASE_DIR` clone propre), `COMPOSE` pointe release + env hors dépôt, scripts lus depuis `RELEASE_DIR`, Étape 0 ajoutée avant préflight, Redis password injecté dans backend/celery/celery-beat par le compose | `ASSAINISSEMENT_KORRIGO.md` |
 | 2026-06-20T21:18Z | T1 | Runbook M v3.2 réaligné sur la décision administrateur : `ENV_FILE=/var/www/labomaths/korrigo/.env`, Étape 0 limitée à la vérification présence/absence/permissions sans valeurs, `LEGACY_DIR` lu uniquement pour ce `.env`, release pilotée depuis `RELEASE_DIR` | `ASSAINISSEMENT_KORRIGO.md` |
 | 2026-06-20T21:43Z | Étape 3 / S | Tentative backup arrêtée avant chiffrement valide : `ENV_FILE` non shell-sourceable, dump clair temporaire shredé, aucun upload StorageBox, aucune migration, service resté gelé ; runbook M v3.3 corrigé pour lire les secrets via `docker compose config --format json` sans sourcing shell, avec round-trip GPG prouvé sur `.env` jetable à caractères spéciaux | `proofs/20260620_step3_s/env_secret_reader_roundtrip.txt`; `ASSAINISSEMENT_KORRIGO.md` |
+| 2026-06-21T07:38Z | Étape 3 / S4-S6 | Runbook M v3.5 : StorageBox shell restreint documenté, vérification distante par `rsync --checksum --dry-run` + SFTP ; backup predeploy allégé DB+JSON adopté. Jeu `/tmp/korrigo_predeploy_20260620_215505` préservé, `SHA256SUMS_LIGHT` local `OK`, upload léger StorageBox `OK`, dry-run checksum sans différence, SFTP confirme DB/JSON/SHA256SUMS_LIGHT aux tailles attendues ; média chiffré complet présent à distance mais non requis ; répertoire vide `214333` supprimé ; backend/db/redis préservés, nginx/celery/beat gelés | `ASSAINISSEMENT_KORRIGO.md`; StorageBox `backups/korrigo_backups/20260620_215505_predeploy` |
