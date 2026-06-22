@@ -480,7 +480,7 @@ const confirmPasswordReset = async () => {
           <input 
             v-model="newUser.email" 
             type="email" 
-            placeholder="prenom.nom@exemple.fr" 
+            placeholder="prenom.nom"
             class="form-input" 
           >
         </div>

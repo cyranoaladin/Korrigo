@@ -64,7 +64,7 @@
           DPO
         </h3>
         <p class="text-sm text-gray-600">
-          labo.maths@ert.tn
+          DPO de l'établissement
         </p>
       </div>
       <div class="bg-white p-5 rounded-lg border border-borderSoft shadow-sm">
@@ -73,7 +73,7 @@
           Développement
         </h3>
         <p class="text-sm text-gray-600">
-          Équipe Labo Maths<br><span class="text-xs text-gray-400">labo.maths@ert.tn</span>
+          Équipe Labo Maths<br><span class="text-xs text-gray-400">Contact institutionnel</span>
         </p>
       </div>
       <div class="bg-white p-5 rounded-lg border border-borderSoft shadow-sm">
@@ -393,11 +393,7 @@
               Registre des Activités de Traitement
             </p>
             <p class="text-sm text-gray-600 mt-1">
-              Le registre complet (Art. 30 RGPD) est disponible sur demande auprès du DPO :
-              <a
-                href="mailto:labo.maths@ert.tn"
-                class="text-primary-600 hover:text-primary-800 font-medium"
-              >labo.maths@ert.tn</a>
+              Le registre complet (Art. 30 RGPD) est disponible sur demande auprès du DPO de l'établissement.
             </p>
           </div>
         </div>

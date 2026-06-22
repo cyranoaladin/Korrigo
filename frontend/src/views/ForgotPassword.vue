@@ -38,7 +38,7 @@ const submit = async () => {
             type="email"
             required
             class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="vous@exemple.com"
+            placeholder="prenom.nom"
           >
         </div>
 
