@@ -81,21 +81,11 @@
           <ul class="space-y-2.5 text-sm text-gray-600">
             <li class="flex items-center gap-2">
               <AppIcon name="mail" :size="14" class="text-gray-400 flex-shrink-0" />
-              <a
-                href="mailto:labo.maths@ert.tn"
-                class="hover:text-primary-600 transition"
-              >
-                labo.maths@ert.tn
-              </a>
+              <span>Contact institutionnel</span>
             </li>
             <li class="flex items-center gap-2">
               <AppIcon name="mail" :size="14" class="text-gray-400 flex-shrink-0" />
-              <a
-                href="mailto:alaeddine.benrhouma@ert.tn"
-                class="hover:text-primary-600 transition"
-              >
-                alaeddine.benrhouma@ert.tn
-              </a>
+              <span>Support Korrigo</span>
             </li>
           </ul>
         </div>

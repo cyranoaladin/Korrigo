@@ -89,6 +89,7 @@ Exclus:
 - La CI contient un job anti-PII localisable et portable.
 - Le gate ne stocke pas les valeurs reelles: uniquement des hashes SHA-256 normalises.
 - Le gate echoue sur une valeur synthetique denylistée, y compris avec un caractere invisible intramot, et n'imprime pas la valeur detectee.
+- Les hashes SHA-256 de PII connue sont une mesure de reduction de risque, pas une anonymisation. Ils doivent etre traites comme des marqueurs pseudonymises et ne doivent pas etre diffuses hors perimetre autorise.
 
 ---
 
@@ -98,6 +99,7 @@ Exclus:
 - Il ne remplace pas toutes les donnees statiques de `BilanBacBlanc.vue` par des endpoints backend.
 - Il ne cree pas d'enforcement serveur complet pour chaque fragment de contenu bilan.
 - Il ne detecte pas automatiquement toute PII inconnue; il bloque les valeurs connues par hash.
+- Il ne remplace pas encore les hashes SHA-256 nus par des HMAC-SHA256 avec pepper non committe. Cette evolution est a planifier en Lot 0-E ou dans le prochain durcissement CI, apres regeneration controlee des digests sans exposer les valeurs sources.
 - Il ne corrige pas les backups planifies suspendus ni leur chiffrement.
 - Il ne traite pas les Portes 4 a 9.
 
@@ -201,9 +203,10 @@ Resultat: build Vite OK. Avertissements de chunking dynamique/statique observes,
 
 1. La prod publique sert encore l'image `1958681`; le retrait PII navigateur ne sera effectif publiquement qu'apres build/deploiement controle du hotfix.
 2. La denylist hash couvre les valeurs connues; elle ne remplace pas un audit general anti-PII.
-3. `BilanBacBlanc.vue` reste trop statique. Le hotfix retire les emails et PII connues mais ne transforme pas encore la page en vue entierement alimentee par backend.
-4. Les backups/sync StorageBox restent suspendus apres bascule et doivent etre remis en service seulement apres correction RGPD/chiffrement.
-5. Les Portes 4 a 9 restent ouvertes.
+3. Les digests SHA-256 nus restent attaquables par dictionnaire si le depot est diffuse a un adversaire connaissant le corpus probable de noms/emails. Ils doivent etre remplaces par HMAC-SHA256 avec `PII_GATE_PEPPER` non committe lorsque les valeurs sources pourront etre regenerees sous controle administrateur.
+4. `BilanBacBlanc.vue` reste trop statique. Le hotfix retire les emails et PII connues mais ne transforme pas encore la page en vue entierement alimentee par backend.
+5. Les backups/sync StorageBox restent suspendus apres bascule et doivent etre remis en service seulement apres correction RGPD/chiffrement.
+6. Les Portes 4 a 9 restent ouvertes.
 
 ---
 
@@ -271,4 +274,3 @@ Ne pas coller le diff brut de ce hotfix dans un outil de conversation ou ticket 
 - synthese par fichier;
 - extraits ajoutes uniquement s'ils ne contiennent aucune PII;
 - ou diff redige/expurge.
-

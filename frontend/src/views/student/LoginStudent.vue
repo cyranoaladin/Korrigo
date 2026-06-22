@@ -57,7 +57,7 @@ const handleLogin = async () => {
           <input
             v-model="email"
             type="email"
-            placeholder="prenom.nom-e@ert.tn"
+            placeholder="adresse scolaire"
             required
             autocomplete="email"
           >

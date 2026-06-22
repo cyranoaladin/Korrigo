@@ -31,7 +31,7 @@
         Vos identifiants de connexion sont fournis par le lycée :
       </p>
       <ul class="list-disc pl-5 space-y-2 mb-4">
-        <li><strong>Email :</strong> Votre adresse email scolaire (ex : <code>prenom.nom@ert.tn</code>).</li>
+        <li><strong>Email :</strong> Votre adresse email scolaire fournie par le lycée.</li>
         <li><strong>Mot de passe :</strong> Un mot de passe provisoire vous est fourni. À la première connexion, il peut vous être demandé de le modifier.</li>
       </ul>
       <h4 class="font-medium text-gray-900 mb-2">
@@ -229,7 +229,7 @@
       </ul>
 
       <div class="bg-green-50 border border-green-200 rounded p-3 text-sm text-green-800">
-        <strong>Contact RGPD :</strong> Pour exercer vos droits, contactez le DPO de votre lycée ou écrivez à <code>dpo@korrigo.education</code>.
+        <strong>Contact RGPD :</strong> Pour exercer vos droits, contactez le DPO de votre lycée via les canaux institutionnels communiqués par l'établissement.
         En cas de non-respect de vos droits, vous pouvez contacter la <strong>CNIL</strong> (cnil.fr).
       </div>
     </CollapsibleSection>
