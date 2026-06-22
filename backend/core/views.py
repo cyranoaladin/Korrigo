@@ -282,6 +282,17 @@ class UserDetailView(APIView):
             elif user.groups.filter(name='direction_college').exists():
                 direction_scope = ['dnb']
 
+        can_view_direction_bilans = role in {'Admin', 'Teacher'}
+        if role == 'Direction':
+            can_view_direction_bilans = (
+                direction_scope == 'all'
+                or (
+                    isinstance(direction_scope, list)
+                    and any(scope in direction_scope for scope in ('bac-blanc', 'eam'))
+                )
+            )
+        features['can_view_direction_bilans'] = can_view_direction_bilans
+
         return Response({
             "id": user.id,
             "username": user.username,
@@ -292,6 +303,7 @@ class UserDetailView(APIView):
             "assigned_exam_type_codes": assigned_codes,
             "features": features,
             "direction_scope": direction_scope,
+            "can_view_direction_bilans": can_view_direction_bilans,
         })
 
 class GlobalSettingsView(APIView):

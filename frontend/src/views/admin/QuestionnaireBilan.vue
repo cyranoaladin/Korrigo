@@ -499,7 +499,7 @@ onMounted(fetchBilan)
               </div>
               <h3>Friction annotation / barème</h3>
               <p class="v2-problem">Le panneau barème se réinitialisait en haut à chaque retour depuis les annotations, dissuadant les correcteurs d'annoter.</p>
-              <p class="v2-source">Selima Klibi, Patrick Dupont, Chawki Saadi</p>
+              <p class="v2-source">Retours correcteurs anonymisés</p>
               <div class="v2-solution">
                 <strong>Refonte complète du layout :</strong> le barème est désormais affiché en permanence dans le panneau lateral droit. Les outils d'annotation sont dans la barre d'outils au-dessus de la copie. Plus aucune navigation entre onglets n'est nécessaire — les deux sont visibles simultanément.
               </div>
@@ -512,7 +512,7 @@ onMounted(fetchBilan)
               </div>
               <h3>Outil tampon Vrai/Faux manquant</h3>
               <p class="v2-problem">Absence d'un outil de marquage rapide V/X correspondant au geste papier le plus fréquent.</p>
-              <p class="v2-source">Patrick Dupont, Philippe Carr</p>
+              <p class="v2-source">Retours correcteurs anonymisés</p>
               <div class="v2-solution">
                 <strong>Boutons V et F dans la barre d'outils :</strong> un clic sur le bouton active le mode tampon. Chaque rectangle dessiné sur la copie crée instantanément un checkmark vert ou une croix rouge sans ouvrir d'éditeur. Le tampon persiste sur le PDF final remis à l'élève.
               </div>
@@ -538,7 +538,7 @@ onMounted(fetchBilan)
               </div>
               <h3>Copies bloquées en mode "locked"</h3>
               <p class="v2-problem">Des copies restaient verrouillées sans possibilité d'y accéder ni de les annoter.</p>
-              <p class="v2-source">Patrick Dupont, Philippe Carr</p>
+              <p class="v2-source">Retours correcteurs anonymisés</p>
               <div class="v2-solution">
                 <strong>Bouton "Déverrouiller" (administrateur) :</strong> visible dans la barre d'outils pour les administrateurs. Force la suppression du verrou avec journalisation complète de l'action (qui a déverrouillé, quand, ancien propriétaire du verrou).
               </div>
@@ -551,7 +551,7 @@ onMounted(fetchBilan)
               </div>
               <h3>Impossible de revenir sur une copie finalisée</h3>
               <p class="v2-problem">Une fois la copie corrigée, aucune modification n'était possible même en cas d'erreur.</p>
-              <p class="v2-source">Edouard Rousseau</p>
+              <p class="v2-source">Retour correcteur anonymisé</p>
               <div class="v2-solution">
                 <strong>Bouton "Rouvrir" (superutilisateur) :</strong> permet de remettre une copie finalisée en statut "Pret" pour correction. Le PDF final est invalidé, mais toutes les notes, annotations, remarques et appréciations sont conservées. Action entièrement tracée dans le journal d'audit.
               </div>
@@ -564,7 +564,7 @@ onMounted(fetchBilan)
               </div>
               <h3>Pas de suivi des questions non corrigées</h3>
               <p class="v2-problem">Aucun indicateur visuel pour savoir quelles questions du barème avaient reçu une note.</p>
-              <p class="v2-source">Sami Ben Tiba</p>
+              <p class="v2-source">Retour correcteur anonymisé</p>
               <div class="v2-solution">
                 <strong>Barre de progression segmentée par question :</strong> dans le tableau de bord correcteur, chaque copie affiche une barre visuelle indiquant les questions notées (vert) et non notées (gris), avec le pourcentage et le détail (ex : "5/8 questions notées — 63 %").
               </div>
@@ -577,7 +577,7 @@ onMounted(fetchBilan)
               </div>
               <h3>Commentaires non mémorisés entre copies</h3>
               <p class="v2-problem">Les remarques saisies sur une copie ne pouvaient pas être réutilisées sur la suivante.</p>
-              <p class="v2-source">Chawki Saadi</p>
+              <p class="v2-source">Retour correcteur anonymisé</p>
               <div class="v2-solution">
                 <strong>Sauvegarde automatique dans la banque personnelle :</strong> chaque remarque substantielle (plus de 5 caractères) est automatiquement enregistrée dans la banque d'annotations personnelle du correcteur avec le contexte exercice/question. Les remarques fréquentes sont proposées en priorité lors de la correction de la copie suivante.
               </div>
@@ -590,7 +590,7 @@ onMounted(fetchBilan)
               </div>
               <h3>Chargement lent des pages PDF</h3>
               <p class="v2-problem">Délai perceptible lors du passage d'une page à l'autre.</p>
-              <p class="v2-source">Sami Ben Tiba, Philippe Carr, Selima Klibi</p>
+              <p class="v2-source">Retours correcteurs anonymisés</p>
               <div class="v2-solution">
                 <strong>Préchargement des pages adjacentes :</strong> les pages précédente et suivante sont chargées en arrière-plan avant que le correcteur ne navigue. Résultat : affichage quasi-instantané lors du changement de page. Ajout d'une transition en fondu pour éliminer le flash blanc.
               </div>
@@ -603,7 +603,7 @@ onMounted(fetchBilan)
               </div>
               <h3>Scroll et navigation non fluides</h3>
               <p class="v2-problem">Le défilement des pages n'était pas naturel et le zoom difficile à ajuster.</p>
-              <p class="v2-source">Chawki Saadi, Philippe Carr</p>
+              <p class="v2-source">Retours correcteurs anonymisés</p>
               <div class="v2-solution">
                 <strong>Scroll fluide natif + zoom amélioré :</strong> activation du scroll smooth CSS, support du Ctrl+molette pour zoomer/dézoomer rapidement, bouton « Ajuster à la largeur », clic sur le pourcentage pour réinitialiser le zoom à 100 %. Temps de réponse au changement de page réduit de 400 ms à 300 ms.
               </div>

@@ -399,7 +399,7 @@
         </p>
         <p class="mb-1">Lycée Pierre Mendès France de Tunis · Labo Maths ERT</p>
         <p class="text-gray-500">
-          Dernière activité : {{ lastActivityLabel }} · Développé par Alaeddine BEN RHOUMA
+          Dernière activité : {{ lastActivityLabel }} · Développé par l'équipe Korrigo
         </p>
       </div>
     </section>
