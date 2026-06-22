@@ -130,9 +130,9 @@ Le build image local backend/nginx a ete execute sans push registry, sans deploi
 
 ## 9. Statut du push
 
-Statut recommande: GO technique possible pour un push de branche non deployant, sous reserve de revue humaine du present rapport.
+Statut final Lot 0-D: NO-GO push automatique dans ce tour.
 
-Garanties:
+Garanties etablies:
 
 - aucun workflow ne peut muter la production sur push de `fix/lot0-rgpd-deploy`;
 - aucun push vers `main`;
@@ -141,11 +141,17 @@ Garanties:
 - aucun build/push GHCR;
 - aucun deploiement.
 
-Si l'equipe choisit de rester conservatrice, le push peut etre differe sans impact production.
+Blocage de livraison PR: `origin/main` n'est pas aligne sur la production `1958681`. Un diff `origin/main..HEAD` embarque 106 fichiers et tout l'historique Step 3, pas seulement le hotfix RGPD/deploy. Une PR directe vers `main` ne serait donc pas une revue isolee du Lot 0.
+
+Decision: ne pas pousser tant que la base de PR n'est pas tranchee. Options propres:
+
+1. aligner d'abord `main` sur l'etat production valide;
+2. ouvrir une PR vers une branche de release dediee issue de `1958681`;
+3. extraire le hotfix dans une branche basee explicitement sur la future base de merge retenue.
 
 ## 10. Statut PR
 
-PR non creee par ce document. Si le push de branche est valide, creer une PR draft vers `main` avec le document Lot 0-B comme corps, sans declencher de workflow manuel.
+PR non creee. Le push de branche est differe pour eviter une PR trop large et non representative du hotfix.
 
 ## 11. Risques residuels
 
@@ -156,17 +162,18 @@ PR non creee par ce document. Si le push de branche est valide, creer une PR dra
 - Backups/sync StorageBox suspendus pendant la bascule: a remettre en service en mode chiffre conforme.
 - `ruff check backend` echoue sur dette preexistante; a transformer en gate CI apres remediation ciblee.
 - `infra/docker/docker-compose.prod.yml` local doit etre revalide contre les digests de production avant tout deploiement hotfix.
+- `main` n'est pas encore la base de production courante, ce qui bloque une PR hotfix propre vers `main`.
 
 ## 12. Prochaine etape recommandee
 
 1. Revue humaine du diff expurge et du present rapport.
-2. Push controle de `fix/lot0-rgpd-deploy` si GO.
-3. PR draft non deployante.
-4. Build/push d'images hotfix par digest, sous tag relie au commit.
-5. Staging sans overlay.
-6. Backup point-in-time.
-7. Deploiement production controle.
-8. Scan du bundle public servi.
-9. Reprise des backups chiffres.
-10. Porte 4 Docker/disque.
-
+2. Decider la base de PR: `main` alignee prod, branche de release issue de `1958681`, ou extraction du hotfix sur une base propre.
+3. Push controle de la branche retenue.
+4. PR draft non deployante.
+5. Build/push d'images hotfix par digest, sous tag relie au commit.
+6. Staging sans overlay.
+7. Backup point-in-time.
+8. Deploiement production controle.
+9. Scan du bundle public servi.
+10. Reprise des backups chiffres.
+11. Porte 4 Docker/disque.
