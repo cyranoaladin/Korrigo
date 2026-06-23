@@ -106,7 +106,7 @@ class LoginView(APIView):
                 if user_obj:
                     from students.models import Student
                     is_student = Student.objects.filter(user=user_obj).exists()
-                # Fallback heuristic: student emails use the -e@ert.tn pattern
+                # Fallback heuristic: student emails use the backend-core-views-01@example.test pattern
                 if not is_student and re.search(r'-e@ert\.tn$', username, re.IGNORECASE):
                     is_student = True
             if is_student:

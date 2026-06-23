@@ -145,7 +145,7 @@ def setup_users():
     print("📋 Creating admin user...")
     admin, created = User.objects.get_or_create(
         username='admin',
-        defaults={'email': 'admin@korrigo.tn', 'is_staff': True, 'is_superuser': True}
+        defaults={'email': 'backend-scripts-archive-rebuild-production-01@example.test', 'is_staff': True, 'is_superuser': True}
     )
     if created:
         admin.set_password(default_password)
@@ -158,9 +158,9 @@ def setup_users():
     print("👨‍🏫 Creating teachers...")
     teachers = []
     teacher_data = [
-        ('prof1', 'prof1@korrigo.tn', 'Professeur', 'Un'),
-        ('prof2', 'prof2@korrigo.tn', 'Professeur', 'Deux'),
-        ('prof3', 'prof3@korrigo.tn', 'Professeur', 'Trois'),
+        ('prof1', 'backend-scripts-archive-rebuild-production-02@example.test', 'Professeur', 'Un'),
+        ('prof2', 'backend-scripts-archive-rebuild-production-03@example.test', 'Professeur', 'Deux'),
+        ('prof3', 'backend-scripts-archive-rebuild-production-04@example.test', 'Professeur', 'Trois'),
     ]
     for username, email, first, last in teacher_data:
         prof, created = User.objects.get_or_create(

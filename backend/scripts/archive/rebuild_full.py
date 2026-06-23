@@ -186,12 +186,12 @@ def assign_correctors():
     """Assign the real teachers as correctors."""
     print("\n━━ ASSIGN CORRECTORS ━━")
     j1_emails = [
-        "alaeddine.benrhouma@ert.tn", "philippe.carr@ert.tn",
-        "patrick.dupont@ert.tn", "selima.klibi@ert.tn",
+        "backend-scripts-archive-rebuild-full-01@example.test", "backend-scripts-archive-rebuild-full-02@example.test",
+        "backend-scripts-archive-rebuild-full-03@example.test", "backend-scripts-archive-rebuild-full-04@example.test",
     ]
     j2_emails = [
-        "chawki.saadi@ert.tn", "sami.bentiba@ert.tn",
-        "laroussi.laroussi@ert.tn", "edouard.rousseau@ert.tn",
+        "backend-scripts-archive-rebuild-full-05@example.test", "backend-scripts-archive-rebuild-full-06@example.test",
+        "backend-scripts-archive-rebuild-full-07@example.test", "backend-scripts-archive-rebuild-full-08@example.test",
     ]
 
     for exam_name, emails in [("BB_J1", j1_emails), ("BB_J2", j2_emails)]:

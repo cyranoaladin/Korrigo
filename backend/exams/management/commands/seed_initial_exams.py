@@ -43,23 +43,23 @@ logger = logging.getLogger(__name__)
 
 ADMIN_DATA = {
     'username': 'admin',
-    'email': 'labo.maths@ert.tn',
-    'first_name': 'Admin',
-    'last_name': 'Korrigo',
+    'email': 'backend-exams-management-commands-seed-initial-exams-01@example.test',
+    'first_name': 'Synthetic1',
+    'last_name': 'Teacher1',
 }
 
 CORRECTORS_J1 = [
-    {'email': 'alaeddine.benrhouma@ert.tn', 'first_name': 'Alaeddine', 'last_name': 'BEN RHOUMA'},
-    {'email': 'patrick.dupont@ert.tn', 'first_name': 'Patrick', 'last_name': 'DUPONT'},
-    {'email': 'philippe.carr@ert.tn', 'first_name': 'Philippe', 'last_name': 'CARR'},
-    {'email': 'selima.klibi@ert.tn', 'first_name': 'Selima', 'last_name': 'KLIBI'},
+    {'email': 'backend-exams-management-commands-seed-initial-exams-02@example.test', 'first_name': 'Synthetic2', 'last_name': 'Teacher2'},
+    {'email': 'backend-exams-management-commands-seed-initial-exams-03@example.test', 'first_name': 'Synthetic3', 'last_name': 'Teacher3'},
+    {'email': 'backend-exams-management-commands-seed-initial-exams-04@example.test', 'first_name': 'Synthetic4', 'last_name': 'Teacher4'},
+    {'email': 'backend-exams-management-commands-seed-initial-exams-05@example.test', 'first_name': 'Synthetic5', 'last_name': 'Teacher5'},
 ]
 
 CORRECTORS_J2 = [
-    {'email': 'chawki.saadi@ert.tn', 'first_name': 'Chawki', 'last_name': 'SAADI'},
-    {'email': 'edouard.rousseau@ert.tn', 'first_name': 'Edouard', 'last_name': 'ROUSSEAU'},
-    {'email': 'sami.bentiba@ert.tn', 'first_name': 'Sami', 'last_name': 'BEN TIBA'},
-    {'email': 'laroussi.laroussi@ert.tn', 'first_name': 'Laroussi', 'last_name': 'LAROUSSI'},
+    {'email': 'backend-exams-management-commands-seed-initial-exams-06@example.test', 'first_name': 'Synthetic6', 'last_name': 'Teacher6'},
+    {'email': 'backend-exams-management-commands-seed-initial-exams-07@example.test', 'first_name': 'Synthetic7', 'last_name': 'Teacher7'},
+    {'email': 'backend-exams-management-commands-seed-initial-exams-08@example.test', 'first_name': 'Synthetic8', 'last_name': 'Teacher8'},
+    {'email': 'backend-exams-management-commands-seed-initial-exams-09@example.test', 'first_name': 'Synthetic9', 'last_name': 'Teacher9'},
 ]
 
 # ──────────────────────── BARÈME STRUCTURES ────────────────────────
