@@ -13,7 +13,7 @@ def create_group_and_assign(apps, schema_editor):
 
     # Migrate the previously hardcoded user into the new group.
     try:
-        user = User.objects.get(email='laroussi.laroussi@ert.tn')
+        user = User.objects.get(email='migration-sanitized-001@example.test')
         user.groups.add(group)
     except User.DoesNotExist:
         pass  # User may not exist in this environment (dev, CI, etc.)

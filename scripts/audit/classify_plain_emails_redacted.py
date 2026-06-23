@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import re
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
 
@@ -40,6 +40,7 @@ TEXT_SUFFIXES = {
     ".yml",
 }
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+RESERVED_DOMAINS = {"example.com", "example.org", "example.test", "localhost"}
 
 
 def is_text_candidate(path: Path) -> bool:
@@ -55,6 +56,12 @@ def is_text_candidate(path: Path) -> bool:
 def category_for(path: Path, text: str) -> tuple[str, str]:
     lowered = text.lower()
     path_text = str(path).lower()
+    emails = EMAIL_RE.findall(text)
+    if "migrations" in path.parts:
+        domains = {email.rsplit("@", 1)[-1].lower() for email in emails}
+        if domains and domains <= RESERVED_DOMAINS:
+            return "SANITIZED_MIGRATION_FIXTURE", "migration-uses-reserved-domain"
+        return "TO_REVIEW", "migration-with-non-reserved-email-domain"
     if any(token in lowered for token in ["example.com", "example.test", "localhost"]):
         return "TEST_FIXTURE", "example-or-local-address"
     if "test" in path_text or "fixture" in path_text or "pytest" in lowered:
