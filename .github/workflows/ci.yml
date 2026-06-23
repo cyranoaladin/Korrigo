@@ -11,9 +11,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ─── Frontend: known real PII hash gate ───
+  # ─── Frontend: known real PII HMAC gate ───
   pii-gate:
-    name: Frontend PII Hash Gate
+    name: Frontend PII HMAC Gate
     runs-on: ubuntu-latest
 
     steps:
@@ -23,7 +23,9 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Check frontend known PII hashes
+      - name: Check frontend known PII HMAC markers
+        env:
+          PII_GATE_PEPPER: ${{ secrets.PII_GATE_PEPPER }}
         run: python scripts/ci/check_frontend_pii_hashes.py frontend/src
 
   # ─── Frontend: lint + build ───

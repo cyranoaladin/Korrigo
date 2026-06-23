@@ -1,5 +1,6 @@
 from pathlib import Path
 import importlib.util
+import os
 import re
 import subprocess
 import sys
@@ -15,8 +16,10 @@ from core.auth import UserRole
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEPLOY_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "deploy.yml"
 PII_GATE = REPO_ROOT / "scripts" / "ci" / "check_frontend_pii_hashes.py"
+PII_HMAC_GENERATOR = REPO_ROOT / "scripts" / "ci" / "generate_pii_hmac_markers.py"
 BILAN_BAC_BLANC_VIEW = REPO_ROOT / "frontend" / "src" / "views" / "BilanBacBlanc.vue"
 FRONTEND_SRC = REPO_ROOT / "frontend" / "src"
+TEST_PII_PEPPER = "test-pepper-not-secret"
 
 
 @pytest.mark.django_db
@@ -127,18 +130,39 @@ def test_deploy_workflow_is_manual_stub_without_prod_mutations():
         assert snippet not in text
 
 
-def test_frontend_known_pii_hash_gate_passes():
+def test_frontend_known_pii_hmac_gate_passes_with_pepper():
     assert PII_GATE.exists()
+    env = os.environ.copy()
+    env["PII_GATE_PEPPER"] = TEST_PII_PEPPER
     result = subprocess.run(
         [sys.executable, str(PII_GATE), "frontend/src"],
         cwd=REPO_ROOT,
         text=True,
         capture_output=True,
         check=False,
+        env=env,
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert "PII_HASH_MATCH_COUNT=0" in result.stdout
+    assert TEST_PII_PEPPER not in result.stdout + result.stderr
+
+
+def test_frontend_known_pii_hmac_gate_fails_closed_without_pepper():
+    assert PII_GATE.exists()
+    env = os.environ.copy()
+    env.pop("PII_GATE_PEPPER", None)
+    result = subprocess.run(
+        [sys.executable, str(PII_GATE), "frontend/src"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=env,
+    )
+
+    assert result.returncode != 0
+    assert "PII_GATE_STATUS=FAIL_MISSING_PEPPER" in result.stdout
 
 
 def test_bilan_bac_blanc_uses_server_capability_without_hardcoded_direction_emails():
@@ -173,7 +197,7 @@ def test_frontend_src_contains_no_plain_email_addresses():
         ("synthetic.person@example.test", "SYNTHETIC.PERSON@example.test"),
     ],
 )
-def test_pii_hash_gate_detects_synthetic_variants_without_leaking_value(
+def test_pii_hmac_gate_detects_synthetic_variants_without_leaking_value(
     tmp_path,
     capsys,
     monkeypatch,
@@ -185,8 +209,9 @@ def test_pii_hash_gate_detects_synthetic_variants_without_leaking_value(
     assert spec.loader is not None
     spec.loader.exec_module(module)
 
-    marker_hash = module.digest(deny_value)
-    monkeypatch.setitem(module.DENY_HASHES, marker_hash, "synthetic_test_marker")
+    monkeypatch.setenv("PII_GATE_PEPPER", TEST_PII_PEPPER)
+    marker_hmac = module.hmac_digest(deny_value, TEST_PII_PEPPER)
+    monkeypatch.setitem(module.DENY_HMACS, marker_hmac, "synthetic_test_marker")
 
     source = tmp_path / "Synthetic.vue"
     source.write_text(f"<template><p>{source_value}</p></template>", encoding="utf-8")
@@ -202,13 +227,18 @@ def test_pii_hash_gate_detects_synthetic_variants_without_leaking_value(
     assert source_value not in output
 
 
-def test_pii_hash_gate_avoids_synthetic_false_positive(tmp_path, capsys, monkeypatch):
+def test_pii_hmac_gate_avoids_synthetic_false_positive(tmp_path, capsys, monkeypatch):
     spec = importlib.util.spec_from_file_location("check_frontend_pii_hashes", PII_GATE)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
 
-    monkeypatch.setitem(module.DENY_HASHES, module.digest("Synthetic Person"), "synthetic_test_marker")
+    monkeypatch.setenv("PII_GATE_PEPPER", TEST_PII_PEPPER)
+    monkeypatch.setitem(
+        module.DENY_HMACS,
+        module.hmac_digest("Synthetic Person", TEST_PII_PEPPER),
+        "synthetic_test_marker",
+    )
 
     source = tmp_path / "Technical.vue"
     source.write_text("<template><p>Synthetic payload processed successfully.</p></template>", encoding="utf-8")
@@ -220,3 +250,35 @@ def test_pii_hash_gate_avoids_synthetic_false_positive(tmp_path, capsys, monkeyp
     assert rc == 0
     assert "PII_HASH_MATCH_COUNT=0" in output
     assert "Synthetic payload" not in output
+
+
+def test_pii_hmac_gate_script_contract_has_no_sha_denylist_names():
+    text = PII_GATE.read_text()
+
+    assert "DENY_HMACS" in text
+    assert "DENY_HASHES" not in text
+    assert "def digest(" not in text
+    assert "PII_GATE_PEPPER" in text
+
+
+def test_pii_hmac_generator_uses_stdin_without_leaking_values():
+    assert PII_HMAC_GENERATOR.exists()
+    env = os.environ.copy()
+    env["PII_GATE_PEPPER"] = TEST_PII_PEPPER
+    source_value = "Synthetic Person Example"
+
+    result = subprocess.run(
+        [sys.executable, str(PII_HMAC_GENERATOR)],
+        cwd=REPO_ROOT,
+        input=source_value + "\n",
+        text=True,
+        capture_output=True,
+        check=False,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "DENY_HMACS" in result.stdout
+    assert "marker_001" in result.stdout
+    assert source_value not in result.stdout + result.stderr
+    assert TEST_PII_PEPPER not in result.stdout + result.stderr
