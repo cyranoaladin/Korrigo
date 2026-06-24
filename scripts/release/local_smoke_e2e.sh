@@ -9,8 +9,20 @@ fi
 AUDIT_DIR="$1"
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 WORK_DIR="$AUDIT_DIR/local_smoke_e2e"
-BACKEND_PORT="${KORRIGO_LOCAL_BACKEND_PORT:-8765}"
-FRONTEND_PORT="${KORRIGO_LOCAL_FRONTEND_PORT:-4173}"
+free_port() {
+  python3 - <<'PY'
+import socket
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.bind(("127.0.0.1", 0))
+    print(s.getsockname()[1])
+PY
+}
+
+BACKEND_PORT="${KORRIGO_LOCAL_BACKEND_PORT:-$(free_port)}"
+FRONTEND_PORT="${KORRIGO_LOCAL_FRONTEND_PORT:-$(free_port)}"
+if [ "$BACKEND_PORT" = "$FRONTEND_PORT" ]; then
+  FRONTEND_PORT="$(free_port)"
+fi
 BACKEND_URL="http://127.0.0.1:${BACKEND_PORT}"
 FRONTEND_URL="http://127.0.0.1:${FRONTEND_PORT}"
 PYTHON_BIN="${KORRIGO_RELEASE_PYTHON:-$ROOT_DIR/.venv-release-check/bin/python}"
