@@ -15,6 +15,7 @@ import ImportCopies from '../views/admin/ImportCopies.vue'
 import LoginStudent from '../views/student/LoginStudent.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
 import ResetPasswordConfirm from '../views/ResetPasswordConfirm.vue'
+import { KORRIGO_PUBLIC_ROUTE_SEGMENTS } from '../features/korrigo/content/korrigoPublicContent'
 
 function getDashboardForRole(role, email = '') {
     if (role === 'Admin') return '/admin/dashboard'
@@ -71,25 +72,25 @@ const routes = [
         component: MainLayout,
         children: [
             {
-                path: '',
+                path: KORRIGO_PUBLIC_ROUTE_SEGMENTS.home,
                 name: 'Landing',
                 component: HomeView,
                 meta: { title: 'Korrigo PMF - Correction Numérique', public: true }
             },
             {
-                path: 'guide-enseignant',
+                path: KORRIGO_PUBLIC_ROUTE_SEGMENTS.teacherGuide,
                 name: 'GuideEnseignant',
                 component: GuideEnseignant,
                 meta: { title: 'Guide Enseignant', public: true }
             },
             {
-                path: 'guide-eleve',
+                path: KORRIGO_PUBLIC_ROUTE_SEGMENTS.studentGuide,
                 name: 'GuideEleve',
                 component: GuideEtudiant,
                 meta: { title: 'Guide Élève', public: true }
             },
             {
-                path: 'direction',
+                path: KORRIGO_PUBLIC_ROUTE_SEGMENTS.direction,
                 name: 'Direction',
                 component: DirectionConformite,
                 meta: { title: 'Direction & Conformité', public: true }

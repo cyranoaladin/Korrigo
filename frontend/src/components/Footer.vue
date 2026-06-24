@@ -25,15 +25,15 @@
           <ul class="space-y-2.5 text-sm text-gray-600">
             <li>
               <router-link
-                to="/korrigo#fonctionnalites"
+                :to="publicRouteByKey.home.path"
                 class="hover:text-primary-600 transition"
               >
-                Fonctionnalités
+                Accueil
               </router-link>
             </li>
             <li>
               <router-link
-                to="/korrigo/guide-enseignant"
+                :to="publicRouteByKey.teacherGuide.path"
                 class="hover:text-primary-600 transition"
               >
                 Guide enseignant
@@ -41,7 +41,7 @@
             </li>
             <li>
               <router-link
-                to="/korrigo/guide-eleve"
+                :to="publicRouteByKey.studentGuide.path"
                 class="hover:text-primary-600 transition"
               >
                 Guide élève
@@ -57,18 +57,18 @@
           <ul class="space-y-2.5 text-sm text-gray-600">
             <li>
               <router-link
-                to="/korrigo/direction"
+                :to="publicRouteByKey.direction.path"
                 class="hover:text-primary-600 transition"
               >
-                RGPD & Protection des données
+                Direction et conformité
               </router-link>
             </li>
             <li>
               <router-link
-                to="/korrigo/direction"
+                :to="publicRouteByKey.direction.path"
                 class="hover:text-primary-600 transition"
               >
-                Architecture & Sécurité
+                Cadre d’accès
               </router-link>
             </li>
           </ul>
@@ -106,4 +106,7 @@
 
 <script setup>
 import AppIcon from '../icons/AppIcon.vue'
+import { KORRIGO_PUBLIC_ROUTE_BY_KEY } from '../features/korrigo/content/korrigoPublicContent'
+
+const publicRouteByKey = KORRIGO_PUBLIC_ROUTE_BY_KEY
 </script>
