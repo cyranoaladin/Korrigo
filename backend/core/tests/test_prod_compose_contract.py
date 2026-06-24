@@ -27,14 +27,14 @@ class ProdComposeContractTests(unittest.TestCase):
 
         for block in (backend_block, celery_block, beat_block):
             self.assertIn(
-                "image: korrigo-backend:korrigo-lot0g-direct-1fc58d1",
+                "image: korrigo-backend:korrigo-direct-f793f0c",
                 block,
             )
             self.assertNotIn("${KORRIGO_SHA", block)
             self.assertNotIn(":latest", block)
 
         self.assertIn(
-            "image: korrigo-nginx:korrigo-lot0g-direct-1fc58d1",
+            "image: korrigo-nginx:korrigo-direct-f793f0c",
             nginx_block,
         )
         self.assertNotIn("${KORRIGO_SHA", nginx_block)
