@@ -101,9 +101,9 @@ test.describe('Direction — Résultats tab (read-only)', () => {
     await expect(page.locator('button', { hasText: 'Export Pronote' })).toBeVisible({ timeout: 10000 })
   })
 
-  test('Unauthenticated access to /direction/exams/:id/results redirects to portal', async ({ page }) => {
+  test('Unauthenticated access to /direction/exams/:id/results redirects to login', async ({ page }) => {
     await page.context().clearCookies()
     await page.goto('/direction/exams/00000000-0000-0000-0000-000000000001/results')
-    await page.waitForURL('**/', { timeout: 8000 })
+    await page.waitForURL('**/admin/login', { timeout: 8000 })
   })
 })
