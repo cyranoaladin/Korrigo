@@ -91,7 +91,7 @@ test.describe('Authentication Flow', () => {
     await page.goto('/student/login')
     await page.waitForLoadState('networkidle')
 
-    await page.locator('input[type="email"]').fill('nonexistent@ert.tn')
+    await page.locator('input[type="email"]').fill('notfound@example.test')
     await page.locator('input[type="password"]').fill('wrong-password')
     await page.locator('button[type="submit"]').click()
 

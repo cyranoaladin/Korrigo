@@ -59,6 +59,15 @@ fail_step() {
   exit 1
 }
 
+read_e2e_status() {
+  local status_file="$AUDIT_DIR/local_smoke_e2e/status.txt"
+  if [ -f "$status_file" ]; then
+    grep "^E2E_STATUS=" "$status_file" | tail -n 1 | cut -d= -f2-
+  else
+    echo "NO-GO_E2E_NOT_AVAILABLE"
+  fi
+}
+
 run_step() {
   local name="$1"
   shift
@@ -173,11 +182,7 @@ if scripts/release/local_smoke_e2e.sh "$AUDIT_DIR" > "$LOG_DIR/local_smoke_e2e.l
   echo "STEP_PASS=local_smoke_e2e"
 else
   echo "STEP_FAIL=local_smoke_e2e"
-  if grep -q "E2E_STATUS=" "$AUDIT_DIR/local_smoke_e2e/status.txt" 2>/dev/null; then
-    E2E_STATUS="$(grep "E2E_STATUS=" "$AUDIT_DIR/local_smoke_e2e/status.txt" | tail -n 1 | cut -d= -f2-)"
-  else
-    E2E_STATUS="NO-GO_E2E_NOT_AVAILABLE"
-  fi
+  E2E_STATUS="$(read_e2e_status)"
   {
     echo "LOCAL_RELEASE_CHECK_STATUS=FAIL"
     echo "FAILED_STEP=local_smoke_e2e"
@@ -188,8 +193,8 @@ else
   exit 1
 fi
 
-E2E_STATUS="$(grep "E2E_STATUS=" "$AUDIT_DIR/local_smoke_e2e/status.txt" | tail -n 1 | cut -d= -f2-)"
-if [ "$E2E_STATUS" != "PASS_EXISTING_PLAYWRIGHT_OR_CYPRESS" ] && [ "$E2E_STATUS" != "PASS_LOCAL_HTTP_SMOKE" ]; then
+E2E_STATUS="$(read_e2e_status)"
+if [ "$E2E_STATUS" != "PASS_EXISTING_PLAYWRIGHT_OR_CYPRESS" ]; then
   {
     echo "LOCAL_RELEASE_CHECK_STATUS=FAIL"
     echo "FAILED_STEP=local_smoke_e2e"

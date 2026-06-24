@@ -1,6 +1,15 @@
 import { expect, type Page } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
-import { ADMIN_PASS, ADMIN_USER, STUDENT_EMAIL, STUDENT_PASS, TEACHER_PASS, TEACHER_USER } from './e2eEnv'
+import {
+  ADMIN_PASS,
+  ADMIN_USER,
+  DIRECTION_PASS,
+  DIRECTION_USER,
+  STUDENT_EMAIL,
+  STUDENT_PASS,
+  TEACHER_PASS,
+  TEACHER_USER,
+} from './e2eEnv'
 
 let teacherStorageState: any = null
 let adminStorageState: any = null
@@ -47,7 +56,7 @@ function resetProdPassword(username: string, password: string) {
 
   if (username === ADMIN_USER) adminStorageState = null
   if (username === TEACHER_USER) teacherStorageState = null
-  if (username === process.env.E2E_DIRECTION_USER) directionStorageState = null
+  if (username === DIRECTION_USER) directionStorageState = null
 
   runProdDjangoScript(`
 from django.contrib.auth import get_user_model
@@ -154,7 +163,7 @@ export async function loginAsAdmin(page: Page) {
 }
 
 export async function loginAsDirection(page: Page) {
-  const directionUser = process.env.E2E_DIRECTION_USER || 'gilles.emardlacroix@ert.tn'
+  const directionUser = DIRECTION_USER
   await page.context().clearCookies()
   if (directionStorageState) {
     await page.context().addCookies(directionStorageState.cookies)
@@ -176,7 +185,7 @@ export async function loginAsDirection(page: Page) {
     return
   }
 
-  const directionPass = process.env.E2E_DIRECTION_PASS
+  const directionPass = DIRECTION_PASS
   if (!directionPass) {
     throw new Error('E2E_DIRECTION_PASS is required for non-production Direction login')
   }

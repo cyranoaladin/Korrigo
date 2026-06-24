@@ -21,7 +21,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
-from core.auth import UserRole
+from core.auth import DIRECTION_GROUPS, UserRole
 from core.models import UserProfile
 from exams.models import Exam, ExamType, Booklet, Copy, TeacherGroupAssignment
 from grading.models import Annotation, GradingEvent, QuestionRemark, Score
@@ -38,10 +38,13 @@ E2E_ADMIN_PASSWORD = os.environ.get("E2E_ADMIN_PASSWORD", "admin")
 E2E_TEACHER_USERNAME = os.environ.get("E2E_TEACHER_USERNAME", "prof1")
 E2E_TEACHER_PASSWORD = os.environ.get("E2E_TEACHER_PASSWORD", "password")
 
+E2E_DIRECTION_USERNAME = os.environ.get("E2E_DIRECTION_USERNAME", "direction_e2e")
+E2E_DIRECTION_PASSWORD = os.environ.get("E2E_DIRECTION_PASSWORD", "direction-password")
+
 E2E_STUDENT_DOB = os.environ.get("E2E_STUDENT_DOB", "2005-03-15")
 E2E_STUDENT_LASTNAME = os.environ.get("E2E_STUDENT_LASTNAME", "E2E_STUDENT")
 E2E_STUDENT_FIRSTNAME = os.environ.get("E2E_STUDENT_FIRSTNAME", "Jean")
-E2E_STUDENT_EMAIL = os.environ.get("E2E_STUDENT_EMAIL", "eleve.test-e@ert.tn")
+E2E_STUDENT_EMAIL = os.environ.get("E2E_STUDENT_EMAIL", "student-e2e-001@example.test")
 E2E_STUDENT_PASSWORD = os.environ.get("E2E_STUDENT_PASS", "15032005")
 
 E2E_SEED_TAG = "[E2E-SEED]"
@@ -182,6 +185,28 @@ def _ensure_teacher() -> User:
     return user
 
 
+def _ensure_direction() -> User:
+    direction_group, _ = Group.objects.get_or_create(name="direction_all")
+    for group_name in DIRECTION_GROUPS:
+        Group.objects.get_or_create(name=group_name)
+
+    user, _ = User.objects.get_or_create(
+        username=E2E_DIRECTION_USERNAME,
+        defaults={"email": f"{E2E_DIRECTION_USERNAME}@example.test"},
+    )
+    user.set_password(E2E_DIRECTION_PASSWORD)
+    user.is_staff = False
+    user.is_superuser = False
+    user.is_active = True
+    user.save()
+    user.groups.add(direction_group)
+
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile.must_change_password = False
+    profile.save(update_fields=["must_change_password"])
+    return user
+
+
 def _ensure_student() -> Student:
     students, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
     user, created = User.objects.get_or_create(
@@ -218,6 +243,7 @@ def seed_e2e() -> dict:
     """
     teacher = _ensure_teacher()
     _ensure_admin()
+    direction = _ensure_direction()
     student = _ensure_student()
 
     # Clean previous seed data (idempotence)
@@ -337,6 +363,7 @@ def seed_e2e() -> dict:
 
     return {
         "teacher": teacher.username,
+        "direction": direction.username,
         "student": student.email,
         "exam": str(exam.id),
         "ready_copy": str(ready_copy.id),
@@ -359,6 +386,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("✅ E2E Seed completed successfully"))
         self.stdout.write(f"  Teacher: {out['teacher']}")
+        self.stdout.write(f"  Direction: {out['direction']}")
         self.stdout.write(f"  Student: {out['student']}")
         self.stdout.write(f"  Exam: {out['exam']}")
         self.stdout.write(f"  Copy READY: {out['ready_copy']}")

@@ -33,6 +33,7 @@ fi
 
 mkdir -p "$WORK_DIR"
 chmod 700 "$WORK_DIR"
+DIAGNOSTIC="$WORK_DIR/E2E_DIAGNOSTIC.md"
 
 BACKEND_PID=""
 FRONTEND_PID=""
@@ -102,7 +103,7 @@ mkdir -p "$MEDIA_ROOT" "$STATIC_ROOT"
   export E2E_TEST_MODE=true
   "$PYTHON_BIN" manage.py migrate --noinput
   if "$PYTHON_BIN" manage.py help seed_e2e >/dev/null 2>&1; then
-    "$PYTHON_BIN" manage.py seed_e2e >/dev/null 2>&1 || true
+    "$PYTHON_BIN" manage.py seed_e2e >/dev/null 2>&1
   fi
   "$PYTHON_BIN" manage.py runserver "127.0.0.1:${BACKEND_PORT}"
 ) >"$WORK_DIR/backend.log" 2>&1 &
@@ -131,6 +132,13 @@ class Handler(BaseHTTPRequestHandler):
             return
         self.serve_static()
 
+    def do_POST(self):
+        if self.path.startswith("/api/"):
+            self.proxy()
+            return
+        self.send_response(404)
+        self.end_headers()
+
     def do_HEAD(self):
         if self.path.startswith("/api/"):
             self.proxy(head=True)
@@ -139,21 +147,35 @@ class Handler(BaseHTTPRequestHandler):
 
     def proxy(self, head=False):
         target = backend + self.path
+        body = None
+        if self.command in {"POST", "PUT", "PATCH"}:
+            length = int(self.headers.get("Content-Length", "0") or "0")
+            body = self.rfile.read(length) if length else b""
         try:
-            req = Request(target, method="HEAD" if head else "GET")
+            req = Request(target, data=body, method="HEAD" if head else self.command)
+            for key in ("Content-Type", "Cookie", "X-CSRFToken", "X-Requested-With"):
+                value = self.headers.get(key)
+                if value:
+                    req.add_header(key, value)
             with urlopen(req, timeout=10) as resp:
                 body = b"" if head else resp.read()
                 self.send_response(resp.status)
-                for key, value in resp.headers.items():
+                for key in resp.headers.keys():
                     if key.lower() in {"transfer-encoding", "connection"}:
                         continue
-                    self.send_header(key, value)
+                    for value in resp.headers.get_all(key, []):
+                        self.send_header(key, value)
                 self.end_headers()
                 if not head:
                     self.wfile.write(body)
         except HTTPError as exc:
             body = b"" if head else exc.read()
             self.send_response(exc.code)
+            for key in exc.headers.keys():
+                if key.lower() in {"transfer-encoding", "connection"}:
+                    continue
+                for value in exc.headers.get_all(key, []):
+                    self.send_header(key, value)
             self.end_headers()
             if not head:
                 self.wfile.write(body)
@@ -186,12 +208,89 @@ FRONTEND_PID="$!"
 
 wait_http "${FRONTEND_URL}/" "FRONTEND" "$WORK_DIR/frontend_wait.log"
 
+{
+  echo "# Local E2E diagnostic"
+  echo
+  echo "- Backend port: $BACKEND_PORT"
+  echo "- Frontend port: $FRONTEND_PORT"
+  echo "- Backend ready: YES"
+  echo "- Frontend ready: YES"
+} > "$DIAGNOSTIC"
+
 request_ok "${FRONTEND_URL}/" "ROOT"
 request_ok "${FRONTEND_URL}/korrigo" "KORRIGO_ROUTE"
 request_ok "${FRONTEND_URL}/student/login" "STUDENT_LOGIN_ROUTE"
 request_ok "${FRONTEND_URL}/admin/login" "ADMIN_LOGIN_ROUTE"
 request_ok "${FRONTEND_URL}/api/health/" "API_HEALTH"
 request_ok "${FRONTEND_URL}/api/csrf/" "API_CSRF"
+
+{
+  echo
+  echo "## HTTP routes"
+  cat "$WORK_DIR/smoke_status.txt"
+} >> "$DIAGNOSTIC"
+
+(
+  cd "$ROOT_DIR/backend"
+  export DJANGO_ENV=development
+  export DEBUG=True
+  export ALLOWED_HOSTS="localhost,127.0.0.1"
+  export DATABASE_URL="sqlite:///$DB_FILE"
+  export MEDIA_ROOT="$MEDIA_ROOT"
+  export STATIC_ROOT="$STATIC_ROOT"
+  export RATELIMIT_ENABLE=false
+  export E2E_TEST_MODE=true
+  "$PYTHON_BIN" manage.py shell -c '
+import os
+from django.contrib.auth import get_user_model
+from core.auth import UserRole
+User = get_user_model()
+teacher_name = os.environ.get("E2E_TEACHER_USERNAME", "prof1")
+admin_name = os.environ.get("E2E_ADMIN_USERNAME", "admin")
+direction_name = os.environ.get("E2E_DIRECTION_USERNAME", "direction_e2e")
+teacher = User.objects.filter(username=teacher_name).first()
+admin = User.objects.filter(username=admin_name).first()
+direction = User.objects.filter(username=direction_name).first()
+print("E2E_USER_COUNT=", User.objects.count())
+print("E2E_TEACHER_EXISTS=", "YES" if teacher else "NO")
+print("E2E_TEACHER_ACTIVE=", "YES" if teacher and teacher.is_active else "NO")
+print("E2E_TEACHER_GROUP_TEACHER=", "YES" if teacher and teacher.groups.filter(name=UserRole.TEACHER).exists() else "NO")
+print("E2E_ADMIN_EXISTS=", "YES" if admin else "NO")
+print("E2E_ADMIN_STAFF=", "YES" if admin and admin.is_staff else "NO")
+print("E2E_DIRECTION_EXISTS=", "YES" if direction else "NO")
+print("E2E_DIRECTION_ACTIVE=", "YES" if direction and direction.is_active else "NO")
+print("E2E_DIRECTION_GROUP_DIRECTION=", "YES" if direction and direction.groups.filter(name="direction_all").exists() else "NO")
+'
+) > "$WORK_DIR/e2e_user_diagnostic.txt" 2>&1
+
+cat "$WORK_DIR/e2e_user_diagnostic.txt" >> "$DIAGNOSTIC"
+if ! grep -q "E2E_TEACHER_EXISTS= YES" "$WORK_DIR/e2e_user_diagnostic.txt" ||
+   ! grep -q "E2E_TEACHER_ACTIVE= YES" "$WORK_DIR/e2e_user_diagnostic.txt" ||
+   ! grep -q "E2E_TEACHER_GROUP_TEACHER= YES" "$WORK_DIR/e2e_user_diagnostic.txt" ||
+   ! grep -q "E2E_DIRECTION_EXISTS= YES" "$WORK_DIR/e2e_user_diagnostic.txt" ||
+   ! grep -q "E2E_DIRECTION_ACTIVE= YES" "$WORK_DIR/e2e_user_diagnostic.txt" ||
+   ! grep -q "E2E_DIRECTION_GROUP_DIRECTION= YES" "$WORK_DIR/e2e_user_diagnostic.txt"; then
+  echo "E2E_STATUS=NO-GO_E2E_SEED_MISSING" | tee -a "$WORK_DIR/status.txt"
+  echo "- Decision: NO-GO_E2E_SEED_MISSING" >> "$DIAGNOSTIC"
+  exit 1
+fi
+
+TEACHER_LOGIN_HTTP_STATUS="$(curl -fsS -o "$WORK_DIR/teacher_login_response.json" -c "$WORK_DIR/teacher_login_cookies.txt" -w "%{http_code}" \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"${E2E_TEACHER_USERNAME:-prof1}\",\"password\":\"${E2E_TEACHER_PASSWORD:-password}\"}" \
+  "${FRONTEND_URL}/api/login/")"
+TEACHER_SESSION_COOKIE_COUNT="$(grep -c 'sessionid' "$WORK_DIR/teacher_login_cookies.txt" || true)"
+{
+  echo
+  echo "## Login diagnostic"
+  echo "TEACHER_LOGIN_HTTP_STATUS=$TEACHER_LOGIN_HTTP_STATUS"
+  echo "TEACHER_SESSION_COOKIE_COUNT=$TEACHER_SESSION_COOKIE_COUNT"
+} >> "$DIAGNOSTIC"
+if [ "$TEACHER_LOGIN_HTTP_STATUS" != "200" ] || [ "$TEACHER_SESSION_COOKIE_COUNT" -lt 1 ]; then
+  echo "E2E_STATUS=NO-GO_E2E_LOGIN_FAILED" | tee -a "$WORK_DIR/status.txt"
+  echo "- Decision: NO-GO_E2E_LOGIN_FAILED" >> "$DIAGNOSTIC"
+  exit 1
+fi
 
 rm -rf "$WORK_DIR/public_assets"
 mkdir -p "$WORK_DIR/public_assets"
@@ -232,17 +331,34 @@ raise SystemExit(0 if total == 0 else 1)
 PY
 
 if [ -f "$ROOT_DIR/frontend/package.json" ] && grep -q '"test:e2e"' "$ROOT_DIR/frontend/package.json"; then
+  {
+    echo
+    echo "## Playwright"
+    echo "Command: npm run test:e2e -- --max-failures=1"
+  } >> "$DIAGNOSTIC"
   if (
     cd "$ROOT_DIR/frontend"
     E2E_BASE_URL="$FRONTEND_URL" npm run test:e2e -- --max-failures=1
   ) > "$WORK_DIR/playwright.log" 2>&1; then
     echo "E2E_STATUS=PASS_EXISTING_PLAYWRIGHT_OR_CYPRESS" | tee -a "$WORK_DIR/status.txt"
+    echo "PLAYWRIGHT_STATUS=PASS" >> "$DIAGNOSTIC"
   else
     echo "E2E_STATUS=NO-GO_E2E_EXISTING_PLAYWRIGHT_FAILED" | tee -a "$WORK_DIR/status.txt"
+    echo "PLAYWRIGHT_STATUS=FAIL" >> "$DIAGNOSTIC"
+    python - <<PY >> "$DIAGNOSTIC"
+from pathlib import Path
+import re
+text = Path("$WORK_DIR/playwright.log").read_text(errors="ignore")
+text = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "<EMAIL>", text)
+failed = next((line.strip() for line in text.splitlines() if "✘" in line or "failed" in line.lower()), "not detected")
+print(f"FIRST_PLAYWRIGHT_FAILURE={failed}")
+PY
     exit 1
   fi
 else
   echo "E2E_STATUS=PASS_LOCAL_HTTP_SMOKE" | tee -a "$WORK_DIR/status.txt"
+  echo "PLAYWRIGHT_STATUS=NOT_CONFIGURED" >> "$DIAGNOSTIC"
 fi
 
 echo "LOCAL_SMOKE_E2E_STATUS=PASS" | tee -a "$WORK_DIR/status.txt"
+echo "- Decision: PASS" >> "$DIAGNOSTIC"
