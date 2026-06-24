@@ -34,7 +34,7 @@ class ProdComposeContractTests(unittest.TestCase):
             self.assertNotIn(":latest", block)
 
         self.assertIn(
-            "image: korrigo-nginx:korrigo-direct-81b85c5",
+            "image: korrigo-nginx:korrigo-direct-ac5487c",
             nginx_block,
         )
         self.assertNotIn("${KORRIGO_SHA", nginx_block)
