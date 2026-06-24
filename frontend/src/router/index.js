@@ -60,6 +60,17 @@ function isLoginPage(routeName) {
     return ['LoginAdmin', 'LoginTeacher', 'StudentLogin', 'Portal'].includes(routeName)
 }
 
+function getLoginForRoute(to) {
+    if (to.path.startsWith('/student')) return '/student/login'
+    if (to.path.startsWith('/corrector') || to.path.startsWith('/teacher')) return '/teacher/login'
+    if (to.path.startsWith('/admin') || to.path.startsWith('/direction')) return '/admin/login'
+    const role = to.meta?.role
+    const roles = Array.isArray(role) ? role : role ? [role] : []
+    if (roles.includes('Student')) return '/student/login'
+    if (roles.includes('Teacher')) return '/teacher/login'
+    return '/admin/login'
+}
+
 const routes = [
     // ── Main portal (login cards) ──
     {
@@ -460,7 +471,7 @@ router.beforeEach(async (to, from, next) => {
         } catch (error) {
             console.error('Router guard: fetchUser failed', error)
             if (to.meta.requiresAuth) {
-                return safeRedirect(next, '/', to.path)
+                return safeRedirect(next, getLoginForRoute(to), to.path)
             }
         }
     }
@@ -472,7 +483,7 @@ router.beforeEach(async (to, from, next) => {
 
     if (to.meta.requiresAuth) {
         if (!isAuthenticated || userRole === 'Unknown') {
-            return safeRedirect(next, '/', to.path)
+            return safeRedirect(next, getLoginForRoute(to), to.path)
         }
 
         const allowedRoles = Array.isArray(to.meta.role) ? to.meta.role : [to.meta.role]
