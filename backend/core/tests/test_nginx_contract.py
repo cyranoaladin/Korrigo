@@ -37,5 +37,21 @@ class NginxContractTests(unittest.TestCase):
         self.assertIn("anti-flood guard for student login", conf.lower())
 
 
+    def test_admin_exact_redirect_to_login(self):
+        """Exact /admin location must redirect to /admin/login (not Django 404)."""
+        conf = NGINX_CONF.read_text()
+        self.assertIn("location = /admin", conf)
+        idx = conf.index("location = /admin")
+        block = conf[idx : idx + 200]
+        self.assertIn("return 302 /admin/login", block)
+
+    def test_admin_spa_routes_served_before_django_proxy(self):
+        """SPA admin routes (login, dashboard, etc.) must match before Django /admin/."""
+        conf = NGINX_CONF.read_text()
+        spa_idx = conf.index("^/admin/(login|")
+        django_idx = conf.index("location /admin/")
+        self.assertLess(spa_idx, django_idx)
+
+
 if __name__ == "__main__":
     unittest.main()
