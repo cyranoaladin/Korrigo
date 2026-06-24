@@ -13,6 +13,11 @@ BACKEND_PORT="${KORRIGO_LOCAL_BACKEND_PORT:-8765}"
 FRONTEND_PORT="${KORRIGO_LOCAL_FRONTEND_PORT:-4173}"
 BACKEND_URL="http://127.0.0.1:${BACKEND_PORT}"
 FRONTEND_URL="http://127.0.0.1:${FRONTEND_PORT}"
+PYTHON_BIN="${KORRIGO_RELEASE_PYTHON:-$ROOT_DIR/.venv-release-check/bin/python}"
+
+if [ ! -x "$PYTHON_BIN" ]; then
+  PYTHON_BIN="$(command -v python3)"
+fi
 
 mkdir -p "$WORK_DIR"
 chmod 700 "$WORK_DIR"
@@ -83,11 +88,11 @@ mkdir -p "$MEDIA_ROOT" "$STATIC_ROOT"
   export STATIC_ROOT="$STATIC_ROOT"
   export RATELIMIT_ENABLE=false
   export E2E_TEST_MODE=true
-  python manage.py migrate --noinput
-  if python manage.py help seed_e2e >/dev/null 2>&1; then
-    python manage.py seed_e2e >/dev/null 2>&1 || true
+  "$PYTHON_BIN" manage.py migrate --noinput
+  if "$PYTHON_BIN" manage.py help seed_e2e >/dev/null 2>&1; then
+    "$PYTHON_BIN" manage.py seed_e2e >/dev/null 2>&1 || true
   fi
-  python manage.py runserver "127.0.0.1:${BACKEND_PORT}"
+  "$PYTHON_BIN" manage.py runserver "127.0.0.1:${BACKEND_PORT}"
 ) >"$WORK_DIR/backend.log" 2>&1 &
 BACKEND_PID="$!"
 
