@@ -122,7 +122,7 @@ export const KORRIGO_PUBLIC_PAGES = {
           },
           {
             title: 'Traçabilité',
-            icon: 'list',
+            icon: 'clipboard',
             text: 'Les actions importantes de correction et d’administration sont suivies par l’application.',
           },
         ],
@@ -240,7 +240,7 @@ export const KORRIGO_PUBLIC_PAGES = {
     intro:
       'Les tableaux de bord détaillés nécessitent une authentification et un périmètre direction configuré.',
     ctas: [
-      { label: 'Connexion direction', to: '/', icon: 'login' },
+      { label: 'Accès authentifié', to: '/admin/login', icon: 'login' },
       { label: 'Guide enseignant', to: KORRIGO_PUBLIC_ROUTE_BY_KEY.teacherGuide.path, icon: 'teacher-pen' },
     ],
     sections: [

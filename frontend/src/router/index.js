@@ -15,7 +15,10 @@ import ImportCopies from '../views/admin/ImportCopies.vue'
 import LoginStudent from '../views/student/LoginStudent.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
 import ResetPasswordConfirm from '../views/ResetPasswordConfirm.vue'
-import { KORRIGO_PUBLIC_ROUTE_SEGMENTS } from '../features/korrigo/content/korrigoPublicContent'
+import {
+    KORRIGO_PUBLIC_ROUTE_BY_KEY,
+    KORRIGO_PUBLIC_ROUTE_SEGMENTS,
+} from '../features/korrigo/content/korrigoPublicContent'
 
 function getDashboardForRole(role, email = '') {
     if (role === 'Admin') return '/admin/dashboard'
@@ -126,15 +129,15 @@ const routes = [
     // Legacy landing redirects
     {
         path: '/guide-enseignant',
-        redirect: '/korrigo/guide-enseignant'
+        redirect: KORRIGO_PUBLIC_ROUTE_BY_KEY.teacherGuide.path
     },
     {
         path: '/guide-eleve',
-        redirect: '/korrigo/guide-eleve'
+        redirect: KORRIGO_PUBLIC_ROUTE_BY_KEY.studentGuide.path
     },
     {
         path: '/direction',
-        redirect: '/korrigo/direction'
+        redirect: KORRIGO_PUBLIC_ROUTE_BY_KEY.direction.path
     },
     {
         path: '/student/login',

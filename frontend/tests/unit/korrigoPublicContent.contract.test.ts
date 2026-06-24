@@ -3,11 +3,14 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import {
+  KORRIGO_COPY_STATUSES,
+  KORRIGO_LOGIN_LINKS,
   KORRIGO_PUBLIC_PAGE_KEYS,
   KORRIGO_PUBLIC_PAGES,
   KORRIGO_PUBLIC_ROUTE_PATHS,
   KORRIGO_PUBLIC_ROUTES,
 } from '../../src/features/korrigo/content/korrigoPublicContent'
+import { hasIcon } from '../../src/icons/iconRegistry'
 
 const repoRoot = resolve(__dirname, '../..')
 
@@ -23,6 +26,12 @@ const sharedShellFiles = [
   'src/components/Footer.vue',
 ]
 
+const routeSourceFiles = [
+  'src/router/index.js',
+  ...publicPageFiles,
+  ...sharedShellFiles,
+]
+
 const forbiddenText = [
   /guide-enseignanthttps/i,
   /Lorem/i,
@@ -33,7 +42,6 @@ const forbiddenText = [
 ]
 
 const allowedInternalTargets = new Set([
-  '/',
   '/teacher/login',
   '/student/login',
   '/admin/login',
@@ -51,6 +59,31 @@ function walkText(value: unknown): string[] {
     return Object.values(value as Record<string, unknown>).flatMap(walkText)
   }
   return []
+}
+
+function walkObjects(value: unknown): Record<string, unknown>[] {
+  if (Array.isArray(value)) return value.flatMap(walkObjects)
+  if (value && typeof value === 'object') {
+    return [
+      value as Record<string, unknown>,
+      ...Object.values(value as Record<string, unknown>).flatMap(walkObjects),
+    ]
+  }
+  return []
+}
+
+function extractBackendCopyStatusCodes(): string[] {
+  const models = readRepoFile('../backend/exams/models.py')
+  const statusStart = models.indexOf('class Status(models.TextChoices):')
+  const nextNestedClass = models.indexOf('\n    class ', statusStart + 1)
+
+  expect(statusStart).toBeGreaterThanOrEqual(0)
+  expect(nextNestedClass).toBeGreaterThan(statusStart)
+
+  const statusClass = models.slice(statusStart, nextNestedClass)
+
+  return [...statusClass.matchAll(/^\s{8}[A-Z_]+\s*=\s*['"]([A-Z_]+)['"]/gm)]
+    .map((match) => match[1])
 }
 
 describe('Korrigo public page content contract', () => {
@@ -82,7 +115,7 @@ describe('Korrigo public page content contract', () => {
     for (const pattern of forbiddenText) {
       expect(allText).not.toMatch(pattern)
     }
-    expect(allText).not.toMatch(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}/)
+    expect(allText).not.toMatch(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/)
     expect(allText).not.toMatch(/anonymous_id/i)
   })
 
@@ -92,6 +125,34 @@ describe('Korrigo public page content contract', () => {
         expect(allowedInternalTargets.has(cta.to)).toBe(true)
       }
     }
+  })
+
+  it('keeps displayed copy status codes aligned with backend Copy.Status choices', () => {
+    const backendStatuses = extractBackendCopyStatusCodes()
+    const publicStatuses = KORRIGO_COPY_STATUSES.map((status) => status.code)
+
+    expect(backendStatuses).toEqual(['READY', 'IN_PROGRESS', 'FINALIZED'])
+    expect(publicStatuses).toEqual(backendStatuses)
+  })
+
+  it('uses only registered icons in public page content and login links', () => {
+    const iconNames = walkObjects({ KORRIGO_PUBLIC_PAGES, KORRIGO_LOGIN_LINKS })
+      .map((item) => item.icon)
+      .filter((icon): icon is string => typeof icon === 'string')
+
+    expect(iconNames.length).toBeGreaterThan(0)
+    for (const icon of iconNames) {
+      expect(hasIcon(icon), `Missing icon registry entry for ${icon}`).toBe(true)
+    }
+  })
+
+  it('uses the real authenticated entrypoint for Direction instead of the generic portal', () => {
+    const directionPage = KORRIGO_PUBLIC_PAGES.direction
+    const directionLogin = directionPage.ctas?.find((cta) => /direction|authentifié/i.test(cta.label))
+
+    expect(directionLogin).toBeTruthy()
+    expect(directionLogin?.to).toBe('/admin/login')
+    expect(directionLogin?.label).not.toBe('Connexion direction')
   })
 
   it('public page components consume the centralized content renderer', () => {
@@ -121,6 +182,24 @@ describe('Korrigo public page content contract', () => {
       expect(text).not.toContain('to="/korrigo/guide-enseignant"')
       expect(text).not.toContain('to="/korrigo/guide-eleve"')
       expect(text).not.toContain('to="/korrigo/direction"')
+    }
+  })
+
+  it('does not hardcode public route paths outside the central route source', () => {
+    const central = readRepoFile('src/features/korrigo/content/korrigoPublicContent.js')
+
+    for (const routePath of KORRIGO_PUBLIC_ROUTE_PATHS) {
+      expect(central).toContain(routePath)
+    }
+
+    for (const file of routeSourceFiles) {
+      const text = readRepoFile(file)
+      if (file.endsWith('korrigoPublicContent.js')) continue
+
+      for (const routePath of KORRIGO_PUBLIC_ROUTE_PATHS.filter((path) => path !== '/korrigo')) {
+        expect(text, `${file} must use central route constants for ${routePath}`).not.toContain(`"${routePath}"`)
+        expect(text, `${file} must use central route constants for ${routePath}`).not.toContain(`'${routePath}'`)
+      }
     }
   })
 })
