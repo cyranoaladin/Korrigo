@@ -234,7 +234,7 @@ services:
       start_period: 30s
 
   nginx:
-    image: korrigo-nginx:korrigo-direct-f793f0c
+    image: korrigo-nginx:korrigo-direct-81b85c5
     restart: unless-stopped
     ports:
       - "127.0.0.1:8088:80"

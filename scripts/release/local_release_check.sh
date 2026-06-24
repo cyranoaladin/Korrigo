@@ -134,7 +134,7 @@ required = {
     "backend": "korrigo-backend:korrigo-direct-c38a586",
     "celery": "korrigo-backend:korrigo-direct-c38a586",
     "celery-beat": "korrigo-backend:korrigo-direct-c38a586",
-    "nginx": "korrigo-nginx:korrigo-direct-f793f0c",
+    "nginx": "korrigo-nginx:korrigo-direct-81b85c5",
     "db": "postgres:15-alpine",
     "redis": "redis:7-alpine",
 }
