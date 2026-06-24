@@ -42,7 +42,7 @@ services:
       retries: 10
 
   backend:
-    image: korrigo-backend:korrigo-direct-f793f0c
+    image: korrigo-backend:korrigo-direct-c38a586
     restart: unless-stopped
     command: gunicorn core.wsgi:application -c gunicorn_config.py
     expose:
@@ -112,7 +112,7 @@ services:
       start_period: 120s
 
   celery:
-    image: korrigo-backend:korrigo-direct-f793f0c
+    image: korrigo-backend:korrigo-direct-c38a586
     restart: unless-stopped
     command: celery -A core worker -l info --concurrency=4 --max-tasks-per-child=100
     volumes:
@@ -174,7 +174,7 @@ services:
       start_period: 30s
 
   celery-beat:
-    image: korrigo-backend:korrigo-direct-f793f0c
+    image: korrigo-backend:korrigo-direct-c38a586
     restart: unless-stopped
     command: celery -A core beat -l info
     volumes:

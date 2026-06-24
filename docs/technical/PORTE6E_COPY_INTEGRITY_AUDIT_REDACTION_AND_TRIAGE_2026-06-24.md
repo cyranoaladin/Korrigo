@@ -113,21 +113,108 @@ Separate plan:
 
 ## Deployment
 
-Pending at this documentation checkpoint.
+The logging correction was deployed directly after the full local pipeline passed.
 
-The logging correction changes backend code and therefore requires the full local pipeline before any direct deployment.
+Release commit:
+
+`c38a5861ddd64b2419521cde62e9290644aa2be3`
+
+Backend image:
+
+`korrigo-backend:korrigo-direct-c38a586`
+
+Nginx was not rebuilt or recreated because no frontend/nginx asset changed.
+
+Server audit directory:
+
+`/var/www/labomaths/korrigo_release/ops/porte6e_direct_deploy_20260624T120550Z`
+
+Local Docker audit directory:
+
+`/tmp/korrigo_porte6e_direct_deploy_20260624T120549Z`
+
+Services recreated:
+
+- `backend`
+- `celery`
+- `celery-beat`
+
+Services not recreated:
+
+- `nginx`
+- `db`
+- `redis`
+
+No migration was run.
+
+The server canonical Compose file was reconciled after successful health checks:
+
+- `backend`: `korrigo-backend:korrigo-direct-c38a586`
+- `celery`: `korrigo-backend:korrigo-direct-c38a586`
+- `celery-beat`: `korrigo-backend:korrigo-direct-c38a586`
+- `nginx`: unchanged at `korrigo-nginx:korrigo-direct-f793f0c`
 
 ## Re-Observation
 
-Pending at this documentation checkpoint.
+The integrity command was executed after deployment in read-only fail-on-issues mode.
 
-The required post-correction log gate is:
+Expected return code:
+
+- `CHECK_COPY_INTEGRITY_RC=1`, because the bounded data issue still exists.
+
+Redaction counts on the captured command output:
 
 - `EMAIL_COUNT=0`
 - `STUDENT_EMAIL_KEY_COUNT=0`
-- no sensitive fields in copy integrity audit output.
+- `FINALIZED_WITHOUT_FINAL_PDF_COUNT=2`
+- `RAW_PROBLEM_TEXT_COUNT=0`
+- `ANONYMOUS_ID_KEY_COUNT=0`
+- `AT_SIGN_COUNT=0`
 
-The integrity issue may still be reported until the bounded data repair is executed.
+The integrity issue is still correctly reported, but the output is non-sensitive.
+
+Recent container log counts after the Porte 6E deployment:
+
+| Service | Email count | `student_email` key count | Error-like count | Warning-like count |
+| --- | ---: | ---: | ---: | ---: |
+| `docker-backend-1` | 0 | 0 | 0 | 0 |
+| `docker-celery-1` | 0 | 0 | 0 | 0 |
+| `docker-celery-beat-1` | 0 | 0 | 0 | 0 |
+| `docker-nginx-1` | 0 | 0 | 0 | 0 |
+
+Public health after deployment:
+
+`{"status":"healthy","database":"connected"}`
+
+Public smoke returned HTTP 200 for:
+
+- `/`
+- `/api/health/`
+- `/api/csrf/`
+- `/korrigo`
+- `/student/login`
+- `/admin/login`
+
+Backup/sync post-deployment:
+
+- latest encrypted backup: `20260624T101701Z`
+- backup checksums: OK
+- `WOULD_TRANSFER_COUNT=0`
+- `DELETE_COUNT=0`
+- `ERROR_WORD_COUNT=0`
+
+## Pipeline Local
+
+Full local release check before build:
+
+Audit directory:
+
+`/tmp/korrigo_porte6e_local_release_check_20260624T120151Z`
+
+Status:
+
+- `LOCAL_RELEASE_CHECK_STATUS=PASS`
+- `E2E_STATUS=PASS_EXISTING_PLAYWRIGHT_OR_CYPRESS`
 
 ## Confirmations
 
@@ -140,16 +227,12 @@ The integrity issue may still be reported until the bounded data repair is execu
 
 ## Verdict
 
-Pending final pipeline and deployment decision.
-
-Expected if the pipeline passes and deployment is completed:
-
 `PORTE6E_DONE_DEPLOYED`
 
-Expected if deployment is deferred:
-
-`PORTE6E_READY_FOR_DIRECT_DEPLOY`
+The log redaction code is deployed and verified. The data anomaly remains bounded to one technical copy id and requires a separate controlled repair decision.
 
 ## Next Step
 
-Run the full local pipeline. If it passes, deploy the backend image directly and re-observe logs. Then decide whether to execute the separate data repair plan.
+Decide whether to execute the separate controlled data repair plan for the single finalized copy without final PDF.
+
+Do not start Docker cleanup until logs remain clean through the next scheduled integrity audit window.
