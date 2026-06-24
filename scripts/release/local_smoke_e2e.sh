@@ -232,11 +232,15 @@ raise SystemExit(0 if total == 0 else 1)
 PY
 
 if [ -f "$ROOT_DIR/frontend/package.json" ] && grep -q '"test:e2e"' "$ROOT_DIR/frontend/package.json"; then
-  (
+  if (
     cd "$ROOT_DIR/frontend"
-    E2E_BASE_URL="$FRONTEND_URL" npm run test:e2e
-  ) > "$WORK_DIR/playwright.log" 2>&1
-  echo "E2E_STATUS=PASS_EXISTING_PLAYWRIGHT_OR_CYPRESS" | tee -a "$WORK_DIR/status.txt"
+    E2E_BASE_URL="$FRONTEND_URL" npm run test:e2e -- --max-failures=1
+  ) > "$WORK_DIR/playwright.log" 2>&1; then
+    echo "E2E_STATUS=PASS_EXISTING_PLAYWRIGHT_OR_CYPRESS" | tee -a "$WORK_DIR/status.txt"
+  else
+    echo "E2E_STATUS=NO-GO_E2E_EXISTING_PLAYWRIGHT_FAILED" | tee -a "$WORK_DIR/status.txt"
+    exit 1
+  fi
 else
   echo "E2E_STATUS=PASS_LOCAL_HTTP_SMOKE" | tee -a "$WORK_DIR/status.txt"
 fi
