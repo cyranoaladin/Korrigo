@@ -18,7 +18,7 @@ def _section(text: str, header: str, next_header: str | None = None) -> str:
 
 
 class ProdComposeContractTests(unittest.TestCase):
-    def test_release_images_are_digest_pinned(self):
+    def test_release_images_are_explicit_direct_runtime_tags(self):
         compose_text = PROD_COMPOSE.read_text()
         backend_block = _section(compose_text, "\n  backend:\n", "\n  celery:\n")
         celery_block = _section(compose_text, "\n  celery:\n", "\n  celery-beat:\n")
@@ -27,14 +27,14 @@ class ProdComposeContractTests(unittest.TestCase):
 
         for block in (backend_block, celery_block, beat_block):
             self.assertIn(
-                "image: ghcr.io/cyranoaladin/korrigo-backend@sha256:",
+                "image: korrigo-backend:korrigo-lot0g-direct-1fc58d1",
                 block,
             )
             self.assertNotIn("${KORRIGO_SHA", block)
             self.assertNotIn(":latest", block)
 
         self.assertIn(
-            "image: ghcr.io/cyranoaladin/korrigo-nginx@sha256:",
+            "image: korrigo-nginx:korrigo-lot0g-direct-1fc58d1",
             nginx_block,
         )
         self.assertNotIn("${KORRIGO_SHA", nginx_block)
