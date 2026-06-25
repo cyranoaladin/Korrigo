@@ -1,6 +1,6 @@
 # Classification du worktree sale avant reconciliation
 
-Date UTC: 2026-06-20T13:45Z
+Date UTC: 2026-06-20T13:45Z  
 Snapshot: `wip/worktree-20260620` `41765243f558b5466d71edfe25c6117acc16717f`
 
 Objectif: decider ce qui entre dans `release/reconcile` sans embarquer de donnees ni de rebut.
