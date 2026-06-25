@@ -3,6 +3,10 @@ from django.db import connection
 
 
 @pytest.mark.django_db
+@pytest.mark.skipif(
+    connection.vendor != "postgresql",
+    reason="information_schema requires PostgreSQL",
+)
 def test_copy_pdf_regeneration_pending_has_database_default():
     with connection.cursor() as cursor:
         cursor.execute(

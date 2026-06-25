@@ -1,4 +1,20 @@
-from django.db import migrations
+from django.db import connection, migrations
+
+
+def set_db_default(apps, schema_editor):
+    if connection.vendor == "postgresql":
+        schema_editor.execute(
+            "ALTER TABLE exams_copy "
+            "ALTER COLUMN pdf_regeneration_pending SET DEFAULT FALSE"
+        )
+
+
+def drop_db_default(apps, schema_editor):
+    if connection.vendor == "postgresql":
+        schema_editor.execute(
+            "ALTER TABLE exams_copy "
+            "ALTER COLUMN pdf_regeneration_pending DROP DEFAULT"
+        )
 
 
 class Migration(migrations.Migration):
@@ -8,14 +24,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql=(
-                "ALTER TABLE exams_copy "
-                "ALTER COLUMN pdf_regeneration_pending SET DEFAULT FALSE"
-            ),
-            reverse_sql=(
-                "ALTER TABLE exams_copy "
-                "ALTER COLUMN pdf_regeneration_pending DROP DEFAULT"
-            ),
-        ),
+        migrations.RunPython(set_db_default, drop_db_default),
     ]
