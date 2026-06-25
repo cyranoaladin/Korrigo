@@ -659,26 +659,13 @@ import { useAuthStore } from '../stores/auth'
 import AppIcon from '../icons/AppIcon.vue'
 
 const authStore = useAuthStore()
-const userEmail = computed(() => authStore.user?.email || authStore.user?.username || '')
 const isAdmin = computed(() => authStore.user?.role === 'Admin' || authStore.user?.is_superuser)
 const isDirection = computed(() => authStore.user?.role === 'Direction')
-
-// ── Permissions personnalisées proviseurs ────────────────────────────────
-// gilles.emardlacroix@ert.tn : accès total à tous les examens et bilans
-// guillaume.verbeke@ert.tn : accès uniquement à BB_J1, BB_J2, EAM BLANCHE 2026
-// didier.morel@ert.tn : accès uniquement à DNB 2026
-const PROVISEUR_PERMS = {
-  'gilles.emardlacroix@ert.tn': { access: 'all', label: 'Direction (accès complet)' },
-  'guillaume.verbeke@ert.tn':   { access: 'bb_eam', label: 'Direction (Bac Blanc + EAM)', allowedExams: ['BB_J1', 'BB_J2', 'EAM BLANCHE 2026'] },
-  'didier.morel@ert.tn':        { access: 'dnb', label: 'Direction (DNB uniquement)', allowedExams: ['DNB 2026'] }
-}
-
-const proviseurPerm = computed(() => PROVISEUR_PERMS[userEmail.value.toLowerCase()] || null)
-const canViewCorrecteurs = computed(() => isAdmin.value || isDirection.value)
-const canAccessThisView = computed(() => {
-  if (!proviseurPerm.value) return true // Pas de restriction spécifique
-  return proviseurPerm.value.access === 'all' || proviseurPerm.value.access === 'bb_eam'
+const directionCanViewBilan = computed(() => {
+  if (!isDirection.value) return true
+  return authStore.user?.can_view_direction_bilans !== false
 })
+const canViewCorrecteurs = computed(() => isAdmin.value || (isDirection.value && directionCanViewBilan.value))
 
 const HISTOGRAM = [
   { range: '[0;2[',   count: 2,  j1: 1,  j2: 1  },
@@ -798,7 +785,7 @@ const RECO = {
     'Bac blanc supplémentaire ciblé pour les groupes G5 et G3',
   ],
   processus: [
-    'Finaliser les 182 copies en statut READY (passage GRADED)',
+    'Finaliser les 182 copies en statut READY (passage FINALIZED)',
     'Générer les bilans LLM pour les 167 copies manquantes',
     'Déployer les résultats sur le portail élève Korrigo',
   ],

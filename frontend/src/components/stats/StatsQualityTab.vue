@@ -24,7 +24,7 @@
             <span class="bg-white/50 px-1.5 py-0.5 rounded-full text-xs">{{ a.count }}</span>
           </span>
         </div>
-        <p class="text-sm text-gray-500 mt-2">Les correcteurs BB_J1 (notamment Philippe CARR) ont rédigé des appréciations détaillées et personnalisées. Les correcteurs BB_J2 ont privilégié des appréciations courtes standardisées.</p>
+        <p class="text-sm text-gray-500 mt-2">Les correcteurs BB_J1 ont rédigé des appréciations détaillées et personnalisées. Les correcteurs BB_J2 ont privilégié des appréciations courtes standardisées.</p>
       </div>
     </div>
 

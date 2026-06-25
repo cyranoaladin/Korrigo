@@ -91,7 +91,7 @@ test.describe('Authentication Flow', () => {
     await page.goto('/student/login')
     await page.waitForLoadState('networkidle')
 
-    await page.locator('input[type="email"]').fill('nonexistent@ert.tn')
+    await page.locator('input[type="email"]').fill('notfound@example.test')
     await page.locator('input[type="password"]').fill('wrong-password')
     await page.locator('button[type="submit"]').click()
 
@@ -136,13 +136,13 @@ test.describe('Authentication Flow', () => {
   // Protected route redirect
   // ────────────────────────────────────────
 
-  test('unauthenticated user accessing protected route is redirected to portal', async ({ page }) => {
+  test('unauthenticated user accessing protected route is redirected to login', async ({ page }) => {
     // Navigate directly to a protected route without logging in
     await page.goto('/admin/dashboard')
     await page.waitForLoadState('networkidle')
 
-    // Should be redirected to / (portal) because requiresAuth guard kicks in
-    await page.waitForURL(/\/$/, { timeout: 10000 })
+    // Should be redirected to /admin/login because profile-specific guard kicks in
+    await page.waitForURL(/\/admin\/login/, { timeout: 10000 })
     // Admin dashboard should NOT be visible
     await expect(page.locator('[data-testid="admin-dashboard"]')).not.toBeVisible()
   })

@@ -16,6 +16,7 @@ from grading.questionnaire_bilan import generate_questionnaire_bilan
 from grading.services import GradingService, LockConflictError
 from grading.pdf_processor import PDFProcessor
 from exams.models import Copy, Exam
+from core.utils.audit import redact_log_value
 
 logger = logging.getLogger('grading')
 User = get_user_model()
@@ -66,16 +67,17 @@ def notify_students_results_released(self, exam_id: str):
             )
             sent += 1
         except Exception as exc:  # pragma: no cover
+            safe_error = redact_log_value(str(exc))
             logger.warning(
                 "Failed to notify student for exam release",
                 extra={
                     'exam_id': str(exam.id),
                     'student_id': student.id,
-                    'email': student.email,
-                    'error_message': str(exc),
+                    'student_identifier': '<redacted-email>',
+                    'error_message': safe_error,
                 },
             )
-            errors.append(str(exc))
+            errors.append(safe_error)
 
     return {'sent': sent, 'errors': errors}
 

@@ -15,6 +15,8 @@ from django.core.management import call_command
 from django.test import TestCase, override_settings
 
 from exams.management.commands.seed_initial_exams import (
+    CORRECTORS_J1,
+    CORRECTORS_J2,
     generate_copy_code,
     parse_student_csv,
 )
@@ -218,12 +220,7 @@ class TestSeedCommand(TestCase):
     def test_creates_correctors(self):
         """Seed creates all 8 correctors."""
         call_command('seed_initial_exams', data_dir=self.test_dir, password='test123')
-        corrector_emails = [
-            'alaeddine.benrhouma@ert.tn', 'patrick.dupont@ert.tn',
-            'philippe.carr@ert.tn', 'selima.klibi@ert.tn',
-            'chawki.saadi@ert.tn', 'edouard.rousseau@ert.tn',
-            'sami.bentiba@ert.tn', 'laroussi.laroussi@ert.tn',
-        ]
+        corrector_emails = [item['email'] for item in [*CORRECTORS_J1, *CORRECTORS_J2]]
         for email in corrector_emails:
             assert User.objects.filter(username=email).exists(), f"Corrector {email} not found"
 

@@ -4,6 +4,7 @@ import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
 import tempfile
+from urllib.parse import quote
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -38,15 +39,12 @@ if DJANGO_ENV == "production":
 else:
     DEBUG = raw_debug
 
-# Student provisioning default password.
-# Production must provide it explicitly. Development/test may keep a local fallback.
+# Optional student provisioning default password.
+# Production runtime must not carry a standing initial student password; explicit
+# import/seed commands may provide DEFAULT_PASSWORD only for that one-shot run.
 DEFAULT_PASSWORD = os.environ.get('DEFAULT_PASSWORD')
 if DEFAULT_PASSWORD is None:
-    if DJANGO_ENV == "production":
-        raise ValueError(
-            "DEFAULT_PASSWORD environment variable must be set in production"
-        )
-    DEFAULT_PASSWORD = 'Korrigo_Default_Pwd_2026!'
+    DEFAULT_PASSWORD = '' if DJANGO_ENV == "production" else 'Korrigo_Default_Pwd_2026!'
 
 # Helper for CSV environment variables
 def csv_env(name: str, default: str = "") -> list:
@@ -465,10 +463,27 @@ USE_TZ = True
 # STATIC_URL is defined at the top
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+def build_redis_url(
+    *,
+    host: str,
+    port: str,
+    db: str,
+    password: str | None = None,
+) -> str:
+    if password:
+        return f"redis://:{quote(password, safe='')}@{host}:{port}/{db}"
+    return f"redis://{host}:{port}/{db}"
+
+
 _REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "")
-_redis_auth = f":{_REDIS_PASSWORD}@" if _REDIS_PASSWORD else ""
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", f"redis://{_redis_auth}redis:6379/0")
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", f"redis://{_redis_auth}redis:6379/0")
+CELERY_BROKER_URL = os.environ.get(
+    "CELERY_BROKER_URL",
+    build_redis_url(host="redis", port="6379", db="0", password=_REDIS_PASSWORD),
+)
+CELERY_RESULT_BACKEND = os.environ.get(
+    "CELERY_RESULT_BACKEND",
+    build_redis_url(host="redis", port="6379", db="0", password=_REDIS_PASSWORD),
+)
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -487,12 +502,15 @@ REDIS_HOST = os.environ.get("REDIS_HOST")
 if REDIS_HOST:
     REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
     REDIS_DB = os.environ.get("REDIS_DB", "1")
-    # REDIS_PASSWORD: optional, enables Redis AUTH (P1-6 audit fix)
-    _cache_redis_auth = f":{_REDIS_PASSWORD}@" if _REDIS_PASSWORD else ""
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': f'redis://{_cache_redis_auth}{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
+            'LOCATION': build_redis_url(
+                host=REDIS_HOST,
+                port=REDIS_PORT,
+                db=REDIS_DB,
+                password=_REDIS_PASSWORD,
+            ),
         }
     }
 else:
@@ -514,6 +532,8 @@ NUM_PROXIES = 1
 # Enable/disable django-ratelimit via env (default: enabled)
 # Can be disabled for E2E testing environment only (set RATELIMIT_ENABLE=false)
 RATELIMIT_ENABLE = os.environ.get("RATELIMIT_ENABLE", "true").lower() == "true"
+STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS = int(os.environ.get("STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS", "10"))
+STUDENT_LOGIN_RATE_LIMIT_WINDOW = int(os.environ.get("STUDENT_LOGIN_RATE_LIMIT_WINDOW", "900"))
 
 # Production guard: prevent accidental rate limiting disable in production
 # Exception: If specific E2E_TEST_MODE flag is set (for pre-production validation)

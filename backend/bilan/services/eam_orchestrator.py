@@ -11,7 +11,7 @@ Structure du rapport S0-S5 :
 - S4 — Recommandations premium (3 blocs avec indicateurs mesurables + plan 8 semaines)
 - S5 — Table correspondance question ↔ programme BO ↔ sous-thème RAG
 
-Sources exclusives : DB réelle (copies FINALIZED/GRADED) + RAG rag_maths_premiere
+Sources exclusives : DB réelle (copies FINALIZED) + RAG rag_maths_premiere
 Garde-fous : anti-DNB validation + retry automatique
 Brief : Lycée Pierre Mendès France Tunis — N=189 copies — Classes 1.01 à 1.10
 Exclus : groupes M. Sidi CHEINE et Mme Imen CHAHED (correction papier)
@@ -741,7 +741,7 @@ class EamBilanOrchestrator:
     def generate(self, scope: str = 'ETABLISSEMENT', class_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Génère le bilan EAM complet avec la structure S0-S4.
-        Toutes les données sont issues de la DB réelle (copies FINALIZED/GRADED).
+        Toutes les données sont issues de la DB réelle (copies FINALIZED).
         """
         logger.info(f"EamBilanOrchestrator: Generating bilan for {self.exam_slug}, scope={scope}")
 

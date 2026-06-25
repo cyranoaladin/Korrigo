@@ -1,7 +1,7 @@
 """
 RGPD: Anonymize a student's personal data.
 Replaces PII with anonymized values while preserving referential integrity.
-Usage: python manage.py anonymize_student --email student@school.tn --confirm
+Usage: python manage.py anonymize_student --email backend-students-management-commands-anonymize-student-01@example.test --confirm
 """
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction

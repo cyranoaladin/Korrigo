@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from core.auth import UserRole, create_user_roles
@@ -23,7 +23,8 @@ class TestStudentImportPasswordPolicy(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.teacher)
 
-    def test_import_provisions_student_with_birth_date_password(self):
+    @override_settings(DEFAULT_PASSWORD="")
+    def test_import_provisions_student_with_birth_date_password_without_runtime_default(self):
         csv_content = (
             "Élèves;Né(e) le;Adresse E-mail;Classe;Groupe\n"
             "BOUZIRI Nour;05/11/2008;nour.import-e@ert.tn;T.04;\n"
@@ -44,5 +45,13 @@ class TestStudentImportPasswordPolicy(TestCase):
         student = Student.objects.get(email="nour.import-e@ert.tn")
         self.assertIsNotNone(student.user)
         self.assertTrue(student.user.check_password("05112008"))
-        self.assertFalse(student.user.check_password(settings.DEFAULT_PASSWORD))
+        self.assertEqual(settings.DEFAULT_PASSWORD, "")
 
+        public_client = APIClient()
+        login_response = public_client.post(
+            "/api/students/login/",
+            {"email": "nour.import-e@ert.tn", "password": "05112008"},
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, 200)
+        self.assertTrue(login_response.data["must_change_password"])

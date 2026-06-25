@@ -8,8 +8,8 @@ django.setup()
 
 from django.contrib.auth import get_user_model
 from django.core.files import File
-from exams.models import Exam
-from grading.models import Copy, Annotation, GradingEvent
+from exams.models import Copy, Exam
+from grading.models import Annotation, GradingEvent
 from datetime import date
 
 User = get_user_model()
@@ -27,20 +27,20 @@ def seed_e2e():
     
     # 2. Create users
     print("  Creating users...")
-    admin = User.objects.create_superuser('admin', 'admin@test.com', 'admin')
+    admin = User.objects.create_superuser('admin', 'backend-seed-e2e-01@example.test', 'admin')
     print(f"    ✓ Admin: {admin.username}")
     
-    teacher = User.objects.create_user('teacher', 'teacher@test.com', 'teacher')
+    teacher = User.objects.create_user('teacher', 'backend-seed-e2e-02@example.test', 'teacher')
     teacher.is_staff = True
     teacher.save()
     print(f"    ✓ Teacher: {teacher.username}")
 
-    teacher2 = User.objects.create_user('teacher2', 'teacher2@test.com', 'teacher')
+    teacher2 = User.objects.create_user('teacher2', 'backend-seed-e2e-03@example.test', 'teacher')
     teacher2.is_staff = True
     teacher2.save()
     print(f"    ✓ Teacher 2: {teacher2.username}")
     
-    student = User.objects.create_user('student_e2e', 'student@test.com', 'password')
+    student = User.objects.create_user('student_e2e', 'backend-seed-e2e-04@example.test', 'password')
     print(f"    ✓ Student: {student.username}")
     
     # 3. Create exam with fixture

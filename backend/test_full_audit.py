@@ -603,7 +603,7 @@ class TestStudentResultsWorkflow(TestCase):
             exam=cls.exam,
             student=cls.student,
             anonymous_id='SR-001',
-            status='GRADED',
+            status=Copy.Status.FINALIZED,
         )
 
         Score.objects.create(

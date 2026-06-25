@@ -4,9 +4,11 @@ Permissions for DNB Bilan Module
 
 from rest_framework.permissions import BasePermission
 from django.contrib.auth import get_user_model
-from core.auth import DIRECTION_GROUPS
 
 User = get_user_model()
+
+# Direction groups - defined locally to avoid import issues
+DIRECTION_GROUPS = ['direction_all', 'direction_lycee', 'direction_college']
 
 
 class IsAdminOrTeacher(BasePermission):
@@ -53,8 +55,7 @@ class IsAdminOrDNBCorrector(BasePermission):
             return False
         
         # Check if user has access to DNB exams via assigned copies
-        from grading.models import Copy
-        from exams.models import Exam
+        from exams.models import Copy, Exam
         
         # Find DNB exams
         dnb_exams = Exam.objects.filter(name__contains='DNB')

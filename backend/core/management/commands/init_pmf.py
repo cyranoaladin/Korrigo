@@ -18,7 +18,7 @@ class Command(BaseCommand):
             self.stdout.write(f'Group "{UserRole.TEACHER}" already exists')
 
         # 2. Create Admin
-        admin_email = 'alaeddine.benrhouma@ert.tn'
+        admin_email = 'backend-core-management-commands-init-pmf-01@example.test'
         # Security: Use environment variable for admin password
         admin_pass = os.environ.get('ADMIN_DEFAULT_PASSWORD', 'CHANGE_ME_ADMIN')
 
@@ -52,9 +52,9 @@ class Command(BaseCommand):
 
         # 3. Create Teachers
         teachers_data = [
-            'patrick.dupont@ert.tn',
-            'selima.klibi@ert.tn',
-            'philippe.carr@ert.tn'
+            'backend-core-management-commands-init-pmf-02@example.test',
+            'backend-core-management-commands-init-pmf-03@example.test',
+            'backend-core-management-commands-init-pmf-04@example.test'
         ]
         # Security: Use environment variable for teacher default password
         default_pass = os.environ.get('TEACHER_DEFAULT_PASSWORD', 'CHANGE_ME_TEACHER')

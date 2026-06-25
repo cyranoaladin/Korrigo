@@ -27,8 +27,7 @@ const statusLabels = {
   'READY': 'Prêt',
   'IN_PROGRESS': 'En cours',
   'LOCKED': 'Verrouillée',
-  'GRADED': 'Corrigée',
-  'FINALIZED': 'Finalisée',
+    'FINALIZED': 'Finalisée',
 }
 const getStatusLabel = (status) => statusLabels[status] || status
 
@@ -125,7 +124,7 @@ const getCopyProgress = (copy) => {
     const leaves = flattenLeafQuestions(structure)
     const total = leaves.length
 
-    if (copy.status === 'FINALIZED' || copy.status === 'GRADED') {
+    if (copy.status === 'FINALIZED') {
         return { scored: total, total, percent: 100, questions: leaves.map(q => ({ ...q, scored: true })) }
     }
     return { scored: 0, total, percent: 0, questions: leaves.map(q => ({ ...q, scored: false })), pending: true }
@@ -133,7 +132,7 @@ const getCopyProgress = (copy) => {
 
 const fetchAllCopyScores = async (copiesList) => {
     const relevantCopies = copiesList.filter(c =>
-        (c.status === 'READY' || c.status === 'IN_PROGRESS' || c.status === 'FINALIZED' || c.status === 'GRADED') &&
+        (c.status === 'READY' || c.status === 'IN_PROGRESS' || c.status === 'FINALIZED') &&
         c.exam_details?.grading_structure && c.exam_details.grading_structure.length > 0
     )
     if (!relevantCopies.length) return
@@ -184,7 +183,7 @@ const fetchCopies = async () => {
         copies.value = Array.isArray(data) ? data : []
 
         const total = data.length
-        const graded = data.filter(c => c.status === 'FINALIZED' || c.status === 'GRADED').length
+        const graded = data.filter(c => c.status === 'FINALIZED').length
         // "À faire" = READY + IN_PROGRESS
         const todo = data.filter(c => c.status === 'READY' || c.status === 'IN_PROGRESS').length
         basicStats.value = { total, graded, todo }
@@ -197,7 +196,7 @@ const fetchCopies = async () => {
 
         // Auto-afficher les stats du premier examen qui a des copies corrigées
         const firstGradedGroup = copiesByExam.value.find(g =>
-            g.copies.some(c => c.status === 'FINALIZED' || c.status === 'GRADED')
+            g.copies.some(c => c.status === 'FINALIZED')
         )
         if (firstGradedGroup && !activeStatsExamId.value) {
             await fetchExamStats(firstGradedGroup.examId)
@@ -659,14 +658,14 @@ const canSeeQuestionnaire = computed(() =>
                   {{ group.copies.filter(c => c.status === 'IN_PROGRESS').length }} en cours
                 </span>
                 <span
-                  v-if="group.copies.filter(c => c.status === 'FINALIZED' || c.status === 'GRADED').length > 0"
+                  v-if="group.copies.filter(c => c.status === 'FINALIZED').length > 0"
                   class="meta-chip done"
                 >
-                  {{ group.copies.filter(c => c.status === 'FINALIZED' || c.status === 'GRADED').length }} finalisées
+                  {{ group.copies.filter(c => c.status === 'FINALIZED').length }} finalisées
                 </span>
                 <!-- Bouton stats (visible dès qu'il y a des copies finalisées) -->
                 <button
-                  v-if="group.copies.some(c => c.status === 'FINALIZED' || c.status === 'GRADED')"
+                  v-if="group.copies.some(c => c.status === 'FINALIZED')"
                   :class="['btn-stats-inline', { active: activeStatsExamId === group.examId }]"
                   @click="toggleExamStats(group.examId)"
                   :title="activeStatsExamId === group.examId ? 'Masquer les statistiques' : 'Voir les statistiques de cet examen'"
@@ -968,7 +967,7 @@ const canSeeQuestionnaire = computed(() =>
                   data-testid="copy-action"
                   @click="goToDesk(copy.id)"
                 >
-                  {{ (copy.status === 'FINALIZED' || copy.status === 'GRADED') ? 'Consulter' : 'Corriger' }}
+                  {{ (copy.status === 'FINALIZED') ? 'Consulter' : 'Corriger' }}
                 </button>
               </div>
               <!-- Barre de progression par question -->

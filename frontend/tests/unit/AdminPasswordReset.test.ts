@@ -49,7 +49,7 @@ describe('admin password reset workflows', () => {
             status: 'READY',
             has_copy: true,
             total_score: null,
-            corrector: 'alaeddine.benrhouma@ert.tn',
+            corrector: 'teacher.supervisor@example.test',
             has_appreciation: false,
           },
         ],

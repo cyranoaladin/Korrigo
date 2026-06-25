@@ -89,7 +89,7 @@ def seed_prod():
     admin, created = User.objects.get_or_create(
         username='admin',
         defaults={
-            'email': 'admin@korrigo.local',
+            'email': 'backend-core-seed-prod-01@example.test',
             'is_staff': True,
             'is_superuser': True,
         }

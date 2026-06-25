@@ -56,11 +56,10 @@ class BilanOrchestrator:
             quality = global_stats.get("data_quality") or {}
             raise RuntimeError(
                 "Aucune copie notée trouvée pour générer le bilan. "
-                "Vérifiez que des copies sont en statut FINALIZED/GRADED et qu'un "
+                "Vérifiez que des copies sont en statut FINALIZED et qu'un "
                 "`grading.Score.scores_data` non vide est présent. "
                 f"(copies_total={quality.get('n_copies_total')}, "
                 f"finalized={quality.get('n_copies_finalized')}, "
-                f"graded={quality.get('n_copies_graded')}, "
                 f"with_scores={quality.get('n_copies_with_scores')})"
             )
         if not q_stats:

@@ -10,9 +10,9 @@ def seed_constraints(apps, schema_editor):
     User = apps.get_model('auth', 'User')
 
     forbidden_emails = [
-        'sami.bentiba@ert.tn',
-        'chawki.saadi@ert.tn',
-        'soumaya.nasri@ert.tn',
+        'migration-sanitized-001@example.test',
+        'migration-sanitized-002@example.test',
+        'migration-sanitized-003@example.test',
     ]
     for email in forbidden_emails:
         user = User.objects.filter(username=email).first() or User.objects.filter(email=email).first()
@@ -32,14 +32,14 @@ def seed_teacher_groups(apps, schema_editor):
     User = apps.get_model('auth', 'User')
 
     mappings = {
-        'alaeddine.benrhouma@ert.tn': 'G3',
-        'patrick.dupont@ert.tn': 'G2',
-        'philippe.carr@ert.tn': 'G1',
-        'selima.klibi@ert.tn': 'T.06',
-        'chawki.saadi@ert.tn': 'G4',
-        'sami.bentiba@ert.tn': 'G6',
-        'laroussi.laroussi@ert.tn': 'G5',
-        'edouard.rousseau@ert.tn': 'T.04',
+        'migration-sanitized-004@example.test': 'G3',
+        'migration-sanitized-005@example.test': 'G2',
+        'migration-sanitized-006@example.test': 'G1',
+        'migration-sanitized-007@example.test': 'T.06',
+        'migration-sanitized-002@example.test': 'G4',
+        'migration-sanitized-001@example.test': 'G6',
+        'migration-sanitized-008@example.test': 'G5',
+        'migration-sanitized-009@example.test': 'T.04',
     }
     for username, group_name in mappings.items():
         user = User.objects.filter(username=username).first()

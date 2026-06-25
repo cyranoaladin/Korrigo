@@ -22,9 +22,19 @@ export const TEACHER_PASS =
   process.env.E2E_TEACHER_PASS ||
   'password'
 
+export const DIRECTION_USER =
+  process.env.E2E_DIRECTION_USERNAME ||
+  process.env.E2E_DIRECTION_USER ||
+  'direction_e2e'
+
+export const DIRECTION_PASS =
+  process.env.E2E_DIRECTION_PASSWORD ||
+  process.env.E2E_DIRECTION_PASS ||
+  'direction-password'
+
 export const STUDENT_EMAIL =
   process.env.E2E_STUDENT_EMAIL ||
-  'eleve.test-e@ert.tn'
+  'student-e2e-001@example.test'
 
 export const STUDENT_PASS =
   process.env.E2E_STUDENT_PASSWORD ||

@@ -1,13 +1,22 @@
 import pytest
 from django.db import connection
 
+from exams.models import Copy
+
+
+def test_copy_status_choices_match_live_schema():
+    assert [choice[0] for choice in Copy.Status.choices] == [
+        "READY",
+        "IN_PROGRESS",
+        "FINALIZED",
+    ]
+
 
 @pytest.mark.django_db
-@pytest.mark.skipif(
-    connection.vendor != "postgresql",
-    reason="information_schema requires PostgreSQL",
-)
 def test_copy_pdf_regeneration_pending_has_database_default():
+    if connection.vendor != "postgresql":
+        pytest.skip("Database default assertion is PostgreSQL-specific")
+
     with connection.cursor() as cursor:
         cursor.execute(
             """

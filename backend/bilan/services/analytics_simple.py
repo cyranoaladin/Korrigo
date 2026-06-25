@@ -2,7 +2,7 @@
 DNB Analytics Engine (DB-backed)
 
 All statistics are computed from real database data:
-- copies in status FINALIZED / GRADED
+- copies in status FINALIZED
 - `grading.Score.scores_data` (per-question points)
 
 No simulation, no random data, no hardcoded corrector/student lists.
@@ -28,7 +28,7 @@ class DNBAnalyticsEngine:
     Engine for computing DNB statistics and analytics from REAL database data.
 
     Notes:
-    - Global statistics use copies that are graded (FINALIZED or GRADED) and have
+    - Global statistics use copies that are finalized and have
       a non-empty `Score.scores_data`.
     - Some advanced pedagogical breakdowns (programme domains, 6 DNB competences)
       require explicit question metadata that may not exist in `grading_structure`.
@@ -99,15 +99,15 @@ class DNBAnalyticsEngine:
     def _scored_pairs(self) -> Tuple[List[Tuple[Copy, float, Dict[str, Any]]], Dict[str, Any]]:
         """
         Returns:
-          - pairs: [(copy, total_score, scores_data), ...] for graded copies (FINALIZED/GRADED) with scores
+          - pairs: [(copy, total_score, scores_data), ...] for finalized copies with scores
           - quality: data availability indicators (counts)
         """
         if self._cache_pairs is not None and self._cache_quality is not None:
             return self._cache_pairs, self._cache_quality
 
         all_copies = Copy.objects.filter(exam=self.exam)
-        graded_qs = (
-            all_copies.filter(status__in=[Copy.Status.FINALIZED, Copy.Status.GRADED])
+        finalized_qs = (
+            all_copies.filter(status=Copy.Status.FINALIZED)
             .select_related("student", "assigned_corrector")
             .prefetch_related("scores")
         )
@@ -121,7 +121,7 @@ class DNBAnalyticsEngine:
         n_with_corrector = 0
         n_without_corrector = 0
 
-        for c in graded_qs:
+        for c in finalized_qs:
             score_obj = c.scores.first()
             sd = getattr(score_obj, "scores_data", None) if score_obj else None
             total = self._sum_scores_data(sd)
@@ -144,8 +144,7 @@ class DNBAnalyticsEngine:
         quality = {
             "n_copies_total": all_copies.count(),
             "n_copies_finalized": all_copies.filter(status=Copy.Status.FINALIZED).count(),
-            "n_copies_graded": all_copies.filter(status=Copy.Status.GRADED).count(),
-            "n_copies_included_in_bilan": graded_qs.count(),
+            "n_copies_included_in_bilan": finalized_qs.count(),
             "n_copies_with_scores": len(pairs),
             "n_copies_missing_score_row": missing_scores,
             "n_copies_empty_or_invalid_scores": empty_scores,
@@ -279,7 +278,7 @@ class DNBAnalyticsEngine:
 
     # ----------------------------------------------------------------- statistics
     def global_stats(self) -> Dict[str, Any]:
-        """Statistiques globales (copies FINALIZED/GRADED avec Score)."""
+        """Statistiques globales (copies FINALIZED avec Score)."""
         pairs, quality = self._scored_pairs()
         totals = [t for _, t, _ in pairs]
 

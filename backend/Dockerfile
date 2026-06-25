@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     poppler-utils \
     curl \
     libmagic1 \
+    gnupg \
     tesseract-ocr \
     tesseract-ocr-fra \
     postgresql-client \
@@ -29,6 +30,16 @@ RUN groupadd -r korrigo && useradd -r -g korrigo -d /app -s /sbin/nologin korrig
 # Ensure logs directory exists with proper permissions
 # P0-OP-01 fix: Logging directory must exist for RotatingFileHandler
 RUN mkdir -p /app/logs && chown -R korrigo:korrigo /app
+
+ARG OCI_REVISION=unknown
+ARG OCI_SOURCE=unknown
+ARG OCI_VERSION=dev
+ARG OCI_CREATED=unknown
+
+LABEL org.opencontainers.image.revision="${OCI_REVISION}" \
+      org.opencontainers.image.source="${OCI_SOURCE}" \
+      org.opencontainers.image.version="${OCI_VERSION}" \
+      org.opencontainers.image.created="${OCI_CREATED}"
 
 # Note: Container starts as root so entrypoint.sh can fix volume permissions,
 # then drops to korrigo user before running gunicorn.

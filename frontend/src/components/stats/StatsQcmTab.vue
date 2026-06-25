@@ -106,7 +106,7 @@
       <AppIcon name="alert" :size="20" class="text-amber-600 shrink-0 mt-0.5" />
       <div>
         <p class="text-sm font-semibold text-amber-800">24 élèves BB_J1 avec %Ex1 supérieur au seuil BB_J2 (31.2%)</p>
-        <p class="text-sm text-amber-700 mt-1">Les 16 élèves BB_J2 ayant eu 5/5 ont un %Ex1 moyen de 31.2%. <strong>24 élèves BB_J1 sur 54</strong> (44.4%) dépassent ce seuil, indiquant un poids disproportionné du QCM dans leur note. Les écarts les plus extrêmes atteignent +49 points (CHAMAM, KHALSI).</p>
+        <p class="text-sm text-amber-700 mt-1">Les 16 élèves BB_J2 ayant eu 5/5 ont un %Ex1 moyen de 31.2%. <strong>24 élèves BB_J1 sur 54</strong> (44.4%) dépassent ce seuil, indiquant un poids disproportionné du QCM dans leur note. Les détails nominatifs doivent être servis par une source authentifiée.</p>
       </div>
     </div>
     <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 mb-4">
@@ -138,21 +138,21 @@
       <div class="px-5 py-4 border-b border-gray-100">
         <div class="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p class="text-2xl font-bold text-red-700">10</p>
+            <p class="text-2xl font-bold text-red-700">{{ cheatDetected.length }}</p>
             <p class="text-xs text-gray-500">élèves détectés</p>
           </div>
           <div>
-            <p class="text-2xl font-bold text-red-600">9 Sujet A</p>
+            <p class="text-2xl font-bold text-red-600">{{ qcmData.cheat_subject_a_count || 0 }} Sujet A</p>
             <p class="text-xs text-gray-500">réponses du Sujet B copiées</p>
           </div>
           <div>
-            <p class="text-2xl font-bold text-red-600">1 Sujet B</p>
+            <p class="text-2xl font-bold text-red-600">{{ qcmData.cheat_subject_b_count || 0 }} Sujet B</p>
             <p class="text-xs text-gray-500">réponses du Sujet A copiées</p>
           </div>
         </div>
       </div>
 
-      <div class="overflow-x-auto">
+      <div v-if="cheatDetected.length" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-red-50/50">
@@ -193,10 +193,13 @@
           </tbody>
         </table>
       </div>
+      <div v-else class="px-5 py-8 text-sm text-gray-500 text-center border-t border-gray-100">
+        Aucun détail nominatif de détection QCM n'est fourni par le backend.
+      </div>
 
       <div class="px-5 py-4 border-t border-gray-100 bg-gray-50">
         <p class="text-sm font-semibold text-gray-700 mb-2">Élèves proches du pattern triche (4/5 positions matchent)</p>
-        <div class="space-y-1">
+        <div v-if="nearCheat.length" class="space-y-1">
           <div v-for="nc in nearCheat" :key="nc.name" class="flex items-center gap-2 text-sm">
             <AppIcon name="circle" :size="8" class="text-amber-500" />
             <span class="font-medium text-gray-700">{{ nc.name }}</span>
@@ -206,11 +209,12 @@
             <span class="text-gray-500">→ {{ nc.qcm }}/5</span>
           </div>
         </div>
+        <p v-else class="text-sm text-gray-500">Aucun détail nominatif proche du pattern n'est fourni par le backend.</p>
       </div>
 
       <div class="px-5 py-4 border-t border-red-200 bg-red-50">
-        <p class="text-sm text-red-800"><strong>Asymétrie 9A vs 1B</strong> : les 9 élèves du Sujet A ont probablement recopié les réponses d'un voisin Sujet B. HAMZAOUI (Sujet B) a recopié les réponses d'un voisin Sujet A.</p>
-        <p class="text-sm text-red-700 mt-1">Taux de triche potentielle : <strong>9.4%</strong> des candidats BB_J1. Note moyenne des tricheurs : <strong>10.09/20</strong>.</p>
+        <p class="text-sm text-red-800"><strong>Asymétrie Sujet A/B</strong> : l'analyse agrégée reste affichable sans données nominatives dans le bundle.</p>
+        <p class="text-sm text-red-700 mt-1">Taux de triche potentielle : <strong>{{ qcmData.cheat_rate || 'N/A' }}</strong>. Note moyenne des cas signalés : <strong>{{ qcmData.cheat_mean || 'N/A' }}</strong>.</p>
       </div>
     </div>
   </div>
@@ -234,23 +238,6 @@ const maxDistJ2 = computed(() => Math.max(...(distJ2.value.map(d => d.count)), 1
 const qcmPerfect = computed(() => props.data?.qcm?.perfect || [])
 const qcmData = computed(() => props.data?.qcm || {})
 
-const cheatDetected = [
-  { name: 'ABID Youcef', subject: 'A', classe: 'T.01', q: [0,1,0,1,0], total: 13.85, corrector: 'Alaeddine BEN RHOUMA' },
-  { name: 'ZARAA Lina', subject: 'A', classe: 'T.02', q: [0,1,0,1,0], total: 13.15, corrector: 'Selima KLIBI' },
-  { name: 'CHAHED Seddik', subject: 'A', classe: 'T.09', q: [0,1,0,1,0], total: 12.10, corrector: 'Patrick DUPONT' },
-  { name: 'HAMZAOUI Ismaël Satyavan', subject: 'B', classe: 'T.06', q: [0,1,0,1,0], total: 11.15, corrector: 'Philippe CARR' },
-  { name: 'AOUAOUI Chaima', subject: 'A', classe: 'T.05', q: [0,1,0,1,0], total: 11.10, corrector: 'Alaeddine BEN RHOUMA' },
-  { name: 'BACCOUCHE Selima', subject: 'A', classe: 'T.05', q: [0,1,0,1,0], total: 10.75, corrector: 'Alaeddine BEN RHOUMA' },
-  { name: 'JAAFAR Youssef', subject: 'A', classe: 'T.01', q: [0,1,0,1,0], total: 8.75, corrector: 'Philippe CARR' },
-  { name: 'JAIDANE Mohamed-Seyf', subject: 'A', classe: 'T.07', q: [0,1,0,1,0], total: 8.25, corrector: 'Philippe CARR' },
-  { name: 'BEN TURKIA Leith', subject: 'A', classe: 'T.06', q: [0,1,0,1,0], total: 7.15, corrector: 'Patrick DUPONT' },
-  { name: 'BOUGHABA Sirine', subject: 'A', classe: 'T.03', q: [0,1,0,1,0], total: 4.60, corrector: 'Patrick DUPONT' }
-]
-
-const nearCheat = [
-  { name: 'BOUASSIDA Ilyes', subject: 'B', classe: 'T.06', q: [1,1,0,1,0], qcm: 3 },
-  { name: 'AYADI Sarra', subject: 'B', classe: 'T.03', q: [1,1,0,1,0], qcm: 3 },
-  { name: 'DEBBECH Mohamed-Anas', subject: 'A', classe: 'T.05', q: [0,1,0,1,1], qcm: 3 },
-  { name: 'SATOURI Adem', subject: 'A', classe: 'T.07', q: [0,1,0,0,0], qcm: 1 }
-]
+const cheatDetected = computed(() => props.data?.qcm?.cheat_detected || [])
+const nearCheat = computed(() => props.data?.qcm?.near_cheat || [])
 </script>

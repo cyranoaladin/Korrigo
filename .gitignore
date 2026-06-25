@@ -108,6 +108,11 @@ frontend/e2e/.auth/
 # local helpers (do not commit)
 push_korrigo_clean.sh
 push_to_github.sh
+.pii_gate_pepper
+pii_values*.txt
+pii_hmac_input*.txt
+scripts/ci/pii_values*.txt
+scripts/ci/pii_hmac_input*.txt
 
 # Local audit artifacts (do not commit)
 .env.backup

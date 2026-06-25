@@ -51,16 +51,15 @@ DATABASES['default']['OPTIONS'] = {
 }
 DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 
-if "DEFAULT_PASSWORD" not in os.environ:
-    raise ValueError(
-        "DEFAULT_PASSWORD environment variable must be set explicitly in production."
-    )
-
+# Guardrail for explicit one-shot import/seed commands only.
+# Production backend/celery runtime must not carry DEFAULT_PASSWORD permanently;
+# if an operator provides it for a provisioning command, keep blocking trivial
+# values at settings load time before any import can create accounts.
 _TRIVIAL_PASSWORDS = ('passe123', 'password', '123456', 'changeme', '')
-if DEFAULT_PASSWORD in _TRIVIAL_PASSWORDS:  # noqa: F405
+if DEFAULT_PASSWORD and DEFAULT_PASSWORD in _TRIVIAL_PASSWORDS:  # noqa: F405
     raise ValueError(
         "DEFAULT_PASSWORD must be set to a non-trivial value in production. "
-        "Set the DEFAULT_PASSWORD environment variable."
+        "Use a one-shot import/seed secret, not the runtime environment."
     )
 
 # Respect SSL_ENABLED from base settings (CI runs HTTP-only with SSL_ENABLED=false)

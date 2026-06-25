@@ -76,3 +76,23 @@ def test_stats_by_question_handles_uuid_and_numeric_ids_without_sort_typeerror()
     assert q_stats[1]["question"]["id"] == uuid_q
     assert q_stats[1]["blank_rate"] == 50.0
 
+
+@pytest.mark.django_db
+def test_data_quality_uses_finalized_key_without_graded_alias():
+    exam = Exam.objects.create(
+        name="DNB_FINALIZED_NAMING_TEST",
+        date=date(2026, 1, 15),
+        grading_structure=[{"id": "q1", "label": "Q1", "points": 20}],
+    )
+    copy = Copy.objects.create(
+        exam=exam,
+        anonymous_id="FINALIZED-1",
+        status=Copy.Status.FINALIZED,
+    )
+    Score.objects.create(copy=copy, scores_data={"q1": 12.0})
+
+    engine = DNBAnalyticsEngine("DNB_FINALIZED_NAMING_TEST")
+    quality = engine.global_stats()["data_quality"]
+
+    assert quality["n_copies_finalized"] == 1
+    assert "n_copies_graded" not in quality

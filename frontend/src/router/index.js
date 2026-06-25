@@ -15,6 +15,10 @@ import ImportCopies from '../views/admin/ImportCopies.vue'
 import LoginStudent from '../views/student/LoginStudent.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
 import ResetPasswordConfirm from '../views/ResetPasswordConfirm.vue'
+import {
+    KORRIGO_PUBLIC_ROUTE_BY_KEY,
+    KORRIGO_PUBLIC_ROUTE_SEGMENTS,
+} from '../features/korrigo/content/korrigoPublicContent'
 
 function getDashboardForRole(role, email = '') {
     if (role === 'Admin') return '/admin/dashboard'
@@ -56,6 +60,17 @@ function isLoginPage(routeName) {
     return ['LoginAdmin', 'LoginTeacher', 'StudentLogin', 'Portal'].includes(routeName)
 }
 
+function getLoginForRoute(to) {
+    if (to.path.startsWith('/student')) return '/student/login'
+    if (to.path.startsWith('/corrector') || to.path.startsWith('/teacher')) return '/teacher/login'
+    if (to.path.startsWith('/admin') || to.path.startsWith('/direction')) return '/admin/login'
+    const role = to.meta?.role
+    const roles = Array.isArray(role) ? role : role ? [role] : []
+    if (roles.includes('Student')) return '/student/login'
+    if (roles.includes('Teacher')) return '/teacher/login'
+    return '/admin/login'
+}
+
 const routes = [
     // ── Main portal (login cards) ──
     {
@@ -71,25 +86,25 @@ const routes = [
         component: MainLayout,
         children: [
             {
-                path: '',
+                path: KORRIGO_PUBLIC_ROUTE_SEGMENTS.home,
                 name: 'Landing',
                 component: HomeView,
                 meta: { title: 'Korrigo PMF - Correction Numérique', public: true }
             },
             {
-                path: 'guide-enseignant',
+                path: KORRIGO_PUBLIC_ROUTE_SEGMENTS.teacherGuide,
                 name: 'GuideEnseignant',
                 component: GuideEnseignant,
                 meta: { title: 'Guide Enseignant', public: true }
             },
             {
-                path: 'guide-eleve',
+                path: KORRIGO_PUBLIC_ROUTE_SEGMENTS.studentGuide,
                 name: 'GuideEleve',
                 component: GuideEtudiant,
                 meta: { title: 'Guide Élève', public: true }
             },
             {
-                path: 'direction',
+                path: KORRIGO_PUBLIC_ROUTE_SEGMENTS.direction,
                 name: 'Direction',
                 component: DirectionConformite,
                 meta: { title: 'Direction & Conformité', public: true }
@@ -125,15 +140,15 @@ const routes = [
     // Legacy landing redirects
     {
         path: '/guide-enseignant',
-        redirect: '/korrigo/guide-enseignant'
+        redirect: KORRIGO_PUBLIC_ROUTE_BY_KEY.teacherGuide.path
     },
     {
         path: '/guide-eleve',
-        redirect: '/korrigo/guide-eleve'
+        redirect: KORRIGO_PUBLIC_ROUTE_BY_KEY.studentGuide.path
     },
     {
         path: '/direction',
-        redirect: '/korrigo/direction'
+        redirect: KORRIGO_PUBLIC_ROUTE_BY_KEY.direction.path
     },
     {
         path: '/student/login',
@@ -456,7 +471,7 @@ router.beforeEach(async (to, from, next) => {
         } catch (error) {
             console.error('Router guard: fetchUser failed', error)
             if (to.meta.requiresAuth) {
-                return safeRedirect(next, '/', to.path)
+                return safeRedirect(next, getLoginForRoute(to), to.path)
             }
         }
     }
@@ -468,7 +483,7 @@ router.beforeEach(async (to, from, next) => {
 
     if (to.meta.requiresAuth) {
         if (!isAuthenticated || userRole === 'Unknown') {
-            return safeRedirect(next, '/', to.path)
+            return safeRedirect(next, getLoginForRoute(to), to.path)
         }
 
         const allowedRoles = Array.isArray(to.meta.role) ? to.meta.role : [to.meta.role]

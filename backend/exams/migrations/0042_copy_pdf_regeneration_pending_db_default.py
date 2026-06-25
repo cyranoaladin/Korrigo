@@ -1,20 +1,22 @@
-from django.db import connection, migrations
+from django.db import migrations
 
 
-def set_db_default(apps, schema_editor):
-    if connection.vendor == "postgresql":
-        schema_editor.execute(
-            "ALTER TABLE exams_copy "
-            "ALTER COLUMN pdf_regeneration_pending SET DEFAULT FALSE"
-        )
+def set_pdf_regeneration_pending_default(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    schema_editor.execute(
+        "ALTER TABLE exams_copy "
+        "ALTER COLUMN pdf_regeneration_pending SET DEFAULT FALSE"
+    )
 
 
-def drop_db_default(apps, schema_editor):
-    if connection.vendor == "postgresql":
-        schema_editor.execute(
-            "ALTER TABLE exams_copy "
-            "ALTER COLUMN pdf_regeneration_pending DROP DEFAULT"
-        )
+def drop_pdf_regeneration_pending_default(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    schema_editor.execute(
+        "ALTER TABLE exams_copy "
+        "ALTER COLUMN pdf_regeneration_pending DROP DEFAULT"
+    )
 
 
 class Migration(migrations.Migration):
@@ -24,5 +26,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(set_db_default, drop_db_default),
+        migrations.RunPython(
+            set_pdf_regeneration_pending_default,
+            reverse_code=drop_pdf_regeneration_pending_default,
+        ),
     ]

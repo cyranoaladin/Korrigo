@@ -6,13 +6,13 @@ from django.db import migrations
 
 PREMIERE_ASSIGNMENTS = {
     # username                        → (group_name, assignment_type)
-    'fatma.abid@ert.tn':              ('G4', 'groupe'),
-    'alaeddine.benrhouma@ert.tn':     ('G6', 'groupe'),
-    'sami.bentiba@ert.tn':            ('G1', 'groupe'),
-    'gilles.colly@ert.tn':            ('G7', 'groupe'),
-    'fatma.gouider@ert.tn':           ('G8', 'groupe'),
-    'mohamed.lamine@ert.tn':          ('G5', 'groupe'),
-    'amandine.mouttapa@ert.tn':       ('1.02', 'classe'),
+    'migration-sanitized-001@example.test':              ('G4', 'groupe'),
+    'migration-sanitized-002@example.test':     ('G6', 'groupe'),
+    'migration-sanitized-003@example.test':            ('G1', 'groupe'),
+    'migration-sanitized-004@example.test':            ('G7', 'groupe'),
+    'migration-sanitized-005@example.test':           ('G8', 'groupe'),
+    'migration-sanitized-006@example.test':          ('G5', 'groupe'),
+    'migration-sanitized-007@example.test':       ('1.02', 'classe'),
 }
 
 

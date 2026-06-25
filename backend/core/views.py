@@ -106,7 +106,7 @@ class LoginView(APIView):
                 if user_obj:
                     from students.models import Student
                     is_student = Student.objects.filter(user=user_obj).exists()
-                # Fallback heuristic: student emails use the -e@ert.tn pattern
+                # Fallback heuristic: student emails use the backend-core-views-01@example.test pattern
                 if not is_student and re.search(r'-e@ert\.tn$', username, re.IGNORECASE):
                     is_student = True
             if is_student:
@@ -239,8 +239,7 @@ class UserDetailView(APIView):
         
         # Compute which exam-type codes this corrector actually has copies in.
         # Admins/superusers get the full list so their dashboards work correctly.
-        from grading.models import Copy
-        from exams.models import ExamType, JuryReport
+        from exams.models import Copy, ExamType, JuryReport
         if _is_admin_user(user):
             assigned_codes = list(
                 ExamType.objects.values_list('code', flat=True)
@@ -283,6 +282,17 @@ class UserDetailView(APIView):
             elif user.groups.filter(name='direction_college').exists():
                 direction_scope = ['dnb']
 
+        can_view_direction_bilans = role in {'Admin', 'Teacher'}
+        if role == 'Direction':
+            can_view_direction_bilans = (
+                direction_scope == 'all'
+                or (
+                    isinstance(direction_scope, list)
+                    and any(scope in direction_scope for scope in ('bac-blanc', 'eam'))
+                )
+            )
+        features['can_view_direction_bilans'] = can_view_direction_bilans
+
         return Response({
             "id": user.id,
             "username": user.username,
@@ -293,6 +303,7 @@ class UserDetailView(APIView):
             "assigned_exam_type_codes": assigned_codes,
             "features": features,
             "direction_scope": direction_scope,
+            "can_view_direction_bilans": can_view_direction_bilans,
         })
 
 class GlobalSettingsView(APIView):

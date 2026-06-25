@@ -19,28 +19,12 @@
         <!-- Desktop Navigation -->
         <nav class="hidden md:flex items-center space-x-6">
           <router-link
-            to="/korrigo"
+            v-for="route in KORRIGO_PUBLIC_ROUTES"
+            :key="route.key"
+            :to="route.path"
             class="text-gray-600 hover:text-primary-700 font-medium transition"
           >
-            Accueil
-          </router-link>
-          <router-link
-            to="/korrigo/guide-enseignant"
-            class="text-gray-600 hover:text-primary-700 font-medium transition"
-          >
-            Guide Enseignant
-          </router-link>
-          <router-link
-            to="/korrigo/guide-eleve"
-            class="text-gray-600 hover:text-primary-700 font-medium transition"
-          >
-            Guide Élève
-          </router-link>
-          <router-link
-            to="/korrigo/direction"
-            class="text-gray-600 hover:text-primary-700 font-medium transition"
-          >
-            Conformité
+            {{ route.label }}
           </router-link>
           <router-link
             v-for="code in juryReportCodes"
@@ -80,26 +64,13 @@
               class="absolute right-0 top-full mt-2 w-52 bg-white border border-borderSoft rounded-xl shadow-xl py-2 z-50"
             >
               <router-link
-                to="/teacher/login"
+                v-for="link in KORRIGO_LOGIN_LINKS"
+                :key="link.to"
+                :to="link.to"
                 class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
               >
-                <AppIcon name="teacher-pen" :size="16" class="text-primary-500" />
-                Enseignant
-              </router-link>
-              <router-link
-                to="/admin/login"
-                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
-              >
-                <AppIcon name="admin" :size="16" class="text-purple-500" />
-                Administration
-              </router-link>
-              <div class="border-t border-gray-100 my-1" />
-              <router-link
-                to="/student/login"
-                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
-              >
-                <AppIcon name="student" :size="16" class="text-green-500" />
-                Élève
+                <AppIcon :name="link.icon" :size="16" class="text-primary-500" />
+                {{ link.label }}
               </router-link>
             </div>
           </transition>
@@ -133,28 +104,12 @@
     >
       <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
         <router-link
-          to="/korrigo"
+          v-for="route in KORRIGO_PUBLIC_ROUTES"
+          :key="route.key"
+          :to="route.path"
           class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
         >
-          Accueil
-        </router-link>
-        <router-link
-          to="/korrigo/guide-enseignant"
-          class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
-        >
-          Guide Enseignant
-        </router-link>
-        <router-link
-          to="/korrigo/guide-eleve"
-          class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
-        >
-          Guide Élève
-        </router-link>
-        <router-link
-          to="/korrigo/direction"
-          class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
-        >
-          Conformité
+          {{ route.label }}
         </router-link>
         <router-link
           v-for="code in juryReportCodes"
@@ -167,25 +122,13 @@
         <div class="border-t border-gray-100 pt-3 mt-3 space-y-1">
           <span class="block px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Connexion</span>
           <router-link
-            to="/teacher/login"
+            v-for="link in KORRIGO_LOGIN_LINKS"
+            :key="link.to"
+            :to="link.to"
             class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
           >
-            <AppIcon name="teacher-pen" :size="16" class="text-primary-500" />
-            Enseignant
-          </router-link>
-          <router-link
-            to="/admin/login"
-            class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
-          >
-            <AppIcon name="admin" :size="16" class="text-purple-500" />
-            Administration
-          </router-link>
-          <router-link
-            to="/student/login"
-            class="flex items-center gap-2 px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-700 hover:bg-gray-50"
-          >
-            <AppIcon name="student" :size="16" class="text-green-500" />
-            Élève
+            <AppIcon :name="link.icon" :size="16" class="text-primary-500" />
+            {{ link.label }}
           </router-link>
         </div>
       </div>
@@ -197,6 +140,10 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import AppIcon from '../icons/AppIcon.vue'
+import {
+  KORRIGO_LOGIN_LINKS,
+  KORRIGO_PUBLIC_ROUTES,
+} from '../features/korrigo/content/korrigoPublicContent'
 
 const authStore = useAuthStore()
 const juryReportCodes = computed(() =>

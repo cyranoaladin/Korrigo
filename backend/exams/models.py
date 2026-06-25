@@ -172,9 +172,7 @@ class Copy(models.Model):
     """
     class Status(models.TextChoices):
         READY = 'READY', _("Pret")
-        LOCKED = 'LOCKED', _("Verrouillee")
         IN_PROGRESS = 'IN_PROGRESS', _("En cours")
-        GRADED = 'GRADED', _("Notee")
         FINALIZED = 'FINALIZED', _("Finalisee")
 
     class SubjectVariant(models.TextChoices):
@@ -350,7 +348,7 @@ class Copy(models.Model):
                 name='uq_copy_exam_anonymous_id',
             ),
             models.CheckConstraint(
-                check=models.Q(status__in=['READY', 'LOCKED', 'IN_PROGRESS', 'GRADED', 'FINALIZED']),
+                check=models.Q(status__in=['READY', 'IN_PROGRESS', 'FINALIZED']),
                 name='check_copy_status_valid',
             ),
         ]

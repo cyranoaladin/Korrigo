@@ -5,9 +5,10 @@ Conformité: Phase 1 - Corrections Critiques Sécurité
 Security: Tests distinguish between rate-limited and non-rate-limited scenarios.
 """
 import pytest
+from django.core.cache import cache
 from django.test import Client, override_settings
 from django.contrib.auth.models import User
-from django.urls import reverse
+from rest_framework import status
 
 
 @pytest.mark.django_db
@@ -103,3 +104,46 @@ def pytest_addoption(parser):
         default=False,
         help="Run tests that require Redis (rate limiting protection tests)"
     )
+
+
+@pytest.mark.django_db
+class TestStudentLoginIdentifierRateLimit:
+    def setup_method(self, method):
+        cache.clear()
+
+    def test_student_login_blocks_n_plus_one_attempt_for_same_identifier(self, settings):
+        settings.RATELIMIT_ENABLE = True
+        settings.STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS = 3
+        settings.STUDENT_LOGIN_RATE_LIMIT_WINDOW = 900
+        client = Client(HTTP_X_REAL_IP="203.0.113.10")
+
+        for i in range(3):
+            response = client.post(
+                "/api/students/login/",
+                {"email": "target.student@example.test", "password": f"wrong-{i}"},
+                content_type="application/json",
+            )
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+        response = client.post(
+            "/api/students/login/",
+            {"email": "target.student@example.test", "password": "wrong-4"},
+            content_type="application/json",
+        )
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert response.json()["rate_limited"] is True
+
+    def test_shared_ip_is_not_penalized_below_identifier_threshold(self, settings):
+        settings.RATELIMIT_ENABLE = True
+        settings.STUDENT_LOGIN_RATE_LIMIT_ATTEMPTS = 3
+        settings.STUDENT_LOGIN_RATE_LIMIT_WINDOW = 900
+        client = Client(HTTP_X_REAL_IP="203.0.113.20")
+
+        for idx in range(12):
+            response = client.post(
+                "/api/students/login/",
+                {"email": f"student-{idx}@example.test", "password": "wrong"},
+                content_type="application/json",
+            )
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED

@@ -21,7 +21,7 @@ def verify_grading_flow():
     print("--- Starting Grading Flow Verification ---")
     
     # 1. Setup Data
-    user, _ = User.objects.get_or_create(username="test_teacher", defaults={"email": "teacher@test.com"})
+    user, _ = User.objects.get_or_create(username="test_teacher", defaults={"email": "scripts-verify-grading-01@example.test"})
     exam, _ = Exam.objects.get_or_create(name="Test Exam Verification", defaults={"date": "2024-01-01"})
     
     copy_id = uuid.uuid4()

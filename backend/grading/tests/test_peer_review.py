@@ -26,14 +26,14 @@ class PeerReviewTestCase(TestCase):
 
         self.teacher = User.objects.create_user(
             username="teacher.peer",
-            email="teacher.peer@ert.tn",
+            email="teacher.peer@example.test",
             password="pass",
         )
         self.teacher.groups.add(teacher_group)
 
         self.student_user = User.objects.create_user(
-            username="student.a@ert.tn",
-            email="student.a@ert.tn",
+            username="student.a@example.test",
+            email="student.a@example.test",
             password="pass",
         )
         self.student_user.groups.add(student_group)
@@ -41,15 +41,15 @@ class PeerReviewTestCase(TestCase):
             first_name="Alice",
             last_name="A",
             date_naissance=date(2010, 1, 1),
-            email="student.a@ert.tn",
+            email="student.a@example.test",
             class_name="1 EDS",
             groupe="G6",
             user=self.student_user,
         )
 
         self.author_user = User.objects.create_user(
-            username="student.b@ert.tn",
-            email="student.b@ert.tn",
+            username="student.b@example.test",
+            email="student.b@example.test",
             password="pass",
         )
         self.author_user.groups.add(student_group)
@@ -57,15 +57,15 @@ class PeerReviewTestCase(TestCase):
             first_name="Bob",
             last_name="B",
             date_naissance=date(2010, 2, 2),
-            email="student.b@ert.tn",
+            email="student.b@example.test",
             class_name="1 EDS",
             groupe="G6",
             user=self.author_user,
         )
 
         self.other_user = User.objects.create_user(
-            username="student.c@ert.tn",
-            email="student.c@ert.tn",
+            username="student.c@example.test",
+            email="student.c@example.test",
             password="pass",
         )
         self.other_user.groups.add(student_group)
@@ -73,7 +73,7 @@ class PeerReviewTestCase(TestCase):
             first_name="Charlie",
             last_name="C",
             date_naissance=date(2010, 3, 3),
-            email="student.c@ert.tn",
+            email="student.c@example.test",
             class_name="1 EDS",
             groupe="G6",
             user=self.other_user,
@@ -181,7 +181,7 @@ class PeerReviewTestCase(TestCase):
         self.assertNotIn("source_copy_student_id", data[0])
         serialized = str(data)
         self.assertNotIn("Bob", serialized)
-        self.assertNotIn("student.b@ert.tn", serialized)
+        self.assertNotIn("student.b@example.test", serialized)
 
     def test_student_detail_uses_only_peer_review_anonymized_media(self):
         media_root = Path(self.media_tmp.name)
@@ -356,8 +356,8 @@ class PeerReviewCommandTestCase(TestCase):
         student_group, _ = Group.objects.get_or_create(name=UserRole.STUDENT)
         teacher_group, _ = Group.objects.get_or_create(name=UserRole.TEACHER)
         self.teacher = User.objects.create_user(
-            username="alaeddine.benrhouma@ert.tn",
-            email="alaeddine.benrhouma@ert.tn",
+            username="teacher.supervisor@example.test",
+            email="teacher.supervisor@example.test",
             password="pass",
         )
         self.teacher.groups.add(teacher_group)
@@ -377,8 +377,8 @@ class PeerReviewCommandTestCase(TestCase):
 
         for idx in range(23):
             user = User.objects.create_user(
-                username=f"student{idx}@ert.tn",
-                email=f"student{idx}@ert.tn",
+                username=f"student{idx}@example.test",
+                email=f"student{idx}@example.test",
                 password="pass",
             )
             user.groups.add(student_group)
@@ -386,7 +386,7 @@ class PeerReviewCommandTestCase(TestCase):
                 first_name=f"First{idx}",
                 last_name=f"Last{idx}",
                 date_naissance=date(2010, 1, min(idx + 1, 28)),
-                email=f"student{idx}@ert.tn",
+                email=f"student{idx}@example.test",
                 class_name="1 EDS",
                 groupe="G6",
                 user=user,
@@ -401,14 +401,24 @@ class PeerReviewCommandTestCase(TestCase):
             )
 
     def test_command_dry_run_creates_nothing_then_real_run_is_idempotent(self):
-        call_command("create_peer_review_produit_scalaire_g6", "--dry-run")
+        call_command(
+            "create_peer_review_produit_scalaire_g6",
+            "--dry-run",
+            supervising_teacher_email=self.teacher.email,
+        )
         self.assertEqual(PeerReviewCorrection.objects.filter(exam=self.exam).count(), 0)
 
-        call_command("create_peer_review_produit_scalaire_g6")
+        call_command(
+            "create_peer_review_produit_scalaire_g6",
+            supervising_teacher_email=self.teacher.email,
+        )
         self.assertEqual(PeerReviewCorrection.objects.filter(exam=self.exam).count(), 23)
         for peer_review in PeerReviewCorrection.objects.select_related("source_copy", "assigned_student"):
             self.assertNotEqual(peer_review.source_copy.student_id, peer_review.assigned_student_id)
             self.assertEqual(peer_review.scores_data, {})
 
-        call_command("create_peer_review_produit_scalaire_g6")
+        call_command(
+            "create_peer_review_produit_scalaire_g6",
+            supervising_teacher_email=self.teacher.email,
+        )
         self.assertEqual(PeerReviewCorrection.objects.filter(exam=self.exam).count(), 23)

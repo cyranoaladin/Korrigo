@@ -1,4 +1,5 @@
 import os
+from collections import Counter
 from pathlib import Path
 
 from django.conf import settings
@@ -9,6 +10,10 @@ from django.db import transaction
 from core.models import AuditLog
 from exams.models import Copy
 from processing.services.pdf_flattener import PDFFlattener
+
+
+ISSUE_FINALIZED_WITHOUT_FINAL_PDF = "FINALIZED_WITHOUT_FINAL_PDF"
+ISSUE_RELEASED_FINALIZED_WITHOUT_STUDENT = "RELEASED_FINALIZED_WITHOUT_STUDENT"
 
 
 class Command(BaseCommand):
@@ -53,6 +58,7 @@ class Command(BaseCommand):
         issues = []
         repaired = 0
         scanned = 0
+        issue_type_counts = Counter()
         flattener = PDFFlattener()
 
         # Explicit chunk_size keeps prefetch_related() compatible with Django 4.2+
@@ -61,24 +67,21 @@ class Command(BaseCommand):
             scanned += 1
 
             if copy.status == Copy.Status.FINALIZED and not copy.final_pdf:
-                issue = {
-                    "copy_id": str(copy.id),
-                    "exam": copy.exam.name if copy.exam else None,
-                    "anonymous_id": copy.anonymous_id,
-                    "student_id": copy.student_id,
-                    "student_email": copy.student.email if copy.student else None,
-                    "problem": "FINALIZED without final_pdf",
-                }
+                issue = self._build_issue(copy, ISSUE_FINALIZED_WITHOUT_FINAL_PDF)
 
                 if repair:
                     result = self._repair_missing_final_pdf(copy, flattener, actor)
-                    issue["repair"] = result
+                    issue["repair_status"] = result["status"]
+                    if result.get("reason"):
+                        issue["repair_reason"] = result["reason"]
                     if result["status"] == "repaired":
                         repaired += 1
                     else:
                         issues.append(issue)
+                        issue_type_counts[issue["issue_type"]] += 1
                 else:
                     issues.append(issue)
+                    issue_type_counts[issue["issue_type"]] += 1
 
             if (
                 copy.status == Copy.Status.FINALIZED
@@ -86,25 +89,35 @@ class Command(BaseCommand):
                 and copy.exam.results_released_at
                 and copy.student_id is None
             ):
-                issues.append(
-                    {
-                        "copy_id": str(copy.id),
-                        "exam": copy.exam.name if copy.exam else None,
-                        "anonymous_id": copy.anonymous_id,
-                        "problem": "released FINALIZED copy without student",
-                    }
-                )
+                issue = self._build_issue(copy, ISSUE_RELEASED_FINALIZED_WITHOUT_STUDENT)
+                issues.append(issue)
+                issue_type_counts[issue["issue_type"]] += 1
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Integrity scan completed: scanned={scanned} issues={len(issues)} repaired={repaired}"
+                "Integrity scan completed: "
+                f"scanned={scanned} issues={len(issues)} repaired={repaired} "
+                f"issue_type_counts={dict(sorted(issue_type_counts.items()))}"
             )
         )
         for issue in issues:
-            self.stdout.write(self.style.WARNING(str(issue)))
+            self.stdout.write(self.style.WARNING(self._format_issue(issue)))
 
         if fail_on_issues and issues:
             raise SystemExit(1)
+
+    def _build_issue(self, copy: Copy, issue_type: str):
+        return {
+            "issue_type": issue_type,
+            "copy_pk": str(copy.pk),
+            "exam_pk": copy.exam_id,
+            "status": copy.status,
+            "has_final_pdf": bool(copy.final_pdf),
+        }
+
+    def _format_issue(self, issue):
+        fields = " ".join(f"{key}={value}" for key, value in issue.items())
+        return f"Integrity issue: {fields}"
 
     def _repair_missing_final_pdf(self, copy: Copy, flattener: PDFFlattener, actor):
         missing_pages = []
@@ -118,7 +131,7 @@ class Command(BaseCommand):
             return {
                 "status": "blocked",
                 "reason": "missing_page_images",
-                "missing_pages": missing_pages,
+                "missing_pages_count": len(missing_pages),
             }
 
         try:
@@ -132,7 +145,6 @@ class Command(BaseCommand):
                     return {
                         "status": "skipped",
                         "reason": "already_repaired_concurrently",
-                        "final_pdf": locked_copy.final_pdf.name,
                     }
 
                 output_filename = f"copy_{locked_copy.id}_corrected.pdf"
@@ -157,8 +169,11 @@ class Command(BaseCommand):
             )
             return {
                 "status": "repaired",
-                "final_pdf": f"copies/final/copy_{copy.id}_corrected.pdf",
                 "bytes": len(pdf_bytes),
             }
         except Exception as exc:
-            return {"status": "blocked", "reason": "repair_failed", "error": str(exc)}
+            return {
+                "status": "blocked",
+                "reason": "repair_failed",
+                "error_type": exc.__class__.__name__,
+            }

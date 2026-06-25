@@ -1,3 +1,5 @@
+import os
+
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -8,7 +10,7 @@ from grading.models import PeerReviewCorrection, PeerReviewEvent
 
 EXAM_ID = "4c9dfd06-72fc-47b4-ad11-b63dba655076"
 EXAM_NAME = "Produit scalaire- 1 EDS G6"
-SUPERVISING_TEACHER_EMAIL = "alaeddine.benrhouma@ert.tn"
+SUPERVISING_TEACHER_EMAIL_ENV = "PEER_REVIEW_SUPERVISING_TEACHER_EMAIL"
 
 
 class Command(BaseCommand):
@@ -17,6 +19,11 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--dry-run", action="store_true", help="Only print planned assignments.")
         parser.add_argument("--exam-id", default=EXAM_ID, help="Exam UUID to process.")
+        parser.add_argument(
+            "--supervising-teacher-email",
+            default=os.environ.get(SUPERVISING_TEACHER_EMAIL_ENV, ""),
+            help=f"Supervising teacher email, or {SUPERVISING_TEACHER_EMAIL_ENV}.",
+        )
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
@@ -28,7 +35,7 @@ class Command(BaseCommand):
         )
         self._validate_exam(exam, copies)
 
-        teacher = self._get_supervising_teacher(exam)
+        teacher = self._get_supervising_teacher(exam, options["supervising_teacher_email"])
         assignments = self._build_assignments(copies)
         existing_count = PeerReviewCorrection.objects.filter(exam=exam).count()
         created_count = 0
@@ -88,13 +95,18 @@ class Command(BaseCommand):
             raise CommandError(f"Examen introuvable: {EXAM_NAME} / {exam_id}")
         return exam
 
-    def _get_supervising_teacher(self, exam):
+    def _get_supervising_teacher(self, exam, email):
+        if not email:
+            raise CommandError(
+                f"Correcteur superviseur requis: passer --supervising-teacher-email "
+                f"ou definir {SUPERVISING_TEACHER_EMAIL_ENV}."
+            )
         user_model = get_user_model()
-        teacher = user_model.objects.filter(email__iexact=SUPERVISING_TEACHER_EMAIL).first()
+        teacher = user_model.objects.filter(email__iexact=email).first()
         if not teacher:
-            raise CommandError(f"Correcteur superviseur introuvable: {SUPERVISING_TEACHER_EMAIL}")
+            raise CommandError(f"Correcteur superviseur introuvable: {email}")
         if not exam.correctors.filter(id=teacher.id).exists():
-            raise CommandError(f"{SUPERVISING_TEACHER_EMAIL} n'est pas correcteur de cet examen.")
+            raise CommandError(f"{email} n'est pas correcteur de cet examen.")
         return teacher
 
     def _validate_exam(self, exam, copies):
