@@ -663,6 +663,12 @@ Apps tierces installées : `rest_framework`, `drf_spectacular`, `corsheaders`, `
 | `async_finalize_copy` | À la demande | Aplatissement PDF + finalisation copie |
 | `generate_bilan` | À la demande | Génération bilan IA via LLM |
 | `perform_ocr` | À la demande | Pipeline OCR sur une copie |
+| `async_import_pdf` | À la demande | Import et rasterisation PDF (retry 3x) |
+| `process_document_set` | À la demande | Extraction texte documents pédagogiques (retry 2x) |
+| `notify_students_results_released` | À la demande | Notification email résultats publiés (retry 3x) |
+| `purge_old_audit_logs` | Quotidien 03:00 | RGPD — suppression logs > 1 an |
+| `scheduled_backup` | Quotidien 02:00 | Backup DB via pg_dump |
+| `cleanup_orphaned_files` | Périodique | Nettoyage fichiers PDF orphelins |
 
 ### 8.7 Services métier
 
@@ -1801,7 +1807,75 @@ flowchart TD
     J --> K[Nettoyage local ancien]
 ```
 
-### 24.6 ADR (Architecture Decision Records)
+### 24.6 Overlay production — inventaire
+
+Le mécanisme `overlay/` monte des fichiers hotfix en lecture seule dans les conteneurs production :
+
+| Fichier overlay | Module | Description |
+|----------------|--------|-------------|
+| `backend/bilan/services/orchestrator.py` | bilan | Orchestration bilans |
+| `backend/bilan/services/eam_orchestrator.py` | bilan | Orchestration EAM |
+| `backend/bilan/services/rag_retriever.py` | bilan | RAG retriever |
+| `backend/bilan/services/llm_writer.py` | bilan | Génération LLM |
+| `backend/bilan/models.py` | bilan | Modèles bilan |
+| `backend/bilan/views.py` | bilan | Vues API bilan |
+| `backend/bilan/urls.py` | bilan | Routes bilan |
+| `backend/bilan/permissions.py` | bilan | Permissions bilan |
+| `backend/exams/views.py` | exams | Vues examens |
+| `backend/exams/views_direction.py` | exams | Vues direction |
+| `backend/exams/urls.py` | exams | Routes examens |
+| `backend/exams/permissions.py` | exams | Permissions examens |
+| `backend/core/views.py` | core | Vues plateforme |
+| `backend/core/views_platform.py` | core | Vues plateforme |
+| `grading/views.py` | grading | Vues correction |
+| `students/views.py` | students | Vues élèves |
+| `students/urls.py` | students | Routes élèves |
+| `students/serializers.py` | students | Serializers élèves |
+| `gunicorn_config.py` | infra | Configuration Gunicorn |
+
+> **Risque** : ces overlays ne sont pas testés par le pipeline CI. Toute modification doit être validée manuellement.
+
+### 24.7 Healthchecks détaillés
+
+| Service | Commande | Intervalle | Timeout | Retries | Start period |
+|---------|----------|-----------|---------|---------|-------------|
+| db | `pg_isready` | 5s | 5s | 5 | — |
+| redis | `redis-cli ping` | 5s | 5s | 5 | — |
+| backend | `curl /api/health/` | 15s | 10s | 5 | 120s |
+| celery | `celery inspect ping` | 30s | 10s | 3 | 30s |
+| celery-beat | `/proc/1/cmdline` check | 30s | 10s | 3 | 30s |
+| nginx | `wget http://127.0.0.1/` | 30s | 10s | 3 | — |
+
+### 24.8 Scripts d'exploitation (inventaire)
+
+| Script | Emplacement | Rôle |
+|--------|-------------|------|
+| `prod_up.sh` | scripts/ | Démarrage stack Docker prod |
+| `backup.sh` | scripts/ | Backup complet (DB + media) |
+| `backup_db.sh` | scripts/ | Backup DB uniquement |
+| `restore.sh` | scripts/ | Restauration depuis backup |
+| `migrate_with_backup.sh` | scripts/ | Migrations sécurisées (backup → check → apply) |
+| `deploy_fixes.sh` | scripts/ | Déploiement hotfixes |
+| `audit_prod_complete.sh` | scripts/ | Audit production complet |
+| `verify_production.sh` | scripts/ | Vérification post-déploiement |
+| `smoke.sh` | scripts/ | Tests de fumée rapides |
+| `release_gate_e2e.sh` | scripts/ | Validation E2E avant release |
+| `validate-prod-env.sh` | scripts/ | Validation config .env production |
+| `daily_audit.sh` | scripts/ | Audit quotidien (cron 06:00) |
+| `local_release_check.sh` | scripts/release/ | Release gate locale |
+
+### 24.9 Nginx — détails complémentaires
+
+**Rate limiting Nginx** (complète le rate limiting Django) :
+- `student_login` zone : 30 req/s (burst 60) — gère les classes entières sur un même WiFi
+- `student_api` zone : 100 req/s (burst 200)
+- Résolution DNS Docker : `127.0.0.11` valid 10s
+
+**Taille max upload** : `client_max_body_size 100m`
+
+**Timeouts proxy** : 300s (dev/interne), 60s (HTTPS production)
+
+### 24.10 ADR (Architecture Decision Records)
 
 | ADR | Titre | Statut |
 |-----|-------|--------|
