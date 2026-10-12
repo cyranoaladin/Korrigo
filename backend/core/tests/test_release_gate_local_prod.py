@@ -1,4 +1,7 @@
 from pathlib import Path
+import re
+import shlex
+import subprocess
 import sys
 import unittest
 
@@ -22,6 +25,38 @@ def _section(text: str, header: str, next_header: str | None = None) -> str:
 
 
 class ReleaseGateLocalProdContractTests(unittest.TestCase):
+    def test_release_gate_full_suite_uses_postgres_without_marker_exclusions(self):
+        release_gate_text = RELEASE_GATE.read_text()
+        command_line = next(
+            line for line in release_gate_text.splitlines()
+            if line.startswith('run_logged "13_pytest_full" ')
+        )
+        command = shlex.split(command_line)
+
+        self.assertIn("DJANGO_SETTINGS_MODULE=core.settings_test_postgres", command)
+        self.assertIn("pytest", command)
+        pytest_args = command[command.index("pytest") + 1:]
+        self.assertEqual(pytest_args[pytest_args.index("-m") + 1], "")
+
+    def test_release_gate_rejects_only_positive_skipped_counts(self):
+        skip_patterns = re.findall(
+            r"grep -qE '([^']* skipped)'", RELEASE_GATE.read_text()
+        )
+        self.assertEqual(len(skip_patterns), 2)
+
+        for pattern in skip_patterns:
+            for skipped in (0, 1, 17):
+                with self.subTest(pattern=pattern, skipped=skipped):
+                    summary = f"===== 1031 passed, {skipped} skipped in 27.96s =====\n"
+                    result = subprocess.run(
+                        ["grep", "-qE", pattern],
+                        input=summary,
+                        text=True,
+                        capture_output=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, 0 if skipped else 1)
+
     def test_local_prod_celery_mirrors_required_production_env(self):
         compose_text = LOCAL_PROD_COMPOSE.read_text()
         celery_block = _section(compose_text, "\n  celery:\n", "\n  nginx:\n")

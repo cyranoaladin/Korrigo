@@ -219,7 +219,8 @@ run_logged "12_e2e_3runs" bash "$E2E_SCRIPT" "$NGINX_BASE_URL" "$TEST_PROF_PASSW
 log "Phase F: Backend Tests"
 # Override DJANGO_SETTINGS_MODULE for tests: the container env sets
 # core.settings_prod, but pytest-django respects env over pytest.ini.
-run_logged "13_pytest_full" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T -e DJANGO_SETTINGS_MODULE=core.settings_test "$BACKEND_SVC" python -m pytest -v --tb=short -m ""
+# The full suite includes concurrency and schema-default checks requiring PostgreSQL.
+run_logged "13_pytest_full" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T -e DJANGO_SETTINGS_MODULE=core.settings_test_postgres "$BACKEND_SVC" python -m pytest -v --tb=short -m ""
 
 # Extract failing test nodeids if any failures detected
 PYTEST_LOG="$LOG_DIR/13_pytest_full.log"
@@ -238,7 +239,7 @@ if [ -f "$PYTEST_LOG" ]; then
   fi
 
   # Check for skipped tests in pytest summary (zero-tolerance)
-  if grep -qE '=.*\d+ skipped' "$PYTEST_LOG"; then
+  if grep -qE '=.*[1-9][0-9]* skipped' "$PYTEST_LOG"; then
     log "❌ RELEASE GATE FAILED: Tests have skipped tests (zero-tolerance)"
     grep -E '=.*skipped' "$PYTEST_LOG" | tee "$LOG_DIR/13_pytest_skipped.txt"
     exit 1
@@ -273,7 +274,7 @@ if [ -f \"\$pytest_log\" ]; then
     grep -E '^(FAILED|ERROR) ' \"\$pytest_log\" | head -20 || true
   fi
 
-  if grep -qE '=.*\d+ skipped' \"\$pytest_log\"; then
+  if grep -qE '=.*[1-9][0-9]* skipped' \"\$pytest_log\"; then
     echo \"⚠️  SKIPPED TESTS DETECTED\"
     grep -E '=.*skipped' \"\$pytest_log\" || true
   fi
