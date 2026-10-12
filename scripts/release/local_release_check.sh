@@ -131,10 +131,10 @@ import yaml
 
 data = yaml.safe_load(Path("infra/docker/docker-compose.prod.yml").read_text())
 required = {
-    "backend": "korrigo-backend:korrigo-direct-c38a586",
-    "celery": "korrigo-backend:korrigo-direct-c38a586",
-    "celery-beat": "korrigo-backend:korrigo-direct-c38a586",
-    "nginx": "korrigo-nginx:korrigo-direct-ac5487c",
+    "backend": "${KORRIGO_BACKEND_IMAGE:?Set the verified backend image reference}",
+    "celery": "${KORRIGO_BACKEND_IMAGE:?Set the verified backend image reference}",
+    "celery-beat": "${KORRIGO_BACKEND_IMAGE:?Set the verified backend image reference}",
+    "nginx": "${KORRIGO_NGINX_IMAGE:?Set the verified frontend image reference}",
     "db": "postgres:15-alpine",
     "redis": "redis:7-alpine",
 }
