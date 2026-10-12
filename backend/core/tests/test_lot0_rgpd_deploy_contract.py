@@ -19,6 +19,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 DEPLOY_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "deploy.yml"
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 LOCAL_SMOKE = REPO_ROOT / "scripts" / "release" / "local_smoke_e2e.sh"
+LOCAL_RELEASE = REPO_ROOT / "scripts" / "release" / "local_release_check.sh"
 PII_GATE = REPO_ROOT / "scripts" / "ci" / "check_frontend_pii_hashes.py"
 PII_HMAC_GENERATOR = REPO_ROOT / "scripts" / "ci" / "generate_pii_hmac_markers.py"
 BILAN_BAC_BLANC_VIEW = REPO_ROOT / "frontend" / "src" / "views" / "BilanBacBlanc.vue"
@@ -196,16 +197,34 @@ def test_frontend_known_pii_hmac_gate_fails_closed_without_pepper():
 
 
 @pytest.mark.parametrize("pepper", ["inherited-synthetic-sentinel", None])
-def test_local_smoke_pii_gate_preserves_caller_pepper(tmp_path, pepper):
-    lines = LOCAL_SMOKE.read_text().splitlines()
-    gate_line = next(i for i, line in enumerate(lines) if "check_frontend_pii_hashes.py" in line)
-    start = gate_line
-    while start > 0 and lines[start - 1].rstrip().endswith("\\"):
-        start -= 1
-    end = gate_line + 1
-    while lines[end - 1].rstrip().endswith("\\"):
-        end += 1
-    command = "\n".join(lines[start:end])
+@pytest.mark.parametrize(
+    ("caller", "gate_name", "scan_root"),
+    [
+        (LOCAL_SMOKE, None, "public_assets"),
+        (LOCAL_RELEASE, "hmac_source_gate", "frontend/src"),
+        (LOCAL_RELEASE, "hmac_dist_prebuild_gate", "frontend/dist"),
+        (LOCAL_RELEASE, "hmac_dist_postbuild_gate", "frontend/dist"),
+    ],
+    ids=["smoke-assets", "release-source", "release-dist-prebuild", "release-dist-postbuild"],
+)
+def test_release_pii_gates_preserve_caller_pepper(tmp_path, pepper, caller, gate_name, scan_root):
+    lines = caller.read_text().splitlines()
+    if gate_name is None:
+        gate_line = next(i for i, line in enumerate(lines) if "check_frontend_pii_hashes.py" in line)
+        start = gate_line
+        while start > 0 and lines[start - 1].rstrip().endswith("\\"):
+            start -= 1
+        end = gate_line + 1
+        while lines[end - 1].rstrip().endswith("\\"):
+            end += 1
+        command = "\n".join(lines[start:end])
+        expected_scan_root = str(tmp_path / scan_root)
+    else:
+        gate_line = next(line for line in lines if line.strip().startswith(f"run_step {gate_name} "))
+        call = shlex.split(gate_line)
+        assert call[:4] == ["run_step", gate_name, "bash", "-c"]
+        command = call[4]
+        expected_scan_root = scan_root
 
     stub_bin = tmp_path / "bin"
     stub_bin.mkdir()
@@ -229,12 +248,13 @@ def test_local_smoke_pii_gate_preserves_caller_pepper(tmp_path, pepper):
         env.pop("PII_GATE_PEPPER", None)
     else:
         env["PII_GATE_PEPPER"] = pepper
-    result = subprocess.run(["bash", "-c", command], env=env, text=True, capture_output=True, check=False)
+    result = subprocess.run(["bash", "-c", command], cwd=REPO_ROOT, env=env, text=True, capture_output=True, check=False)
 
     assert result.returncode == 0, result.stderr
     call = json.loads(capture.read_text())
     assert call["pepper"] == pepper
-    assert call["args"] == [str(PII_GATE), str(tmp_path / "public_assets")]
+    assert (REPO_ROOT / call["args"][0]).resolve() == PII_GATE
+    assert call["args"][1:] == [expected_scan_root]
     assert not result.stdout
 
 
