@@ -63,6 +63,29 @@ class NetworkRepairTests(unittest.TestCase):
         self.module.ensure_rules(info, run=run, apply=True)
         self.assertEqual(len(writes), 3)
 
-
+    def test_bridge_change_removes_only_stale_rules_owned_by_this_helper(self):
+        info = {'bridge': 'br-current', 'subnet': '172.19.0.0/16'}
+        listings = {
+            'DOCKER-CT': '',
+            'DOCKER-FORWARD': '\n'.join([
+                '-A DOCKER-FORWARD -i br-old -s 172.19.0.0/16 -m comment --comment korrigo-https-egress -j ACCEPT',
+                '-A DOCKER-FORWARD -i br-other -s 172.22.0.0/16 -j ACCEPT',
+                '-A DOCKER-FORWARD -i br-current -s 172.19.0.0/16 -m comment --comment korrigo-https-egress -j ACCEPT',
+            ]),
+            'POSTROUTING': '-A POSTROUTING -s 172.20.0.0/16 ! -o br-current -m comment --comment korrigo-egress-nat -j MASQUERADE',
+        }
+        writes = []
+        def run(command, **kwargs):
+            if '-S' in command:
+                return subprocess.CompletedProcess(command, 0, listings[command[-1]], '')
+            writes.append(command)
+            return subprocess.CompletedProcess(command, 0, '', '')
+        self.assertEqual(self.module.prune_stale_owned_rules(info, run=run, apply=False), 2)
+        self.assertEqual(writes, [])
+        self.assertEqual(self.module.prune_stale_owned_rules(info, run=run, apply=True), 2)
+        self.assertEqual(len(writes), 2)
+        self.assertTrue(all('-D' in command for command in writes))
+        self.assertTrue(all('--comment' in command for command in writes))
+        self.assertFalse(any('br-other' in command or '-F' in command for command in writes))
 if __name__ == '__main__':
     unittest.main()

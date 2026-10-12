@@ -4,6 +4,7 @@ import argparse
 import ipaddress
 import json
 import re
+import shlex
 import subprocess
 
 
@@ -53,6 +54,39 @@ def ensure_rules(info, *, run=subprocess.run, apply=False):
     return changed
 
 
+def prune_stale_owned_rules(info, *, run=subprocess.run, apply=False):
+    """Remove obsolete helper-tagged rules, preserving all Docker/admin rules."""
+    removed = 0
+    owned = [
+        ('filter', 'DOCKER-CT', 'korrigo-https-return', '-o', '-d'),
+        ('filter', 'DOCKER-FORWARD', 'korrigo-https-egress', '-i', '-s'),
+        ('nat', 'POSTROUTING', 'korrigo-egress-nat', '-o', '-s'),
+    ]
+    for table, chain, tag, interface_flag, subnet_flag in owned:
+        prefix = ['iptables', '--wait', '5', '-t', table]
+        result = run(prefix + ['-S', chain], text=True, capture_output=True)
+        if result.returncode:
+            raise RuntimeError('Cannot inspect owned firewall rules')
+        for line in result.stdout.splitlines():
+            parts = shlex.split(line)
+            if parts[:2] != ['-A', chain] or '--comment' not in parts:
+                continue
+            if parts[parts.index('--comment') + 1] != tag:
+                continue
+            if interface_flag not in parts or subnet_flag not in parts:
+                continue
+            bridge = parts[parts.index(interface_flag) + 1]
+            subnet = str(ipaddress.ip_network(parts[parts.index(subnet_flag) + 1]))
+            if bridge == info['bridge'] and subnet == info['subnet']:
+                continue
+            removed += 1
+            if apply:
+                result = run(prefix + ['-D'] + parts[1:], text=True, capture_output=True)
+                if result.returncode:
+                    raise RuntimeError('Cannot remove obsolete owned firewall rule')
+    return removed
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apply', action='store_true', help='Install missing scoped rules')
@@ -60,7 +94,9 @@ def main():
     raw = subprocess.check_output(['docker', 'network', 'inspect', 'docker_default'])
     info = network_details(json.loads(raw)[0])
     changed = ensure_rules(info, apply=args.apply)
-    print(json.dumps({**info, 'mode': 'apply' if args.apply else 'dry-run', 'missing_rules': changed}))
+    stale = prune_stale_owned_rules(info, apply=args.apply)
+    print(json.dumps({**info, 'mode': 'apply' if args.apply else 'dry-run',
+                      'missing_rules': changed, 'stale_owned_rules': stale}))
 
 
 if __name__ == '__main__':
