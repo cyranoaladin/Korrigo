@@ -80,6 +80,10 @@ def main() -> int:
         print("PII_GATE_STATUS=FAIL_MISSING_PEPPER")
         print("PII_HASH_MATCH_COUNT=0")
         return 2
+    if not DENY_HMACS:
+        print("PII_GATE_STATUS=FAIL_MISSING_MARKERS")
+        print("PII_HASH_MATCH_COUNT=0")
+        return 2
 
     root = Path(args.root)
     matches: list[tuple[Path, int, str]] = []

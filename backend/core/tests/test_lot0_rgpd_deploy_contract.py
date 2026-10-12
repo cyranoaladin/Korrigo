@@ -130,22 +130,48 @@ def test_deploy_workflow_is_manual_stub_without_prod_mutations():
         assert snippet not in text
 
 
-def test_frontend_known_pii_hmac_gate_passes_with_pepper():
+def test_frontend_known_pii_hmac_gate_passes_with_pepper(capsys, monkeypatch):
     assert PII_GATE.exists()
-    env = os.environ.copy()
-    env["PII_GATE_PEPPER"] = TEST_PII_PEPPER
-    result = subprocess.run(
-        [sys.executable, str(PII_GATE), "frontend/src"],
-        cwd=REPO_ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-        env=env,
-    )
+    spec = importlib.util.spec_from_file_location("check_frontend_pii_hashes", PII_GATE)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
 
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "PII_HASH_MATCH_COUNT=0" in result.stdout
-    assert TEST_PII_PEPPER not in result.stdout + result.stderr
+    monkeypatch.setenv("PII_GATE_PEPPER", TEST_PII_PEPPER)
+    monkeypatch.setitem(
+        module.DENY_HMACS,
+        module.hmac_digest("Synthetic Test Sentinel", TEST_PII_PEPPER),
+        "synthetic_test_marker",
+    )
+    monkeypatch.setattr(sys, "argv", ["check_frontend_pii_hashes.py", str(FRONTEND_SRC)])
+
+    rc = module.main()
+    output = capsys.readouterr().out
+
+    assert rc == 0, output
+    assert "PII_GATE_STATUS=PASS" in output
+    assert "PII_HASH_MATCH_COUNT=0" in output
+    assert TEST_PII_PEPPER not in output
+
+
+def test_frontend_known_pii_hmac_gate_fails_closed_without_markers(tmp_path, capsys, monkeypatch):
+    spec = importlib.util.spec_from_file_location("check_frontend_pii_hashes", PII_GATE)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    monkeypatch.setenv("PII_GATE_PEPPER", TEST_PII_PEPPER)
+    monkeypatch.setattr(module, "DENY_HMACS", {})
+    monkeypatch.setattr(sys, "argv", ["check_frontend_pii_hashes.py", str(tmp_path)])
+
+    rc = module.main()
+    output = capsys.readouterr().out
+
+    assert rc == 2
+    assert "PII_GATE_STATUS=FAIL_MISSING_MARKERS" in output
+    assert "PII_HASH_MATCH_COUNT=0" in output
+    assert "PII_GATE_STATUS=PASS" not in output
+    assert TEST_PII_PEPPER not in output
 
 
 def test_frontend_known_pii_hmac_gate_fails_closed_without_pepper():
