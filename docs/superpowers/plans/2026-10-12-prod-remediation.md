@@ -74,3 +74,19 @@ External authority unavailable: OVH/ATI domain restoration and OpenRouter provid
 - [x] Reproduce fresh-stack startup before migrations with fake Docker; start healthy DB/Redis and apply explicit one-shot migrations before the application, preserving all subsequent release checks. Four behavioral cases and fourteen existing backend contracts pass.
 - [ ] Review, publish and obtain green checks on the updated PR; merge the tested result and obtain the mandatory manual main release validation.
 - [ ] Publish the exact main archive as canonical server source without recreating already-verified application images; verify archive parity, healthy services, main/local/pointer alignment and final evidence.
+
+## Chunk 8: Reproducible production entrypoints confirmed by PR review
+
+- [x] Verify the review findings against the canonical Compose, environment examples and deployment commands; distinguish valid live settings from incomplete repository defaults.
+- [x] Reproduce missing RAG defaults/token and incomplete bootstrap examples/commands; minimally correct them using the existing proxy renderer and explicit environment/retained-volume inputs.
+- [x] Update the atomic source-publication helper to compare effective Compose JSON entirely in memory; prove rejection of actual drift and acceptance of equivalent defaults with eleven passing transaction/rollback cases.
+- [x] Verify the effective server model is identical; all thirty-four operational tests pass, including the fifteen configuration/entrypoint cases and real read-only Nginx HTTP integration.
+- [x] Complete independent deployment review; no blocking finding remains in the final minimal configuration/entrypoint changes.
+- [ ] Validate the latest PR/main revision.
+- [ ] Preserve a second, encrypted copy of operational secrets and historical backup keys outside the server; verify decryption and transferred archive integrity, keeping key/data outside Git.
+
+## Chunk 9: Backend-only release-test repository layout
+
+- [x] Reproduce the failing repository-root calculation with two real module-loading regressions in separate backend/full-repository layouts, covering the explicit root and mounted `/repo` fallback.
+- [x] Reuse the existing repository-root helper without changing application code or removing privacy assertions; forty-one targeted cases and the complete 1,049-test PostgreSQL suite pass, with no skips in the latter.
+- [x] Independently review final Git evidence and source staging: exact GitHub/local main, green PR/main workflows and mandatory manual main release run are preconditions; independently verify every archived Git blob and file mode before source publication.
