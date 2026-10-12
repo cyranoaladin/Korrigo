@@ -1,0 +1,9 @@
+[Unit]
+Description=Keep Korrigo HTTPS egress bound to the current Docker bridge
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/korrigo-ops/repair_korrigo_egress.py --apply
+TimeoutStartSec=30

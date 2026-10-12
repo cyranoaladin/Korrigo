@@ -1,0 +1,10 @@
+[Unit]
+Description=Recheck Korrigo Docker bridge forwarding rules
+
+[Timer]
+OnBootSec=45s
+OnUnitActiveSec=60s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
