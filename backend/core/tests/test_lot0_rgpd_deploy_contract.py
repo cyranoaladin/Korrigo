@@ -13,9 +13,10 @@ from django.contrib.auth.models import Group, User
 from rest_framework.test import APIClient
 
 from core.auth import UserRole
+from core.tests._repo_paths import repo_root_from
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = repo_root_from(__file__)
 DEPLOY_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "deploy.yml"
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 LOCAL_SMOKE = REPO_ROOT / "scripts" / "release" / "local_smoke_e2e.sh"
