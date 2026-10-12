@@ -23,6 +23,7 @@ class InferenceProxyHTTPTests(unittest.TestCase):
             config.write_text(module.render_proxy((ROOT/'infra/nginx/inference-proxy.conf.template').read_text(),
                               'client-test-token-1234567890', 'upstream-test-token-1234567890'))
             cid = subprocess.check_output(['docker','run','-d','--rm','--entrypoint','nginx',
+                  '--read-only','--tmpfs','/tmp',
                   '-p','127.0.0.1::8001','-v',f'{config}:/etc/nginx/nginx.conf:ro',
                   'nginx:1.30.5-alpine','-g','daemon off;'], text=True).strip()
             try:
