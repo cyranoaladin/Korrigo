@@ -60,10 +60,12 @@ flowchart LR
 - Corpus maths : 78 fragments DNB et 107 Première, quatre références ministérielles ; version 2025–2026 explicite pour les copies existantes. Les collections NSI, français et éducation restent inchangées. Les programmes de Première entrés en vigueur en 2026 doivent être distingués lors de futures importations.
 - Modèles configurés : OCR `openai/gpt-4o-mini`, bilans `anthropic/claude-haiku-4.5`, secours local `qwen2.5:7b`.
 - Secrets Django, DB, Redis, métriques, sauvegardes et recherche RAG renouvelés et vérifiés. Ancienne clé de sauvegarde conservée dans le point de restauration pour déchiffrer les archives historiques. Le changement de secret Django peut nécessiter une reconnexion des utilisateurs.
+- Contrôle de confidentialité frontend réactivé : 2 268 HMAC de référence, étiquettes génériques, clé privée hors Git et secret GitHub associé. Génération à partir des 759 profils élèves uniquement en mémoire serveur, sans exporter les identités. Le contrôle refuse une clé ou une liste vide ; le script de smoke conserve la clé fournie et la CI analyse aussi les fichiers compilés.
+- Validation d'installation neuve : DB/Redis sains, migration explicite dans un conteneur éphémère, puis démarrage applicatif et contrôle ultérieur du schéma. Le garde de démarrage et l'interdiction des migrations automatiques restent actifs. Les échecs initiaux de CI ont été diagnostiqués ; aucune assertion n'a été retirée pour les contourner.
 
 ## Images de production
 
-Backend : `433f4122ec0ad113728cbca408d50d1cfb449649`. Frontend : `364a34fa863341ab5c4e60cd60886f30fe48a385`. Helper réseau déployé : `88ed67b`. Les commits suivants documentent ces versions sans changer leur code exécutable. Comparaison indépendante de **247 fichiers Python exécutables : aucune différence** entre image et archive Git. Les identifiants ci-dessous sont les identifiants de contenu vérifiés sur le serveur, utilisables sans registre ; les couches chargées et les images antérieures sont conservées.
+Backend : `433f4122ec0ad113728cbca408d50d1cfb449649`. Frontend : `364a34fa863341ab5c4e60cd60886f30fe48a385`. Helper réseau déployé : `88ed67b`. Les commits suivants corrigent les contrôles de validation et documentent ces versions sans changer le code applicatif exécuté. Comparaison indépendante de **247 fichiers Python exécutables : aucune différence** entre image et archive Git. Les identifiants ci-dessous sont les identifiants de contenu vérifiés sur le serveur, utilisables sans registre ; les couches chargées et les images antérieures sont conservées.
 
 | Service | Image ID serveur |
 |---|---|
@@ -73,7 +75,7 @@ Backend : `433f4122ec0ad113728cbca408d50d1cfb449649`. Frontend : `364a34fa863341
 
 ## Vérifications
 
-Backend : lot rapide SQLite 1 031 tests passés, 1 ignoré et 3 désélectionnés par les marqueurs habituels ; puis **lot complet PostgreSQL 1 037 tests passés et 6 sous-tests passés, aucun ignoré**, incluant concurrence, défauts SQL, grands PDF et deux nouveaux contrats CI. Frontend **368 tests passés**, compilation, contrôle des types et build Docker réussis. Audits pip/npm : aucune vulnérabilité connue ; Trivy sur l'archive Git : aucune vulnérabilité HIGH/CRITICAL dans les manifests analysés. Lint frontend : aucune erreur, 4 095 avertissements préexistants avant le correctif final ; lint des deux composants modifiés sans erreur. Scripts d’exploitation : **20 tests passés**, dont HTTP réel avec Nginx en lecture seule. Revue indépendante sans P0/P1 restant.
+Backend : lot rapide SQLite 1 031 tests passés, 1 ignoré et 3 désélectionnés par les marqueurs habituels ; puis **lot complet final PostgreSQL 1 047 tests passés, aucun ignoré**, incluant concurrence, défauts SQL, grands PDF et les nouveaux contrats CI/confidentialité (115,03 secondes). Frontend **368 tests passés**, compilation, contrôle des types et build Docker réussis. Audits pip/npm : aucune vulnérabilité connue ; Trivy sur l'archive Git : aucune vulnérabilité HIGH/CRITICAL dans les manifests analysés. Lint frontend : aucune erreur, 4 095 avertissements préexistants avant le correctif final ; lint des deux composants modifiés sans erreur. Scripts d’exploitation : **20 tests passés**, dont HTTP réel avec Nginx en lecture seule ; bootstrap : **4 cas supplémentaires passés** avec faux Docker. Revue indépendante sans P0/P1 restant.
 
 Contrôle de release corrigé : le lot complet utilise les réglages PostgreSQL de la stack CI dédiée, sans exclusion de marqueurs. La détection des résumés avec des tests ignorés a été reproduite puis corrigée ; un nombre strictement positif bloque la release. Ce script réinitialise et peuple une stack isolée de validation : il ne doit pas être exécuté sur la stack de production ou sur un Docker partagé.
 
@@ -92,6 +94,8 @@ Après bascule principale :
 - Timers réseau, sauvegardes DB/médias, surveillance Beat et Certbot actifs. Les mesures décrivent l'état observé après intervention ; elles ne remplacent pas la surveillance continue.
 - Capacité hôte observée : charge à une minute 0,92, environ 53 Go de mémoire disponible et 281 Go de disque libre (69 % utilisés). Aucun signe de saturation lors des essais ; ces ressources sont partagées avec les autres applications du serveur.
 
+Validation GitHub suivie dans la [PR de remise en service nº 8](https://github.com/cyranoaladin/Korrigo/pull/8). La publication sur main exige les contrôles verts de la PR et un Release Gate manuel sur main ; les révisions et résultats définitifs sont consignés dans le manifeste privé de production et les exécutions GitHub. Le one-shot réinitialise sa stack dédiée : il ne doit jamais être lancé sur la production ou le Docker partagé de travail.
+
 ## Exploitation et retour arrière
 
 ```sh
@@ -107,7 +111,7 @@ Retour arrière des images : `/var/lib/korrigo-ops/remediation-20261012/rollback
 
 Sauvegarde immédiate avant intervention : dump PostgreSQL vérifié, 4 950 548 octets. Les sauvegardes/restaurations hors site DB et médias étaient déjà contrôlées ; leurs volumes sont conservés. L’ancien calendrier Beat et la clé GPG historique restent disponibles.
 
-Preuves privées : `candidate-manifest.json`, `image-source-verification.json`, `frontend-rollout-verification.json`, `backup-decryption-verification.json` dans le point de restauration ; preuve du corpus dans `/opt/korrigo-ops/20261012/math-rag-restoration-evidence.json`. Ces fichiers ne doivent pas être remplacés par des sorties non filtrées des environnements.
+Preuves privées : `candidate-manifest.json`, `image-source-verification.json`, `frontend-rollout-verification.json`, `backup-decryption-verification.json`, `pii-gate-verification.json` dans le point de restauration ; preuve du corpus dans `/opt/korrigo-ops/20261012/math-rag-restoration-evidence.json`. Les scans de confidentialité source/build passent ; un canary positif réel en mémoire détecte exactement une occurrence sans identité ni clé dans sa sortie. La clé HMAC est dans `pii-gate-pepper.private` (0600) et le secret GitHub `PII_GATE_PEPPER` ; une régénération doit remplacer ensemble les marqueurs et ce secret. Ces fichiers ne doivent pas être remplacés par des sorties non filtrées des environnements.
 
 ## Actions externes restantes
 

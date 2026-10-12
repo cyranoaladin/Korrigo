@@ -64,3 +64,13 @@ External authority unavailable: OVH/ATI domain restoration and OpenRouter provid
 - [x] Use PostgreSQL test settings backed by the isolated CI stack's existing DATABASE_URL; correct the skipped-summary expression, preserving all tests and the zero-skipped policy.
 - [x] Run contract regressions and the complete backend suite on local isolated PostgreSQL; independently review the minimal script/test diff.
 - [ ] Verify the GitHub push validation run and record its actual outcome separately from live production checks.
+
+## Chunk 7: Complete privacy and fresh-stack validation
+
+- [x] Reproduce the missing privacy secret and empty reference corpus; fail closed for empty markers with a behavioral regression.
+- [x] Generate real HMAC references entirely in server memory, keep the pepper in private operations storage, configure its GitHub secret, and verify source/built-assets scans without exporting identities.
+- [x] Prove a real reference is detected by an in-memory positive canary; verify that checker output contains neither the identity nor the pepper.
+- [x] Reproduce the smoke caller overwriting its pepper and the missing post-build scan; inherit the caller's actual secret and scan the compiled frontend, with targeted RED/GREEN tests.
+- [x] Reproduce fresh-stack startup before migrations with fake Docker; start healthy DB/Redis and apply explicit one-shot migrations before the application, preserving all subsequent release checks. Four behavioral cases and fourteen existing backend contracts pass.
+- [ ] Review, publish and obtain green checks on the updated PR; merge the tested result and obtain the mandatory manual main release validation.
+- [ ] Publish the exact main archive as canonical server source without recreating already-verified application images; verify archive parity, healthy services, main/local/pointer alignment and final evidence.
