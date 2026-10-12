@@ -16,6 +16,7 @@ class RuntimeConfigTests(unittest.TestCase):
             'POSTGRES_DB', 'POSTGRES_USER', 'POSTGRES_PASSWORD', 'REDIS_PASSWORD',
             'SECRET_KEY', 'ALLOWED_HOSTS', 'CORS_ALLOWED_ORIGINS',
             'CSRF_TRUSTED_ORIGINS', 'METRICS_TOKEN', 'BACKUP_GPG_PASSPHRASE',
+            'RAG_TOKEN',
         )})
         cls.backend_image = 'example.invalid/backend@sha256:' + 'a' * 64
         cls.nginx_image = 'example.invalid/nginx@sha256:' + 'b' * 64
@@ -28,6 +29,29 @@ class RuntimeConfigTests(unittest.TestCase):
             str(ROOT / 'infra/docker/docker-compose.prod.yml'), 'config', '--format', 'json',
         ], env=env, text=True, capture_output=True, check=True)
         cls.config = json.loads(result.stdout)
+        cls.env = env
+
+    def test_rag_defaults_to_scoped_proxy(self):
+        for name in ['backend', 'celery', 'celery-beat']:
+            environment = self.config['services'][name]['environment']
+            self.assertEqual(environment['RAG_URL'], 'http://korrigo-rag:8001')
+            self.assertEqual(environment['RAG_TOKEN'], 'synthetic-test-only')
+
+    def test_rag_requires_nonempty_client_credential(self):
+        for token in (None, ''):
+            with self.subTest(token=token):
+                env = self.env.copy()
+                if token is None:
+                    del env['RAG_TOKEN']
+                else:
+                    env['RAG_TOKEN'] = token
+                result = subprocess.run([
+                    'docker', 'compose', '--env-file', '/dev/null', '-f',
+                    str(ROOT / 'infra/docker/docker-compose.prod.yml'), 'config', '--quiet',
+                ], env=env, text=True, capture_output=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('RAG_TOKEN', result.stderr)
+                self.assertEqual(result.stdout, '')
 
     def test_runtime_images_can_be_pinned_without_secret_overrides(self):
         for name in ['backend', 'celery', 'celery-beat']:
