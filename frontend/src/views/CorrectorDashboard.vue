@@ -58,6 +58,7 @@ const exportError = ref(null)
 
 // --- Exam Type Selection ---
 const selectedExamType = ref(null)
+const noExamTypesAvailable = ref(false)
 
 const storedType = localStorage.getItem('korrigo_selected_exam_type')
 if (storedType) {
@@ -66,7 +67,12 @@ if (storedType) {
     } catch (e) { }
 }
 
-const showExamTypeModal = computed(() => !selectedExamType.value)
+const showExamTypeModal = computed(() => !selectedExamType.value && !noExamTypesAvailable.value)
+
+const handleNoExamTypes = () => {
+    noExamTypesAvailable.value = true
+    isLoading.value = false
+}
 
 const handleExamTypeSelect = (type) => {
     selectedExamType.value = type
@@ -1075,6 +1081,7 @@ const canSeeQuestionnaire = computed(() =>
     <ExamTypeSelectionModal
       :visible="showExamTypeModal"
       @select="handleExamTypeSelect"
+      @empty="handleNoExamTypes"
     />
   </div>
 </template>

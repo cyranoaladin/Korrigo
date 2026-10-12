@@ -7,17 +7,19 @@ const props = defineProps({
   visible: Boolean
 })
 
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'empty'])
 
 const examTypes = ref([])
 const loading = ref(true)
 const error = ref('')
 
-const tryAutoSelectSingle = () => {
+const tryResolveSelection = () => {
   if (!props.visible) return
   if (loading.value) return
   if (error.value) return
-  if (examTypes.value.length === 1) {
+  if (examTypes.value.length === 0) {
+    emit('empty')
+  } else if (examTypes.value.length === 1) {
     // UX + E2E: when only one subject exists, avoid blocking the dashboard.
     emit('select', examTypes.value[0])
   }
@@ -32,7 +34,7 @@ onMounted(async () => {
         error.value = "Impossible de charger les types d'examens."
     } finally {
         loading.value = false
-        tryAutoSelectSingle()
+        tryResolveSelection()
     }
 })
 
@@ -41,8 +43,8 @@ const selectType = (examType) => {
 }
 
 watch(() => props.visible, () => {
-  // If the modal becomes visible later (rare), retry auto-select.
-  tryAutoSelectSingle()
+  // If the modal becomes visible later (rare), resolve available types again.
+  tryResolveSelection()
 })
 </script>
 
