@@ -2,6 +2,7 @@ import os
 import base64
 import logging
 from io import BytesIO
+from urllib.parse import urlparse
 from PIL import Image
 from django.conf import settings
 from students.models import Student
@@ -112,7 +113,12 @@ class OCRService:
             if not img_b64:
                 return OCRService._ocr_with_tesseract(image_source)
 
-            model = os.environ.get('OPENAI_MODEL', 'gpt-4.1-mini-2025-04-14')
+            default_model = (
+                'openai/gpt-4o-mini'
+                if urlparse(str(client.base_url)).hostname == 'openrouter.ai'
+                else 'gpt-4o-mini'
+            )
+            model = os.environ.get('OPENAI_MODEL', '').strip() or default_model
 
             response = client.chat.completions.create(
                 model=model,

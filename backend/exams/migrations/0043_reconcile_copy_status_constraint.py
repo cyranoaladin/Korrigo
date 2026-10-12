@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="copy",
             constraint=models.CheckConstraint(
-                check=models.Q(("status__in", ["READY", "IN_PROGRESS", "FINALIZED"])),
+                condition=models.Q(("status__in", ["READY", "IN_PROGRESS", "FINALIZED"])),
                 name="check_copy_status_valid",
             ),
         ),
