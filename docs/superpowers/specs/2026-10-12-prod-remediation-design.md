@@ -25,3 +25,9 @@ Sauvegarder la configuration exacte et un retour arrière avant changement. Test
 ## Dépendances externes
 
 La restauration de la délégation/du renouvellement de `labomaths.tn` exige l'accès au gestionnaire du domaine. La rotation d'une clé OpenRouter nécessite une autorité de gestion, distincte de la clé d'inférence. Ces accès sont recherchés; leur absence doit rester explicite dans le bilan.
+
+## Cas fonctionnel précisé pendant la vérification
+
+Les essais authentifiés ont reproduit un blocage pour un enseignant sans examen ni copie assignés : la liste des types disponibles est vide et la fenêtre de choix masque notamment la déconnexion. Dans le périmètre de remise en fonctionnement autorisé, une réponse réussie contenant une liste vide doit afficher le tableau de bord vide et arrêter le chargement, sans sélection fictive ni requête de copies. Une réponse en erreur ou encore en chargement garde son état actuel ; la sélection automatique d'un seul type et le choix obligatoire entre plusieurs types restent inchangés.
+
+La cohérence des validations comprend le contrôle de release : son lot complet doit utiliser la base PostgreSQL de sa stack locale dédiée, puisque ce lot inclut des tests PostgreSQL et lents. La politique de zéro test ignoré reste obligatoire ; l'expression de détection doit reconnaître une vraie ligne de résumé pytest. Aucune exécution de ce script destructif de réinitialisation/seed n'est autorisée sur la stack de production ou sur le Docker partagé de travail.
