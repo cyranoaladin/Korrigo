@@ -1,0 +1,27 @@
+# Remise en service Korrigo
+
+Validation utilisateur : 12 octobre 2026, autorisation de correction, amélioration et mise en service stable, robuste, cohérente et fonctionnelle.
+
+## Objectif
+
+Rétablir l'accès public et les fonctions métier, rendre le runtime reproductible depuis le dépôt, protéger les données existantes et fournir un état d'exploitation vérifiable.
+
+## État constaté
+
+Le dépôt local et GitHub sont à `4e85f49`. Le répertoire serveur Git `/var/www/labomaths/korrigo_release` est sur une branche divergente à `6131bd4`. Les 249 fichiers Python métier de l'image backend correspondent exactement à `c38a586`; le runtime ajoute un correctif Pillow de septembre. Le frontend est basé sur `ac5487c`. Le dossier `/var/www/labomaths/korrigo` fournit notamment l'environnement serveur.
+
+La base, les médias, les six conteneurs et les sauvegardes sont fonctionnels. Les 733 copies passent le contrôle d'intégrité. Le DNS autoritaire `.tn` renvoie NXDOMAIN pour `labomaths.tn`. Les règles de transfert Docker référencent un ancien pont au lieu du pont actuel Korrigo. Les alias IA ne sont pas joignables depuis Korrigo. Le modèle OCR est vide et le modèle bilan configuré n'apparaît plus dans le catalogue OpenRouter.
+
+## Architecture retenue
+
+Conserver les volumes et le projet Compose `docker`. Corriger les règles réseau uniquement pour le pont Korrigo et les sorties nécessaires, avec un mécanisme idempotent résistant au changement d'identifiant de réseau. Utiliser les services RAG/Ollama déjà présents, après validation des endpoints et modèles, par une connectivité explicite et persistante. Conserver la protection des ports de base de données et de Redis.
+
+Réconcilier Compose et les images par références explicites; sortir les valeurs secrètes des overrides, préserver les anciennes clés de chiffrement des sauvegardes et remplacer les secrets de service quand leur autorité est disponible. Réintroduire les deux fichiers de migration identification perdus par main. Corriger l'OCR face aux variables vides et rendre les builds reproductibles.
+
+## Déploiement et vérification
+
+Sauvegarder la configuration exacte et un retour arrière avant changement. Tester chaque bug de code en RED/GREEN. Contrôler la parité des modèles Compose sans imprimer les environnements. Déployer uniquement les services modifiés, sans suppression de volumes ni reconstruction des bases. Vérifier santé, migrations, worker, intégrité, accès aux dépendances IA, tests authentifiés non destructifs et navigateur desktop/mobile. Le succès complet exige aussi un DNS public normal et une génération IA de contrôle sans données personnelles.
+
+## Dépendances externes
+
+La restauration de la délégation/du renouvellement de `labomaths.tn` exige l'accès au gestionnaire du domaine. La rotation d'une clé OpenRouter nécessite une autorité de gestion, distincte de la clé d'inférence. Ces accès sont recherchés; leur absence doit rester explicite dans le bilan.
