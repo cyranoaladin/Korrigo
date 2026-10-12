@@ -3,7 +3,7 @@ set -euo pipefail
 
 # ==========================================
 # Korrigo — Release Gate "one-shot" runner
-# Build/Boot/Migrate/Seed/E2E/Tests + logs
+# Build/Dependencies/Migrate/Boot/Seed/E2E/Tests + logs
 # Adapted for Korrigo/Korrigo project
 # ==========================================
 
@@ -76,6 +76,11 @@ log "Disk space after build: $(df -h / | tail -1 | awk '{print $4}') free"
 
 # ---- B) Boot stack
 log "Phase B: Boot & Stability"
+# The production entrypoint refuses a fresh schema when auto-migrate is off.
+# Start only the data services, wait for their healthchecks, then migrate in a
+# one-shot container before starting the backend, workers and HTTP services.
+run_logged "02_up_dependencies" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" up -d --wait --wait-timeout 120 db redis
+run_logged "02_migrate_bootstrap" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" run --rm --no-deps -T -e DJANGO_AUTO_MIGRATE=false "$BACKEND_SVC" python manage.py migrate --noinput
 run_logged "02_up" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" up -d
 run_logged "03_ps_initial" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" ps
 
@@ -165,8 +170,8 @@ run_logged "06_stability_180s" bash -c "
 "
 
 # ---- C) Migrations
-log "Phase C: Migrations"
-run_logged "07_migrate" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python manage.py migrate --noinput
+log "Phase C: Migration verification"
+run_logged "07_migrate" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python manage.py migrate --check --noinput
 
 # ---- D) Seed (idempotent x2)
 log "Phase D: Seed (idempotent x2)"
