@@ -1,23 +1,5 @@
 import sys
 import os
-import warnings
-
-"""
-Test settings hardening:
-- Keep warnings strict in pytest.ini (error) with a single targeted ignore there.
-- Add a *minimal* fallback ignore here, in case the warning is emitted during early
-  Django settings initialization (before pytest warning filters fully apply).
-"""
-try:
-    from django.utils.deprecation import RemovedInDjango50Warning
-    warnings.filterwarnings(
-        "ignore",
-        message=r".*SERIALIZE test database setting is deprecated.*",
-        category=RemovedInDjango50Warning,
-    )
-except Exception:
-    # If Django isn't importable yet, do not broaden ignores.
-    pass
 
 from .settings import *
 

@@ -1,7 +1,7 @@
 # Korrigo production compose.
 #
-# Canonical runtime file for Step 3.
-# - Images are pinned by immutable GHCR digest.
+# Canonical runtime file. Pin release image digests in the server environment.
+# - Application image references are mandatory to prevent accidental downgrades.
 # - No overlay or host frontend bind mount is used.
 # - Project name is fixed to keep existing Korrigo container/volume names
 #   such as docker-db-1 and docker_media_volume.
@@ -9,8 +9,27 @@
 name: docker
 
 services:
+  inference-proxy:
+    image: "${KORRIGO_PROXY_IMAGE:-nginx:1.30.5-alpine}"
+    restart: unless-stopped
+    entrypoint: ["nginx", "-g", "daemon off;"]
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - "${KORRIGO_PROXY_CONFIG:?Set the private inference proxy config}:/etc/nginx/nginx.conf:ro"
+    networks:
+      korrigo_ai:
+        aliases: [korrigo-rag, korrigo-ollama]
+      rag_upstream:
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
   db:
-    image: postgres:15-alpine
+    image: "${KORRIGO_DB_IMAGE:-postgres:15-alpine}"
     restart: unless-stopped
     ports:
       - "127.0.0.1:5432:5432"
@@ -27,11 +46,14 @@ services:
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    image: "${KORRIGO_REDIS_IMAGE:-redis:7-alpine}"
     restart: unless-stopped
     command: >-
-      sh -c "exec redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+      sh -c "exec redis-server --maxmemory 256mb --maxmemory-policy noeviction
+      --appendonly yes --appendfsync everysec
       --requirepass $$REDIS_PASSWORD"
+    volumes:
+      - redis_data:/data
     environment:
       REDIS_PASSWORD: "${REDIS_PASSWORD:?err}"
     healthcheck:
@@ -42,11 +64,14 @@ services:
       retries: 10
 
   backend:
-    image: korrigo-backend:korrigo-direct-c38a586
+    image: "${KORRIGO_BACKEND_IMAGE:?Set the verified backend image reference}"
     restart: unless-stopped
     command: gunicorn core.wsgi:application -c gunicorn_config.py
     expose:
       - "8000"
+    networks:
+      - default
+      - korrigo_ai
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -98,8 +123,10 @@ services:
       BILAN_REQUIRE_RAG: "${BILAN_REQUIRE_RAG:-}"
       BILAN_ALLOW_OLLAMA_FALLBACK: "${BILAN_ALLOW_OLLAMA_FALLBACK:-}"
       BILAN_OLLAMA_MODEL: "${BILAN_OLLAMA_MODEL:-}"
-      RAG_URL: "${RAG_URL:-}"
-      RAG_TOKEN: "${RAG_TOKEN:-}"
+      OLLAMA_URL: "${OLLAMA_URL:-http://korrigo-ollama:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-qwen2.5:7b}"
+      RAG_URL: "${RAG_URL:-http://korrigo-rag:8001}"
+      RAG_TOKEN: "${RAG_TOKEN:?Set the scoped inference proxy client token}"
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
       XDG_CACHE_HOME: "/app/.cache"
       EASYOCR_MODULE_PATH: "/app/.cache/easyocr"
@@ -112,9 +139,12 @@ services:
       start_period: 120s
 
   celery:
-    image: korrigo-backend:korrigo-direct-c38a586
+    image: "${KORRIGO_BACKEND_IMAGE:?Set the verified backend image reference}"
     restart: unless-stopped
     command: celery -A core worker -l info --concurrency=4 --max-tasks-per-child=100
+    networks:
+      - default
+      - korrigo_ai
     volumes:
       - media_volume:/app/media
       - backup_volume:/app/backups
@@ -160,8 +190,10 @@ services:
       BILAN_REQUIRE_RAG: "${BILAN_REQUIRE_RAG:-}"
       BILAN_ALLOW_OLLAMA_FALLBACK: "${BILAN_ALLOW_OLLAMA_FALLBACK:-}"
       BILAN_OLLAMA_MODEL: "${BILAN_OLLAMA_MODEL:-}"
-      RAG_URL: "${RAG_URL:-}"
-      RAG_TOKEN: "${RAG_TOKEN:-}"
+      OLLAMA_URL: "${OLLAMA_URL:-http://korrigo-ollama:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-qwen2.5:7b}"
+      RAG_URL: "${RAG_URL:-http://korrigo-rag:8001}"
+      RAG_TOKEN: "${RAG_TOKEN:?Set the scoped inference proxy client token}"
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
       XDG_CACHE_HOME: "/app/.cache"
       EASYOCR_MODULE_PATH: "/app/.cache/easyocr"
@@ -174,9 +206,12 @@ services:
       start_period: 30s
 
   celery-beat:
-    image: korrigo-backend:korrigo-direct-c38a586
+    image: "${KORRIGO_BACKEND_IMAGE:?Set the verified backend image reference}"
     restart: unless-stopped
-    command: celery -A core beat -l info
+    command: celery -A core beat -l info --schedule /app/.cache/nexus-celerybeat/celerybeat-schedule
+    networks:
+      - default
+      - korrigo_ai
     volumes:
       - media_volume:/app/media
       - backup_volume:/app/backups
@@ -220,8 +255,10 @@ services:
       BILAN_REQUIRE_RAG: "${BILAN_REQUIRE_RAG:-}"
       BILAN_ALLOW_OLLAMA_FALLBACK: "${BILAN_ALLOW_OLLAMA_FALLBACK:-}"
       BILAN_OLLAMA_MODEL: "${BILAN_OLLAMA_MODEL:-}"
-      RAG_URL: "${RAG_URL:-}"
-      RAG_TOKEN: "${RAG_TOKEN:-}"
+      OLLAMA_URL: "${OLLAMA_URL:-http://korrigo-ollama:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-qwen2.5:7b}"
+      RAG_URL: "${RAG_URL:-http://korrigo-rag:8001}"
+      RAG_TOKEN: "${RAG_TOKEN:?Set the scoped inference proxy client token}"
       PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: "True"
       XDG_CACHE_HOME: "/app/.cache"
       EASYOCR_MODULE_PATH: "/app/.cache/easyocr"
@@ -234,7 +271,7 @@ services:
       start_period: 30s
 
   nginx:
-    image: korrigo-nginx:korrigo-direct-ac5487c
+    image: "${KORRIGO_NGINX_IMAGE:?Set the verified frontend image reference}"
     restart: unless-stopped
     ports:
       - "127.0.0.1:8088:80"
@@ -256,3 +293,15 @@ volumes:
   media_volume:
   backup_volume:
   ocr_cache:
+  redis_data:
+    external: true
+    name: "${KORRIGO_REDIS_VOLUME:?Set the existing Redis volume name}"
+
+networks:
+  default:
+  korrigo_ai:
+    external: true
+    name: korrigo_ai
+  rag_upstream:
+    external: true
+    name: compose_rag_ui_net

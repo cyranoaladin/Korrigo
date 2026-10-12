@@ -611,7 +611,7 @@ class PeerReviewCorrection(models.Model):
             models.UniqueConstraint(fields=['exam', 'source_copy'], name='uniq_peer_review_exam_source_copy'),
             models.UniqueConstraint(fields=['exam', 'assigned_student'], name='uniq_peer_review_exam_assigned_student'),
             models.CheckConstraint(
-                check=models.Q(status__in=['NOT_STARTED', 'IN_PROGRESS', 'FINALIZED']),
+                condition=models.Q(status__in=['NOT_STARTED', 'IN_PROGRESS', 'FINALIZED']),
                 name='check_peer_review_status_valid',
             ),
         ]

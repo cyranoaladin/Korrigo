@@ -1,13 +1,13 @@
 # Stage 1: Build the Frontend
-FROM node:20-alpine as builder
+FROM node:22.23.3-alpine AS builder
 WORKDIR /app
 COPY frontend/package*.json ./
-RUN npm install
+RUN npm ci
 COPY frontend/ .
 RUN npm run build
 
 # Stage 2: Serve with Nginx
-FROM nginx:1.25-alpine
+FROM nginx:1.30.5-alpine
 
 RUN rm /etc/nginx/conf.d/default.conf
 COPY infra/nginx/nginx.conf /etc/nginx/conf.d/

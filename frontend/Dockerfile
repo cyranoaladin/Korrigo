@@ -1,5 +1,5 @@
 # Stage 1: Base (Node + Deps)
-FROM node:20-slim AS base
+FROM node:22.23.3-slim AS base
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
@@ -18,7 +18,7 @@ ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
 # Stage 4: Production (Nginx)
-FROM nginx:1.25-alpine AS production
+FROM nginx:1.30.5-alpine AS production
 RUN rm -rf /usr/share/nginx/html/*
 COPY --from=builder /app/dist /usr/share/nginx/html
 RUN echo 'server { \

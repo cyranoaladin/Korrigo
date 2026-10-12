@@ -92,11 +92,11 @@ cd "$ROOT_DIR"
 run_step git_status bash -c 'git status --short --branch && test -z "$(git status --porcelain)"'
 run_step git_diff_check git diff --check
 
-run_step hmac_source_gate bash -c 'PII_GATE_PEPPER="test-pepper-not-secret" python scripts/ci/check_frontend_pii_hashes.py frontend/src'
+run_step hmac_source_gate bash -c 'python scripts/ci/check_frontend_pii_hashes.py frontend/src'
 HMAC_SOURCE_STATUS=PASS
 
 if [ -d frontend/dist ]; then
-  run_step hmac_dist_prebuild_gate bash -c 'PII_GATE_PEPPER="test-pepper-not-secret" python scripts/ci/check_frontend_pii_hashes.py frontend/dist'
+  run_step hmac_dist_prebuild_gate bash -c 'python scripts/ci/check_frontend_pii_hashes.py frontend/dist'
 else
   echo "STEP_SKIP=hmac_dist_prebuild_gate reason=frontend_dist_missing"
 fi
@@ -131,10 +131,10 @@ import yaml
 
 data = yaml.safe_load(Path("infra/docker/docker-compose.prod.yml").read_text())
 required = {
-    "backend": "korrigo-backend:korrigo-direct-c38a586",
-    "celery": "korrigo-backend:korrigo-direct-c38a586",
-    "celery-beat": "korrigo-backend:korrigo-direct-c38a586",
-    "nginx": "korrigo-nginx:korrigo-direct-ac5487c",
+    "backend": "${KORRIGO_BACKEND_IMAGE:?Set the verified backend image reference}",
+    "celery": "${KORRIGO_BACKEND_IMAGE:?Set the verified backend image reference}",
+    "celery-beat": "${KORRIGO_BACKEND_IMAGE:?Set the verified backend image reference}",
+    "nginx": "${KORRIGO_NGINX_IMAGE:?Set the verified frontend image reference}",
     "db": "postgres:15-alpine",
     "redis": "redis:7-alpine",
 }
@@ -161,7 +161,7 @@ FRONTEND_TEST_STATUS=PASS
 run_step frontend_build bash -c 'cd frontend && npm run build'
 FRONTEND_BUILD_STATUS=PASS
 
-run_step hmac_dist_postbuild_gate bash -c 'PII_GATE_PEPPER="test-pepper-not-secret" python scripts/ci/check_frontend_pii_hashes.py frontend/dist'
+run_step hmac_dist_postbuild_gate bash -c 'python scripts/ci/check_frontend_pii_hashes.py frontend/dist'
 HMAC_DIST_STATUS=PASS
 
 run_step e2e_discovery bash -c 'find . -maxdepth 3 -type f \( -name "playwright.config.*" -o -name "cypress.config.*" -o -name "vitest.config.*" \) -print && python - <<PY

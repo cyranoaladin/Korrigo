@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "WARNING: this will remove volumes (-v) and delete the local postgres data."
-docker compose -f infra/docker/docker-compose.prod.yml down -v
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec bash "$script_dir/prod_compose.sh" down "$@"

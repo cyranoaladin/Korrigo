@@ -12,8 +12,6 @@ REPO_ROOT = repo_root_from(__file__)
 RELEASE_GATE = REPO_ROOT / "scripts" / "release_gate_oneshot.sh"
 RELEASE_GATE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-gate.yml"
 KORRIGO_CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "korrigo-ci.yml"
-PIP_AUDIT_GATE = REPO_ROOT / "backend" / "scripts" / "run_pip_audit_gate.sh"
-REQUIREMENTS = REPO_ROOT / "backend" / "requirements.txt"
 
 
 class CIGateContractTests(unittest.TestCase):
@@ -34,14 +32,7 @@ class CIGateContractTests(unittest.TestCase):
 
     def test_security_gate_uses_pip_audit_wrapper(self):
         workflow_text = KORRIGO_CI_WORKFLOW.read_text()
-        script_text = PIP_AUDIT_GATE.read_text()
-        requirements_text = REQUIREMENTS.read_text()
-
         self.assertIn("./scripts/run_pip_audit_gate.sh", workflow_text)
-        self.assertIn('if [ "$DJANGO_VERSION" = "4.2.30" ]', script_text)
-        self.assertIn("CVE-2026-33034", script_text)
-        self.assertIn("CVE-2026-4539", script_text)
-        self.assertIn("django==4.2.30", requirements_text)
 
 
 if __name__ == "__main__":

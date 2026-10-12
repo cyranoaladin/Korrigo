@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-docker compose -f infra/docker/docker-compose.prod.yml up --build "$@"
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+bash "$script_dir/prod_compose.sh" config --quiet
+exec bash "$script_dir/prod_compose.sh" up --no-build --wait -d "$@"

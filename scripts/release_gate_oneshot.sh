@@ -3,7 +3,7 @@ set -euo pipefail
 
 # ==========================================
 # Korrigo — Release Gate "one-shot" runner
-# Build/Boot/Migrate/Seed/E2E/Tests + logs
+# Build/Dependencies/Migrate/Boot/Seed/E2E/Tests + logs
 # Adapted for Korrigo/Korrigo project
 # ==========================================
 
@@ -76,6 +76,11 @@ log "Disk space after build: $(df -h / | tail -1 | awk '{print $4}') free"
 
 # ---- B) Boot stack
 log "Phase B: Boot & Stability"
+# The production entrypoint refuses a fresh schema when auto-migrate is off.
+# Start only the data services, wait for their healthchecks, then migrate in a
+# one-shot container before starting the backend, workers and HTTP services.
+run_logged "02_up_dependencies" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" up -d --wait --wait-timeout 120 db redis
+run_logged "02_migrate_bootstrap" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" run --rm --no-deps -T -e DJANGO_AUTO_MIGRATE=false "$BACKEND_SVC" python manage.py migrate --noinput
 run_logged "02_up" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" up -d
 run_logged "03_ps_initial" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" ps
 
@@ -165,8 +170,8 @@ run_logged "06_stability_180s" bash -c "
 "
 
 # ---- C) Migrations
-log "Phase C: Migrations"
-run_logged "07_migrate" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python manage.py migrate --noinput
+log "Phase C: Migration verification"
+run_logged "07_migrate" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T "$BACKEND_SVC" python manage.py migrate --check --noinput
 
 # ---- D) Seed (idempotent x2)
 log "Phase D: Seed (idempotent x2)"
@@ -219,7 +224,8 @@ run_logged "12_e2e_3runs" bash "$E2E_SCRIPT" "$NGINX_BASE_URL" "$TEST_PROF_PASSW
 log "Phase F: Backend Tests"
 # Override DJANGO_SETTINGS_MODULE for tests: the container env sets
 # core.settings_prod, but pytest-django respects env over pytest.ini.
-run_logged "13_pytest_full" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T -e DJANGO_SETTINGS_MODULE=core.settings_test "$BACKEND_SVC" python -m pytest -v --tb=short -m ""
+# The full suite includes concurrency and schema-default checks requiring PostgreSQL.
+run_logged "13_pytest_full" docker compose --env-file "$COMPOSE_ENV_FILE" -f "$COMPOSE_FILE" exec -T -e DJANGO_SETTINGS_MODULE=core.settings_test_postgres "$BACKEND_SVC" python -m pytest -v --tb=short -m ""
 
 # Extract failing test nodeids if any failures detected
 PYTEST_LOG="$LOG_DIR/13_pytest_full.log"
@@ -238,7 +244,7 @@ if [ -f "$PYTEST_LOG" ]; then
   fi
 
   # Check for skipped tests in pytest summary (zero-tolerance)
-  if grep -qE '=.*\d+ skipped' "$PYTEST_LOG"; then
+  if grep -qE '=.*[1-9][0-9]* skipped' "$PYTEST_LOG"; then
     log "❌ RELEASE GATE FAILED: Tests have skipped tests (zero-tolerance)"
     grep -E '=.*skipped' "$PYTEST_LOG" | tee "$LOG_DIR/13_pytest_skipped.txt"
     exit 1
@@ -273,7 +279,7 @@ if [ -f \"\$pytest_log\" ]; then
     grep -E '^(FAILED|ERROR) ' \"\$pytest_log\" | head -20 || true
   fi
 
-  if grep -qE '=.*\d+ skipped' \"\$pytest_log\"; then
+  if grep -qE '=.*[1-9][0-9]* skipped' \"\$pytest_log\"; then
     echo \"⚠️  SKIPPED TESTS DETECTED\"
     grep -E '=.*skipped' \"\$pytest_log\" || true
   fi

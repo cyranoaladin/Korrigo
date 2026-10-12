@@ -127,7 +127,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='peerreviewcorrection',
-            constraint=models.CheckConstraint(check=models.Q(('status__in', ['NOT_STARTED', 'IN_PROGRESS', 'FINALIZED'])), name='check_peer_review_status_valid'),
+            constraint=models.CheckConstraint(condition=models.Q(('status__in', ['NOT_STARTED', 'IN_PROGRESS', 'FINALIZED'])), name='check_peer_review_status_valid'),
         ),
         migrations.AddIndex(
             model_name='peerreviewannotation',

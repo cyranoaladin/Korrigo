@@ -1,5 +1,5 @@
-django==4.2.30
-djangorestframework>=3.15.1,<4.0
+django==5.2.18
+djangorestframework>=3.17.2,<4.0
 drf-spectacular==0.27.1
 opencv-python-headless>=4.10.0,<5.0
 pdf2image>=1.16.0,<2.0
@@ -8,7 +8,7 @@ celery>=5.3.6,<6.0
 redis>=5.0.1,<6.0
 django-cors-headers>=4.3.1,<5.0
 python-dotenv>=1.0.0,<2.0
-gunicorn>=21.2.0,<23.0
+gunicorn==26.2.0
 PyMuPDF>=1.24.11,<2.0
 dj-database-url>=2.1.0,<3.0
 django-ratelimit==4.1.0
@@ -16,9 +16,8 @@ python-magic==0.4.27
 django-csp==3.8
 python-json-logger==2.0.7
 prometheus-client==0.19.0
-# SECURITY: GHSA-cfh3-3jmp-rvhc (PSD OOB write, affects >=10.3.0)
-# Fixed in Pillow 12.1.1
-Pillow>=12.1.1
+# Security fixes through Pillow 12.3.0; defer the next major until validated.
+Pillow>=12.3.0,<13.0
 numpy<2.0.0
 tenacity<9.0.0
 pytesseract>=0.3.10
@@ -26,3 +25,6 @@ pytesseract>=0.3.10
 openai>=1.30.0,<2.0
 # Direct dependency (RAG retriever + ingestion utilities)
 httpx>=0.27.0
+# Transitive security floors (OpenAI/httpx and Django).
+anyio>=4.14.2,<5.0
+sqlparse>=0.6.0,<1.0

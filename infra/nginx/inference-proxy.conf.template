@@ -1,0 +1,46 @@
+worker_processes 1;
+pid /tmp/nginx.pid;
+error_log /dev/stderr warn;
+events { worker_connections 256; }
+http {
+    access_log off;
+    client_body_temp_path /tmp/client;
+    proxy_temp_path /tmp/proxy;
+    fastcgi_temp_path /tmp/fastcgi;
+    uwsgi_temp_path /tmp/uwsgi;
+    scgi_temp_path /tmp/scgi;
+    resolver 127.0.0.11 valid=15s ipv6=off;
+    server {
+        listen 8001;
+        client_max_body_size 128k;
+        location = /health { return 200 'ok'; }
+        location = /search {
+            if ($http_authorization !~ "^Bearer __KORRIGO_SEARCH_TOKEN__$") { return 401; }
+            limit_except POST { deny all; }
+            set $rag_upstream http://ingestor:8001;
+            proxy_pass $rag_upstream;
+            proxy_set_header Authorization "Bearer __KORRIGO_UPSTREAM_TOKEN__";
+            proxy_connect_timeout 10s;
+            proxy_read_timeout 90s;
+        }
+        location / { return 404; }
+    }
+    server {
+        listen 11434;
+        client_max_body_size 2m;
+        location = /api/tags {
+            limit_except GET { deny all; }
+            set $ollama_upstream http://ollama:11434;
+            proxy_pass $ollama_upstream;
+        }
+        location = /api/generate {
+            limit_except POST { deny all; }
+            set $ollama_upstream http://ollama:11434;
+            proxy_pass $ollama_upstream;
+            proxy_connect_timeout 10s;
+            proxy_read_timeout 300s;
+            proxy_buffering off;
+        }
+        location / { return 404; }
+    }
+}

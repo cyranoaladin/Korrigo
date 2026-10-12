@@ -18,7 +18,7 @@ def _section(text: str, header: str, next_header: str | None = None) -> str:
 
 
 class ProdComposeContractTests(unittest.TestCase):
-    def test_release_images_are_explicit_direct_runtime_tags(self):
+    def test_release_images_require_explicit_verified_references(self):
         compose_text = PROD_COMPOSE.read_text()
         backend_block = _section(compose_text, "\n  backend:\n", "\n  celery:\n")
         celery_block = _section(compose_text, "\n  celery:\n", "\n  celery-beat:\n")
@@ -27,14 +27,14 @@ class ProdComposeContractTests(unittest.TestCase):
 
         for block in (backend_block, celery_block, beat_block):
             self.assertIn(
-                "image: korrigo-backend:korrigo-direct-c38a586",
+                'image: "${KORRIGO_BACKEND_IMAGE:?Set the verified backend image reference}"',
                 block,
             )
             self.assertNotIn("${KORRIGO_SHA", block)
             self.assertNotIn(":latest", block)
 
         self.assertIn(
-            "image: korrigo-nginx:korrigo-direct-ac5487c",
+            'image: "${KORRIGO_NGINX_IMAGE:?Set the verified frontend image reference}"',
             nginx_block,
         )
         self.assertNotIn("${KORRIGO_SHA", nginx_block)

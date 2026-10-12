@@ -1,7 +1,9 @@
 from pathlib import Path
 import importlib.util
+import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 
@@ -11,10 +13,14 @@ from django.contrib.auth.models import Group, User
 from rest_framework.test import APIClient
 
 from core.auth import UserRole
+from core.tests._repo_paths import repo_root_from
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = repo_root_from(__file__)
 DEPLOY_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "deploy.yml"
+CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
+LOCAL_SMOKE = REPO_ROOT / "scripts" / "release" / "local_smoke_e2e.sh"
+LOCAL_RELEASE = REPO_ROOT / "scripts" / "release" / "local_release_check.sh"
 PII_GATE = REPO_ROOT / "scripts" / "ci" / "check_frontend_pii_hashes.py"
 PII_HMAC_GENERATOR = REPO_ROOT / "scripts" / "ci" / "generate_pii_hmac_markers.py"
 BILAN_BAC_BLANC_VIEW = REPO_ROOT / "frontend" / "src" / "views" / "BilanBacBlanc.vue"
@@ -130,22 +136,48 @@ def test_deploy_workflow_is_manual_stub_without_prod_mutations():
         assert snippet not in text
 
 
-def test_frontend_known_pii_hmac_gate_passes_with_pepper():
+def test_frontend_known_pii_hmac_gate_passes_with_pepper(capsys, monkeypatch):
     assert PII_GATE.exists()
-    env = os.environ.copy()
-    env["PII_GATE_PEPPER"] = TEST_PII_PEPPER
-    result = subprocess.run(
-        [sys.executable, str(PII_GATE), "frontend/src"],
-        cwd=REPO_ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-        env=env,
-    )
+    spec = importlib.util.spec_from_file_location("check_frontend_pii_hashes", PII_GATE)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
 
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "PII_HASH_MATCH_COUNT=0" in result.stdout
-    assert TEST_PII_PEPPER not in result.stdout + result.stderr
+    monkeypatch.setenv("PII_GATE_PEPPER", TEST_PII_PEPPER)
+    monkeypatch.setitem(
+        module.DENY_HMACS,
+        module.hmac_digest("Synthetic Test Sentinel", TEST_PII_PEPPER),
+        "synthetic_test_marker",
+    )
+    monkeypatch.setattr(sys, "argv", ["check_frontend_pii_hashes.py", str(FRONTEND_SRC)])
+
+    rc = module.main()
+    output = capsys.readouterr().out
+
+    assert rc == 0, output
+    assert "PII_GATE_STATUS=PASS" in output
+    assert "PII_HASH_MATCH_COUNT=0" in output
+    assert TEST_PII_PEPPER not in output
+
+
+def test_frontend_known_pii_hmac_gate_fails_closed_without_markers(tmp_path, capsys, monkeypatch):
+    spec = importlib.util.spec_from_file_location("check_frontend_pii_hashes", PII_GATE)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    monkeypatch.setenv("PII_GATE_PEPPER", TEST_PII_PEPPER)
+    monkeypatch.setattr(module, "DENY_HMACS", {})
+    monkeypatch.setattr(sys, "argv", ["check_frontend_pii_hashes.py", str(tmp_path)])
+
+    rc = module.main()
+    output = capsys.readouterr().out
+
+    assert rc == 2
+    assert "PII_GATE_STATUS=FAIL_MISSING_MARKERS" in output
+    assert "PII_HASH_MATCH_COUNT=0" in output
+    assert "PII_GATE_STATUS=PASS" not in output
+    assert TEST_PII_PEPPER not in output
 
 
 def test_frontend_known_pii_hmac_gate_fails_closed_without_pepper():
@@ -163,6 +195,86 @@ def test_frontend_known_pii_hmac_gate_fails_closed_without_pepper():
 
     assert result.returncode != 0
     assert "PII_GATE_STATUS=FAIL_MISSING_PEPPER" in result.stdout
+
+
+@pytest.mark.parametrize("pepper", ["inherited-synthetic-sentinel", None])
+@pytest.mark.parametrize(
+    ("caller", "gate_name", "scan_root"),
+    [
+        (LOCAL_SMOKE, None, "public_assets"),
+        (LOCAL_RELEASE, "hmac_source_gate", "frontend/src"),
+        (LOCAL_RELEASE, "hmac_dist_prebuild_gate", "frontend/dist"),
+        (LOCAL_RELEASE, "hmac_dist_postbuild_gate", "frontend/dist"),
+    ],
+    ids=["smoke-assets", "release-source", "release-dist-prebuild", "release-dist-postbuild"],
+)
+def test_release_pii_gates_preserve_caller_pepper(tmp_path, pepper, caller, gate_name, scan_root):
+    lines = caller.read_text().splitlines()
+    if gate_name is None:
+        gate_line = next(i for i, line in enumerate(lines) if "check_frontend_pii_hashes.py" in line)
+        start = gate_line
+        while start > 0 and lines[start - 1].rstrip().endswith("\\"):
+            start -= 1
+        end = gate_line + 1
+        while lines[end - 1].rstrip().endswith("\\"):
+            end += 1
+        command = "\n".join(lines[start:end])
+        expected_scan_root = str(tmp_path / scan_root)
+    else:
+        gate_line = next(line for line in lines if line.strip().startswith(f"run_step {gate_name} "))
+        call = shlex.split(gate_line)
+        assert call[:4] == ["run_step", gate_name, "bash", "-c"]
+        command = call[4]
+        expected_scan_root = scan_root
+
+    stub_bin = tmp_path / "bin"
+    stub_bin.mkdir()
+    capture = tmp_path / "pii-call.json"
+    stub = stub_bin / "python"
+    stub.write_text(
+        f"#!{sys.executable}\n"
+        "import json, os, sys\n"
+        "from pathlib import Path\n"
+        "Path(os.environ['PII_STUB_CAPTURE']).write_text(json.dumps({"
+        "'args': sys.argv[1:], 'pepper': os.environ.get('PII_GATE_PEPPER')}))\n"
+    )
+    stub.chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = str(stub_bin) + os.pathsep + env.get("PATH", "")
+    env["ROOT_DIR"] = str(REPO_ROOT)
+    env["WORK_DIR"] = str(tmp_path)
+    env["PII_STUB_CAPTURE"] = str(capture)
+    if pepper is None:
+        env.pop("PII_GATE_PEPPER", None)
+    else:
+        env["PII_GATE_PEPPER"] = pepper
+    result = subprocess.run(["bash", "-c", command], cwd=REPO_ROOT, env=env, text=True, capture_output=True, check=False)
+
+    assert result.returncode == 0, result.stderr
+    call = json.loads(capture.read_text())
+    assert call["pepper"] == pepper
+    assert (REPO_ROOT / call["args"][0]).resolve() == PII_GATE
+    assert call["args"][1:] == [expected_scan_root]
+    assert not result.stdout
+
+
+def test_frontend_build_pii_gate_scans_dist_with_repository_secret():
+    frontend_job = yaml.safe_load(CI_WORKFLOW.read_text())["jobs"]["frontend"]
+    steps = frontend_job["steps"]
+    build_index = next(i for i, step in enumerate(steps) if step.get("run") == "npm run build")
+    gate_steps = [(i, step) for i, step in enumerate(steps) if "check_frontend_pii_hashes.py" in step.get("run", "")]
+
+    assert len(gate_steps) == 1
+    gate_index, gate = gate_steps[0]
+    assert gate_index > build_index
+    assert gate["env"]["PII_GATE_PEPPER"] == "${{ secrets.PII_GATE_PEPPER }}"
+    command = shlex.split(gate["run"])
+    assert command[0] in {"python", "python3"}
+    assert len(command) == 3
+    working_directory = REPO_ROOT / frontend_job["defaults"]["run"]["working-directory"]
+    assert (working_directory / command[1]).resolve() == PII_GATE
+    assert (working_directory / command[2]).resolve() == REPO_ROOT / "frontend" / "dist"
 
 
 def test_bilan_bac_blanc_uses_server_capability_without_hardcoded_direction_emails():

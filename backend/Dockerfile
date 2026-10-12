@@ -5,7 +5,7 @@ WORKDIR /app
 ARG INSTALL_DEV_REQUIREMENTS=false
 
 # Install system dependencies for OpenCV and PDF processing
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     libgl1 \
     libglib2.0-0 \
     poppler-utils \
@@ -18,7 +18,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt requirements-dev.txt ./
-RUN pip install --no-cache-dir -r requirements.txt \
+RUN pip install --no-cache-dir --upgrade 'pip>=26.2' 'setuptools>=83' 'wheel>=0.46.2' \
+    && pip install --no-cache-dir -r requirements.txt \
     && if [ "$INSTALL_DEV_REQUIREMENTS" = "true" ]; then pip install --no-cache-dir -r requirements-dev.txt; fi
 
 COPY . .
