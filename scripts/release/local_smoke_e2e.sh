@@ -308,8 +308,7 @@ while read -r asset; do
   curl -fsS "${FRONTEND_URL}${asset}" -o "$WORK_DIR/public_assets/$(basename "$asset")"
 done < "$WORK_DIR/assets.txt"
 
-PII_GATE_PEPPER="test-pepper-not-secret" \
-  python "$ROOT_DIR/scripts/ci/check_frontend_pii_hashes.py" "$WORK_DIR/public_assets" \
+python "$ROOT_DIR/scripts/ci/check_frontend_pii_hashes.py" "$WORK_DIR/public_assets" \
   > "$WORK_DIR/public_asset_pii_gate.log"
 cat "$WORK_DIR/public_asset_pii_gate.log"
 

@@ -54,6 +54,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check built frontend known PII HMAC markers
+        env:
+          PII_GATE_PEPPER: ${{ secrets.PII_GATE_PEPPER }}
+        run: python ../scripts/ci/check_frontend_pii_hashes.py dist
+
   # ─── Backend: pytest ───
   backend:
     name: Backend (pytest)
